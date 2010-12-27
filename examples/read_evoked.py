@@ -18,5 +18,8 @@ fname = 'sm02a1-ave.fif'
 # is_tree(meas)
 # meas_info = fiff.tree.dir_tree_find(meas, fiff.FIFF.FIFFB_MEAS_INFO)
 
-data = fiff.read_evoked(fname, setno=0)
+data = fiff.read_evoked(fname)
 
+# import pylab as pl
+# pl.plot(data['evoked']['times'], data['evoked']['epochs'][:306,:].T)
+# pl.show()

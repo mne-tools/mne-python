@@ -25,7 +25,7 @@ def read_proj(fid, node):
 
     tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
     if tag is not None:
-        global_nchan = tag.data;
+        global_nchan = tag.data
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
     for i in range(len(items)):
@@ -72,13 +72,13 @@ def read_proj(fid, node):
         else:
             raise ValueError, 'Projection item channel list missing'
 
-        tag = find_tag(fid, item,FIFF.FIFF_PROJ_ITEM_VECTORS);
+        tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_VECTORS);
         if tag is not None:
             data = tag.data;
         else:
             raise ValueError, 'Projection item data missing'
 
-        tag = find_tag(fid, item,FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE);
+        tag = find_tag(fid, item, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE);
         if tag is not None:
             active = tag.data;
         else:
@@ -289,7 +289,7 @@ def read_meas_info(source, tree=None):
             kind = acqpars.directory[k].kind
             pos  = acqpars.directory[k].pos
             if kind == FIFF.FIFF_DACQ_PARS:
-                tag = read_tag(fid,pos)
+                tag = read_tag(fid, pos)
                 acq_pars = tag.data
             elif kind == FIFF.FIFF_DACQ_STIM:
                tag = read_tag(fid, pos)
@@ -299,7 +299,7 @@ def read_meas_info(source, tree=None):
     projs = read_proj(fid, meas_info)
 
     #   Load the CTF compensation data
-    comps = read_ctf_comp(fid, meas_info,chs)
+    comps = read_ctf_comp(fid, meas_info, chs)
 
     #   Load the bad channel list
     bads = read_bad_channels(fid, meas_info)
@@ -368,7 +368,7 @@ def read_meas_info(source, tree=None):
     return info, meas
 
 
-def read_evoked(fname, setno=1):
+def read_evoked(fname, setno=0):
     """
     [data] = fiff_read_evoked(fname,setno)
 
@@ -558,7 +558,7 @@ def read_evoked(fname, setno=1):
                                    is_smsh=is_smsh[setno],
                                    nave=nave, first=first,
                                    last=last, comment=comment,
-                                   times=np.arange(first, last,
+                                   times=np.arange(first, last+1,
                                             dtype=np.float) / info['sfreq'],
                                    epochs=all_data))
 

@@ -63,7 +63,7 @@ def read_tag(fid, pos=None):
                 fid.seek(tag.size - 4, 1)
                 ndim = np.fromfile(fid, dtype='>i', count=1)
                 fid.seek(-(ndim + 1) * 4, 1)
-                dims = np.fromfile(fid, dtype='>i', count=ndim)
+                dims = np.fromfile(fid, dtype='>i', count=ndim)[::-1]
                 #
                 # Back to where the data start
                 #
@@ -75,21 +75,21 @@ def read_tag(fid, pos=None):
                 matrix_type = data_type & tag.type
 
                 if matrix_type == FIFF.FIFFT_INT:
-                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims).T
+                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_JULIAN:
-                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims).T
+                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_FLOAT:
-                    tag.data = np.fromfile(fid, dtype='>f4', count=dims.prod()).reshape(dims).T
+                    tag.data = np.fromfile(fid, dtype='>f4', count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_DOUBLE:
-                    tag.data = np.fromfile(fid, dtype='>f8', count=dims.prod()).reshape(dims).T
+                    tag.data = np.fromfile(fid, dtype='>f8', count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
                     data = np.fromfile(fid, dtype='>f4', count=2*dims.prod())
                     # Note: we need the non-conjugate transpose here
-                    tag.data = (data[::2] + 1j * data[1::2]).reshape(dims).T
+                    tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
                     data = np.fromfile(fid, dtype='>f8', count=2*dims.prod())
                     # Note: we need the non-conjugate transpose here
-                    tag.data = (data[::2] + 1j * data[1::2]).reshape(dims).T
+                    tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 else:
                     raise ValueError, 'Cannot handle matrix of type %d yet' % matrix_type
 
@@ -189,8 +189,8 @@ def read_tag(fid, pos=None):
                 tag.data['scanno'] = np.fromfile(fid, dtype=">i4", count=1)
                 tag.data['logno'] = np.fromfile(fid, dtype=">i4", count=1)
                 tag.data['kind'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['range'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['cal'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['range'] = np.fromfile(fid, dtype=">f4", count=1)
+                tag.data['cal'] = np.fromfile(fid, dtype=">f4", count=1)
                 tag.data['coil_type'] = np.fromfile(fid, dtype=">i4", count=1)
                 #
                 #   Read the coil coordinate system definition
