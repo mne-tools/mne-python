@@ -1,16 +1,38 @@
 from .bunch import Bunch
 from .read_tag import read_tag
 
-def make_dir_tree(fid, directory, start=0, indent=0):
+
+def dir_tree_find(tree, kind):
+    """[nodes] = dir_tree_find(tree,kind)
+
+       Find nodes of the given kind from a directory tree structure
+       
+       Returns a list of matching nodes
+    """
+    nodes = []
+
+    if isinstance(tree, list):
+        for t in tree:
+            nodes += dir_tree_find(t, kind)
+    else:
+        #   Am I desirable myself?
+        if tree.block == kind:
+            nodes.append(tree)
+
+        #   Search the subtrees
+        for child in tree.children:
+            nodes += dir_tree_find(child, kind)
+    return nodes
+
+
+def make_dir_tree(fid, directory, start=0, indent=0, verbose=True):
     """Create the directory tree structure
     """
-    FIFF_BLOCK_START     = 104
-    FIFF_BLOCK_END       = 105
-    FIFF_FILE_ID         = 100
-    FIFF_BLOCK_ID        = 103
+    FIFF_BLOCK_START = 104
+    FIFF_BLOCK_END = 105
+    FIFF_FILE_ID = 100
+    FIFF_BLOCK_ID = 103
     FIFF_PARENT_BLOCK_ID = 110
-
-    verbose = 0
 
     if directory[start].kind == FIFF_BLOCK_START:
         tag = read_tag(fid, directory[start].pos)
@@ -23,7 +45,6 @@ def make_dir_tree(fid, directory, start=0, indent=0):
             print '\t'
         print 'start { %d\n' % block
 
-    nchild = 0
     this = start
 
     tree = Bunch()
@@ -33,21 +54,20 @@ def make_dir_tree(fid, directory, start=0, indent=0):
     tree['nent'] = 0
     tree['nchild'] = 0
     tree['directory'] = directory[this]
-    tree['children'] = Bunch(block=None, id=None, parent_id=None, nent=None,
-                             nchild=None, directory=None, children=None)
+    tree['children'] = []
 
     while this < len(directory):
         if directory[this].kind == FIFF_BLOCK_START:
             if this != start:
                 child, this = make_dir_tree(fid, directory, this, indent+1)
-                tree.nchild = tree.nchild + 1
-                tree.children[tree.nchild] = child
+                tree.nchild += 1
+                tree.children.append(child)
         elif directory[this].kind == FIFF_BLOCK_END:
             tag = read_tag(fid, directory[start].pos)
             if tag.data == block:
                 break
         else:
-            tree.nent = tree.nent + 1
+            tree.nent += 1
             if tree.nent == 1:
                 tree.directory = list()
             tree.directory.append(directory[this])
@@ -65,12 +85,12 @@ def make_dir_tree(fid, directory, start=0, indent=0):
            elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
               tag = read_tag(fid, directory[this].pos)
               tree.parent_id = tag.data
-        this = this + 1
+        this += 1
     #
     # Eliminate the empty directory
     #
     if tree.nent == 0:
-       tree.directory = []
+       tree.directory = None
 
     if verbose:
         for k in range(indent+1):

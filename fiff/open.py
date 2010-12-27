@@ -1,6 +1,3 @@
-import struct
-import numpy as np
-
 from .read_tag import read_tag_info, read_tag
 from .tree import make_dir_tree
 from .constants import FIFF
@@ -45,7 +42,7 @@ def fiff_open(fname, verbose=False):
             pos = fid.tell()
             directory.append(read_tag_info(fid))
 
-    tree = make_dir_tree(fid, directory)
+    tree, _ = make_dir_tree(fid, directory)
 
     if verbose:
        print '[done]\n'
