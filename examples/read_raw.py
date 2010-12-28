@@ -1,15 +1,28 @@
+"""Reading a raw file segment
+"""
+print __doc__
+
+import pylab as pl
 import fiff
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
 # fname = 'sm02a5_raw.fif'
 
-# fid, tree, directory = fiff.fiff_open(fname, verbose=True)
-
 raw = fiff.setup_read_raw(fname)
-data, times = fiff.read_raw_segment(raw, from_=None, to=50000, sel=None)
 
-# import pylab as pl
-# pl.plot(data['evoked']['times'], data['evoked']['epochs'][:306,:].T)
-# pl.show()
+nchan = raw['info']['nchan']
+ch_names = raw['info']['ch_names']
+meg_channels_idx = [k for k in range(nchan) if ch_names[k][:3]=='MEG']
+meg_channels_idx = meg_channels_idx[:5]
+
+data, times = fiff.read_raw_segment_times(raw, from_=100, to=115,
+                                          sel=meg_channels_idx)
+
+###############################################################################
+# Show MEG data
+pl.plot(times, data.T)
+pl.xlabel('time (ms)')
+pl.ylabel('MEG data (T)')
+pl.show()
 
 
