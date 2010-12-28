@@ -1,3 +1,4 @@
+from math import floor, ceil
 import numpy as np
 
 from .constants import FIFF
@@ -199,7 +200,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
           if raw['proj'] is None:
              mult = raw['comp'][sel,:] * cal
           elif raw['comp'] is None:
-             mult = raw['proj'][sel,:]*cal
+             mult = raw['proj'][sel,:] * cal
           else:
              mult = raw['proj'][sel,:] * raw['comp'] * cal
 
@@ -210,7 +211,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
 
     if mult is not None:
         from scipy import sparse
-        mult = sparse.csr_matrix(sparse(mult))
+        mult = sparse.csr_matrix(mult)
 
     for k in range(len(raw['rawdir'])):
         this = raw['rawdir'][k]
@@ -267,11 +268,11 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 if do_debug:
                     print 'B'
 
-        #   Now we are ready to pick
-        picksamp = last_pick - first_pick
-        if picksamp > 0:
-            data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
-            dest += picksamp
+            #   Now we are ready to pick
+            picksamp = last_pick - first_pick
+            if picksamp > 0:
+                data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
+                dest += picksamp
 
        #   Done?
         if this['last'] >= to:
@@ -281,3 +282,29 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
     times = np.arange(from_, to) / raw['info']['sfreq']
 
     return data, times
+
+
+def read_raw_segment_times(raw, from_, to, sel=None):
+    """
+    %
+    % [data,times] = fiff_read_raw_segment_times(raw,from,to)
+    %
+    % Read a specific raw data segment
+    %
+    % raw    - structure returned by fiff_setup_read_raw
+    % from   - starting time of the segment in seconds
+    % to     - end time of the segment in seconds
+    % sel    - optional channel selection vector
+    %
+    % data   - returns the data matrix (channels x samples)
+    % times  - returns the time values corresponding to the samples (optional)
+    %
+    """
+
+    #   Convert to samples
+    from_ = floor(from_ * raw['info']['sfreq'])
+    to   = ceil(to * raw['info']['sfreq'])
+
+    #   Read it
+    return read_raw_segment(raw, from_, to, sel);
+
