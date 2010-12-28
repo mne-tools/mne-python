@@ -65,7 +65,7 @@ def setup_read_raw(fname, allow_maxshield=False):
         #  This first skip can be applied only after we know the buffer size
         tag = read_tag(fid, directory[first].pos)
         first_skip = int(tag.data)
-        first += first
+        first += 1
 
     data['first_samp'] = first_samp
 
@@ -77,16 +77,17 @@ def setup_read_raw(fname, allow_maxshield=False):
         if ent.kind == FIFF.FIFF_DATA_SKIP:
             tag = read_tag(fid, ent.pos)
             nskip = int(tag.data)
+            print nskip
         elif ent.kind == FIFF.FIFF_DATA_BUFFER:
             #   Figure out the number of samples in this buffer
             if ent.type == FIFF.FIFFT_DAU_PACK16:
-                nsamp = ent.size / (2.0*nchan)
+                nsamp = ent.size / (2*nchan)
             elif ent.type == FIFF.FIFFT_SHORT:
-                nsamp = ent.size / (2.0*nchan)
+                nsamp = ent.size / (2*nchan)
             elif ent.type == FIFF.FIFFT_FLOAT:
-                nsamp = ent.size / (4.0*nchan)
+                nsamp = ent.size / (4*nchan)
             elif ent.type == FIFF.FIFFT_INT:
-                nsamp = ent.size / (4.0*nchan)
+                nsamp = ent.size / (4*nchan)
             else:
                 fid.close()
                 raise ValueError, 'Cannot handle data buffers of type %d' % ent.type
@@ -99,6 +100,7 @@ def setup_read_raw(fname, allow_maxshield=False):
 
             #  Do we have a skip pending?
             if nskip > 0:
+                import pdb; pdb.set_trace()
                 rawdir.append(dict(ent=None, first=first_samp,
                                    last=first_samp + nskip*nsamp - 1,
                                    nsamp=nskip*nsamp))
@@ -156,8 +158,8 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
        from_ = raw['first_samp']
 
     #  Initial checks
-    from_ = float(from_)
-    to   = float(to)
+    from_ = int(from_)
+    to   = int(to)
     if from_ < raw['first_samp']:
        from_ = raw['first_samp']
 
@@ -168,15 +170,16 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
        raise ValueError, 'No data in this range'
 
     print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                       from_, to, from_/raw['info']['sfreq'], to/raw['info']['sfreq'])
-    
+                       from_, to, from_ / float(raw['info']['sfreq']),
+                       to / float(raw['info']['sfreq']))
+
     #  Initialize the data and calibration vector
     nchan = raw['info']['nchan']
-    dest = 1
+    dest = 0
     cal = np.diag(raw['cals'].ravel())
 
     if sel is None:
-       data = np.zeros((nchan, to - from_ + 1))
+       data = np.empty((nchan, to - from_))
        if raw['proj'] is None and raw['comp'] is None:
           mult = None
        else:
@@ -188,7 +191,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
              mult = raw['proj'] * raw['comp'] * cal
 
     else:
-       data = np.zeros((len(sel), to - from_ + 1))
+       data = np.empty((len(sel), to - from_))
        if raw['proj'] is None and raw['comp'] is None:
           mult = None
           cal = np.diag(raw['cals'][sel].ravel())
@@ -229,12 +232,12 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 #   we proceed a little bit differently
                 if mult is None:
                     if sel is None:
-                        one = cal * tag.data.reshape(nchan, this['nsamp']).astype(np.float)
+                        one = cal * tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
                     else:
-                        one = tag.data.reshape(nchan, this['nsamp']).astype(np.float)
+                        one = tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
                         one = cal * one[sel,:]
                 else:
-                    one = mult * tag.data.reshape(tag.data,nchan,this['nsamp']).astype(np.float)
+                    one = mult * tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
 
             #  The picking logic is a bit complicated
             if to >= this['last'] and from_ <= this['first']:
@@ -245,7 +248,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                     print 'W'
 
             elif from_ > this['first']:
-                first_pick = from_ - this['first'] + 1
+                first_pick = from_ - this['first']
                 if to < this['last']:
                     #   Something from the middle
                     last_pick = this['nsamp'] + to - this['last']
@@ -259,22 +262,22 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                         print 'E'
             else:
                 #    From the beginning to the middle
-                first_pick = 1
-                last_pick = to - this['first'] + 1
+                first_pick = 0
+                last_pick = to - this['first']
                 if do_debug:
                     print 'B'
-        
+
         #   Now we are ready to pick
-        picksamp = last_pick - first_pick + 1
+        picksamp = last_pick - first_pick
         if picksamp > 0:
-             data[:, dest:dest+picksamp-1] = one[:, first_pick:last_pick]
-             dest += picksamp
+            data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
+            dest += picksamp
 
        #   Done?
         if this['last'] >= to:
             print ' [done]\n'
             break
 
-    times = np.range(from_, to) / raw['info']['sfreq']
+    times = np.arange(from_, to) / raw['info']['sfreq']
 
     return data, times
