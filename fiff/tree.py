@@ -1,5 +1,5 @@
 from .bunch import Bunch
-from .read_tag import read_tag
+from .tag import read_tag
 
 
 def dir_tree_find(tree, kind):
@@ -25,7 +25,7 @@ def dir_tree_find(tree, kind):
     return nodes
 
 
-def make_dir_tree(fid, directory, start=0, indent=0, verbose=True):
+def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
     """Create the directory tree structure
     """
     FIFF_BLOCK_START = 104

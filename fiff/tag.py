@@ -6,31 +6,30 @@ from .constants import FIFF
 
 class Tag(object):
     """docstring for Tag"""
-    def __init__(self, kind, type, size, next):
-        self.kind = kind
-        self.type = type
-        self.size = size
-        self.next = next
+    def __init__(self, kind, type_, size, next, pos=None):
+        self.kind = int(kind)
+        self.type = int(type_)
+        self.size = int(size)
+        self.next = int(next)
+        self.pos = pos if pos is not None else next
+        self.pos = int(self.pos)
 
     def __repr__(self):
-        out = "kind: %s - type: %s - size: %s - next: %s" % (
-                self.kind, self.type, self.size, self.next)
+        out = "kind: %s - type: %s - size: %s - next: %s - pos: %s" % (
+                self.kind, self.type, self.size, self.next, self.pos)
         if hasattr(self, 'data'):
             out += " - data: %s\n" % self.data
         else:
             out += "\n"
         return out
 
-    @property
-    def pos(self):
-        return self.next
 
 def read_tag_info(fid):
     s = fid.read(4*4)
     tag = Tag(*struct.unpack(">iiii", s))
     if tag.next == 0:
         fid.seek(tag.size, 1)
-    else:
+    elif tag.next > 0:
         fid.seek(tag.next, 0)
     return tag
 

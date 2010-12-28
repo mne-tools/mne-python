@@ -21,7 +21,7 @@ def read_proj(fid, node):
 
     tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
     if tag is not None:
-        global_nchan = tag.data
+        global_nchan = int(tag.data)
 
     items = dir_tree_find(nodes[0], FIFF.FIFFB_PROJ_ITEM)
     for i in range(len(items)):
@@ -30,7 +30,7 @@ def read_proj(fid, node):
         item = items[i]
         tag = find_tag(fid, item, FIFF.FIFF_NCHAN)
         if tag is not None:
-            nchan = tag.data
+            nchan = int(tag.data)
         else:
             nchan = global_nchan
 
@@ -91,14 +91,15 @@ def read_proj(fid, node):
         projdata.append(one)
 
     if len(projdata) > 0:
-        print '\tRead a total of %d projection items:\n', len(projdata)
+        print '\tRead a total of %d projection items:' % len(projdata)
         for k in range(len(projdata)):
-            print '\t\t%s (%d x %d)' % (projdata[k].desc,
-                                        projdata[k].data.nrow,
-                                        projdata[k].data.ncol)
             if projdata[k].active:
-                print ' active\n'
+                misc = 'active'
             else:
-                print ' idle\n'
+                misc = ' idle'
+            print '\t\t%s (%d x %d) %s' % (projdata[k].desc,
+                                        projdata[k].data.nrow,
+                                        projdata[k].data.ncol,
+                                        misc)
 
     return projdata

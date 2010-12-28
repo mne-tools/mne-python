@@ -1,4 +1,4 @@
-from .read_tag import read_tag_info, read_tag
+from .tag import read_tag_info, read_tag
 from .tree import make_dir_tree
 from .constants import FIFF
 
@@ -40,7 +40,9 @@ def fiff_open(fname, verbose=False):
         directory = list()
         while tag.next >= 0:
             pos = fid.tell()
-            directory.append(read_tag_info(fid))
+            tag = read_tag_info(fid)
+            tag.pos = pos
+            directory.append(tag)
 
     tree, _ = make_dir_tree(fid, directory)
 
