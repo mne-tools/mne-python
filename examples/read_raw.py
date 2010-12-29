@@ -6,7 +6,6 @@ import pylab as pl
 import fiff
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
-# fname = 'sm02a5_raw.fif'
 
 raw = fiff.setup_read_raw(fname)
 

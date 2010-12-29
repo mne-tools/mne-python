@@ -4,8 +4,7 @@ print __doc__
 
 import fiff
 
-fname = 'sm02a1-ave.fif'
-# fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
+fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
 
 data = fiff.read_evoked(fname)
 
