@@ -75,7 +75,7 @@ def read_bem_surfaces(fname, add_geom=False):
         this = read_bem_surface(fid, bsurf, coord_frame)
         print '[done]'
         if add_geom:
-            complete_surface_info()
+            complete_surface_info(this)
         surf.append(this)
 
     print '\t%d BEM surfaces read' % len(surf)
@@ -171,18 +171,18 @@ def complete_surface_info(this):
     #
     print '\tCompleting triangulation info...'
     print 'triangle normals...'
-    this.tri_area = np.zeros(this['ntri'])
+    this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:,0],:]
     r2 = this['rr'][this['tris'][:,1],:]
     r3 = this['rr'][this['tris'][:,2],:]
-    this.tri_cent = (r1+r2+r3) /3.0
+    this['tri_cent'] = (r1+r2+r3) /3.0
     this['tri_nn'] = np.cross((r2-r1), (r3-r1))
     #
     #   Triangle normals and areas
     #
     for p in range(this['ntri']):
         size = linalg.norm(this['tri_nn'][p,:])
-        this.tri_area[p] = size / 2.0
+        this['tri_area'][p] = size / 2.0
     if size > 0.0:
         this['tri_nn'][p,:] = this['tri_nn'][p,:] / size
     #

@@ -51,3 +51,41 @@ def read_stc(filename):
     # close the file
     fid.close()
     return stc
+
+
+def write_stc(filename, stc):
+    """
+    %
+    % mne_write_stc_file(filename,stc)
+    % 
+    % writes an stc file
+    %
+    %     filename      output file
+    %     stc           a stucture containing the stc data with fields:
+    %
+    %     tmin          The time of the first frame in seconds
+    %     tstep         Time between frames in seconds
+    %     vertices      Vertex indices (0 based)
+    %     data          The data matrix nvert * ntime
+    %
+    """
+    fid = open(filename, 'wb')
+
+    # write start time in ms
+    fid.write(np.array(1000*stc['tmin'], dtype='>f4').tostring())
+    # write sampling rate in ms
+    fid.write(np.array(1000*stc['tstep'], dtype='>f4').tostring())
+    # write number of vertices
+    fid.write(np.array(stc['vertices'].shape[0], dtype='>I4').tostring())
+    # write the vertex indices
+    fid.write(np.array(stc['vertices'], dtype='>I4').tostring())
+
+    # write the number of timepts
+    fid.write(np.array(stc['data'].shape[1], dtype='>I4').tostring())
+    #
+    # write the data
+    #
+    fid.write(np.array(stc['data'].T, dtype='>f4').tostring())
+
+    # close the file
+    fid.close()

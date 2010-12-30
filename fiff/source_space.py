@@ -252,3 +252,23 @@ def complete_source_space_info(this):
     print '[done]'
 
 
+def find_source_space_hemi(src):
+    """
+    %
+    % function mne_find_source_space_hemi(src)
+    %
+    % Return the hemisphere id for a source space
+    %
+    % src      - The source space to investigate
+    % hemi     - Deduced hemisphere id
+    %
+    """
+
+    xave = src['rr'][:,0].sum();
+
+    if xave < 0:
+        hemi = int(FIFF.FIFFV_MNE_SURF_LEFT_HEMI)
+    else:
+        hemi = int(FIFF.FIFFV_MNE_SURF_RIGHT_HEMI)
+
+    return hemi
