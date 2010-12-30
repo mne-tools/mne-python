@@ -9,10 +9,10 @@ def hex2dec(s):
     return int(s, 16)
 
 
-def read_named_matrix(fid, node, matkind):
+def _read_named_matrix(fid, node, matkind):
     """
     %
-    % [mat] = fiff_read_named_matrix(fid,node)
+    % [mat] = fiff__read_named_matrix(fid,node)
     %
     % Read named matrix from the given node
     %
@@ -96,7 +96,7 @@ def read_ctf_comp(fid, node, chs):
     for node in comps:
 
         #   Read the data we need
-        mat = read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
+        mat = _read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
         for p in range(node.nent):
             kind = node.dir[p].kind
             pos = node.dir[p].pos

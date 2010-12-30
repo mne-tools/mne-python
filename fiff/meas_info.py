@@ -6,7 +6,7 @@ from .constants import FIFF
 from .tag import read_tag
 from .proj import read_proj
 from .ctf import read_ctf_comp
-from .channels import read_bad_channels
+from .channels import _read_bad_channels
 
 
 def read_meas_info(source, tree=None):
@@ -187,7 +187,7 @@ def read_meas_info(source, tree=None):
     comps = read_ctf_comp(fid, meas_info, chs)
 
     #   Load the bad channel list
-    bads = read_bad_channels(fid, meas_info)
+    bads = _read_bad_channels(fid, meas_info)
 
     #
     #   Put the data together

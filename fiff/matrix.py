@@ -2,7 +2,7 @@ from .constants import FIFF
 from .tag import find_tag, has_tag
 
 
-def transpose_named_matrix(mat):
+def _transpose_named_matrix(mat):
     """Transpose mat inplace (no copy)
     """
     mat['nrow'] = mat['ncol']
@@ -13,13 +13,11 @@ def transpose_named_matrix(mat):
     return mat
 
 
-def read_named_matrix(fid, node, matkind):
-    """
-    %
-    % [mat] = fiff_read_named_matrix(fid,node)
-    %
-    % Read named matrix from the given node
-    %
+def _read_named_matrix(fid, node, matkind):
+    """Read named matrix from the given node
+
+    XXX
+
     """
 
     #   Descend one level if necessary

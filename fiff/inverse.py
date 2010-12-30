@@ -1,7 +1,7 @@
 from .constants import FIFF
 from .open import fiff_open
 from .tag import find_tag
-from .matrix import read_named_matrix, transpose_named_matrix
+from .matrix import _read_named_matrix, _transpose_named_matrix
 from .cov import read_cov
 from .proj import read_proj
 from .tree import dir_tree_find
@@ -103,19 +103,19 @@ def read_inverse_operator(fname):
     #
     inv['eigen_leads_weighted'] = False
     try:
-       inv['eigen_leads'] = read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
+       inv['eigen_leads'] = _read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
     except:
        inv['eigen_leads_weighted'] = True
        try:
-          inv.eigen_leads = read_named_matrix(fid,invs,FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED);
+          inv.eigen_leads = _read_named_matrix(fid,invs,FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED);
        except Exception as inst:
           raise ValueError, '%s' % inst
     #
     #   Having the eigenleads as columns is better for the inverse calculations
     #
-    inv['eigen_leads'] = transpose_named_matrix(inv['eigen_leads'])
+    inv['eigen_leads'] = _transpose_named_matrix(inv['eigen_leads'])
     try:
-        inv['eigen_fields'] = read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_FIELDS)
+        inv['eigen_fields'] = _read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_FIELDS)
     except Exception as inst:
         raise ValueError, '%s' % inst
 

@@ -53,12 +53,15 @@ def read_events(filename):
 
 
 def write_events(filename, event_list):
-    """
-    %
-    % mne_write_events(filename,eventlist)
-    %
-    % Write an event list into a fif file
-    %
+    """Write events to file
+
+    Parameters
+    ----------
+    filename: string
+        name of the fif file
+
+    events: array, shape (n_events, 3)
+        The list of events
     """
     #   Start writing...
     fid = start_file(filename)

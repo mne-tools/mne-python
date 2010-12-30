@@ -8,13 +8,23 @@ from .meas_info import read_meas_info
 
 
 def read_evoked(fname, setno=0):
+    """Read an evoked dataset
+
+    Parameters
+    ----------
+    fname: string
+        The file name.
+
+    setno: int
+        The index of the evoked dataset to read. FIF
+        file can contain multiple datasets.
+
+    Returns
+    -------
+    data: dict
+        The evoked dataset
+
     """
-    [data] = fiff_read_evoked(fname,setno)
-
-    Read one evoked data set
-
-    """
-
     if setno < 0:
         raise ValueError, 'Data set selector must be positive'
 
@@ -220,14 +230,15 @@ from .ctf import write_ctf_comp
 
 
 def write_evoked(name, data):
-    """
-    %
-    % function fiff_write_evoked(name,data)
-    %
-    % name     filename
-    % data     the data structure returned from fiff_read_evoked
-    %
-    %
+    """Write an evoked dataset to a file
+
+    Parameters
+    ----------
+    name: string
+        The file name.
+
+    data: dict
+        The evoked dataset obtained with read_evoked
     """
 
     #  Create the file and save the essentials

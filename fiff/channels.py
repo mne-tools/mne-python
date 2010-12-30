@@ -3,16 +3,10 @@ from .tag import find_tag
 from .constants import FIFF
 
 
-def read_bad_channels(fid, node):
-    """
-    %
-    % [bads] = fiff_read_bad_channels(fid,node)
-    %
-    % Reas the bad channel list from a node if it exists
-    %
-    % fid      - The file id
-    % node     - The node of interest
-    %
+def _read_bad_channels(fid, node):
+    """Read bad channels
+
+    It returns the list of channel's names.
     """
 
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)

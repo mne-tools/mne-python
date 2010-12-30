@@ -5,22 +5,28 @@ from .constants import FIFF
 from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj
-from .channels import read_bad_channels
+from .channels import _read_bad_channels
 
 
 def read_cov(fid, node, cov_kind):
-    """
-    %
-    % [cov] = mne_read_cov(fid, node, kind)
-    %
-    % Reads a covariance matrix from a fiff file
-    %
-    % fid       - an open file descriptor
-    % node      - look for the matrix in here
-    % cov_kind  - what kind of a covariance matrix do we want?
-    %
-    """
+    """Read a noise covariance matrix
 
+    Parameters
+    ----------
+    fid: file
+        The file descriptor
+
+    node: dict
+        The node in the FIF tree
+
+    cov_kind: int
+        The type of covariance. XXX : clarify
+
+    Returns
+    -------
+    data: dict
+        The noise covariance
+    """
     #   Find all covariance matrices
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
@@ -99,7 +105,7 @@ def read_cov(fid, node, cov_kind):
             projs = read_proj(fid, this)
 
             #   Read the bad channel list
-            bads = read_bad_channels(fid, this)
+            bads = _read_bad_channels(fid, this)
 
             #   Put it together
             cov = dict(kind=cov_kind, diag=diagmat, dim=dim, names=names,
@@ -120,6 +126,7 @@ from .proj import write_proj
 
 
 def write_cov(fid, cov):
+    
     """
     %
     %
@@ -178,16 +185,15 @@ def write_cov(fid, cov):
 
 
 def write_cov_file(fname, cov):
-    """
-    %
-    %   function mne_write_cov_file(name,cov)
-    %
-    %   Write a complete fif file containing a covariance matrix
-    %
-    %   fname    filename
-    %   cov      the covariance matrix to write
-    %
-    %
+    """Write a noise covariance matrix
+
+    Parameters
+    ----------
+    fname: string
+        The name of the file
+
+    cov: dict
+        The noise covariance
     """
     fid = start_file(fname)
 

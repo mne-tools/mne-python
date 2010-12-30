@@ -5,10 +5,10 @@ from scipy import linalg
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find
-from .channels import read_bad_channels
+from .channels import _read_bad_channels
 from .tag import find_tag
 from .source_space import read_source_spaces, find_source_space_hemi
-from .matrix import read_named_matrix, transpose_named_matrix
+from .matrix import _read_named_matrix, _transpose_named_matrix
 
 
 def _block_diag(A, n):
@@ -152,17 +152,17 @@ def _read_one(fid, node):
 
     one['nchan'] = tag.data
     try:
-        one['sol'] = read_named_matrix(fid, node,
+        one['sol'] = _read_named_matrix(fid, node,
                                             FIFF.FIFF_MNE_FORWARD_SOLUTION)
-        one['sol'] = transpose_named_matrix(one['sol'])
+        one['sol'] = _transpose_named_matrix(one['sol'])
     except Exception as inst:
         fid.close()
         raise 'Forward solution data not found (%s)' % inst
 
     try:
-        one['sol_grad'] = read_named_matrix(fid, node,
+        one['sol_grad'] = _read_named_matrix(fid, node,
                                         FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD)
-        one['sol_grad'] = transpose_named_matrix(one['sol_grad'])
+        one['sol_grad'] = _transpose_named_matrix(one['sol_grad'])
     except Exception as inst:
         one['sol_grad'] = None
 
@@ -206,7 +206,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     Returns
     -------
-    fwt: dict
+    fwd: dict
         The forward solution
 
     """
@@ -240,7 +240,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd = None
 
     #   Bad channel list
-    bads = read_bad_channels(fid, tree)
+    bads = _read_bad_channels(fid, tree)
 
     print '\t%d bad channels read' % len(bads)
 
