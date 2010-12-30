@@ -103,3 +103,40 @@ def read_proj(fid, node):
                                         misc)
 
     return projdata
+
+###############################################################################
+# Write
+
+from .write import write_int, write_float, write_string, write_name_list, \
+                   write_float_matrix, end_block, start_block
+
+def write_proj(fid, projs):
+    """
+    %
+    % fiff_write_proj(fid,projs)
+    % 
+    % Writes the projection data into a fif file
+    %
+    %     fid           An open fif file descriptor
+    %     projs         The compensation data to write
+    %
+    """
+    start_block(fid, FIFF.FIFFB_PROJ)
+
+    for proj in projs:
+        start_block(fid, FIFF.FIFFB_PROJ_ITEM)
+        write_string(fid, FIFF.FIFF_NAME, proj['desc'])
+        write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
+        if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
+            write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
+
+        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
+        write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj['data']['nrow'])
+        write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj['active'])
+        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
+                             proj['data']['col_names'])
+        write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS,
+                           proj['data']['data'])
+        end_block(fid,FIFF.FIFFB_PROJ_ITEM)
+
+    end_block(fid, FIFF.FIFFB_PROJ)

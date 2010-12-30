@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 from .constants import FIFF
@@ -109,3 +110,90 @@ def read_cov(fid, node, cov_kind):
     raise ValueError, 'Did not find the desired covariance matrix'
 
     return None
+
+###############################################################################
+# Writing
+
+from .write import start_block, end_block, write_int, write_name_list, \
+                   write_double, write_float_matrix, start_file, end_file
+from .proj import write_proj
+
+def write_cov(fid, cov):
+    """
+    %
+    %
+    %   mne_write_cov(fid,cov)
+    %
+    %   Write a covariance matrix to an open file
+    %
+    %   fid     - an open file id
+    %   cov     - the covariance matrix to write
+    %
+    """
+
+    start_block(fid, FIFF.FIFFB_MNE_COV)
+
+    #   Dimensions etc.
+    write_int(fid, FIFF.FIFF_MNE_COV_KIND, cov['kind'])
+    write_int(fid, FIFF.FIFF_MNE_COV_DIM, cov['dim'])
+    if cov['nfree'] > 0:
+        write_int(fid, FIFF.FIFF_MNE_COV_NFREE, cov['nfree']);
+
+    #   Channel names
+    if cov['names'] is not None:
+        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'])
+
+    #   Data
+    if cov['diag']:
+        write_double(fid, FIFF.FIFF_MNE_COV_DIAG, cov['data']);
+    else:
+        dim = cov['dim']
+        vals = np.empty(dim*(dim + 1)/2)
+        # XXX : should be improved later
+        q = 0
+        for j in range(dim):
+            for k in range(j):
+                vals[q] = cov['data'][j,k]
+                q = q + 1
+
+        write_double(fid, FIFF.FIFF_MNE_COV, vals)
+
+    #   Eigenvalues and vectors if present
+    if cov['eig'] is not None and cov['eigvec'] is not None:
+        write_float_matrix(fid, FIFF.FIFF_MNE_COV_EIGENVECTORS, cov['eigvec'])
+        write_double(fid, FIFF.FIFF_MNE_COV_EIGENVALUES, cov['eig'])
+
+    #   Projection operator
+    write_proj(fid, cov['projs'])
+
+    #   Bad channels
+    if cov['bads'] is not None:
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    #   Done!
+    end_block(fid, FIFF.FIFFB_MNE_COV)
+
+
+def write_cov_file(fname, cov):
+    """
+    %
+    %   function mne_write_cov_file(name,cov)
+    %
+    %   Write a complete fif file containing a covariance matrix
+    %
+    %   fname    filename
+    %   cov      the covariance matrix to write
+    %
+    %
+    """
+    fid = start_file(fname)
+
+    try:
+        write_cov(fid,cov);
+    except Exception as inst:
+        os.remove(fname)
+        raise '%s',  inst
+
+    end_file(fid)

@@ -2,6 +2,7 @@ from .tag import read_tag_info, read_tag
 from .tree import make_dir_tree
 from .constants import FIFF
 
+
 def fiff_open(fname, verbose=False):
 
     fid = open(fname, "rb") # Open in binary mode
@@ -47,7 +48,7 @@ def fiff_open(fname, verbose=False):
     tree, _ = make_dir_tree(fid, directory)
 
     if verbose:
-       print '[done]\n'
+        print '[done]\n'
 
     #
     #   Back to the beginning

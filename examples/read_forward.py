@@ -4,7 +4,7 @@ print __doc__
 
 import fiff
 
-fname = 'MNE-sample-data/subjects/sample/bem/sample-5120-bem-sol.fif'
+# fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave-7-fwd.fif'
 fname = 'sm01a5-ave-oct-6-fwd.fif'
 
 data = fiff.read_forward_solution(fname)

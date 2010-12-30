@@ -23,5 +23,3 @@ pl.plot(times, data.T)
 pl.xlabel('time (ms)')
 pl.ylabel('MEG data (T)')
 pl.show()
-
-
