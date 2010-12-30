@@ -8,6 +8,7 @@ from .constants import FIFF
 from .tree import dir_tree_find
 from .tag import read_tag
 from .open import fiff_open
+from .write import write_int, start_block, start_file, end_block, end_file
 
 
 def read_events(filename):
@@ -49,3 +50,21 @@ def read_events(filename):
 
     event_list = event_list.reshape(len(event_list) / 3, 3)
     return event_list
+
+
+def write_events(filename, event_list):
+    """
+    %
+    % mne_write_events(filename,eventlist)
+    %
+    % Write an event list into a fif file
+    %
+    """
+    #   Start writing...
+    fid = start_file(filename)
+
+    start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list)
+    end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
+    end_file(fid)
