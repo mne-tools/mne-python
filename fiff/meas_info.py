@@ -10,13 +10,25 @@ from .channels import read_bad_channels
 
 
 def read_meas_info(source, tree=None):
-    """[info,meas] = fiff_read_meas_info(source,tree)
+    """Read the measurement info
 
-     Read the measurement info
+    Parameters
+    ----------
+    source: string or file
+        If string it is the file name otherwise it's the file descriptor.
+        If tree is missing, the meas output argument is None
 
-     If tree is specified, source is assumed to be an open file id,
-     otherwise a the name of the file to read. If tree is missing, the
-     meas output argument should not be specified.
+    tree: tree
+        FIF tree structure
+
+    Returns
+    -------
+    info: dict
+       Info on dataset
+
+    meas: dict
+        Node in tree that contains the info.
+
     """
     if tree is None:
        fid, tree, _ = fiff_open(source)
@@ -83,39 +95,33 @@ def read_meas_info(source, tree=None):
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
-            if cand.from_ == FIFF.FIFFV_COORD_DEVICE and \
-                                cand.to == FIFF.FIFFV_COORD_HEAD: # XXX : from
+            if cand['from_'] == FIFF.FIFFV_COORD_DEVICE and \
+                                cand['to'] == FIFF.FIFFV_COORD_HEAD: # XXX : from
                 dev_head_t = cand
-            elif cand.from_ == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
-                                cand.to == FIFF.FIFFV_COORD_HEAD:
+            elif cand['from_'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
+                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
 
-    #  XXX : fix
-    #   Check that we have everything we need
-    # if ~exist('nchan','var')
-    #    if open_here
-    #       fclose(fid);
-    #    end
-    #    error(me,'Number of channels in not defined');
-    # end
-    # if ~exist('sfreq','var')
-    #    if open_here
-    #       fclose(fid);
-    #    end
-    #    error(me,'Sampling frequency is not defined');
-    # end
-    # if ~exist('chs','var')
-    #    if open_here
-    #       fclose(fid);
-    #    end
-    #    error(me,'Channel information not defined');
-    # end
-    # if length(chs) ~= nchan
-    #    if open_here
-    #       fclose(fid);
-    #    end
-    #    error(me,'Incorrect number of channel definitions found');
-    # end
+    # Check that we have everything we need
+    if nchan is None:
+       if open_here:
+           fid.close()
+       raise ValueError, 'Number of channels in not defined'
+
+    if sfreq is None:
+        if open_here:
+            fid.close()
+        raise ValueError, 'Sampling frequency is not defined'
+
+    if len(chs) == 0:
+        if open_here:
+            fid.close()
+        raise ValueError, 'Channel information not defined'
+
+    if len(chs) != nchan:
+        if open_here:
+            fid.close()
+        raise ValueError, 'Incorrect number of channel definitions found'
 
     if dev_head_t is None or ctf_head_t is None:
         hpi_result = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)

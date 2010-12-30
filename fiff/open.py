@@ -4,6 +4,29 @@ from .constants import FIFF
 
 
 def fiff_open(fname, verbose=False):
+    """Open a FIF file.
+
+    Parameters
+    ----------
+    fname: string
+        name of the fif file
+
+    verbose: bool
+        verbose mode if True
+
+    Returns
+    -------
+    fid: file
+        The file descriptor of the open file
+
+    tree: fif tree
+        The tree is a complex structure filled with dictionaries,
+        lists and tags.
+
+    directory: list
+        list of nodes.
+
+    """
 
     fid = open(fname, "rb") # Open in binary mode
 

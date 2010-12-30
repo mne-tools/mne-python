@@ -6,6 +6,8 @@ About
 pyfiff is a python module for reading and writing the fif files
 produced by Neuromag MEG systems.
 
+It is mainly a reimplementation of the Matlab code written by Matti Hämäläinen.
+
 Download
 ========
 
@@ -60,3 +62,6 @@ Testing
 -------
 
 You can launch the test suite using nosetest from the source folder.
+
+You'll need before to have run the MNE tutorial to have the required files
+on your drive.

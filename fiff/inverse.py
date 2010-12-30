@@ -6,7 +6,7 @@ from .cov import read_cov
 from .proj import read_proj
 from .tree import dir_tree_find
 from .source_space import read_source_spaces, find_source_space_hemi
-from .forward import invert_transform, transform_source_space_to
+from .forward import _invert_transform, _transform_source_space_to
 
 
 def read_inverse_operator(fname):
@@ -181,7 +181,7 @@ def read_inverse_operator(fname):
         mri_head_t = tag.data;
         if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-            mri_head_t = invert_transform(mri_head_t)
+            mri_head_t = _invert_transform(mri_head_t)
             if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
@@ -218,7 +218,7 @@ def read_inverse_operator(fname):
     nuse = 0
     for k in range(len(inv['src'])):
        try:
-          inv['src'][k] = transform_source_space_to(inv['src'][k],
+          inv['src'][k] = _transform_source_space_to(inv['src'][k],
                                                 inv['coord_frame'], mri_head_t)
        except Exception as inst:
           fid.close()

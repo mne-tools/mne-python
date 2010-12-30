@@ -14,4 +14,5 @@ def test_io_forward():
     """Test IO for forward solutions
     """
     fwd = fiff.read_forward_solution(fname)
+    fwd = fiff.read_forward_solution(fname, force_fixed=True)
     leadfield = fwd['sol']['data']

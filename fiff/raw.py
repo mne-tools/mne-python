@@ -9,15 +9,20 @@ from .tag import read_tag
 
 
 def setup_read_raw(fname, allow_maxshield=False):
-    """
-    %
-    % [data] = setup_read_raw(fname,allow_maxshield)
-    %
-    % Read information about raw data file
-    %
-    % fname               Name of the file to read
-    % allow_maxshield     Accept unprocessed MaxShield data
-    %
+    """Read information about raw data file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the raw file
+
+    allow_maxshield: bool, (default False)
+        allow_maxshield if True XXX ???
+
+    Returns
+    -------
+    data: dict
+        Infos about raw data
     """
 
     #   Open the file
@@ -135,22 +140,34 @@ def setup_read_raw(fname, allow_maxshield=False):
 
 
 def read_raw_segment(raw, from_=None, to=None, sel=None):
-    """
-    %
-    % [data,times] = fiff_read_raw_segment(raw,from_,to,sel)
-    %
-    % Read a specific raw data segment
-    %
-    % raw    - structure returned by fiff_setup_read_raw
-    % from_   - first sample to include. If omitted, defaults to the
-    %          first sample in data
-    % to     - last sample to include. If omitted, defaults to the last
-    %          sample in data
-    % sel    - optional channel selection vector
-    %
-    % data   - returns the data matrix (channels x samples)
-    % times  - returns the time values corresponding to the samples (optional)
-    %
+    """Read a chunck of raw data
+
+    Parameters
+    ----------
+    raw: dict
+        The dict returned by setup_read_raw
+
+    from_: int
+        first sample to include. If omitted, defaults to the first
+        sample in data
+
+    to: int
+        Last sample to include. If omitted, defaults to the last sample in data
+
+    sel: array, optional
+        Indices of channels to select
+
+    node: tree node
+        The node of the tree where to look
+
+    Returns
+    -------
+    data: array, [channels x samples]
+       the data matrix (channels x samples)
+
+    times: array, [samples]
+        returns the time values corresponding to the samples
+
     """
 
     if to is None:
@@ -285,22 +302,33 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
 
 
 def read_raw_segment_times(raw, from_, to, sel=None):
-    """
-    %
-    % [data,times] = fiff_read_raw_segment_times(raw,from,to)
-    %
-    % Read a specific raw data segment
-    %
-    % raw    - structure returned by fiff_setup_read_raw
-    % from   - starting time of the segment in seconds
-    % to     - end time of the segment in seconds
-    % sel    - optional channel selection vector
-    %
-    % data   - returns the data matrix (channels x samples)
-    % times  - returns the time values corresponding to the samples (optional)
-    %
-    """
+    """Read a chunck of raw data
 
+    Parameters
+    ----------
+    raw: dict
+        The dict returned by setup_read_raw
+
+    from_: float
+        Starting time of the segment in seconds
+
+    to: float
+        End time of the segment in seconds
+
+    sel: array, optional
+        Indices of channels to select
+
+    node: tree node
+        The node of the tree where to look
+
+    Returns
+    -------
+    data: array, [channels x samples]
+       the data matrix (channels x samples)
+
+    times: array, [samples]
+        returns the time values corresponding to the samples
+    """
     #   Convert to samples
     from_ = floor(from_ * raw['info']['sfreq'])
     to   = ceil(to * raw['info']['sfreq'])

@@ -5,11 +5,20 @@ from .bunch import Bunch
 
 
 def read_proj(fid, node):
-    """
-    [ projdata ] = fiff_read_proj(fid,node)
+    """Read a projection operator from a FIF file.
 
-     Read the SSP data under a given directory node
+    Parameters
+    ----------
+    fid: file
+        The file descriptor of the open file
 
+    node: tree node
+        The node of the tree where to look
+
+    Returns
+    -------
+    projdata: dict
+        The projection operator
     """
 
     projdata = []
@@ -111,15 +120,16 @@ from .write import write_int, write_float, write_string, write_name_list, \
                    write_float_matrix, end_block, start_block
 
 def write_proj(fid, projs):
-    """
-    %
-    % fiff_write_proj(fid,projs)
-    % 
-    % Writes the projection data into a fif file
-    %
-    %     fid           An open fif file descriptor
-    %     projs         The compensation data to write
-    %
+    """Write a projection operator to a file.
+
+    Parameters
+    ----------
+    fid: file
+        The file descriptor of the open file
+
+    projs: dict
+        The projection operator
+
     """
     start_block(fid, FIFF.FIFFB_PROJ)
 
