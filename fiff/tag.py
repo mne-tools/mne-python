@@ -129,7 +129,6 @@ def read_tag(fid, pos=None):
             #   All other data types
 
             #   Simple types
-
             if tag.type == FIFF.FIFFT_BYTE:
                 tag.data = np.fromfile(fid, dtype=">B1", count=tag.size)
             elif tag.type == FIFF.FIFFT_SHORT:

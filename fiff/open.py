@@ -9,9 +9,7 @@ def fiff_open(fname, verbose=False):
 
     tag = read_tag_info(fid)
 
-    #
     #   Check that this looks like a fif file
-    #
     if tag.kind != FIFF.FIFF_FILE_ID:
         raise ValueError, 'file does not start with a file id tag'
 
@@ -26,9 +24,7 @@ def fiff_open(fname, verbose=False):
     if tag.kind != FIFF.FIFF_DIR_POINTER:
         raise ValueError, 'file does have a directory pointer'
 
-    #
     #   Read or create the directory tree
-    #
     if verbose:
         print '\tCreating tag directory for %s...' % fname
 
@@ -50,10 +46,7 @@ def fiff_open(fname, verbose=False):
     if verbose:
         print '[done]\n'
 
-    #
     #   Back to the beginning
-    #
     fid.seek(0)
-    # fid.close()
 
     return fid, tree, directory

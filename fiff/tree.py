@@ -73,22 +73,22 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
 
             #  Add the id information if available
             if block == 0:
-               if directory[this].kind == FIFF_FILE_ID:
-                  tag = read_tag(fid, directory[this].pos)
-                  tree.id = tag.data
+                if directory[this].kind == FIFF_FILE_ID:
+                    tag = read_tag(fid, directory[this].pos)
+                    tree.id = tag.data
             else:
-               if directory[this].kind == FIFF_BLOCK_ID:
-                  tag = read_tag(fid, directory[this].pos)
-                  tree.id = tag.data
-               elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
-                  tag = read_tag(fid, directory[this].pos)
-                  tree.parent_id = tag.data
+                if directory[this].kind == FIFF_BLOCK_ID:
+                    tag = read_tag(fid, directory[this].pos)
+                    tree.id = tag.data
+                elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
+                    tag = read_tag(fid, directory[this].pos)
+                    tree.parent_id = tag.data
 
         this += 1
 
     # Eliminate the empty directory
     if tree.nent == 0:
-       tree.directory = None
+        tree.directory = None
 
     if verbose:
         print '\t'*(indent+1) + 'block = %d nent = %d nchild = %d' % (
@@ -97,3 +97,58 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
 
     last = this
     return tree, last
+
+###############################################################################
+# Writing
+
+import numpy as np
+import struct
+from .constants import FIFF
+from .tag import Tag
+from .write import write_id, start_block, end_block, _write
+
+
+def copy_tree(fidin, in_id, nodes, fidout):
+    """
+    %
+    %    fiff_copy_tree(fidin, in_id, nodes, fidout)
+    %
+    %    Copies directory subtrees from fidin to fidout
+    %
+    """
+
+    if len(nodes) <= 0:
+        return
+
+    if not isinstance(nodes, list):
+        nodes = [nodes]
+
+    for node in nodes:
+        start_block(fidout, node.block)
+        if node['id'] is not None:
+            if in_id is not None:
+                write_id(fidout, FIFF.FIFF_PARENT_FILE_ID, in_id)
+
+            write_id(fidout, FIFF.FIFF_BLOCK_ID)
+            write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node['id'])
+
+        for d in node.directory:
+            #   Do not copy these tags
+            if d.kind == FIFF.FIFF_BLOCK_ID or \
+                    d.kind == FIFF.FIFF_PARENT_BLOCK_ID or \
+                    d.kind == FIFF.FIFF_PARENT_FILE_ID:
+                continue
+
+            #   Read and write tags, pass data through transparently
+            fidin.seek(d.pos, 0)
+
+            s = fidin.read(4*4)
+            tag = Tag(*struct.unpack(">iIii", s))
+            tag.data = np.fromfile(fidin, dtype='>B', count=tag.size)
+
+            _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')
+
+        for child in node['children']:
+            copy_tree(fidin, in_id, child, fidout)
+
+        end_block(fidout, node.block)

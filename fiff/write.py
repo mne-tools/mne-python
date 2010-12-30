@@ -1,5 +1,7 @@
 import time
+import array
 import numpy as np
+from scipy import linalg
 
 from .constants import FIFF
 
@@ -8,6 +10,8 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     FIFFV_NEXT_SEQ = 0
     if isinstance(data, np.ndarray):
         data_size *= data.size
+    if isinstance(data, str):
+        data_size *= len(data)
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_TYPE, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
@@ -79,7 +83,7 @@ def write_string(fid, kind, data):
     %
     """
     FIFFT_STRING = 10
-    data_size = len(data)
+    data_size = 1
     _write(fid, data, kind, data_size, FIFFT_STRING, '>c')
 
 
@@ -98,31 +102,37 @@ def write_name_list(fid, kind, data):
     write_string(fid, kind, ':'.join(data))
 
 
-def write_float_matrix(fid, kind, data):
+def write_float_matrix(fid, kind, mat):
     """
     %
     % fiff_write_float_matrix(fid,kind,mat)
-    %
+    % 
     % Writes a single-precision floating-point matrix tag
     %
     %     fid           An open fif file descriptor
     %     kind          The tag kind
-    %     data          The data matrix
+    %     mat           The data matrix
     %
     """
-
     FIFFT_FLOAT = 4
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_FLOAT = FIFFT_FLOAT | FIFFT_MATRIX
-    data_size = 4*data.size + 4*3
+    FIFFV_NEXT_SEQ = 0
 
-    _write(fid, data, kind, data_size, FIFFT_MATRIX_FLOAT, '>f4')
+    data_size = 4 * mat.size + 4 * 3
 
-    dims = np.empty(3, dtype=np.int)
-    dims[0] = data.shape[1]
-    dims[1] = data.shape[0]
-    dims[3] = 2
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(mat, dtype='>f4').tostring())
+
+    dims = np.empty(3, dtype=np.int32)
+    dims[0] = mat.shape[1]
+    dims[1] = mat.shape[0]
+    dims[2] = 2
     fid.write(np.array(dims, dtype='>i4').tostring())
+
 
 
 def write_id(fid, kind, id_=None):
@@ -142,7 +152,7 @@ def write_id(fid, kind, id_=None):
 
     if id_ is None:
         id_ = dict()
-        id_['version'] = (1 << 16) | 2            # Version (1 << 16) | 2
+        id_['version'] = (1 << 16) | 2
         id_['machid'] = 65536 * np.random.rand(2) # Machine id (andom for now)
         id_['secs'] = time.time()
         id_['usecs'] = 0            #   Do not know how we could get this XXX
@@ -233,11 +243,195 @@ def end_file(fid):
     %     fid           An open fif file descriptor
     %
     """
-
     data_size = 0
-
     fid.write(np.array(FIFF.FIFF_NOP, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFV_NEXT_NONE, dtype='>i4').tostring())
     fid.close()
+
+
+def write_coord_trans(fid, trans):
+    """
+    #
+    # fiff_write_coord_trans(fid,trans)
+    #
+    # Writes a coordinate transformation structure
+    #
+    #     fid           An open fif file descriptor
+    #     trans         The coordinate transfomation structure
+    #
+    """
+
+    FIFF_COORD_TRANS = 222
+    FIFFT_COORD_TRANS_STRUCT = 35
+    FIFFV_NEXT_SEQ = 0
+
+    #?typedef struct _fiffCoordTransRec {
+    #  fiff_int_t   from;		           /*!< Source coordinate system. */
+    #  fiff_int_t   to;		               /*!< Destination coordinate system. */
+    #  fiff_float_t rot[3][3];	           /*!< The forward transform (rotation part) */
+    #  fiff_float_t move[3];		       /*!< The forward transform (translation part) */
+    #  fiff_float_t invrot[3][3];	       /*!< The inverse transform (rotation part) */
+    #  fiff_float_t invmove[3];            /*!< The inverse transform (translation part) */
+    #} *fiffCoordTrans, fiffCoordTransRec; /*!< Coordinate transformation descriptor */
+
+    data_size = 4*2*12 + 4*2
+    fid.write(np.array(FIFF_COORD_TRANS, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(trans['from_'], dtype='>i4').tostring())
+    fid.write(np.array(trans['to'], dtype='>i4').tostring())
+
+    #   The transform...
+    rot = trans['trans'][:3, :3]
+    move = trans['trans'][:3, 3]
+    fid.write(np.array(rot, dtype='>f4').tostring())
+    fid.write(np.array(move, dtype='>f4').tostring())
+
+    #   ...and its inverse
+    trans_inv = linalg.inv(trans.trans)
+    rot = trans_inv[:3, :3]
+    move = trans_inv[:3, 3]
+    fid.write(np.array(rot, dtype='>f4').tostring())
+    fid.write(np.array(move, dtype='>f4').tostring())
+
+
+def write_ch_info(fid, ch):
+    """
+    %
+    % fiff_write_ch_info(fid,ch)
+    %
+    % Writes a channel information record to a fif file
+    %
+    %     fid           An open fif file descriptor
+    %     ch            The channel information structure to write
+    %
+    %     The type, cal, unit, and pos members are explained in Table 9.5
+    %     of the MNE manual
+    %
+    """
+
+    FIFF_CH_INFO = 203
+    FIFFT_CH_INFO_STRUCT = 30
+    FIFFV_NEXT_SEQ = 0
+
+    #typedef struct _fiffChPosRec {
+    #  fiff_int_t   coil_type;      /*!< What kind of coil. */
+    #  fiff_float_t r0[3];          /*!< Coil coordinate system origin */
+    #  fiff_float_t ex[3];          /*!< Coil coordinate system x-axis unit vector */
+    #  fiff_float_t ey[3];          /*!< Coil coordinate system y-axis unit vector */
+    #  fiff_float_t ez[3];                   /*!< Coil coordinate system z-axis unit vector */
+    #} fiffChPosRec,*fiffChPos;                /*!< Measurement channel position and coil type */
+
+
+    #typedef struct _fiffChInfoRec {
+    #  fiff_int_t    scanNo;    /*!< Scanning order # */
+    #  fiff_int_t    logNo;     /*!< Logical channel # */
+    #  fiff_int_t    kind;      /*!< Kind of channel */
+    #  fiff_float_t  range;     /*!< Voltmeter range (only applies to raw data ) */
+    #  fiff_float_t  cal;       /*!< Calibration from volts to... */
+    #  fiff_ch_pos_t chpos;     /*!< Channel location */
+    #  fiff_int_t    unit;      /*!< Unit of measurement */
+    #  fiff_int_t    unit_mul;  /*!< Unit multiplier exponent */
+    #  fiff_char_t   ch_name[16];   /*!< Descriptive name for the channel */
+    #} fiffChInfoRec,*fiffChInfo;   /*!< Description of one channel */
+
+    data_size = 4*13 + 4*7 + 16;
+
+    fid.write(np.array(FIFF_CH_INFO, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_CH_INFO_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+
+    #   Start writing fiffChInfoRec
+    fid.write(np.array(ch['scanno'], dtype='>i4').tostring())
+    fid.write(np.array(ch['logno'], dtype='>i4').tostring())
+    fid.write(np.array(ch['kind'], dtype='>i4').tostring())
+    fid.write(np.array(ch['range'], dtype='>f4').tostring())
+    fid.write(np.array(ch['cal'], dtype='>f4').tostring())
+    fid.write(np.array(ch['coil_type'], dtype='>i4').tostring())
+    fid.write(np.array(ch['loc'], dtype='>f4').tostring()) # writing 12 values
+
+    #   unit and unit multiplier
+    fid.write(np.array(ch['unit'], dtype='>i4').tostring())
+    fid.write(np.array(ch['unit_mul'], dtype='>i4').tostring())
+
+    #   Finally channel name
+    if len(ch['ch_name']):
+        ch_name = ch['ch_name'][:15]
+    else:
+        ch_name = ch['ch_name']
+
+    fid.write(np.array(ch_name, dtype='>c').tostring())
+    if len(ch_name) < 16:
+        dum = array.array('c', '\0' * (16 - len(ch_name)))
+        dum.tofile(fid)
+
+
+def write_dig_point(fid, dig):
+    """
+    %
+    % fiff_write_dig_point(fid,dig)
+    %
+    % Writes a digitizer data point into a fif file
+    %
+    %     fid           An open fif file descriptor
+    %     dig           The point to write
+    %
+    """
+
+    FIFF_DIG_POINT = 213
+    FIFFT_DIG_POINT_STRUCT = 33
+    FIFFV_NEXT_SEQ = 0
+
+    #?typedef struct _fiffDigPointRec {
+    #  fiff_int_t kind;               /*!< FIFF_POINT_CARDINAL,
+    #                                  *   FIFF_POINT_HPI, or
+    #                                  *   FIFF_POINT_EEG */
+    #  fiff_int_t ident;              /*!< Number identifying this point */
+    #  fiff_float_t r[3];             /*!< Point location */
+    #} *fiffDigPoint,fiffDigPointRec; /*!< Digitization point description */
+
+    data_size = 5 * 4
+
+    fid.write(np.array(FIFF_DIG_POINT, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_DIG_POINT_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+
+    #   Start writing fiffDigPointRec
+    fid.write(np.array(dig['kind'], dtype='>i4').tostring())
+    fid.write(np.array(dig['ident'], dtype='>i4').tostring())
+    fid.write(np.array(dig['r'][:3], dtype='>f4').tostring())
+
+
+def write_named_matrix(fid, kind, mat):
+    """
+    %
+    % fiff_write_named_matrix(fid,kind,mat)
+    %
+    % Writes a named single-precision floating-point matrix
+    %
+    %     fid           An open fif file descriptor
+    %     kind          The tag kind to use for the data
+    %     mat           The data matrix
+    %
+    """
+
+    start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
+    write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
+    write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
+
+    if len(mat['row_names']) > 0:
+        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
+
+    if len(mat['col_names']) > 0:
+        write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
+
+    write_float_matrix(fid,kind, mat.data)
+    end_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
+
+    return;
+
