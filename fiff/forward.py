@@ -47,7 +47,7 @@ def _block_diag(A, n):
         jj = jj * np.ones(ma, dtype=np.int)[:,None]
         jj = jj.T.ravel() # column indices foreach sparse bd
 
-        bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T))
+        bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
     else: # already is sparse, unblock it
         import pdb; pdb.set_trace()
         # [mA,na] = size(A);        % matrix always has na columns
