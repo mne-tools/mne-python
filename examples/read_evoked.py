@@ -1,4 +1,4 @@
-"""Reading an evoked file
+"""Reading and writing an evoked file
 """
 print __doc__
 
@@ -6,13 +6,11 @@ import fiff
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
 
+# Reading
 data = fiff.read_evoked(fname)
 
+# Writing
 fiff.write_evoked('evoked.fif', data)
-data2 = fiff.read_evoked('evoked.fif')
-
-from scipy import linalg
-print linalg.norm(data['evoked']['epochs'] - data2['evoked']['epochs'])
 
 ###############################################################################
 # Show result
