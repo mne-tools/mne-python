@@ -6,7 +6,7 @@ def dir_tree_find(tree, kind):
     """[nodes] = dir_tree_find(tree,kind)
 
        Find nodes of the given kind from a directory tree structure
-       
+
        Returns a list of matching nodes
     """
     nodes = []
@@ -41,9 +41,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         block = 0
 
     if verbose:
-        for k in range(indent):
-            print '\t'
-        print 'start { %d\n' % block
+        print '\t'*indent + 'start { %d' % block
 
     this = start
 
@@ -59,7 +57,8 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
     while this < len(directory):
         if directory[this].kind == FIFF_BLOCK_START:
             if this != start:
-                child, this = make_dir_tree(fid, directory, this, indent+1)
+                child, this = make_dir_tree(fid, directory, this,
+                                                        indent+1, verbose)
                 tree.nchild += 1
                 tree.children.append(child)
         elif directory[this].kind == FIFF_BLOCK_END:
@@ -71,35 +70,30 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
             if tree.nent == 1:
                 tree.directory = list()
             tree.directory.append(directory[this])
-        #
-        #  Add the id information if available
-        #
-        if block == 0:
-           if directory[this].kind == FIFF_FILE_ID:
-              tag = read_tag(fid, directory[this].pos)
-              tree.id = tag.data
-        else:
-           if directory[this].kind == FIFF_BLOCK_ID:
-              tag = read_tag(fid, directory[this].pos)
-              tree.id = tag.data
-           elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
-              tag = read_tag(fid, directory[this].pos)
-              tree.parent_id = tag.data
+
+            #  Add the id information if available
+            if block == 0:
+               if directory[this].kind == FIFF_FILE_ID:
+                  tag = read_tag(fid, directory[this].pos)
+                  tree.id = tag.data
+            else:
+               if directory[this].kind == FIFF_BLOCK_ID:
+                  tag = read_tag(fid, directory[this].pos)
+                  tree.id = tag.data
+               elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
+                  tag = read_tag(fid, directory[this].pos)
+                  tree.parent_id = tag.data
+
         this += 1
-    #
+
     # Eliminate the empty directory
-    #
     if tree.nent == 0:
        tree.directory = None
 
     if verbose:
-        for k in range(indent+1):
-            print '\t'
-        print 'block = %d nent = %d nchild = %d\n' % (tree.block, tree.nent,
-                                                      tree.nchild)
-        for k in range(indent):
-            print '\t'
-        print 'end } %d\n' % block
+        print '\t'*(indent+1) + 'block = %d nent = %d nchild = %d' % (
+                                tree.block, tree.nent, tree.nchild)
+        print '\t'*indent, 'end } %d' % block
 
     last = this
     return tree, last

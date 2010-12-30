@@ -4,6 +4,7 @@ import numpy as np
 from .bunch import Bunch
 from .constants import FIFF
 
+
 class Tag(object):
     """docstring for Tag"""
     def __init__(self, kind, type_, size, next, pos=None):
@@ -13,14 +14,14 @@ class Tag(object):
         self.next = int(next)
         self.pos = pos if pos is not None else next
         self.pos = int(self.pos)
+        self.data = None
 
     def __repr__(self):
         out = "kind: %s - type: %s - size: %s - next: %s - pos: %s" % (
                 self.kind, self.type, self.size, self.next, self.pos)
         if hasattr(self, 'data'):
-            out += " - data: %s\n" % self.data
-        else:
-            out += "\n"
+            out += " - data: %s" % self.data
+        out += "\n"
         return out
 
 
@@ -252,7 +253,7 @@ def find_tag(fid, node, findkind):
     for p in range(node.nent):
        if node.directory[p].kind == findkind:
           return read_tag(fid, node.directory[p].pos)
-    tag = None;
+    tag = None
     return tag
 
 

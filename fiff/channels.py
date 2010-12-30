@@ -11,7 +11,7 @@ def read_bad_channels(fid, node):
     % Reas the bad channel list from a node if it exists
     %
     % fid      - The file id
-    % node     - The node of interes
+    % node     - The node of interest
     %
     """
 
@@ -21,7 +21,7 @@ def read_bad_channels(fid, node):
     if len(nodes) > 0:
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
-            if tag is not None:
+            if tag.data is not None:
                 bads = tag.data.split(':')
     return bads
 

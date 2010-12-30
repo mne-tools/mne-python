@@ -45,7 +45,7 @@ def fiff_open(fname, verbose=False):
             tag.pos = pos
             directory.append(tag)
 
-    tree, _ = make_dir_tree(fid, directory)
+    tree, _ = make_dir_tree(fid, directory, verbose=verbose)
 
     if verbose:
         print '[done]\n'

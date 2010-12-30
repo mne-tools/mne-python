@@ -118,6 +118,7 @@ from .write import start_block, end_block, write_int, write_name_list, \
                    write_double, write_float_matrix, start_file, end_file
 from .proj import write_proj
 
+
 def write_cov(fid, cov):
     """
     %
@@ -191,9 +192,9 @@ def write_cov_file(fname, cov):
     fid = start_file(fname)
 
     try:
-        write_cov(fid,cov);
+        write_cov(fid, cov)
     except Exception as inst:
         os.remove(fname)
-        raise '%s',  inst
+        raise '%s', inst
 
     end_file(fid)
