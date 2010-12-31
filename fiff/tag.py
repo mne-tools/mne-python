@@ -6,7 +6,27 @@ from .constants import FIFF
 
 
 class Tag(object):
-    """docstring for Tag"""
+    """Tag in FIF tree structure
+
+    Parameters
+    ----------
+    kind: int
+        Kind of Tag
+
+    type_: int
+        Type of Tag
+
+    size: int
+        Size in bytes
+
+    int: next
+        Position of next Tag
+
+    pos: int
+        Position of Tag is the original file.
+
+    """
+
     def __init__(self, kind, type_, size, next, pos=None):
         self.kind = int(kind)
         self.type = int(type_)
@@ -26,6 +46,8 @@ class Tag(object):
 
 
 def read_tag_info(fid):
+    """Read Tag info (or header)
+    """
     s = fid.read(4*4)
     tag = Tag(*struct.unpack(">iiii", s))
     if tag.next == 0:
@@ -36,6 +58,21 @@ def read_tag_info(fid):
 
 
 def read_tag(fid, pos=None):
+    """Read a Tag from a file at a given position
+
+    Parameters
+    ----------
+    fid: file
+        The open FIF file descriptor
+
+    pos: int
+        The position of the Tag in the file.
+
+    Returns
+    -------
+    tag: Tag
+        The Tag read
+    """
     if pos is not None:
         fid.seek(pos, 0)
 
@@ -45,11 +82,11 @@ def read_tag(fid, pos=None):
     #
     #   The magic hexadecimal values
     #
-    is_matrix           = 4294901760 # ffff0000
+    is_matrix = 4294901760 # ffff0000
     matrix_coding_dense = 16384      # 4000
-    matrix_coding_CCS   = 16400      # 4010
-    matrix_coding_RCS   = 16416      # 4020
-    data_type           = 65535      # ffff
+    matrix_coding_CCS = 16400      # 4010
+    matrix_coding_RCS = 16416      # 4020
+    data_type = 65535      # ffff
     #
     if tag.size > 0:
         matrix_coding = is_matrix & tag.type
@@ -67,21 +104,26 @@ def read_tag(fid, pos=None):
                 #
                 # Back to where the data start
                 #
-                fid.seek(pos, 0);
+                fid.seek(pos, 0)
 
                 if ndim != 2:
-                   raise ValueError, 'Only two-dimensional matrices are supported at this time'
+                    raise ValueError, 'Only two-dimensional matrices are ' \
+                                      'supported at this time'
 
                 matrix_type = data_type & tag.type
 
                 if matrix_type == FIFF.FIFFT_INT:
-                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims)
+                    tag.data = np.fromfile(fid, dtype='>i',
+                                            count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_JULIAN:
-                    tag.data = np.fromfile(fid, dtype='>i', count=dims.prod()).reshape(dims)
+                    tag.data = np.fromfile(fid, dtype='>i',
+                                            count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_FLOAT:
-                    tag.data = np.fromfile(fid, dtype='>f4', count=dims.prod()).reshape(dims)
+                    tag.data = np.fromfile(fid, dtype='>f4',
+                                            count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_DOUBLE:
-                    tag.data = np.fromfile(fid, dtype='>f8', count=dims.prod()).reshape(dims)
+                    tag.data = np.fromfile(fid, dtype='>f8',
+                                            count=dims.prod()).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
                     data = np.fromfile(fid, dtype='>f4', count=2*dims.prod())
                     # Note: we need the non-conjugate transpose here
@@ -91,9 +133,11 @@ def read_tag(fid, pos=None):
                     # Note: we need the non-conjugate transpose here
                     tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 else:
-                    raise ValueError, 'Cannot handle matrix of type %d yet' % matrix_type
+                    raise ValueError, 'Cannot handle matrix of type %d yet' % (
+                                                                matrix_type)
 
-            elif matrix_coding == matrix_coding_CCS or matrix_coding == matrix_coding_RCS:
+            elif matrix_coding == matrix_coding_CCS or \
+                                    matrix_coding == matrix_coding_RCS:
                 from scipy import sparse
                 # Find dimensions and return to the beginning of tag data
                 pos = fid.tell()
@@ -102,7 +146,8 @@ def read_tag(fid, pos=None):
                 fid.seek(-(ndim+2)*4, 1)
                 dims = np.fromfile(fid, dtype='>i', count=ndim+1)
                 if ndim != 2:
-                    raise ValueError, 'Only two-dimensional matrices are supported at this time'
+                    raise ValueError, 'Only two-dimensional matrices are ' \
+                                      'supported at this time'
 
                 # Back to where the data start
                 fid.seek(pos, 0)
@@ -114,17 +159,18 @@ def read_tag(fid, pos=None):
                     #    CCS
                     sparse.csc_matrix()
                     sparse_indices = np.fromfile(fid, dtype='>i4', count=nnz)
-                    sparse_ptrs  = np.fromfile(fid, dtype='>i4', count=ncol+1)
+                    sparse_ptrs = np.fromfile(fid, dtype='>i4', count=ncol+1)
                     tag.data = sparse.csc_matrix((sparse_data, sparse_indices,
                                                  sparse_ptrs), shape=dims)
                 else:
                     #    RCS
                     sparse_indices = np.fromfile(fid, dtype='>i4', count=nnz)
-                    sparse_ptrs  = np.fromfile(fid, dtype='>i4', count=nrow+1)
+                    sparse_ptrs = np.fromfile(fid, dtype='>i4', count=nrow+1)
                     tag.data = sparse.csr_matrix((sparse_data, sparse_indices,
                                                  sparse_ptrs), shape=dims)
             else:
-                raise ValueError, 'Cannot handle other than dense or sparse matrices yet'
+                raise ValueError, 'Cannot handle other than dense or sparse ' \
+                                  'matrices yet'
         else:
             #   All other data types
 
@@ -133,25 +179,25 @@ def read_tag(fid, pos=None):
                 tag.data = np.fromfile(fid, dtype=">B1", count=tag.size)
             elif tag.type == FIFF.FIFFT_SHORT:
                 tag.data = np.fromfile(fid, dtype=">h2", count=tag.size/2)
-            elif tag.type ==  FIFF.FIFFT_INT:
+            elif tag.type == FIFF.FIFFT_INT:
                 tag.data = np.fromfile(fid, dtype=">i4", count=tag.size/4)
-            elif tag.type ==  FIFF.FIFFT_USHORT:
+            elif tag.type == FIFF.FIFFT_USHORT:
                 tag.data = np.fromfile(fid, dtype=">H2", count=tag.size/2)
-            elif tag.type ==  FIFF.FIFFT_UINT:
+            elif tag.type == FIFF.FIFFT_UINT:
                 tag.data = np.fromfile(fid, dtype=">I4", count=tag.size/4)
-            elif tag.type ==  FIFF.FIFFT_FLOAT:
+            elif tag.type == FIFF.FIFFT_FLOAT:
                 tag.data = np.fromfile(fid, dtype=">f4", count=tag.size/4)
-            elif tag.type ==  FIFF.FIFFT_DOUBLE:
+            elif tag.type == FIFF.FIFFT_DOUBLE:
                 tag.data = np.fromfile(fid, dtype=">f8", count=tag.size/8)
-            elif tag.type ==  FIFF.FIFFT_STRING:
+            elif tag.type == FIFF.FIFFT_STRING:
                 tag.data = np.fromfile(fid, dtype=">c", count=tag.size)
                 tag.data = ''.join(tag.data)
-            elif tag.type ==  FIFF.FIFFT_DAU_PACK16:
+            elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = np.fromfile(fid, dtype=">h2", count=tag.size/2)
-            elif tag.type ==  FIFF.FIFFT_COMPLEX_FLOAT:
+            elif tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
                 tag.data = np.fromfile(fid, dtype=">f4", count=tag.size/4)
                 tag.data = tag.data[::2] + 1j * tag.data[1::2]
-            elif tag.type ==  FIFF.FIFFT_COMPLEX_DOUBLE:
+            elif tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
                 tag.data = np.fromfile(fid, dtype=">f8", count=tag.size/8)
                 tag.data = tag.data[::2] + 1j * tag.data[1::2]
             #
@@ -176,13 +222,13 @@ def read_tag(fid, pos=None):
                 tag.data['to'] = np.fromfile(fid, dtype=">i4", count=1)
                 rot = np.fromfile(fid, dtype=">f4", count=9).reshape(3, 3)
                 move = np.fromfile(fid, dtype=">f4", count=3)
-                tag.data['trans'] = np.r_[ np.c_[rot, move],
+                tag.data['trans'] = np.r_[np.c_[rot, move],
                                            np.array([[0], [0], [0], [1]]).T]
                 #
                 # Skip over the inverse transformation
                 # It is easier to just use inverse of trans in Matlab
                 #
-                fid.seek(12*4,1)
+                fid.seek(12*4, 1)
             elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
                 tag.data = Bunch()
                 tag.data['scanno'] = np.fromfile(fid, dtype=">i4", count=1)
@@ -204,15 +250,15 @@ def read_tag(fid, pos=None):
                 loc = tag.data.loc
                 kind = tag.data.kind
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    tag.data.coil_trans  = np.r_[ np.c_[loc[3:5], loc[6:8],
-                                                        loc[9:11], loc[0:2] ],
-                                        np.array([0, 0, 0, 1 ]).reshape(1, 4) ]
+                    tag.data.coil_trans = np.r_[np.c_[loc[3:5], loc[6:8],
+                                                        loc[9:11], loc[0:2]],
+                                        np.array([0, 0, 0, 1]).reshape(1, 4)]
                     tag.data.coord_frame = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data.kind == FIFF.FIFFV_EEG_CH:
                     if np.linalg.norm(loc[3:5]) > 0:
-                       tag.data.eeg_loc = np.c_[ loc[0:2], loc[3:5] ]
+                        tag.data.eeg_loc = np.c_[loc[0:2], loc[3:5]]
                     else:
-                       tag.data.eeg_loc = loc[1:3]
+                        tag.data.eeg_loc = loc[1:3]
                     tag.data.coord_frame = FIFF.FIFFV_COORD_HEAD
                 #
                 #   Unit and exponent
@@ -222,22 +268,23 @@ def read_tag(fid, pos=None):
                 #
                 #   Handle the channel name
                 #
-                ch_name   = np.fromfile(fid, dtype=">c", count=16)
+                ch_name = np.fromfile(fid, dtype=">c", count=16)
                 #
                 # Omit nulls
                 #
-                tag.data['ch_name'] = ''.join(ch_name[:np.where(ch_name == '')[0][0]])
+                tag.data['ch_name'] = ''.join(
+                                    ch_name[:np.where(ch_name == '')[0][0]])
 
             elif tag.type == FIFF.FIFFT_OLD_PACK:
-                 offset = np.fromfile(fid, dtype=">f4", count=1)
-                 scale = np.fromfile(fid, dtype=">f4", count=1)
-                 tag.data = np.fromfile(fid, dtype=">h2", count=(tag.size-8)/2)
-                 tag.data = scale*tag.data + offset
+                offset = np.fromfile(fid, dtype=">f4", count=1)
+                scale = np.fromfile(fid, dtype=">f4", count=1)
+                tag.data = np.fromfile(fid, dtype=">h2", count=(tag.size-8)/2)
+                tag.data = scale*tag.data + offset
             elif tag.type == FIFF.FIFFT_DIR_ENTRY_STRUCT:
-                 tag.data = list()
-                 for _ in range(tag.size/16-1):
-                     s = fid.read(4*4)
-                     tag.data.append(Tag(*struct.unpack(">iIii", s)))
+                tag.data = list()
+                for _ in range(tag.size/16-1):
+                    s = fid.read(4*4)
+                    tag.data.append(Tag(*struct.unpack(">iIii", s)))
             else:
                 raise ValueError, 'Unimplemented tag data type %s' % tag.type
 
@@ -249,15 +296,19 @@ def read_tag(fid, pos=None):
 
 
 def find_tag(fid, node, findkind):
+    """Find Tag in an open FIF file descriptor
+    """
     for p in range(node.nent):
-       if node.directory[p].kind == findkind:
-          return read_tag(fid, node.directory[p].pos)
+        if node.directory[p].kind == findkind:
+            return read_tag(fid, node.directory[p].pos)
     tag = None
     return tag
 
 
-def has_tag(this, findkind):
-   for p in range(this.nent):
-     if this.directory[p].kind == findkind:
-        return True
-   return False
+def has_tag(node, kind):
+    """Does the node contains a Tag of a given kind?
+    """
+    for d in node.directory:
+        if d.kind == kind:
+            return True
+    return False

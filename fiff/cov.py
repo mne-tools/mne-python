@@ -126,19 +126,16 @@ from .proj import write_proj
 
 
 def write_cov(fid, cov):
-    
-    """
-    %
-    %
-    %   mne_write_cov(fid,cov)
-    %
-    %   Write a covariance matrix to an open file
-    %
-    %   fid     - an open file id
-    %   cov     - the covariance matrix to write
-    %
-    """
+    """Write a noise covariance matrix
 
+    Parameters
+    ----------
+    fid: file
+        The file descriptor
+
+    cov: dict
+        The noise covariance matrix to write
+    """
     start_block(fid, FIFF.FIFFB_MNE_COV)
 
     #   Dimensions etc.

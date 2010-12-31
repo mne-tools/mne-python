@@ -8,17 +8,24 @@ from .open import fiff_open
 
 
 def patch_info(nearest):
-    """
-    %
-    % [pinfo] = mne_patch_info(nearest)
-    %
-    % Generate the patch information from the 'nearest' vector in a source space
-    %
-    """
+    """Patch information in a source space
 
+    Generate the patch information from the 'nearest' vector in
+    a source space
+
+    Parameters
+    ----------
+    nearest: array
+        XXX ?
+
+    Returns
+    -------
+    pinfo: list
+        XXX ?
+    """
     if nearest is None:
-       pinfo = None
-       return pinfo
+        pinfo = None
+        return pinfo
 
     indn = np.argsort(nearest)
     nearest_sorted = nearest[indn]
@@ -29,28 +36,33 @@ def patch_info(nearest):
 
     pinfo = list()
     for k in range(len(uniq)):
-       pinfo.append(indn[firsti[k]:lasti[k]])
+        pinfo.append(indn[firsti[k]:lasti[k]])
 
     return pinfo
 
 
 def read_source_spaces(source, add_geom=False, tree=None):
-    """
-    %
-    % [src] = mne_read_source_spaces(source,add_geom,tree)
-    %
-    % Reads source spaces from a fif file
-    %
-    % source      - The name of the file or an open file id
-    % add_geom    - Add geometry information to the source spaces
-    % tree        - Required if source is an open file id, search for the
-    %               source spaces here
-    %
-    """
+    """Read the source spaces from a FIF file
 
+    Parameters
+    ----------
+    source: string or file
+        The name of the file or an open file descriptor
+
+    add_geom: bool, optional (default False)
+        Add geometry information to the surfaces
+
+    tree: dict
+        The FIF tree structure if source is a file id.
+
+    Returns
+    -------
+    src: list
+        The list of source spaces
+    """
     #   Open the file, create directory
     if isinstance(source, str):
-        fid, tree, _ = fiff_open(source);
+        fid, tree, _ = fiff_open(source)
         open_here = True
     else:
         fid = source
@@ -65,13 +77,13 @@ def read_source_spaces(source, add_geom=False, tree=None):
 
     src = list()
     for s in spaces:
-       print '\tReading a source space...'
-       this = _read_one_source_space(fid, s, open_here)
-       print '[done]'
-       if add_geom:
-          complete_source_space_info(this)
+        print '\tReading a source space...'
+        this = _read_one_source_space(fid, s, open_here)
+        print '[done]'
+        if add_geom:
+            complete_source_space_info(this)
 
-       src.append(this)
+        src.append(this)
 
     print '\t%d source spaces read\n' % len(spaces)
 
@@ -82,10 +94,7 @@ def read_source_spaces(source, add_geom=False, tree=None):
 
 
 def _read_one_source_space(fid, this, open_here):
-    """
-    %
-    %   Read all the interesting stuff
-    %
+    """Read one source space
     """
     FIFF_BEM_SURF_NTRI = 3104
     FIFF_BEM_SURF_TRIANGLES = 3106
@@ -98,7 +107,7 @@ def _read_one_source_space(fid, this, open_here):
     else:
         res['id'] = int(tag.data)
 
-    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS);
+    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         if open_here:
             fid.close()
@@ -145,9 +154,9 @@ def _read_one_source_space(fid, this, open_here):
 
     res['nn'] = tag.data
     if res['nn'].shape[0] != res['np']:
-       if open_here:
-           fid.close()
-       raise ValueError, 'Vertex normal information is incorrect'
+        if open_here:
+            fid.close()
+        raise ValueError, 'Vertex normal information is incorrect'
 
     if res['ntri'] > 0:
         tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
@@ -172,7 +181,7 @@ def _read_one_source_space(fid, this, open_here):
     #   Which vertices are active
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE)
     if tag is None:
-        res['nuse'] = 0;
+        res['nuse'] = 0
         res['inuse'] = np.zeros(res['nuse'], dtype=np.int)
         res['vertno'] = None
     else:
@@ -183,11 +192,12 @@ def _read_one_source_space(fid, this, open_here):
                 fid.close()
             raise ValueError, 'Source selection information missing'
 
-        res['inuse']  = tag.data.astype(np.int).T
+        res['inuse'] = tag.data.astype(np.int).T
         if len(res['inuse']) != res['np']:
             if open_here:
                 fid.close()
-            raise ValueError, 'Incorrect number of entries in source space selection'
+            raise ValueError, 'Incorrect number of entries in source space ' \
+                              'selection'
 
         res['vertno'] = np.where(res['inuse'])[0]
 
@@ -206,11 +216,11 @@ def _read_one_source_space(fid, this, open_here):
     tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST)
 
     if tag1 is None or tag2 is None:
-       res['nearest'] = None
-       res['nearest_dist'] = None
+        res['nearest'] = None
+        res['nearest_dist'] = None
     else:
-       res['nearest'] = tag1.data
-       res['nearest_dist'] = tag2.data.T
+        res['nearest'] = tag1.data
+        res['nearest_dist'] = tag2.data.T
 
     res['pinfo'] = patch_info(res['nearest'])
     if res['pinfo'] is not None:
@@ -220,14 +230,14 @@ def _read_one_source_space(fid, this, open_here):
 
 
 def complete_source_space_info(this):
-    """
+    """Add more info on surface
     """
     #   Main triangulation
     print '\tCompleting triangulation info...'
     this['tri_area'] = np.zeros(this['ntri'])
-    r1 = this['rr'][this['tris'][:,0],:]
-    r2 = this['rr'][this['tris'][:,1],:]
-    r3 = this['rr'][this['tris'][:,2],:]
+    r1 = this['rr'][this['tris'][:, 0], :]
+    r2 = this['rr'][this['tris'][:, 1], :]
+    r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
     this['tri_nn'] = np.cross((r2-r1), (r3-r1))
 
@@ -241,30 +251,32 @@ def complete_source_space_info(this):
     #   Selected triangles
     print '\tCompleting selection triangulation info...'
     if this['nuse_tri'] > 0:
-        r1 = this['rr'][this['use_tris'][:,0],:]
-        r2 = this['rr'][this['use_tris'][:,1],:]
-        r3 = this['rr'][this['use_tris'][:,2],:]
+        r1 = this['rr'][this['use_tris'][:, 0],:]
+        r2 = this['rr'][this['use_tris'][:, 1],:]
+        r3 = this['rr'][this['use_tris'][:, 2],:]
         this['use_tri_cent'] = (r1 + r2 + r3) / 3.0
-        this['use_tri_nn'] = np.cross((r2-r1), (r3-r1));
+        this['use_tri_nn'] = np.cross((r2-r1), (r3-r1))
         for p in range(this['nuse_tri']): # XXX can do better
-            this['use_tri_area'][p] = sqrt(np.sum(this['use_tri_nn'][p,:] * this['use_tri_nn'][p,:])) / 2.0
+            this['use_tri_area'][p] = sqrt(np.sum(this['use_tri_nn'][p,:]
+                                           * this['use_tri_nn'][p,:])) / 2.0
 
     print '[done]'
 
 
 def find_source_space_hemi(src):
-    """
-    %
-    % function mne_find_source_space_hemi(src)
-    %
-    % Return the hemisphere id for a source space
-    %
-    % src      - The source space to investigate
-    % hemi     - Deduced hemisphere id
-    %
-    """
+    """Return the hemisphere id for a source space
 
-    xave = src['rr'][:,0].sum();
+    Parameters
+    ----------
+    src: dict
+        The source space to investigate
+
+    Returns
+    -------
+    hemi: int
+        Deduced hemisphere id
+    """
+    xave = src['rr'][:, 0].sum()
 
     if xave < 0:
         hemi = int(FIFF.FIFFV_MNE_SURF_LEFT_HEMI)

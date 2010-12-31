@@ -10,14 +10,17 @@ from .forward import _invert_transform, _transform_source_space_to
 
 
 def read_inverse_operator(fname):
-    """
-    %
-    % [inv] = mne_read_inverse_operator(fname)
-    %
-    % Reads the inverse operator decomposition from a fif file
-    %
-    % fname        - The name of the file
-    %
+    """Read the inverse operator decomposition from a FIF file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the FIF file.
+
+    Returns
+    -------
+    inv: dict
+        The inverse operator
     """
     #
     #   Open the file, create directory

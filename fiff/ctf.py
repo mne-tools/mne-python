@@ -82,14 +82,24 @@ def _read_named_matrix(fid, node, matkind):
 
 
 def read_ctf_comp(fid, node, chs):
-    """
-    %
-    % [ compdata ] = fiff_read_ctf_comp(fid,node,chs)
-    %
-    % Read the CTF software compensation data from the given node
-    %
-    """
+    """Read the CTF software compensation data from the given node
 
+    Parameters
+    ----------
+    fid: file
+        The file descriptor
+
+    node: dict
+        The node in the FIF tree
+
+    chs: list
+        The list of channels # XXX unclear
+
+    Returns
+    -------
+    compdata: list
+        The compensation data
+    """
     compdata = []
     comps = dir_tree_find(node, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 
@@ -191,17 +201,16 @@ from .write import start_block, end_block, write_int, write_named_matrix
 
 
 def write_ctf_comp(fid, comps):
-    """
-    %
-    % fiff_write_ctf_comp(fid,comps)
-    %
-    % Writes the CTF compensation data into a fif file
-    %
-    %     fid           An open fif file descriptor
-    %     comps         The compensation data to write
-    %
-    """
+    """Write the CTF compensation data into a fif file
 
+    Parameters
+    ----------
+    fid: file
+        The open FIF file descriptor
+
+    comps: list
+        The compensation data to write
+    """
     if len(comps) <= 0:
         return
 

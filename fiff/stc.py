@@ -2,20 +2,24 @@ import numpy as np
 
 
 def read_stc(filename):
-    """
-    %
-    % [stc] = mne_read_stc_file(filename)
-    %
-    % Reads an stc file. The returned structure has the following fields
-    %
-    %     tmin           The first time point of the data in seconds
-    %     tstep          Time between frames in seconds
-    %     vertices       vertex indices (0 based)
-    %     data           The data matrix (nvert * ntime)
-    %
-    %
-    """
+    """Read an STC file
 
+    STC files contain activations or source reconstructions
+
+    Parameters
+    ----------
+    filename: string
+        The name of the STC file
+
+    Returns
+    -------
+    data: dict
+        The STC structure. It has the following keys:
+           tmin           The first time point of the data in seconds
+           tstep          Time between frames in seconds
+           vertices       vertex indices (0 based)
+           data           The data matrix (nvert * ntime)
+    """
     fid = open(filename, 'rb')
 
     stc = dict()
@@ -54,20 +58,19 @@ def read_stc(filename):
 
 
 def write_stc(filename, stc):
-    """
-    %
-    % mne_write_stc_file(filename,stc)
-    % 
-    % writes an stc file
-    %
-    %     filename      output file
-    %     stc           a stucture containing the stc data with fields:
-    %
-    %     tmin          The time of the first frame in seconds
-    %     tstep         Time between frames in seconds
-    %     vertices      Vertex indices (0 based)
-    %     data          The data matrix nvert * ntime
-    %
+    """Write an STC file
+
+    Parameters
+    ----------
+    filename: string
+        The name of the STC file
+
+    stc: dict
+        The STC structure. It has the following keys:
+           tmin           The first time point of the data in seconds
+           tstep          Time between frames in seconds
+           vertices       vertex indices (0 based)
+           data           The data matrix (nvert * ntime)
     """
     fid = open(filename, 'wb')
 

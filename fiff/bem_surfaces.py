@@ -24,15 +24,20 @@ FIFF_BEM_SIGMA          = 3113   # Conductivity of a compartment
 
 
 def read_bem_surfaces(fname, add_geom=False):
-    """
-    #
-    # [surf] = mne_read_bem_surfaces(fname, add_geom)
-    #
-    # Reads source spaces from a fif file
-    #
-    # fname       - The name of the file or an open file id
-    # add_geom    - Add geometry information to the surfaces
-    #
+    """Read the BEM surfaces from a FIF file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the file containing the surfaces
+
+    add_geom: bool, optional (default False)
+        If True add geometry information to the surfaces
+
+    Returns
+    -------
+    surf: list
+        A list of dictionaries that each contain a surface
     """
     #
     #   Default coordinate frame
@@ -72,10 +77,10 @@ def read_bem_surfaces(fname, add_geom=False):
     surf = []
     for bsurf in bemsurf:
         print '\tReading a surface...'
-        this = read_bem_surface(fid, bsurf, coord_frame)
+        this = _read_bem_surface(fid, bsurf, coord_frame)
         print '[done]'
         if add_geom:
-            complete_surface_info(this)
+            _complete_surface_info(this)
         surf.append(this)
 
     print '\t%d BEM surfaces read' % len(surf)
@@ -85,8 +90,8 @@ def read_bem_surfaces(fname, add_geom=False):
     return surf
 
 
-def read_bem_surface(fid, this, def_coord_frame):
-    """
+def _read_bem_surface(fid, this, def_coord_frame):
+    """Read one bem surface
     """
     res = dict()
     #
@@ -163,7 +168,7 @@ def read_bem_surface(fid, this, def_coord_frame):
     return res
 
 
-def complete_surface_info(this):
+def _complete_surface_info(this):
     """ XXX : should be factorize with complete_source_space_info
     """
     #

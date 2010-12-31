@@ -6,9 +6,19 @@ from .constants import FIFF
 def _read_bad_channels(fid, node):
     """Read bad channels
 
-    It returns the list of channel's names.
-    """
+    Parameters
+    ----------
+    fid: file
+        The file descriptor
 
+    node: dict
+        The node of the FIF tree that contains info on the bad channels
+
+    Returns
+    -------
+    bads: list
+        A list of bad channel's names
+    """
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     bads = [];
