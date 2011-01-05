@@ -473,7 +473,7 @@ def start_writing_raw(name, info, sel=None):
         #
         #   Scan numbers may have been messed up
         #
-        chs[k].scanno = k
+        chs[k].scanno = k + 1 # scanno starts at 1 in FIF format
         chs[k].range = 1.0
         cals.append(chs[k]['cal'])
         write_ch_info(fid, chs[k])
