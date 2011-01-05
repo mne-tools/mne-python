@@ -96,7 +96,8 @@ def setup_read_raw(fname, allow_maxshield=False):
                 nsamp = ent.size / (4*nchan)
             else:
                 fid.close()
-                raise ValueError, 'Cannot handle data buffers of type %d' % ent.type
+                raise ValueError, 'Cannot handle data buffers of type %d' % (
+                                                                    ent.type)
 
             #  Do we have an initial skip pending?
             if first_skip > 0:
@@ -124,7 +125,7 @@ def setup_read_raw(fname, allow_maxshield=False):
     #   Add the calibration factors
     cals = np.zeros(data['info']['nchan'])
     for k in range(data['info']['nchan']):
-       cals[k] = data['info']['chs'][k]['range']*data['info']['chs'][k]['cal']
+        cals[k] = data['info']['chs'][k]['range']*data['info']['chs'][k]['cal']
 
     data['cals'] = cals
     data['rawdir'] = rawdir
@@ -171,21 +172,21 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
     """
 
     if to is None:
-       to  = raw['last_samp']
+        to = raw['last_samp']
     if from_ is None:
-       from_ = raw['first_samp']
+        from_ = raw['first_samp']
 
     #  Initial checks
     from_ = int(from_)
-    to   = int(to)
+    to = int(to)
     if from_ < raw['first_samp']:
-       from_ = raw['first_samp']
+        from_ = raw['first_samp']
 
     if to > raw['last_samp']:
-       to = raw['last_samp']
+        to = raw['last_samp']
 
     if from_ > to:
-       raise ValueError, 'No data in this range'
+        raise ValueError, 'No data in this range'
 
     print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
                        from_, to, from_ / float(raw['info']['sfreq']),
@@ -197,29 +198,29 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
     cal = np.diag(raw['cals'].ravel())
 
     if sel is None:
-       data = np.empty((nchan, to - from_))
-       if raw['proj'] is None and raw['comp'] is None:
-          mult = None
-       else:
-          if raw['proj'] is None:
-             mult = raw['comp'] * cal
-          elif raw['comp'] is None:
-             mult = raw['proj'] * cal
-          else:
-             mult = raw['proj'] * raw['comp'] * cal
+        data = np.empty((nchan, to - from_))
+        if raw['proj'] is None and raw['comp'] is None:
+            mult = None
+        else:
+            if raw['proj'] is None:
+                mult = raw['comp'] * cal
+            elif raw['comp'] is None:
+                mult = raw['proj'] * cal
+            else:
+                mult = raw['proj'] * raw['comp'] * cal
 
     else:
-       data = np.empty((len(sel), to - from_))
-       if raw['proj'] is None and raw['comp'] is None:
-          mult = None
-          cal = np.diag(raw['cals'][sel].ravel())
-       else:
-          if raw['proj'] is None:
-             mult = raw['comp'][sel,:] * cal
-          elif raw['comp'] is None:
-             mult = raw['proj'][sel,:] * cal
-          else:
-             mult = raw['proj'][sel,:] * raw['comp'] * cal
+        data = np.empty((len(sel), to - from_))
+        if raw['proj'] is None and raw['comp'] is None:
+            mult = None
+            cal = np.diag(raw['cals'][sel].ravel())
+        else:
+            if raw['proj'] is None:
+                mult = raw['comp'][sel,:] * cal
+            elif raw['comp'] is None:
+                mult = raw['proj'][sel,:] * cal
+            else:
+                mult = raw['proj'][sel,:] * raw['comp'] * cal
 
     do_debug = False
     if cal is not None:
@@ -250,18 +251,21 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 #   we proceed a little bit differently
                 if mult is None:
                     if sel is None:
-                        one = cal * tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
+                        one = cal * tag.data.reshape(this['nsamp'],
+                                                     nchan).astype(np.float).T
                     else:
-                        one = tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
+                        one = tag.data.reshape(this['nsamp'],
+                                               nchan).astype(np.float).T
                         one = cal * one[sel,:]
                 else:
-                    one = mult * tag.data.reshape(this['nsamp'], nchan).astype(np.float).T
+                    one = mult * tag.data.reshape(this['nsamp'],
+                                                  nchan).astype(np.float).T
 
             #  The picking logic is a bit complicated
-            if to >= this['last'] and from_ <= this['first']:
+            if to > this['last'] and from_ <= this['first']:
                 #    We need the whole buffer
                 first_pick = 0
-                last_pick  = this['nsamp']
+                last_pick = this['nsamp']
                 if do_debug:
                     print 'W'
 
@@ -272,10 +276,9 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                     last_pick = this['nsamp'] + to - this['last']
                     if do_debug:
                         print 'M'
-
                 else:
                     #   From the middle to the end
-                    last_pick = this['nsamp']
+                    last_pick = this['nsamp'] - 1
                     if do_debug:
                         print 'E'
             else:
@@ -331,8 +334,188 @@ def read_raw_segment_times(raw, from_, to, sel=None):
     """
     #   Convert to samples
     from_ = floor(from_ * raw['info']['sfreq'])
-    to   = ceil(to * raw['info']['sfreq'])
+    to = ceil(to * raw['info']['sfreq'])
 
     #   Read it
-    return read_raw_segment(raw, from_, to, sel);
+    return read_raw_segment(raw, from_, to, sel)
 
+###############################################################################
+# Writing
+
+from .write import start_file, start_block, write_id, write_string, \
+                   write_ch_info, end_block, write_coord_trans, \
+                   write_float, write_int, write_dig_point, \
+                   write_name_list, end_file
+from .ctf import write_ctf_comp
+from .proj import write_proj
+from .tree import copy_tree
+
+
+def start_writing_raw(name, info, sel=None):
+    """Start write raw data in file
+
+    Parameters
+    ----------
+    name : string
+        Name of the file to create.
+
+    info : dict
+        Measurement info
+
+    sel : array of int, optional
+        Indices of channels to include. By default all channels are included.
+
+    Returns
+    -------
+    fid : file
+        The file descriptor
+
+    cals : list
+        calibration factors
+    """
+    #
+    #   We will always write floats
+    #
+    if sel is None:
+        sel = np.arange(info['nchan'])
+    data_type = 4
+    chs = [info['chs'][k] for k in sel]
+    nchan = len(chs)
+    #
+    #  Create the file and save the essentials
+    #
+    fid = start_file(name)
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+    #
+    #    Measurement info
+    #
+    start_block(fid, FIFF.FIFFB_MEAS_INFO)
+    #
+    #    Blocks from the original
+    #
+    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
+              FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
+    have_hpi_result = False
+    have_isotrak = False
+    if len(blocks) > 0 and 'filename' in info and info['filename'] is not None:
+        fid2, tree, _ = fiff_open(info['filename'])
+        for b in blocks:
+            nodes = dir_tree_find(tree, b)
+            copy_tree(fid2, tree.id, nodes, fid)
+            if b == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
+                have_hpi_result = True
+            if b == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
+                have_isotrak = True
+        fid2.close()
+
+    #
+    #    megacq parameters
+    #
+    if info['acq_pars'] is not None or info['acq_stim'] is not None:
+        start_block(fid, FIFF.FIFFB_DACQ_PARS)
+        if info['acq_pars'] is not None:
+            write_string(fid, FIFF.FIFF_DACQ_PARS, info['acq_pars'])
+
+        if info['acq_stim'] is not None:
+            write_string(fid, FIFF.FIFF_DACQ_STIM, info['acq_stim'])
+
+        end_block(fid, FIFF.FIFFB_DACQ_PARS)
+    #
+    #    Coordinate transformations if the HPI result block was not there
+    #
+    if not have_hpi_result:
+        if info['dev_head_t'] is not None:
+            write_coord_trans(fid, info['dev_head_t'])
+
+        if info['ctf_head_t'] is not None:
+            write_coord_trans(fid, info['ctf_head_t'])
+    #
+    #    Polhemus data
+    #
+    if info['dig'] is not None and not have_isotrak:
+        start_block(fid, FIFF.FIFFB_ISOTRAK)
+        for dig_point in info['dig']:
+            write_dig_point(fid, dig_point)
+            end_block(fid, FIFF.FIFFB_ISOTRAK)
+    #
+    #    Projectors
+    #
+    write_proj(fid, info['projs'])
+    #
+    #    CTF compensation info
+    #
+    write_ctf_comp(fid, info['comps'])
+    #
+    #    Bad channels
+    #
+    if len(info['bads']) > 0:
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    #
+    #    General
+    #
+    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
+    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    write_int(fid, FIFF.FIFF_NCHAN, nchan)
+    write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
+    if info['meas_date'] is not None:
+        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+    #
+    #    Channel info
+    #
+    cals = []
+    for k in range(nchan):
+        #
+        #   Scan numbers may have been messed up
+        #
+        chs[k].scanno = k
+        chs[k].range = 1.0
+        cals.append(chs[k]['cal'])
+        write_ch_info(fid, chs[k])
+
+    end_block(fid, FIFF.FIFFB_MEAS_INFO)
+    #
+    # Start the raw data
+    #
+    start_block(fid, FIFF.FIFFB_RAW_DATA)
+
+    return fid, cals
+
+
+def write_raw_buffer(fid, buf, cals):
+    """Write raw buffer
+
+    Parameters
+    ----------
+    fid : file descriptor
+        an open raw data file
+
+    buf : array
+        The buffer to write
+
+    cals : array
+        Calibration factors
+    """
+    if buf.shape[0] != len(cals):
+        raise ValueError, 'buffer and calibration sizes do not match'
+
+    write_float(fid, FIFF.FIFF_DATA_BUFFER,
+                                    np.dot(np.diag(1.0 / np.ravel(cals)), buf))
+
+
+def finish_writing_raw(fid):
+    """Finish writing raw FIF file
+
+    Parameters
+    ----------
+    fid : file descriptor
+        an open raw data file
+    """
+    end_block(fid, FIFF.FIFFB_RAW_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)

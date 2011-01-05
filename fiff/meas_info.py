@@ -166,8 +166,8 @@ def read_meas_info(source, tree=None):
 
     #   Locate the acquisition information
     acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS);
-    acq_pars = []
-    acq_stim = []
+    acq_pars = None
+    acq_stim = None
     if len(acqpars) == 1:
         acqpars = acqpars[0]
         for k in range(acqpars.nent):
@@ -177,8 +177,8 @@ def read_meas_info(source, tree=None):
                 tag = read_tag(fid, pos)
                 acq_pars = tag.data
             elif kind == FIFF.FIFF_DACQ_STIM:
-               tag = read_tag(fid, pos)
-               acq_stim = tag.data
+                tag = read_tag(fid, pos)
+                acq_stim = tag.data
 
     #   Load the SSP data
     projs = read_proj(fid, meas_info)
