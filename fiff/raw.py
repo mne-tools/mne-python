@@ -8,6 +8,35 @@ from .tree import dir_tree_find
 from .tag import read_tag
 
 
+class Raw(dict):
+    """Raw data set"""
+    def __getitem__(self, item):
+        """getting raw data content with python slicing"""
+        if isinstance(item, tuple): # slicing required
+            if len(item) == 2: # channels and time instants
+                time_slice = item[1]
+                sel = item[0]
+            else:
+                time_slice = item[0]
+                sel = None
+            start, stop, step = time_slice.start, time_slice.stop, time_slice.step
+            if step is not None:
+                raise ValueError('step needs to be 1 : %d given' % step)
+            return read_raw_segment(self, start=start, stop=stop, sel=sel)
+        else:
+            return super(Raw, self).__getitem__(item)
+
+    def time_to_index(self, *args):
+        indices = []
+        for time in args:
+            ind = int(time * self['info']['sfreq'])
+            indices.append(ind)
+        return indices
+
+    def close(self):
+        self['fid'].close()
+
+
 def setup_read_raw(fname, allow_maxshield=False):
     """Read information about raw data file
 
@@ -50,7 +79,7 @@ def setup_read_raw(fname, allow_maxshield=False):
     #   Set up the output structure
     info['filename'] = fname
 
-    data = dict(fid=fid, info=info, first_samp=0, last_samp=0)
+    data = Raw(fid=fid, info=info, first_samp=0, last_samp=0)
 
     #   Process the directory
     directory = raw['directory']
@@ -83,7 +112,6 @@ def setup_read_raw(fname, allow_maxshield=False):
         if ent.kind == FIFF.FIFF_DATA_SKIP:
             tag = read_tag(fid, ent.pos)
             nskip = int(tag.data)
-            print nskip
         elif ent.kind == FIFF.FIFF_DATA_BUFFER:
             #   Figure out the number of samples in this buffer
             if ent.type == FIFF.FIFFT_DAU_PACK16:
@@ -101,7 +129,7 @@ def setup_read_raw(fname, allow_maxshield=False):
 
             #  Do we have an initial skip pending?
             if first_skip > 0:
-                first_samp += nsamp*first_skip
+                first_samp += nsamp * first_skip
                 data['first_samp'] = first_samp
                 first_skip = 0
 
@@ -116,7 +144,7 @@ def setup_read_raw(fname, allow_maxshield=False):
 
             #  Add a data buffer
             rawdir.append(dict(ent=ent, first=first_samp,
-                               last=first_samp + nsamp -1,
+                               last=first_samp + nsamp - 1,
                                nsamp=nsamp))
             first_samp += nsamp
 
@@ -125,7 +153,8 @@ def setup_read_raw(fname, allow_maxshield=False):
     #   Add the calibration factors
     cals = np.zeros(data['info']['nchan'])
     for k in range(data['info']['nchan']):
-        cals[k] = data['info']['chs'][k]['range']*data['info']['chs'][k]['cal']
+        cals[k] = data['info']['chs'][k]['range'] * \
+                  data['info']['chs'][k]['cal']
 
     data['cals'] = cals
     data['rawdir'] = rawdir
@@ -140,7 +169,7 @@ def setup_read_raw(fname, allow_maxshield=False):
     return data
 
 
-def read_raw_segment(raw, from_=None, to=None, sel=None):
+def read_raw_segment(raw, start=None, stop=None, sel=None):
     """Read a chunck of raw data
 
     Parameters
@@ -148,12 +177,13 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
     raw: dict
         The dict returned by setup_read_raw
 
-    from_: int
-        first sample to include. If omitted, defaults to the first
+    start: int, (optional)
+        first sample to include (first is 0). If omitted, defaults to the first
         sample in data
 
-    to: int
-        Last sample to include. If omitted, defaults to the last sample in data
+    stop: int, (optional)
+        First sample to not include.
+        If omitted, data is included to the end.
 
     sel: array, optional
         Indices of channels to select
@@ -171,26 +201,26 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
 
     """
 
-    if to is None:
-        to = raw['last_samp']
-    if from_ is None:
-        from_ = raw['first_samp']
+    if stop is None:
+        stop = raw['last_samp'] + 1
+    if start is None:
+        start = raw['first_samp']
 
     #  Initial checks
-    from_ = int(from_)
-    to = int(to)
-    if from_ < raw['first_samp']:
-        from_ = raw['first_samp']
+    start = int(start)
+    stop = int(stop)
+    if start < raw['first_samp']:
+        start = raw['first_samp']
 
-    if to > raw['last_samp']:
-        to = raw['last_samp']
+    if stop >= raw['last_samp']:
+        stop = raw['last_samp'] + 1
 
-    if from_ > to:
+    if start >= stop:
         raise ValueError, 'No data in this range'
 
     print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                       from_, to, from_ / float(raw['info']['sfreq']),
-                       to / float(raw['info']['sfreq']))
+                       start, stop - 1, start / float(raw['info']['sfreq']),
+                       (stop - 1) / float(raw['info']['sfreq'])),
 
     #  Initialize the data and calibration vector
     nchan = raw['info']['nchan']
@@ -198,7 +228,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
     cal = np.diag(raw['cals'].ravel())
 
     if sel is None:
-        data = np.empty((nchan, to - from_))
+        data = np.empty((nchan, stop - start))
         if raw['proj'] is None and raw['comp'] is None:
             mult = None
         else:
@@ -210,7 +240,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 mult = raw['proj'] * raw['comp'] * cal
 
     else:
-        data = np.empty((len(sel), to - from_))
+        data = np.empty((len(sel), stop - start))
         if raw['proj'] is None and raw['comp'] is None:
             mult = None
             cal = np.diag(raw['cals'][sel].ravel())
@@ -223,6 +253,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 mult = raw['proj'][sel,:] * raw['comp'] * cal
 
     do_debug = False
+    # do_debug = True
     if cal is not None:
         from scipy import sparse
         cal = sparse.csr_matrix(cal)
@@ -235,7 +266,7 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
         this = raw['rawdir'][k]
 
         #  Do we need this buffer
-        if this['last'] > from_:
+        if this['last'] >= start:
             if this['ent'] is None:
                 #  Take the easy route: skip is translated to zeros
                 if do_debug:
@@ -262,29 +293,29 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                                                   nchan).astype(np.float).T
 
             #  The picking logic is a bit complicated
-            if to > this['last'] and from_ <= this['first']:
+            if stop - 1 > this['last'] and start < this['first']:
                 #    We need the whole buffer
                 first_pick = 0
                 last_pick = this['nsamp']
                 if do_debug:
                     print 'W'
 
-            elif from_ > this['first']:
-                first_pick = from_ - this['first']
-                if to < this['last']:
+            elif start >= this['first']:
+                first_pick = start - this['first']
+                if stop - 1 <= this['last']:
                     #   Something from the middle
-                    last_pick = this['nsamp'] + to - this['last']
+                    last_pick = this['nsamp'] + stop - this['last'] - 1
                     if do_debug:
                         print 'M'
                 else:
                     #   From the middle to the end
-                    last_pick = this['nsamp'] - 1
+                    last_pick = this['nsamp']
                     if do_debug:
                         print 'E'
             else:
                 #    From the beginning to the middle
                 first_pick = 0
-                last_pick = to - this['first']
+                last_pick = stop - this['first']
                 if do_debug:
                     print 'B'
 
@@ -294,17 +325,19 @@ def read_raw_segment(raw, from_=None, to=None, sel=None):
                 data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
                 dest += picksamp
 
-       #   Done?
-        if this['last'] >= to:
-            print ' [done]\n'
+        #   Done?
+        if this['last'] >= stop-1:
+            print ' [done]'
             break
 
-    times = np.arange(from_, to) / raw['info']['sfreq']
+    times = np.arange(start, stop) / raw['info']['sfreq']
+
+    raw['fid'].seek(0, 0) # Go back to beginning of the file
 
     return data, times
 
 
-def read_raw_segment_times(raw, from_, to, sel=None):
+def read_raw_segment_times(raw, start, stop, sel=None):
     """Read a chunck of raw data
 
     Parameters
@@ -312,10 +345,10 @@ def read_raw_segment_times(raw, from_, to, sel=None):
     raw: dict
         The dict returned by setup_read_raw
 
-    from_: float
+    start: float
         Starting time of the segment in seconds
 
-    to: float
+    stop: float
         End time of the segment in seconds
 
     sel: array, optional
@@ -333,11 +366,11 @@ def read_raw_segment_times(raw, from_, to, sel=None):
         returns the time values corresponding to the samples
     """
     #   Convert to samples
-    from_ = floor(from_ * raw['info']['sfreq'])
-    to = ceil(to * raw['info']['sfreq'])
+    start = floor(start * raw['info']['sfreq'])
+    stop = ceil(stop * raw['info']['sfreq'])
 
     #   Read it
-    return read_raw_segment(raw, from_, to, sel)
+    return read_raw_segment(raw, start, stop, sel)
 
 ###############################################################################
 # Writing
@@ -519,3 +552,119 @@ def finish_writing_raw(fid):
     end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+###############################################################################
+# misc
+
+def findall(L, value, start=0):
+    """Returns indices of all occurence of value in list L starting from start
+    """
+    c = L.count(value)
+    if c == 0:
+        return list()
+    else:
+        ind = list()
+        i = start-1
+        for _ in range(c):
+            i = L.index(value, i+1)
+            ind.append(i)
+        return ind
+
+
+def _make_compensator(info, kind):
+    """Auxiliary function for make_compensator
+    """
+    for k in range(len(info['comps'])):
+        if info['comps'][k]['kind'] == kind:
+            this_data = info['comps'][k]['data'];
+
+            #   Create the preselector
+            presel = np.zeros((this_data['ncol'], info['nchan']))
+            for col, col_name in enumerate(this_data['col_names']):
+                ind = findall(info['ch_names'], col_name)
+                if len(ind) == 0:
+                    raise ValueError, 'Channel %s is not available in data' % \
+                                                                      col_name
+                elif len(ind) > 1:
+                    raise ValueError, 'Ambiguous channel %s' % col_name
+                presel[col, ind] = 1.0
+
+            #   Create the postselector
+            postsel = np.zeros((info['nchan'], this_data['nrow']))
+            for c, ch_name in enumerate(info['ch_names']):
+                ind = findall(this_data['row_names'], ch_name)
+                if len(ind) > 1:
+                    raise ValueError, 'Ambiguous channel %s' % ch_name
+                elif len(ind) == 1:
+                    postsel[c, ind] = 1.0
+
+            this_comp = postsel*this_data['data']*presel;
+            return this_comp
+
+    return []
+
+
+def make_compensator(info, from_, to, exclude_comp_chs=False):
+    """
+    %
+    % [comp] = mne_make_compensator(info,from,to,exclude_comp_chs)
+    %
+    % info              - measurement info as returned by the fif reading routines
+    % from              - compensation in the input data
+    % to                - desired compensation in the output
+    % exclude_comp_chs  - exclude compensation channels from the output (optional)
+    %
+
+    %
+    % Create a compensation matrix to bring the data from one compensation
+    % state to another
+    %
+    """
+
+    if from_ == to:
+        comp = np.zeros((info['nchan'], info['nchan']))
+        return comp
+
+    if from_ == 0:
+        C1 = np.zeros((info['nchan'], info['nchan']))
+    else:
+        try:
+            C1 = _make_compensator(info, from_)
+        except Exception as inst:
+            raise ValueError, 'Cannot create compensator C1 (%s)' % inst
+
+        if len(C1) == 0:
+            raise ValueError, 'Desired compensation matrix (kind = %d) not found' % from_
+
+
+    if to == 0:
+       C2 = np.zeros((info['nchan'], info['nchan']))
+    else:
+        try:
+            C2 = _make_compensator(info, to)
+        except Exception as inst:
+            raise ValueError, 'Cannot create compensator C2 (%s)' % inst
+
+        if len(C2) == 0:
+            raise ValueError, 'Desired compensation matrix (kind = %d) not found' % to
+
+
+    #   s_orig = s_from + C1*s_from = (I + C1)*s_from
+    #   s_to   = s_orig - C2*s_orig = (I - C2)*s_orig
+    #   s_to   = (I - C2)*(I + C1)*s_from = (I + C1 - C2 - C2*C1)*s_from
+    comp = np.eye(info['nchan']) + C1 - C2 - C2*C1;
+
+    if exclude_comp_chs:
+        pick = np.zeros((info['nchan'], info['nchan']))
+        npick = 0
+        for k, chan in info['chs']:
+            if chan['kind'] != FIFF.FIFFV_REF_MEG_CH:
+                npick += 1
+                pick[npick] = k
+
+        if npick == 0:
+            raise ValueError, 'Nothing remains after excluding the compensation channels'
+
+        comp = comp[pick[1:npick], :]
+
+    return comp

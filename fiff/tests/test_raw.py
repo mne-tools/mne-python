@@ -20,7 +20,7 @@ def test_io_raw():
     meg_channels_idx = [k for k in range(nchan) if ch_names[k][:3]=='MEG']
     meg_channels_idx = meg_channels_idx[:5]
 
-    data, times = fiff.read_raw_segment_times(raw, from_=100, to=115,
+    data, times = fiff.read_raw_segment_times(raw, start=100, stop=115,
                                               sel=meg_channels_idx)
 
     # Writing
@@ -41,18 +41,17 @@ def test_io_raw():
     #
     #   Set up the reading parameters
     #
-    from_ = raw['first_samp']
-    to = raw['last_samp']
+    start = raw['first_samp']
+    stop = raw['last_samp']
     quantum_sec = 10
     quantum = int(ceil(quantum_sec * raw['info']['sfreq']))
     #
     #   Read and write all the data
     #
-    first_buffer = True
-    for first in range(from_, to, quantum):
+    for first in range(start, stop, quantum):
         last = first + quantum
-        if last > to:
-            last = to
+        if last > stop:
+            last = stop
         try:
             data, times = fiff.read_raw_segment(raw, first, last, picks)
         except Exception as inst:

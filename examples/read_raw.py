@@ -9,16 +9,17 @@ fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
 
 raw = fiff.setup_read_raw(fname)
 
-nchan = raw['info']['nchan']
-ch_names = raw['info']['ch_names']
-meg_channels_idx = [k for k in range(nchan) if ch_names[k][:3]=='MEG']
-meg_channels_idx = meg_channels_idx[:5]
+meg_channels_idx = fiff.pick_types(raw['info'], meg=True)
+meg_channels_idx = meg_channels_idx[:5] # take 5 first
 
-data, times = fiff.read_raw_segment_times(raw, from_=100, to=115,
-                                          sel=meg_channels_idx)
+start, stop = raw.time_to_index(100, 115) # 100 s to 115 s data segment
+data, times = raw[meg_channels_idx, start:stop]
+
+raw.close()
 
 ###############################################################################
 # Show MEG data
+pl.close('all')
 pl.plot(times, data.T)
 pl.xlabel('time (ms)')
 pl.ylabel('MEG data (T)')

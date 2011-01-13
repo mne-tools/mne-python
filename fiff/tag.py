@@ -44,6 +44,18 @@ class Tag(object):
         out += "\n"
         return out
 
+    def __cmp__(self, tag):
+        is_equal = (self.kind == tag.kind and
+                    self.type == tag.type and
+                    self.size == tag.size and
+                    self.next == tag.next and
+                    self.pos == tag.pos and
+                    self.data == tag.data)
+        if is_equal:
+            return 0
+        else:
+            return 1
+
 
 def read_tag_info(fid):
     """Read Tag info (or header)
