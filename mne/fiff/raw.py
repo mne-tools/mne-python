@@ -20,11 +20,19 @@ class Raw(dict):
         if isinstance(item, tuple): # slicing required
             if len(item) == 2: # channels and time instants
                 time_slice = item[1]
-                sel = item[0]
+                if isinstance(item[0], slice):
+                    start = item[0].start if item[0].start is not None else 0
+                    nchan = self['info']['nchan']
+                    stop = item[0].stop if item[0].stop is not None else nchan
+                    step = item[0].step if item[0].step is not None else 1
+                    sel = range(start, stop, step)
+                else:
+                    sel = item[0]
             else:
                 time_slice = item[0]
                 sel = None
-            start, stop, step = time_slice.start, time_slice.stop, time_slice.step
+            start, stop, step = time_slice.start, time_slice.stop, \
+                                time_slice.step
             if step is not None:
                 raise ValueError('step needs to be 1 : %d given' % step)
             return read_raw_segment(self, start=start, stop=stop, sel=sel)

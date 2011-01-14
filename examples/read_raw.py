@@ -13,6 +13,7 @@ meg_channels_idx = meg_channels_idx[:5] # take 5 first
 
 start, stop = raw.time_to_index(100, 115) # 100 s to 115 s data segment
 data, times = raw[meg_channels_idx, start:stop]
+# data, times = raw[:, start:stop] # read all channels
 
 raw.close()
 
