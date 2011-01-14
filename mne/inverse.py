@@ -9,12 +9,12 @@ from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tag import find_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from .fiff.cov import read_cov
 from .fiff.proj import read_proj, make_projector
 from .fiff.tree import dir_tree_find
 from .fiff.evoked import read_evoked
 from .fiff.pick import pick_channels_evoked
 
+from .cov import read_cov
 from .source_space import read_source_spaces, find_source_space_hemi
 from .forward import _invert_transform, _transform_source_space_to, \
                      _block_diag
