@@ -2,8 +2,7 @@
 """
 print __doc__
 
-import pylab as pl
-import fiff
+from mne import fiff
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
 
@@ -19,6 +18,7 @@ raw.close()
 
 ###############################################################################
 # Show MEG data
+import pylab as pl
 pl.close('all')
 pl.plot(times, data.T)
 pl.xlabel('time (s)')

@@ -5,8 +5,7 @@ Read and write raw data in 60-sec blocks
 print __doc__
 
 from math import ceil
-import fiff
-
+from mne import fiff
 
 infile = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
 outfile = 'sample_audvis_small_raw.fif'
@@ -31,30 +30,31 @@ outfid, cals = fiff.start_writing_raw(outfile, raw['info'], picks)
 #
 #   Set up the reading parameters
 #
-from_ = raw['first_samp']
-to = raw['last_samp']
+start = raw['first_samp']
+stop = raw['last_samp'] + 1
 quantum_sec = 10
 quantum = int(ceil(quantum_sec * raw['info']['sfreq']))
 #
 #   To read the whole file at once set
 #
-# quantum     = to - from_ + 1;
+# quantum     = stop - start
 #
 #
 #   Read and write all the data
 #
 first_buffer = True
-for first in range(from_, to, quantum):
-    last = first + quantum
-    if last > to:
-        last = to
+for first in range(start, stop, quantum):
+    last = start + quantum
+    if last >= stop:
+        last = stop
     try:
-        data, times = fiff.read_raw_segment(raw, first, last, picks)
+        data, times = raw[picks, first:last]
     except Exception as inst:
         raw['fid'].close()
         outfid.close()
         print inst
 
+    print 'Writing ... ',
     fiff.write_raw_buffer(outfid, data, cals)
     print '[done]'
 

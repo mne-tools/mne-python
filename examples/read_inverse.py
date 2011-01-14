@@ -2,11 +2,11 @@
 """
 print __doc__
 
-import fiff
+import mne
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave-7-meg-inv.fif'
 
-inv = fiff.read_inverse_operator(fname)
+inv = mne.read_inverse_operator(fname)
 
 print "Method: %s" % inv['methods']
 print "fMRI prior: %s" % inv['fmri_prior']

@@ -2,7 +2,7 @@
 """
 print __doc__
 
-import fiff
+from mne import fiff
 
 fname = 'MNE-sample-data/subjects/sample/bem/sample-5120-bem-sol.fif'
 

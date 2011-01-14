@@ -5,11 +5,11 @@ reconstructions
 """
 print __doc__
 
-import fiff
+import mne
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave-7-meg-lh.stc'
 
-stc = fiff.read_stc(fname)
+stc = mne.read_stc(fname)
 
 n_vertices, n_samples = stc['data'].shape
 print "tmin : %s (s)" % stc['tmin']

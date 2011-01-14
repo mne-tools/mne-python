@@ -2,7 +2,7 @@
 """
 print __doc__
 
-import fiff
+from mne import fiff
 
 fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
 

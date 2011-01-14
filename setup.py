@@ -1,20 +1,20 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2010 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Copyright (C) 2011 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 
-descr   = """A set of python functions to read and write Neuromag FIF files."""
+descr   = """MNE python project for MEG and EEG data analysis."""
 
 import os
 
 
-DISTNAME            = 'pyfiff'
-DESCRIPTION         = 'Functions to read and write Neuromag FIF files.'
+DISTNAME            = 'mne'
+DESCRIPTION         = 'MNE python project for MEG and EEG data analysis'
 LONG_DESCRIPTION    = descr
 MAINTAINER          = 'Alexandre Gramfort'
 MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
-URL                 = 'http://github.com/agramfort/pyfiff'
-LICENSE             = 'To be determined' # XXX
-DOWNLOAD_URL        = 'http://github.com/agramfort/pyfiff'
+URL                 = 'http://github.com/mne/mne'
+LICENSE             = 'BSD'
+DOWNLOAD_URL        = 'http://github.com/mne/mne'
 VERSION             = '0.1.git'
 
 import setuptools # we are using a setuptools namespace
@@ -39,7 +39,6 @@ if __name__ == "__main__":
             ['Intended Audience :: Science/Research',
              'Intended Audience :: Developers',
              'License :: OSI Approved',
-             'Programming Language :: C',
              'Programming Language :: Python',
              'Topic :: Software Development',
              'Topic :: Scientific/Engineering',

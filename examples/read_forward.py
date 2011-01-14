@@ -2,12 +2,12 @@
 """
 print __doc__
 
-import fiff
+import mne
 
 # fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave-7-fwd.fif'
 fname = 'sm01a5-ave-oct-6-fwd.fif'
 
-data = fiff.read_forward_solution(fname)
+data = mne.read_forward_solution(fname)
 leadfield = data['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape

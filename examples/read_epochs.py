@@ -5,7 +5,8 @@ print __doc__
 # Authors : Alexandre Gramfort, gramfort@nmr.mgh.harvard.edu
 #           Matti Hamalainen, msh@nmr.mgh.harvard.edu
 
-import fiff
+import mne
+from mne import fiff
 
 ###############################################################################
 # Set parameters
@@ -18,7 +19,7 @@ pick_all = True
 
 #   Setup for reading the raw data
 raw = fiff.setup_read_raw(raw_fname)
-events = fiff.read_events(event_name)
+events = mne.read_events(event_name)
 
 if pick_all:
    # Pick all
@@ -29,10 +30,10 @@ else:
    want_meg = True
    want_eeg = False
    want_stim = False
-   picks = fiff.fiff_pick_types(raw['info'], want_meg, want_eeg, want_stim,
+   picks = fiff.pick_types(raw['info'], want_meg, want_eeg, want_stim,
                                 include, raw['info']['bads'])
 
-data, times, channel_names = fiff.read_epochs(raw, events, event_id,
+data, times, channel_names = mne.read_epochs(raw, events, event_id,
                                                     tmin, tmax, picks=picks)
 
 # for epoch in data:

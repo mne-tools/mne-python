@@ -3,8 +3,7 @@
 About
 =====
 
-pyfiff is a python module for reading and writing the fif files
-produced by Neuromag MEG systems.
+MNE is a python module for processing MEG and EEG data;
 
 It is mainly a reimplementation of the Matlab code written by Matti Hämäläinen.
 
@@ -46,11 +45,11 @@ GIT
 
 You can check the latest sources with the command::
 
-    git clone git://github.com/agramfort/pyfiff.git
+    git clone git://github.com/mne/mne.git
 
 or if you have write privileges::
 
-    git clone git@github.com/agramfort/pyfiff.git
+    git clone git@github.com/mne/mne.git
 
 Bugs
 ----
