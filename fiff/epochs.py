@@ -65,7 +65,7 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
         for proj in raw['info']['projs']:
             proj['active'] = True
 
-        print '%d projection items activated\n' % len(raw['info']['projs'])
+        print '%d projection items activated' % len(raw['info']['projs'])
 
         #   Create the projector
         proj, nproj = fiff.proj.make_projector_info(raw['info'])
@@ -79,7 +79,7 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
     #   Set up the CTF compensator
     current_comp = fiff.get_current_comp(raw['info'])
     if current_comp > 0:
-        print 'Current compensation grade : %d\n' % current_comp
+        print 'Current compensation grade : %d' % current_comp
 
     if keep_comp:
         dest_comp = current_comp
@@ -98,7 +98,7 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
     #         raise ValueError, 'Raw file name does not end properly'
     #
     #     events = fiff.read_events(event_name)
-    #     print 'Events read from %s\n' % event_name
+    #     print 'Events read from %s' % event_name
     # else:
     #     #   Binary file
     #     if event_name.endswith('-eve.fif'):
@@ -121,7 +121,7 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
     #                 raise ValueError, ('This new format event file is not compatible'
     #                                    ' with the raw data')
     #         else:
-    #             print 'The text event file %s is in the old format\n' % event_name
+    #             print 'The text event file %s is in the old format' % event_name
     #             #   Offset with first sample
     #             events[:,0] += raw['first_samp']
 

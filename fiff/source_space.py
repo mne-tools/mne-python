@@ -85,7 +85,7 @@ def read_source_spaces(source, add_geom=False, tree=None):
 
         src.append(this)
 
-    print '\t%d source spaces read\n' % len(spaces)
+    print '\t%d source spaces read' % len(spaces)
 
     if open_here:
         fid.close()

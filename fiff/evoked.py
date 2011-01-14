@@ -28,7 +28,7 @@ def read_evoked(fname, setno=0):
     if setno < 0:
         raise ValueError, 'Data set selector must be positive'
 
-    print 'Reading %s ...\n' % fname
+    print 'Reading %s ...' % fname
     fid, tree, _ = fiff_open(fname)
 
     #   Read the measurement info
@@ -73,7 +73,7 @@ def read_evoked(fname, setno=0):
             naspect += nsaspects
 
     print '\t%d evoked data sets containing a total of %d data aspects' \
-          ' in %s\n' % (len(evoked), naspect, fname)
+          ' in %s' % (len(evoked), naspect, fname)
 
     if setno >= naspect or setno < 0:
         fid.close()
@@ -174,7 +174,7 @@ def read_evoked(fname, setno=0):
             tag = read_tag(fid, pos)
             epoch.append(tag)
 
-    print '\t\tnave = %d aspect type = %d\n' % (nave, aspect_kind)
+    print '\t\tnave = %d aspect type = %d' % (nave, aspect_kind)
 
     nepoch = len(epoch)
     if nepoch != 1 and nepoch != info.nchan:

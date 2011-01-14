@@ -21,6 +21,6 @@ raw.close()
 # Show MEG data
 pl.close('all')
 pl.plot(times, data.T)
-pl.xlabel('time (ms)')
+pl.xlabel('time (s)')
 pl.ylabel('MEG data (T)')
 pl.show()

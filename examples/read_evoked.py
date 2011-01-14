@@ -17,6 +17,6 @@ fiff.write_evoked('evoked.fif', data)
 
 import pylab as pl
 pl.plot(data['evoked']['times'], data['evoked']['epochs'][:306,:].T)
-pl.xlabel('time (ms)')
+pl.xlabel('time (s)')
 pl.ylabel('MEG data (T)')
 pl.show()

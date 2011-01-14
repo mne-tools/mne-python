@@ -164,7 +164,7 @@ def setup_read_raw(fname, allow_maxshield=False):
                data['first_samp'], data['last_samp'],
                float(data['first_samp']) / data['info']['sfreq'],
                float(data['last_samp']) / data['info']['sfreq'])
-    print 'Ready.\n'
+    print 'Ready.'
 
     return data
 

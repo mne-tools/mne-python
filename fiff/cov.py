@@ -67,7 +67,7 @@ def read_cov(fid, node, cov_kind):
                     #   Diagonal is stored
                     data = tag.data
                     diagmat = True
-                    print '\t%d x %d diagonal covariance (kind = %d) found.\n' % (dim, dim, cov_kind)
+                    print '\t%d x %d diagonal covariance (kind = %d) found.' % (dim, dim, cov_kind)
 
             else:
                 from scipy import sparse
@@ -84,11 +84,11 @@ def read_cov(fid, node, cov_kind):
                     data.flat[::dim+1] /= 2.0
 
                     diagmat = False;
-                    print '\t%d x %d full covariance (kind = %d) found.\n' % (dim, dim, cov_kind)
+                    print '\t%d x %d full covariance (kind = %d) found.' % (dim, dim, cov_kind)
                 else:
                     diagmat = False
                     data = tag.data
-                    print '\t%d x %d sparse covariance (kind = %d) found.\n' % (dim, dim, cov_kind)
+                    print '\t%d x %d sparse covariance (kind = %d) found.' % (dim, dim, cov_kind)
 
             #   Read the possibly precomputed decomposition
             tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)

@@ -207,5 +207,5 @@ def _complete_surface_info(this):
         if size > 0:
             this['nn'][p,:] = this['nn'][p,:] / size
 
-    print '[done]\n'
+    print '[done]'
     return this

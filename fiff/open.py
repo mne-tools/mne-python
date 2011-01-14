@@ -67,7 +67,7 @@ def fiff_open(fname, verbose=False):
     tree, _ = make_dir_tree(fid, directory, verbose=verbose)
 
     if verbose:
-        print '[done]\n'
+        print '[done]'
 
     #   Back to the beginning
     fid.seek(0)
