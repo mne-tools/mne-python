@@ -1,4 +1,7 @@
-"""Reading a raw file segment
+"""
+==========================
+Reading a raw file segment
+==========================
 """
 print __doc__
 

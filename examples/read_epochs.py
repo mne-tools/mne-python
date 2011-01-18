@@ -1,4 +1,7 @@
-"""Example of reading epochs from a raw FIF file
+"""
+==================================
+Reading epochs from a raw FIF file
+==================================
 """
 print __doc__
 

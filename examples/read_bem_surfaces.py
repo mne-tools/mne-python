@@ -1,4 +1,7 @@
-"""Reading BEM surfaces
+"""
+============================================
+Reading BEM surfaces from a forward solution
+============================================
 """
 print __doc__
 

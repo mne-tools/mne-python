@@ -1,4 +1,7 @@
-"""Reading a forward operator a.k.a. lead field matrix
+"""
+===================================================
+Reading a forward operator a.k.a. lead field matrix
+===================================================
 """
 print __doc__
 

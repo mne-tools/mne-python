@@ -1,6 +1,6 @@
 .. _config_doc:
 
-This is a skeleton config file for the PyFIFF package.
+This is a skeleton config file for the MNE package.
 
 See the documentation at http://XXX 
 

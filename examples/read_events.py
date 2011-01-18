@@ -1,4 +1,7 @@
-"""Reading an event file
+"""
+=====================
+Reading an event file
+=====================
 """
 print __doc__
 

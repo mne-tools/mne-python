@@ -8,4 +8,4 @@ Documentation Contents
    :maxdepth: 2
 
    getting_started.rst
-   tutorial.rst
+   auto_examples/index.rst

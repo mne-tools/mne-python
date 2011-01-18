@@ -1,4 +1,7 @@
-"""Reading an STC file
+"""
+===================
+Reading an STC file
+===================
 
 STC files contain activations on cortex ie. source
 reconstructions

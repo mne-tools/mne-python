@@ -1,4 +1,7 @@
-"""Compute MNE inverse solution
+"""
+============================
+Compute MNE inverse solution
+============================
 """
 print __doc__
 

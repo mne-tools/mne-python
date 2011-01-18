@@ -1,5 +1,3 @@
-# emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
-# vi: set ft=python sts=4 ts=4 sw=4 et:
 """
 ========
 numpydoc
@@ -30,18 +28,13 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                               re.I|re.S)
         lines[:] = title_re.sub('', "\n".join(lines)).split("\n")
     else:
-        doc = get_doc_object(obj, what, "\n".join(lines))
+        doc = get_doc_object(obj, what)
         lines[:] = str(doc).split("\n")
 
     if app.config.numpydoc_edit_link and hasattr(obj, '__name__') and \
            obj.__name__:
-        if hasattr(obj, '__module__'):
-            v = dict(full_name="%s.%s" % (obj.__module__, obj.__name__))
-        else:
-            v = dict(full_name=obj.__name__)
-        lines += ['', '.. htmlonly::', '']
-        lines += ['    %s' % x for x in
-                  (app.config.numpydoc_edit_link % v).split("\n")]
+        v = dict(full_name=obj.__name__)
+        lines += [''] + (app.config.numpydoc_edit_link % v).split("\n")
 
     # replace reference numbers so that there are no duplicates
     references = []
@@ -90,7 +83,7 @@ def initialize(app):
 def setup(app, get_doc_object_=get_doc_object):
     global get_doc_object
     get_doc_object = get_doc_object_
-    
+
     app.connect('autodoc-process-docstring', mangle_docstrings)
     app.connect('builder-inited', initialize)
     app.add_config_value('numpydoc_edit_link', None, True)

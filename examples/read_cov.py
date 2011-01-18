@@ -1,4 +1,7 @@
-"""Reading/Writing a noise covariance matrix
+"""
+=========================================
+Reading/Writing a noise covariance matrix
+=========================================
 """
 print __doc__
 

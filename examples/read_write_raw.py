@@ -1,4 +1,7 @@
-"""Read and write raw data
+"""
+=======================
+Read and write raw data
+=======================
 
 Read and write raw data in 60-sec blocks
 """

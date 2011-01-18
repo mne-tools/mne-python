@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# PyFIFF documentation build configuration file, created by
+# MNE documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun 11 10:45:48 2010.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -16,22 +16,29 @@ import sys, os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath('../fiff'))
+sys.path.append(os.path.abspath('../mne'))
 sys.path.append(os.path.abspath('../sphinxext'))
 
-import fiff
+import mne
 
 # -- General configuration -----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.doctest',
-              'sphinx.ext.todo',
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'sphinx.ext.pngmath',
-              'sphinx.ext.inheritance_diagram',
-              'ipython_console_highlighting',
-              'only_directives']
+              'gen_rst']
+
+try:
+    import numpy_ext.numpydoc
+    extensions.append('numpy_ext.numpydoc')
+    # With older versions of sphinx, this causes a crash
+    autosummary_generate = True
+except:
+    # Older version of sphinx
+    extensions.append('numpy_ext_old.numpydoc')
+
+autodoc_default_flags=['inherited-members']
 
 # extensions = ['sphinx.ext.autodoc',
 #               'sphinx.ext.doctest',
@@ -51,19 +58,22 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8'
 
+# Generate the plots for the gallery
+plot_gallery = True
+
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyFIFF'
-copyright = u'2010, Alexandre Gramfort'
+project = u'MNE'
+copyright = u'2011, Alexandre Gramfort'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = fiff.__version__
+version = mne.__version__
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -102,7 +112,7 @@ exclude_trees = ['_build']
 pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
-modindex_common_prefix = ['fiff.']
+modindex_common_prefix = ['mne.']
 
 
 # -- Options for HTML output ---------------------------------------------------
@@ -176,7 +186,7 @@ html_use_index = True
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'PyFIFFdoc'
+htmlhelp_basename = 'mne-doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -190,7 +200,7 @@ htmlhelp_basename = 'PyFIFFdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyFIFF.tex', u'PyFIFF Documentation',
+  ('index', 'MNE.tex', u'MNE Python Documentation',
    u'Alexandre Gramfort', 'manual'),
 ]
 

@@ -1,4 +1,8 @@
-"""Reading and writing an evoked file
+"""
+==================================
+Reading and writing an evoked file
+==================================
+
 """
 print __doc__
 

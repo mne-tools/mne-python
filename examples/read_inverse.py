@@ -1,4 +1,7 @@
-"""Reading an inverse operator
+"""
+===========================
+Reading an inverse operator
+===========================
 """
 print __doc__
 
