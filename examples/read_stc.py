@@ -10,7 +10,7 @@ print __doc__
 
 import mne
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave-7-meg-lh.stc'
+fname = 'MNE-sample-data/MEG/sample/sample_audvis-meg-lh.stc'
 
 stc = mne.read_stc(fname)
 

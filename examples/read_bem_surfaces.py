@@ -5,19 +5,27 @@ Reading BEM surfaces from a forward solution
 """
 print __doc__
 
-from mne import fiff
+import mne
 
-fname = 'MNE-sample-data/subjects/sample/bem/sample-5120-bem-sol.fif'
+fname = 'MNE-sample-data/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 
-surf = fiff.read_bem_surfaces(fname)
+surfaces = mne.read_bem_surfaces(fname)
 
-print "Number of surfaces : %d" % len(surf)
+print "Number of surfaces : %d" % len(surfaces)
 
 ###############################################################################
 # Show result
 
+head_col = (0.95, 0.83, 0.83) # light pink
+skull_col = (0.91, 0.89, 0.67)
+brain_col = (0.67, 0.89, 0.91) # light blue
+colors = [head_col, skull_col, brain_col]
+
 # 3D source space
-points = surf[0]['rr']
-faces = surf[0]['tris']
 from enthought.mayavi import mlab
-mlab.triangular_mesh(points[:,0], points[:,1], points[:,2], faces)
+mlab.clf()
+for c, surf in zip(colors, surfaces):
+    points = surf['rr']
+    faces = surf['tris']
+    mlab.triangular_mesh(points[:,0], points[:,1], points[:,2], faces,
+                         color=c, opacity=0.3)

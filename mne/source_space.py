@@ -144,7 +144,7 @@ def _read_one_source_space(fid, this, open_here):
             fid.close()
         raise ValueError, 'Vertex data not found'
 
-    res['rr'] = tag.data
+    res['rr'] = tag.data.astype(np.float) # make it double precision for mayavi
     if res['rr'].shape[0] != res['np']:
         if open_here:
             fid.close()
