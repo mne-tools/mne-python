@@ -7,7 +7,7 @@ import mne
 
 MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
 fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis-ave-7-meg-lh.stc')
+                                            'sample_audvis-meg-lh.stc')
 
 def test_io_stc():
     """Test IO for STC files

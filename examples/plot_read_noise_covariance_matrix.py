@@ -3,12 +3,18 @@
 Reading/Writing a noise covariance matrix
 =========================================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
+import os
 import mne
 from mne import fiff
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-cov.fif'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis-cov.fif'
 
 # Reading
 fid, tree, _ = fiff.fiff_open(fname)

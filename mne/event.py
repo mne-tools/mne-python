@@ -1,9 +1,10 @@
 """IO with fif files containing events
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD Style.
+# License: Simplified BSD
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find

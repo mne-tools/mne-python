@@ -6,6 +6,10 @@ Reading an STC file
 STC files contain activations on cortex ie. source
 reconstructions
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 import mne

@@ -3,6 +3,10 @@
 Reading an event file
 =====================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 import mne

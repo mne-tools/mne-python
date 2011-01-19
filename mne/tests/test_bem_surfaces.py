@@ -8,7 +8,7 @@ import mne
 
 MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
 fname = op.join(MNE_SAMPLE_DATASET_PATH, 'subjects', 'sample', 'bem',
-                                            'sample-5120-bem-sol.fif')
+                                        'sample-5120-5120-5120-bem-sol.fif')
 
 def test_io_bem_surfaces():
     """Testing reading of bem surfaces

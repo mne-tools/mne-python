@@ -3,6 +3,10 @@
 Reading an inverse operator
 ===========================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 import mne

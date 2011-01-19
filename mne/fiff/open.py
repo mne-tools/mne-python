@@ -1,7 +1,7 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD Style.
+# License: Simplified BSD
 
 from .tag import read_tag_info, read_tag
 from .tree import make_dir_tree

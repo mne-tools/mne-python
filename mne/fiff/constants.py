@@ -1,9 +1,10 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: BSD Style.
+# License: Simplified BSD
 
 from bunch import Bunch
+
 
 FIFF = Bunch()
 

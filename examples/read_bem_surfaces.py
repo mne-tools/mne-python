@@ -3,11 +3,17 @@
 Reading BEM surfaces from a forward solution
 ============================================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 import mne
 
-fname = 'MNE-sample-data/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
+
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 
 surfaces = mne.read_bem_surfaces(fname)
 

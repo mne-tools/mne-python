@@ -5,6 +5,10 @@ Read and write raw data
 
 Read and write raw data in 60-sec blocks
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 from math import ceil

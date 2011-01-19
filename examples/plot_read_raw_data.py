@@ -3,11 +3,17 @@
 Reading a raw file segment
 ==========================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
+import os
 from mne import fiff
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis_raw.fif'
 
 raw = fiff.setup_read_raw(fname)
 

@@ -4,11 +4,17 @@ Reading and writing an evoked file
 ==================================
 
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
+import os
 from mne import fiff
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
 data = fiff.read_evoked(fname)

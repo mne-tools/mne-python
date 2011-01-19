@@ -1,3 +1,8 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 __version__ = '0.1.git'
 
 from .constants import FIFF

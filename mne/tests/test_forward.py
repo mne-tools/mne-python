@@ -7,7 +7,7 @@ import mne
 
 MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
 fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis-ave-7-fwd.fif')
+                                            'sample_audvis-meg-oct-6-fwd.fif')
 
 def test_io_forward():
     """Test IO for forward solutions

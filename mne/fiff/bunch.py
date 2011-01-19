@@ -1,3 +1,8 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 class Bunch(dict):
     """ Container object for datasets: dictionnary-like object that
         exposes its keys as attributes.

@@ -3,12 +3,20 @@
 Compute MNE inverse solution
 ============================
 """
+
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
+import os
 import mne
 
-fname_inv = 'MNE-sample-data/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_data = 'MNE-sample-data/MEG/sample/sample_audvis-ave.fif'
+fname_inv = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname_inv += '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_data = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname_data += '/MEG/sample/sample_audvis-ave.fif'
 
 setno = 0
 lambda2 = 10

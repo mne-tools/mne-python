@@ -3,6 +3,10 @@
 Reading a forward operator a.k.a. lead field matrix
 ===================================================
 """
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
+
 print __doc__
 
 import mne

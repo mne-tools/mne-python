@@ -3,10 +3,12 @@
 Reading epochs from a raw FIF file
 ==================================
 """
-print __doc__
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: Simplified BSD
 
-# Authors : Alexandre Gramfort, gramfort@nmr.mgh.harvard.edu
-#           Matti Hamalainen, msh@nmr.mgh.harvard.edu
+print __doc__
 
 import mne
 from mne import fiff
