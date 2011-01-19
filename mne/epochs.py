@@ -158,7 +158,7 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
                                                 data[0]['epoch'].shape[1])
 
     #   Remember to close the file descriptor
-    raw['fid'].close()
-    print 'File closed.'
+    # raw['fid'].close()
+    # print 'File closed.'
 
     return data, times, ch_names
