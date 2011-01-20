@@ -3,10 +3,20 @@
 Getting Started
 ===============
 
+Inside the Martinos Center
+--------------------------
+People within the MGH/MIT/HMS Martinos Center should follow
+`internal instructions <getting_started_at_martinos.html>`_.
+
+MNE is *already installed* on your system.
+
+Outside the Martinos Center
+---------------------------
+
 MNE is written in pure Python making it easy to setup of
 any machine with Python >=2.4, Numpy >= 1.1 and Scipy >= 0.6.
 
-To test that everything worked properly, open up IPython::
+To test that everything works properly, open up IPython::
 
     ipython
     
