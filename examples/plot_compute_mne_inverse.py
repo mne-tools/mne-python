@@ -19,7 +19,8 @@ fname_data = os.environ['MNE_SAMPLE_DATASET_PATH']
 fname_data += '/MEG/sample/sample_audvis-ave.fif'
 
 setno = 0
-lambda2 = 10
+snr = 3.0
+lambda2 = 1.0 / snr**2
 dSPM = True
 
 res = mne.compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM)
