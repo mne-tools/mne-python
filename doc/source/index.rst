@@ -2,9 +2,10 @@
 MNE Home
 ========
 
-MNE is a Python package for processing electro-encephalography (EEG)
-and magneto-encephalography data (MEG). It includes python code for
-reading and writing FIF files produces by Neuromag MEG systems.
+MNE is a Python package for processing magnetoencephalography data
+(MEG) and electroencephalography (EEG) and. It includes python code
+for reading and writing FIF files produced by Neuromag MEG systems or
+converted from other file formats.
 
 This python package is tightly linked the MNE project:
 
