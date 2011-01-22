@@ -8,7 +8,7 @@ import fiff
 
 
 def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
-                 keep_comp=False, dest_comp=0):
+                 keep_comp=False, dest_comp=0, baseline=None):
     """Read epochs from a raw dataset
 
     Parameters
@@ -27,6 +27,18 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
 
     tmax : float
         End time after event
+
+    keep_comp : boolean
+        Apply CTF gradient compensation
+
+    baseline: None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
 
     Returns
     -------
@@ -147,12 +159,30 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
             times = np.arange(start - event_samp, stop - event_samp,
                               dtype=np.float) / sfreq
 
+        # Run baseline correction
+        if baseline is not None:
+            print "Applying baseline correction ..."
+            bmin = baseline[0]
+            bmax = baseline[1]
+            if bmin is None:
+                imin = 0
+            else:
+                imin = int(np.where(times >= bmin)[0][0])
+            if bmax is None:
+                imax = len(times)
+            else:
+                imax = int(np.where(times <= bmax)[0][-1]) + 1
+            epoch -= np.mean(epoch[:, imin:imax], axis=1)[:,None]
+        else:
+            print "No baseline correction applied..."
+
         d = dict()
         d['epoch'] = epoch
         d['event'] = event_id
         d['tmin'] = (float(start) - float(raw['first_samp'])) / sfreq
         d['tmax'] = (float(stop) - float(raw['first_samp'])) / sfreq
         data.append(d)
+
 
     print 'Read %d epochs, %d samples each.' % (len(data),
                                                 data[0]['epoch'].shape[1])

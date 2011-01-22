@@ -12,7 +12,7 @@ from .tree import dir_tree_find
 from .meas_info import read_meas_info
 
 
-def read_evoked(fname, setno=0):
+def read_evoked(fname, setno=0, baseline=None):
     """Read an evoked dataset
 
     Parameters
@@ -23,6 +23,15 @@ def read_evoked(fname, setno=0):
     setno: int
         The index of the evoked dataset to read. FIF
         file can contain multiple datasets.
+
+    baseline: None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
 
     Returns
     -------
@@ -52,7 +61,6 @@ def read_evoked(fname, setno=0):
         raise ValueError, 'Could not find evoked data'
 
     #   Identify the aspects
-    #
     naspect = 0
     is_smsh = None
     sets = []
@@ -209,13 +217,31 @@ def read_evoked(fname, setno=0):
     cals = np.array([info['chs'][k].cal for k in range(info['nchan'])])
     all_data = np.dot(np.diag(cals.ravel()), all_data)
 
+    times = np.arange(first, last+1, dtype=np.float) / info['sfreq']
+
+    # Run baseline correction
+    if baseline is not None:
+        print "Applying baseline correction ..."
+        bmin = baseline[0]
+        bmax = baseline[1]
+        if bmin is None:
+            imin = 0
+        else:
+            imin = int(np.where(times >= bmin)[0][0])
+        if bmax is None:
+            imax = len(times)
+        else:
+            imax = int(np.where(times <= bmax)[0][-1]) + 1
+        all_data -= np.mean(all_data[:, imin:imax], axis=1)[:,None]
+    else:
+        print "No baseline correction applied..."
+
     #   Put it all together
     data = dict(info=info, evoked=dict(aspect_kind=aspect_kind,
                                    is_smsh=is_smsh[setno],
                                    nave=nave, first=first,
                                    last=last, comment=comment,
-                                   times=np.arange(first, last+1,
-                                            dtype=np.float) / info['sfreq'],
+                                   times=times,
                                    epochs=all_data))
 
     fid.close()

@@ -402,7 +402,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
 
 
 def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
-                    nave=None):
+                    nave=None, baseline=None):
     """Compute inverse solution
 
     Computes a L2-norm inverse solution
@@ -424,6 +424,14 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
         The regularization parameter
     dSPM: bool
         do dSPM ?
+    baseline: None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a ms" and "b ms".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
 
     Returns
     -------
@@ -434,7 +442,7 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     #
     #   Read the data first
     #
-    data = read_evoked(fname_data, setno)
+    data = read_evoked(fname_data, setno, baseline=baseline)
     #
     #   Then the inverse operator
     #

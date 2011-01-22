@@ -9,3 +9,5 @@ Documentation Contents
 
    getting_started.rst
    auto_examples/index.rst
+   tutorial.rst
+

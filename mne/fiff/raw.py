@@ -76,14 +76,14 @@ def setup_read_raw(fname, allow_maxshield=False):
 
     #   Locate the data of interest
     raw = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
-    if raw is None:
+    if len(raw) == 0:
         raw = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
         if allow_maxshield:
             raw = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-            if raw is None:
+            if len(raw) == 0:
                 raise ValueError, 'No raw data in %s' % fname
         else:
-            if raw is None:
+            if len(raw) == 0:
                 raise ValueError, 'No raw data in %s' % fname
 
     if len(raw) == 1:
@@ -618,7 +618,7 @@ def _make_compensator(info, kind):
 
 
 def make_compensator(info, from_, to, exclude_comp_chs=False):
-    """
+    """ XXX : bug !!! 2 make_compensator functions
     %
     % [comp] = mne_make_compensator(info,from,to,exclude_comp_chs)
     %

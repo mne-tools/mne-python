@@ -9,9 +9,11 @@ Reading an event file
 
 print __doc__
 
+import os
 import mne
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis_raw-eve.fif'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Reading events
 events = mne.read_events(fname)
