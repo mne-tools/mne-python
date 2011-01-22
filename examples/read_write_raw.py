@@ -7,7 +7,7 @@ Read and write raw data in 60-sec blocks
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 print __doc__
 

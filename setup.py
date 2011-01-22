@@ -13,7 +13,7 @@ LONG_DESCRIPTION    = descr
 MAINTAINER          = 'Alexandre Gramfort'
 MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
 URL                 = 'http://github.com/mne/mne'
-LICENSE             = 'BSD'
+LICENSE             = 'BSD (3-clause)'
 DOWNLOAD_URL        = 'http://github.com/mne/mne'
 VERSION             = '0.1.git'
 

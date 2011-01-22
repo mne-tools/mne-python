@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 __version__ = '0.1.git'
 

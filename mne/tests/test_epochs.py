@@ -1,6 +1,6 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 import os
 import os.path as op

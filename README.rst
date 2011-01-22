@@ -11,7 +11,7 @@ Athinoula A. Martinos Center for Biomedical Imaging
 Massachusetts General Hospital
 Charlestown, MA, USA
 
-Available under the Simplified BSD license (3-Clause).
+Available under the BSD (3-clause) license.
 
 It is mainly a reimplementation of the Matlab code written by Matti Hämäläinen.
 

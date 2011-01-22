@@ -6,7 +6,7 @@ Reading and writing an evoked file
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 print __doc__
 

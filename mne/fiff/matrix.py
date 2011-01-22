@@ -1,7 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 from .constants import FIFF
 from .tag import find_tag, has_tag
