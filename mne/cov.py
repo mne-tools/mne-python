@@ -65,7 +65,8 @@ def read_cov(fid, node, cov_kind):
             else:
                 names = tag.data.split(':')
                 if len(names) != dim:
-                    raise ValueError, 'Number of names does not match covariance matrix dimension'
+                    raise ValueError, ('Number of names does not match '
+                                       'covariance matrix dimension')
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)
             if tag is None:
@@ -76,7 +77,8 @@ def read_cov(fid, node, cov_kind):
                     #   Diagonal is stored
                     data = tag.data
                     diagmat = True
-                    print '\t%d x %d diagonal covariance (kind = %d) found.' % (dim, dim, cov_kind)
+                    print '\t%d x %d diagonal covariance (kind = %d) found.' \
+                                                        % (dim, dim, cov_kind)
 
             else:
                 from scipy import sparse
@@ -87,12 +89,14 @@ def read_cov(fid, node, cov_kind):
                     data[np.tril(np.ones((dim, dim))) > 0] = vals
                     data = data + data.T
                     data.flat[::dim+1] /= 2.0
-                    diagmat = False;
-                    print '\t%d x %d full covariance (kind = %d) found.' % (dim, dim, cov_kind)
+                    diagmat = False
+                    print '\t%d x %d full covariance (kind = %d) found.' \
+                                                        % (dim, dim, cov_kind)
                 else:
                     diagmat = False
                     data = tag.data
-                    print '\t%d x %d sparse covariance (kind = %d) found.' % (dim, dim, cov_kind)
+                    print '\t%d x %d sparse covariance (kind = %d) found.' \
+                                                        % (dim, dim, cov_kind)
 
             #   Read the possibly precomputed decomposition
             tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)
@@ -140,7 +144,7 @@ def write_cov(fid, cov):
     write_int(fid, FIFF.FIFF_MNE_COV_KIND, cov['kind'])
     write_int(fid, FIFF.FIFF_MNE_COV_DIM, cov['dim'])
     if cov['nfree'] > 0:
-        write_int(fid, FIFF.FIFF_MNE_COV_NFREE, cov['nfree']);
+        write_int(fid, FIFF.FIFF_MNE_COV_NFREE, cov['nfree'])
 
     #   Channel names
     if cov['names'] is not None:
@@ -148,17 +152,12 @@ def write_cov(fid, cov):
 
     #   Data
     if cov['diag']:
-        write_double(fid, FIFF.FIFF_MNE_COV_DIAG, cov['data']);
+        write_double(fid, FIFF.FIFF_MNE_COV_DIAG, cov['data'])
     else:
+        # Store only lower part of covariance matrix
         dim = cov['dim']
-        vals = np.empty(dim*(dim + 1)/2)
-        # XXX : should be improved later
-        q = 0
-        for j in range(dim):
-            for k in range(j):
-                vals[q] = cov['data'][j,k]
-                q = q + 1
-
+        mask = np.tril(np.ones((dim, dim), dtype=np.bool)) > 0
+        vals = cov['data'][mask].ravel()
         write_double(fid, FIFF.FIFF_MNE_COV, vals)
 
     #   Eigenvalues and vectors if present

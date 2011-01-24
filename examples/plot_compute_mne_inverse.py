@@ -15,6 +15,8 @@ and stores the solution in stc files for visualisation.
 print __doc__
 
 import os
+import numpy as np
+import pylab as pl
 import mne
 
 fname_inv = os.environ['MNE_SAMPLE_DATASET_PATH']
@@ -35,14 +37,16 @@ rh_vertices = res['inv']['src'][1]['vertno']
 lh_data = res['sol'][:len(lh_vertices)]
 rh_data = res['sol'][len(rh_vertices):]
 
-# Save result in stc file
+# Save result in stc files
 mne.write_stc('mne_dSPM_inverse-lh.stc', tmin=res['tmin'], tstep=res['tstep'],
                vertices=lh_vertices, data=lh_data)
 mne.write_stc('mne_dSPM_inverse-rh.stc', tmin=res['tmin'], tstep=res['tstep'],
                vertices=rh_vertices, data=rh_data)
 
-import pylab as pl
-pl.plot(res['sol'][::100,:].T)
+###############################################################################
+# View activation time-series
+times = res['tmin'] + res['tstep'] * np.arange(lh_data.shape[1])
+pl.plot(times, res['sol'][::100,:].T)
 pl.xlabel('time (ms)')
 pl.ylabel('Source amplitude')
 pl.show()

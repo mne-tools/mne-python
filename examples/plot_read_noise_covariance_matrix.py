@@ -25,10 +25,10 @@ fid.close()
 # Writing
 mne.write_cov_file('cov.fif', cov)
 
-print "covariance matrix size: %s x %s" % cov['data'].shape
-
-###############################################################################
-# Show covariance
-import pylab as pl
-pl.matshow(cov['data'])
-pl.show()
+# print "covariance matrix size: %s x %s" % cov['data'].shape
+# 
+# ###############################################################################
+# # Show covariance
+# import pylab as pl
+# pl.matshow(cov['data'])
+# pl.show()

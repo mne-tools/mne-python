@@ -1,7 +1,7 @@
 import os
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_array_almost_equal
 
 import mne
 
@@ -9,12 +9,14 @@ MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
 fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
                                             'sample_audvis-meg-lh.stc')
 
+
 def test_io_stc():
     """Test IO for STC files
     """
     stc = mne.read_stc(fname)
 
-    mne.write_stc("tmp.stc", stc)
+    mne.write_stc("tmp.stc", stc['tmin'], stc['tstep'],
+                             stc['vertices'], stc['data'])
     stc2 = mne.read_stc("tmp.stc")
 
     assert_array_almost_equal(stc['data'], stc2['data'])

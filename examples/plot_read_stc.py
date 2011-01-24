@@ -12,9 +12,12 @@ reconstructions
 
 print __doc__
 
+import os
+import numpy as np
 import mne
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-meg-lh.stc'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis-meg-lh.stc'
 
 stc = mne.read_stc(fname)
 
@@ -24,3 +27,11 @@ print "tstep : %s" % stc['tstep']
 print "tmax : %s (s)" % (stc['tmin'] + stc['tstep'] * n_samples)
 print "stc data size: %s (nb of vertices) x %s (nb of samples)" % (
                                                     n_vertices, n_samples)
+
+# View source activations
+times = stc['tmin'] + stc['tstep'] * np.arange(n_samples)
+import pylab as pl
+pl.plot(times, stc['data'][::100,:].T)
+pl.xlabel('time (ms)')
+pl.ylabel('Source amplitude')
+pl.show()

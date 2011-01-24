@@ -9,9 +9,11 @@ Reading a forward operator a.k.a. lead field matrix
 
 print __doc__
 
+import os
 import mne
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
+fname = os.environ['MNE_SAMPLE_DATASET_PATH']
+fname += '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
 data = mne.read_forward_solution(fname)
 leadfield = data['sol']['data']
