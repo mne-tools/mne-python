@@ -33,4 +33,5 @@ def test_read_epochs():
                             include, raw['info']['bads'])
 
     data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                                                    tmin, tmax, picks=picks)
+                                                    tmin, tmax, picks=picks,
+                                                    baseline=(None, 0))
