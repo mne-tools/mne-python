@@ -74,7 +74,7 @@ def read_evoked(fname, setno=0, baseline=None):
             if is_smsh is None:
                 is_smsh = np.zeros((1, sets[k]['naspect']))
             else:
-                is_smsh = np.c_[is_smsh, np.zeros((1, sets[k]['naspect']))]
+                is_smsh = np.r_[is_smsh, np.zeros((1, sets[k]['naspect']))]
             naspect += sets[k]['naspect']
 
         saspects = dir_tree_find(evoked[k], FIFF.FIFFB_SMSH_ASPECT)
@@ -82,7 +82,7 @@ def read_evoked(fname, setno=0, baseline=None):
         if nsaspects > 0:
             sets[k]['naspect'] += nsaspects
             sets[k]['naspect'] = [sets[k]['naspect'], saspects] # XXX : potential bug
-            is_smsh = np.c_[is_smsh, np.ones(1, sets[k]['naspect'])]
+            is_smsh = np.r_[is_smsh, np.ones(1, sets[k]['naspect'])]
             naspect += nsaspects
 
     print '\t%d evoked data sets containing a total of %d data aspects' \

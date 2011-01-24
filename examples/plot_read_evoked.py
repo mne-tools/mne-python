@@ -17,15 +17,12 @@ fname = os.environ['MNE_SAMPLE_DATASET_PATH']
 fname += '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
-data = fiff.read_evoked(fname, baseline=(None, 0))
-
-# Writing
-fiff.write_evoked('evoked.fif', data)
+data = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
 
 ###############################################################################
 # Show result
-
 import pylab as pl
+pl.clf()
 pl.subplot(3, 1, 1)
 pl.plot(data['evoked']['times'], data['evoked']['epochs'][0:306:3,:].T)
 pl.title('Planar Gradiometers')

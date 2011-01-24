@@ -35,7 +35,7 @@ res = mne.compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM,
 lh_vertices = res['inv']['src'][0]['vertno']
 rh_vertices = res['inv']['src'][1]['vertno']
 lh_data = res['sol'][:len(lh_vertices)]
-rh_data = res['sol'][len(rh_vertices):]
+rh_data = res['sol'][-len(rh_vertices):]
 
 # Save result in stc files
 mne.write_stc('mne_dSPM_inverse-lh.stc', tmin=res['tmin'], tstep=res['tstep'],

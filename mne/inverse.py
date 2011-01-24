@@ -315,7 +315,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
-    inv['reginv'] = inv['sing'] / (inv['sing'] * inv['sing'] + lambda2)
+    inv['reginv'] = inv['sing'] / (inv['sing']**2 + lambda2)
     print '\tCreated the regularized inverter'
     #
     #   Create the projection operator
