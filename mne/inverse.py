@@ -123,7 +123,7 @@ def read_inverse_operator(fname):
     except:
         inv['eigen_leads_weighted'] = True
         try:
-            inv.eigen_leads = _read_named_matrix(fid, invs,
+            inv['eigen_leads'] = _read_named_matrix(fid, invs,
                                         FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
         except Exception as inst:
             raise ValueError, '%s' % inst
@@ -158,7 +158,7 @@ def read_inverse_operator(fname):
     #   Read the various priors
     #
     try:
-        inv.orient_prior = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+        inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
         print '\tOrientation priors read.'
     except Exception as inst:
         inv['orient_prior'] = []
@@ -366,13 +366,12 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         if inv['eigen_leads_weighted']:
             for k in range(inv['eigen_leads']['nrow']):
                 one = inv['eigen_leads']['data'][k, :] * inv['reginv']
-                noise_norm[k] = np.sum(one**2)
+                noise_norm[k] = sqrt(np.sum(one**2))
         else:
             for k in range(inv['eigen_leads']['nrow']):
                 one = sqrt(inv['source_cov']['data'][k]) * \
-                            np.sum(inv['eigen_leads']['data'][k, :]
-                                   * inv['reginv'])
-                noise_norm[k] = np.sum(one**2)
+                            inv['eigen_leads']['data'][k, :] * inv['reginv']
+                noise_norm[k] = sqrt(np.sum(one**2))
 
         #
         #   Compute the final result
@@ -393,7 +392,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
             #
             #   noise_norm = kron(sqrt(mne_combine_xyz(noise_norm)),ones(3,1));
 
-        inv['noisenorm'] = np.diag(1.0 / np.abs(noise_norm)) # XXX
+        inv['noisenorm'] = 1.0 / np.abs(noise_norm)
         print '[done]'
     else:
         inv['noisenorm'] = []
@@ -467,11 +466,11 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    trans = reduce(np.dot, [np.diag(inv['reginv']),
-                            inv['eigen_fields']['data'],
-                            inv['whitener'],
-                            inv['proj'],
-                            data['evoked']['epochs']])
+    trans = inv['reginv'][:,None] * reduce(np.dot, [inv['eigen_fields']['data'],
+                                                    inv['whitener'],
+                                                    inv['proj'],
+                                                    data['evoked']['epochs']])
+
     #
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
@@ -490,7 +489,6 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
         sol = np.sqrt(inv['source_cov']['data'])[:, None] * \
                              np.dot(inv['eigen_leads']['data'], trans)
 
-
     if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
         print 'combining the current components...',
         sol1 = np.zeros((sol.shape[0]/3, sol.shape[1]))
@@ -501,7 +499,7 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
 
     if dSPM:
         print '(dSPM)...',
-        sol = np.dot(inv['noisenorm'], sol)
+        sol *= inv['noisenorm'][:, None]
 
     res = dict()
     res['inv'] = inv

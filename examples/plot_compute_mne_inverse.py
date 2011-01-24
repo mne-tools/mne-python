@@ -1,7 +1,11 @@
 """
-============================
-Compute MNE inverse solution
-============================
+=================================
+Compute MNE-dSPM inverse solution
+=================================
+
+Compute dSPM inverse solution on MNE sample data set
+and stores the solution in stc files for visualisation.
+
 """
 
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
@@ -26,16 +30,16 @@ dSPM = True
 res = mne.compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM,
                           baseline=(None, 0))
 
-# XXX : kind of ugly
-import numpy as np
-res['vertices'] = np.r_[res['inv']['src'][0]['vertno']]
-# res['vertices'] = np.r_[res['inv']['src'][0]['vertno'],
-#                         res['inv']['src'][1]['vertno']]
-# res['data'] = res['sol']
-res['data'] = res['sol'][:len(res['vertices'])]
+lh_vertices = res['inv']['src'][0]['vertno']
+rh_vertices = res['inv']['src'][1]['vertno']
+lh_data = res['sol'][:len(lh_vertices)]
+rh_data = res['sol'][len(rh_vertices):]
 
 # Save result in stc file
-mne.write_stc('mne_dSPM_inverse-lh.stc', res)
+mne.write_stc('mne_dSPM_inverse-lh.stc', tmin=res['tmin'], tstep=res['tstep'],
+               vertices=lh_vertices, data=lh_data)
+mne.write_stc('mne_dSPM_inverse-rh.stc', tmin=res['tmin'], tstep=res['tstep'],
+               vertices=rh_vertices, data=rh_data)
 
 import pylab as pl
 pl.plot(res['sol'][::100,:].T)

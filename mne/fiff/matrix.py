@@ -10,10 +10,8 @@ from .tag import find_tag, has_tag
 def _transpose_named_matrix(mat):
     """Transpose mat inplace (no copy)
     """
-    mat['nrow'] = mat['ncol']
-    mat['ncol'] = mat['nrow']
-    mat['row_names'] = mat['col_names']
-    mat['col_names'] = mat['row_names']
+    mat['nrow'], mat['ncol'] = mat['ncol'], mat['nrow']
+    mat['row_names'], mat['col_names'] = mat['col_names'], mat['row_names']
     mat['data'] = mat['data'].T
     return mat
 

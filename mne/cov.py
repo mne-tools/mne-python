@@ -84,14 +84,9 @@ def read_cov(fid, node, cov_kind):
                     #   Lower diagonal is stored
                     vals = tag.data
                     data = np.zeros((dim, dim))
-                    q = 0
-                    for j in range(dim):
-                        for k in range(j):
-                            data[j, k] = vals[q];
-                            q += 1
+                    data[np.tril(np.ones((dim, dim))) > 0] = vals
                     data = data + data.T
                     data.flat[::dim+1] /= 2.0
-
                     diagmat = False;
                     print '\t%d x %d full covariance (kind = %d) found.' % (dim, dim, cov_kind)
                 else:
@@ -108,7 +103,6 @@ def read_cov(fid, node, cov_kind):
             else:
                 eig = None
                 eigvec = None
-
 
             #   Read the projection operator
             projs = read_proj(fid, this)
