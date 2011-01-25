@@ -21,21 +21,24 @@ from .fiff import fiff_open
 class Covariance(object):
     """Noise covariance matrix"""
 
-    _kinds = dict(full=1, sparse=2, diagonal=3) # XXX : check
+    _kind_to_id = dict(full=1, sparse=2, diagonal=3) # XXX : check
+    _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'} # XXX : check
 
     def __init__(self, kind):
-        if kind in Covariance._kinds:
-            self.kind = Covariance._kinds[kind]
-        else:
-            raise ValueError, ('Unknown type of covariance. '
-                               'Choose between full, sparse or diagonal.')
+        self.kind = kind
 
     def load(self, fname):
         """load covariance matrix from FIF file"""
 
+        if self.kind in Covariance._kind_to_id:
+            cov_kind = Covariance._kind_to_id[self.kind]
+        else:
+            raise ValueError, ('Unknown type of covariance. '
+                               'Choose between full, sparse or diagonal.')
+
         # Reading
         fid, tree, _ = fiff_open(fname)
-        cov = read_cov(fid, tree, self.kind)
+        cov = read_cov(fid, tree, cov_kind)
         fid.close()
 
         self._cov = cov
@@ -48,6 +51,7 @@ class Covariance(object):
     def __repr__(self):
         s = "kind : %s" % self.kind
         s += ", size : %s x %s" % self.data.shape
+        s += ", data : %s" % self.data
         return "Covariance (%s)" % s
 
 

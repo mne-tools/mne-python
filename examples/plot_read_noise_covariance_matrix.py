@@ -24,4 +24,5 @@ print cov
 # Show covariance
 import pylab as pl
 pl.matshow(cov.data)
+pl.title('Noise covariance matrix (%d channels)' % cov.data.shape[0])
 pl.show()
