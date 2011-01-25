@@ -15,6 +15,40 @@ from .fiff.channels import _read_bad_channels
 from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
 from .fiff.proj import write_proj
+from .fiff import fiff_open
+
+
+class Covariance(object):
+    """Noise covariance matrix"""
+
+    _kinds = dict(full=1, sparse=2, diagonal=3) # XXX : check
+
+    def __init__(self, kind):
+        if kind in Covariance._kinds:
+            self.kind = Covariance._kinds[kind]
+        else:
+            raise ValueError, ('Unknown type of covariance. '
+                               'Choose between full, sparse or diagonal.')
+
+    def load(self, fname):
+        """load covariance matrix from FIF file"""
+
+        # Reading
+        fid, tree, _ = fiff_open(fname)
+        cov = read_cov(fid, tree, self.kind)
+        fid.close()
+
+        self._cov = cov
+        self.data = cov['data']
+
+    def save(self, fname):
+        """save covariance matrix in a FIF file"""
+        write_cov_file(fname, self._cov)
+
+    def __repr__(self):
+        s = "kind : %s" % self.kind
+        s += ", size : %s x %s" % self.data.shape
+        return "Covariance (%s)" % s
 
 
 def read_cov(fid, node, cov_kind):
