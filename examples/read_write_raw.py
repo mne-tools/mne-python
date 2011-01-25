@@ -11,10 +11,12 @@ Read and write raw data in 60-sec blocks
 
 print __doc__
 
+import os
 from math import ceil
 from mne import fiff
 
-infile = 'MNE-sample-data/MEG/sample/sample_audvis_raw.fif'
+infile = os.environ['MNE_SAMPLE_DATASET_PATH']
+infile += '/MEG/sample/sample_audvis_raw.fif'
 outfile = 'sample_audvis_small_raw.fif'
 
 raw = fiff.setup_read_raw(infile)
@@ -51,15 +53,11 @@ quantum = int(ceil(quantum_sec * raw['info']['sfreq']))
 #
 first_buffer = True
 for first in range(start, stop, quantum):
-    last = start + quantum
+    last = first + quantum
     if last >= stop:
-        last = stop
-    try:
-        data, times = raw[picks, first:last]
-    except Exception as inst:
-        raw['fid'].close()
-        outfid.close()
-        print inst
+        last = stop+1
+
+    data, times = raw[picks, first:last]
 
     print 'Writing ... ',
     fiff.write_raw_buffer(outfid, data, cals)

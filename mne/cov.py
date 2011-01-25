@@ -24,7 +24,7 @@ class Covariance(object):
     _kind_to_id = dict(full=1, sparse=2, diagonal=3) # XXX : check
     _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'} # XXX : check
 
-    def __init__(self, kind):
+    def __init__(self, kind='full'):
         self.kind = kind
 
     def load(self, fname):
@@ -47,6 +47,37 @@ class Covariance(object):
     def save(self, fname):
         """save covariance matrix in a FIF file"""
         write_cov_file(fname, self._cov)
+
+    def estimate_from_raw(self, raw, picks=None, quantum_sec=10):
+        """Estimate noise covariance matrix from a raw FIF file
+        """
+        #   Set up the reading parameters
+        start = raw['first_samp']
+        stop = raw['last_samp'] + 1
+        quantum = int(quantum_sec * raw['info']['sfreq'])
+
+        cov = 0
+        n_samples = 0
+
+        # Read data
+        for first in range(start, stop, quantum):
+            last = first + quantum
+            if last >= stop:
+                last = stop
+
+            data, times = raw[picks, first:last]
+
+            if self.kind is 'full':
+                cov += np.dot(data, data.T)
+            elif self.kind is 'diagonal':
+                cov += np.diag(np.sum(data ** 2, axis=1))
+            else:
+                raise ValueError, "Unsupported covariance kind"
+
+            n_samples += data.shape[1]
+
+        self.data = cov / n_samples # XXX : check
+        print '[done]'
 
     def __repr__(self):
         s = "kind : %s" % self.kind
