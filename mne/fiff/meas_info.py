@@ -257,19 +257,3 @@ def read_meas_info(source, tree=None):
 
     return info, meas
 
-
-def get_current_comp(info):
-    """Get the current compensation in effect in the data
-    """
-    comp = 0;
-    first_comp = -1;
-    for k, chan in enumerate(info['chs']):
-        if chan.kind == FIFF.FIFFV_MEG_CH:
-            comp = int(chan['coil_type']) >> 16
-            if first_comp < 0:
-                first_comp = comp;
-            elif comp != first_comp:
-                raise ValueError, ('Compensation is not set equally on '
-                                   'all MEG channels')
-
-    return comp

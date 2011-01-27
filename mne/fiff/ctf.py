@@ -125,11 +125,11 @@ def read_ctf_comp(fid, node, chs):
         one = dict(ctfkind=tag.data, kind=-1)
         del tag
 
-        if one.ctfkind == hex2dec('47314252'):
+        if one.ctfkind == int('47314252', 16): # hex2dec('47314252'):
             one.kind = 1
-        elif one.ctfkind == hex2dec('47324252'):
+        elif one.ctfkind == int('47324252', 16): # hex2dec('47324252'):
             one.kind = 2
-        elif one.ctfkind == hex2dec('47334252'):
+        elif one.ctfkind == int('47334252', 16): # hex2dec('47334252'):
             one.kind = 3
         else:
             one.kind = one.ctfkind

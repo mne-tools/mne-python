@@ -263,3 +263,4 @@ def make_projector_info(info):
     """
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'], info['bads'])
     return proj, nproj
+
