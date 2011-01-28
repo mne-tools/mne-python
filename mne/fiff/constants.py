@@ -234,6 +234,7 @@ FIFF.FIFF_MNE_SOURCE_SPACE_NUSE          = 3514    # How many are in use
 FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST       = 3515    # Nearest source space vertex for all vertices
 FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST  = 3516    # Distance to the Nearest source space vertex for all vertices
 FIFF.FIFF_MNE_SOURCE_SPACE_ID            = 3517    # Identifier
+FIFF.FIFF_MNE_SOURCE_SPACE_TYPE          = 3518    # Surface or volume
 
 FIFF.FIFF_MNE_SOURCE_SPACE_NTRI          = 3590    # Number of triangles
 FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES     = 3591    # The triangulation
@@ -314,6 +315,20 @@ FIFF.FIFFV_MNE_FMRI_PRIOR_COV       = 3
 FIFF.FIFFV_MNE_SIGNAL_COV           = 4         # This will be potentially employed in beamformers
 FIFF.FIFFV_MNE_DEPTH_PRIOR_COV      = 5         # The depth weighting prior
 FIFF.FIFFV_MNE_ORIENT_PRIOR_COV     = 6     # The orientation prior
+#
+# Source space types (values of FIFF_MNE_SOURCE_SPACE_TYPE)
+#
+FIFF.FIFFV_MNE_SPACE_UNKNOWN  = -1
+FIFF.FIFFV_MNE_SPACE_SURFACE  = 1
+FIFF.FIFFV_MNE_SPACE_VOLUME   = 2
+FIFF.FIFFV_MNE_SPACE_DISCRETE = 3
+#
+# Covariance matrix channel classification
+#
+FIFF.FIFFV_MNE_COV_CH_UNKNOWN  = -1  # No idea
+FIFF.FIFFV_MNE_COV_CH_MEG_MAG  =  0  # Axial gradiometer or magnetometer [T]
+FIFF.FIFFV_MNE_COV_CH_MEG_GRAD =  1  # Planar gradiometer [T/m]
+FIFF.FIFFV_MNE_COV_CH_EEG      =  2  # EEG [V]
 #
 # Projection item kinds
 #
