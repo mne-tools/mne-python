@@ -53,11 +53,11 @@ GIT
 
 You can check the latest sources with the command::
 
-    git clone git://github.com/mne/mne.git
+    git clone git://github.com:mne-tools/mne-python.git
 
 or if you have write privileges::
 
-    git clone git@github.com/mne/mne.git
+    git clone git@github.com:mne-tools/mne-python.git
 
 Bugs
 ----
@@ -68,7 +68,7 @@ gramfort@nmr.mgh.harvard.edu
 Testing
 -------
 
-You can launch the test suite using nosetest from the source folder.
+You can launch the test suite using nosetests from the source folder.
 
 You'll need before to have run the MNE tutorial to have the required files
 on your drive.
