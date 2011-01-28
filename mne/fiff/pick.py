@@ -47,8 +47,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
     info : dict
         The measurement info
 
-    meg : bool
-        Is True include MEG channels
+    meg : bool or string
+        Is True include MEG channels or False include None
+        If string it can be 'mag' or 'grad' to select only gradiometers
+        or magnetometers.
 
     eeg : bool
         Is True include EEG channels
@@ -72,9 +74,15 @@ def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
 
     for k in range(nchan):
         kind = info['chs'][k].kind
-        if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH) \
-                                                                    and meg:
-            pick[k] = True
+        if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+            if meg == True:
+                pick[k] = True
+            elif (meg is 'grad'
+                    and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M):
+                pick[k] = True
+            elif (meg is 'mag'
+                    and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
+                pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_STIM_CH and stim:

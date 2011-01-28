@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
 import numpy as np
 from scipy import linalg
 
@@ -15,7 +14,7 @@ from .fiff.tag import find_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
 
 from .source_space import read_source_spaces, find_source_space_hemi
-
+from .transforms import transform_source_space_to, invert_transform
 
 def _block_diag(A, n):
     """Constructs a block diagonal from a packed structure
@@ -81,49 +80,6 @@ def _block_diag(A, n):
         # bd = reshape(bd,ma,na);   % full matrix
 
     return bd
-
-
-def _transform_source_space_to(src, dest, trans):
-    """
-    %
-    % [res] = mne_transform_source_space_to(src,dest,trans)
-    %
-    % Transform source space data to the desired coordinate system
-    %
-    % fname      - The name of the file
-    % include    - Include these channels (optional)
-    % exclude    - Exclude these channels (optional)
-    %
-    """
-
-    if src['coord_frame'] == dest:
-        res = src
-        return res
-
-    if trans['to'] == src['coord_frame'] and trans['from_'] == dest:
-        trans = _invert_transform(trans)
-    elif trans['from_'] != src['coord_frame'] or trans['to'] != dest:
-        raise ValueError, 'Cannot transform the source space using this ' \
-                          'coordinate transformation'
-
-    t = trans['trans'][:3,:]
-    res = src
-    res['coord_frame'] = dest
-
-    res['rr'] = np.dot(np.c_[res['rr'], np.ones((res['np'], 1))], t.T)
-    res['nn'] = np.dot(np.c_[res['nn'], np.zeros((res['np'], 1))], t.T)
-    return res
-
-
-def _invert_transform(trans):
-    """Invert a transformation between coordinate systems
-    """
-    itrans = copy.copy(trans)
-    aux = itrans['from_']
-    itrans['from_'] = itrans['to']
-    itrans['to'] = aux
-    itrans['trans'] = linalg.inv(itrans['trans'])
-    return itrans
 
 
 def _read_one(fid, node):
@@ -327,7 +283,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         mri_head_t = tag.data;
         if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
-            mri_head_t = _invert_transform(mri_head_t)
+            mri_head_t = invert_transform(mri_head_t)
             if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
@@ -349,7 +305,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     nuse = 0
     for s in src:
         try:
-            s = _transform_source_space_to(s, fwd['coord_frame'], mri_head_t)
+            s = transform_source_space_to(s, fwd['coord_frame'], mri_head_t)
         except Exception as inst:
             raise ValueError, 'Could not transform source space (%s)' % inst
 

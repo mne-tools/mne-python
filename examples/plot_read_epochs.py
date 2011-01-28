@@ -41,37 +41,51 @@ events = mne.read_events(event_fname)
 include = [] # or stim channel ['STI 014']
 exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
-# MEG
-meg_picks = fiff.pick_types(raw['info'], meg=True, eeg=False, stim=False,
+# MEG Magnetometers
+meg_mag_picks = fiff.pick_types(raw['info'], meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
-meg_data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                            tmin, tmax, picks=meg_picks, baseline=(None, 0))
-meg_epochs = np.array([d['epoch'] for d in meg_data]) # build 3D matrix
-meg_evoked_data = np.mean(meg_epochs, axis=0) # compute evoked fields
+meg_mag_data, times, channel_names = mne.read_epochs(raw, events, event_id,
+                            tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
+meg_mag_epochs = np.array([d['epoch'] for d in meg_mag_data]) # as 3D matrix
+meg_mag_evoked_data = np.mean(meg_mag_epochs, axis=0) # compute evoked fields
+
+# MEG
+meg_grad_picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
+                                stim=False, include=include, exclude=exclude)
+meg_grad_data, times, channel_names = mne.read_epochs(raw, events, event_id,
+                        tmin, tmax, picks=meg_grad_picks, baseline=(None, 0))
+meg_grad_epochs = np.array([d['epoch'] for d in meg_grad_data]) # as 3D matrix
+meg_grad_evoked_data = np.mean(meg_grad_epochs, axis=0) # compute evoked fields
 
 # EEG
 eeg_picks = fiff.pick_types(raw['info'], meg=False, eeg=True, stim=False,
                                             include=include, exclude=exclude)
 eeg_data, times, channel_names = mne.read_epochs(raw, events, event_id,
                             tmin, tmax, picks=eeg_picks, baseline=(None, 0))
-eeg_epochs = np.array([d['epoch'] for d in eeg_data]) # build 3D matrix
+eeg_epochs = np.array([d['epoch'] for d in eeg_data]) # as 3D matrix
 eeg_evoked_data = np.mean(eeg_epochs, axis=0) # compute evoked potentials
 
 ###############################################################################
 # View evoked response
 import pylab as pl
 pl.clf()
-pl.subplot(2, 1, 1)
-pl.plot(times, meg_evoked_data.T)
+pl.subplot(3, 1, 1)
+pl.plot(times, meg_mag_evoked_data.T)
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (T)')
-pl.title('MEG evoked field')
-pl.subplot(2, 1, 2)
+pl.title('MEG (Magnetometers) evoked field')
+pl.subplot(3, 1, 2)
+pl.plot(times, meg_grad_evoked_data.T)
+pl.xlim([times[0], times[-1]])
+pl.xlabel('time (ms)')
+pl.ylabel('Magnetic Field (T/m)')
+pl.title('MEG (Gradiometers) evoked field')
+pl.subplot(3, 1, 3)
 pl.plot(times, eeg_evoked_data.T)
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Potential (V)')
 pl.title('EEG evoked potential')
-pl.subplots_adjust(0.175, 0.04, 0.94, 0.94, 0.2, 0.33)
+pl.subplots_adjust(0.175, 0.04, 0.94, 0.94, 0.2, 0.53)
 pl.show()

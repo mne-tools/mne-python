@@ -4,7 +4,9 @@
 # License: BSD (3-clause)
 
 import os
+import copy
 import numpy as np
+from scipy import linalg
 
 from .fiff.constants import FIFF
 from .fiff.tag import find_tag
@@ -16,6 +18,7 @@ from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
 from .fiff.proj import write_proj
 from .fiff import fiff_open
+from .fiff.pick import pick_types
 
 
 class Covariance(object):
@@ -78,6 +81,76 @@ class Covariance(object):
 
         self.data = cov / n_samples # XXX : check
         print '[done]'
+
+    def _regularize(self, data, variances, ch_names, eps):
+        """Operates inplace in data
+        """
+        if len(ch_names) > 0:
+            ind = [self._cov['names'].index(name) for name in ch_names]
+            reg = eps * np.mean(variances[ind])
+            for ii in ind:
+                data[ind,ind] += reg
+
+    def whiten_evoked(self, ave, eps=0.2):
+        """Whiten an evoked data file
+
+        The whitening matrix is estimated and then multiplied to data.
+        It makes the additive white noise assumption of MNE
+        realistic.
+
+        Parameters
+        ----------
+        ave : evoked data
+            A evoked data set read with fiff.read_evoked
+        eps : float
+            The regularization factor used.
+
+        Returns
+        -------
+        ave : evoked data
+            Evoked data set after whitening.
+        W : array of shape [n_channels, n_channels]
+            The whitening matrix
+        """
+
+        data = self.data.copy() # will be the regularized covariance
+        variances = np.diag(data)
+
+        # Add (eps x identity matrix) to magnetometers only.
+        # This is based on the mean magnetometer variance like MNE C-code does it.
+        mag_ind = pick_types(ave['info'], meg='mag', eeg=False, stim=False)
+        mag_names = [ave['info']['chs'][k]['ch_name'] for k in mag_ind]
+        self._regularize(data, variances, mag_names, eps)
+
+        # Add (eps x identity matrix) to gradiometers only.
+        grad_ind = pick_types(ave['info'], meg='grad', eeg=False, stim=False)
+        grad_names = [ave['info']['chs'][k]['ch_name'] for k in grad_ind]
+        self._regularize(data, variances, grad_names, eps)
+
+        # Add (eps x identity matrix) to eeg only.
+        eeg_ind = pick_types(ave['info'], meg=False, eeg=True, stim=False)
+        eeg_names = [ave['info']['chs'][k]['ch_name'] for k in eeg_ind]
+        self._regularize(data, variances, eeg_names, eps)
+
+        d, V = linalg.eigh(data) # Compute eigen value decomposition.
+
+        # Compute the unique square root inverse, which is a whitening matrix.
+        # This matrix can be multiplied with data and leadfield matrix to get
+        # whitened inverse solutions.
+        d = 1.0 / np.sqrt(d)
+        W = np.dot(V, d[:,None] * V.T)
+
+        # Get all channel indices
+        n_channels = len(ave['info']['chs'])
+        ave_ch_names = [ave['info']['chs'][k]['ch_name']
+                                            for k in range(n_channels)]
+        ind = [ave_ch_names.index(name) for name in self._cov['names']]
+
+        ave_whiten = copy.copy(ave)
+        ave_whiten['evoked']['epochs'][ind] = np.dot(W,
+                                                ave['evoked']['epochs'][ind])
+
+        return ave_whiten, W
 
     def __repr__(self):
         s = "kind : %s" % self.kind
