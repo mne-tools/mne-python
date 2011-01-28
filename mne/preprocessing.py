@@ -1,6 +1,6 @@
 import numpy as np
 
-from .proj import make_projector_info
+from .fiff.proj import make_projector_info
 from .fiff.compensator import get_current_comp, compensate_to, make_compensator
 
 

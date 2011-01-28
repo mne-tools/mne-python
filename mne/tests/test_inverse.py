@@ -30,5 +30,5 @@ def test_compute_mne_inverse():
                               baseline=(None, 0))
 
     assert np.all(res['sol'] > 0)
-    assert np.all(res['sol'] < 30)
+    assert np.all(res['sol'] < 35)
 
