@@ -40,13 +40,12 @@ print diagonal_cov
 ###############################################################################
 # Show covariance
 import pylab as pl
-pl.figure(figsize=(10, 5))
+pl.figure(figsize=(8, 4))
 pl.subplot(1, 2, 1)
 pl.imshow(full_cov.data, interpolation="nearest")
-pl.title('Full covariance matrix (%d channels)' % full_cov.data.shape[0])
+pl.title('Full covariance matrix')
 pl.subplot(1, 2, 2)
 pl.imshow(diagonal_cov.data, interpolation="nearest")
-pl.title('Diagonal covariance matrix (%d channels)' % \
-                                              diagonal_cov.data.shape[0])
+pl.title('Diagonal covariance matrix')
 pl.subplots_adjust(0.06, 0.02, 0.98, 0.94, 0.16, 0.26)
 pl.show()

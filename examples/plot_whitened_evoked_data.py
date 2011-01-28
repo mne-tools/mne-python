@@ -1,7 +1,7 @@
 """
-=====================================================
-Whiten an evoked date using a noise covariance matrix
-=====================================================
+==================================================
+Whiten evoked data using a noise covariance matrix
+==================================================
 
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
