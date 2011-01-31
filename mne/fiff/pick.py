@@ -32,7 +32,7 @@ def pick_channels(ch_names, include, exclude):
     """
     sel = []
     for k, name in enumerate(ch_names):
-        if (include is [] or name in include) and name not in exclude:
+        if (len(include) == 0 or name in include) and name not in exclude:
             sel.append(k)
     sel = np.unique(sel)
     np.sort(sel)
@@ -40,7 +40,7 @@ def pick_channels(ch_names, include, exclude):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
-    """Pick channels
+    """Pick channels by type and names
 
     Parameters
     ----------
@@ -146,7 +146,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
         exclude are None it returns orig without copy.
     """
 
-    if include is None and exclude is None:
+    if len(include) == 0 and len(exclude) == 0:
         return orig
 
     sel = pick_channels(orig['info']['ch_names'], include=include,
@@ -155,7 +155,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     if len(sel) == 0:
         raise ValueError, 'Warning : No channels match the selection.'
 
-    res = orig.copy()
+    res = copy(orig)
     #
     #   Modify the measurement info
     #
@@ -166,3 +166,56 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     res['evoked']['epochs'] = res['evoked']['epochs'][sel,:]
 
     return res
+
+
+def pick_channels_forward(orig, include=[], exclude=[]):
+    """Pick channels from forward operator
+
+    Parameters
+    ----------
+    orig : dict
+        A forward solution
+
+    include : list of string, (optional)
+        List of channels to include. (if None, include all available)
+
+    exclude : list of string, (optional)
+        Channels to exclude (if None, do not exclude any)
+
+    Returns
+    -------
+    res : dict
+        Evoked data restricted to selected channels. If include and
+        exclude are None it returns orig without copy.
+    """
+
+    if len(include) == 0 and len(exclude) == 0:
+        return orig
+
+    sel = pick_channels(orig['sol']['row_names'], include=include,
+                        exclude=exclude)
+
+    fwd = copy(orig)
+
+    #   Do we have something?
+    nuse = len(sel)
+    if nuse == 0:
+        raise ValueError, 'Nothing remains after picking'
+
+    print '\t%d out of %d channels remain after picking' % (nuse,
+                                                            fwd['nchan'])
+
+    #   Pick the correct rows of the forward operator
+    fwd['nchan'] = nuse
+    fwd['sol']['data'] = fwd['sol']['data'][sel, :]
+    fwd['sol']['nrow'] = nuse
+    fwd['sol']['row_names'] = [fwd['sol']['row_names'][k] for k in sel]
+    fwd['chs'] = [fwd['chs'][k] for k in sel]
+
+    if fwd['sol_grad'] is not None:
+        fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel, :]
+        fwd['sol_grad']['nrow'] = nuse
+        fwd['sol_grad']['row_names'] = [fwd['sol_grad']['row_names'][k]
+                                        for k in sel]
+
+    return fwd

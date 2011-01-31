@@ -18,7 +18,7 @@ from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
 from .fiff.proj import write_proj
 from .fiff import fiff_open
-from .fiff.pick import pick_types
+from .fiff.pick import pick_types, pick_channels_forward
 
 
 class Covariance(object):
@@ -151,6 +151,53 @@ class Covariance(object):
                                                 ave['evoked']['epochs'][ind])
 
         return ave_whiten, W
+
+    def whiten_evoked_and_forward(self, ave, fwd, eps=0.2):
+        """Whiten an evoked data set and a forward solution
+
+        The whitening matrix is estimated and then multiplied to
+        forward solution a.k.a. the leadfield matrix.
+        It makes the additive white noise assumption of MNE
+        realistic.
+
+        Parameters
+        ----------
+        ave : evoked data
+            A evoked data set read with fiff.read_evoked
+        fwd : forward data
+            A forward solution read with mne.read_forward
+        eps : float
+            The regularization factor used.
+
+        Returns
+        -------
+        ave : evoked data
+            A evoked data set read with fiff.read_evoked
+        fwd : evoked data
+            Forward solution after whitening.
+        W : array of shape [n_channels, n_channels]
+            The whitening matrix
+        """
+        # handle evoked
+        ave_whiten, W = self.whiten_evoked(ave, eps=eps)
+
+        ave_ch_names = [ch['ch_name'] for ch in ave_whiten['info']['chs']]
+
+        # handle forward (keep channels in covariance matrix)
+        fwd_whiten = copy.copy(fwd)
+        ind = [fwd_whiten['sol']['row_names'].index(name)
+                                                for name in self._cov['names']]
+        fwd_whiten['sol']['data'][ind] = np.dot(W,
+                                                fwd_whiten['sol']['data'][ind])
+        fwd_whiten['sol']['row_names'] = [fwd_whiten['sol']['row_names'][k]
+                                                                  for k in ind]
+        fwd_whiten['chs'] = [fwd_whiten['chs'][k] for k in ind]
+
+        # keep in forward the channels in the evoked dataset
+        fwd_whiten = pick_channels_forward(fwd, include=ave_ch_names,
+                                                exclude=ave['info']['bads'])
+
+        return ave_whiten, fwd_whiten, W
 
     def __repr__(self):
         s = "kind : %s" % self.kind

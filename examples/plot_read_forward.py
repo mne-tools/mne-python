@@ -15,8 +15,8 @@ import mne
 fname = os.environ['MNE_SAMPLE_DATASET_PATH']
 fname += '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
-data = mne.read_forward_solution(fname)
-leadfield = data['sol']['data']
+fwd = mne.read_forward_solution(fname)
+leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape
 
@@ -24,17 +24,17 @@ print "Leadfield size : %d x %d" % leadfield.shape
 # Show result
 
 import pylab as pl
-pl.matshow(leadfield[:306,:500])
+pl.matshow(leadfield[:,:500])
 pl.xlabel('sources')
 pl.ylabel('sensors')
 pl.title('Lead field matrix')
 pl.show()
 
 # 3D source space
-lh_points = data['src'][0]['rr']
-lh_faces = data['src'][0]['use_tris']
-rh_points = data['src'][1]['rr']
-rh_faces = data['src'][1]['use_tris']
+lh_points = fwd['src'][0]['rr']
+lh_faces = fwd['src'][0]['use_tris']
+rh_points = fwd['src'][1]['rr']
+rh_faces = fwd['src'][1]['use_tris']
 from enthought.mayavi import mlab
 mlab.triangular_mesh(lh_points[:,0], lh_points[:,1], lh_points[:,2], lh_faces)
 mlab.triangular_mesh(rh_points[:,0], rh_points[:,1], rh_points[:,2], rh_faces)

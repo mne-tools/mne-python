@@ -9,12 +9,13 @@ from scipy import linalg
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
-from .fiff.channels import _read_bad_channels
-from .fiff.tag import find_tag
+from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
+from .fiff.pick import pick_channels_forward
 
 from .source_space import read_source_spaces, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
+
 
 def _block_diag(A, n):
     """Constructs a block diagonal from a packed structure
@@ -146,7 +147,7 @@ def _read_one(fid, node):
 
 
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
-                              include=None, exclude=None):
+                              include=[], exclude=[]):
     """Read a forward solution a.k.a. lead field
 
     Parameters
@@ -161,10 +162,12 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         Use surface based source coordinate system?
 
     include: list, optional
-        List of names of channels to include
+        List of names of channels to include. If empty all channels
+        are included.
 
     exclude: list, optional
-        List of names of channels to exclude
+        List of names of channels to exclude. If empty include all
+        channels.
 
     Returns
     -------
@@ -190,6 +193,21 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         raise ValueError, 'No parent MRI information in %s' % fname
     parent_mri = parent_mri[0]
 
+    #   Parent MEG data
+    parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+    if len(parent_meg) == 0:
+        fid.close()
+        raise ValueError, 'No parent MEG information in %s' % fname
+    parent_meg = parent_meg[0]
+
+    chs = list()
+    for k in range(parent_meg['nent']):
+        kind = parent_meg['directory'][k].kind
+        pos  = parent_meg['directory'][k].pos
+        if kind == FIFF.FIFF_CH_INFO:
+            tag = read_tag(fid, pos)
+            chs.append(tag.data)
+
     try:
         src = read_source_spaces(fid, False, tree)
     except Exception as inst:
@@ -200,11 +218,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         s['id'] = find_source_space_hemi(s)
 
     fwd = None
-
-    #   Bad channel list
-    bads = _read_bad_channels(fid, tree)
-
-    print '\t%d bad channels read' % len(bads)
 
     #   Locate and read the forward solutions
     megnode = None
@@ -383,46 +396,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
             print '[done]'
 
-    #   Do the channel selection
-    if include is not None or exclude is not None or bads is not None:
-        #   First do the channels to be included
-        pick = np.ones(fwd['nchan'], dtype=np.bool)
-        if include is not None:
-            for p in range(len(fwd['sol']['row_names'])):
-                if fwd['sol']['row_names'][p] in include:
-                    pick[p] = True
+    # Add channel information
+    fwd['chs'] = chs
 
-        #   Then exclude what needs to be excluded
-        if exclude is not None:
-            for p in range(len(fwd['sol']['row_names'])):
-                if fwd['sol']['row_names'][p] in exclude:
-                    pick[p] = False
-
-        if bads is not None:
-            for k in range(len(bads)):
-                for p in range(len(fwd['sol']['row_names'])):
-                    if fwd['sol']['row_names'][p] in bads:
-                        pick[p] = False
-
-        #   Do we have something?
-        nuse = pick.sum()
-        if nuse == 0:
-            raise ValueError, 'Nothing remains after picking'
-
-        print '\t%d out of %d channels remain after picking' % (nuse,
-                                                                fwd['nchan'])
-
-        #   Pick the correct rows of the forward operator
-        fwd['nchan'] = nuse
-        fwd['sol']['data'] = fwd['sol']['data'][pick == 1, :]
-        fwd['sol']['nrow'] = nuse
-        fwd['sol']['row_names'] = [fwd['sol']['row_names'][k]
-                                    for k in range(len(pick)) if pick[k]]
-
-        if fwd['sol_grad'] is not None:
-            fwd['sol_grad']['data'] = fwd['sol_grad']['data'][pick == 1, :]
-            fwd['sol_grad']['nrow'] = nuse
-            fwd['sol_grad']['row_names'] = [fwd['sol_grad']['row_names'][k]
-                                        for k in range(len(pick)) if pick[k]]
+    fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return fwd
+
