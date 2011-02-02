@@ -5,11 +5,9 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 
 from .. import read_evoked, write_evoked
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis-ave.fif')
+fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
 
-def test_io_cov():
+def test_io_evoked():
     """Test IO for noise covariance matrices
     """
     data = read_evoked(fname)

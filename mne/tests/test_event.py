@@ -5,9 +5,9 @@ from numpy.testing import assert_array_almost_equal
 
 import mne
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis_raw-eve.fif')
+
+fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve.fif')
 
 
 def test_io_cov():

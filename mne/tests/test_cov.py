@@ -6,9 +6,7 @@ from numpy.testing import assert_array_almost_equal
 import mne
 from ..fiff import fiff_open
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis-cov.fif')
+fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data', 'test-cov.fif')
 
 def test_io_cov():
     """Test IO for noise covariance matrices

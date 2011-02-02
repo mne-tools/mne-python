@@ -8,11 +8,10 @@ import os.path as op
 import mne
 from mne import fiff
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-raw_fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                                'sample_audvis_raw.fif')
-event_name = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                                'sample_audvis_raw-eve.fif')
+raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                     'test_raw.fif')
+event_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                     'test-eve.fif')
 
 
 def test_read_epochs():

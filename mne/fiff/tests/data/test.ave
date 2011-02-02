@@ -1,0 +1,49 @@
+#
+#	These are comments
+#
+average {
+#
+#	Output files
+#
+#	outfile         test-ave.fif
+#	logfile         test-ave.log
+#	eventfile	test.eve
+#
+#	Rejection values
+#
+	gradReject	4000e-13
+	magReject	4e-12
+	eegReject	0e-6
+	eogReject	150e-6
+#
+#	Category specifications
+#
+	category {
+		name	"Left Auditory"
+		event	1
+		tmin	-0.2
+		tmax	0.5
+		color	1 1 0
+	}
+	category {
+		name	"Right Auditory"
+		event	2
+		tmin	-0.2
+		tmax	0.5
+		color	1 0 0
+	}
+	category {
+		name	"Left visual"
+		event	3
+		tmin	-0.2
+		tmax	0.5
+		color	0 1 0
+	}
+	category {
+		name	"Right visual"
+		event	4
+		tmin	-0.2
+		tmax	0.5
+		color   0.5 0.8 1
+	}
+}

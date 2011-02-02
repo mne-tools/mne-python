@@ -1,0 +1,55 @@
+#
+#	These are comments
+#
+cov {
+#
+#	Output files
+#
+	outfile         sample_audvis-cov.fif
+	logfile         sample_audvis-cov.log
+#
+#	Rejection values
+#
+	gradReject	4000e-13
+	magReject	4e-12
+	eegReject	40e-6
+	eogReject	150e-6
+#
+#	What to include in the covariance matrix?
+#
+	def {
+		name	"Left Auditory"
+		event	1
+		tmin	-0.2
+		tmax	0.0
+		basemin -0.2
+		basemax 0
+	}
+	def {
+		name	"Right Auditory"
+		event	2
+		ignore	0
+		tmin	-0.2
+		tmax	0.0
+		basemin -0.2
+		basemax 0
+	}
+	def {
+		name	"Left visual"
+		event	3
+		ignore	0
+		tmin	-0.2
+		tmax	0.0
+		basemin -0.2
+		basemax 0
+	}
+	def {
+		name	"Right visual"
+		event	4
+		ignore	0
+		tmin	-0.2
+		tmax	0.0
+		basemin -0.2
+		basemax 0
+	}
+}

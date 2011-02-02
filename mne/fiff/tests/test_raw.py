@@ -8,9 +8,7 @@ from .. import setup_read_raw, read_raw_segment_times, pick_types, \
                start_writing_raw, write_raw_buffer, finish_writing_raw
 
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis_raw.fif')
+fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 
 def test_io_raw():
     """Test IO for raw data
@@ -22,7 +20,7 @@ def test_io_raw():
     meg_channels_idx = [k for k in range(nchan) if ch_names[k][:3]=='MEG']
     meg_channels_idx = meg_channels_idx[:5]
 
-    data, times = read_raw_segment_times(raw, start=100, stop=115,
+    data, times = read_raw_segment_times(raw, start=45, stop=50,
                                               sel=meg_channels_idx)
 
     # Writing
