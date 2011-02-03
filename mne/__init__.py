@@ -7,4 +7,5 @@ from .stc import read_stc, write_stc
 from .bem_surfaces import read_bem_surfaces
 from .inverse import read_inverse_operator, compute_inverse
 from .epochs import read_epochs
+from .tfr import time_frequency
 import fiff
