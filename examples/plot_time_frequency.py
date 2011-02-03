@@ -57,7 +57,7 @@ power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
 # View time-frequency plots
 import pylab as pl
 pl.clf()
-pl.subplots_adjust(0.1, 0.08, 0.98, 0.94, 0.2, 0.43)
+pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
 pl.subplot(3, 1, 1)
 pl.plot(times, evoked_data.T)
 pl.title('Evoked response (%s)' % raw['info']['ch_names'][picks[0]])
