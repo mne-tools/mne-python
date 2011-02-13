@@ -36,6 +36,18 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
         the alternative hypothesis is that the mean of the data is different
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
+
+    Returns
+    -------
+    p_values : array of shape [n_tests]
+        P-values for all the tests (aka variables)
+
+    T0 : array of shape [n_tests]
+        T-statistic for all variables
+
+    H0 : array of shape [n_permutations]
+        T-statistic obtained by permutations and t-max trick for multiple
+        comparison.
     """
     n_samples, n_tests = X.shape
 
