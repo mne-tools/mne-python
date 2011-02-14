@@ -63,10 +63,11 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
         Data of size number of samples (aka number of observations) times
         number of tests (aka number of variables)
 
-    n_permutations : int or 'exact'
-        Number of permutations. If n_permutations is 'exact' all possible
-        permutations are tested (2**n_samples).
-        If n_permutations >= 2**n_samples then the 'exact test is performed'
+    n_permutations : int or 'all'
+        Number of permutations. If n_permutations is 'all' all possible
+        permutations are tested (2**n_samples). It's the exact test, that
+        can be untractable when the number of samples is big (e.g. > 20).
+        If n_permutations >= 2**n_samples then the exact test is performed
 
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the alternative hypothesis is that the
@@ -103,7 +104,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     if do_exact:
         perms = bin_perm_rep(n_samples, a=1, b=-1)[1:,:]
     else:
-        perms = np.sign(np.random.randn(n_permutations, n_samples))
+        perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None,:] - mus**2) * dof_scaling # std with splitting

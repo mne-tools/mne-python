@@ -28,7 +28,7 @@ def test_permutation_t_test():
     assert_array_equal(is_significant, [False, False, False, False, False])
 
     X = np.random.randn(18, 1)
-    p_values, T0, H0 = permutation_t_test(X[:, [0]], n_permutations='exact')
+    p_values, T0, H0 = permutation_t_test(X[:, [0]], n_permutations='all')
     T0_scipy, p_values_scipy = stats.ttest_1samp(X[:, 0], 0)
     assert_almost_equal(T0[0], T0_scipy, 8)
     assert_almost_equal(p_values[0], p_values_scipy, 2)
