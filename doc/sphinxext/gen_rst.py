@@ -166,7 +166,11 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
             plt.close('all')
             try:
                 execfile(example_file, {'pl' : plt})
-                plt.savefig(image_file)
+                facecolor = plt.gcf().get_facecolor() # hack to keep black bg
+                if facecolor == (0.0, 0.0, 0.0, 1.0):
+                    plt.savefig(image_file, facecolor='black')
+                else:
+                    plt.savefig(image_file)
             except:
                 print 80*'_'
                 print '%s is not compiling:' % fname
