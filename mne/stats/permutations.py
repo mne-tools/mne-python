@@ -87,6 +87,16 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
+
+    Notes
+    -----
+    A reference (among many) in field of neuroimaging:
+    Nichols, T. E. & Holmes, A. P. (2002). Nonparametric permutation tests
+    for functional neuroimaging: a primer with examples.
+    Human Brain Mapping, 15, 1–25.
+    Overview of standard nonparametric randomization and permutation
+    testing applied to neuroimaging data (e.g. fMRI)
+    DOI: http://dx.doi.org/10.1002/hbm.1058
     """
     n_samples, n_tests = X.shape
 
