@@ -93,7 +93,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     A reference (among many) in field of neuroimaging:
     Nichols, T. E. & Holmes, A. P. (2002). Nonparametric permutation tests
     for functional neuroimaging: a primer with examples.
-    Human Brain Mapping, 15, 1–25.
+    Human Brain Mapping, 15, 1-25.
     Overview of standard nonparametric randomization and permutation
     testing applied to neuroimaging data (e.g. fMRI)
     DOI: http://dx.doi.org/10.1002/hbm.1058
