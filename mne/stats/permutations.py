@@ -1,12 +1,48 @@
 """T-test with permutations
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Fernando Perez (bin_perm_rep function)
 #
 # License: Simplified BSD
 
 from math import sqrt
 import numpy as np
+
+
+def bin_perm_rep(ndim, a=0, b=1):
+    """bin_perm_rep(ndim) -> ndim permutations with repetitions of (a,b).
+
+    Returns an array with all the possible permutations with repetitions of
+    (0,1) in ndim dimensions.  The array is shaped as (2**ndim,ndim), and is
+    ordered with the last index changing fastest.  For examble, for ndim=3:
+
+    Examples:
+
+    >>> bin_perm_rep(3)
+    array([[0, 0, 0],
+           [0, 0, 1],
+           [0, 1, 0],
+           [0, 1, 1],
+           [1, 0, 0],
+           [1, 0, 1],
+           [1, 1, 0],
+           [1, 1, 1]])
+    """
+
+    # Create the leftmost column as 0,0,...,1,1,...
+    nperms = 2**ndim
+    perms = np.empty((nperms, ndim), type(a))
+    perms.fill(a)
+    half_point = nperms / 2
+    perms[half_point:, 0] = b
+    # Fill the rest of the table by sampling the pervious column every 2 items
+    for j in range(1, ndim):
+        half_col = perms[::2, j-1]
+        perms[:half_point, j] = half_col
+        perms[half_point:, j] = half_col
+
+    return perms
 
 
 def permutation_t_test(X, n_permutations=10000, tail=0):
@@ -27,8 +63,10 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
         Data of size number of samples (aka number of observations) times
         number of tests (aka number of variables)
 
-    n_permutations : int
-        Number of permutations
+    n_permutations : int or 'exact'
+        Number of permutations. If n_permutations is 'exact' all possible
+        permutations are tested (2**n_samples).
+        If n_permutations >= 2**n_samples then the 'exact test is performed'
 
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the alternative hypothesis is that the
@@ -51,12 +89,22 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     """
     n_samples, n_tests = X.shape
 
+    do_exact = False
+    if n_permutations is 'exact' or (n_permutations >= 2**n_samples - 1):
+        do_exact = True
+        n_permutations = 2**n_samples - 1
+
     X2 = np.mean(X**2, axis=0) # precompute moments
     mu0 = np.mean(X, axis=0)
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
     std0 = np.sqrt(X2 - mu0**2) * dof_scaling # get std with variance splitting
     T0 = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
-    perms = np.sign(np.random.randn(n_permutations, n_samples))
+
+    if do_exact:
+        perms = bin_perm_rep(n_samples, a=1, b=-1)[1:,:]
+    else:
+        perms = np.sign(np.random.randn(n_permutations, n_samples))
+
     mus = np.dot(perms, X) / float(n_samples)
     stds = np.sqrt(X2[None,:] - mus**2) * dof_scaling # std with splitting
     max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1) # t-max
@@ -75,23 +123,43 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
 
 permutation_t_test.__test__ = False # for nosetests
 
+
 if __name__ == '__main__':
     # 1 sample t-test
     n_samples, n_tests = 30, 5
+    n_permutations = 50000
+    # n_permutations = 'exact'
     X = np.random.randn(n_samples, n_tests)
-    X[:,:2] += 1
-    p_values, T0, H0 = permutation_t_test(X, n_permutations=999, tail=1)
+    X[:,:2] += 0.6
+    p_values, T0, H0 = permutation_t_test(X, n_permutations, tail=1)
     is_significant = p_values < 0.05
+    print 80*"-"
+    print "-------- 1-sample t-test :"
     print "T stats : ", T0
     print "p_values : ", p_values
     print "Is significant : ", is_significant
 
+    print 80*"-"
+    print "-------- Comparison analytic vs permutation :"
+    p_values, T0, H0 = permutation_t_test(X, n_permutations, tail=1)
+    print "--- permutation_t_test :"
+    print "T stats : ", T0
+    print "p_values : ", p_values
+    print "Is significant : ", is_significant
+
+    from scipy import stats
+    T0, p_values = stats.ttest_1samp(X[:,0], 0)
+    print "--- scipy.stats.ttest_1samp :"
+    print "T stats : ", T0
+    print "p_values : ", p_values
+
     # 2 samples t-test
-    n_samples, n_tests = 30, 5
     X1 = np.random.randn(n_samples, n_tests)
     X2 = np.random.randn(n_samples, n_tests)
     X1[:,:2] += 2
-    p_values, T0, H0 = permutation_t_test(X1 - X2, n_permutations=999)
+    p_values, T0, H0 = permutation_t_test(X1 - X2, n_permutations)
+    print 80*"-"
+    print "-------- 2-samples t-test :"
     print "T stats : ", T0
     print "p_values : ", p_values
     print "Is significant : ", is_significant
