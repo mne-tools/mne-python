@@ -10,10 +10,10 @@ Reading BEM surfaces from a forward solution
 print __doc__
 
 import mne
+from mne.datasets import sample
 
-
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
+data_path = sample.data_path('.')
+fname = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 
 surfaces = mne.read_bem_surfaces(fname)
 

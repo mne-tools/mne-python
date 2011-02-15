@@ -14,8 +14,10 @@ print __doc__
 import os
 from math import ceil
 from mne import fiff
+from mne.datasets import sample
 
-infile = os.environ['MNE_SAMPLE_DATASET_PATH']
+data_path = sample.data_path('.')
+infile = data_path
 infile += '/MEG/sample/sample_audvis_raw.fif'
 outfile = 'sample_audvis_small_raw.fif'
 

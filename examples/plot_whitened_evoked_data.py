@@ -13,11 +13,11 @@ print __doc__
 import os
 import mne
 from mne import fiff
+from mne.datasets import sample
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-cov_fname += '/MEG/sample/sample_audvis-cov.fif'
+data_path = sample.data_path('.')
+fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
+cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Reading
 ave = fiff.read_evoked(fname, setno=0, baseline=(None, 0))

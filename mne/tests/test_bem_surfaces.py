@@ -1,13 +1,13 @@
-import os
 import os.path as op
 
-import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 import mne
+from mne.datasets import sample
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'subjects', 'sample', 'bem',
+examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
+data_path = sample.data_path(examples_folder)
+fname = op.join(data_path, 'subjects', 'sample', 'bem',
                                         'sample-5120-5120-5120-bem-sol.fif')
 
 def test_io_bem_surfaces():

@@ -11,9 +11,10 @@ print __doc__
 
 import os
 from mne import fiff
+from mne.datasets import sample
+data_path = sample.data_path('.')
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis_raw.fif'
+fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
 raw = fiff.setup_read_raw(fname)
 

@@ -5,11 +5,13 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 
 import mne
+from mne.datasets import sample
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname_inv = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
+examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
+data_path = sample.data_path(examples_folder)
+fname_inv = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_data = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
+fname_data = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis-ave.fif')
 
 def test_io_inverse():

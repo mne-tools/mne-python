@@ -15,9 +15,10 @@ print __doc__
 import os
 import numpy as np
 import mne
+from mne.datasets import sample
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis-meg-lh.stc'
+data_path = sample.data_path('.')
+fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
 
 stc = mne.read_stc(fname)
 

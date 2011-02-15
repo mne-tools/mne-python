@@ -4,10 +4,11 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_equal
 
 import mne
+from mne.datasets import sample
 
-MNE_SAMPLE_DATASET_PATH = os.getenv('MNE_SAMPLE_DATASET_PATH')
-fname = op.join(MNE_SAMPLE_DATASET_PATH, 'MEG', 'sample',
-                                            'sample_audvis-meg-oct-6-fwd.fif')
+examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
+data_path = sample.data_path(examples_folder)
+fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 
 def test_io_forward():
     """Test IO for forward solutions

@@ -17,9 +17,10 @@ import pylab as pl
 from mne import fiff
 from mne.layouts import Layout
 from mne.viz import plot_topo
+from mne.datasets import sample
+data_path = sample.data_path('.')
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis-ave.fif'
+fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
 data = fiff.read_evoked(fname, setno=0, baseline=(None, 0))

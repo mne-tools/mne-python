@@ -11,9 +11,10 @@ print __doc__
 
 import os
 import mne
+from mne.datasets import sample
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis_raw-eve.fif'
+data_path = sample.data_path('.')
+fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Reading events
 events = mne.read_events(fname)

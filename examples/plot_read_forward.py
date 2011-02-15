@@ -11,9 +11,10 @@ print __doc__
 
 import os
 import mne
+from mne.datasets import sample
+data_path = sample.data_path('.')
 
-fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname += '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
+fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
 fwd = mne.read_forward_solution(fname)
 leadfield = fwd['sol']['data']

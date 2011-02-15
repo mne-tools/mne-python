@@ -8,7 +8,10 @@ class Layout(object):
     """Sensor layouts"""
     def __init__(self, kind='Vectorview-all'):
         """
+        Parameters
+        ----------
         kind : 'Vectorview-all' | 'CTF-275' | 'Vectorview-grad' | 'Vectorview-mag'
+            Type of layout
         """
         lout_fname = op.join(op.dirname(__file__), kind + '.lout')
 

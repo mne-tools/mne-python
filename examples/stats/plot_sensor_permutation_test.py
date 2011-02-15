@@ -21,13 +21,13 @@ import numpy as np
 import mne
 from mne import fiff
 from mne.stats import permutation_t_test
+from mne.datasets import sample
 
 ###############################################################################
 # Set parameters
-raw_fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-raw_fname += '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = os.environ['MNE_SAMPLE_DATASET_PATH']
-event_fname += '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+data_path = sample.data_path('..')
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id = 1
 tmin = -0.2
 tmax = 0.5

@@ -18,11 +18,11 @@ import os
 import numpy as np
 import pylab as pl
 import mne
+from mne.datasets import sample
 
-fname_inv = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname_inv += '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-fname_data = os.environ['MNE_SAMPLE_DATASET_PATH']
-fname_data += '/MEG/sample/sample_audvis-ave.fif'
+data_path = sample.data_path('.')
+fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_data = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 setno = 0
 snr = 3.0

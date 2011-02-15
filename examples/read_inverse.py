@@ -10,8 +10,11 @@ Reading an inverse operator
 print __doc__
 
 import mne
+from mne.datasets import sample
 
-fname = 'MNE-sample-data/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+data_path = sample.data_path('.')
+fname = data_path
+fname += 'MNE-sample-data/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
 inv = mne.read_inverse_operator(fname)
 
