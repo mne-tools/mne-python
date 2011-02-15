@@ -16,7 +16,7 @@ def data_path(path='.'):
     """
     archive_name = "MNE-sample-data-processed.tar.gz"
     url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/" + archive_name
-    folder_name = "MNE-sample-data-processed"
+    folder_name = "MNE-sample-data"
 
     martinos_path = '/homes/6/gramfort/cluster/work/data/MNE-sample-data-processed.tar.gz'
 
