@@ -28,12 +28,12 @@ inplace:
 	$(PYTHON) setup.py build_ext -i
 
 test: in
-	$(NOSETESTS) scikits/learn
+	$(NOSETESTS) mne
 test-doc:
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/modules/
 
 test-coverage:
-	$(NOSETESTS) --with-coverage --cover-package=fiff
+	$(NOSETESTS) --with-coverage --cover-package=mne
 
 
 trailing-spaces:
