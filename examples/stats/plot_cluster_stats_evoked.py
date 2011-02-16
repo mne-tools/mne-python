@@ -1,6 +1,6 @@
 """
 =======================================================
-Permutation T-test on sensor data with 1D cluster level
+Permutation F-test on sensor data with 1D cluster level
 =======================================================
 
 One tests if the evoked response is significantly different
