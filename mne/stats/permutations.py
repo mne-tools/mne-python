@@ -78,11 +78,11 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
 
     Returns
     -------
+    T_obs : array of shape [n_tests]
+        T-statistic observed for all variables
+
     p_values : array of shape [n_tests]
         P-values for all the tests (aka variables)
-
-    T0 : array of shape [n_tests]
-        T-statistic for all variables
 
     H0 : array of shape [n_permutations]
         T-statistic obtained by permutations and t-max trick for multiple
@@ -109,7 +109,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     mu0 = np.mean(X, axis=0)
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
     std0 = np.sqrt(X2 - mu0**2) * dof_scaling # get std with variance splitting
-    T0 = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
+    T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
 
     if do_exact:
         perms = bin_perm_rep(n_samples, a=1, b=-1)[1:,:]
@@ -124,60 +124,13 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     scaling = float(n_permutations + 1)
 
     if tail == 0:
-        p_values = 1.0 - np.searchsorted(H0, np.abs(T0)) / scaling
+        p_values = 1.0 - np.searchsorted(H0, np.abs(T_obs)) / scaling
     elif tail == 1:
-        p_values = 1.0 - np.searchsorted(H0, T0) / scaling
+        p_values = 1.0 - np.searchsorted(H0, T_obs) / scaling
     elif tail == -1:
-        p_values = 1.0 - np.searchsorted(H0, -T0) / scaling
+        p_values = 1.0 - np.searchsorted(H0, -T_obs) / scaling
 
-    return p_values, T0, H0
+    return T_obs, p_values, H0
 
 permutation_t_test.__test__ = False # for nosetests
 
-
-if __name__ == '__main__':
-    # 1 sample t-test
-    n_samples, n_tests = 30, 5
-    n_permutations = 50000
-    # n_permutations = 'exact'
-    X = np.random.randn(n_samples, n_tests)
-    X[:,:2] += 0.6
-    p_values, T0, H0 = permutation_t_test(X, n_permutations, tail=1)
-    is_significant = p_values < 0.05
-    print 80*"-"
-    print "-------- 1-sample t-test :"
-    print "T stats : ", T0
-    print "p_values : ", p_values
-    print "Is significant : ", is_significant
-
-    print 80*"-"
-    print "-------- Comparison analytic vs permutation :"
-    p_values, T0, H0 = permutation_t_test(X, n_permutations, tail=1)
-    print "--- permutation_t_test :"
-    print "T stats : ", T0
-    print "p_values : ", p_values
-    print "Is significant : ", is_significant
-
-    from scipy import stats
-    T0, p_values = stats.ttest_1samp(X[:,0], 0)
-    print "--- scipy.stats.ttest_1samp :"
-    print "T stats : ", T0
-    print "p_values : ", p_values
-
-    # 2 samples t-test
-    X1 = np.random.randn(n_samples, n_tests)
-    X2 = np.random.randn(n_samples, n_tests)
-    X1[:,:2] += 2
-    p_values, T0, H0 = permutation_t_test(X1 - X2, n_permutations)
-    print 80*"-"
-    print "-------- 2-samples t-test :"
-    print "T stats : ", T0
-    print "p_values : ", p_values
-    print "Is significant : ", is_significant
-
-    # import pylab as pl
-    # pl.close('all')
-    # pl.hist(H0)
-    # y_min, y_max = pl.ylim()
-    # pl.vlines(T0, y_min, y_max, color='g', linewidth=2, linestyle='--')
-    # pl.show()
