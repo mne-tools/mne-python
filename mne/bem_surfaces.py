@@ -81,7 +81,7 @@ def read_bem_surfaces(fname, add_geom=False):
     #
     surf = []
     for bsurf in bemsurf:
-        print '\tReading a surface...'
+        print '\tReading a surface...',
         this = _read_bem_surface(fid, bsurf, coord_frame)
         print '[done]'
         if add_geom:

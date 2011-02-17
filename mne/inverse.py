@@ -57,7 +57,7 @@ def read_inverse_operator(fname):
         raise ValueError, 'No parent MRI information in %s' % fname
     parent_mri = parent_mri[0]
 
-    print '\tReading inverse operator info...'
+    print '\tReading inverse operator info...',
     #
     #   Methods and source orientations
     #
@@ -105,7 +105,7 @@ def read_inverse_operator(fname):
     #
     #   The SVD decomposition...
     #
-    print '\tReading inverse operator decomposition...'
+    print '\tReading inverse operator decomposition...',
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()

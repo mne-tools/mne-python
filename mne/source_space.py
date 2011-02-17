@@ -82,7 +82,7 @@ def read_source_spaces(source, add_geom=False, tree=None):
 
     src = list()
     for s in spaces:
-        print '\tReading a source space...'
+        print '\tReading a source space...',
         this = _read_one_source_space(fid, s, open_here)
         print '[done]'
         if add_geom:
