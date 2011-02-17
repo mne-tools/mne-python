@@ -36,14 +36,14 @@ raw = fiff.setup_read_raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
-include = [] # or stim channel ['STI 014']
+include = [] # or stim channels ['STI 014']
 exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # MEG Magnetometers
 meg_mag_picks = fiff.pick_types(raw['info'], meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
 meg_mag_data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                            tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
+                           tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
 meg_mag_epochs = np.array([d['epoch'] for d in meg_mag_data]) # as 3D matrix
 meg_mag_evoked_data = np.mean(meg_mag_epochs, axis=0) # compute evoked fields
 
@@ -68,22 +68,24 @@ eeg_evoked_data = np.mean(eeg_epochs, axis=0) # compute evoked potentials
 import pylab as pl
 pl.clf()
 pl.subplot(3, 1, 1)
-pl.plot(times, meg_mag_evoked_data.T)
-pl.xlim([times[0], times[-1]])
+pl.plot(1000*times, 1e13*meg_grad_evoked_data.T)
+pl.ylim([-200, 200])
+pl.xlim([1000*times[0], 1000*times[-1]])
 pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (T)')
-pl.title('MEG (Magnetometers) evoked field')
-pl.subplot(3, 1, 2)
-pl.plot(times, meg_grad_evoked_data.T)
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (T/m)')
+pl.ylabel('Magnetic Field (fT/cm)')
 pl.title('MEG (Gradiometers) evoked field')
-pl.subplot(3, 1, 3)
-pl.plot(times, eeg_evoked_data.T)
-pl.xlim([times[0], times[-1]])
+pl.subplot(3, 1, 2)
+pl.plot(1000*times, 1e15*meg_mag_evoked_data.T)
+pl.ylim([-600, 600])
+pl.xlim([1000*times[0], 1000*times[-1]])
 pl.xlabel('time (ms)')
-pl.ylabel('Potential (V)')
+pl.ylabel('Magnetic Field (fT)')
+pl.title('MEG (Magnetometers) evoked field')
+pl.subplot(3, 1, 3)
+pl.plot(1000*times, 1e6*eeg_evoked_data.T)
+pl.xlim([1000*times[0], 1000*times[-1]])
+pl.xlabel('time (ms)')
+pl.ylabel('Potential (uV)')
 pl.title('EEG evoked potential')
 pl.subplots_adjust(0.175, 0.04, 0.94, 0.94, 0.2, 0.53)
 pl.show()
