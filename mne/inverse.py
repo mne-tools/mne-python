@@ -361,7 +361,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #   Finally, compute the noise-normalization factors
     #
     if dSPM:
-        print '\tComputing noise-normalization factors...'
+        print '\tComputing noise-normalization factors...',
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
         if inv['eigen_leads_weighted']:
             for k in range(inv['eigen_leads']['nrow']):
