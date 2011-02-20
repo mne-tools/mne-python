@@ -46,7 +46,7 @@ mne.write_stc('mne_dSPM_inverse-rh.stc', tmin=res['tmin'], tstep=res['tstep'],
 ###############################################################################
 # View activation time-series
 times = res['tmin'] + res['tstep'] * np.arange(lh_data.shape[1])
-pl.plot(times, res['sol'][::100,:].T)
+pl.plot(1000*times, res['sol'][::100,:].T)
 pl.xlabel('time (ms)')
-pl.ylabel('Source amplitude')
+pl.ylabel('dSPM value')
 pl.show()
