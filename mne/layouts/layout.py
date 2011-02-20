@@ -6,14 +6,18 @@ import pylab as pl
 
 class Layout(object):
     """Sensor layouts"""
-    def __init__(self, kind='Vectorview-all'):
+    def __init__(self, kind='Vectorview-all', path=None):
         """
         Parameters
         ----------
         kind : 'Vectorview-all' | 'CTF-275' | 'Vectorview-grad' | 'Vectorview-mag'
-            Type of layout
+            Type of layout (can also be custom for EEG)
+        path : string
+            Path to folder where to find the layout file.
         """
-        lout_fname = op.join(op.dirname(__file__), kind + '.lout')
+        if path is None:
+            path = op.dirname(__file__)
+        lout_fname = op.join(path, kind + '.lout')
 
         f = open(lout_fname)
         f.readline() # skip first line
@@ -22,8 +26,12 @@ class Layout(object):
         pos = []
 
         for line in f:
-            _, x, y, dx, dy, chkind, nb = line.split()
-            name = chkind + ' ' + nb
+            splits = line.split()
+            if len(splits) == 7:
+                _, x, y, dx, dy, chkind, nb = splits
+                name = chkind + ' ' + nb
+            else:
+                _, x, y, dx, dy, name = splits
             pos.append(np.array([x, y, dx, dy], dtype=np.float))
             names.append(name)
 
@@ -31,7 +39,7 @@ class Layout(object):
         pos[:, 0] -= np.min(pos[:, 0])
         pos[:, 1] -= np.min(pos[:, 1])
 
-        scaling = max(np.max(pos[:, 0]), np.max(pos[:, 1]))
+        scaling = max(np.max(pos[:, 0]), np.max(pos[:, 1])) + pos[0, 2]
         pos /= scaling
         pos[:,:2] += 0.03
         pos[:,:2] *= 0.97 / 1.03
