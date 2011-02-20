@@ -379,7 +379,7 @@ div.warning p.admonition-title {
     color: white;
     border-bottom: 1px solid #86989B;
     font-weight: bold;
-    background-color: #AFC1C4;
+    background-color: #05804A;
 }
 
 div.warning {
@@ -387,7 +387,7 @@ div.warning {
 }
 
 div.warning p.admonition-title {
-    background-color: #000000;
+    background-color: #940000;
     border-bottom-color: #940000;
 }
 

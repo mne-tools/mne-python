@@ -1,0 +1,45 @@
+
+
+.. _CHDDEFAB:
+
+============
+Introduction
+============
+
+This document describes a set of programs for preprocessing
+and averaging of MEG and EEG data and for constructing cortically-constrained minimum-norm
+estimates. This software package will in the sequel referred to
+as *MNE software*. The software is based on anatomical
+MRI processing, forward modelling, and source estimation methods published in
+Dale, Fischl, Hämäläinen, and others.
+The software depends on anatomical MRI processing tools provided
+by the FreeSurfer software.
+
+Chapter 2 of this manual gives an overview of the software
+modules included with MNE software. Chapter 3 is a concise cookbook
+describing a typical workflow for a novice user employing the convenience
+scripts as far as possible. Chapters 4 to 11 give more detailed
+information about the software modules. Chapter 12 discusses
+processing of the sample data set included with the MNE software. Chapter 13 lists
+some useful background material for the methods employed in the
+MNE software.
+
+Appendix A is an overview of the BEM model mesh
+generation methods, Appendix B contains information specific
+to the setup at Martinos Center of Biomedical Imaging, Appendix C is
+a software installation and configuration guide, Appendix D summarizes
+the software history, and Appendix E contains the End-User
+License Agreement.
+
+.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <version> ``.pdf`` . For    the present manual, <version> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see Section 2.4.
+
+We want to thank all MNE Software users at the Martinos Center and
+in other institutions for their collaboration during the creation
+of this software as well as for useful comments on the software
+and its documentation.
+
+The development of this software has been supported by the
+NCRR *Center for Functional Neuroimaging Technologies* P41RR14075-06, the
+NIH grants 1R01EB009048-01, R01 EB006385-A101, 1R01 HD40712-A1, 1R01
+NS44319-01, and 2R01 NS37462-05, ell as by Department of Energy
+under Award Number DE-FG02-99ER62764 to The MIND Institute. 

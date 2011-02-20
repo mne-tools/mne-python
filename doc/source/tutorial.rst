@@ -1,8 +1,8 @@
 .. _example_config:
 
-======================================
-Getting starting with MNE command line
-======================================
+=====================================
+Getting started with MNE command line
+=====================================
 
 The quick start guide shows how to run a standard processing of the
 sample data set provided with MNE. XXX add link to data set download
