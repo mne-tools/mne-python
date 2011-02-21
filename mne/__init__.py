@@ -8,4 +8,5 @@ from .bem_surfaces import read_bem_surfaces
 from .inverse import read_inverse_operator, compute_inverse
 from .epochs import read_epochs
 from .tfr import time_frequency
+from .label import label_time_courses, read_label
 import fiff
