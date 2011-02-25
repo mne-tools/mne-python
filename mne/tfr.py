@@ -191,7 +191,7 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = epochs.shape
     psd = np.zeros((n_channels, n_frequencies, n_times)) # PSD
-    plf = np.zeros((n_channels, n_frequencies, n_times)) # phase lock
+    plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex) # phase lock
     for c in range(n_channels):
         for e in range(n_epochs):
             tfr = cwt_morlet(epochs[e, c, :].ravel(), Fs, frequencies,
