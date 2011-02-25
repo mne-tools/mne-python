@@ -104,41 +104,6 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
         print 'Appropriate compensator added to change to grade %d.' % (
                                                                     dest_comp)
 
-    # #  Read the events
-    # if event_fname is None:
-    #     if fname.endswith('.fif'):
-    #         event_name = '%s-eve.fif' % fname[:-4]
-    #     else:
-    #         raise ValueError, 'Raw file name does not end properly'
-    #
-    #     events = fiff.read_events(event_name)
-    #     print 'Events read from %s' % event_name
-    # else:
-    #     #   Binary file
-    #     if event_name.endswith('-eve.fif'):
-    #         events = fiff.read_events(event_name)
-    #         print 'Binary event file %s read' % event_name
-    #     else:
-    #         #   Text file
-    #         events = np.loadtxt(event_name)
-    #         if events.shape[0] < 1:
-    #             raise ValueError, 'No data in the event file'
-    #
-    #         #   Convert time to samples if sample number is negative
-    #         events[events[:,0] < 0,0] = events[:,1] * sfreq
-    #         #    Select the columns of interest (convert to integers)
-    #         events = np.array(events[:,[0, 2, 3]], dtype=np.int32)
-    #         #    New format?
-    #         if events[0,1] == 0 and events[0,2] == 0:
-    #             print 'The text event file %s is in the new format' % event_name
-    #             if events[0,0] != raw['first_samp']:
-    #                 raise ValueError, ('This new format event file is not compatible'
-    #                                    ' with the raw data')
-    #         else:
-    #             print 'The text event file %s is in the old format' % event_name
-    #             #   Offset with first sample
-    #             events[:,0] += raw['first_samp']
-
     #    Select the desired events
     selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
     n_events = np.sum(selected)
@@ -151,8 +116,8 @@ def read_epochs(raw, events, event_id, tmin, tmax, picks=None,
 
     for p, event_samp in enumerate(events[selected, 0]):
         #       Read a data segment
-        start = event_samp + tmin*sfreq
-        stop = event_samp + tmax*sfreq
+        start = int(event_samp + tmin*sfreq)
+        stop = int(event_samp + tmax*sfreq)
         epoch, _ = raw[picks, start:stop]
 
         if p == 0:
