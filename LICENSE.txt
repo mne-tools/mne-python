@@ -1,4 +1,4 @@
-Copyright (c) 2011, Alexandre Gramfort and Matti Hamalainen
+Copyright © 2011, Alexandre Gramfort and Matti Hamalainen
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
