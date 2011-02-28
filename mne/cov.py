@@ -138,7 +138,7 @@ class Covariance(object):
         # This matrix can be multiplied with data and leadfield matrix to get
         # whitened inverse solutions.
         d = 1.0 / np.sqrt(d)
-        W = np.dot(V, d[:,None] * V.T)
+        W = d[:,None] * V.T
 
         # Get all channel indices
         n_channels = len(ave['info']['chs'])
