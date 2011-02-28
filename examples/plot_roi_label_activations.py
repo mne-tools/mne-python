@@ -11,14 +11,13 @@ Extracting the time series of activations in a label
 
 print __doc__
 
-import os
-import numpy as np
 import mne
 from mne.datasets import sample
 
 data_path = sample.data_path('.')
 stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
-label_fname = data_path + '/subjects/sample/label/lh.BA1.label'
+label = 'Aud-lh'
+label_fname = data_path + '/MEG/sample/labels/%s.label' % label
 
 values, times, vertices = mne.label_time_courses(label_fname, stc_fname)
 
@@ -29,4 +28,5 @@ import pylab as pl
 pl.plot(times, values.T)
 pl.xlabel('time (ms)')
 pl.ylabel('Source amplitude')
+pl.title('Activations in Label : %s' % label)
 pl.show()
