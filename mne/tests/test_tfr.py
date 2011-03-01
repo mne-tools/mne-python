@@ -1,11 +1,10 @@
 import numpy as np
 import os.path as op
 
-from numpy.testing import assert_allclose
-
 import mne
 from mne import fiff
 from mne import time_frequency
+from mne.tfr import cwt_morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
@@ -13,7 +12,7 @@ event_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
 
 def test_time_frequency():
-    """Test IO for STC files
+    """Test time frequency transform (PSD and phase lock)
     """
     # Set parameters
     event_id = 1
@@ -35,9 +34,8 @@ def test_time_frequency():
     data, times, channel_names = mne.read_epochs(raw, events, event_id,
                                     tmin, tmax, picks=picks, baseline=(None, 0))
     epochs = np.array([d['epoch'] for d in data]) # as 3D matrix
-    evoked_data = np.mean(epochs, axis=0) # compute evoked fields
 
-    frequencies = np.arange(4, 20, 5) # define frequencies of interest
+    frequencies = np.arange(6, 20, 5) # define frequencies of interest
     Fs = raw['info']['sfreq'] # sampling in Hz
     power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=True)
@@ -54,4 +52,6 @@ def test_time_frequency():
     assert power.shape == phase_lock.shape
     assert np.sum(phase_lock >= 1) == 0
     assert np.sum(phase_lock <= 0) == 0
-    
+
+    tfr = cwt_morlet(epochs[0], Fs, frequencies, use_fft=True, n_cycles=2)
+    assert tfr.shape == (len(picks), len(frequencies), len(times))

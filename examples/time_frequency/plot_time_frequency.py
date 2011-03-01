@@ -50,7 +50,7 @@ evoked_data = np.mean(epochs, axis=0) # compute evoked fields
 frequencies = np.arange(4, 30, 3) # define frequencies of interest
 Fs = raw['info']['sfreq'] # sampling in Hz
 power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
-                                   n_cycles=2)
+                                   n_cycles=2, n_jobs=1, use_fft=False)
 
 ###############################################################################
 # View time-frequency plots

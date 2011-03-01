@@ -69,71 +69,74 @@ def _centered(arr, newsize):
     return arr[tuple(myslice)]
 
 
-def _cwt_morlet_fft(x, Fs, freqs, mode="same", Ws=None):
+def _cwt_fft(X, Ws, mode="same"):
     """Compute cwt with fft based convolutions
+    Return a generator over signals.
     """
-    x = np.asarray(x)
-    freqs = np.asarray(freqs)
+    X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
-    n_samples = x.size
-    n_freqs = freqs.size
-
-    if Ws is None:
-        Ws = morlet(Fs, freqs)
+    n_signals, n_times = X.shape
+    n_freqs = len(Ws)
 
     Ws_max_size = max(W.size for W in Ws)
-    size = n_samples + Ws_max_size - 1
+    size = n_times + Ws_max_size - 1
     # Always use 2**n-sized FFT
     fsize = 2**np.ceil(np.log2(size))
-    fft_x = fftn(x, [fsize])
 
-    if mode == "full":
-        tfr = np.zeros((n_freqs, fsize), dtype=np.complex128)
-    elif mode == "same" or mode == "valid":
-        tfr = np.zeros((n_freqs, n_samples), dtype=np.complex128)
-
+    # precompute FFTs of Ws
+    fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
     for i, W in enumerate(Ws):
-        ret = ifftn(fft_x * fftn(W, [fsize]))[:n_samples + W.size - 1]
-        if mode == "valid":
-            sz = abs(W.size - n_samples) + 1
-            offset = (n_samples - sz) / 2
-            tfr[i, offset:(offset + sz)] = _centered(ret, sz)
-        else:
-            tfr[i] = _centered(ret, n_samples)
-    return tfr
+        fft_Ws[i] = fftn(W, [fsize])
+
+    for k, x in enumerate(X):
+        if mode == "full":
+            tfr = np.zeros((n_freqs, fsize), dtype=np.complex128)
+        elif mode == "same" or mode == "valid":
+            tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
+
+        fft_x = fftn(x, [fsize])
+        for i, W in enumerate(Ws):
+            ret = ifftn(fft_x * fft_Ws[i])[:n_times + W.size - 1]
+            if mode == "valid":
+                sz = abs(W.size - n_times) + 1
+                offset = (n_times - sz) / 2
+                tfr[i, offset:(offset + sz)] = _centered(ret, sz)
+            else:
+                tfr[i, :] = _centered(ret, n_times)
+        yield tfr
 
 
-def _cwt_morlet_convolve(x, Fs, freqs, mode='same', Ws=None):
+def _cwt_convolve(X, Ws, mode='same'):
     """Compute time freq decomposition with temporal convolutions
+    Return a generator over signals.
     """
-    x = np.asarray(x)
-    freqs = np.asarray(freqs)
+    X = np.asarray(X)
 
-    if Ws is None:
-        Ws = morlet(Fs, freqs)
+    n_signals, n_times = X.shape
+    n_freqs = len(Ws)
 
-    n_samples = x.size
     # Compute convolutions
-    tfr = np.zeros((freqs.size, len(x)), dtype=np.complex128)
-    for i, W in enumerate(Ws):
-        ret = np.convolve(x, W, mode=mode)
-        if mode == "valid":
-            sz = abs(W.size - n_samples) + 1
-            offset = (n_samples - sz) / 2
-            tfr[i, offset:(offset + sz)] = ret
-        else:
-            tfr[i] = ret
-    return tfr
+    for x in X:
+        tfr = np.zeros((n_freqs, n_times), dtype=np.complex128)
+        for i, W in enumerate(Ws):
+            ret = np.convolve(x, W, mode=mode)
+            if mode == "valid":
+                sz = abs(W.size - n_times) + 1
+                offset = (n_times - sz) / 2
+                tfr[i, offset:(offset + sz)] = ret
+            else:
+                tfr[i] = ret
+        yield tfr
 
 
-def cwt_morlet(x, Fs, freqs, use_fft=True, n_cycles=7.0):
+def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
     """Compute time freq decomposition with Morlet wavelets
 
     Parameters
     ----------
-    x : array
-        signal
+    X : array of shape [n_signals, n_times]
+        signals (one per line)
 
     Fs : float
         sampling Frequency
@@ -143,35 +146,48 @@ def cwt_morlet(x, Fs, freqs, use_fft=True, n_cycles=7.0):
 
     Returns
     -------
-    tfr : 2D array
-        Time Frequency Decomposition (Frequencies x Timepoints)
+    tfr : 3D array
+        Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
     mode = 'same'
     # mode = "valid"
+    n_signals, n_times = X.shape
+    n_frequencies = len(freqs)
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, freqs, n_cycles=n_cycles)
 
     if use_fft:
-        return _cwt_morlet_fft(x, Fs, freqs, mode, Ws)
+        coefs = _cwt_fft(X, Ws, mode)
     else:
-        return _cwt_morlet_convolve(x, Fs, freqs, mode, Ws)
+        coefs = _cwt_convolve(X, Ws, mode)
 
+    tfrs = np.empty((n_signals, n_frequencies, n_times))
+    for k, tfr in enumerate(coefs):
+        tfrs[k] = tfr
 
-def _time_frequency_one_channel(epochs, c, Fs, frequencies, use_fft, n_cycles):
-    """Aux of time_frequency for parallel computing"""
-    n_epochs, _, n_times = epochs.shape
-    n_frequencies = len(frequencies)
-    psd_c = np.zeros((n_frequencies, n_times)) # PSD
-    plf_c = np.zeros((n_frequencies, n_times), dtype=np.complex) # phase lock
+    return tfrs
 
-    for e in range(n_epochs):
-        tfr = cwt_morlet(epochs[e, c, :].ravel(), Fs, frequencies,
-                                  use_fft=use_fft, n_cycles=n_cycles)
+def _time_frequency(X, Ws, use_fft):
+    """Aux of time_frequency for parallel computing over channels
+    """
+    n_epochs, n_times = X.shape
+    n_frequencies = len(Ws)
+    psd = np.zeros((n_frequencies, n_times)) # PSD
+    plf = np.zeros((n_frequencies, n_times), dtype=np.complex) # phase lock
+
+    mode = 'same'
+    if use_fft:
+        tfrs = _cwt_fft(X, Ws, mode)
+    else:
+        tfrs = _cwt_convolve(X, Ws, mode)
+
+    for tfr in tfrs:
         tfr_abs = np.abs(tfr)
-        psd_c += tfr_abs**2
-        plf_c += tfr / tfr_abs
-    return psd_c, plf_c
+        psd += tfr_abs**2
+        plf += tfr / tfr_abs
+
+    return psd, plf
 
 
 def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
@@ -213,6 +229,9 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = epochs.shape
 
+    # Precompute wavelets for given frequency range to save time
+    Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
+
     try:
         import joblib
     except ImportError:
@@ -224,13 +243,14 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
         for c in range(n_channels):
-            psd[c,:,:], plf[c,:,:] = _time_frequency_one_channel(epochs, c, Fs,
-                                                frequencies, use_fft, n_cycles)
+            X = np.squeeze(epochs[:,c,:])
+            psd[c], plf[c] = _time_frequency(X, Ws, use_fft)
+
     else:
         from joblib import Parallel, delayed
         psd_plf = Parallel(n_jobs=n_jobs)(
-                    delayed(_time_frequency_one_channel)(
-                            epochs, c, Fs, frequencies, use_fft, n_cycles)
+                    delayed(_time_frequency)(
+                            np.squeeze(epochs[:,c,:]), Ws, use_fft)
                     for c in range(n_channels))
 
         psd = np.zeros((n_channels, n_frequencies, n_times))
