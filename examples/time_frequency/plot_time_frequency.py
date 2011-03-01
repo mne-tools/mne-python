@@ -14,7 +14,6 @@ a list of events.
 
 print __doc__
 
-import os
 import numpy as np
 
 import mne
@@ -63,8 +62,8 @@ pl.plot(1e3 * times, 1e13 * evoked_data.T)
 pl.title('Evoked response (%s)' % raw['info']['ch_names'][picks[0]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
-pl.xlim(times[0], times[-1])
-pl.ylim(-200, 200)
+pl.xlim(1e3 * times[0], 1e3 * times[-1])
+pl.ylim(-150, 300)
 
 pl.subplot(3, 1, 2)
 pl.imshow(20*np.log10(power[0]), extent=[times[0], times[-1],

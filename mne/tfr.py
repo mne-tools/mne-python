@@ -158,7 +158,24 @@ def cwt_morlet(x, Fs, freqs, use_fft=True, n_cycles=7.0):
         return _cwt_morlet_convolve(x, Fs, freqs, mode, Ws)
 
 
-def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
+def _time_frequency_one_channel(epochs, c, Fs, frequencies, use_fft, n_cycles):
+    """Aux of time_frequency for parallel computing"""
+    n_epochs, _, n_times = epochs.shape
+    n_frequencies = len(frequencies)
+    psd_c = np.zeros((n_frequencies, n_times)) # PSD
+    plf_c = np.zeros((n_frequencies, n_times), dtype=np.complex) # phase lock
+
+    for e in range(n_epochs):
+        tfr = cwt_morlet(epochs[e, c, :].ravel(), Fs, frequencies,
+                                  use_fft=use_fft, n_cycles=n_cycles)
+        tfr_abs = np.abs(tfr)
+        psd_c += tfr_abs**2
+        plf_c += tfr / tfr_abs
+    return psd_c, plf_c
+
+
+def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
+                   n_jobs=1):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -181,6 +198,10 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
     n_cycles : int
         The number of cycles in the wavelet
 
+    n_jobs : int
+        The number of CPUs used in parallel. All CPUs are used in -1.
+        Requires joblib package.
+
     Returns
     -------
     power : 2D array
@@ -191,14 +212,31 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
     """
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = epochs.shape
-    psd = np.zeros((n_channels, n_frequencies, n_times)) # PSD
-    plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex) # phase lock
-    for c in range(n_channels):
-        for e in range(n_epochs):
-            tfr = cwt_morlet(epochs[e, c, :].ravel(), Fs, frequencies,
-                                      use_fft=use_fft, n_cycles=n_cycles)
-            psd[c,:,:] += np.abs(tfr)**2
-            plf[c,:,:] += tfr / psd[c,:,:]
+
+    try:
+        import joblib
+    except ImportError:
+        print "joblib not installed. Cannot run in parallel."
+        n_jobs = 1
+
+    if n_jobs == 1:
+        psd = np.empty((n_channels, n_frequencies, n_times))
+        plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
+
+        for c in range(n_channels):
+            psd[c,:,:], plf[c,:,:] = _time_frequency_one_channel(epochs, c, Fs,
+                                                frequencies, use_fft, n_cycles)
+    else:
+        from joblib import Parallel, delayed
+        psd_plf = Parallel(n_jobs=n_jobs)(
+                    delayed(_time_frequency_one_channel)(
+                            epochs, c, Fs, frequencies, use_fft, n_cycles)
+                    for c in range(n_channels))
+
+        psd = np.zeros((n_channels, n_frequencies, n_times))
+        plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)
+        for c, (psd_c, plf_c) in enumerate(psd_plf):
+            psd[c,:,:], plf[c,:,:] = psd_c, plf_c
 
     psd /= n_epochs
     plf = np.abs(plf) / n_epochs
