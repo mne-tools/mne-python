@@ -184,7 +184,8 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
     Returns
     -------
     power : 2D array
-        Induced power (Channels x Frequencies x Timepoints)
+        Induced power (Channels x Frequencies x Timepoints).
+        Squared amplitude of time-frequency coefficients.
     phase_lock : 2D array
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
@@ -196,7 +197,7 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25):
         for e in range(n_epochs):
             tfr = cwt_morlet(epochs[e, c, :].ravel(), Fs, frequencies,
                                       use_fft=use_fft, n_cycles=n_cycles)
-            psd[c,:,:] += np.abs(tfr)
+            psd[c,:,:] += np.abs(tfr)**2
             plf[c,:,:] += tfr / psd[c,:,:]
 
     psd /= n_epochs
