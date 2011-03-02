@@ -47,7 +47,7 @@ data, times, channel_names = mne.read_epochs(raw, events, event_id,
 epochs = np.array([d['epoch'] for d in data]) # as 3D matrix
 evoked_data = np.mean(epochs, axis=0) # compute evoked fields
 
-frequencies = np.arange(4, 30, 3) # define frequencies of interest
+frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw['info']['sfreq'] # sampling in Hz
 power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
                                    n_cycles=2, n_jobs=1, use_fft=False)
