@@ -1,6 +1,6 @@
 
 
-.. _CACCICGI:
+.. _ch_reading:
 
 ==============
 Useful reading

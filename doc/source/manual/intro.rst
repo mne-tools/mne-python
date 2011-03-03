@@ -16,11 +16,11 @@ The software depends on anatomical MRI processing tools provided
 by the FreeSurfer software.
 
 Chapter 2 of this manual gives an overview of the software
-modules included with MNE software. Chapter 3 is a concise cookbook
+modules included with MNE software. :ref:`ch_cookbook` is a concise cookbook
 describing a typical workflow for a novice user employing the convenience
 scripts as far as possible. Chapters 4 to 11 give more detailed
-information about the software modules. Chapter 12 discusses
-processing of the sample data set included with the MNE software. Chapter 13 lists
+information about the software modules. :ref:`ch_sample_data` discusses
+processing of the sample data set included with the MNE software. :ref:`ch_reading` lists
 some useful background material for the methods employed in the
 MNE software.
 

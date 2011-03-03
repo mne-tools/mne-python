@@ -11,7 +11,7 @@ MNE Manual
    browse
    forward
    mne
-   analyse
+   analyze
    morph
    convert
    matlab

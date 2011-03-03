@@ -1,6 +1,6 @@
 
 
-.. _CBBDEAAI:
+.. _ch_forward:
 
 ====================
 The forward solution
@@ -29,10 +29,12 @@ to the front, and the INLINE_EQUATION axis up.
 
 .. _CHDFFJIJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/CoordinateSystems.png
+    :alt: MEG/EEG and MRI coordinate systems
 
-    MEG/EEG and MRI coordinate systems. The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with INLINE_EQUATION, where INLINE_EQUATION identifies the transformation.
+    MEG/EEG and MRI coordinate systems
+    
+    The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with INLINE_EQUATION, where INLINE_EQUATION identifies the transformation.
 
 The coordinate systems related
 to MEG/EEG data are:
@@ -161,8 +163,8 @@ and
 The head and device coordinate systems
 ######################################
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/HeadCS.png
+    :alt: Head coordinate system
 
     The head coordinate system
 
@@ -1110,7 +1112,7 @@ EEG forward solution in the sphere model
 
 When the sphere model is employed, the computation of the
 EEG solution can be substantially accelerated by using approximation
-methods described by Mosher, Zhang, and Berg, see Section 13.3 (Mosher *et
+methods described by Mosher, Zhang, and Berg, see :ref:`CEGEGDEI` (Mosher *et
 al.* and references therein). mne_forward_solution approximates
 the solution with three dipoles in a homogeneous sphere whose locations
 and amplitudes are determined by minimizing the cost function:

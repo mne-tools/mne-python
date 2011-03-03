@@ -1,6 +1,6 @@
 
 
-.. _CHDDJDAA:
+.. _ch_sample_data:
 
 ===================
 The sample data set
@@ -11,7 +11,7 @@ Purpose
 
 This Chapter gives a detailed description of the processing
 of a sample data set, which can be employed to familiarize with
-the workflow described in Chapter 3.
+the workflow described in :ref:`ch_cookbook`.
 
 .. note:: Going through the analysis exercise in    this chapter is not a substitute for reading other chapters of this    manual and understanding the concepts underlying MNE software.
 
@@ -259,7 +259,7 @@ below:
   session by clicking on their channel names on the left. You can
   save the bad channel selection to the file from File/Apply bad channels . Bad channel marking can be removed
   by clicking on their channel names again and selecting File/Apply bad channels . Alternatively, you can use the utility mne_mark_bad_channels to
-  set a bad channel selection, see Section 11.4.1.
+  set a bad channel selection, see :ref:`CHDDHBEE`.
 
 - Switch the projections back on and change filter to a 40-Hz
   lowpass.
@@ -387,7 +387,7 @@ To view the averaged signals, invoke mne_browse_raw :
 
 This Section gives only very basic information about the
 use of mne_browse_raw for viewing
-evoked-response data. Please consult Chapter 4 for more
+evoked-response data. Please consult :ref:`ch_browse` for more
 comprehensive information.
 
 Loading the averages
@@ -558,8 +558,8 @@ coordinate alignment.
 
 .. _CHDFIHAC:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/Digitizer-example.png
+    :alt: Example of an initial coordinate alignment
 
     Example of an initial coordinate alignment.
 
@@ -685,8 +685,8 @@ The most exciting part of this exercise is to explore the
 data and the current estimates in mne_analyze .
 This section contains some useful steps to get you started. A lot
 of information about the capabilities of mne_analyze is
-given in Chapter 7. Batch-mode processing with mne_make_movie is discussed
-in Section 6.5. Cross-subject averaging is covered in Chapter 8.
+given in :ref:`ch_interactive_analysis`. Batch-mode processing with mne_make_movie is discussed
+in :ref:`CBBECEDE`. Cross-subject averaging is covered in :ref:`ch_morph`.
 
 Before launching mne_analyze it
 is advisable to go to the directory ``MEG/sample`` . The
@@ -761,7 +761,7 @@ Goto to ``$SUBJECTS_DIR`` and create the directory ``morph-maps`` .
 Load the inflated surface for subject morph as
 the morphing surfaces. Try switching between the original and morphing
 surfaces. More information about morphing is available in Section 7.9 and
-in Chapter 8.
+in :ref:`ch_morph`.
 
 There is also a left-hemisphere occipital patch file available
 for subject morph . Load a righ-hemifield

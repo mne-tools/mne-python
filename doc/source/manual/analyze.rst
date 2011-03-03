@@ -1,6 +1,6 @@
 
 
-.. _CACCICGI:
+.. _ch_interactive_analysis:
 
 ====================
 Interactive analysis
@@ -138,10 +138,10 @@ The main window
 
 .. _CACJABJI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/main_window.png
+    :alt: main window of mne_analyze
 
-    The main window of mne_analyze .
+    The main window of mne_analyze.
 
 The main window of mne_analyze shown
 in :ref:`CACJABJI` has the following components:
@@ -174,8 +174,8 @@ The File shown in :ref:`CACJCBFI` contains the following items:
 
 .. _CACJCBFI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/file_menu.png
+    :alt: the file menu
 
     The File menu.
 
@@ -244,8 +244,8 @@ is shown in :ref:`CACFDIJJ`:
 
 .. _CACFDIJJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/adjust_menu.png
+    :alt: The Adjust menu
 
     The Adjust menu.
 
@@ -282,8 +282,8 @@ The contents of the file menu is shown in :ref:`CACBFCGF`:
 
 .. _CACBFCGF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/view_menu.png
+    :alt: The View menu
 
     The View menu.
 
@@ -315,8 +315,8 @@ is discussed in detail in :ref:`CACCCFHH`.
 
 .. _CACHCDCF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/labels_menu.png
+    :alt: The Labels menu
 
     The Labels menu.
 
@@ -357,8 +357,8 @@ The contents of the dipoles menu is shown in :ref:`CACCJDAF`:
 
 .. _CACCJDAF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/dipoles_menu.png
+    :alt: The dipole fitting menu
 
     The dipole fitting menu.
 
@@ -382,8 +382,8 @@ is shown in :ref:`CACGFEAF`:
 
 .. _CACGFEAF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/help_menu.png
+    :alt: The Help menu
 
     The Help menu.
 
@@ -454,8 +454,8 @@ dialog shown in :ref:`CACFHAIH` appears. It has four sections:
 
 .. _CACFHAIH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/open_dialog.png
+    :alt: The open dialog
 
     The open dialog.
 
@@ -513,8 +513,8 @@ by the epoch selector show in :ref:`CACDCGIB`.
 
 .. _CACDCGIB:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/epoch_selector.png
+    :alt: The raw data epoch selector
 
     The raw data epoch selector.
 
@@ -700,8 +700,8 @@ shown in :ref:`CACJJCGD` has the following entries:
 
 .. _CACJJCGD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/scales_dialog.png
+    :alt: The Scales dialog
 
     The Scales dialog.
 
@@ -748,8 +748,8 @@ shown in :ref:`CACDGJDC` appears.
 
 .. _CACDGJDC:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/surface_selection_dialog.png
+    :alt: The surface selection dialog
 
     The surface selection dialog.
 
@@ -797,8 +797,8 @@ hemisphere, rh = right hemisphere).
 
 .. _CACHEEJD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/patch_selection_dialog.png
+    :alt: patch selection dialog
 
     The patch selection dialog.
 
@@ -838,8 +838,8 @@ The main surface display has a section called Adjust view , which has the contro
 
 .. _CACCFCGJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/surface_controls.png
+    :alt: Surface controls
 
     Surface controls.
 
@@ -1006,8 +1006,8 @@ using a color adjustment dialog accessible through the Color... buttons.
 
 .. _CACDDHAI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/adjust_lights.png
+    :alt: lighting adjustment dialog
 
     The lighting adjustment dialog.
 
@@ -1018,8 +1018,8 @@ Producing output files
 
 .. _CACFBIHD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/hardcopy_controls.png
+    :alt: Graphics output controls
 
     Graphics output controls.
 
@@ -1053,15 +1053,15 @@ surface display using the graphics output buttons shown in :ref:`CACFBIHD`:
 
 .. _CACCEFGI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/image_dialog.png
+    :alt: File type selection in the image saving dialog
 
     File type selection in the image saving dialog.
 
 .. _CACFFBBD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/movie_dialog.png
+    :alt: The controls in the movie saving dialog
 
     The controls in the movie saving dialog.
 
@@ -1130,7 +1130,7 @@ Morphing
 
 The displayed surface distributions can be morphed to another
 subject's brain using the spherical morphing procedure,
-see Chapter 8. In addition to the morphing surfaces loaded
+see :ref:`ch_morph`. In addition to the morphing surfaces loaded
 through File/Load morphing surface... surface
 patches for the same subject can be loaded through File/Load morphing surface patch... . Switching between main and morphing
 surfaces is discussed in :ref:`CACCABEA`.
@@ -1152,8 +1152,8 @@ Overview
 
 .. _CACJDFFH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/viewer.png
+    :alt: viewer window
 
     The viewer window with a visualization of MEG and EEG contour maps.
 
@@ -1268,8 +1268,8 @@ has the same effect on trackball operation.
 Viewer options
 ==============
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/viewer_options.png
+    :alt: viewer options
 
     The viewer options window
 
@@ -1481,8 +1481,8 @@ The parameters of the field maps can be adjusted from the Field mapping preferen
 
 .. _CACGDCGA:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/field_mapping_pref.png
+    :alt: Field mapping preferences dialog
 
     Field mapping preferences dialog.
 
@@ -1513,7 +1513,7 @@ and common sections:
 
 **Number of smoothsteps**
 
-    This option controls how much smoothing, see Section 8.3,
+    This option controls how much smoothing, see :ref:`CHDEBAHH`,
     is applied to the interpolated data before computing the contours.
     Usually the default value is appropriate.
 
@@ -1545,7 +1545,7 @@ controls:
     This controls the regularization of the estimate, i.e., the amount
     of allowed mismatch between the measured data and those predicted by
     the estimated current distribution. Smaller SNR means larger allowed
-    mismatch. Typical range of SNR values is 1...7. As discussed in Section 6.2,
+    mismatch. Typical range of SNR values is 1...7. As discussed in :ref:`CBBDJFBJ`,
     the SNR value can be translated to the current variance values expressed
     in the source-covariance matrix R. This translation is presented
     as the equivalent current standard-deviation value
@@ -1587,22 +1587,36 @@ controls:
 
 .. _CACGGICI:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.45\linewidth}|
 .. table:: The color scale parameters.
 
-    ===========  =======================================================================================================================================================================================================================================================================================
-    Parameter    Meaning
-    ===========  =======================================================================================================================================================================================================================================================================================
-    fthresh      If the value is below this level, it will not be shown.
-    fmid         Positive values at this level will show as red. Negative values will be dark blue.
-    fmax         Positive values at and above this level will be bright yellow. Negative values will be bright blue.
-    fmult        Apply this multiplier to the above thresholds. Default is 1 for statistical maps and INLINE_EQUATION for currents (MNE). The vertical bar locations in the histogram take this multiplier into account but the values indicated are the threshold parameters without the multiplier.
-    tcmult       The upper limit of the timecourse vertical scale will be INLINE_EQUATION.
-    ===========  =======================================================================================================================================================================================================================================================================================
+    +------------+---------------------------------------------------------+
+    | Parameter  |   Meaning                                               |
+    +============+=========================================================+
+    | fthresh    | If the value is below this level, it will not be shown. |
+    +------------+---------------------------------------------------------+
+    | fmid       | Positive values at this level will show as red.         |
+    |              Negative values will be dark blue.                      |
+    +------------+---------------------------------------------------------+
+    | fmax       | Positive values at and above this level will be bright  |
+    |            | yellow. Negative values will be bright blue.            |
+    +------------+---------------------------------------------------------+
+    | fmult      | Apply this multiplier to the above thresholds. Default  |
+    |            | is 1 for statistical maps and INLINE_EQUATION for       |
+    |            | currents (MNE). The vertical bar locations in the       |
+    |            | histogram take this multiplier into account but the     |
+    |            | values indicated are the threshold parameters without   |
+    |            | the multiplier.                                         |
+    +------------+---------------------------------------------------------+
+    | tcmult     | The upper limit of the timecourse vertical scale will   |
+    |            | be INLINE_EQUATION.                                     |
+    +------------+---------------------------------------------------------+
+
 
 .. _CACJGCDH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/MNE_preferences.png
+    :alt: MNE estimate preferences
 
     Estimate preferences dialog.
 
@@ -1639,7 +1653,7 @@ The optional parameters are:
 **# of smooth steps**
 
     Before display, the data will be smoothed using this number of steps,
-    see Section 8.3.
+    see :ref:`CHDEBAHH`.
 
 **Opacity**
 
@@ -1665,7 +1679,7 @@ related to the measured data INLINE_EQUATION by
 .. math::    1 + 1 = 2
 
 where INLINE_EQUATION is the whitening
-operator, introduced in Section 6.2.3.
+operator, introduced in :ref:`CHDDHAGE`.
 
 The computation of the apparent SNR will be explained in
 future revisions of this manual.
@@ -1714,8 +1728,8 @@ stores the timecourse to the timecourse manager, :ref:`CACDIAAD`.
 
 .. _CACJJGEF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/label_list.png
+    :alt: label list
 
     The label list.
 
@@ -1756,8 +1770,8 @@ the following controls for each timecourse stored:
 
 .. _CACEDEJI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/timecourse_manager.png
+    :alt: timecourse manager
 
     The timecourse manager.
 
@@ -1796,8 +1810,8 @@ The vertex-by-vertex output formats is summarized in :ref:`CACEFHIJ`.
 
 .. _CACHBBFD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/save_label_timecourse.png
+    :alt: Label timecourse saving options
 
     Label timecourse saving options.
 
@@ -1848,8 +1862,8 @@ Overlays
 
 .. _CACIGHEJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/overlay_management.png
+    :alt: The overlay management dialog
 
     The overlay management dialog.
 
@@ -1963,7 +1977,7 @@ specifies the forward model to be used:
 **Sphere model origin x/y/z\m]**
 
     Specifies the origin of the spherically symmetric conductor model in
-    MEG/EEG head coordinates, see Section 5.3.
+    MEG/EEG head coordinates, see :ref:`BJEBIBAI`.
 
 **EEG scalp radius\m]**
 
@@ -2018,7 +2032,7 @@ of the dialog contains the following items:
 
     Regularize the noise covariance before using it in whitening by
     adding a multiple of an identity matrix to the diagonal. This is
-    discussed in more detail in Section 6.2.4. Especially if
+    discussed in more detail in :ref:`CBBHEGAB`. Especially if
     EEG is included in fitting it is advisable to enter a non-zero value
     (around 0.1) here.
 
@@ -2042,8 +2056,8 @@ of the dialog contains the following items:
 
 .. _CACFEDEJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/dipole_parameters.png
+    :alt: The dipole fitting preferences dialog
 
     The dipole fitting preferences dialog.
 
@@ -2133,8 +2147,8 @@ The dipole list
 
 .. _CACGGFEJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/dipole_list.png
+    :alt: dipole list
 
     The dipole list.
 
@@ -2270,8 +2284,8 @@ viewer window. To access the coordinate frame alignment tools:
 
 - Bring up the Adjust coordinate alignment dialog from Adjust/Coordinate alignment... .
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/adjust_alignment.png
+    :alt: The coordinate frame alignment dialog
 
     The coordinate frame alignment dialog.
 
@@ -2353,7 +2367,7 @@ is on, the present location of the nasion receives a strong weight
 in the second part of each iteration step so that nasion movements
 are discouraged.
 
-.. note:: One possible practical approach to coordinate    frame alignment is discussed in Section 12.11.
+.. note:: One possible practical approach to coordinate frame alignment is discussed in :ref:`CHDIJBIG`.
 
 .. _CHDCGHIF:
 
@@ -2433,8 +2447,8 @@ Viewing continuous HPI data
 
 .. _CACFHFGJ:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/cont_hpi_data.png
+    :alt: Continuous HPI data overview
 
     Continuous HPI data overview.
 
@@ -2513,8 +2527,8 @@ Working with the MRI viewer
 
 .. _CHDEGEHE:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/mri_viewer.png
+    :alt: MRI viewer window
 
     The MRI viewer control window.
 
@@ -2672,8 +2686,8 @@ an Elekta-Neuromag MEG system.
 
 .. _CHDJJGII:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_analyze/visualize_hpi.png
+    :alt: Snapshot of mne_analyze in the head position visualization mode
 
     Snapshot of mne_analyze in the head position visualization mode.
 

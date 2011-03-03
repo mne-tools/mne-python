@@ -1,6 +1,6 @@
 
 
-.. _CACCICGI:
+.. _ch_morph:
 
 ======================
 Morphing and averaging
@@ -229,7 +229,7 @@ involves three straightforward steps:
 
 - Use mne_make_movie to
   create stc files morphed to a single subject. This requires the
-  use of the ``--morph`` option, see Section 6.5.5.
+  use of the ``--morph`` option, see :ref:`CBBECEDE`.5.
   The resulting files will have identical selections of vertices on
   the cortical surface of the subject used in averaging. This step
   can be speeded up by precomputing the morphing maps employed in
@@ -239,7 +239,7 @@ involves three straightforward steps:
   a Matlab script to read the data from the stc files and to produce
   an output stc file containing the averaged data. The MNE Matlab
   toolbox routines for reading and writing stc files are documented
-  in Chapter 10.
+  in :ref:`ch_matlab`.
 
 - Use mne_analyze or mne_make_movie to
   visualize the result or use the stc files from the previous step
@@ -247,10 +247,12 @@ involves three straightforward steps:
 
 .. _CHDDJBDH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/Averaging-flowchart.png
+    :alt: Workflow of the cross-subject averaging process in MNE
 
-    Workflow of the cross-subject averaging process in MNE software. References in parenthesis indicate sections and chapters of this manual
+    Workflow of the cross-subject averaging process
+    
+    References in parenthesis indicate sections and chapters of this manual
 
 .. note:: The old utility mne_grand_average has    been removed from the MNE software because of its inefficiency.    All users should adopt the combination of mne_make_movie and mne_average_estimates instead.
 
@@ -404,4 +406,4 @@ depending on the presence of abs phrases in the description file.
 
 .. note:: mne_average_estimates requires    that the number of vertices in the stc files are the same and that    the vertex numbers are identical. This will be the case if the files    have been produced in mne_make_movie using    the ``--morph`` option.
 
-.. note:: It is straightforward to read and write stc    files using the MNE Matlab toolbox described in Chapter 10 and    thus write custom Matlab functions to realize more complicated custom    group analysis tools.
+.. note:: It is straightforward to read and write stc    files using the MNE Matlab toolbox described in :ref:`ch_matlab` and    thus write custom Matlab functions to realize more complicated custom    group analysis tools.

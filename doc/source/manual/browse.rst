@@ -1,6 +1,6 @@
 
 
-.. _CACCICGI:
+.. _ch_browse:
 
 ===================
 Processing raw data
@@ -15,7 +15,7 @@ addition, the program is capable of off-line averaging and estimation
 of covariance matrices. mne_browse_raw can
 be also used to view averaged data in the topographical layout.
 Finally, mne_browse_raw can communicate
-with mne_analyze described in Chapter 7 to
+with mne_analyze described in :ref:`ch_interactive_analysis` to
 calculate current estimates from raw data interactively.
 
 mne_browse_raw has also
@@ -408,8 +408,8 @@ These options apply to the batch-mode version, mne_process_raw only.
 The user interface
 ##################
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/windows_menu-7.png
+    :alt: The user interface of mne_browse_raw
 
     The user interface of mne_browse_raw
 
@@ -469,12 +469,12 @@ is scanned for events. For large files this may take a while.
 
 .. note:: After scanning the trigger channel for events, mne_browse_raw and mne_process_raw produce    a fif file containing the event information. This file will be called <raw data file name without fif extension> ``-eve.fif`` . If    the same raw data file is opened again, this file will be consulted    for event information thus making it unnecessary to scan through    the file for trigger line events.
 
-.. note:: You can produce the fif event file by running mne_process_raw as follows: ``mne_process_raw --raw`` <raw data file> .    The fif format event files can be read and written with the mne_read_events and mne_write_events functions    in the MNE Matlab toolbox, see Chapter 10.
+.. note:: You can produce the fif event file by running mne_process_raw as follows: ``mne_process_raw --raw`` <raw data file> .    The fif format event files can be read and written with the mne_read_events and mne_write_events functions    in the MNE Matlab toolbox, see :ref:`ch_matlab`.
 
 .. _CACBHGFE:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/open_dialog.png
+    :alt: Open dialog
 
     The Open dialog.
 
@@ -576,7 +576,7 @@ Save events (fif)
 
 Save the events in fif format. These binary event files can
 be read and written with the mne_read_events and mne_write_events functions
-in the MNE Matlab toolbox, see Chapter 10.For more information
+in the MNE Matlab toolbox, see :ref:`ch_matlab`. For more information
 on events, see :ref:`BABDFAHA`.
 
 .. _CACFHAFH:
@@ -664,8 +664,8 @@ shown in :ref:`CACCEEGI`.
 
 .. _CACCEEGI:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/filter_dialog.png
+    :alt: filter adjustment dialog
 
     The filter adjustment dialog.
 
@@ -714,8 +714,8 @@ shown in :ref:`CACBJGBA`.
 
 .. _CACBJGBA:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/scales_dialog.png
+    :alt: Scales dialog
 
     The Scales dialog.
 
@@ -920,8 +920,8 @@ of this text file should be self explanatory.
 
 .. _CACIHFFH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/channel_selection.png
+    :alt: channel selection dialog
 
     The channel selection dialog.
 
@@ -948,8 +948,8 @@ the modification of the selections:
 
 .. _CACFECED:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/new_selection.png
+    :alt: Dialog to create a new channel selection
 
     Dialog to create a new channel selection.
 
@@ -990,18 +990,28 @@ The components of the selection creation dialog shown in :ref:`CACFECED` have th
 
 .. _CACHCHDJ:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.45\linewidth}|
 .. table:: Examples of regular expressions for channel selections
 
-    ====================  =================================================================================================
-    Regular expression    Meaning
-    ====================  =================================================================================================
-    ``MEG``               Selects all MEG channels.
-    ``EEG``               Selects all EEG channels.
-    ``MEG.*1$``           Selects all MEG channels whose names end with the number 1, *i.e.*, all magnetometer channels.
-    ``MEG.*[2,3]$``       Selects all MEG gradiometer channels.
-    ``EEG|STI 014``       Selects all EEG channels and stimulus channel STI 014.
-    ``^M``                Selects all channels whose names begin with the letter M.
-    ====================  =================================================================================================
+    +--------------------+----------------------------------------------+
+    | Regular expression | Meaning                                      |
+    +====================+==============================================+
+    | ``MEG``            | Selects all MEG channels.                    |
+    +--------------------+----------------------------------------------+
+    | ``EEG``            | Selects all EEG channels.                    |
+    +--------------------+----------------------------------------------+
+    | ``MEG.*1$``        | Selects all MEG channels whose names end     |
+    |                    | with the number 1, *i.e.*, all magnetometer  |
+    |                    | channels.                                    |
+    +--------------------+----------------------------------------------+
+    | ``MEG.*[2,3]$``    | Selects all MEG gradiometer channels.        |
+    +--------------------+----------------------------------------------+
+    | ``EEG|STI 014``    | Selects all EEG channels and stimulus        |
+    |                    | channel STI 014.                             |
+    +--------------------+----------------------------------------------+
+    | ``^M``             | Selects all channels whose names begin with  |
+    |                    | the letter M.                                |
+    +--------------------+----------------------------------------------+
 
 .. note:: The interactive tool for creating the channel    selections does not allow you to change the order of the selected    channels from that given by the list of channels. However, the ordering    can be easily changed by manually editing the channel selection    file in a text editor.
 
@@ -1076,8 +1086,8 @@ Averaging preferences
 
 .. _CACCFFAH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/average_pref.png
+    :alt: Averaging preferences
 
     Averaging preferences.
 
@@ -1208,8 +1218,8 @@ choice computes a new SSP operator as discussed in :ref:`BABFFCHF`.
 
 .. _BABHAGHF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/new_ssp.png
+    :alt: Time range specification for SSP operator calculation
 
     Time range specification for SSP operator calculation
 
@@ -1333,8 +1343,8 @@ is shown in :ref:`CACGFEAF`:
 
 .. _CACGFEAF:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/help_menu.png
+    :alt: Help menu
 
     The Help menu.
 
@@ -1687,8 +1697,8 @@ The tool bar
 
 .. _CACCFEGH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/toolbar.png
+    :alt: tool bar controls
 
     The tool bar controls.
 
@@ -2309,8 +2319,8 @@ of computed averages. The controls in the dialog, shown in :ref:`CACEFABD`, allo
 
 .. _CACEFABD:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: mne_browse_raw/manage_averages_dialog.png
+    :alt: dialog for managing available averages
 
     The dialog for managing available averages.
 
@@ -2407,10 +2417,12 @@ please consult the references listed in Section 13.4.
 
 .. _CACFGIEC:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/proj-off-on.png
+    :alt: example of the effect of SSP
 
-    An example of the effect of SSP. The covariance matrix INLINE_EQUATION of noise data on the 102 Vectorview magnetometers was computed (a) before and (b) after the application of SSP with three-dimensional noise subspace. The plotted quantity is INLINE_EQUATION. Note that the vertical scale in (b) is ten times smaller than in (a).
+    An example of the effect of SSP
+    
+    The covariance matrix INLINE_EQUATION of noise data on the 102 Vectorview magnetometers was computed (a) before and (b) after the application of SSP with three-dimensional noise subspace. The plotted quantity is INLINE_EQUATION. Note that the vertical scale in (b) is ten times smaller than in (a).
 
 .. _BABFFCHF:
 

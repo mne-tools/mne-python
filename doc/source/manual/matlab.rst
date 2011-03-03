@@ -1,6 +1,6 @@
 
 
-.. _CHDBFDFG:
+.. _ch_matlab:
 
 ==================
 The Matlab toolbox
@@ -348,7 +348,7 @@ The documented structures are:
 
     Inverse operator decomposition data returned by mne_read_inverse_operator ,
     see :ref:`BGBIEIJE`. For more information on inverse operator
-    decomposition, see Section 6.2. For an example on how to
+    decomposition, see :ref:`CBBDJFBJ`. For an example on how to
     compute inverse solution using this data, see the sample routine mne_ex_compute_inverse .
 
 .. note:: The MNE Matlab toolbox tries it best to    employ vertex numbering starting from 1 as opposed to 0 as recorded    in the data files. There are, however, two exceptions where explicit    attention to the vertex numbering convention is needed. First, the    standard stc and w file reading and writing routines return and    assume zero-based vertex numbering. There are now versions with    names ending with '1' , which return and assume one-based    vertex numbering, see :ref:`BABBDDAI`. Second, the logno    field of the channel information in the data files produced by mne_compute_raw_inverse is    the zero-based number of the vertex whose source space signal is    contained on this channel.
@@ -693,9 +693,9 @@ The documented structures are:
     nchan            int32                   Number of channels.
     coord_frame      int32                   Coordinate frame in which the locations and orientations are expressed.
     source_nn        double\3)            The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
-    sing             double(nchan)           The singular values, *i.e.*, the diagonal values of INLINE_EQUATION, see Section 6.2.5.
-    eigen_leads      double\nchan)        The matrix INLINE_EQUATION, see Section 6.2.5.
-    eigen_fields     double(nchan,nchan)     The matrix INLINE_EQUATION, see Section 6.2.5.
+    sing             double(nchan)           The singular values, *i.e.*, the diagonal values of INLINE_EQUATION, see :ref:`CHDBEHBC`.
+    eigen_leads      double\nchan)        The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
+    eigen_fields     double(nchan,nchan)     The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
     noise_cov        cov                     The noise covariance matrix C.
     source_cov       cov                     The source covariance matrix R.
     src              surf \               The description of the source spaces
@@ -704,7 +704,7 @@ The documented structures are:
     projs            proj \               The SSP vectors which were active when the decomposition was computed
     proj             double(nchan)           The projection operator computed using projs .
     whitener                                 A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
-    reginv           double(nchan)           The diagonal matrix INLINE_EQUATION, see Section 6.2.5.
+    reginv           double(nchan)           The diagonal matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
     noisenorm        double\*)            A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     ===============  ======================  ==============================================================================================================================================================
 

@@ -1,6 +1,6 @@
 
 
-.. _CBBDEAAI:
+.. _ch_mne:
 
 =====================
 The current estimates
@@ -14,7 +14,7 @@ estimates. This is accomplished with two programs: *mne_inverse_operator* and *m
 The chapter starts with a mathematical description of the method,
 followed by description of the two software modules. The interactive
 program for inspecting data and inverse solutions, mne_analyze ,
-is covered in Chapter 7.
+is covered in :ref:`ch_interactive_analysis`.
 
 .. _CBBDJFBJ:
 
@@ -549,7 +549,7 @@ The command-line options of ``mne_inverse_operator`` are:
     weighting is usually fMRI but may be also some other data, provided
     that the weighting  can be expressed as a scalar value on the cortical
     surface, stored in a w file. It is recommended that this w file
-    is appropriately smoothed (see Section 8.3) in mne_analyze , tksurfer or
+    is appropriately smoothed (see :ref:`CHDEBAHH`) in mne_analyze , tksurfer or
     with mne_smooth_w to contain
     nonzero values at all vertices of the triangular tessellation of
     the cortical surface. The name of the file given is used as a stem of
@@ -640,9 +640,9 @@ output to the screen. In addition, mne_make_movie can
 produce stc or w files which contain the numerical current estimate
 data in a simple binary format for postprocessing. These files can
 be displayed in mne_analyze ,
-see Chapter 7, utilized in the cross-subject averaging
-process, see Chapter 8, and read into Matlab using the MNE
-Matlab toolbox, see Chapter 10.
+see :ref:`ch_interactive_analysis`, utilized in the cross-subject averaging
+process, see :ref:`ch_morph`, and read into Matlab using the MNE
+Matlab toolbox, see :ref:`ch_matlab`.
 
 The command-line options to mne_make_movie are
 explained in the following subsections.
@@ -813,7 +813,7 @@ Visualization options
     with the ``--smooth`` option. The morphing process can
     be made faster by precomputing the necessary morphing maps with mne_make_morph_maps ,
     see Section 8.4. More information about morphing and averaging
-    can be found in Chapter 8.
+    can be found in :ref:`ch_morph`.
 
 **\---morphgrade <number>**
 
@@ -889,7 +889,7 @@ Visualization options
     Smoothing does not have any effect for the original brain if stc
     files are produced. However, if morphing is selected smoothing is
     mandatory even with stc output. For details of the smoothing procedure,
-    see Section 8.3.
+    see :ref:`CHDEBAHH`.
 
 **\---nocomments**
 
@@ -1123,9 +1123,9 @@ The purpose of the utility mne_compute_raw_inverse is
 to compute inverse solutions from either evoked-response or raw
 data at specified ROIs (labels) and to save the results in a fif
 file which can be viewed with mne_browse_raw ,
-read to Matlab directly using the MNE Matlab Toolbox, see Chapter 10,
+read to Matlab directly using the MNE Matlab Toolbox, see :ref:`ch_matlab`,
 or converted to Matlab format using either mne_convert_mne_data , mne_raw2mat ,
-or mne_epochs2mat , see Chapter 9.
+or mne_epochs2mat , see :ref:`ch_convert`.
 
 .. _CHDEIHFA:
 
@@ -1320,4 +1320,4 @@ the sign of the estimates at this vertex are inverted. The inversion
 is reflected in the current direction vector listed in the channel
 information, see above.
 
-.. note:: The raw data files output by mne_compute_raw_inverse can    be converted to mat files with mne_raw2mat ,    see Section 9.13. Alternatively, the files can be read    directly from Matlab using the routines in the MNE Matlab toolbox,    see Chapter 10. The evoked data output can be easily read directly    from Matlab using the fiff_load_evoked routine    in the MNE Matlab toolbox. Both raw data and evoked output files    can be loaded into mne_browse_raw ,    see Chapter 4.
+.. note:: The raw data files output by mne_compute_raw_inverse can    be converted to mat files with mne_raw2mat ,    see Section 9.13. Alternatively, the files can be read    directly from Matlab using the routines in the MNE Matlab toolbox,    see :ref:`ch_matlab`. The evoked data output can be easily read directly    from Matlab using the fiff_load_evoked routine    in the MNE Matlab toolbox. Both raw data and evoked output files    can be loaded into mne_browse_raw ,    see :ref:`ch_browse`.

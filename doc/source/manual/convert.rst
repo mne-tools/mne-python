@@ -1,6 +1,6 @@
 
 
-.. _BEHBBIJF:
+.. _ch_convert:
 
 ===============
 Data conversion
@@ -446,7 +446,7 @@ To import the data, the following input files are mandatory:
   containing the locations and orientations of the sensors. This file
   can be exported directly from the KIT system.
 
-.. note:: The output fif file will use the Neuromag head    coordinate system convention, see Section 5.3. A coordinate    transformation between the CTF/4D head coordinates and the Neuromag    head coordinates is included. This transformation can be read with    MNE Matlab Toolbox routines, see Chapter 10.
+.. note:: The output fif file will use the Neuromag head    coordinate system convention, see :ref:`BJEBIBAI`. A coordinate    transformation between the CTF/4D head coordinates and the Neuromag    head coordinates is included. This transformation can be read with    MNE Matlab Toolbox routines, see :ref:`ch_matlab`.
 
 The following input files are optional:
 
@@ -603,7 +603,7 @@ Note that it is mandatory to have the three fiducial locations (nasion
 and the two auricular points) included in the digitization data.
 Using the locations of the fiducial points the digitization data
 are converted to the MEG head coordinate system employed in the
-MNE software, see Section 5.3. In the comparison of the
+MNE software, see :ref:`BJEBIBAI`. In the comparison of the
 channel names only the intial segment up to the first '-' (dash)
 in the EDF/EDF+/BDF channel name is significant.
 
@@ -642,7 +642,7 @@ The command-line options of mne_edf2fiff are:
     This output is useful to assist in creating the annotation map file,
     see the --annotmap option, below.
     This output file is an event file compatible with mne_browse_raw and mne_process_raw ,
-    see Chapter 4. In addition, in the mapping between TAL
+    see :ref:`ch_browse`. In addition, in the mapping between TAL
     labels and trigger numbers provided by the --annotmap option is
     employed to assign trigger numbers in the event file produced. In
     the absense of the --annotmap option default trigger number 1024
@@ -790,7 +790,7 @@ the MNE software. The utility uses an optional fif file containing
 the head digitization data to allow source modeling. The MNE Matlab
 toolbox contains the function fiff_write_dig_file to
 write a digitization file based on digitization data available in
-another format, see Chapter 10.
+another format, see :ref:`ch_matlab`.
 
 The command-line options of mne_brain_vision2fiff are:
 
@@ -851,7 +851,7 @@ Converting eXimia EEG data
 
 EEG data from the Nexstim eXimia system can be converted
 to the fif format with help of the mne_eximia2fiff script.
-It creates a BrainVision ``vhdr`` file and calls mne_brain_vision2fiff .
+It creates a BrainVision ``vhdr`` file and calls mne_brain_vision2fiff.
 Usage:
 
 ``mne_eximia2fiff`` [--dig dfile ] [``--orignames`` ] file1 file2 ...
@@ -861,7 +861,7 @@ are eXimia ``nxe`` files and the ``--orignames`` option
 is passed on to mne_brain_vision2fiff .
 If you want to convert all data files in a directory, say
 
-``mne_eximia2fiff nxe``
+``mne_eximia2fiff *.nxe``
 
 The optional file specified with the --dig option is assumed
 to contain digitizer data from the recording in the Nexstim format.
@@ -938,7 +938,7 @@ The command-line options of mne_convert_dig_data are:
 
     The fif and hpts input
     files are assumed to contain data in the  MNE head coordinate system,
-    see Section 5.3. With this option present, the data are
+    see :ref:`BJEBIBAI`. With this option present, the data are
     transformed to the MNE head coordinate system with help of the fiducial
     locations in the data. Use this option if this is not the case or
     if you are unsure about the definition of the coordinate system
@@ -980,7 +980,7 @@ where
 
 **<x/mm> , <y/mm> , <z/mm>**
 
-    Location of the point, usually in the MEG head coordinate system, see Section 5.3.
+    Location of the point, usually in the MEG head coordinate system, see :ref:`BJEBIBAI`.
     Some programs have options to accept coordinates in meters instead
     of millimeters. With --meters option, mne_transform_points lists
     the coordinates in meters.
@@ -1515,7 +1515,7 @@ and conversion of the forward model and noise covariance matrix
 data into evoked-response type fif files, which can be accessed
 and displayed with the Neuromag source modelling software.
 
-.. note:: Most of the functions of mne_convert_mne_data are    now covered by the MNE Matlab toolbox covered in Chapter 10.    This toolbox is recommended to avoid creating additional files occupying    disk space.
+.. note:: Most of the functions of mne_convert_mne_data are    now covered by the MNE Matlab toolbox covered in :ref:`ch_matlab`.    This toolbox is recommended to avoid creating additional files occupying    disk space.
 
 .. _BEHCICCF:
 
@@ -1740,11 +1740,11 @@ The symbols employed in variable size descriptions are:
     meg_head_trans       4 x 4               The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates
     noise_cov            nchan x nchan       The noise covariance matrix
     source_cov           nsource             The elements of the diagonal source covariance matrix.
-    sing                 nchan               The singular values of INLINE_EQUATION with INLINE_EQUATION selected so that INLINE_EQUATION as discussed in Section 6.2.3
+    sing                 nchan               The singular values of INLINE_EQUATION with INLINE_EQUATION selected so that INLINE_EQUATION as discussed in :ref:`CHDDHAGE`
     eigen_fields         nchan x nchan       The rows of this matrix are the left singular vectors of INLINE_EQUATION, i.e., the columns of INLINE_EQUATION, see above.
     eigen_leads          nchan x nsource     The rows of this matrix are the right singular vectors of INLINE_EQUATION, i.e., the columns of INLINE_EQUATION, see above.
-    noise_eigenval       nchan               In terms of Section 6.2.3, eigenvalues of INLINE_EQUATION, i.e., not scaled with number of averages.
-    noise_eigenvec       nchan               Eigenvectors of the noise covariance matrix. In terms of Section 6.2.3, INLINE_EQUATION.
+    noise_eigenval       nchan               In terms of :ref:`CHDDHAGE`, eigenvalues of INLINE_EQUATION, i.e., not scaled with number of averages.
+    noise_eigenvec       nchan               Eigenvectors of the noise covariance matrix. In terms of :ref:`CHDDHAGE`, INLINE_EQUATION.
     data                 nchan x ntime       The measured data. One row contains the data at one time point.
     times                ntime               The time points in the above matrix in seconds
     nave                 1                   Number of averages as listed in the data file.
@@ -1762,7 +1762,7 @@ In addition, this utility can provide information about the raw
 data file so that the raw data can be read directly from the original
 fif file using Matlab file I/O routines.
 
-.. note:: The MNE Matlab toolbox described in Chapter 10 provides    direct access to raw fif files without a need for conversion to    mat file format first. Therefore, it is recommended that you use    the Matlab toolbox rather than  mne_raw2mat which    creates large files occupying disk space unnecessarily.
+.. note:: The MNE Matlab toolbox described in :ref:`ch_matlab` provides    direct access to raw fif files without a need for conversion to    mat file format first. Therefore, it is recommended that you use    the Matlab toolbox rather than  mne_raw2mat which    creates large files occupying disk space unnecessarily.
 
 Command-line options
 ====================
@@ -1870,7 +1870,7 @@ can easily read the epoch data from the simple binary file. Signal
 space projection and bandpass filtering can be optionally applied
 to the raw data prior to saving the epochs.
 
-.. note:: The MNE Matlab toolbox described in Chapter 10 provides direct    access to raw fif files without conversion with mne_epochs2mat first.    Therefore, it is recommended that you use the Matlab toolbox rather than mne_epochs2mat which    creates large files occupying disk space unnecessarily. An exception    to this is the case where you apply a filter to the data and save    the band-pass filtered epochs.
+.. note:: The MNE Matlab toolbox described in :ref:`ch_matlab` provides direct    access to raw fif files without conversion with mne_epochs2mat first.    Therefore, it is recommended that you use the Matlab toolbox rather than mne_epochs2mat which    creates large files occupying disk space unnecessarily. An exception    to this is the case where you apply a filter to the data and save    the band-pass filtered epochs.
 
 Command-line options
 ====================
@@ -2087,4 +2087,4 @@ is provided in :ref:`BEHHAGHE`.
     5         Number of samples in the epoch.
     ========  ================================================================================================================================================================================================================
 
-.. note:: For source modelling purposes, it is recommended    that the MNE Matlab toolbox, see Chapter 10 is employed    to read the measurement info instead of using the channel information    in the raw data info structure described in :ref:`BEHIFJIJ`.
+.. note:: For source modelling purposes, it is recommended    that the MNE Matlab toolbox, see :ref:`ch_matlab` is employed    to read the measurement info instead of using the channel information    in the raw data info structure described in :ref:`BEHIFJIJ`.

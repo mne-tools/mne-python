@@ -1,6 +1,6 @@
 
 
-.. _CHDDJDAA:
+.. _ch_cookbook:
 
 ============
 The Cookbook
@@ -15,10 +15,13 @@ is summarized in :ref:`CIHBIIAH`.
 
 .. _CIHBIIAH:
 
-.. figure:: picture.png
-    :alt: none
+.. figure:: pics/Flowchart.png
+    :alt: MNE Workflow Flowchart
+    :align: center
 
-    Workflow of the MNE software. References in parenthesis indicate sections and chapters of this manual.
+    Workflow of the MNE software
+    
+    References in parenthesis indicate sections and chapters of this manual.
 
 Selecting the subject
 #####################
@@ -49,7 +52,7 @@ Please refer to the FreeSurfer wiki pages
 (https://surfer.nmr.mgh.harvard.edu/fswiki/) and other FreeSurfer documentation
 for more information.
 
-.. note:: Only the latest (4.0.X and later) FreeSurfer distributions    contain a version of tkmedit which    is compatible with mne_analyze ,    see Section 7.18.
+.. note:: Only the latest (4.0.X and later) FreeSurfer distributions    contain a version of tkmedit which    is compatible with mne_analyze, see :ref:`CACCHCBF`.
 
 .. _BABCCEHF:
 
@@ -61,11 +64,11 @@ MRI viewer, MRIlab, can be used to access the MRI slice data created
 by FreeSurfer . In addition, the
 Neuromag MRI directories can be used for storing the MEG/MRI coordinate
 transformations created with mne_analyze ,
-see Section 7.16. Doring the computation of the forward
+see :ref:`CACEHGCD`. Doring the computation of the forward
 solution, mne_do_forwand_solution searches
 for the MEG/MRI coordinate in the Neuromag MRI directories, see :ref:`BABCHEJD`. The fif files created by mne_setup_mrit can
 be loaded into Matlab with the fiff_read_mri function,
-see Chapter 10.
+see :ref:`ch_matlab`.
 
 These functions require running the script mne_setup_mri which
 requires that the subject is set with the ``--subject`` option
@@ -87,7 +90,7 @@ will include the MRI pixel data as well. If available, the coordinate
 transformations to allow conversion between the MRI (surface RAS)
 coordinates and MNI and FreeSurfer Talairach coordinates are copied
 to the MRI description file. mne_setup_mri invokes mne_make_cor_set ,
-described in Section 9.8 to convert the data.
+described in :ref:`BABBHHHE` to convert the data.
 
 For example:
 
@@ -181,7 +184,7 @@ The script accepts the following options:
 **\---cps**
 
     Compute the cortical patch statistics. This is need if current-density estimates
-    are computed, see Section 6.2.8. If the patch information is
+    are computed, see :ref:`CBBDBHDI`. If the patch information is
     available in the source space file the surface normal is considered to
     be the average normal calculated over the patch instead of the normal
     at each source space location. The calculation of this information
@@ -292,7 +295,7 @@ are:
 
 .. note:: The triangulation files can include name of the    subject as a prefix ``<subject name>-`` , *e.g.*, ``duck-inner_skull.surf`` .
 
-.. note:: The mne_convert_surface utility    described in Section 9.7 can be used to convert text format    triangulation files into the FreeSurfer surface format.
+.. note:: The mne_convert_surface utility    described in :ref:`BEHDIAJG` can be used to convert text format    triangulation files into the FreeSurfer surface format.
 
 .. note:: "Aliases" created with    the Mac OSX finder are not equivalent to symbolic links and do not    work as such for the UNIX shells and MNE programs.
 
@@ -322,7 +325,7 @@ the forward solutions:
 This step assigns the conductivity values to the BEM compartments.
 For the scalp and the brain compartments, the default is 0.3 S/m.
 The defalt skull conductivity is 50 times smaller, *i.e.*,
-0.006 S/m. Recent publications, see Section 13.3, report
+0.006 S/m. Recent publications, see :ref:`CEGEGDEI`, report
 a range of skull conductivity ratios ranging from 1:15 (Oostendorp *et
 al.*, 2000) to 1:25 - 1:50 (Slew *et al.*,
 2009, Conçalves *et al.*, 2003). The
@@ -499,12 +502,12 @@ The following MEG and EEG data preprocessing steps are recommended:
 - The data may be optionally downsampled to facilitate subsequent
   processing, see :ref:`BABDGFFG`.
 
-- Bad channels in the MEG and EEG data must be identified, see :ref:`BABBHCFG`
+- Bad channels in the MEG and EEG data must be identified, see :ref:`BABBHCFG`.
 
 - The data has to be filtered to the desired passband. If mne_browse_raw or mne_process_raw is
   employed to calculate the offline averages and covariance matrices,
   this step is unnecessary since the data are filtered on the fly.
-  For information on these programs, please consult Chapter 4.
+  For information on these programs, please consult :ref:`ch_browse`.
 
 - For evoked-response analysis, the data has to be re-averaged
   off line, see :ref:`BABEAEDF`.
@@ -524,7 +527,7 @@ in the original raw files. Both problems can be corrected by saying:
 ``mne_fix_stim14`` <raw file>
 
 More information about mne_fix_stim14 is
-available in Section 11.4.2. It is recommended that this
+available in :ref:`CHDBFDIC`. It is recommended that this
 fix is included as the first raw data processing step. Note, however,
 the mne_browse_raw and mne_process_raw always sets
 the calibration factor to one internally.
@@ -555,7 +558,7 @@ Designating bad channels
 Sometimes some MEG or EEG channels are not functioning properly
 for various reasons. These channels should be excluded from the
 analysis by marking them bad using the mne_mark_bad_channels utility,
-see Section 11.4.1. Especially if a channel is not show
+see :ref:`CHDDHBEE`. Especially if a channel is not show
 a signal at all (flat) it is most important to exclude it from the
 analysis, since its noise estimate will be unrealistically low and
 thus the current estimate calculations will give a strong weight
@@ -613,7 +616,7 @@ can produce the off-line average and noise-covariance matrix estimates
 directly. The batch-mode version of mne_brawse_raw is
 called mne_process_raw . Detailed
 information on mne_browse_raw and mne_process_raw can
-be found in Chapter 4.
+be found in :ref:`ch_browse`.
 
 .. _CHDBEHDC:
 
@@ -623,7 +626,7 @@ Aligning the coordinate frames
 The calculation of the forward solution requires knowledge
 of the relative location and orientation of the MEG/EEG and MRI
 coordinate systems. The MEG/EEG head coordinate system is defined
-in Section 5.3. The conversion tools included in the MNE
+in :ref:`BJEBIBAI`. The conversion tools included in the MNE
 software take care of the idiosyncrasies of the coordinate frame
 definitions in different MEG and EEG systems so that the fif files
 always employ the same definition of the head coordinate system.
@@ -631,7 +634,7 @@ always employ the same definition of the head coordinate system.
 Ideally, the head coordinate frame has a fixed orientation
 and origin with respect to the head anatomy. Therefore, a single
 MRI-head coordinate transformation for each subject should be sufficient.
-However, as explained in Section 5.3, the head coordinate
+However, as explained in :ref:`BJEBIBAI`, the head coordinate
 frame is defined by identifying the fiducial landmark locations,
 making the origin and orientation of the head coordinate system
 slightly user dependent. As a result, the most conservative choice
@@ -640,7 +643,7 @@ is to re-establish it for each experimental session, *i.e.*,
 each time when new head digitization data are employed.
 
 The interactive source analysis software mne_analyze provides
-tools for coordinate frame alignment, see Chapter 7. Section 12.11 also
+tools for coordinate frame alignment, see :ref:`ch_interactive_analysis`. :ref:`CHDIJBIG` also
 contains tips for using mne_analyze for
 this purpose.
 
@@ -649,7 +652,7 @@ the Neuromag MEG-MRI integration tool. Section 3.3.1 of the MRIlab User's
 Guide, Neuromag P/N NM20419A-A contains a detailed description of
 this task. Employ the images in the set ``mri/T1-neuromag/sets/COR.fif`` for
 the alignment. Check the alignment carefully using the digitization
-data included in the measurement file as described in Section 5.3.1
+data included in the measurement file as described in :ref:`BJEBIBAI`.1
 of the above manual. Save the aligned description file in the same
 directory as the original description file without the alignment
 information but under a different name.
@@ -799,7 +802,7 @@ search sequence:
 
 This search sequence is designed to work well with the MEG/MRI
 transformation files output by mne_analyze ,
-see Section 7.16. It is recommended that -trans.fif file
+see :ref:`CACEHGCD`. It is recommended that -trans.fif file
 saved with the Save default and Save... options in
 the mne_analyze alignment dialog
 are used because then the $SUBJECTS_DIR/$SUBJECT directory will
@@ -856,7 +859,7 @@ ways:
 
 The new raw data processing tools, mne_browse_raw or mne_process_raw include
 computation of noise-covariance matrices both from raw data and
-from individual epochs. For details, see Chapter 4.
+from individual epochs. For details, see :ref:`ch_browse`.
 
 .. _CIHCFJEI:
 
@@ -869,7 +872,7 @@ noise-covariance matrix, the result of the forward calculation,
 and the source covariance matrix. This approach has the benefit
 that the regularization parameter ('SNR') can
 be adjusted easily when the final source estimates or dSPMs are
-computed. For mathematical details of this approach, please consult Section 6.2.
+computed. For mathematical details of this approach, please consult :ref:`CBBDJFBJ`.
 
 This computation stage is facilitated by the convenience
 script mne_do_inverse_operator . It
@@ -945,7 +948,7 @@ the following options:
 **\---megreg <value>**
 
     Regularize the MEG part of the noise-covariance matrix by this amount.
-    Suitable values are in the range 0.05...0.2. For details, see Section 6.2.4.
+    Suitable values are in the range 0.05...0.2. For details, see :ref:`CBBHEGAB`.
 
 **\---eegreg <value>**
 
@@ -962,14 +965,14 @@ the following options:
     can be applied to the source covariance matrix. The source of the weighting
     is usually fMRI but may be also some other data, provided that the weighting can
     be expressed as a scalar value on the cortical surface, stored in
-    a w file. It is recommended that this w file is appropriately smoothed (see Section 8.3)
+    a w file. It is recommended that this w file is appropriately smoothed (see :ref:`CHDEBAHH`)
     in mne_analyze , tksurfer or
     with mne_smooth_w to contain
     nonzero values at all vertices of the triangular tessellation of
     the cortical surface. The name of the file given is used as a stem of
     the w files. The actual files should be called <name> ``-lh.pri`` and <name> ``-rh.pri`` for
     the left and right hemisphere weight files, respectively. The application
-    of the weighting is discussed in Section 6.2.11.
+    of the weighting is discussed in :ref:`CBBDIJHI`.
 
 **\---fmrithresh <value>**
 
@@ -1025,7 +1028,7 @@ ways:
   be used to explore the data and to produce quantitative analysis
   results, screen snapshots, and QuickTime (TM) movie files.
   For comprehensive information on mne_analyze ,
-  please consult Chapter 7.
+  please consult :ref:`ch_interactive_analysis`.
 
 - The command-line tool mne_make_movie can
   be invoked to produce QuickTime movies and snapshots. mne_make_movie can
@@ -1034,7 +1037,7 @@ ways:
   is included in mne_make_movie to
   facilitate cross-subject averaging and comparison of data among
   subjects. mne_make_movie is described
-  in Section 6.5,
+  in :ref:`CBBECEDE`.
 
 - The command-line tool mne_make_movie can
   be employed to interrogate the source estimate waveforms from labels
@@ -1047,12 +1050,12 @@ ways:
 - The mne_compute_raw_inverse tool
   can be used to produce fif files containing source estimates at
   selected ROIs. The input data file can be either a raw data or evoked
-  response MEG/EEG file, see Section 6.6.
+  response MEG/EEG file, see :ref:`CBBCGHAH`.
 
 - Using the MNE Matlab toolbox, it is possible to perform many
   of the above operations in Matlab using your own Matlab code based
   on the MNE Matlab toolbox. For more information on the MNE Matlab
-  toolbox, see Chapter 10.
+  toolbox, see :ref:`ch_matlab`.
 
 - It is also possible to average the source estimates across
-  subjects as described in Chapter 8.
+  subjects as described in :ref:`ch_morph`.
