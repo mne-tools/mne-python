@@ -33,7 +33,7 @@ to the front, and the INLINE_EQUATION axis up.
     :alt: MEG/EEG and MRI coordinate systems
 
     MEG/EEG and MRI coordinate systems
-    
+
     The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with INLINE_EQUATION, where INLINE_EQUATION identifies the transformation.
 
 The coordinate systems related
@@ -144,15 +144,16 @@ and
 
 .. _CHDJDEDJ:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}||p{0.5\linewidth}|
 .. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols INLINE_EQUATION are defined in :ref:`CHDFFJIJ` Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION, and INLINE_EQUATION in the fif files produced.).
 
     ==================  ===============================  =======================================================================================================================================
     Transformation      FreeSurfer                       MNE
     ==================  ===============================  =======================================================================================================================================
-    INLINE_EQUATION     Not present                      Measurement data files Forward solution files \fwd.fif) Inverse operator files \inv.fif)
+    INLINE_EQUATION     Not present                      Measurement data files Forward solution files (*fwd.fif) Inverse operator files (*inv.fif)
     INLINE_EQUATION     Not present                      Channel information in files containing INLINE_EQUATION.
     INLINE_EQUATION     Not present                      MRI description files Separate coordinate transformation files saved from mne_analyze  Forward solution files Inverse operator files
-    INLINE_EQUATION     mri\mgz files                 MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
+    INLINE_EQUATION     mri/*mgz files                   MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
     INLINE_EQUATION     mri/transforms/talairach.xfm     MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
     INLINE_EQUATION     Hardcoded in software            MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
     INLINE_EQUATION     Hardcoded in software            MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
@@ -730,6 +731,7 @@ The columns of the tables contain the following data:
 
 .. _BGBBHGEC:
 
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.3\linewidth}|p{0.2\linewidth}|
 .. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
 
     =======  ================================================================  ====  ===============================================================  ===============================================================
@@ -744,42 +746,80 @@ The columns of the tables contain the following data:
     3024     Vectorview type 3 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
     2000     An ideal point  magnetometer                                      1     (0,0,0)                                                          1
     4001     Magnes WH magnetometer                                            4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4002     Magnes WH 3600 axial gradiometer                                  8     INLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATION
+    4002     Magnes WH 3600 axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
     4003     Magnes reference magnetometer                                     4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATION
-    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATION
+    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
+    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
+    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
     5002     CTF reference magnetometer                                        4     INLINE_EQUATION                                                  INLINE_EQUATION
-    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATION
-    5004     CTF reference gradiometer measuring off-diagonal gradients        8     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATION
+    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
+    5004     CTF reference gradiometer measuring off-diagonal gradients        8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
+    6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
     =======  ================================================================  ====  ===============================================================  ===============================================================
 
 .. _CHDBDFJE:
 
+.. XXX : incomplete
+
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. table:: Accurate coil descriptions
 
-    =======  ================================================================  =====  =============================================================================================  =============================================================================================
-    Id       Description                                                       n      r/mm                                                                                           w
-    =======  ================================================================  =====  =============================================================================================  =============================================================================================
-    2        Neuromag-122 planar gradiometer                                   8      INLINE_EQUATION,INLINE_EQUATION                                                                INLINE_EQUATION
-    2000     A point magnetometer                                              1      INLINE_EQUATION                                                                                1
-    3012     Vectorview type 1 planar gradiometer                              8      INLINE_EQUATION,INLINE_EQUATION                                                                INLINE_EQUATION
-    3013     Vectorview type 2 planar gradiometer                              8      INLINE_EQUATION,INLINE_EQUATION                                                                INLINE_EQUATION
-    3022     Vectorview type 1 magnetometer                                    16     INLINE_EQUATION,INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                  INLINE_EQUATION
-    3023     Vectorview type 2 magnetometer                                    16     INLINE_EQUATION,INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                  INLINE_EQUATION
-    3024     Vectorview type 3 magnetometer                                    16     INLINE_EQUATION,INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                  INLINE_EQUATION
-    4001     Magnes WH magnetometer                                            7      INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                                  INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    4002     Magnes WH 3600 axial gradiometer                                  14     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8      INLINE_EQUATIONINLINE_EQUATION                                                                 INLINE_EQUATIONINLINE_EQUATION
-    4005     Magnes reference gradiometer measuring off-diagonal gradients     8      INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8      INLINE_EQUATIONINLINE_EQUATION                                                                 INLINE_EQUATIONINLINE_EQUATION
-    5001     CTF 275 axial gradiometer                                         14     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    5002     CTF reference magnetometer                                        4      INLINE_EQUATION                                                                                INLINE_EQUATION
-    5003     CTF reference gradiometer measuring diagonal gradients            8      INLINE_EQUATIONINLINE_EQUATION                                                                 INLINE_EQUATIONINLINE_EQUATION
-    5004     CTF reference gradiometer measuring off-diagonal gradients        8      INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION                                   INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    6001     MIT KIT system axial gradiometer                                  14     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION     INLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATIONINLINE_EQUATION
-    =======  ================================================================  =====  =============================================================================================  =============================================================================================
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | Id   | Description             | n  | r/mm                             | w                    |
+    +======+=========================+====+==================================+======================+
+    | 2    | Neuromag-122 planar     | 8  | +/-(8.1, 0, 0) mm                | +/-1 ⁄ 16.2mm        |
+    |      | gradiometer             |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 2000 | A point magnetometer    | 1  | (0, 0, 0) mm                     | 1                    |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 3012 | Vectorview type 1       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
+    |      | planar gradiometer      |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 3013 | Vectorview type 2       | 2  | (+/-8.4, 0, 0.3) mm              | +/-1 ⁄ 16.8mm        |
+    |      | planar gradiometer      |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 3022 | Vectorview type 1       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
+    |      | magnetometer            |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 3023 | Vectorview type 2       | 4  | (+/-6.45, +/-6.45, 0.3)mm        | 1/4                  |
+    |      | magnetometer            |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 3024 | Vectorview type 3       | 4  | (+/-5.25, +/-5.25, 0.3)mm        | 1/4                  |
+    |      | magnetometer            |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 4001 | Magnes WH magnetometer  | 4  | (+/-5.75, +/-5.75, 0.0)mm        | 1/4                  |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 4002 | Magnes WH 3600          | 4  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
+    |      | axial gradiometer       |    | (+/-4.5, +/-4.5, 0.0)mm          | -1/4                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 4004 | Magnes reference        | 8  | (+/-20, +/-20, 0.0)mm            | 1/4                  |
+    |      | gradiometer measuring   |    | (+/-20, +/-20, 135)mm            | -1/4                 |
+    |      | diagonal gradients      |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 4005 | Magnes reference        | 8  | (87.5, +/-20, 0.0)mm             | 1/4                  |
+    |      | gradiometer measuring   |    | (47.5, +/-20, 0.0)mm             | -1/4                 |
+    |      | off-diagonal gradients  |    | (-87.5, +/-20, 0.0)mm            | 1/4                  |
+    |      |                         |    | (-47.5, +/-20, 0.0)mm            | -1/4                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 5001 | CTF 275 axial           | 8  | (+/-4.5, +/-4.5, 0.0)mm          | 1/4                  |
+    |      | gradiometer             |    | (+/-4.5, +/-4.5, 50.0)mm         | -1/4                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 5002 | CTF reference           | 4  | (+/-4, +/-4, 0.0)mm              | 1/4                  |
+    |      | magnetometer            |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 5003 | CTF 275 reference       | 8  | (+/-8.6, +/-8.6, 0.0)mm          | 1/4                  |
+    |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
+    |      | diagonal gradients      |    |                                  |                      |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 5004 | CTF 275 reference       | 8  | (47.8, +/-8.5, 0.0)mm            | 1/4                  |
+    |      | gradiometer measuring   |    | (30.8, +/-8.5, 0.0)mm            | -1/4                 |
+    |      | off-diagonal gradients  |    | (-47.8, +/-8.5, 0.0)mm           | 1/4                  |
+    |      |                         |    | (-30.8, +/-8.5, 0.0)mm           | -1/4                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | 6001 | MIT KIT system axial    | 8  | (+/-3.875, +/-3.875, 0.0)mm      | 1/4                  |
+    |      | gradiometer             |    | (+/-3.875, +/-3.875, 0.0)mm      | -1/4                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
+
 
 .. _BJECIGEB:
 
@@ -845,6 +885,7 @@ a description line containing the following fields:
 
 .. _BJEHIBJC:
 
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
 .. table:: Coil representation accuracies.
 
     =======  =====================================================================

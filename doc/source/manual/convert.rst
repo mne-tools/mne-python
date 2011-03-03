@@ -1071,15 +1071,15 @@ The command-line options are:
 **\---src <name>**
 
     The source space to be listed. This can be either the output from mne_make_source_space
-    \src.fif), output from the forward calculation \fwd.fif), or
-    the output from the inverse operator decomposition \inv.fif).
+    (*src.fif), output from the forward calculation (*fwd.fif), or
+    the output from the inverse operator decomposition (*inv.fif).
 
 **\---mri <name>**
 
     A file containing the transformation between the head and MRI coordinates
     is specified with this option. This file can be either a Neuromag
-    MRI description file, the output from the forward calculation \fwd.fif),
-    or the output from the inverse operator decomposition \inv.fif).
+    MRI description file, the output from the forward calculation (*fwd.fif),
+    or the output from the inverse operator decomposition (*inv.fif).
     If this file is included, the output will be in head coordinates.
     Otherwise the source space will be listed in MRI coordinates.
 

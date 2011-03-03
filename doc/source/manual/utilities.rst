@@ -492,7 +492,7 @@ All lines in the input files starting with the pound sign
 (#) are considered to be comments. The format of a derivation in
 a arithmetic input file is:
 
-<name> ``=`` [<INLINE_EQUATION>``*`` ]<INLINE_EQUATION > ``+`` \INLINE_EQUATION>``*`` ]<INLINE_EQUATION >INLINE_EQUATION
+<name> ``=`` [<INLINE_EQUATION>``*`` ]<INLINE_EQUATION > ``+`` <INLINE_EQUATION>``*`` ]<INLINE_EQUATION >INLINE_EQUATION
 
 where <name> is the
 name of the derived channel, INLINE_EQUATION are
@@ -1266,9 +1266,9 @@ The available variables are listed in :ref:`CHDJBIEE`.
     ================  =======================================
     Variable          Meaning
     ================  =======================================
-    x                 time\]
-    t                 current value of x in\s]
-    y                 the source amplitude\m]
+    x                 time [s]
+    t                 current value of x in [ms]
+    y                 the source amplitude [Am]
     q                 synonym for y
     a , b , c , d     help variables, initialized to zeros
     ================  =======================================

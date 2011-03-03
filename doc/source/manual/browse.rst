@@ -410,6 +410,8 @@ The user interface
 
 .. figure:: mne_browse_raw/windows_menu-7.png
     :alt: The user interface of mne_browse_raw
+    :figwidth: 100%
+    :width: 100%
 
     The user interface of mne_browse_raw
 
@@ -666,6 +668,9 @@ shown in :ref:`CACCEEGI`.
 
 .. figure:: mne_browse_raw/filter_dialog.png
     :alt: filter adjustment dialog
+    :align: center
+    :figwidth: 55%
+    :width: 400
 
     The filter adjustment dialog.
 
@@ -716,6 +721,8 @@ shown in :ref:`CACBJGBA`.
 
 .. figure:: mne_browse_raw/scales_dialog.png
     :alt: Scales dialog
+    :figwidth: 100%
+    :width: 100%
 
     The Scales dialog.
 
@@ -1084,10 +1091,13 @@ This overrides the choice made at the open time. For details, see :ref:`CACDCHAJ
 Averaging preferences
 =====================
 
+
 .. _CACCFFAH:
 
 .. figure:: mne_browse_raw/average_pref.png
     :alt: Averaging preferences
+    :figwidth: 35%
+    :width: 300
 
     Averaging preferences.
 
@@ -1699,6 +1709,8 @@ The tool bar
 
 .. figure:: mne_browse_raw/toolbar.png
     :alt: tool bar controls
+    :figwidth: 100%
+    :width: 100%
 
     The tool bar controls.
 

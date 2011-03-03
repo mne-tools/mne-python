@@ -492,8 +492,8 @@ The documented structures are:
     ============  ===========  ======================================================================
     nrow          int32        Number of rows.
     ncol          int32        Number of columns.
-    row_names     cell\     The names of associated with the rows. This member may be empty.
-    col_names     cell\     The names of associated with the columns. This member may be empty.
+    row_names     cell(*)      The names of associated with the rows. This member may be empty.
+    col_names     cell(*)      The names of associated with the columns. This member may be empty.
     data          various      The matrix data, usually of type single or double.
     ============  ===========  ======================================================================
 
@@ -534,8 +534,8 @@ The documented structures are:
     num_points      double                   Number of integration points.
     size            double                   Coil size
     baseline        double                   Coil baseline
-    description     char\                 Coil description
-    coildefs        double(num_points,7)     Each row contains the integration point weight, followed by location\] and normal
+    description     char(*)                  Coil description
+    coildefs        double(num_points,7)     Each row contains the integration point weight, followed by location [m] and normal
     FV              struct                   Contains the faces and vertices which can be used to draw the coil for visualization.
     ==============  =======================  ========================================================================================
 
@@ -551,13 +551,13 @@ The documented structures are:
     kind            int32           The channel type (FIFFV_MEG_CH, FIFF_EEG_CH, etc., see :ref:`BGBJHCGD` ).
     range           double          The hardware-oriented part of the calibration factor. This should be only applied to the continuous raw data.
     cal             double          The calibration factor to bring the channels to physical units.
-    loc             double(12)      The channel location. The first three numbers indicate the location\], followed by the three unit vectors of the channel-specific coordinate frame. These data contain the values saved in the fif file and should not be changed. The values are specified in device coordinates for MEG and in head coordinates for EEG channels, respectively.
+    loc             double(12)      The channel location. The first three numbers indicate the location [m], followed by the three unit vectors of the channel-specific coordinate frame. These data contain the values saved in the fif file and should not be changed. The values are specified in device coordinates for MEG and in head coordinates for EEG channels, respectively.
     coil_trans      double(4,4)     Initially, transformation from the channel coordinates to device coordinates. This transformation is updated by calls to fiff_transform_meg_chs and fiff_transform_eeg_chs .
-    eeg_loc         double(6)       The location of the EEG electrode in coord_frame coordinates. The first three values contain the location of the electrode\]. If six values are present, the remaining ones indicate the location of the reference electrode for this channel.
+    eeg_loc         double(6)       The location of the EEG electrode in coord_frame coordinates. The first three values contain the location of the electrode [m]. If six values are present, the remaining ones indicate the location of the reference electrode for this channel.
     coord_frame     int32           Initially, the coordinate frame is FIFFV_COORD_DEVICE for MEG channels and FIFFV_COORD_HEAD for EEG channels.
     unit            int32           Unit of measurement. Relevant values are: 201 = T/m, 112 = T, 107 = V, and 202 = Am.
     unit_mul        int32           The data are given in unit s multiplied by 10unit_mul . Presently, unit_mul is always zero.
-    ch_name         char\        Name of the channel.
+    ch_name         char(*)         Name of the channel.
     coil_def        coildef         The coil definition structure. This is present only if mne_add_coil_defs has been successfully called.
     ==============  ==============  =======================================================================================================================================================================================================================================================================================================================================================
 
@@ -583,13 +583,14 @@ The documented structures are:
     ctfkind             int32            The kind of the compensation as stored in file.
     kind                int32            ctfkind mapped into small integer numbers.
     save_calibrated     logical          Were the compensation data saved in calibrated form. If this field is false, the matrix will be decalibrated using the fields row_cals and col_cals when the compensation data are saved by the toolbox.
-    row_cals            double\       Calibration factors applied to the rows of the compensation data matrix when the data were read.
-    col_cals            double\       Calibration factors applied to the columns of the compensation data matrix when the data were read.
+    row_cals            double(*)        Calibration factors applied to the rows of the compensation data matrix when the data were read.
+    col_cals            double(*)        Calibration factors applied to the columns of the compensation data matrix when the data were read.
     data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see Section 9.2.4
     ==================  ===============  ===========================================================================================================================================================================================================
 
 .. _BGBFHDIJ:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. table:: The meas info structure.
 
     =============  ==============  =====================================================================================================================
@@ -599,21 +600,22 @@ The documented structures are:
     meas_id        id              The ID assigned to this measurement by the acquisition system or during file conversion.
     nchan          int32           Number of channels
     sfreq          double          Sampling frequency
-    highpass       double          Highpass corner frequency\z]. Zero indicates a DC recording.
-    lowpass        double          Lowpass corner frequency\z].
+    highpass       double          Highpass corner frequency [Hz]. Zero indicates a DC recording.
+    lowpass        double          Lowpass corner frequency [Hz].
     chs            ch (nchan)      An array of channel information structures.
     ch_names       cell(nchan)     Cell array of channel names.
     dev_head_t     trans           The device to head transformation
     ctf_head_t     trans           The transformation from 4D/CTF head coordinates to Neuromag head coordinates. This is only present in 4D/CTF data.
     dev_ctf_t      trans           The transformation from device coordinates to 4D/CTF head coordinates. This is only present in 4D/CTF data
-    dig            dig \        The Polhemus digitization data in head coordinates.
-    bads           cell\        Bad channel list
-    projs          proj \       SSP operator data.
-    comps          comp \       Software gradient compensation data.
+    dig            dig(*)          The Polhemus digitization data in head coordinates.
+    bads           cell(*)         Bad channel list
+    projs          proj(*)         SSP operator data.
+    comps          comp(*)         Software gradient compensation data.
     =============  ==============  =====================================================================================================================
 
 .. _BGBEFJCB:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. table:: The surf structure.
 
     ===============  ==================  ============================================================================================================================================================================================================================================================================
@@ -644,6 +646,7 @@ The documented structures are:
 
 .. _BGBJJIED:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. table:: The cov structure.
 
     =========  ==================  ======================================================================================================
@@ -652,10 +655,10 @@ The documented structures are:
     kind       double              What kind of a covariance matrix (1 = noise covariance, 2 = source covariance).
     diag       double              Is this a diagonal matrix.
     dim        int32               Dimension of the covariance matrix.
-    names      cell\            Names of the channels associated with the entries (may be empty).
+    names      cell(*)             Names of the channels associated with the entries (may be empty).
     data       double(dim,dim)     The covariance matrix. This a double(dim) vector for a diagonal covariance matrix.
-    projs      proj \           The SSP vectors applied to these data.
-    bads       cell\            Bad channel names.
+    projs      proj(*)             The SSP vectors applied to these data.
+    bads       cell(*)             Bad channel names.
     nfree      int32               Number of data points used to compute this matrix.
     eig        double(dim)         The eigenvalues of the covariance matrix. This field may be empty for a diagonal covariance matrix.
     eigvec     double(dim,dim)     The eigenvectors of the covariance matrix.
@@ -663,6 +666,7 @@ The documented structures are:
 
 .. _BGBFJIBJ:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. table:: The fwd structure.
 
     ==============  ====================  =============================================================================================================================================================================================================================
@@ -675,13 +679,14 @@ The documented structures are:
     sol             named matrix          The forward solution matrix.
     sol_grad        named matrix          The derivatives of the forward solution with respect to the dipole location coordinates, see Section 5.9.6. This field is present only if the forward solution was computed with the ``--grad`` option, see Section 5.9.2.
     mri_head_t      trans                 Transformation from the MRI coordinate frame to the (Neuromag) head coordinate frame.
-    src             surf \             The description of the source spaces
+    src             surf(*)               The description of the source spaces
     source_rr       double(nsource,3)     The source locations.
-    source_nn       double\3)          The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
+    source_nn       double(*,3)           The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     ==============  ====================  =============================================================================================================================================================================================================================
 
 .. _BGBIEIJE:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. table:: The inv structure. Note: The fields proj , whitener , reginv , and noisenorm are filled in by the routine mne_prepare_inverse_operator.
 
     ===============  ======================  ==============================================================================================================================================================
@@ -692,20 +697,20 @@ The documented structures are:
     nsource          int32                   Total number of source space points.
     nchan            int32                   Number of channels.
     coord_frame      int32                   Coordinate frame in which the locations and orientations are expressed.
-    source_nn        double\3)            The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
+    source_nn        double(*,3)             The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     sing             double(nchan)           The singular values, *i.e.*, the diagonal values of INLINE_EQUATION, see :ref:`CHDBEHBC`.
-    eigen_leads      double\nchan)        The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
+    eigen_leads      double(*,nchan)         The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
     eigen_fields     double(nchan,nchan)     The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
     noise_cov        cov                     The noise covariance matrix C.
     source_cov       cov                     The source covariance matrix R.
-    src              surf \               The description of the source spaces
+    src              surf(*)                 The description of the source spaces
     mri_head_t       trans                   Transformation from the MRI coordinate frame to the (Neuromag) head coordinate frame.
     nave             double                  The number of averages.
-    projs            proj \               The SSP vectors which were active when the decomposition was computed
+    projs            proj(*)                 The SSP vectors which were active when the decomposition was computed
     proj             double(nchan)           The projection operator computed using projs .
     whitener                                 A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     reginv           double(nchan)           The diagonal matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
-    noisenorm        double\*)            A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
+    noisenorm        double(*)               A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     ===============  ======================  ==============================================================================================================================================================
 
 On-line documentation for individual routines

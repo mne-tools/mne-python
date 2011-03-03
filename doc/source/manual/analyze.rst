@@ -176,8 +176,10 @@ The File shown in :ref:`CACJCBFI` contains the following items:
 
 .. figure:: mne_analyze/file_menu.png
     :alt: the file menu
+    :align: center
+    :figwidth: 25%
 
-    The File menu.
+    The file menu
 
 **Open...**
 
@@ -646,11 +648,11 @@ which is invoked by selecting Adjust/Scales... from
 the menus. The Scales dialog
 shown in :ref:`CACJJCGD` has the following entries:
 
-**Analyze range min\s]**
+**Analyze range min [ms]**
 
     Specifies the lower limit of the time range of data to be shown.
 
-**Analyze range max\s]**
+**Analyze range max [ms]**
 
     Specifies the upper limit of the time range of data to be shown.
 
@@ -659,11 +661,11 @@ shown in :ref:`CACJJCGD` has the following entries:
     If this box is checked, all data available in the data file will
     be shown.
 
-**Baseline min\s]**
+**Baseline min [ms]**
 
     Specifies the lower time limit of the baseline.
 
-**Baseline max\s]**
+**Baseline max [ms]**
 
     Specifies the upper time limit of the baseline.
 
@@ -671,25 +673,25 @@ shown in :ref:`CACJJCGD` has the following entries:
 
     Baseline subtraction can be switched on and off from this button.
 
-**MEG amp min\T/cm]**
+**MEG amp min [fT/cm]**
 
     Lower limit of the vertical scale of planar gradiometer MEG channels.
 
-**MEG amp max\T/cm]**
+**MEG amp max [fT/cm]**
 
     Upper limit of the vertical scale of planar gradiometer MEG channels.
 
-**MEG axmult\m]**
+**MEG axmult [cm]**
 
     The vertical scale of MEG magnetometers and axial gradiometers will
     be obtained by multiplying the planar gradiometer vertical scale
     limits by this value, given in centimeters.
 
-**EEG amp min [INLINE_EQUATIONV]**
+**EEG amp min [muV]**
 
     Lower limit of the vertical scale of EEG channels.
 
-**EEG amp max [INLINE_EQUATIONV]**
+**EEG amp max [muV]**
 
     Upper limit of the vertical scale of EEG channels.
 
@@ -1596,7 +1598,7 @@ controls:
     | fthresh    | If the value is below this level, it will not be shown. |
     +------------+---------------------------------------------------------+
     | fmid       | Positive values at this level will show as red.         |
-    |              Negative values will be dark blue.                      |
+    |            | Negative values will be dark blue.                      |
     +------------+---------------------------------------------------------+
     | fmax       | Positive values at and above this level will be bright  |
     |            | yellow. Negative values will be bright blue.            |
@@ -1974,12 +1976,12 @@ and Noise estimate .
 The Forward model section
 specifies the forward model to be used:
 
-**Sphere model origin x/y/z\m]**
+**Sphere model origin x/y/z [mm]**
 
     Specifies the origin of the spherically symmetric conductor model in
     MEG/EEG head coordinates, see :ref:`BJEBIBAI`.
 
-**EEG scalp radius\m]**
+**EEG scalp radius [mm]**
 
     Specifies the radius of the outermost shell in the EEG sphere model. For
     details, see Section 5.9.4.
@@ -2036,19 +2038,19 @@ of the dialog contains the following items:
     EEG is included in fitting it is advisable to enter a non-zero value
     (around 0.1) here.
 
-**Planar fixed\T/cm]**
+**Planar fixed [fT/cm]**
 
     In the absense of a noise covariance matrix selection, a diagonal noise
     covariance with fixed values on the diagonal is used. This entry
     specifies the fixed value of the planar gradiometers.
 
-**Axial fixed\T]**
+**Axial fixed [fT]**
 
     If a noise covariance matrix file is not specified, this entry specifies a
     fixed diagonal noise covariance matrix value for axial gradiometers
     and magnetometers.
 
-**EEG fixed [INLINE_EQUATIONV]**
+**EEG fixed [muV]**
 
     If a noise covariance matrix file is not specified, this entry specifies a
     fixed diagonal noise covariance matrix value for axial gradiometers
