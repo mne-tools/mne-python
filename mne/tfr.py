@@ -190,7 +190,7 @@ def _time_frequency(X, Ws, use_fft):
     return psd, plf
 
 
-def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
+def time_frequency(data, Fs, frequencies, use_fft=True, n_cycles=25,
                    n_jobs=1):
     """Compute time induced power and inter-trial phase-locking factor
 
@@ -198,7 +198,7 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
 
     Parameters
     ----------
-    epochs : array
+    data : array
         3D array of shape [n_epochs, n_channels, n_times]
 
     Fs : float
@@ -227,7 +227,7 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = epochs.shape
+    n_epochs, n_channels, n_times = data.shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
@@ -243,14 +243,14 @@ def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
         for c in range(n_channels):
-            X = np.squeeze(epochs[:,c,:])
+            X = np.squeeze(data[:,c,:])
             psd[c], plf[c] = _time_frequency(X, Ws, use_fft)
 
     else:
         from joblib import Parallel, delayed
         psd_plf = Parallel(n_jobs=n_jobs)(
                     delayed(_time_frequency)(
-                            np.squeeze(epochs[:,c,:]), Ws, use_fft)
+                            np.squeeze(data[:,c,:]), Ws, use_fft)
                     for c in range(n_channels))
 
         psd = np.zeros((n_channels, n_frequencies, n_times))

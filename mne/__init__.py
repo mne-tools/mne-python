@@ -6,7 +6,7 @@ from .forward import read_forward_solution
 from .stc import read_stc, write_stc
 from .bem_surfaces import read_bem_surfaces
 from .inverse import read_inverse_operator, compute_inverse
-from .epochs import read_epochs
+from .epochs import Epochs
 from .tfr import time_frequency
 from .label import label_time_courses, read_label
 import fiff

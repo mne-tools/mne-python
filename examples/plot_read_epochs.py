@@ -15,9 +15,6 @@ for both MEG and EEG data by averaging all the epochs.
 
 print __doc__
 
-import os
-import numpy as np
-
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -39,32 +36,31 @@ events = mne.read_events(event_fname)
 include = [] # or stim channels ['STI 014']
 exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
+# EEG
+eeg_picks = fiff.pick_types(raw['info'], meg=False, eeg=True, stim=False,
+                                            include=include, exclude=exclude)
+eeg_epochs = mne.Epochs(raw, events, event_id,
+                            tmin, tmax, picks=eeg_picks, baseline=(None, 0))
+eeg_evoked_data = eeg_epochs.get_data().mean(axis=0) # as 3D matrix and average
+
+
 # MEG Magnetometers
 meg_mag_picks = fiff.pick_types(raw['info'], meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
-meg_mag_data, times, channel_names = mne.read_epochs(raw, events, event_id,
+meg_mag_epochs = mne.Epochs(raw, events, event_id,
                            tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
-meg_mag_epochs = np.array([d['epoch'] for d in meg_mag_data]) # as 3D matrix
-meg_mag_evoked_data = np.mean(meg_mag_epochs, axis=0) # compute evoked fields
+meg_mag_evoked_data = meg_mag_epochs.get_data().mean(axis=0)
 
 # MEG
 meg_grad_picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
-meg_grad_data, times, channel_names = mne.read_epochs(raw, events, event_id,
+meg_grad_epochs = mne.Epochs(raw, events, event_id,
                         tmin, tmax, picks=meg_grad_picks, baseline=(None, 0))
-meg_grad_epochs = np.array([d['epoch'] for d in meg_grad_data]) # as 3D matrix
-meg_grad_evoked_data = np.mean(meg_grad_epochs, axis=0) # compute evoked fields
-
-# EEG
-eeg_picks = fiff.pick_types(raw['info'], meg=False, eeg=True, stim=False,
-                                            include=include, exclude=exclude)
-eeg_data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                            tmin, tmax, picks=eeg_picks, baseline=(None, 0))
-eeg_epochs = np.array([d['epoch'] for d in eeg_data]) # as 3D matrix
-eeg_evoked_data = np.mean(eeg_epochs, axis=0) # compute evoked potentials
+meg_grad_evoked_data = meg_grad_epochs.get_data().mean(axis=0)
 
 ###############################################################################
 # View evoked response
+times = eeg_epochs.times
 import pylab as pl
 pl.clf()
 pl.subplot(3, 1, 1)

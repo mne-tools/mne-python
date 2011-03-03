@@ -31,13 +31,14 @@ def test_time_frequency():
                                     stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
-    data, times, channel_names = mne.read_epochs(raw, events, event_id,
+    epochs = mne.read_epochs(raw, events, event_id,
                                     tmin, tmax, picks=picks, baseline=(None, 0))
-    epochs = np.array([d['epoch'] for d in data]) # as 3D matrix
+    data = epochs.get_data()
+    times = epochs.times
 
     frequencies = np.arange(6, 20, 5) # define frequencies of interest
     Fs = raw['info']['sfreq'] # sampling in Hz
-    power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
+    power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=True)
 
     assert power.shape == (len(picks), len(frequencies), len(times))
@@ -45,7 +46,7 @@ def test_time_frequency():
     assert np.sum(phase_lock >= 1) == 0
     assert np.sum(phase_lock <= 0) == 0
 
-    power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
+    power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=False)
 
     assert power.shape == (len(picks), len(frequencies), len(times))
@@ -53,5 +54,5 @@ def test_time_frequency():
     assert np.sum(phase_lock >= 1) == 0
     assert np.sum(phase_lock <= 0) == 0
 
-    tfr = cwt_morlet(epochs[0], Fs, frequencies, use_fft=True, n_cycles=2)
+    tfr = cwt_morlet(data[0], Fs, frequencies, use_fft=True, n_cycles=2)
     assert tfr.shape == (len(picks), len(frequencies), len(times))
