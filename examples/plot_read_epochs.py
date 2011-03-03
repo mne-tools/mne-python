@@ -41,22 +41,21 @@ eeg_picks = fiff.pick_types(raw['info'], meg=False, eeg=True, stim=False,
                                             include=include, exclude=exclude)
 eeg_epochs = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=eeg_picks, baseline=(None, 0))
-eeg_evoked_data = eeg_epochs.get_data().mean(axis=0) # as 3D matrix and average
-
+eeg_evoked_data = eeg_epochs.average()
 
 # MEG Magnetometers
 meg_mag_picks = fiff.pick_types(raw['info'], meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
 meg_mag_epochs = mne.Epochs(raw, events, event_id,
                            tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
-meg_mag_evoked_data = meg_mag_epochs.get_data().mean(axis=0)
+meg_mag_evoked_data = meg_mag_epochs.average()
 
 # MEG
 meg_grad_picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
 meg_grad_epochs = mne.Epochs(raw, events, event_id,
                         tmin, tmax, picks=meg_grad_picks, baseline=(None, 0))
-meg_grad_evoked_data = meg_grad_epochs.get_data().mean(axis=0)
+meg_grad_evoked_data = meg_grad_epochs.average()
 
 ###############################################################################
 # View evoked response

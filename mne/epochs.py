@@ -52,6 +52,9 @@ class Epochs(object):
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
+    average() : self
+        Return averaged epochs as a 2D array [n_channels x n_times].
+
     """
 
     def __init__(self, raw, events, event_id, tmin, tmax,
@@ -201,3 +204,20 @@ class Epochs(object):
 
         self._current += 1
         return epoch
+
+    def average(self):
+        """Compute average of epochs
+
+        Returns
+        -------
+        data : array of shape [n_channels, n_times]
+            The averaged epochs
+        """
+        n_channels = len(self.ch_names)
+        n_times = len(self.times)
+        n_events = len(self.events)
+        data = np.zeros((n_channels, n_times))
+        for e in self:
+            data += e
+        return data / n_events
+
