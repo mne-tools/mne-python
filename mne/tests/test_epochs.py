@@ -33,3 +33,4 @@ def test_read_epochs():
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
+    epochs.average()
