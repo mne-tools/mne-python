@@ -1,0 +1,117 @@
+"""
+======================================================
+Non-parametric cluster statistic on single trial power
+======================================================
+
+This script shows how to estimate significant clusters
+in time-frequency power estimates. It uses a non-parametric
+statistical procedure based on permutations and cluster
+level statistics.
+
+"""
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
+print __doc__
+
+import numpy as np
+
+import mne
+from mne import fiff
+from mne.tfr import single_trial_power
+from mne.stats import permutation_cluster_test
+from mne.datasets import sample
+
+###############################################################################
+# Set parameters
+data_path = sample.data_path('..')
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+event_id = 1
+tmin = -0.2
+tmax = 0.5
+
+# Setup for reading the raw data
+raw = fiff.setup_read_raw(raw_fname)
+events = mne.read_events(event_fname)
+
+include = []
+exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+
+# picks MEG gradiometers
+picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
+                                stim=False, include=include, exclude=exclude)
+
+picks = [picks[97]]
+ch_name = raw['info']['ch_names'][picks[0]]
+
+# Load condition 1
+event_id = 1
+epochs_condition_1 = mne.Epochs(raw, events, event_id,
+                    tmin, tmax, picks=picks, baseline=(None, 0))
+data_condition_1 = epochs_condition_1.get_data() # as 3D matrix
+data_condition_1 *= 1e13 # change unit to fT / cm
+
+# Load condition 1
+event_id = 2
+epochs_condition_2 = mne.Epochs(raw, events, event_id,
+                    tmin, tmax, picks=picks, baseline=(None, 0))
+data_condition_2 = epochs_condition_2.get_data() # as 3D matrix
+data_condition_2 *= 1e13 # change unit to fT / cm
+
+# Time vector
+times = 1e3 * epochs_condition_1.times # change unit to ms
+
+frequencies = np.arange(7, 30, 3) # define frequencies of interest
+Fs = raw['info']['sfreq'] # sampling in Hz
+epochs_coefs_1 = single_trial_power(data_condition_1, Fs=Fs,
+                                   frequencies=frequencies,
+                                   n_cycles=2, use_fft=False)
+
+epochs_coefs_2 = single_trial_power(data_condition_2, Fs=Fs,
+                                   frequencies=frequencies,
+                                   n_cycles=2, use_fft=False)
+
+epochs_coefs_1 = epochs_coefs_1[:,0,:,:] # only 1 channel to get a 3D matrix
+epochs_coefs_2 = epochs_coefs_2[:,0,:,:] # only 1 channel to get a 3D matrix
+                                   ###############################################################################
+# Compute statistic
+threshold = 6.0
+T_obs, clusters, cluster_p_values, H0 = \
+                   permutation_cluster_test([epochs_coefs_1, epochs_coefs_2],
+                               n_permutations=100, threshold=threshold, tail=0)
+
+###############################################################################
+# View time-frequency plots
+import pylab as pl
+pl.clf()
+pl.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+pl.subplot(2, 1, 1)
+evoked_contrast = np.mean(data_condition_1, 0) - np.mean(data_condition_2, 0)
+pl.plot(times, evoked_contrast.T)
+pl.title('Contrast of evoked response (%s)' % ch_name)
+pl.xlabel('time (ms)')
+pl.ylabel('Magnetic Field (fT/cm)')
+pl.xlim(times[0], times[-1])
+pl.ylim(-100, 200)
+
+pl.subplot(2, 1, 2)
+
+# Create new stats image with only significant clusters
+T_obs_plot = np.nan * np.ones_like(T_obs)
+for c, p_val in zip(clusters, cluster_p_values):
+    if p_val <= 0.05:
+        T_obs_plot[c] = T_obs[c]
+
+pl.imshow(T_obs, cmap=pl.cm.gray, extent=[times[0], times[-1],
+                                          frequencies[0], frequencies[-1]],
+                                  aspect='auto', origin='lower')
+pl.imshow(T_obs_plot, cmap=pl.cm.jet, extent=[times[0], times[-1],
+                                              frequencies[0], frequencies[-1]],
+                                  aspect='auto', origin='lower')
+
+pl.xlabel('time (ms)')
+pl.ylabel('Frequency (Hz)')
+pl.title('Induced power (%s)' % ch_name)
+pl.show()

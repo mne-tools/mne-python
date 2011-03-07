@@ -189,8 +189,7 @@ def _time_frequency(X, Ws, use_fft):
 
     return psd, plf
 
-def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
-                           n_jobs=1):
+def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
     """Compute time-frequency power on single epochs
     """
     n_frequencies = len(frequencies)
@@ -210,7 +209,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
 
     for k, e in enumerate(epochs):
         mode = 'same'
-        power[k] = np.abs(_cwt(e, Ws, mode))**2
+        power[k] = np.abs(list(_cwt(e, Ws, mode)))**2
 
     return power
 

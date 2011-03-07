@@ -15,8 +15,6 @@ with cluster level permutation test.
 
 print __doc__
 
-import numpy as np
-
 import mne
 from mne import fiff
 from mne.stats import permutation_cluster_test
@@ -42,14 +40,17 @@ include = [channel]
 # Read epochs for the channel of interest
 picks = fiff.pick_types(raw['info'], meg=False, include=include)
 event_id = 1
-data1, times, channel_names = mne.read_epochs(raw, events, event_id,
+epochs1 = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))
-condition1 = np.squeeze(np.array([d['epoch'] for d in data1])) # as 3D matrix
+condition1 = epochs1.get_data() # as 3D matrix
 
 event_id = 2
-data2, times, channel_names = mne.read_epochs(raw, events, event_id,
+epochs2 = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))
-condition2 = np.squeeze(np.array([d['epoch'] for d in data2])) # as 3D matrix
+condition2 = epochs2.get_data() # as 3D matrix
+
+condition1 = condition1[:,0,:] # take only one channel to get a 2D array
+condition2 = condition2[:,0,:] # take only one channel to get a 2D array
 
 ###############################################################################
 # Compute statistic
@@ -60,6 +61,7 @@ T_obs, clusters, cluster_p_values, H0 = \
 
 ###############################################################################
 # Plot
+times = epochs1.times
 import pylab as pl
 pl.close('all')
 pl.subplot(211)
@@ -69,11 +71,12 @@ pl.plot(times, condition1.mean(axis=0) - condition2.mean(axis=0),
 pl.ylabel("MEG (T / m)")
 pl.legend()
 pl.subplot(212)
-for i_c, (start, stop) in enumerate(clusters):
+for i_c, c in enumerate(clusters):
+    c = c[0]
     if cluster_p_values[i_c] <= 0.05:
-        h = pl.axvspan(times[start], times[stop-1], color='r', alpha=0.3)
+        h = pl.axvspan(times[c.start], times[c.stop-1], color='r', alpha=0.3)
     else:
-        pl.axvspan(times[start], times[stop-1], color=(0.3, 0.3, 0.3),
+        pl.axvspan(times[c.start], times[c.stop-1], color=(0.3, 0.3, 0.3),
                    alpha=0.3)
 hf = pl.plot(times, T_obs, 'g')
 pl.legend((h, ), ('cluster p-value < 0.05', ))
