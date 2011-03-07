@@ -18,7 +18,7 @@ import numpy as np
 
 import mne
 from mne import fiff
-from mne import time_frequency
+from mne.time_frequency import induced_power
 from mne.datasets import sample
 
 ###############################################################################
@@ -52,7 +52,7 @@ evoked *= 1e13 # change unit to fT / cm
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw['info']['sfreq'] # sampling in Hz
-power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
+power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                    n_cycles=2, n_jobs=1, use_fft=False)
 
 ###############################################################################

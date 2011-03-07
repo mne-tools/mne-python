@@ -3,12 +3,12 @@ import os.path as op
 
 import mne
 from mne import fiff
-from mne import time_frequency
-from mne.tfr import cwt_morlet
+from mne.time_frequency import induced_power
+from mne.time_frequency.tfr import cwt_morlet
 
-raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
-event_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
 
 def test_time_frequency():
@@ -31,14 +31,14 @@ def test_time_frequency():
                                     stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
-    epochs = mne.read_epochs(raw, events, event_id,
+    epochs = mne.Epochs(raw, events, event_id,
                                     tmin, tmax, picks=picks, baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
 
     frequencies = np.arange(6, 20, 5) # define frequencies of interest
     Fs = raw['info']['sfreq'] # sampling in Hz
-    power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
+    power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=True)
 
     assert power.shape == (len(picks), len(frequencies), len(times))
@@ -46,7 +46,7 @@ def test_time_frequency():
     assert np.sum(phase_lock >= 1) == 0
     assert np.sum(phase_lock <= 0) == 0
 
-    power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
+    power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=False)
 
     assert power.shape == (len(picks), len(frequencies), len(times))

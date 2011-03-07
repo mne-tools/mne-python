@@ -162,7 +162,7 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
     else:
         coefs = _cwt_convolve(X, Ws, mode)
 
-    tfrs = np.empty((n_signals, n_frequencies, n_times))
+    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
         tfrs[k] = tfr
 
@@ -213,7 +213,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
 
     return power
 
-def time_frequency(data, Fs, frequencies, use_fft=True, n_cycles=25,
+def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=25,
                    n_jobs=1):
     """Compute time induced power and inter-trial phase-locking factor
 
