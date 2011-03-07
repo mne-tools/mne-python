@@ -42,14 +42,17 @@ picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
 
 picks = [picks[97]]
-data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                                tmin, tmax, picks=picks, baseline=(None, 0))
-epochs = np.array([d['epoch'] for d in data]) # as 3D matrix
-evoked_data = np.mean(epochs, axis=0) # compute evoked fields
+epochs = mne.Epochs(raw, events, event_id,
+                    tmin, tmax, picks=picks, baseline=(None, 0))
+data = epochs.get_data() # as 3D matrix
+evoked = epochs.average() # compute evoked fields
+
+times = 1e3 * epochs.times # change unit to ms
+evoked *= 1e13 # change unit to fT / cm
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw['info']['sfreq'] # sampling in Hz
-power, phase_lock = time_frequency(epochs, Fs=Fs, frequencies=frequencies,
+power, phase_lock = time_frequency(data, Fs=Fs, frequencies=frequencies,
                                    n_cycles=2, n_jobs=1, use_fft=False)
 
 ###############################################################################
@@ -58,11 +61,11 @@ import pylab as pl
 pl.clf()
 pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
 pl.subplot(3, 1, 1)
-pl.plot(1e3 * times, 1e13 * evoked_data.T)
+pl.plot(times, evoked.T)
 pl.title('Evoked response (%s)' % raw['info']['ch_names'][picks[0]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
-pl.xlim(1e3 * times[0], 1e3 * times[-1])
+pl.xlim(times[0], times[-1])
 pl.ylim(-150, 300)
 
 pl.subplot(3, 1, 2)

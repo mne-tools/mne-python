@@ -31,6 +31,6 @@ def test_read_epochs():
     picks = fiff.pick_types(raw['info'], want_meg, want_eeg, want_stim,
                             include, raw['info']['bads'])
 
-    data, times, channel_names = mne.read_epochs(raw, events, event_id,
-                                                    tmin, tmax, picks=picks,
-                                                    baseline=(None, 0))
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    epochs.average()
