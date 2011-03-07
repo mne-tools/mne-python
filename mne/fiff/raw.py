@@ -14,7 +14,147 @@ from .tag import read_tag
 
 
 class Raw(dict):
-    """Raw data set"""
+    """Raw data set
+
+    Parameters
+    ----------
+    fname: string
+        The name of the raw file
+
+    allow_maxshield: bool, (default False)
+        allow_maxshield if True XXX ???
+
+    info: dict
+        Infos about raw data
+
+    """
+
+    def __init__(self, fname, allow_maxshield=False):
+        """
+        Parameters
+        ----------
+        fname: string
+            The name of the raw file
+
+        allow_maxshield: bool, (default False)
+            allow_maxshield if True XXX ???
+
+        """
+
+        #   Open the file
+        print 'Opening raw data file %s...' % fname
+        fid, tree, _ = fiff_open(fname)
+
+        #   Read the measurement info
+        info, meas = read_meas_info(fid, tree)
+
+        #   Locate the data of interest
+        raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
+        if len(raw_node) == 0:
+            raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
+            if allow_maxshield:
+                raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
+                if len(raw_node) == 0:
+                    raise ValueError, 'No raw data in %s' % fname
+            else:
+                if len(raw_node) == 0:
+                    raise ValueError, 'No raw data in %s' % fname
+
+        if len(raw_node) == 1:
+            raw_node = raw_node[0]
+
+        #   Set up the output structure
+        info['filename'] = fname
+
+        #   Process the directory
+        directory = raw_node['directory']
+        nent = raw_node['nent']
+        nchan = int(info['nchan'])
+        first = 0
+        first_samp = 0
+        first_skip = 0
+
+        #   Get first sample tag if it is there
+        if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
+            tag = read_tag(fid, directory[first].pos)
+            first_samp = int(tag.data)
+            first += 1
+
+        #   Omit initial skip
+        if directory[first].kind == FIFF.FIFF_DATA_SKIP:
+            #  This first skip can be applied only after we know the buffer size
+            tag = read_tag(fid, directory[first].pos)
+            first_skip = int(tag.data)
+            first += 1
+
+        self.first_samp = first_samp
+
+        #   Go through the remaining tags in the directory
+        rawdir = list()
+        nskip = 0
+        for k in range(first, nent):
+            ent = directory[k]
+            if ent.kind == FIFF.FIFF_DATA_SKIP:
+                tag = read_tag(fid, ent.pos)
+                nskip = int(tag.data)
+            elif ent.kind == FIFF.FIFF_DATA_BUFFER:
+                #   Figure out the number of samples in this buffer
+                if ent.type == FIFF.FIFFT_DAU_PACK16:
+                    nsamp = ent.size / (2*nchan)
+                elif ent.type == FIFF.FIFFT_SHORT:
+                    nsamp = ent.size / (2*nchan)
+                elif ent.type == FIFF.FIFFT_FLOAT:
+                    nsamp = ent.size / (4*nchan)
+                elif ent.type == FIFF.FIFFT_INT:
+                    nsamp = ent.size / (4*nchan)
+                else:
+                    fid.close()
+                    raise ValueError, 'Cannot handle data buffers of type %d' % (
+                                                                        ent.type)
+
+                #  Do we have an initial skip pending?
+                if first_skip > 0:
+                    first_samp += nsamp * first_skip
+                    self.first_samp = first_samp
+                    first_skip = 0
+
+                #  Do we have a skip pending?
+                if nskip > 0:
+                    import pdb; pdb.set_trace()
+                    rawdir.append(dict(ent=None, first=first_samp,
+                                       last=first_samp + nskip*nsamp - 1,
+                                       nsamp=nskip*nsamp))
+                    first_samp += nskip*nsamp
+                    nskip = 0
+
+                #  Add a data buffer
+                rawdir.append(dict(ent=ent, first=first_samp,
+                                   last=first_samp + nsamp - 1,
+                                   nsamp=nsamp))
+                first_samp += nsamp
+
+        self.last_samp = first_samp - 1
+
+        #   Add the calibration factors
+        cals = np.zeros(info['nchan'])
+        for k in range(info['nchan']):
+            cals[k] = info['chs'][k]['range'] * \
+                      info['chs'][k]['cal']
+
+        self.cals = cals
+        self.rawdir = rawdir
+        self.proj = None
+        self.comp = None
+        print '\tRange : %d ... %d =  %9.3f ... %9.3f secs' % (
+                   self.first_samp, self.last_samp,
+                   float(self.first_samp) / info['sfreq'],
+                   float(self.last_samp) / info['sfreq'])
+        print 'Ready.'
+
+        self.fid = fid
+        self.info = info
+
+
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
         if isinstance(item, tuple): # slicing required
@@ -22,7 +162,7 @@ class Raw(dict):
                 time_slice = item[1]
                 if isinstance(item[0], slice):
                     start = item[0].start if item[0].start is not None else 0
-                    nchan = self['info']['nchan']
+                    nchan = self.info['nchan']
                     stop = item[0].stop if item[0].stop is not None else nchan
                     step = item[0].step if item[0].step is not None else 1
                     sel = range(start, stop, step)
@@ -39,147 +179,71 @@ class Raw(dict):
         else:
             return super(Raw, self).__getitem__(item)
 
+
+    def save(self, fname, picks=None, quantum_sec=10, first_samp=None,
+             last_samp=None):
+        """Save raw data to file
+
+        Parameters
+        ----------
+        fname : string
+            File name of the new dataset.
+
+        picks : list of int
+            Indices of channels to include
+
+        quantum_sec : float
+            Size of data chuncks in seconds.
+
+        first_samp : int
+            Index of first sample to save
+
+        last_samp : int
+            Index of last sample to save
+        """
+        outfid, cals = start_writing_raw(fname, self.info, picks)
+        #
+        #   Set up the reading parameters
+        #
+        if first_samp is None:
+            start = self.first_samp
+        else:
+            start = first_samp
+
+        if last_samp is None:
+            stop = self.last_samp + 1
+        else:
+            stop = last_samp + 1
+
+        quantum = int(ceil(quantum_sec * self.info['sfreq']))
+        #
+        #   Read and write all the data
+        #
+        for first in range(start, stop, quantum):
+            last = first + quantum
+            if last >= stop:
+                last = stop + 1
+
+            data, times = self[picks, first:last]
+
+            print 'Writing ... ',
+            write_raw_buffer(outfid, data, cals)
+            print '[done]'
+
+        finish_writing_raw(outfid)
+        self.close()
+
+
     def time_to_index(self, *args):
         indices = []
         for time in args:
-            ind = int(time * self['info']['sfreq'])
+            ind = int(time * self.info['sfreq'])
             indices.append(ind)
         return indices
 
+
     def close(self):
-        self['fid'].close()
-
-
-def setup_read_raw(fname, allow_maxshield=False):
-    """Read information about raw data file
-
-    Parameters
-    ----------
-    fname: string
-        The name of the raw file
-
-    allow_maxshield: bool, (default False)
-        allow_maxshield if True XXX ???
-
-    Returns
-    -------
-    data: dict
-        Infos about raw data
-    """
-
-    #   Open the file
-    print 'Opening raw data file %s...' % fname
-    fid, tree, _ = fiff_open(fname)
-
-    #   Read the measurement info
-    info, meas = read_meas_info(fid, tree)
-
-    #   Locate the data of interest
-    raw = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
-    if len(raw) == 0:
-        raw = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
-        if allow_maxshield:
-            raw = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-            if len(raw) == 0:
-                raise ValueError, 'No raw data in %s' % fname
-        else:
-            if len(raw) == 0:
-                raise ValueError, 'No raw data in %s' % fname
-
-    if len(raw) == 1:
-        raw = raw[0]
-
-    #   Set up the output structure
-    info['filename'] = fname
-
-    data = Raw(fid=fid, info=info, first_samp=0, last_samp=0)
-
-    #   Process the directory
-    directory = raw['directory']
-    nent = raw['nent']
-    nchan = int(info['nchan'])
-    first = 0
-    first_samp = 0
-    first_skip = 0
-
-    #  Get first sample tag if it is there
-    if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
-        tag = read_tag(fid, directory[first].pos)
-        first_samp = int(tag.data)
-        first += 1
-
-    #  Omit initial skip
-    if directory[first].kind == FIFF.FIFF_DATA_SKIP:
-        #  This first skip can be applied only after we know the buffer size
-        tag = read_tag(fid, directory[first].pos)
-        first_skip = int(tag.data)
-        first += 1
-
-    data['first_samp'] = first_samp
-
-    #   Go through the remaining tags in the directory
-    rawdir = list()
-    nskip = 0
-    for k in range(first, nent):
-        ent = directory[k]
-        if ent.kind == FIFF.FIFF_DATA_SKIP:
-            tag = read_tag(fid, ent.pos)
-            nskip = int(tag.data)
-        elif ent.kind == FIFF.FIFF_DATA_BUFFER:
-            #   Figure out the number of samples in this buffer
-            if ent.type == FIFF.FIFFT_DAU_PACK16:
-                nsamp = ent.size / (2*nchan)
-            elif ent.type == FIFF.FIFFT_SHORT:
-                nsamp = ent.size / (2*nchan)
-            elif ent.type == FIFF.FIFFT_FLOAT:
-                nsamp = ent.size / (4*nchan)
-            elif ent.type == FIFF.FIFFT_INT:
-                nsamp = ent.size / (4*nchan)
-            else:
-                fid.close()
-                raise ValueError, 'Cannot handle data buffers of type %d' % (
-                                                                    ent.type)
-
-            #  Do we have an initial skip pending?
-            if first_skip > 0:
-                first_samp += nsamp * first_skip
-                data['first_samp'] = first_samp
-                first_skip = 0
-
-            #  Do we have a skip pending?
-            if nskip > 0:
-                import pdb; pdb.set_trace()
-                rawdir.append(dict(ent=None, first=first_samp,
-                                   last=first_samp + nskip*nsamp - 1,
-                                   nsamp=nskip*nsamp))
-                first_samp += nskip*nsamp
-                nskip = 0
-
-            #  Add a data buffer
-            rawdir.append(dict(ent=ent, first=first_samp,
-                               last=first_samp + nsamp - 1,
-                               nsamp=nsamp))
-            first_samp += nsamp
-
-    data['last_samp'] = first_samp - 1
-
-    #   Add the calibration factors
-    cals = np.zeros(data['info']['nchan'])
-    for k in range(data['info']['nchan']):
-        cals[k] = data['info']['chs'][k]['range'] * \
-                  data['info']['chs'][k]['cal']
-
-    data['cals'] = cals
-    data['rawdir'] = rawdir
-    data['proj'] = None
-    data['comp'] = None
-    print '\tRange : %d ... %d =  %9.3f ... %9.3f secs' % (
-               data['first_samp'], data['last_samp'],
-               float(data['first_samp']) / data['info']['sfreq'],
-               float(data['last_samp']) / data['info']['sfreq'])
-    print 'Ready.'
-
-    return data
+        self.fid.close()
 
 
 def read_raw_segment(raw, start=None, stop=None, sel=None):
@@ -187,8 +251,8 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
 
     Parameters
     ----------
-    raw: dict
-        The dict returned by setup_read_raw
+    raw: Raw object
+        An instance of Raw
 
     start: int, (optional)
         first sample to include (first is 0). If omitted, defaults to the first
@@ -215,55 +279,55 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
     """
 
     if stop is None:
-        stop = raw['last_samp'] + 1
+        stop = raw.last_samp + 1
     if start is None:
-        start = raw['first_samp']
+        start = raw.first_samp
 
     #  Initial checks
     start = int(start)
     stop = int(stop)
-    if start < raw['first_samp']:
-        start = raw['first_samp']
+    if start < raw.first_samp:
+        start = raw.first_samp
 
-    if stop >= raw['last_samp']:
-        stop = raw['last_samp'] + 1
+    if stop >= raw.last_samp:
+        stop = raw.last_samp + 1
 
     if start >= stop:
         raise ValueError, 'No data in this range'
 
     print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                       start, stop - 1, start / float(raw['info']['sfreq']),
-                       (stop - 1) / float(raw['info']['sfreq'])),
+                       start, stop - 1, start / float(raw.info['sfreq']),
+                       (stop - 1) / float(raw.info['sfreq'])),
 
     #  Initialize the data and calibration vector
-    nchan = raw['info']['nchan']
+    nchan = raw.info['nchan']
     dest = 0
-    cal = np.diag(raw['cals'].ravel())
+    cal = np.diag(raw.cals.ravel())
 
     if sel is None:
         data = np.empty((nchan, stop - start))
-        if raw['proj'] is None and raw['comp'] is None:
+        if raw.proj is None and raw.comp is None:
             mult = None
         else:
-            if raw['proj'] is None:
-                mult = raw['comp'] * cal
-            elif raw['comp'] is None:
-                mult = raw['proj'] * cal
+            if raw.proj is None:
+                mult = raw.comp * cal
+            elif raw.comp is None:
+                mult = raw.proj * cal
             else:
-                mult = raw['proj'] * raw['comp'] * cal
+                mult = raw.proj * raw.comp * cal
 
     else:
         data = np.empty((len(sel), stop - start))
-        if raw['proj'] is None and raw['comp'] is None:
+        if raw.proj is None and raw.comp is None:
             mult = None
-            cal = np.diag(raw['cals'][sel].ravel())
+            cal = np.diag(raw.cals[sel].ravel())
         else:
-            if raw['proj'] is None:
-                mult = raw['comp'][sel,:] * cal
-            elif raw['comp'] is None:
-                mult = raw['proj'][sel,:] * cal
+            if raw.proj is None:
+                mult = raw.comp[sel,:] * cal
+            elif raw.comp is None:
+                mult = raw.proj[sel,:] * cal
             else:
-                mult = raw['proj'][sel,:] * raw['comp'] * cal
+                mult = raw.proj[sel,:] * raw.comp * cal
 
     do_debug = False
     # do_debug = True
@@ -275,8 +339,8 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
         from scipy import sparse
         mult = sparse.csr_matrix(mult)
 
-    for k in range(len(raw['rawdir'])):
-        this = raw['rawdir'][k]
+    for k in range(len(raw.rawdir)):
+        this = raw.rawdir[k]
 
         #  Do we need this buffer
         if this['last'] >= start:
@@ -289,7 +353,7 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
                 else:
                     one = np.zeros((len(sel), this['nsamp']))
             else:
-                tag = read_tag(raw['fid'], this['ent'].pos)
+                tag = read_tag(raw.fid, this['ent'].pos)
 
                 #   Depending on the state of the projection and selection
                 #   we proceed a little bit differently
@@ -343,9 +407,9 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
             print ' [done]'
             break
 
-    times = np.arange(start, stop) / raw['info']['sfreq']
+    times = np.arange(start, stop) / raw.info['sfreq']
 
-    raw['fid'].seek(0, 0) # Go back to beginning of the file
+    raw.fid.seek(0, 0) # Go back to beginning of the file
 
     return data, times
 
@@ -355,8 +419,8 @@ def read_raw_segment_times(raw, start, stop, sel=None):
 
     Parameters
     ----------
-    raw: dict
-        The dict returned by setup_read_raw
+    raw: Raw object
+        An instance of Raw
 
     start: float
         Starting time of the segment in seconds
@@ -379,8 +443,8 @@ def read_raw_segment_times(raw, start, stop, sel=None):
         returns the time values corresponding to the samples
     """
     #   Convert to samples
-    start = floor(start * raw['info']['sfreq'])
-    stop = ceil(stop * raw['info']['sfreq'])
+    start = floor(start * raw.info['sfreq'])
+    stop = ceil(stop * raw.info['sfreq'])
 
     #   Read it
     return read_raw_segment(raw, start, stop, sel)

@@ -13,7 +13,7 @@ class Epochs(object):
     Parameters
     ----------
     raw : Raw object
-        Returned by the setup_read_raw function
+        A instance of Raw
 
     events : array, of shape [n_events, 3]
         Returned by the read_events function
@@ -72,24 +72,24 @@ class Epochs(object):
         self.preload = preload
 
         if picks is None:
-            picks = range(len(raw['info']['ch_names']))
-            self.ch_names = raw['info']['ch_names']
+            picks = range(len(raw.info['ch_names']))
+            self.ch_names = raw.info['ch_names']
         else:
-            self.ch_names = [raw['info']['ch_names'][k] for k in picks]
+            self.ch_names = [raw.info['ch_names'][k] for k in picks]
 
         #   Set up projection
-        if raw['info']['projs'] is None:
+        if raw.info['projs'] is None:
             print 'No projector specified for these data'
             raw['proj'] = []
         else:
             #   Activate the projection items
-            for proj in raw['info']['projs']:
+            for proj in raw.info['projs']:
                 proj['active'] = True
 
-            print '%d projection items activated' % len(raw['info']['projs'])
+            print '%d projection items activated' % len(raw.info['projs'])
 
             #   Create the projector
-            proj, nproj = fiff.proj.make_projector_info(raw['info'])
+            proj, nproj = fiff.proj.make_projector_info(raw.info)
             if nproj == 0:
                 print 'The projection vectors do not apply to these channels'
                 raw['proj'] = None
@@ -99,7 +99,7 @@ class Epochs(object):
                 raw['proj'] = proj
 
         #   Set up the CTF compensator
-        current_comp = fiff.get_current_comp(raw['info'])
+        current_comp = fiff.get_current_comp(raw.info)
         if current_comp > 0:
             print 'Current compensation grade : %d' % current_comp
 
@@ -107,7 +107,7 @@ class Epochs(object):
             dest_comp = current_comp
 
         if current_comp != dest_comp:
-            raw.comp = fiff.raw.make_compensator(raw['info'], current_comp,
+            raw.comp = fiff.raw.make_compensator(raw.info, current_comp,
                                                  dest_comp)
             print 'Appropriate compensator added to change to grade %d.' % (
                                                                     dest_comp)
@@ -123,7 +123,7 @@ class Epochs(object):
             raise ValueError, 'No desired events found.'
 
         # Handle times
-        sfreq = raw['info']['sfreq']
+        sfreq = raw.info['sfreq']
         self.times = np.arange(int(tmin*sfreq), int(tmax*sfreq),
                           dtype=np.float) / sfreq
 
@@ -135,7 +135,7 @@ class Epochs(object):
 
     def get_epoch(self, idx):
         """Load one epoch from disk"""
-        sfreq = self.raw['info']['sfreq']
+        sfreq = self.raw.info['sfreq']
         event_samp = self.events[idx, 0]
 
         # Read a data segment

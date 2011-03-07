@@ -20,7 +20,7 @@ def test_read_epochs():
     tmax = 0.5
 
     #   Setup for reading the raw data
-    raw = fiff.setup_read_raw(raw_fname)
+    raw = fiff.Raw(raw_fname)
     events = mne.read_events(event_name)
 
     # Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
@@ -28,8 +28,8 @@ def test_read_epochs():
     want_meg = True
     want_eeg = False
     want_stim = False
-    picks = fiff.pick_types(raw['info'], want_meg, want_eeg, want_stim,
-                            include, raw['info']['bads'])
+    picks = fiff.pick_types(raw.info, want_meg, want_eeg, want_stim,
+                            include, raw.info['bads'])
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))

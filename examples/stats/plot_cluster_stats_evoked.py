@@ -30,7 +30,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = fiff.setup_read_raw(raw_fname)
+raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 channel = 'MEG 1332'
@@ -38,7 +38,7 @@ include = [channel]
 
 ###############################################################################
 # Read epochs for the channel of interest
-picks = fiff.pick_types(raw['info'], meg=False, include=include)
+picks = fiff.pick_types(raw.info, meg=False, include=include)
 event_id = 1
 epochs1 = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))

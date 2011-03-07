@@ -55,9 +55,9 @@ class Covariance(object):
         """Estimate noise covariance matrix from a raw FIF file
         """
         #   Set up the reading parameters
-        start = raw['first_samp']
-        stop = raw['last_samp'] + 1
-        quantum = int(quantum_sec * raw['info']['sfreq'])
+        start = raw.first_samp
+        stop = raw.last_samp + 1
+        quantum = int(quantum_sec * raw.info['sfreq'])
 
         cov = 0
         n_samples = 0

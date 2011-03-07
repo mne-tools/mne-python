@@ -18,15 +18,15 @@ from mne.datasets import sample
 data_path = sample.data_path('.')
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
-raw = fiff.setup_read_raw(fname)
+raw = fiff.Raw(fname)
 
 # Set up pick list: MEG + STI 014 - bad channels
 want_meg = True
 want_eeg = False
 want_stim = False
 
-picks = fiff.pick_types(raw['info'], meg=want_meg, eeg=want_eeg,
-                        stim=want_stim, exclude=raw['info']['bads'])
+picks = fiff.pick_types(raw.info, meg=want_meg, eeg=want_eeg,
+                        stim=want_stim, exclude=raw.info['bads'])
 
 print "Number of picked channels : %d" % len(picks)
 

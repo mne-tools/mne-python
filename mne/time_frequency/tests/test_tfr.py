@@ -20,14 +20,14 @@ def test_time_frequency():
     tmax = 0.5
 
     # Setup for reading the raw data
-    raw = fiff.setup_read_raw(raw_fname)
+    raw = fiff.Raw(raw_fname)
     events = mne.read_events(event_fname)
 
     include = []
-    exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
+    picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
                                     stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
@@ -37,7 +37,7 @@ def test_time_frequency():
     times = epochs.times
 
     frequencies = np.arange(6, 20, 5) # define frequencies of interest
-    Fs = raw['info']['sfreq'] # sampling in Hz
+    Fs = raw.info['sfreq'] # sampling in Hz
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=True)
 

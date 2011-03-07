@@ -15,7 +15,6 @@ is performed on MNE sample dataset between 40 and 60 ms.
 
 print __doc__
 
-import os
 import numpy as np
 
 import mne
@@ -33,29 +32,30 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = fiff.setup_read_raw(raw_fname)
+raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
 include = [] # or stim channel ['STI 014']
-exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # pick MEG Magnetometers
-picks = fiff.pick_types(raw['info'], meg='grad', eeg=False, stim=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False,
                                             include=include, exclude=exclude)
-data, times, channel_names = mne.read_epochs(raw, events, event_id,
+epochs = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))
-epochs = np.array([d['epoch'] for d in data]) # as 3D matrix
-evoked_data = np.mean(epochs, axis=0) # compute evoked fields
+data = epochs.get_data()
+times = epochs.times
+evoked_data = data.mean(axis=0)
 
 temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
-data = np.squeeze(np.mean(epochs[:, :, temporal_mask], axis=2))
+data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
 
 n_permutations = 50000
 p_values, T0, H0 = permutation_t_test(data, n_permutations)
 
 significant_sensors = picks[p_values <= 0.05]
-significant_sensors_names = [raw['info']['ch_names'][k]
+significant_sensors_names = [raw.info['ch_names'][k]
                               for k in significant_sensors]
 
 print "Number of significant sensors : %d" % len(significant_sensors)

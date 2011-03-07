@@ -29,29 +29,29 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = fiff.setup_read_raw(raw_fname)
+raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
 include = [] # or stim channels ['STI 014']
-exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # EEG
-eeg_picks = fiff.pick_types(raw['info'], meg=False, eeg=True, stim=False,
+eeg_picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False,
                                             include=include, exclude=exclude)
 eeg_epochs = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=eeg_picks, baseline=(None, 0))
 eeg_evoked_data = eeg_epochs.average()
 
 # MEG Magnetometers
-meg_mag_picks = fiff.pick_types(raw['info'], meg='mag', eeg=False, stim=False,
+meg_mag_picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
 meg_mag_epochs = mne.Epochs(raw, events, event_id,
                            tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
 meg_mag_evoked_data = meg_mag_epochs.average()
 
 # MEG
-meg_grad_picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
+meg_grad_picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
 meg_grad_epochs = mne.Epochs(raw, events, event_id,
                         tmin, tmax, picks=meg_grad_picks, baseline=(None, 0))

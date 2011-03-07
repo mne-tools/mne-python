@@ -19,7 +19,7 @@ import numpy as np
 
 import mne
 from mne import fiff
-from mne.tfr import single_trial_power
+from mne.time_frequency import single_trial_power
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
 
@@ -33,18 +33,18 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = fiff.setup_read_raw(raw_fname)
+raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-exclude = raw['info']['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw['info'], meg='grad', eeg=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
 
 picks = [picks[97]]
-ch_name = raw['info']['ch_names'][picks[0]]
+ch_name = raw.info['ch_names'][picks[0]]
 
 # Load condition 1
 event_id = 1
@@ -64,7 +64,7 @@ data_condition_2 *= 1e13 # change unit to fT / cm
 times = 1e3 * epochs_condition_1.times # change unit to ms
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
-Fs = raw['info']['sfreq'] # sampling in Hz
+Fs = raw.info['sfreq'] # sampling in Hz
 epochs_coefs_1 = single_trial_power(data_condition_1, Fs=Fs,
                                    frequencies=frequencies,
                                    n_cycles=2, use_fft=False)
