@@ -19,7 +19,7 @@ import numpy as np
 
 import mne
 from mne import fiff
-from mne.stats import permutation_1d_cluster_test
+from mne.stats import permutation_cluster_test
 from mne.datasets import sample
 
 ###############################################################################
@@ -55,7 +55,7 @@ condition2 = np.squeeze(np.array([d['epoch'] for d in data2])) # as 3D matrix
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-                permutation_1d_cluster_test([condition1, condition2],
+                permutation_cluster_test([condition1, condition2],
                             n_permutations=1000, threshold=threshold, tail=1)
 
 ###############################################################################

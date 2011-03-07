@@ -189,6 +189,30 @@ def _time_frequency(X, Ws, use_fft):
 
     return psd, plf
 
+def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
+                           n_jobs=1):
+    """Compute time-frequency power on single epochs
+    """
+    n_frequencies = len(frequencies)
+    n_epochs, n_channels, n_times = epochs.shape
+
+    # Precompute wavelets for given frequency range to save time
+    Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
+
+    power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
+                     dtype=np.float)
+
+    mode = 'same'
+    if use_fft:
+        _cwt = _cwt_fft
+    else:
+        _cwt = _cwt_convolve
+
+    for k, e in enumerate(epochs):
+        mode = 'same'
+        power[k] = np.abs(_cwt(e, Ws, mode))**2
+
+    return power
 
 def time_frequency(epochs, Fs, frequencies, use_fft=True, n_cycles=25,
                    n_jobs=1):

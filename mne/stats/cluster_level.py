@@ -7,24 +7,11 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import stats, ndimage
+from scipy import ndimage
 from scipy.stats import percentileofscore
-from scikits.learn.feature_selection import univariate_selection
 
-def f_oneway(*args):
-    """Call scipy.stats.f_oneway, but return only f-value"""
-    return univariate_selection.f_oneway(*args)[0]
-    # return stats.f_oneway(*args)[0]
+from .parametric import f_oneway
 
-# def best_component(x, threshold, tail=0):
-#     if tail == -1:
-#         x_in = x < threshold
-#     elif tail == 1:
-#         x_in = x > threshold
-#     else:
-#         x_in = np.abs(x) > threshold
-#     labels, n_labels = ndimage.label(x_in)
-#     return np.max(ndimage.measurements.sum(x, labels, index=range(1, n_labels+1)))
 
 def _find_clusters(x, threshold, tail=0):
     """For a given 1d-array (test statistic), find all clusters which
@@ -41,21 +28,12 @@ def _find_clusters(x, threshold, tail=0):
 
     Returns
     -------
-    clusters: list of tuples
-        Each tuple is a pair of indices (begin/end of cluster)
+    clusters: list of slices or list of arrays (boolean masks)
+        We use slices for 1D signals and mask to multidimensional
+        arrays.
 
-    Example
-    -------
-    >>> _find_clusters([1, 2, 3, 1], 1.9, tail=1)
-    [(1, 3)]
-    >>> _find_clusters([2, 2, 3, 1], 1.9, tail=1)
-    [(0, 3)]
-    >>> _find_clusters([1, 2, 3, 2], 1.9, tail=1)
-    [(1, 4)]
-    >>> _find_clusters([1, -2, 3, 1], 1.9, tail=0)
-    [(1, 3)]
-    >>> _find_clusters([1, -2, -3, 1], -1.9, tail=-1)
-    [(1, 3)]
+    sums: array
+        Sum of x values in clusters
     """
     if not tail in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
@@ -70,10 +48,22 @@ def _find_clusters(x, threshold, tail=0):
         x_in = np.abs(x) > threshold
 
     labels, n_labels = ndimage.label(x_in)
-    return ndimage.find_objects(labels, n_labels)
+
+    if x.ndim == 1:
+        clusters = ndimage.find_objects(labels, n_labels)
+        sums = ndimage.measurements.sum(x, labels, index=range(1, n_labels+1))
+    else:
+        clusters = list()
+        sums = np.empty(n_labels)
+        for l in range(1, n_labels+1):
+            c = labels == l
+            clusters.append(c)
+            sums[l-1] = np.sum(x[c])
+
+    return clusters, sums
 
 
-def permutation_1d_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
+def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0):
     """Cluster-level statistical permutation test
 
@@ -116,14 +106,13 @@ def permutation_1d_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     doi:10.1016/j.jneumeth.2007.03.024
     """
     X_full = np.concatenate(X, axis=0)
-    n_samples_total = X_full.shape[0]
     n_samples_per_condition = [x.shape[0] for x in X]
 
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
 
-    clusters = _find_clusters(T_obs, threshold, tail)
+    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail)
 
     # make list of indices for random data split
     splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
@@ -133,19 +122,16 @@ def permutation_1d_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # Step 2: If we have some clusters, repeat process on permutated data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        cluster_stats = [np.sum(T_obs[c]) for c in clusters]
         cluster_pv = np.ones(len(clusters), dtype=np.float)
         H0 = np.zeros(n_permutations) # histogram
         for i_s in range(n_permutations):
             np.random.shuffle(X_full)
             X_shuffle_list = [X_full[s] for s in slices]
             T_obs_surr = stat_fun(*X_shuffle_list)
-            clusters_perm = _find_clusters(T_obs_surr, threshold, tail)
+            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail)
 
-            if len(clusters_perm) > 0:
-                cluster_stats_perm = [np.sum(T_obs_surr[c])
-                                              for c in clusters_perm]
-                H0[i_s] = max(cluster_stats_perm)
+            if len(perm_clusters_sums) > 0:
+                H0[i_s] = np.max(perm_clusters_sums)
             else:
                 H0[i_s] = 0
 
@@ -160,47 +146,71 @@ def permutation_1d_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         return T_obs, np.array([]), np.array([]), np.array([])
 
 
-permutation_1d_cluster_test.__test__ = False
+permutation_cluster_test.__test__ = False
 
-if __name__ == "__main__":
-    noiselevel = 30
-
-    normfactor = np.hanning(20).sum()
-
-    condition1 = np.random.randn(50, 500) * noiselevel
-    for i in range(50):
-        condition1[i] = np.convolve(condition1[i], np.hanning(20),
-                                      mode="same") / normfactor
-
-    condition2 = np.random.randn(43, 500) * noiselevel
-    for i in range(43):
-        condition2[i] = np.convolve(condition2[i], np.hanning(20),
-                                      mode="same") / normfactor
-
-    pseudoekp = 5 * np.hanning(150)[None,:]
-    condition1[:, 100:250] += pseudoekp
-    condition2[:, 100:250] -= pseudoekp
-
-    fs, cluster_times, cluster_p_values, histogram = permutation_1d_cluster_test(
-                                [condition1, condition2], n_permutations=1000)
-
-    # # Plotting for a better understanding
-    # import pylab as pl
-    # pl.close('all')
-    # pl.subplot(211)
-    # pl.plot(condition1.mean(axis=0), label="Condition 1")
-    # pl.plot(condition2.mean(axis=0), label="Condition 2")
-    # pl.ylabel("signal [a.u.]")
-    # pl.subplot(212)
-    # for i_c, c in enumerate(cluster_times):
-    #     c = c[0]
-    #     if cluster_p_values[i_c] <= 0.05:
-    #         h = pl.axvspan(c.start, c.stop-1, color='r', alpha=0.3)
-    #     else:
-    #         pl.axvspan(c.start, c.stop-1, color=(0.3, 0.3, 0.3), alpha=0.3)
-    # hf = pl.plot(fs, 'g')
-    # pl.legend((h, ), ('cluster p-value < 0.05', ))
-    # pl.xlabel("time (ms)")
-    # pl.ylabel("f-values")
-    # pl.show()
-
+# if __name__ == "__main__":
+#     noiselevel = 30
+#     np.random.seed(0)
+# 
+#     # 1D
+#     normfactor = np.hanning(20).sum()
+#     condition1 = np.random.randn(50, 300) * noiselevel
+#     for i in range(50):
+#         condition1[i] = np.convolve(condition1[i], np.hanning(20),
+#                                       mode="same") / normfactor
+#     condition2 = np.random.randn(43, 300) * noiselevel
+#     for i in range(43):
+#         condition2[i] = np.convolve(condition2[i], np.hanning(20),
+#                                       mode="same") / normfactor
+#     pseudoekp = 5 * np.hanning(150)[None,:]
+#     condition1[:, 100:250] += pseudoekp
+#     condition2[:, 100:250] -= pseudoekp
+# 
+#     # Make it 2D
+#     condition1 = np.tile(condition1[:,100:275,None], (1, 1, 15))
+#     condition2 = np.tile(condition2[:,100:275,None], (1, 1, 15))
+#     shape1 = condition1[..., :3].shape
+#     shape2 = condition2[..., :3].shape
+#     condition1[..., :3] = np.random.randn(*shape1) * noiselevel
+#     condition2[..., :3] = np.random.randn(*shape2) * noiselevel
+#     condition1[..., -3:] = np.random.randn(*shape1) * noiselevel
+#     condition2[..., -3:] = np.random.randn(*shape2) * noiselevel
+# 
+#     fs, clusters, cluster_p_values, histogram = permutation_cluster_test(
+#                                 [condition1, condition2], n_permutations=1000)
+# 
+#     # # Plotting for a better understanding
+#     # import pylab as pl
+#     # pl.close('all')
+#     #
+#     # if condition1.ndim == 2:
+#     #     pl.subplot(211)
+#     #     pl.plot(condition1.mean(axis=0), label="Condition 1")
+#     #     pl.plot(condition2.mean(axis=0), label="Condition 2")
+#     #     pl.ylabel("signal [a.u.]")
+#     #     pl.subplot(212)
+#     #     for i_c, c in enumerate(clusters):
+#     #         c = c[0]
+#     #         if cluster_p_values[i_c] <= 0.05:
+#     #             h = pl.axvspan(c.start, c.stop-1, color='r', alpha=0.3)
+#     #         else:
+#     #             pl.axvspan(c.start, c.stop-1, color=(0.3, 0.3, 0.3), alpha=0.3)
+#     #     hf = pl.plot(fs, 'g')
+#     #     pl.legend((h, ), ('cluster p-value < 0.05', ))
+#     #     pl.xlabel("time (ms)")
+#     #     pl.ylabel("f-values")
+#     # else:
+#     #     fs_plot = np.nan * np.ones_like(fs)
+#     #     for c, p_val in zip(clusters, cluster_p_values):
+#     #         if p_val <= 0.05:
+#     #             fs_plot[c] = fs[c]
+#     #
+#     #     pl.imshow(fs.T, cmap=pl.cm.gray)
+#     #     pl.imshow(fs_plot.T, cmap=pl.cm.jet)
+#     #     # pl.imshow(fs.T, cmap=pl.cm.gray, alpha=0.6)
+#     #     # pl.imshow(fs_plot.T, cmap=pl.cm.jet, alpha=0.6)
+#     #     pl.xlabel('time')
+#     #     pl.ylabel('Freq')
+#     #     pl.colorbar()
+#     #
+#     # pl.show()
