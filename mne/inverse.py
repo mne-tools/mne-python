@@ -12,7 +12,7 @@ from .fiff.tag import find_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from .fiff.proj import read_proj, make_projector
 from .fiff.tree import dir_tree_find
-from .fiff.evoked import read_evoked
+from .fiff.evoked import Evoked
 from .fiff.pick import pick_channels_evoked
 
 from .cov import read_cov
@@ -441,7 +441,7 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     #
     #   Read the data first
     #
-    data = read_evoked(fname_data, setno, baseline=baseline)
+    evoked = Evoked(fname_data, setno, baseline=baseline)
     #
     #   Then the inverse operator
     #
@@ -450,14 +450,14 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     #   Set up the inverse according to the parameters
     #
     if nave is None:
-        nave = data['evoked']['nave']
+        nave = evoked.nave
 
     inv = prepare_inverse_operator(inv, nave, lambda2, dSPM)
     #
     #   Pick the correct channels from the data
     #
-    data = pick_channels_evoked(data, inv['noise_cov']['names'])
-    print 'Picked %d channels from the data' % data['info']['nchan']
+    evoked = pick_channels_evoked(evoked, inv['noise_cov']['names'])
+    print 'Picked %d channels from the data' % evoked.info['nchan']
     print 'Computing inverse...',
     #
     #   Simple matrix multiplication followed by combination of the
@@ -469,7 +469,7 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     trans = inv['reginv'][:,None] * reduce(np.dot, [inv['eigen_fields']['data'],
                                                     inv['whitener'],
                                                     inv['proj'],
-                                                    data['evoked']['epochs']])
+                                                    evoked.data])
 
     #
     #   Transformation into current distributions by weighting the eigenleads
@@ -504,8 +504,8 @@ def compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM=True,
     res = dict()
     res['inv'] = inv
     res['sol'] = sol
-    res['tmin'] = float(data['evoked']['first']) / data['info']['sfreq']
-    res['tstep'] = 1.0 / data['info']['sfreq']
+    res['tmin'] = float(evoked.first) / evoked.info['sfreq']
+    res['tstep'] = 1.0 / evoked.info['sfreq']
     print '[done]'
 
     return res

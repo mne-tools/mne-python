@@ -130,8 +130,8 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
     Parameters
     ----------
-    orig : dict
-        One evoked data
+    orig : Evoked object
+        One evoked dataset
 
     include : list of string, (optional)
         List of channels to include. (if None, include all available)
@@ -149,7 +149,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
-    sel = pick_channels(orig['info']['ch_names'], include=include,
+    sel = pick_channels(orig.info['ch_names'], include=include,
                         exclude=exclude)
 
     if len(sel) == 0:
@@ -159,11 +159,11 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     #
     #   Modify the measurement info
     #
-    res['info'] = pick_info(res['info'], sel)
+    res.info = pick_info(res.info, sel)
     #
     #   Create the reduced data set
     #
-    res['evoked']['epochs'] = res['evoked']['epochs'][sel,:]
+    res.data = res.data[sel,:]
 
     return res
 
