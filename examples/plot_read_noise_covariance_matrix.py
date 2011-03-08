@@ -9,7 +9,6 @@ Reading/Writing a noise covariance matrix
 
 print __doc__
 
-import os
 import mne
 from mne.datasets import sample
 

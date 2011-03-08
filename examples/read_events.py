@@ -9,7 +9,6 @@ Reading an event file
 
 print __doc__
 
-import os
 import mne
 from mne.datasets import sample
 

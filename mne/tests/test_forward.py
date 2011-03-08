@@ -1,7 +1,6 @@
-import os
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal, assert_equal
+# from numpy.testing import assert_array_almost_equal, assert_equal
 
 import mne
 from mne.datasets import sample
@@ -16,3 +15,4 @@ def test_io_forward():
     fwd = mne.read_forward_solution(fname)
     fwd = mne.read_forward_solution(fname, force_fixed=True)
     leadfield = fwd['sol']['data']
+    # XXX : test something

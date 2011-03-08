@@ -91,7 +91,7 @@ class Covariance(object):
             for ii in ind:
                 data[ind,ind] += reg
 
-    def whiten_evoked(self, ave, eps=0.2):
+    def whiten_evoked(self, evoked, eps=0.2):
         """Whiten an evoked data file
 
         The whitening matrix is estimated and then multiplied to data.
@@ -100,14 +100,14 @@ class Covariance(object):
 
         Parameters
         ----------
-        ave : evoked data
-            A evoked data set read with fiff.read_evoked
+        evoked : Evoked object
+            A evoked data set
         eps : float
             The regularization factor used.
 
         Returns
         -------
-        ave : evoked data
+        evoked_whiten : Evoked object
             Evoked data set after whitening.
         W : array of shape [n_channels, n_channels]
             The whitening matrix
@@ -118,18 +118,18 @@ class Covariance(object):
 
         # Add (eps x identity matrix) to magnetometers only.
         # This is based on the mean magnetometer variance like MNE C-code does it.
-        mag_ind = pick_types(ave['info'], meg='mag', eeg=False, stim=False)
-        mag_names = [ave['info']['chs'][k]['ch_name'] for k in mag_ind]
+        mag_ind = pick_types(evoked.info, meg='mag', eeg=False, stim=False)
+        mag_names = [evoked.info['chs'][k]['ch_name'] for k in mag_ind]
         self._regularize(data, variances, mag_names, eps)
 
         # Add (eps x identity matrix) to gradiometers only.
-        grad_ind = pick_types(ave['info'], meg='grad', eeg=False, stim=False)
-        grad_names = [ave['info']['chs'][k]['ch_name'] for k in grad_ind]
+        grad_ind = pick_types(evoked.info, meg='grad', eeg=False, stim=False)
+        grad_names = [evoked.info['chs'][k]['ch_name'] for k in grad_ind]
         self._regularize(data, variances, grad_names, eps)
 
         # Add (eps x identity matrix) to eeg only.
-        eeg_ind = pick_types(ave['info'], meg=False, eeg=True, stim=False)
-        eeg_names = [ave['info']['chs'][k]['ch_name'] for k in eeg_ind]
+        eeg_ind = pick_types(evoked.info, meg=False, eeg=True, stim=False)
+        eeg_names = [evoked.info['chs'][k]['ch_name'] for k in eeg_ind]
         self._regularize(data, variances, eeg_names, eps)
 
         d, V = linalg.eigh(data) # Compute eigen value decomposition.
@@ -141,18 +141,17 @@ class Covariance(object):
         W = d[:,None] * V.T
 
         # Get all channel indices
-        n_channels = len(ave['info']['chs'])
-        ave_ch_names = [ave['info']['chs'][k]['ch_name']
+        n_channels = len(evoked.info['chs'])
+        ave_ch_names = [evoked.info['chs'][k]['ch_name']
                                             for k in range(n_channels)]
         ind = [ave_ch_names.index(name) for name in self._cov['names']]
 
-        ave_whiten = copy.copy(ave)
-        ave_whiten['evoked']['epochs'][ind] = np.dot(W,
-                                                ave['evoked']['epochs'][ind])
+        evoked_whiten = copy.copy(evoked)
+        evoked_whiten.data[ind] = np.dot(W, evoked.data[ind])
 
-        return ave_whiten, W
+        return evoked_whiten, W
 
-    def whiten_evoked_and_forward(self, ave, fwd, eps=0.2):
+    def whiten_evoked_and_forward(self, evoked, fwd, eps=0.2):
         """Whiten an evoked data set and a forward solution
 
         The whitening matrix is estimated and then multiplied to
@@ -162,8 +161,8 @@ class Covariance(object):
 
         Parameters
         ----------
-        ave : evoked data
-            A evoked data set read with fiff.read_evoked
+        evoked : Evoked object
+            A evoked data set
         fwd : forward data
             A forward solution read with mne.read_forward
         eps : float
@@ -171,17 +170,17 @@ class Covariance(object):
 
         Returns
         -------
-        ave : evoked data
-            A evoked data set read with fiff.read_evoked
-        fwd : evoked data
-            Forward solution after whitening.
+        ave : Evoked object
+            The whitened evoked data set
+        fwd : dict
+            The whitened forward solution.
         W : array of shape [n_channels, n_channels]
             The whitening matrix
         """
         # handle evoked
-        ave_whiten, W = self.whiten_evoked(ave, eps=eps)
+        evoked_whiten, W = self.whiten_evoked(evoked, eps=eps)
 
-        ave_ch_names = [ch['ch_name'] for ch in ave_whiten['info']['chs']]
+        evoked_ch_names = [ch['ch_name'] for ch in evoked_whiten.info['chs']]
 
         # handle forward (keep channels in covariance matrix)
         fwd_whiten = copy.copy(fwd)
@@ -194,10 +193,10 @@ class Covariance(object):
         fwd_whiten['chs'] = [fwd_whiten['chs'][k] for k in ind]
 
         # keep in forward the channels in the evoked dataset
-        fwd_whiten = pick_channels_forward(fwd, include=ave_ch_names,
-                                                exclude=ave['info']['bads'])
+        fwd_whiten = pick_channels_forward(fwd, include=evoked_ch_names,
+                                                exclude=evoked.info['bads'])
 
-        return ave_whiten, fwd_whiten, W
+        return evoked_whiten, fwd_whiten, W
 
     def __repr__(self):
         s = "kind : %s" % self.kind

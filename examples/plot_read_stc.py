@@ -12,7 +12,6 @@ reconstructions
 
 print __doc__
 
-import os
 import numpy as np
 import mne
 from mne.datasets import sample

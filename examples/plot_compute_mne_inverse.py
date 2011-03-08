@@ -14,7 +14,6 @@ and stores the solution in stc files for visualisation.
 
 print __doc__
 
-import os
 import numpy as np
 import pylab as pl
 import mne

@@ -1,11 +1,11 @@
 import os.path as op
 
 import numpy as np
-import pylab as pl
 
 
 class Layout(object):
     """Sensor layouts"""
+
     def __init__(self, kind='Vectorview-all', path=None):
         """
         Parameters

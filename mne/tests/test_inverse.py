@@ -1,8 +1,7 @@
-import os
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+# from numpy.testing import assert_array_almost_equal, assert_equal
 
 import mne
 from mne.datasets import sample

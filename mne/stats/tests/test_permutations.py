@@ -2,7 +2,6 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_almost_equal
 from scipy import stats
 
-import mne
 from ..permutations import permutation_t_test
 
 

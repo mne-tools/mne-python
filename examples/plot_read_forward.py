@@ -9,7 +9,6 @@ Reading a forward operator a.k.a. lead field matrix
 
 print __doc__
 
-import os
 import mne
 from mne.datasets import sample
 data_path = sample.data_path('.')

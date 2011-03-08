@@ -11,7 +11,6 @@ Plot topographies for MEG sensors
 
 print __doc__
 
-import os
 import pylab as pl
 
 from mne import fiff
@@ -23,13 +22,13 @@ data_path = sample.data_path('.')
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
-data = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
+evoked = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
 
 layout = Layout('Vectorview-all')
 
 ###############################################################################
 # Show topography
-plot_topo(data, layout)
-title = 'MNE sample data (condition : %s)' % data['evoked']['comment']
+plot_topo(evoked, layout)
+title = 'MNE sample data (condition : %s)' % evoked.comment
 pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
 pl.show()

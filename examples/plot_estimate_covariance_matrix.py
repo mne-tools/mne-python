@@ -10,7 +10,6 @@ Estimate covariance matrix from a raw FIF file
 
 print __doc__
 
-import os
 import mne
 from mne import fiff
 from mne.datasets import sample

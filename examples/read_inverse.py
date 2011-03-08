@@ -27,7 +27,6 @@ print "Number of channels: %s" % inv['nchan']
 # Show result
 
 # 3D source space
-import numpy as np
 lh_points = inv['src'][0]['rr']
 lh_faces = inv['src'][0]['use_tris']
 rh_points = inv['src'][1]['rr']

@@ -1,12 +1,8 @@
-import os
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal, assert_equal
+# from numpy.testing import assert_array_almost_equal, assert_equal
 
-from math import ceil
-from .. import Raw, read_raw_segment_times, pick_types, \
-               start_writing_raw, write_raw_buffer, finish_writing_raw
-
+from .. import Raw, pick_types
 
 fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 
