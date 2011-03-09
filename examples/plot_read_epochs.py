@@ -39,49 +39,49 @@ exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 # EEG
 eeg_picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False,
                                             include=include, exclude=exclude)
-eeg_epochs = mne.Epochs(raw, events, event_id,
-                            tmin, tmax, picks=eeg_picks, baseline=(None, 0))
+eeg_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        picks=eeg_picks, baseline=(None, 0), preload=False)
 eeg_evoked = eeg_epochs.average()
 eeg_evoked_data = eeg_evoked.data
 
 # MEG Magnetometers
 meg_mag_picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
                                             include=include, exclude=exclude)
-meg_mag_epochs = mne.Epochs(raw, events, event_id,
-                           tmin, tmax, picks=meg_mag_picks, baseline=(None, 0))
+meg_mag_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        picks=meg_mag_picks, baseline=(None, 0), preload=False)
 meg_mag_evoked = meg_mag_epochs.average()
 meg_mag_evoked_data = meg_mag_evoked.data
 
 # MEG
 meg_grad_picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
                                 stim=False, include=include, exclude=exclude)
-meg_grad_epochs = mne.Epochs(raw, events, event_id,
-                        tmin, tmax, picks=meg_grad_picks, baseline=(None, 0))
+meg_grad_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        picks=meg_grad_picks, baseline=(None, 0), preload=False)
 meg_grad_evoked = meg_grad_epochs.average()
 meg_grad_evoked_data = meg_grad_evoked.data
 
 ###############################################################################
 # View evoked response
-times = eeg_epochs.times
+times = 1e3 * eeg_epochs.times # time in ms
 import pylab as pl
 pl.clf()
 pl.subplot(3, 1, 1)
-pl.plot(1000*times, 1e13*meg_grad_evoked_data.T)
+pl.plot(times, 1e13*meg_grad_evoked_data.T)
 pl.ylim([-200, 200])
-pl.xlim([1000*times[0], 1000*times[-1]])
+pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
 pl.title('MEG (Gradiometers) evoked field')
 pl.subplot(3, 1, 2)
-pl.plot(1000*times, 1e15*meg_mag_evoked_data.T)
+pl.plot(times, 1e15*meg_mag_evoked_data.T)
 pl.ylim([-600, 600])
-pl.xlim([1000*times[0], 1000*times[-1]])
+pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT)')
 pl.title('MEG (Magnetometers) evoked field')
 pl.subplot(3, 1, 3)
-pl.plot(1000*times, 1e6*eeg_evoked_data.T)
-pl.xlim([1000*times[0], 1000*times[-1]])
+pl.plot(times, 1e6*eeg_evoked_data.T)
+pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')
 pl.title('EEG evoked potential')

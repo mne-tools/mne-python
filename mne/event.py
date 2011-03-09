@@ -6,11 +6,14 @@
 #
 # License: BSD (3-clause)
 
+import numpy as np
+
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff.open import fiff_open
 from .fiff.write import write_int, start_block, start_file, end_block, end_file
+from .fiff.pick import pick_channels
 
 
 def read_events(filename):
@@ -73,3 +76,32 @@ def write_events(filename, event_list):
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     end_file(fid)
+
+
+def find_events(raw, stim_channel='STI 014'):
+    """Find events from raw file
+
+    Parameters
+    ----------
+    raw : Raw object
+        The raw data
+
+    stim_channel : string
+        Name of the stim channel
+
+    Returns
+    -------
+    events : array
+        The array of event onsets in time samples.
+    """
+
+    pick = pick_channels(raw.info['ch_names'], include=['STI 014'],
+                         exclude=[])
+    data, times = raw[pick,:]
+    data = data.ravel()
+    idx = np.where(np.diff(data.ravel()) > 0)[0]
+    n_events = len(idx)
+    events_id = data[idx+1].astype(np.int)
+    idx += raw.first_samp + 1
+    events = np.c_[idx, np.zeros_like(idx), events_id]
+    return events
