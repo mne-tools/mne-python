@@ -25,8 +25,6 @@ class Evoked(object):
 
     Attributes
     ----------
-    fname :
-
     nave : int
         Number of averaged epochs
 
@@ -48,18 +46,21 @@ class Evoked(object):
     data : 2D array of shape [n_channels x n_times]
         Evoked response.
     """
+
     def __init__(self, fname, setno=0, baseline=None):
         """
         Parameters
         ----------
         fname : string
-            Name of evoked/average FIF file
+            Name of evoked/average FIF file to load.
+            If None no data is loaded.
 
         setno : int
             Dataset ID number
         """
-        self.fname = fname
-        self.fname = setno
+
+        if fname is None:
+            return
 
         if setno < 0:
             raise ValueError, 'Data set selector must be positive'
@@ -388,7 +389,6 @@ class Evoked(object):
         end_block(fid, FIFF.FIFFB_MEAS)
 
         end_file(fid)
-
 
 
 def read_evoked(fname, setno=0, baseline=None):

@@ -3,8 +3,10 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import numpy as np
 import fiff
+from .fiff import Evoked
 
 
 class Epochs(object):
@@ -30,6 +32,9 @@ class Epochs(object):
     keep_comp : boolean
         Apply CTF gradient compensation
 
+    info : dict
+        Measurement info
+
     baseline: None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -53,7 +58,8 @@ class Epochs(object):
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
     average() : self
-        Return averaged epochs as a 2D array [n_channels x n_times].
+        Return Evoked object containing averaged epochs as a
+        2D array [n_channels x n_times].
 
     """
 
@@ -70,6 +76,13 @@ class Epochs(object):
         self.dest_comp = dest_comp
         self.baseline = baseline
         self.preload = preload
+
+        # Handle measurement info
+        self.info = copy.copy(raw.info)
+        if picks is not None:
+            self.info['chs'] = [self.info['chs'][k] for k in picks]
+            self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
+            self.info['nchan'] = len(picks)
 
         if picks is None:
             picks = range(len(raw.info['ch_names']))
@@ -205,19 +218,32 @@ class Epochs(object):
         self._current += 1
         return epoch
 
-    def average(self):
+    def average(self, comment="Epoked data"):
         """Compute average of epochs
+
+        Parameters
+        ----------
+        comment : string
+            Comment that describes the Evoked data created.
 
         Returns
         -------
         data : array of shape [n_channels, n_times]
             The averaged epochs
         """
+        evoked = Evoked(None)
+        evoked.info = copy.copy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         n_events = len(self.events)
         data = np.zeros((n_channels, n_times))
         for e in self:
             data += e
-        return data / n_events
-
+        evoked.data = data / n_events
+        evoked.times = self.times.copy()
+        evoked.comment = comment
+        evoked.aspect_kind = np.array([100]) # XXX
+        evoked.nave = n_events
+        evoked.first = - np.sum(self.times < 0)
+        evoked.last = np.sum(self.times > 0)
+        return evoked

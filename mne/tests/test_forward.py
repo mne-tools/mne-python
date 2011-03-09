@@ -9,6 +9,7 @@ examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 
+
 def test_io_forward():
     """Test IO for forward solutions
     """
