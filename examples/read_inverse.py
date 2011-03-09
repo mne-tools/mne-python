@@ -1,7 +1,7 @@
 """
-===========================
-Reading an inverse operator
-===========================
+=======================================================
+Reading an inverse operator and view source space in 3D
+=======================================================
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #

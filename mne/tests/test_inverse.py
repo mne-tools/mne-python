@@ -13,10 +13,6 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_data = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis-ave.fif')
 
-def test_io_inverse():
-    """Test IO for inverse operator
-    """
-    fwd = mne.read_inverse_operator(fname_inv)
 
 def test_compute_mne_inverse():
     """Test MNE inverse computation
@@ -27,9 +23,10 @@ def test_compute_mne_inverse():
     lambda2 = 1.0 / snr**2
     dSPM = True
 
-    res = mne.compute_inverse(fname_data, setno, fname_inv, lambda2, dSPM,
-                              baseline=(None, 0))
+    evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
+    inverse_operator = mne.read_inverse_operator(fname_inv)
+
+    res = mne.compute_inverse(evoked, inverse_operator, lambda2, dSPM)
 
     assert np.all(res['sol'] > 0)
     assert np.all(res['sol'] < 35)
-
