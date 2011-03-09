@@ -48,7 +48,7 @@ data = epochs.get_data() # as 3D matrix
 evoked = epochs.average() # compute evoked fields
 
 times = 1e3 * epochs.times # change unit to ms
-evoked *= 1e13 # change unit to fT / cm
+evoked_data = evoked.data * 1e13 # change unit to fT / cm
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw.info['sfreq'] # sampling in Hz
@@ -61,7 +61,7 @@ import pylab as pl
 pl.clf()
 pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
 pl.subplot(3, 1, 1)
-pl.plot(times, evoked.T)
+pl.plot(times, evoked_data.T)
 pl.title('Evoked response (%s)' % raw.info['ch_names'][picks[0]])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
