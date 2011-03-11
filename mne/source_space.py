@@ -172,16 +172,16 @@ def _read_one_source_space(fid, this, open_here):
                     fid.close()
                 raise ValueError, 'Triangulation not found'
             else:
-                res['tris'] = tag.data
+                res['tris'] = tag.data - 1 # index start at 0 in Python
         else:
-            res['tris'] = tag.data
+            res['tris'] = tag.data - 1 # index start at 0 in Python
 
         if res['tris'].shape[0] != res['ntri']:
             if open_here:
                 fid.close()
             raise ValueError, 'Triangulation information is incorrect'
-        else:
-            res['tris'] = None
+    else:
+        res['tris'] = None
 
     #   Which vertices are active
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE)
@@ -238,7 +238,7 @@ def complete_source_space_info(this):
     """Add more info on surface
     """
     #   Main triangulation
-    print '\tCompleting triangulation info...'
+    print '\tCompleting triangulation info...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -247,23 +247,21 @@ def complete_source_space_info(this):
     this['tri_nn'] = np.cross((r2-r1), (r3-r1))
 
     for p in range(this['ntri']): # XXX : can do better
-        size = sqrt(np.sum(this['tri_nn'][p,:] * this['tri_nn'][p,:]))
+        size = sqrt(np.sum(this['tri_nn'][p,:]**2))
         this['tri_area'][p] = size / 2.0
         this['tri_nn'][p,:] = this['tri_nn'][p,:] / size
 
     print '[done]'
 
     #   Selected triangles
-    print '\tCompleting selection triangulation info...'
+    print '\tCompleting selection triangulation info...',
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0],:]
         r2 = this['rr'][this['use_tris'][:, 1],:]
         r3 = this['rr'][this['use_tris'][:, 2],:]
         this['use_tri_cent'] = (r1 + r2 + r3) / 3.0
         this['use_tri_nn'] = np.cross((r2-r1), (r3-r1))
-        for p in range(this['nuse_tri']): # XXX can do better
-            this['use_tri_area'][p] = sqrt(np.sum(this['use_tri_nn'][p,:]
-                                           * this['use_tri_nn'][p,:])) / 2.0
+        this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn']**2, axis=1)) / 2.0
 
     print '[done]'
 
