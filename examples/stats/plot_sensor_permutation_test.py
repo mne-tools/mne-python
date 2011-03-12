@@ -46,7 +46,6 @@ epochs = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))
 data = epochs.get_data()
 times = epochs.times
-evoked_data = data.mean(axis=0)
 
 temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
 data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
@@ -89,4 +88,3 @@ title = 'MNE sample data (Left auditory between 40 and 60 ms)'
 pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
 pl.show()
 pl.show()
-
