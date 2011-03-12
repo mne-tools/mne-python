@@ -417,7 +417,7 @@ def read_evoked(fname, setno=0, baseline=None):
     data: dict
         The evoked dataset
     """
-    return Evoked(fname, setno)
+    return Evoked(fname, setno, baseline=baseline)
 
 
 def write_evoked(name, evoked):

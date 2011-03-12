@@ -25,6 +25,5 @@ def plot_topo(evoked, layout):
             pl.xticks([], ())
             pl.yticks([], ())
 
-    pl.show()
     pl.rcParams['axes.edgecolor'] = 'k'
 
