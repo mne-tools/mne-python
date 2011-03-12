@@ -1,9 +1,10 @@
 import numpy as np
 import os.path as op
+from numpy.testing import assert_array_almost_equal
 
 import mne
 from mne import fiff
-from mne.time_frequency import induced_power
+from mne.time_frequency import induced_power, single_trial_power
 from mne.time_frequency.tfr import cwt_morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
@@ -56,3 +57,9 @@ def test_time_frequency():
 
     tfr = cwt_morlet(data[0], Fs, frequencies, use_fft=True, n_cycles=2)
     assert tfr.shape == (len(picks), len(frequencies), len(times))
+
+    single_power = single_trial_power(data, Fs, frequencies, use_fft=False,
+                                      n_cycles=2)
+
+    assert_array_almost_equal(np.mean(single_power), power)
+

@@ -360,10 +360,12 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             #   Rotate the local source coordinate systems
             print '\tConverting to surface-based source orientations...'
             nuse = 0
-            pp = 1
-            fwd['source_rr'] = np.zeros(fwd['nsource'], 3)
+            pp = 0
+            nuse_total = sum([s['nuse'] for s in src])
+            fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
+            fwd['source_nn'] = np.empty((3*nuse_total, 3), dtype=np.float)
             for s in src:
-                fwd['source_rr'][nuse+1:nuse + s['nuse'],:] = \
+                fwd['source_rr'][nuse:nuse + s['nuse'],:] = \
                                                     s['rr'][s['vertno'],:]
                 for p in range(s['nuse']):
                     #  Project out the surface normal and compute SVD
@@ -373,12 +375,14 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                     #  Make sure that ez is in the direction of nn
                     if np.sum(nn*U[:,2]) < 0:
                         U *= -1
-                        fwd['source_nn'][pp:pp+2,:] = U.T
-                        pp += 3
-                    nuse += s['nuse']
+
+                    fwd['source_nn'][pp:pp+3,:] = U.T
+                    pp += 3
+
+                nuse += s['nuse']
 
             surf_rot = _block_diag(fwd['source_nn'].T, 3)
-            fwd['sol']['data'] = np.dot(fwd['sol']['data'], surf_rot)
+            fwd['sol']['data'] = fwd['sol']['data'] * surf_rot
             if fwd['sol_grad'] is not None:
                 fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
                                                  np.kron(surf_rot, np.eye(3)))

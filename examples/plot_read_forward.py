@@ -15,7 +15,7 @@ data_path = sample.data_path('.')
 
 fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
-fwd = mne.read_forward_solution(fname)
+fwd = mne.read_forward_solution(fname, surf_ori=True)
 leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape

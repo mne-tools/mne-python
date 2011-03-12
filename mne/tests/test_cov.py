@@ -3,11 +3,13 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 
 import mne
-from ..fiff import fiff_open, read_evoked
+from ..fiff import fiff_open, read_evoked, pick_types
 from ..datasets import sample
 
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
+raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test_raw.fif')
 
 
 def test_io_cov():
@@ -25,6 +27,26 @@ def test_io_cov():
     fid.close()
 
     assert_array_almost_equal(cov['data'], cov2['data'])
+
+
+def test_cov_estimation():
+    """Test estimation of noise covariance from raw data
+    """
+    raw = mne.fiff.Raw(raw_fname)
+    # Set up pick list: MEG + STI 014 - bad channels
+    want_meg = True
+    want_eeg = False
+    want_stim = False
+
+    picks = pick_types(raw.info, meg=want_meg, eeg=want_eeg,
+                            stim=want_stim, exclude=raw.info['bads'])
+
+    full_cov = mne.Covariance(kind='full')
+    full_cov.estimate_from_raw(raw, picks=picks)
+
+    diagonal_cov = mne.Covariance(kind='diagonal')
+    diagonal_cov.estimate_from_raw(raw, picks=picks)
+    # XXX : test something
 
 
 def test_whitening_cov():

@@ -15,5 +15,6 @@ def test_io_forward():
     """
     fwd = mne.read_forward_solution(fname)
     fwd = mne.read_forward_solution(fname, force_fixed=True)
+    fwd = mne.read_forward_solution(fname, surf_ori=True)
     leadfield = fwd['sol']['data']
     # XXX : test something

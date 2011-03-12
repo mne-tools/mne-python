@@ -116,7 +116,6 @@ class Evoked(object):
             raise ValueError, 'Data set selector out of range'
 
         #   Next locate the evoked data set
-        #
         p = 0
         goon = True
         for k in range(len(evoked_node)):
