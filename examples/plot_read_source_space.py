@@ -15,7 +15,8 @@ import mne
 from mne.datasets import sample
 
 data_path = sample.data_path('.')
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6-fwd.fif')
+# fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6-fwd.fif')
+fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6p-fwd.fif')
 
 add_geom = True # include high resolution source space
 src = mne.read_source_spaces(fname, add_geom=add_geom)

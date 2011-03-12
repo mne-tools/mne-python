@@ -624,7 +624,7 @@ with the patch information included. In addition to the patch information, mne_a
 optionally calculate distances, along the cortical surface, between
 the vertices selected to the source space.
 
-.. note:: Depending on the speed of your computer and    the options selected, mne_add_patch_info takes    5 - 30 minutes to run.
+.. note:: Depending on the speed of your computer and the options selected, mne_add_patch_info takes 5 - 30 minutes to run.
 
 .. _CJAGCDCC:
 

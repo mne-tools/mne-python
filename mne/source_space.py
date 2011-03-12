@@ -16,17 +16,19 @@ def patch_info(nearest):
     """Patch information in a source space
 
     Generate the patch information from the 'nearest' vector in
-    a source space
+    a source space. For vertex in the source space it provides
+    the list of neighboring vertices in the high resolution
+    triangulation.
 
     Parameters
     ----------
     nearest: array
-        XXX ?
+        For each vertex gives the index of its closest neighbor.
 
     Returns
     -------
     pinfo: list
-        XXX ?
+        List of neighboring vertices
     """
     if nearest is None:
         pinfo = None
@@ -35,55 +37,45 @@ def patch_info(nearest):
     indn = np.argsort(nearest)
     nearest_sorted = nearest[indn]
 
-    uniq, firsti = np.unique(nearest_sorted, return_index=True)
-    uniq, lasti = np.unique(nearest_sorted[::-1], return_index=True)
-    lasti = nearest.size - lasti
+    steps = np.where(nearest_sorted[1:] != nearest_sorted[:-1])[0] + 1
+    starti = np.r_[[0], steps]
+    stopi = np.r_[steps, [len(nearest)]]
 
     pinfo = list()
-    for k in range(len(uniq)):
-        pinfo.append(indn[firsti[k]:lasti[k]])
+    for start, stop in zip(starti, stopi):
+        pinfo.append(np.sort(indn[start:stop]))
 
     return pinfo
 
 
-def read_source_spaces(source, add_geom=False, tree=None):
+def read_source_spaces_from_tree(fid, tree, add_geom=False):
     """Read the source spaces from a FIF file
 
     Parameters
     ----------
-    source: string or file
-        The name of the file or an open file descriptor
-
-    add_geom: bool, optional (default False)
-        Add geometry information to the surfaces
+    fid: file descriptor
+        An open file descriptor
 
     tree: dict
         The FIF tree structure if source is a file id.
+
+    add_geom: bool, optional (default False)
+        Add geometry information to the surfaces
 
     Returns
     -------
     src: list
         The list of source spaces
     """
-    #   Open the file, create directory
-    if isinstance(source, str):
-        fid, tree, _ = fiff_open(source)
-        open_here = True
-    else:
-        fid = source
-        open_here = False
-
     #   Find all source spaces
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
-        if open_here:
-            fid.close()
         raise ValueError, 'No source spaces found'
 
     src = list()
     for s in spaces:
         print '\tReading a source space...',
-        this = _read_one_source_space(fid, s, open_here)
+        this = _read_one_source_space(fid, s)
         print '[done]'
         if add_geom:
             complete_source_space_info(this)
@@ -92,13 +84,30 @@ def read_source_spaces(source, add_geom=False, tree=None):
 
     print '\t%d source spaces read' % len(spaces)
 
-    if open_here:
-        fid.close()
-
     return src
 
 
-def _read_one_source_space(fid, this, open_here):
+def read_source_spaces(fname, add_geom=False):
+    """Read the source spaces from a FIF file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the file
+
+    add_geom: bool, optional (default False)
+        Add geometry information to the surfaces
+
+    Returns
+    -------
+    src: list
+        The list of source spaces
+    """
+    fid, tree, _ = fiff_open(fname)
+    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+
+
+def _read_one_source_space(fid, this):
     """Read one source space
     """
     FIFF_BEM_SURF_NTRI = 3104
@@ -114,9 +123,7 @@ def _read_one_source_space(fid, this, open_here):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
-        if open_here:
-            fid.close()
-            raise ValueError, 'Number of vertices not found'
+        raise ValueError, 'Number of vertices not found'
 
     res['np'] = tag.data
 
@@ -132,35 +139,25 @@ def _read_one_source_space(fid, this, open_here):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
-        if open_here:
-            fid.close()
-            raise ValueError, 'Coordinate frame information not found'
+        raise ValueError, 'Coordinate frame information not found'
 
     res['coord_frame'] = tag.data
 
     #   Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS)
     if tag is None:
-        if open_here:
-            fid.close()
         raise ValueError, 'Vertex data not found'
 
     res['rr'] = tag.data.astype(np.float) # make it double precision for mayavi
     if res['rr'].shape[0] != res['np']:
-        if open_here:
-            fid.close()
         raise ValueError, 'Vertex information is incorrect'
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
     if tag is None:
-        if open_here:
-            fid.close()
         raise ValueError, 'Vertex normals not found'
 
     res['nn'] = tag.data
     if res['nn'].shape[0] != res['np']:
-        if open_here:
-            fid.close()
         raise ValueError, 'Vertex normal information is incorrect'
 
     if res['ntri'] > 0:
@@ -168,8 +165,6 @@ def _read_one_source_space(fid, this, open_here):
         if tag is None:
             tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES)
             if tag is None:
-                if open_here:
-                    fid.close()
                 raise ValueError, 'Triangulation not found'
             else:
                 res['tris'] = tag.data - 1 # index start at 0 in Python
@@ -177,8 +172,6 @@ def _read_one_source_space(fid, this, open_here):
             res['tris'] = tag.data - 1 # index start at 0 in Python
 
         if res['tris'].shape[0] != res['ntri']:
-            if open_here:
-                fid.close()
             raise ValueError, 'Triangulation information is incorrect'
     else:
         res['tris'] = None
@@ -193,14 +186,10 @@ def _read_one_source_space(fid, this, open_here):
         res['nuse'] = tag.data
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION)
         if tag is None:
-            if open_here:
-                fid.close()
             raise ValueError, 'Source selection information missing'
 
         res['inuse'] = tag.data.astype(np.int).T
         if len(res['inuse']) != res['np']:
-            if open_here:
-                fid.close()
             raise ValueError, 'Incorrect number of entries in source space ' \
                               'selection'
 

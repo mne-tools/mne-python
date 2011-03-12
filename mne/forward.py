@@ -13,7 +13,7 @@ from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from .fiff.pick import pick_channels_forward
 
-from .source_space import read_source_spaces, find_source_space_hemi
+from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
 
 
@@ -209,7 +209,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             chs.append(tag.data)
 
     try:
-        src = read_source_spaces(fid, False, tree)
+        src = read_source_spaces_from_tree(fid, tree, add_geom=False)
     except Exception as inst:
         fid.close()
         raise ValueError, 'Could not read the source spaces (%s)' % inst

@@ -7,7 +7,7 @@ from mne.datasets import sample
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6-fwd.fif')
+fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6p-fwd.fif')
 
 def test_read_source_spaces():
     """Testing reading of source space meshes

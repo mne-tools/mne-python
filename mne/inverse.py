@@ -15,7 +15,7 @@ from .fiff.tree import dir_tree_find
 from .fiff.pick import pick_channels_evoked
 
 from .cov import read_cov
-from .source_space import read_source_spaces, find_source_space_hemi
+from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .forward import _block_diag
 from .transforms import invert_transform, transform_source_space_to
 
@@ -179,7 +179,7 @@ def read_inverse_operator(fname):
     #   Read the source spaces
     #
     try:
-        inv['src'] = read_source_spaces(fid, False, tree)
+        inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
     except Exception as inst:
         fid.close()
         raise ValueError, 'Could not read the source spaces (%s)' % inst

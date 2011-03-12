@@ -51,21 +51,21 @@ class Layout(object):
         self.pos = pos
         self.names = names
 
-if __name__ == '__main__':
-
-    layout = Layout()
-
-    import pylab as pl
-    pl.rcParams['axes.edgecolor'] = 'w'
-    pl.close('all')
-    pl.figure(facecolor='k', )
-
-    for i in range(5):
-    # for i in range(len(pos)):
-        ax = pl.axes(layout.pos[i], axisbg='k')
-        ax.plot(np.random.randn(3), 'w')
-        pl.xticks([], ())
-        pl.yticks([], ())
-        pl.gca().grid(color='w')
-
-    pl.show()
+# if __name__ == '__main__':
+# 
+#     layout = Layout()
+# 
+#     import pylab as pl
+#     pl.rcParams['axes.edgecolor'] = 'w'
+#     pl.close('all')
+#     pl.figure(facecolor='k', )
+# 
+#     for i in range(5):
+#     # for i in range(len(pos)):
+#         ax = pl.axes(layout.pos[i], axisbg='k')
+#         ax.plot(np.random.randn(3), 'w')
+#         pl.xticks([], ())
+#         pl.yticks([], ())
+#         pl.gca().grid(color='w')
+# 
+#     pl.show()

@@ -6,7 +6,6 @@
 import numpy as np
 
 from .tree import dir_tree_find
-from .open import fiff_open
 from .constants import FIFF
 from .tag import read_tag
 from .proj import read_proj
@@ -14,14 +13,13 @@ from .ctf import read_ctf_comp
 from .channels import _read_bad_channels
 
 
-def read_meas_info(source, tree=None):
+def read_meas_info(fid, tree):
     """Read the measurement info
 
     Parameters
     ----------
-    source: string or file
-        If string it is the file name otherwise it's the file descriptor.
-        If tree is missing, the meas output argument is None
+    fid: file
+        Open file descriptor
 
     tree: tree
         FIF tree structure
@@ -35,33 +33,18 @@ def read_meas_info(source, tree=None):
         Node in tree that contains the info.
 
     """
-    if tree is None:
-       fid, tree, _ = fiff_open(source)
-       open_here = True
-    else:
-       fid = source
-       open_here = False
-
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
-        if open_here:
-            fid.close()
         raise ValueError, 'Could not find measurement data'
     if len(meas) > 1:
-        if open_here:
-            fid.close()
         raise ValueError, 'Cannot read more that 1 measurement data'
     meas = meas[0]
 
     meas_info = dir_tree_find(meas, FIFF.FIFFB_MEAS_INFO)
     if len(meas_info) == 0:
-        if open_here:
-            fid.close()
         raise ValueError, 'Could not find measurement info'
     if len(meas_info) > 1:
-        if open_here:
-            fid.close()
         raise ValueError, 'Cannot read more that 1 measurement info'
     meas_info = meas_info[0]
 
@@ -109,23 +92,15 @@ def read_meas_info(source, tree=None):
 
     # Check that we have everything we need
     if nchan is None:
-       if open_here:
-           fid.close()
        raise ValueError, 'Number of channels in not defined'
 
     if sfreq is None:
-        if open_here:
-            fid.close()
         raise ValueError, 'Sampling frequency is not defined'
 
     if len(chs) == 0:
-        if open_here:
-            fid.close()
         raise ValueError, 'Channel information not defined'
 
     if len(chs) != nchan:
-        if open_here:
-            fid.close()
         raise ValueError, 'Incorrect number of channel definitions found'
 
     if dev_head_t is None or ctf_head_t is None:
@@ -151,12 +126,8 @@ def read_meas_info(source, tree=None):
         isotrak = isotrak[0]
     else:
         if len(isotrak) == 0:
-            if open_here:
-                fid.close()
             raise ValueError, 'Isotrak not found'
         if len(isotrak) > 1:
-            if open_here:
-                fid.close()
             raise ValueError, 'Multiple Isotrak found'
 
     dig = []
@@ -251,9 +222,6 @@ def read_meas_info(source, tree=None):
     info['comps'] = comps
     info['acq_pars'] = acq_pars
     info['acq_stim'] = acq_stim
-
-    if open_here:
-       fid.close()
 
     return info, meas
 
