@@ -65,21 +65,21 @@ times = 1e3 * epochs_condition_1.times # change unit to ms
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw.info['sfreq'] # sampling in Hz
-epochs_coefs_1 = single_trial_power(data_condition_1, Fs=Fs,
+epochs_power_1 = single_trial_power(data_condition_1, Fs=Fs,
                                    frequencies=frequencies,
                                    n_cycles=2, use_fft=False)
 
-epochs_coefs_2 = single_trial_power(data_condition_2, Fs=Fs,
+epochs_power_2 = single_trial_power(data_condition_2, Fs=Fs,
                                    frequencies=frequencies,
                                    n_cycles=2, use_fft=False)
 
-epochs_coefs_1 = epochs_coefs_1[:,0,:,:] # only 1 channel to get a 3D matrix
-epochs_coefs_2 = epochs_coefs_2[:,0,:,:] # only 1 channel to get a 3D matrix
+epochs_power_1 = epochs_power_1[:,0,:,:] # only 1 channel to get a 3D matrix
+epochs_power_2 = epochs_power_2[:,0,:,:] # only 1 channel to get a 3D matrix
                                    ###############################################################################
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-                   permutation_cluster_test([epochs_coefs_1, epochs_coefs_2],
+                   permutation_cluster_test([epochs_power_1, epochs_power_2],
                                n_permutations=100, threshold=threshold, tail=0)
 
 ###############################################################################
