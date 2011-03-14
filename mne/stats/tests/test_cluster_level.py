@@ -1,11 +1,11 @@
 import numpy as np
 from numpy.testing import assert_equal
 
-from ..cluster_level import permutation_cluster_test
+from ..cluster_level import permutation_cluster_test, permutation_cluster_t_test
 
 
-def test_permutation_t_test():
-    """Test T-test based on permutations
+def test_cluster_permutation_test():
+    """Test cluster level permutations tests.
     """
     noiselevel = 20
 
@@ -37,3 +37,8 @@ def test_permutation_t_test():
                                 [condition1, condition2], n_permutations=500,
                                 tail=-1)
     assert_equal(np.sum(cluster_p_values < 0.05), 0)
+
+    condition1 = condition1[:,:,None] # to test 2D also
+    T_obs, clusters, cluster_p_values, hist = permutation_cluster_t_test(
+                                condition1, n_permutations=500, tail=0)
+    assert_equal(np.sum(cluster_p_values < 0.05), 1)

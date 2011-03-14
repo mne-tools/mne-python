@@ -216,7 +216,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
     return power
 
 
-def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=25,
+def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
                    n_jobs=1):
     """Compute time induced power and inter-trial phase-locking factor
 
