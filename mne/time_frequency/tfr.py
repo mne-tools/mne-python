@@ -168,6 +168,7 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
 
     return tfrs
 
+
 def _time_frequency(X, Ws, use_fft):
     """Aux of time_frequency for parallel computing over channels
     """
@@ -188,6 +189,7 @@ def _time_frequency(X, Ws, use_fft):
         plf += tfr / tfr_abs
 
     return psd, plf
+
 
 def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
     """Compute time-frequency power on single epochs
@@ -212,6 +214,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
         power[k] = np.abs(list(_cwt(e, Ws, mode)))**2
 
     return power
+
 
 def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=25,
                    n_jobs=1):
