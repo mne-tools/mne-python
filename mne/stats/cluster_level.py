@@ -69,16 +69,21 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
     statistics for each timepoint (dim 1) over groups.  Do a cluster
-    analysis with permutation test for calculating corrected p-values
+    analysis with permutation test for calculating corrected p-values.
+    Randomized data are generated with random partitions of the data.
 
     Parameters
     ----------
-    X: list
+    X : list
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
         elements of groups
     stat_fun : callable
         function called to calculate statistics, must accept 1d-arrays as
         arguments (default: scipy.stats.f_oneway)
+    threshold : float
+        The threshold for the statistic.
+    n_permutations : int
+        The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the statistic is thresholded above threshold.
         If tail is -1, the statistic is thresholded below threshold.

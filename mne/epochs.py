@@ -77,6 +77,9 @@ class Epochs(object):
         self.baseline = baseline
         self.preload = preload
 
+        if len(picks) == 0:
+            raise ValueError, "Picks cannot be empty."
+
         # Handle measurement info
         self.info = copy.copy(raw.info)
         if picks is not None:
