@@ -41,7 +41,7 @@ involves the following steps:
 - If the data comes from a Magnes system where the primary (helmet) sensors
   are gradiometers instead of magnetometers, run mne_fix_mag_coil_types with
   the ``--magnes`` option to correct the channel information
-  in the file, see Section 11.4.4.
+  in the file, see :ref:`CHDGAAJC`.
 
 - Export a text file containing the Magnes compensation sensor
   data.

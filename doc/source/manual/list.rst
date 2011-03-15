@@ -200,7 +200,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | fif or FreeSurfer format, see Section 11.9.|
     +---------------------------------+--------------------------------------------+
     | *mne_fix_mag_coil_types*        | Update the coil types for magnetometers    |
-    |                                 | in a fif file, see Section 11.4.4.         |
+    |                                 | in a fif file, see :ref:`CHDGAAJC`         |
     +---------------------------------+--------------------------------------------+
     | *mne_fix_stim14*                | Fix coding errors of trigger channel       |
     |                                 | STI 014, see Section 3.9.1.                |

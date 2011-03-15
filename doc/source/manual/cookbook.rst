@@ -547,8 +547,8 @@ which need to be fixed before proceeding:
 
 - The magnetometer coil identifiers are not always correct.
 
-These potential problems can be fixed with the utilities mne_check_eeg_locations and mne_fix_mag_coil_types ,
-see Sections 11.4.3 and 11.4.4.
+These potential problems can be fixed with the utilities mne_check_eeg_locations and mne_fix_mag_coil_types,
+see :ref:`CHDJGGGC` and :ref:`CHDGAAJC`.
 
 .. _BABBHCFG:
 
