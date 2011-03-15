@@ -8,7 +8,7 @@
 
 import numpy as np
 from scipy import ndimage
-from scipy.stats import percentileofscore, ttest_1samp
+from scipy.stats import ttest_1samp
 
 from .parametric import f_oneway
 
@@ -72,17 +72,14 @@ def _pval_from_histogram(T, H0, tail):
     if not tail in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
-    pval = np.array([percentileofscore(H0, t) for t in T])
-
     # from pct to fraction
     if tail == -1: # up tail
-        pval =  pval / 100.0
+        pval =  np.array([np.mean(H0 <= t) for t in T])
     elif tail == 1: # low tail
-        pval = (100.0 - pval) / 100.0
+        pval = np.array([np.mean(H0 >= t) for t in T])
     elif tail == 0: # both tails
-        pval = 100.0 - pval
-        pval += np.array([percentileofscore(H0, -t) for t in T])
-        pval /= 100.0
+        pval = np.array([np.mean(H0 >= abs(t)) for t in T])
+        pval += np.array([np.mean(H0 <= -abs(t)) for t in T])
 
     return pval
 

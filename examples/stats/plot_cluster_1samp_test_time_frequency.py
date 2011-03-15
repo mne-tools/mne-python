@@ -75,10 +75,10 @@ epochs_power /= np.mean(epochs_power[:,:,times < 0], axis=2)[:,:,None]
 epochs_power -= 1.0
                                    ###############################################################################
 # Compute statistic
-threshold = 6.0
+threshold = 5.0
 T_obs, clusters, cluster_p_values, H0 = \
                    permutation_cluster_t_test(epochs_power,
-                               n_permutations=100, threshold=threshold, tail=0)
+                               n_permutations=100, threshold=threshold, tail=1)
 
 ###############################################################################
 # View time-frequency plots
@@ -92,7 +92,7 @@ pl.title('Evoked response (%s)' % ch_name)
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
 pl.xlim(times[0], times[-1])
-pl.ylim(-100, 200)
+pl.ylim(-100, 250)
 
 pl.subplot(2, 1, 2)
 
