@@ -66,7 +66,7 @@ frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw.info['sfreq'] # sampling in Hz
 epochs_power = single_trial_power(data, Fs=Fs,
                                    frequencies=frequencies,
-                                   n_cycles=3, use_fft=False)
+                                   n_cycles=3, use_fft=False, n_jobs=1)
 
 epochs_power = epochs_power[:,0,:,:] # only 1 channel to get a 3D matrix
 # do ratio with baseline power:

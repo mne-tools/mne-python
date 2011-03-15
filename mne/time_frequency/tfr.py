@@ -168,6 +168,42 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
 
     return tfrs
 
+def cwt(X, Ws, use_fft=True, mode='same'):
+    """Compute time freq decomposition with continuous wavelet transform
+
+    Parameters
+    ----------
+    X : array of shape [n_signals, n_times]
+        signals (one per line)
+
+    Ws : list of array
+        Wavelets time series
+
+    use_fft : bool
+        Use FFT for convolutions
+
+    mode : 'same' | 'valid' | 'full'
+        Convention for convolution
+
+    Returns
+    -------
+    tfr : 3D array
+        Time Frequency Decompositions (n_signals x n_frequencies x n_times)
+    """
+    n_signals, n_times = X.shape
+    n_frequencies = len(Ws)
+
+    if use_fft:
+        coefs = _cwt_fft(X, Ws, mode)
+    else:
+        coefs = _cwt_convolve(X, Ws, mode)
+
+    tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
+    for k, tfr in enumerate(coefs):
+        tfrs[k] = tfr
+
+    return tfrs
+
 
 def _time_frequency(X, Ws, use_fft):
     """Aux of time_frequency for parallel computing over channels
@@ -191,27 +227,57 @@ def _time_frequency(X, Ws, use_fft):
     return psd, plf
 
 
-def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7):
+def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
+                       n_jobs=1):
     """Compute time-frequency power on single epochs
+
+    Parameters
+    ----------
+    epochs : instance of Epochs | 3D array
+        The epochs
+    Fs : float
+        Sampling rate
+    frequencies : array-like
+        The frequencies
+    use_fft : bool
+        Use the FFT for convolutions or not.
+    n_cycles : float
+        The number of cycles in the Morlet wavelet
+    n_jobs : int
+        The number of epochs to process at the same time
+
+    Returns
+    -------
+    power : list of 2D array
+        Each element of the list the the power estimate for an epoch.
     """
+    mode = 'same'
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = epochs.shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
 
+    try:
+        from scikits.learn.externals.joblib import Parallel, delayed
+        parallel = Parallel(n_jobs)
+        my_cwt = delayed(cwt)
+    except ImportError:
+        print "joblib not installed. Cannot run in parallel."
+        n_jobs = 1
+        my_cwt = cwt
+        parallel = list
+
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
-
-    mode = 'same'
-    if use_fft:
-        _cwt = _cwt_fft
+    if n_jobs == 1:
+        for k, e in enumerate(epochs):
+            power[k] = np.abs(cwt(e, Ws, mode))**2
     else:
-        _cwt = _cwt_convolve
-
-    for k, e in enumerate(epochs):
-        mode = 'same'
-        power[k] = np.abs(list(_cwt(e, Ws, mode)))**2
+        # Precompute tf decompositions in parallel
+        tfrs = parallel(my_cwt(e, Ws, use_fft, mode) for e in epochs)
+        for k, tfr in enumerate(tfrs):
+            power[k] = np.abs(tfr)**2
 
     return power
 
