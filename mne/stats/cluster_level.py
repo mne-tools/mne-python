@@ -63,6 +63,29 @@ def _find_clusters(x, threshold, tail=0):
     return clusters, sums
 
 
+def _pval_from_histogram(T, H0, tail):
+    """Get p-values from stats values given an H0 distribution
+
+    For each stat compute a p-value as percentile of its statistics
+    within all statistics in surrogate data
+    """
+    if not tail in [-1, 0, 1]:
+        raise ValueError('invalid tail parameter')
+
+    pval = np.array([percentileofscore(H0, t) for t in T])
+
+    # from pct to fraction
+    if tail == -1: # up tail
+        pval =  pval / 100.0
+    elif tail == 1: # low tail
+        pval = (100.0 - pval) / 100.0
+    elif tail == 0: # both tails
+        pval = 100.0 - pval
+        pval += np.array([percentileofscore(H0, -t) for t in T])
+
+    return pval
+
+
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0):
     """Cluster-level statistical permutation test
@@ -127,7 +150,6 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        cluster_pv = np.ones(len(clusters), dtype=np.float)
         H0 = np.zeros(n_permutations) # histogram
         for i_s in range(n_permutations):
             np.random.shuffle(X_full)
@@ -140,12 +162,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
             else:
                 H0[i_s] = 0
 
-        # for each cluster in original data, calculate p-value as percentile
-        # of its cluster statistics within all cluster statistics in surrogate
-        # data
-        cluster_pv[:] = [percentileofscore(H0, cluster_stats[i_cl])
-                                             for i_cl in range(len(clusters))]
-        cluster_pv[:] = (100.0 - cluster_pv[:]) / 100.0 # from pct to fraction
+        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
         return T_obs, clusters, cluster_pv, H0
     else:
         return T_obs, np.array([]), np.array([]), np.array([])
@@ -211,8 +228,7 @@ def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        cluster_pv = np.ones(len(clusters), dtype=np.float)
-        H0 = np.zeros(n_permutations) # histogram
+        H0 = np.empty(n_permutations) # histogram
         for i_s in range(n_permutations):
             # new surrogate data with random sign flip
             signs = np.sign(0.5 - np.random.rand(n_samples, *shape_ones))
@@ -223,16 +239,13 @@ def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
             _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail)
 
             if len(perm_clusters_sums) > 0:
-                H0[i_s] = np.max(perm_clusters_sums)
+                idx_max = np.argmax(np.abs(perm_clusters_sums))
+                H0[i_s] = perm_clusters_sums[idx_max] # get max with sign info
             else:
                 H0[i_s] = 0
 
-        # for each cluster in original data, calculate p-value as percentile
-        # of its cluster statistics within all cluster statistics in surrogate
-        # data
-        cluster_pv[:] = [percentileofscore(H0, cluster_stats[i_cl])
-                                             for i_cl in range(len(clusters))]
-        cluster_pv[:] = (100.0 - cluster_pv[:]) / 100.0 # from pct to fraction
+        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+
         return T_obs, clusters, cluster_pv, H0
     else:
         return T_obs, np.array([]), np.array([]), np.array([])
@@ -268,16 +281,25 @@ permutation_cluster_t_test.__test__ = False
 #     condition1[..., -3:] = np.random.randn(*shape1) * noiselevel
 #     condition2[..., -3:] = np.random.randn(*shape2) * noiselevel
 # 
-#     fs, clusters, cluster_p_values, histogram = permutation_cluster_t_test(
-#                                             condition1, n_permutations=100)
+#     # X, threshold, tail = condition1, 1.67, 1
+#     # X, threshold, tail = -condition1, -1.67, -1
+#     # # X, threshold, tail = condition1, 1.67, 0
+#     # fs, clusters, cluster_p_values, histogram = permutation_cluster_t_test(
+#     #                                     condition1, n_permutations=500, tail=tail,
+#     #                                     threshold=threshold)
 # 
-#     # fs, clusters, cluster_p_values, histogram = permutation_cluster_test(
-#     #                             [condition1, condition2], n_permutations=1000)
+#     # import pylab as pl
+#     # pl.close('all')
+#     # pl.hist(histogram)
+#     # pl.show()
 # 
+#     fs, clusters, cluster_p_values, histogram = permutation_cluster_test(
+#                                 [condition1, condition2], n_permutations=1000)
+#     
 #     # Plotting for a better understanding
 #     import pylab as pl
 #     pl.close('all')
-# 
+#     
 #     if condition1.ndim == 2:
 #         pl.subplot(211)
 #         pl.plot(condition1.mean(axis=0), label="Condition 1")
@@ -299,7 +321,7 @@ permutation_cluster_t_test.__test__ = False
 #         for c, p_val in zip(clusters, cluster_p_values):
 #             if p_val <= 0.05:
 #                 fs_plot[c] = fs[c]
-# 
+#     
 #         pl.imshow(fs.T, cmap=pl.cm.gray)
 #         pl.imshow(fs_plot.T, cmap=pl.cm.jet)
 #         # pl.imshow(fs.T, cmap=pl.cm.gray, alpha=0.6)
@@ -307,5 +329,5 @@ permutation_cluster_t_test.__test__ = False
 #         pl.xlabel('time')
 #         pl.ylabel('Freq')
 #         pl.colorbar()
-# 
+#     
 #     pl.show()
