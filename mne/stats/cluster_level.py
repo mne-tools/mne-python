@@ -82,6 +82,7 @@ def _pval_from_histogram(T, H0, tail):
     elif tail == 0: # both tails
         pval = 100.0 - pval
         pval += np.array([percentileofscore(H0, -t) for t in T])
+        pval /= 100.0
 
     return pval
 
