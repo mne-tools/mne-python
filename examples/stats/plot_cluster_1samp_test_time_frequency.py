@@ -73,7 +73,8 @@ epochs_power = epochs_power[:,0,:,:] # only 1 channel to get a 3D matrix
 epochs_power /= np.mean(epochs_power[:,:,times < 0], axis=2)[:,:,None]
 # null hypothesis is that the ratio is 1 (set it to 0 for stats below)
 epochs_power -= 1.0
-                                   ###############################################################################
+
+###############################################################################
 # Compute statistic
 threshold = 5.0
 T_obs, clusters, cluster_p_values, H0 = \
