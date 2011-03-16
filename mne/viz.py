@@ -29,7 +29,7 @@ def plot_topo(evoked, layout):
     pl.rcParams['axes.edgecolor'] = 'k'
 
 
-def plot_evoked(evoked, picks=None):
+def plot_evoked(evoked, picks=None, unit=True):
     """Plot evoked data
 
     Parameters
@@ -38,6 +38,8 @@ def plot_evoked(evoked, picks=None):
         The evoked data
     picks : None | array-like of int
         The indices of channels to plot. If None show all.
+    unit : bool
+        Scale plot with channel (SI) unit.
     """
     pl.clf()
     if picks is None:
@@ -52,10 +54,13 @@ def plot_evoked(evoked, picks=None):
 
     counter = 1
     times = 1e3 * evoked.times # time in miliseconds
-    for t, scaling, name, unit in zip(['eeg', 'grad', 'mag'],
+    for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
                            [1e6, 1e13, 1e15],
                            ['EEG', 'Gradiometers', 'Magnetometers'],
                            ['uV', 'fT/cm', 'fT']):
+        if unit is False:
+            scaling = 1.0
+            ch_unit = 'NA' # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] is t]
         if len(idx) > 0:
             pl.subplot(n_channel_types, 1, counter)
@@ -63,7 +68,7 @@ def plot_evoked(evoked, picks=None):
             pl.title(name)
             pl.xlabel('time (ms)')
             counter += 1
-            pl.ylabel('data (%s)' % unit)
+            pl.ylabel('data (%s)' % ch_unit)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     pl.show()
