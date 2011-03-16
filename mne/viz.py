@@ -28,6 +28,7 @@ def plot_topo(evoked, layout):
 
     pl.rcParams['axes.edgecolor'] = 'k'
 
+
 def plot_evoked(evoked, picks=None):
     """Plot evoked data
 
@@ -66,4 +67,3 @@ def plot_evoked(evoked, picks=None):
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     pl.show()
-
