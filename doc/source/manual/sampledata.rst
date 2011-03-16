@@ -61,7 +61,7 @@ as a compressed tar archive located at ``$MNE_ROOT/sample-data/MNE-sample-data.t
 To make a personal copy of the sample data set, follow these steps:
 
 - Set up for using the MNE software as
-  instructed in Section 2.4 of this manual.
+  instructed in :ref:`CIHCDHGI` of this manual.
 
 - Create a directory for your personal copy: ``mkdir`` <yourdir> , where <yourdir> is
   the location where you want your personal copy to reside. Tho store
@@ -78,7 +78,7 @@ To make a personal copy of the sample data set, follow these steps:
 To start the tutorials you need to:
 
 - Set up MNE software user environment,
-  see Section 2.4.
+  see :ref:`CIHCDHGI`.
 
 - Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <yourdir> ``/subjects`` (csh
   and tcsh) or ``export SUBJECTS_DIR=`` <yourdir> ``/subjects`` (POSIX-compatible
