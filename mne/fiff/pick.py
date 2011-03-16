@@ -8,6 +8,33 @@ from copy import copy
 import numpy as np
 from .constants import FIFF
 
+def channel_type(info, idx):
+    """Get channel type
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info
+    idx : int
+        Index of channel
+
+    Returns
+    -------
+    type : 'grad' | 'mag' | 'eeg' | 'stim'
+        Type of channel
+    """
+
+    kind = info['chs'][idx].kind
+    if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+        if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
+            return 'grad'
+        elif info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T:
+            return 'mag'
+    elif kind == FIFF.FIFFV_EEG_CH:
+        return 'eeg'
+    elif kind == FIFF.FIFFV_STIM_CH:
+        return 'stim'
+
 
 def pick_channels(ch_names, include, exclude):
     """Pick channels by names
