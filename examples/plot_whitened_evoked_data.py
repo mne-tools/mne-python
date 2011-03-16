@@ -29,5 +29,5 @@ evoked_whiten, W = cov.whiten_evoked(evoked)
 ###############################################################################
 # Show result
 picks = fiff.pick_types(evoked_whiten.info, meg=True, eeg=True,
-                        exclude=evoked_whiten.info['bads']) # Pick channels to view
+                    exclude=evoked_whiten.info['bads']) # Pick channels to view
 plot_evoked(evoked_whiten, picks, unit=False) # plot without SI unit of data
