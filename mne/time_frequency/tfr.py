@@ -228,12 +228,13 @@ def _time_frequency(X, Ws, use_fft):
 
 
 def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
+                       baseline=None, baseline_mode='ratio', times=None,
                        n_jobs=1):
     """Compute time-frequency power on single epochs
 
     Parameters
     ----------
-    epochs : instance of Epochs | 3D array
+    epochs : instance of Epochs | array of shape [n_epochs x n_channels x n_times]
         The epochs
     Fs : float
         Sampling rate
@@ -243,6 +244,21 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         Use the FFT for convolutions or not.
     n_cycles : float
         The number of cycles in the Morlet wavelet
+    baseline: None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
+    baseline_mode : None | 'ratio' | 'zscore'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    times : array
+        Required to define baseline
     n_jobs : int
         The number of epochs to process at the same time
 
@@ -268,6 +284,8 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         my_cwt = cwt
         parallel = list
 
+    print "Computing time-frequency power on single epochs..."
+
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
     if n_jobs == 1:
@@ -278,6 +296,30 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         tfrs = parallel(my_cwt(e, Ws, use_fft, mode) for e in epochs)
         for k, tfr in enumerate(tfrs):
             power[k] = np.abs(tfr)**2
+
+    # Run baseline correction
+    if baseline is not None:
+        if times is None:
+            raise ValueError('times parameter is required to define baseline')
+        print "Applying baseline correction ..."
+        bmin = baseline[0]
+        bmax = baseline[1]
+        if bmin is None:
+            imin = 0
+        else:
+            imin = int(np.where(times >= bmin)[0][0])
+        if bmax is None:
+            imax = len(times)
+        else:
+            imax = int(np.where(times <= bmax)[0][-1]) + 1
+        mean_baseline_power = np.mean(power[:,:,:,imin:imax], axis=3)
+        if baseline_mode is 'ratio':
+            power /= mean_baseline_power[:,:,:,None]
+        elif baseline_mode is 'zscore':
+            power -= mean_baseline_power[:,:,:,None]
+            power /= np.std(power[:,:,:,imin:imax], axis=3)[:,:,:,None]
+    else:
+        print "No baseline correction applied..."
 
     return power
 

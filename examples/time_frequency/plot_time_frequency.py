@@ -55,6 +55,8 @@ Fs = raw.info['sfreq'] # sampling in Hz
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                    n_cycles=2, n_jobs=1, use_fft=False)
 
+power /= np.mean(power[:,:,times<0], axis=2)[:,:,None] # baseline ratio
+
 ###############################################################################
 # View time-frequency plots
 import pylab as pl
@@ -82,7 +84,7 @@ pl.imshow(phase_lock[0], extent=[times[0], times[-1],
                               frequencies[0], frequencies[-1]],
           aspect='auto', origin='lower')
 pl.xlabel('Time (s)')
-pl.ylabel('PLF')
+pl.ylabel('Frequency (Hz)')
 pl.title('Phase-lock (%s)' % raw.info['ch_names'][picks[0]])
 pl.colorbar()
 pl.show()
