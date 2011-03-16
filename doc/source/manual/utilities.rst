@@ -1,6 +1,6 @@
 
 
-.. _CHDBFDFG:
+.. _ch_misc:
 
 =======================
 Miscellaneous utilities
