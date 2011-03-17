@@ -407,7 +407,7 @@ you set up the FreeSurfer environment
 as described in the FreeSurfer documentation.
 
 The environment variables relevant to the MNE software are
-listed in :ref:`CIHDGFAA`
+listed in :ref:`CIHDGFAA`.
 
 .. _CIHDGFAA:
 
