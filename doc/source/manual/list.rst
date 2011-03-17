@@ -36,7 +36,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_compute_mne*          | Computes the minimum-norm estimates,       |
     |                            | see Section B.3.1. Most of the             |
     |                            | functionality of mne_compute_mne is        |
-    |                            | included in mne_make_movie .               |
+    |                            | included in mne_make_movie.               |
     +----------------------------+--------------------------------------------+
     | *mne_compute_raw_inverse*  | Compute the inverse solution from raw data |
     |                            | see :ref:`CBBCGHAH`.                       |
@@ -76,7 +76,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +----------------------------+--------------------------------------------+
     | mne_redo_file_nocwd        | Works like mne_redo_file but does not try  |
     |                            | to change in to the working directory      |
-    |                            | specified in the 'production environment'  |
+    |                            | specified in the 'production environment'. |
     +----------------------------+--------------------------------------------+
     | *mne_setup_forward_model*  | Set up the BEM-related fif files,          |
     |                            | see Section 3.7.                           |
@@ -101,23 +101,23 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | Name                            |   Purpose                                  |
     +=================================+============================================+
     | *mne_add_patch_info*            | Add neighborhood information to a source   |
-    |                                 | space file, see Section 11.7.              |
+    |                                 | space file, see :ref:`BEHCBCGG`.           |
     +---------------------------------+--------------------------------------------+
     | *mne_add_to_meas_info*          | Utility to add new information to the      |
     |                                 | measurement info block of a fif file. The  |
     |                                 | source of information is another fif file. |
     +---------------------------------+--------------------------------------------+
     | *mne_add_triggers*              | Modify the trigger channel STI 014 in a raw|
-    |                                 | data file, see Section 11.4.6. The same    |
+    |                                 | data file, see :ref:`CHDBDDDF`. The same   |
     |                                 | effect can be reached by using an event    |
     |                                 | file for averaging in mne_process_raw and  |
     |                                 | mne_browse_raw.                            |
     +---------------------------------+--------------------------------------------+
     | *mne_annot2labels*              | Convert parcellation data into label files,|
-    |                                 | see Section 11.14.                         |
+    |                                 | see :ref:`CHDEDHCG`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_anonymize*                 | Remove subject-specific information from a |
-    |                                 | fif data file, see Section 11.4.7.         |
+    |                                 | fif data file, see :ref:`CHDIJHIC`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_average_forward_solutions* | Calculate an average of forward solutions, |
     |                                 | see Section 5.10.                          |
@@ -127,7 +127,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_change_baselines*          | Change the dc offsets according to         |
     |                                 | specifications given in a text file,       |
-    |                                 | see Section 11.12.                         |
+    |                                 | see :ref:`CHDDIDCC`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_change_nave*               | Change the number of averages in an        |
     |                                 | evoked-response data file. This is often   |
@@ -137,7 +137,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_check_eeg_locations*       | Checks that the EEG electrode locations    |
     |                                 | have been correctly transferred from the   |
     |                                 | Polhemus data block to the channel         |
-    |                                 | information tags, see Section 11.4.3.      |
+    |                                 | information tags, see :ref:`CHDJGGGC`.     |
     +---------------------------------+--------------------------------------------+
     | *mne_check_surface*             | Check the validity of a FreeSurfer surface |
     |                                 | file or one of the surfaces within a BEM   |
@@ -165,7 +165,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_cov2proj*                  | Pick eigenvectors from a covariance matrix |
     |                                 | and create a signal-space projection (SSP) |
-    |                                 | file out of them, see Section 11.9.        |
+    |                                 | file out of them, see :ref:`CHDECHBF`.     |
     +---------------------------------+--------------------------------------------+
     | *mne_create_comp_data*          | Create a fif file containing software      |
     |                                 | gradient compensation information from a   |
@@ -197,10 +197,10 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | system to fif format, see Section 9.2.11.  |
     +---------------------------------+--------------------------------------------+
     | *mne_fit_sphere_to_surf*        | Fit a sphere to a surface given in either  |
-    |                                 | fif or FreeSurfer format, see Section 11.9.|
+    |                                 | fif or FreeSurfer format, see :ref:`CHDECHBF`.|
     +---------------------------------+--------------------------------------------+
     | *mne_fix_mag_coil_types*        | Update the coil types for magnetometers    |
-    |                                 | in a fif file, see :ref:`CHDGAAJC`         |
+    |                                 | in a fif file, see :ref:`CHDGAAJC`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_fix_stim14*                | Fix coding errors of trigger channel       |
     |                                 | STI 014, see Section 3.9.1.                |
@@ -211,7 +211,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_insert_4D_comp*            | Read Magnes compensation channel data from |
     |                                 | a text file and merge it with raw data     |
     |                                 | from other channels in a fif file, see     |
-    |                                 | Section 9.2.5                              |
+    |                                 | Section 9.2.5.                             |
     +---------------------------------+--------------------------------------------+
     | *mne_list_bem*                  | List BEM information in text format,       |
     |                                 | see Section 9.6.                           |
@@ -228,7 +228,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | Neuromag MRIlab software, see Section 9.5. |
     +---------------------------------+--------------------------------------------+
     | *mne_list_versions*             | List versions and compilation dates of MNE |
-    |                                 | software modules, see Section 11.2.        |
+    |                                 | software modules, see :ref:`CHDFIGBG`.     |
     +---------------------------------+--------------------------------------------+
     | *mne_make_cor_set*              | Used by mne_setup_mri to create fif format |
     |                                 | MRI description files from COR or mgh/mgz  |
@@ -237,11 +237,11 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | in :ref:`BABBHHHE`.                        |
     +---------------------------------+--------------------------------------------+
     | *mne_make_derivations*          | Create a channel derivation data file, see |
-    |                                 | Section 11.5.                              |
+    |                                 | :ref:`CHDHJABJ`.                           |
     +---------------------------------+--------------------------------------------+
     | *mne_make_eeg_layout*           | Make a topographical trace layout file     |
     |                                 | using the EEG electrode locations from     |
-    |                                 | an actual measurement, see Section 11.6.   |
+    |                                 | an actual measurement, see :ref:`CHDDGDJA`.|
     +---------------------------------+--------------------------------------------+
     | *mne_make_morph_maps*           | Precompute the mapping data needed for     |
     |                                 | morphing between subjects, see             |
@@ -268,20 +268,20 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | see Section 9.13.                          |
     +---------------------------------+--------------------------------------------+
     | *mne_rename_channels*           | Change the names and types of channels     |
-    |                                 | in a fif file, see Section 11.4.5.         |
+    |                                 | in a fif file, see :ref:`CHDCFEAJ`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_sensitivity_map*           | Compute a sensitivity map and output       |
     |                                 | the result in a w-file,                    |
-    |                                 | see Section 11.10.                         |
+    |                                 | see :ref:`CHDDCBGI`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_sensor_locations*          | Create a file containing the sensor        |
     |                                 | locations in text format.                  |
     +---------------------------------+--------------------------------------------+
     | *mne_show_fiff*                 | List contents of a fif file,               |
-    |                                 | see Section 11.3                           |
+    |                                 | see :ref:`CHDHEDEF`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_simu*                      | Simulate MEG and EEG data,                 |
-    |                                 | see Section 11.13.                         |
+    |                                 | see :ref:`CHDECAFD`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_smooth*                    | Smooth a w or stc file.                    |
     +---------------------------------+--------------------------------------------+
@@ -294,7 +294,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | ignored skips or vice versa.               |
     +---------------------------------+--------------------------------------------+
     | *mne_transform_points*          | Transform between MRI and MEG head         |
-    |                                 | coordinate frames, see Section 11.11.      |
+    |                                 | coordinate frames, see :ref:`CHDDDJCA`.    |
     +---------------------------------+--------------------------------------------+
     | *mne_tufts2fiff*                | Convert EEG data from the Tufts            |
     |                                 | University format to fif format,           |
@@ -417,16 +417,16 @@ listed in :ref:`CIHDGFAA`
     +-------------------------+--------------------------------------------+
     | Name of the variable    |   Description                              |
     +=========================+============================================+
-    | MNE_ROOT                | Location of the MNE software, see above    |
+    | MNE_ROOT                | Location of the MNE software, see above.   |
     +-------------------------+--------------------------------------------+
     | FREESURFER_HOME         | Location of the FreeSurfer software.       |
     |                         | Needed during FreeSurfer reconstruction    |
     |                         | and if the FreeSurfer MRI viewer is used   |
     |                         | with mne_analyze, see :ref:`CACCHCBF`.     |
     +-------------------------+--------------------------------------------+
-    | SUBJECTS_DIR            | Location of the MRI data                   |
+    | SUBJECTS_DIR            | Location of the MRI data.                  |
     +-------------------------+--------------------------------------------+
-    | SUBJECT                 | Name of the current subject                |
+    | SUBJECT                 | Name of the current subject.               |
     +-------------------------+--------------------------------------------+
     | MNE_TRIGGER_CH_NAME     | Name of the trigger channel in raw data,   |
     |                         | see Section 4.2.1.                         |

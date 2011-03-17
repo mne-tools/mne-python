@@ -218,7 +218,7 @@ commands:
 
 ``mne_make_eeg_layout --fif sample_audvis_raw.fif --lout $HOME/.mne/lout/sample-EEG.lout``
 
-Please refer to Section 11.6 for more information
+Please refer to :ref:`CHDDGDJA` for more information
 on mne_make_eeg_layout .
 
 .. note:: It is usually sufficient to create one EEG layout    for each electrode cap you are using in your experiment rather than    using a different layout file for each data file generated using    the same cap.

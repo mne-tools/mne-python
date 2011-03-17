@@ -467,7 +467,7 @@ but can be added, together with other channels, with the ``--type`` .
 The channels from 160 onwards are designated as miscellaneous input
 channels (MISC 001, MISC 002, etc.). The channel names and types
 of these channels can be afterwards changed with the mne_rename_channels utility,
-see Section 11.4.5. In addition, it is possible to synthesize
+see :ref:`CHDCFEAJ`. In addition, it is possible to synthesize
 the digital trigger channel (STI 014) from available analog
 trigger channel data, see the ``--stim`` option, below.
 The synthesized trigger channel data value at sample INLINE_EQUATION will
@@ -702,13 +702,13 @@ the EDF/EDF+/BDF file is converted to the fif format in MNE:
   digitized electrode location associated with them. If these channels
   are used for EOG or EMG measurements, their channel types should
   be changed to the correct ones using the mne_rename_channels utility,
-  see Section 11.4.5. EEG channels which do not have a location
+  see :ref:`CHDCFEAJ`. EEG channels which do not have a location
   associated with them should be assigned to be MISC channels.
 
 - After the channel types are correctly defined, a topographical
   layout file can be created for mne_browse_raw and mne_analyze using
   the mne_make_eeg_layout utility,
-  see Section 11.6.
+  see :ref:`CHDDGDJA`.
 
 - The trigger channel name in BDF files is "Status".
   This must be specified with the --digtrig option or with help of

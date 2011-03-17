@@ -588,7 +588,7 @@ Load derivations
 
 This menu choice allows loading of channel derivation data
 files created with the mne_make_derivations utility,
-see Section 11.5, or using the interactive derivations
+see :ref:`CHDHJABJ`, or using the interactive derivations
 editor in mne_browse_raw , see :ref:`CACJIEHI`, Most common use of derivations is to calculate
 differences between EEG channels, *i.e.*, bipolar
 EEG data. Since any number of channels can be included in a derivation
@@ -860,7 +860,7 @@ Brings up the interactive derivations editor. This editor
 can be used to add or modify derived channels, *i.e.*,
 linear combinations of signals actually recorded. Channel derivations
 can be also created and modified using the mne_make_derivations tool,
-see Section 11.5. The interactive editor contains two main
+see :ref:`CHDHJABJ`. The interactive editor contains two main
 areas:
 
 - Interactive tools for specifying a channel
@@ -886,7 +886,7 @@ associated selections interactively involves the following steps:
 
 - If desired, EEG channels can be relabeled
   with descriptive names using the mne_rename_channels utility,
-  see Section 11.4.5. It is strongly recommended that you
+  see :ref:`CHDCFEAJ`. It is strongly recommended that you
   keep a copy of the channel alias file used by mne_rename_channels .
   If necessary, you can then easily return to the original channel
   names by running mne_rename_channels again
@@ -1069,7 +1069,7 @@ for the Neuromag Vectorview data because newer systems do not have
 spaces in the channel names like the original Vectorview systems
 did.
 
-.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see Section 11.6.
+.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see :ref:`CHDDGDJA`.
 
 .. _CACDDIDH:
 
@@ -1778,7 +1778,7 @@ layouts reside in ``$MNE_ROOT/share/mne/mne_analyze/lout`` .
 In addition any layout files residing in ``$HOME/.mne/lout`` are listed.
 The format of the layout files is the same as for the Neuromag programs xplotter and xfit .
 A custom EEG layout can be easily created with the mne_make_eeg_layout utility,
-see Section 11.6.
+see :ref:`CHDDGDJA`.
 
 Several actions can be performed with the mouse in the topographical data
 display:

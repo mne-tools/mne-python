@@ -610,7 +610,7 @@ The command-line options are:
 
 .. _BEHCBCGG:
 
-Adding neighborhood information to source spaces
+Adding neighborhood/topology information to source spaces
 ################################################
 
 Purpose
