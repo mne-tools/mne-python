@@ -528,7 +528,7 @@ The epoch selector contains the following controls:
 - The event source specifier. The event source can be either
   the data file, *i.e.,* the digital trigger channel or
   a event data file produced with mne_browse_raw or mne_process_raw ,
-  see Section 4.4.10. Using an event data file is useful
+  see :ref:`CACJGIFA`. Using an event data file is useful
   if, *e.g.*, the epochs to be processed epileptic spikes.
 
 - The time range specification. This determines the length of
@@ -568,7 +568,7 @@ which brings up a window with a list of available layouts. The system-wide
 layouts reside in $MNE_ROOT/share/mne_analyze/lout. In addition
 any layout files residing in $HOME/.mne/lout are listed. The format
 of the layout files and selection of the default layout is discussed
-in Section 4.5.6.
+in :ref:`CACFGGCF`.
 
 Several actions can be performed with the mouse in the topographical data
 display:

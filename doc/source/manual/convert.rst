@@ -713,13 +713,13 @@ the EDF/EDF+/BDF file is converted to the fif format in MNE:
 - The trigger channel name in BDF files is "Status".
   This must be specified with the --digtrig option or with help of
   the MNE_TRIGGER_CH_NAME environment variable when mne_browse_raw or mne_process_raw is
-  invoked, see Section 4.2.1.
+  invoked, see :ref:`BABBGJEA`.
 
 - Only the two least significant bytes on the "Status" channel
   of BDF files are significant as trigger information the --digtrigmask
   0xff option MNE_TRIGGER_CH_MASK environment variable should be used
   to specify this to mne_browse_raw and mne_process_raw ,
-  see Section 4.2.1.
+  see :ref:`BABBGJEA`.
 
 .. _BEHDGAIJ:
 
@@ -1906,7 +1906,7 @@ the following command-line options are:
 
     The file containing the event definitions. This can be a text or
     fif format file produced by mne_process_raw or mne_browse_raw ,
-    see Section 4.10.5. With help of this file it is possible
+    see :ref:`CACBCEGC`. With help of this file it is possible
     to select virtually any data segment from the raw data file. If
     this option is missing, the digital trigger channel in the raw data
     file or a fif format event file produced automatically by mne_process_raw or mne_browse_raw is

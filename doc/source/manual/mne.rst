@@ -610,7 +610,7 @@ The command-line options of ``mne_inverse_operator`` are:
 **\---proj <name>**
 
     Include signal-space projection (SSP) information from this file. For information
-    on SSP, see Section 4.16. If the projections are present in
+    on SSP, see :ref:`CACCHABI`. If the projections are present in
     the noise-covariance matrix, the ``--proj`` option is
     not allowed.
 

@@ -301,7 +301,7 @@ Off-line averaging
 ##################
 
 Go to directory ``$SAMPLE/MEG/sample`` . With help
-of Section 4.13, familiarize yourself with the averaging
+of :ref:`CACBBDGC`, familiarize yourself with the averaging
 script ``audvis.ave`` .
 
 Using the averaging script interactively
@@ -479,7 +479,7 @@ In this case the projections are set on. The projection information
 is then attached to the noise-covariance matrix and will be automatically
 loaded when the inverse-operator decomposition is computed.
 
-.. note:: You can study the contents of the covariance    matrix computation description file ``audvis.cov`` with    help of Section 4.14
+.. note:: You can study the contents of the covariance    matrix computation description file ``audvis.cov`` with the help of :ref:`CACEBACG`.
 
 .. _CHDIJBIG:
 

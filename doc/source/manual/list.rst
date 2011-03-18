@@ -429,10 +429,10 @@ listed in :ref:`CIHDGFAA`.
     | SUBJECT                 | Name of the current subject.               |
     +-------------------------+--------------------------------------------+
     | MNE_TRIGGER_CH_NAME     | Name of the trigger channel in raw data,   |
-    |                         | see Section 4.2.1.                         |
+    |                         | see :ref:`BABBGJEA`.                       |
     +-------------------------+--------------------------------------------+
     | MNE_TRIGGER_CH_MASK     | Mask to be applied to the trigger channel  |
-    |                         | values, see Section 4.2.1.                 |
+    |                         | values, see :ref:`BABBGJEA`.               |
     +-------------------------+--------------------------------------------+
 
 .. note:: Appendix B contains information specific to the setup at the Martinos Center including instructions to access    the Neuromag software.
