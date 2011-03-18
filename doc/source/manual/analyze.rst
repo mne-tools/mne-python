@@ -266,7 +266,7 @@ is shown in :ref:`CACFDIJJ`:
 **Lights...**
 
     Adjust the lighting of the scenes in the main display and the viewer, see
-    Sections :ref:`CACBHDBF` and :ref:`CACEFFJF`.
+    :ref:`CACBHDBF` and :ref:`CACEFFJF`.
 
 **Field mapping...**
 
@@ -1114,7 +1114,7 @@ from the option menu labelled Output mode :
 **Snapshot**
 
     A new image file is produced every time ``s`` is pressed
-    in the image window, see Sections :ref:`CACCABEA` and :ref:`CACFDDCB`. The image file name is used as the stem of
+    in the image window, see :ref:`CACCABEA` and :ref:`CACFDDCB`. The image file name is used as the stem of
     the output files. For example, if the name is, ``sample.jpg`` ,
     the output files will be ``sample_shot_001.jpg`` , ``sample_shot_002.jpg`` , *etc.*
 
@@ -2343,7 +2343,7 @@ The saving and loading choices are:
     Loads the MEG/MRI coordinate transformation from the file specified.
 
 The MEG/MRI coordinate transformation files are employed
-in the forward calculations. The convenience script mne_do_forward solution described in Section 3.11 uses
+in the forward calculations. The convenience script mne_do_forward solution described in :ref:`BABCHEJD` uses
 a search sequence which is compatible with the file naming conventions
 described above. It is recommended that -trans.fif file
 saved with the Save default and Save... options

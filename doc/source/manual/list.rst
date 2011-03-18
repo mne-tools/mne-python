@@ -44,11 +44,11 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_convert_mne_data*     | Convert MNE data files to other file       |
     |                            | formats, see Section 9.12.                 |
     +----------------------------+--------------------------------------------+
-    | *mne_do_forward_solution*  | Convenience script to calculate the forwar |
-    |                            | solution matrix, see Section 3.11.         |
+    | *mne_do_forward_solution*  | Convenience script to calculate the forward|
+    |                            | solution matrix, see :ref:`BABCHEJD`.      |
     +----------------------------+--------------------------------------------+
     | *mne_do_inverse_operator*  | Convenience script to compute the inverse  |
-    |                            | operator decomposition, see Section 3.13.  |
+    |                            | operator decomposition, see :ref:`CIHCFJEI`.|
     +----------------------------+--------------------------------------------+
     | *mne_forward_solution*     | Calculate the forward solution matrix, see |
     |                            | Section 5.9.                               |
@@ -79,11 +79,11 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | specified in the 'production environment'. |
     +----------------------------+--------------------------------------------+
     | *mne_setup_forward_model*  | Set up the BEM-related fif files,          |
-    |                            | see Section 3.7.                           |
+    |                            | see :ref:`CIHDBFEG`.                       |
     +----------------------------+--------------------------------------------+
     | *mne_setup_mri*            | A convenience script to create the fif     |
     |                            | files describing the anatomical MRI data,  |
-    |                            | see Section 3.4.                           |
+    |                            | see :ref:`BABCCEHF`                        |
     +----------------------------+--------------------------------------------+
     | *mne_setup_source_space*   | A convenience script to create a source    |
     |                            | space description file, see Section 3.5.   |
@@ -203,7 +203,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | in a fif file, see :ref:`CHDGAAJC`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_fix_stim14*                | Fix coding errors of trigger channel       |
-    |                                 | STI 014, see Section 3.9.1.                |
+    |                                 | STI 014, see :ref:`BABCDBDI`.              |
     +---------------------------------+--------------------------------------------+
     | *mne_flash_bem*                 | Create BEM tessellation using multi-echo   |
     |                                 | FLASH MRI data, see Section A.2.           |
@@ -232,7 +232,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_make_cor_set*              | Used by mne_setup_mri to create fif format |
     |                                 | MRI description files from COR or mgh/mgz  |
-    |                                 | format MRI data, see Section 3.4. The      |
+    |                                 | format MRI data, see :ref:`BABCCEHF`. The  |
     |                                 | mne_make_cor_set utility is described      |
     |                                 | in :ref:`BABBHHHE`.                        |
     +---------------------------------+--------------------------------------------+

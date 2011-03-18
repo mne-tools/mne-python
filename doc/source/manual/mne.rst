@@ -165,7 +165,7 @@ be adjusted with the regularization options ``--magreg`` , ``--gradreg`` ,
 and ``--eegreg`` specified at the time of the inverse operator
 decomposition, see :ref:`CBBDDBGF`. The convenience script mne_do_inverse_solution has
 the ``--magreg`` and ``--gradreg`` combined to
-a sigle option, ``--megreg`` , see Section 3.13.
+a sigle option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for INLINE_EQUATION is INLINE_EQUATION.
 
 .. _CHDBEHBC:
@@ -281,7 +281,7 @@ Cortical patch statistics
 =========================
 
 If the ``--cps`` option was used in source space
-creation (see Section 3.5) or if mne_add_patch_info described
+creation (see :ref:`CIHCHDAE`) or if mne_add_patch_info described
 in :ref:`BEHCBCGG` was run manually the source space file
 will contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
@@ -476,8 +476,8 @@ The command-line options of ``mne_inverse_operator`` are:
 
     Use an adaptive loose orientation constraint. This option can be
     only employed if the source spaces included in the forward solution
-    have the patch information computed, see Section 3.5. Blaa
-    blaa...
+    have the patch information computed, see :ref:`CIHCHDAE`. Blaa
+    blaa...**what???**
 
 **\---fwd <name>**
 
@@ -530,17 +530,17 @@ The command-line options of ``mne_inverse_operator`` are:
 
 **\---depth**
 
-    Employ depth weighting. For details, see Section :ref:`CBBDFJIE`.
+    Employ depth weighting. For details, see :ref:`CBBDFJIE`.
 
 **\---weightexp <value>**
 
     This parameter determines the steepness of the depth weighting function
-    (default = 0.8). For details, see Section :ref:`CBBDFJIE`.
+    (default = 0.8). For details, see :ref:`CBBDFJIE`.
 
 **\---weightlimit <value>**
 
     Maximum relative strength of the depth weighting (default = 10). For
-    details, see Section :ref:`CBBDFJIE`.
+    details, see :ref:`CBBDFJIE`.
 
 **\---fmri <name>**
 
@@ -621,7 +621,7 @@ The command-line options of ``mne_inverse_operator`` are:
     statistics for the source space. Since this computation is time consuming,
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
-    already when the forward solution is computed, see Sections 3.5 and 3.11.
+    already when the forward solution is computed, see :ref:`CIHCHDAE` and Section 3.11.
     For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
     the moment.
 

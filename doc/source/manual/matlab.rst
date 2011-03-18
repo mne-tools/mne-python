@@ -14,7 +14,7 @@ facilitate interfacing with binary file formats of the MNE software.
 The toolbox is located at ``$MNE_ROOT/share/matlab`` . The
 names of the MNE Matlab toolbox functions begin either with mne_ or
 with fiff_ . When you source the mne_setup script
-as described in Section 2.4 on of the following actions
+as described in :ref:`CIHCDHGI`, one of the following actions
 takes place:
 
 - If you do not have the Matlab startup.m

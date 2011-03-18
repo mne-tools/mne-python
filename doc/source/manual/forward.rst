@@ -201,7 +201,7 @@ Creating a surface-based source space
 The fif format source space files containing the dipole locations
 and orientations are created with the utility mne_make_source_space .
 This utility is usually invoked by the convenience script mne_setup_source_space ,
-see Section 3.5.
+see :ref:`CIHCHDAE`.
 
 The command-line options are:
 
@@ -387,7 +387,7 @@ conductivity information so that it can be employed in the BEM calculations.
 
 .. note:: The utility mne_tri2fiff previously    used for this task has been replaced by mne_surf2bem .
 
-.. note:: The convenience script mne_setup_forward_model described    in Section 3.7 calls mne_surf2bem with    the appropriate options.
+.. note:: The convenience script mne_setup_forward_model described in :ref:`CIHDBFEG` calls mne_surf2bem with    the appropriate options.
 
 .. note:: The vertices of all surfaces should be given    in the MRI coordinate system.
 
@@ -571,7 +571,7 @@ Computing the BEM geometry data
 The utility mne_prepare_bem_model computes
 the geometry information for BEM. This utility is usually invoked
 by the convenience script mne_setup_forward_model ,
-see Section 3.7. The command-line options are:
+see :ref:`CIHDBFEG`. The command-line options are:
 
 **\---bem <name>**
 
@@ -579,7 +579,7 @@ see Section 3.7. The command-line options are:
     surfaces and the conductivities of the compartments. The standard
     ending for this file is ``-bem.fif`` and it is produced
     either with the utility mne_surf2bem (:ref:`BEHCACCJ`) or the convenience script mne_setup_forward_model ,
-    see Section 3.7.
+    see :ref:`CIHDBFEG`.
 
 **\---sol <name>**
 
@@ -940,7 +940,7 @@ In this approach, the convenience of the automatic file naming conventions
 present in mne_do_forward_solution are
 lost. However, there are some special-purpose options available
 in mne_forward_solution only.
-Please refer to Section 3.11 for information on mne_do_forward_solution .
+Please refer to :ref:`BABCHEJD` for information on mne_do_forward_solution.
 
 .. _BJEIGFAE:
 
@@ -1039,7 +1039,7 @@ the following command-line options:
 
     The name of the MRI description file containing the MEG/MRI coordinate
     transformation. This file was saved as part of the alignment procedure
-    outlined in Section 3.10. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
+    outlined in :ref:`CHDBEHDC`. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
 
 **\---trans	 <name>**
 

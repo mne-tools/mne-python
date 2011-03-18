@@ -166,7 +166,7 @@ MRI viewer, MRIlab, say
 ``mne_setup_mri``
 
 This command sets up the directories ``subjects/sample/mri/T1-neuromag`` and ``subjects/sample/mri/brain-neuromag`` .
-For more information, see Section 3.4.
+For more information, see :ref:`BABCCEHF`.
 
 .. _CHDIGEJG:
 
@@ -178,7 +178,7 @@ The source space with a 5-mm grid spacing is set up by saying:
 ``mne_setup_source_space --ico -6``
 
 This command sets up the source-space related files in directory ``subjects/sample/bem`` as
-described in Section 3.5.
+described in :ref:`CIHCHDAE`.
 
 .. _CHDJDGBD:
 
@@ -191,7 +191,7 @@ model are accomplished with the command:
 ``mne_setup_forward_model --homog --surf --ico 4``
 
 This command sets up the homogeneous BEM-model related files
-in directory ``subjects/sample/bem`` as described in section Section 3.7. In
+in directory ``subjects/sample/bem`` as described in :ref:`CIHDBFEG`. In
 addition to the homogeneous BEM, you also need the three-layer BEM model,
 which can be used for both EEG and MEG:
 
@@ -665,7 +665,7 @@ of the MNEs and dSPMs is accomplished by the command:
 This produces a depth-weighted inverse operator decomposition
 with 'loose' orientation constraint applied. More
 details on the convenience script mne_do_inverse_operator are
-provided in Section 3.13.
+provided in :ref:`CIHCFJEI`.
 
 The above command employs both EEG and MEG data. To create
 separate solution for EEG and MEG, run the commands:

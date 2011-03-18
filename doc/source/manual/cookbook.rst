@@ -532,7 +532,7 @@ fix is included as the first raw data processing step. Note, however,
 the mne_browse_raw and mne_process_raw always sets
 the calibration factor to one internally.
 
-.. note:: If your data file was acquired on or after November    10, 2005 on the Martinos center Vectorview system, it is not necessary    to use mne_fix_stim14 .
+.. note:: If your data file was acquired on or after November 10, 2005 on the Martinos center Vectorview system, it is not necessary to use mne_fix_stim14 .
 
 .. _BABCDFJH:
 
@@ -652,7 +652,7 @@ the Neuromag MEG-MRI integration tool. Section 3.3.1 of the MRIlab User's
 Guide, Neuromag P/N NM20419A-A contains a detailed description of
 this task. Employ the images in the set ``mri/T1-neuromag/sets/COR.fif`` for
 the alignment. Check the alignment carefully using the digitization
-data included in the measurement file as described in :ref:`BJEBIBAI`.1
+data included in the measurement file as described in Section 5.3.1
 of the above manual. Save the aligned description file in the same
 directory as the original description file without the alignment
 information but under a different name.
