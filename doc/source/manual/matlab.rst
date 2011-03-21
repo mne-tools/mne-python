@@ -312,7 +312,7 @@ The documented structures are:
 
     The coil definition structure useful for forward calculations and array
     visualization, see :ref:`BGBGBEBH`. For more detailed information on
-    coil definitions, see Section 5.8.
+    coil definitions, see :ref:`BJEIAEIE`.
 
 **ch**
 
@@ -523,7 +523,7 @@ The documented structures are:
 
 .. _BGBGBEBH:
 
-.. table:: The coildef structure. For more detailed information, see Section 5.8.
+.. table:: The coildef structure. For more detailed information, see :ref:`BJEIAEIE`.
 
     ==============  =======================  ========================================================================================
     Field           Data type                Description
@@ -677,7 +677,7 @@ The documented structures are:
     nsource         int32                 Total number of source space points.
     nchan           int32                 Number of channels.
     sol             named matrix          The forward solution matrix.
-    sol_grad        named matrix          The derivatives of the forward solution with respect to the dipole location coordinates, see Section 5.9.6. This field is present only if the forward solution was computed with the ``--grad`` option, see Section 5.9.2.
+    sol_grad        named matrix          The derivatives of the forward solution with respect to the dipole location coordinates, see :ref:`BJEFEJJG`. This field is present only if the forward solution was computed with the ``--grad`` option, see :ref:`BJEIGFAE`.
     mri_head_t      trans                 Transformation from the MRI coordinate frame to the (Neuromag) head coordinate frame.
     src             surf(*)               The description of the source spaces
     source_rr       double(nsource,3)     The source locations.

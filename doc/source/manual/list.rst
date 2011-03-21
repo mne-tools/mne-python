@@ -36,7 +36,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_compute_mne*          | Computes the minimum-norm estimates,       |
     |                            | see Section B.3.1. Most of the             |
     |                            | functionality of mne_compute_mne is        |
-    |                            | included in mne_make_movie.               |
+    |                            | included in mne_make_movie.                |
     +----------------------------+--------------------------------------------+
     | *mne_compute_raw_inverse*  | Compute the inverse solution from raw data |
     |                            | see :ref:`CBBCGHAH`.                       |
@@ -47,11 +47,11 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_do_forward_solution*  | Convenience script to calculate the forward|
     |                            | solution matrix, see :ref:`BABCHEJD`.      |
     +----------------------------+--------------------------------------------+
-    | *mne_do_inverse_operator*  | Convenience script to compute the inverse  |
-    |                            | operator decomposition, see :ref:`CIHCFJEI`.|
+    | *mne_do_inverse_operator*  | Convenience script for inverse operator    |
+    |                            | decomposition, see :ref:`CIHCFJEI`.        |
     +----------------------------+--------------------------------------------+
     | *mne_forward_solution*     | Calculate the forward solution matrix, see |
-    |                            | Section 5.9.                               |
+    |                            | :ref:`CHDDIBAH`.                           |
     +----------------------------+--------------------------------------------+
     | mne_inverse_operator       | Compute the inverse operator decomposition |
     |                            | see Section 6.4.                           |
@@ -60,7 +60,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | :ref:`CBBECEDE`.                           |
     +----------------------------+--------------------------------------------+
     | *mne_make_source_space*    | Create a *fif* source space description    |
-    |                            | file, see Section 5.4.                     |
+    |                            | file, see :ref:`BEHCGJDD`.                 |
     +----------------------------+--------------------------------------------+
     | *mne_process_raw*          | A batch-mode version of mne_browse_raw,    |
     |                            | see :ref:`ch_browse`.                      |
@@ -120,7 +120,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | fif data file, see :ref:`CHDIJHIC`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_average_forward_solutions* | Calculate an average of forward solutions, |
-    |                                 | see Section 5.10.                          |
+    |                                 | see :ref:`CHDBBFCA`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_brain_vision2fiff*         | Convert EEG data from BrainVision format   |
     |                                 | to fif format, see Section 9.2.10.         |
@@ -196,8 +196,8 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_eximia2fiff*               | Convert EEG data from the Nexstim eXimia   |
     |                                 | system to fif format, see Section 9.2.11.  |
     +---------------------------------+--------------------------------------------+
-    | *mne_fit_sphere_to_surf*        | Fit a sphere to a surface given in either  |
-    |                                 | fif or FreeSurfer format, see :ref:`CHDECHBF`.|
+    | *mne_fit_sphere_to_surf*        | Fit a sphere to a surface given in fif     |
+    |                                 | or FreeSurfer format, see :ref:`CHDECHBF`. |
     +---------------------------------+--------------------------------------------+
     | *mne_fix_mag_coil_types*        | Update the coil types for magnetometers    |
     |                                 | in a fif file, see :ref:`CHDGAAJC`.        |
@@ -218,7 +218,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_list_coil_def*             | Create the coil description file. This     |
     |                                 | is run automatically at when the software  |
-    |                                 | is set up, see Section 5.8.5.              |
+    |                                 | is set up, see :ref:`BJEHHJIJ`.            |
     +---------------------------------+--------------------------------------------+
     | *mne_list_proj*                 | List signal-space projection data from a   |
     |                                 | fif file.                                  |
@@ -260,7 +260,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | directories, see Section A.2.1.            |
     +---------------------------------+--------------------------------------------+
     | *mne_prepare_bem_model*         | Perform the geometry calculations for      |
-    |                                 | BEM forward solutions, see Section 5.7.    |
+    |                                 | BEM forward solutions, see :ref:`CHDJFHEB`.|
     +---------------------------------+--------------------------------------------+
     | mne_process_stc                 | Manipulate stc files.                      |
     +---------------------------------+--------------------------------------------+
@@ -288,7 +288,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_surf2bem*                  | Create a *fif* file describing the         |
     |                                 | triangulated compartment boundaries for    |
     |                                 | the boundary-element model (BEM),          |
-    |                                 | see Section 5.6.                           |
+    |                                 | see :ref:`BEHCACCJ`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_toggle_skips*              | Change data skip tags in a raw file into   |
     |                                 | ignored skips or vice versa.               |
@@ -309,7 +309,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | overlay, see Section 9.4.                  |
     +---------------------------------+--------------------------------------------+
     | *mne_volume_source_space*       | Make a volumetric source space,            |
-    |                                 | see Section 5.5.                           |
+    |                                 | see :ref:`BJEFEHJI`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_watershed_bem*             | Do the segmentation for BEM using the      |
     |                                 | watershed algorithm, see Section A.1.      |

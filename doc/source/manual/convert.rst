@@ -991,7 +991,7 @@ Converting volumetric data into an MRI overlay
 ##############################################
 
 With help of the mne_volume_source_space utility
-(Section 5.5) it is possible to create a source space which
+(:ref:`BJEFEHJI`) it is possible to create a source space which
 is defined within a volume rather than a surface. If the ``--mri`` option
 was used in mne_volume_source_space , the
 source space file contains an interpolator matrix which performs
@@ -1207,7 +1207,7 @@ the following command-line options:
 
 **\---tri <name>**
 
-    Specifies a text format input file. The format of this file is described in Section 5.6.3.
+    Specifies a text format input file. The format of this file is described in :ref:`BEHDEFCD`.
 
 **\---meters**
 
@@ -1295,7 +1295,7 @@ the following command-line options:
 **\---triout <name>**
 
     Specifies an ASCII output file that will contain the surface data
-    in the triangle file format desribed in Section 5.6.3.
+    in the triangle file format desribed in :ref:`BEHDEFCD`.
 
 **\---pntout <name>**
 
@@ -1367,7 +1367,7 @@ data as input. The command-line options are:
     the talairach.xfm file referred to in the MRI volume, and the the
     fixed transforms INLINE_EQUATION and INLINE_EQUATION will
     added to the output file. For definition of the coordinate transformations,
-    see Section 5.2.
+    see :ref:`CHDEDFIB`.
 
 **\---talairach <name>**
 

@@ -936,7 +936,7 @@ includes the following lines:
     Shows the location in the *FreeSurfer* Talairach
     coordinates which give a better match to the Talairach atlas.
 
-The above coordinate systems are discussed in detail in Section 5.2.
+The above coordinate systems are discussed in detail in :ref:`CHDEDFIB`.
 
 .. note:: By default, the tksurfer program,    part of the FreeSurfer package, shows    the vertex locations on the *orig* rather than *white* surfaces.    Therefore, the coordinates shown in mne_analyze and tksurfer are    by default slightly different (usually by < 1 mm). To make the    two programs consistent, you can start tksurfer with    the ``-orig white`` option.
 
@@ -1176,13 +1176,13 @@ the subject's FreeSurfer directory. This surface is automatically
 prepared if you use the watershed algorithm as described in Section A.1.
 If you have another source for the head triangulation you can use
 the utility mne_surf2bem to create
-the fif format scalp surface file, see Section 5.6.
+the fif format scalp surface file, see :ref:`BEHCACCJ`.
 
 If a file called ``bem/`` <subject>``-bem.fif`` under
 the subject's FreeSurfer directory is present, mne_analyze tries
 to load the BEM surface triangulations from there. This file can
 be a symbolic link to one of the ``-bem.files`` created
-by mne_prepare_bem_model , see Section 5.7.
+by mne_prepare_bem_model , see :ref:`CHDJFHEB`.
 If the BEM file contains a head surface triangulation, it will be
 used instead of the one present in the ``bem/`` <subject>``-head.fif`` file.
 
@@ -1984,12 +1984,12 @@ specifies the forward model to be used:
 **EEG scalp radius [mm]**
 
     Specifies the radius of the outermost shell in the EEG sphere model. For
-    details, see Section 5.9.4.
+    details, see :ref:`CHDIAFIG`.
 
 **EEG sphere model name**
 
     Specifies the name of the EEG sphere model to use. For details,
-    see Section 5.9.4.
+    see :ref:`CHDIAFIG`.
 
 **BEM model**
 
@@ -2002,7 +2002,7 @@ specifies the forward model to be used:
 
 **Accurate field calculation**
 
-    Switches on the more accurate geometry definition of MEG coils, see Section 5.8.
+    Switches on the more accurate geometry definition of MEG coils, see :ref:`BJEIAEIE`.
     In dipole fitting, there is very little difference between the *accurate* and *normal* coil
     geometry definitions.
 
