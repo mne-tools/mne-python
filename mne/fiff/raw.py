@@ -246,6 +246,12 @@ class Raw(dict):
         self.fid.close()
 
 
+    def __repr__(self):
+        s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+                                               self.last_samp - self.first_samp + 1)
+        return "Raw (%s)" % s
+
+
 def read_raw_segment(raw, start=None, stop=None, sel=None):
     """Read a chunck of raw data
 

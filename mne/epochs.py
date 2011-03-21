@@ -221,7 +221,14 @@ class Epochs(object):
         self._current += 1
         return epoch
 
-    def average(self, comment="Epoked data"):
+    def __repr__(self):
+        s = "n_epochs : %s" % len(self)
+        s += ", tmin : %s (s)" % self.tmin
+        s += ", tmax : %s (s)" % self.tmax
+        s += ", baseline : %s" % str(self.baseline)
+        return "Epochs (%s)" % s
+
+    def average(self, comment="Evoked data"):
         """Compute average of epochs
 
         Parameters
@@ -231,7 +238,7 @@ class Epochs(object):
 
         Returns
         -------
-        data : array of shape [n_channels, n_times]
+        evoked : Evoked instance
             The averaged epochs
         """
         evoked = Evoked(None)
@@ -239,10 +246,14 @@ class Epochs(object):
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         n_events = len(self.events)
-        data = np.zeros((n_channels, n_times))
-        for e in self:
-            data += e
-        evoked.data = data / n_events
+        if self.preload:
+            data = np.mean(self._data, axis=0)
+        else:
+            data = np.zeros((n_channels, n_times))
+            for e in self:
+                data += e
+            data /= n_events
+        evoked.data = data
         evoked.times = self.times.copy()
         evoked.comment = comment
         evoked.aspect_kind = np.array([100]) # XXX

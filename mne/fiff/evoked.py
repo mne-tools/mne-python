@@ -389,6 +389,13 @@ class Evoked(object):
 
         end_file(fid)
 
+    def __repr__(self):
+        s = "comment : %s" % self.comment
+        s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
+        s += ", n_epochs : %d" % self.nave
+        s += ", n_channels x n_times : %s x %s" % self.data.shape
+        return "Evoked (%s)" % s
+
 
 def read_evoked(fname, setno=0, baseline=None):
     """Read an evoked dataset
