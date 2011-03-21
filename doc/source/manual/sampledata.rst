@@ -727,14 +727,14 @@ Select Windows/Show viewer... .
 After a while the viewer window appears. Click on the N100m peak
 again. Once the field map preparation computations are complete,
 the magnetic field and potential maps appear. Investigate the viewer
-window options with help of Section 7.10.
+window options with help of :ref:`CACEFFJF`.
 
 Show current estimates
 ======================
 
 The options affecting the current estimates are accessible
 from Adjust/Estimate parameters... .
-With help of Section 7.12, investigate the effects of the
+With help of :ref:`CACBHDBF`, investigate the effects of the
 parameter settings.
 
 Labels and timecourses
@@ -745,14 +745,14 @@ called ``label`` :
 
 ``mkdir label``
 
-Using the information in Section 7.13.4 create two
-labels: ``A-lh.label`` and ``A-rh.label`` in the
+Using the information in :ref:`CACJCFJJ`, create two
+labels ``A-lh.label`` and ``A-rh.label`` in the
 approximate location of the left and right auditory cortices. Save
 these labels in the newly created ``label`` directory.
 
 Load all labels from the ``label`` directory and
 investigate the timecourses in these two labels as well as at invidual
-vertices. Information on label processing can be found from Section 7.13.
+vertices. Information on label processing can be found from :ref:`CACCCFHH`.
 
 Morphing
 ========
@@ -760,7 +760,7 @@ Morphing
 Goto to ``$SUBJECTS_DIR`` and create the directory ``morph-maps`` .
 Load the inflated surface for subject morph as
 the morphing surfaces. Try switching between the original and morphing
-surfaces. More information about morphing is available in Section 7.9 and
+surfaces. More information about morphing is available in :ref:`CACGBEIB` and
 in :ref:`ch_morph`.
 
 There is also a left-hemisphere occipital patch file available

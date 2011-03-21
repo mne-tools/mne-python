@@ -1042,11 +1042,11 @@ Label processing
     specify regions of interests (ROIs). A label file name should end
     with ``-lh.label`` for left-hemisphere ROIs and with ``-rh.label`` for
     right-hemisphere ones. The corresponding output files are tagged
-    with ``-lh-`` <data type> ``.amp`` and ``-rh-`` <data type> ``.amp`` , respectively. <data type> equals ``'mne`` ' for
+    with ``-lh-`` <data type> ``.amp`` and ``-rh-`` <data type> ``.amp``, respectively. <data type> equals ``'mne`` ' for
     expected current data and ``'spm`` ' for
     dSPM data. Each line of the output file contains the waveform of
     the output quantity at one of the source locations falling inside
-    the ROI. For more information about the label output formats, see Section 7.13.3.1.
+    the ROI. For more information about the label output formats, see :ref:`CACJJGFA`.
 
 **\---labelcoords**
 

@@ -54,7 +54,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | :ref:`CHDDIBAH`.                           |
     +----------------------------+--------------------------------------------+
     | mne_inverse_operator       | Compute the inverse operator decomposition |
-    |                            | see Section 6.4.                           |
+    |                            | see :ref:`CBBDDBGF`.                       |
     +----------------------------+--------------------------------------------+
     | *mne_make_movie*           | Make movies in batch mode, see             |
     |                            | :ref:`CBBECEDE`.                           |

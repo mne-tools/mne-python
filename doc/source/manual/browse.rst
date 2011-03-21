@@ -1338,7 +1338,7 @@ the following items:
     Starts mne_analyze in the head position visualization mode and shows
     the relative position of the MEG sensor array and the head using
     the data in the presently open raw data file. For more details on
-    the head position visualization mode, see Section 7.21.
+    the head position visualization mode, see Section 7.21.**what?? does not exist!**
 
 **Quit mne_analyze...**
 
@@ -2424,7 +2424,7 @@ Since the signal-space projection modifies the signal vectors
 originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
-described in Section 6.4. For more information on SSP,
+described in :ref:`CBBDDBGF`. For more information on SSP,
 please consult the references listed in Section 13.4.
 
 .. _CACFGIEC:
@@ -2583,7 +2583,7 @@ are read by mne_inverse_operator and
 applied to the forward solution as well as appropriate. Inclusion
 of the projections into the covariance matrix limits the possibilities
 to use the ``--bad`` and ``--proj`` options in mne_inverse_operator ,
-see Section 6.4.
+see :ref:`CBBDDBGF`.
 
 .. _CACGHEGC:
 
