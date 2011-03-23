@@ -1023,7 +1023,7 @@ the following command-line options:
     Output the data in the head points (hpts)
     format accepted by tkmedit . In
     this format, the coordinates are preceded by a point category (hpi,
-    cardinal or fiducial, eeg, extra) and a sequence number, see Section 9.3.1.
+    cardinal or fiducial, eeg, extra) and a sequence number, see :ref:`CJADJEBH`.
 
 **\---meters**
 

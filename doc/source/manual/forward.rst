@@ -338,7 +338,7 @@ The command-line options are:
     Specifies a MRI volume (in mgz or mgh format).
     If this argument is present the output source space file will contain
     a (sparse) interpolation matrix which allows mne_volume_data2mri to
-    create an MRI overlay file, see Section 9.4.
+    create an MRI overlay file, see :ref:`BEHDEJEC`.
 
 **\---pos <name>**
 
@@ -1098,7 +1098,7 @@ the following command-line options:
 Implementation of software gradient compensation
 ================================================
 
-As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
+As described in :ref:`BEHDDFBI`BEHDEJEC the CTF and 4D Neuroimaging
 data may have been subjected to noise cancellation employing the
 data from the reference sensor array. Even though these sensor are
 rather far away from the brain sources, mne_forward_solution takes

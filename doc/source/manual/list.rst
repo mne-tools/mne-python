@@ -42,7 +42,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | see :ref:`CBBCGHAH`.                       |
     +----------------------------+--------------------------------------------+
     | *mne_convert_mne_data*     | Convert MNE data files to other file       |
-    |                            | formats, see Section 9.12.                 |
+    |                            | formats, see :ref:`BEHCCEBJ`.              |
     +----------------------------+--------------------------------------------+
     | *mne_do_forward_solution*  | Convenience script to calculate the forward|
     |                            | solution matrix, see :ref:`BABCHEJD`.      |
@@ -123,7 +123,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | see :ref:`CHDBBFCA`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_brain_vision2fiff*         | Convert EEG data from BrainVision format   |
-    |                                 | to fif format, see Section 9.2.10.         |
+    |                                 | to fif format, see :ref:`BEHCCCDC`.        |
     +---------------------------------+--------------------------------------------+
     | *mne_change_baselines*          | Change the dc offsets according to         |
     |                                 | specifications given in a text file,       |
@@ -146,7 +146,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_collect_transforms*        | Collect coordinate transformations from    |
     |                                 | several sources into a single fif file,    |
-    |                                 | see Section 9.9.                           |
+    |                                 | see :ref:`BABBIFIJ`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_compensate_data*           | Change the applied software gradient       |
     |                                 | compensation in an evoked-response data    |
@@ -154,10 +154,10 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_convert_lspcov*            | Convert the LISP format noise covariance   |
     |                                 | matrix output by graph into fif,           |
-    |                                 | see Section 9.11.                          |
+    |                                 | see :ref:`BEHCDBHG`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_convert_ncov*              | Convert the ncov format noise covariance   |
-    |                                 | file to fif, see Section 9.10.             |
+    |                                 | file to fif, see :ref:`BEHCHGHD`.          |
     +---------------------------------+--------------------------------------------+
     | *mne_convert_surface*           | Convert FreeSurfer and text format surface |
     |                                 | files into Matlab mat files,               |
@@ -188,7 +188,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_epochs2mat*                | Apply bandpass filter to raw data and      |
     |                                 | extract epochs for subsequent processing   |
-    |                                 | in Matlab, see Section 9.14.               |
+    |                                 | in Matlab, see :ref:`BEHFIDCB`.            |
     +---------------------------------+--------------------------------------------+
     | *mne_evoked_data_summary*       | List summary of averaged data from a fif   |
     |                                 | file to the standard output.               |
@@ -214,7 +214,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | :ref:`BEHGDDBH`.                           |
     +---------------------------------+--------------------------------------------+
     | *mne_list_bem*                  | List BEM information in text format,       |
-    |                                 | see Section 9.6.                           |
+    |                                 | see :ref:`BEHBBEHJ`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_list_coil_def*             | Create the coil description file. This     |
     |                                 | is run automatically at when the software  |
@@ -225,7 +225,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_list_source_space*         | List source space information in text      |
     |                                 | format suitable for importing into         |
-    |                                 | Neuromag MRIlab software, see Section 9.5. |
+    |                                 | Neuromag MRIlab, see :ref:`BEHBHIDH`.      |
     +---------------------------------+--------------------------------------------+
     | *mne_list_versions*             | List versions and compilation dates of MNE |
     |                                 | software modules, see :ref:`CHDFIGBG`.     |
@@ -265,7 +265,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | mne_process_stc                 | Manipulate stc files.                      |
     +---------------------------------+--------------------------------------------+
     | *mne_raw2mat*                   | Convert raw data into a Matlab file,       |
-    |                                 | see Section 9.13.                          |
+    |                                 | see :ref:`BEHCBCGG`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_rename_channels*           | Change the names and types of channels     |
     |                                 | in a fif file, see :ref:`CHDCFEAJ`.        |
@@ -306,7 +306,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_volume_data2mri*           | Convert volumetric data defined in a       |
     |                                 | source space created with                  |
     |                                 | mne_volume_source_space into an MRI        |
-    |                                 | overlay, see Section 9.4.                  |
+    |                                 | overlay, see :ref:`BEHDEJEC`.              |
     +---------------------------------+--------------------------------------------+
     | *mne_volume_source_space*       | Make a volumetric source space,            |
     |                                 | see :ref:`BJEFEHJI`.                       |

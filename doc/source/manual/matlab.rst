@@ -241,7 +241,7 @@ they are listed in :ref:`BGBEFADJ`.
     mne_omit_first_line               Omit first line from a multi-line message. This routine is useful for formatting error messages.
     mne_prepare_inverse_operator      Prepare inverse operator data for calculating L2 minimum-norm solutions and dSPM.
     mne_setup_toolbox                 Set up the MNE Matlab toolbox.
-    mne_transform_coordinates         Transform locations between different coordinate systems. This function uses the output file from mne_collect_transforms described in Section 9.9 as input.
+    mne_transform_coordinates         Transform locations between different coordinate systems. This function uses the output file from mne_collect_transforms described in :ref:`BABBIFIJ` as input.
     mne_transpose_named_matrix        Create a transpose of a named matrix.
     mne_transform_source_space_to     Transform source space data to another coordinate frame.
     ================================  ==============================================================================================================================================================
@@ -253,7 +253,7 @@ they are listed in :ref:`BGBEFADJ`.
     =========================  =================================================================================
     Function                   Purpose
     =========================  =================================================================================
-    mne_ex_average_epochs      Example of averaging epoch data produced by mne_epochs2mat , see Section 9.14.
+    mne_ex_average_epochs      Example of averaging epoch data produced by mne_epochs2mat , see :ref:`BEHFIDCB`.
     mne_ex_cancel_noise        Example of noise cancellation procedures.
     mne_ex_compute_inverse     Example of computing a L2 minimum-norm estimate or a dSPM solution
     mne_ex_data_sets           Example of listing evoked-response data sets.
