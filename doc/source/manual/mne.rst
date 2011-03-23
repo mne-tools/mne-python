@@ -812,7 +812,7 @@ Visualization options
     If morphing is selected appropriate smoothing must be specified
     with the ``--smooth`` option. The morphing process can
     be made faster by precomputing the necessary morphing maps with mne_make_morph_maps ,
-    see Section 8.4. More information about morphing and averaging
+    see :ref:`CHDBBHDH`. More information about morphing and averaging
     can be found in :ref:`ch_morph`.
 
 **\---morphgrade <number>**

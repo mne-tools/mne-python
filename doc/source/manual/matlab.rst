@@ -174,7 +174,7 @@ they are listed in :ref:`BGBEFADJ`.
     mne_read_events               Read an event list from a fif file produced by mne_browse_raw or mne_process_raw .
     mne_read_forward_solution     Read a forward solution from a fif file.
     mne_read_inverse_operator     Read an inverse operator from a fif file.
-    mne_read_morph_map            Read an morphing map produced with mne_make_morph_maps , see Section 8.4.
+    mne_read_morph_map            Read an morphing map produced with mne_make_morph_maps , see :ref:`CHDBBHDH`.
     mne_read_noise_cov            Read a noise-covariance matrix from a fif file.
     mne_read_source_spaces        Read source space information from a fif file.
     ============================  =====================================================================================

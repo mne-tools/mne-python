@@ -245,7 +245,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_make_morph_maps*           | Precompute the mapping data needed for     |
     |                                 | morphing between subjects, see             |
-    |                                 | Section 8.4.                               |
+    |                                 | :ref:`CHDBBHDH`.                           |
     +---------------------------------+--------------------------------------------+
     | *mne_make_uniform_stc*          | Create a spatially uniform stc file for    |
     |                                 | testing purposes.                          |
