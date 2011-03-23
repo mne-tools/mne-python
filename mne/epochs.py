@@ -66,7 +66,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax,
                 picks=None, keep_comp=False,
                 dest_comp=0, baseline=(None, 0),
-                preload=True):
+                preload=False):
         self.raw = raw
         self.event_id = event_id
         self.tmin = tmin
@@ -144,12 +144,25 @@ class Epochs(object):
                           dtype=np.float) / sfreq
 
         if self.preload:
-            self._data = self._get_data()
+            self._data = self._get_data_from_disk()
 
     def __len__(self):
         return len(self.events)
 
     def get_epoch(self, idx):
+        """Load one epoch
+
+        Returns
+        -------
+        data : array of shape [n_channels, n_times]
+            One epoch data
+        """
+        if self.preload:
+            return self._data[idx]
+        else:
+            return self._get_epoch_from_disk(idx)
+
+    def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
         event_samp = self.events[idx, 0]
@@ -180,15 +193,15 @@ class Epochs(object):
 
         return epoch
 
-    def _get_data(self):
+    def _get_data_from_disk(self):
         """Load all data from disk
         """
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         n_events = len(self.events)
         data = np.empty((n_events, n_channels, n_times))
-        for k, e in enumerate(self):
-            data[k] = e
+        for k in range(n_events):
+            data[k] = self._get_epoch_from_disk(k)
         return data
 
     def get_data(self):
@@ -202,7 +215,7 @@ class Epochs(object):
         if self.preload:
             return self._data
         else:
-            return self._get_data()
+            return self._get_data_from_disk()
 
     def __iter__(self):
         """To iteration over epochs easy.

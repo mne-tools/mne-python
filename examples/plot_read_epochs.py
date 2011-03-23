@@ -38,7 +38,7 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=False,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    picks=picks, baseline=(None, 0), preload=False)
+                    picks=picks, baseline=(None, 0), preload=True)
 evoked = epochs.average() # average epochs to get the evoked response
 
 ###############################################################################
