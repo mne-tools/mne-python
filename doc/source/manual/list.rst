@@ -26,7 +26,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | :ref:`ch_interactive_analysis`.            |
     +----------------------------+--------------------------------------------+
     | *mne_average_estimates*    | Average data across subjects,              |
-    |                            | see Section 8.6.2.                         |
+    |                            | see :ref:`CHDEHFGD`.                       |
     +----------------------------+--------------------------------------------+
     | *mne_browse_raw*           | Interactive raw data browser. Includes     |
     |                            | filtering, offline averaging, and          |
@@ -150,7 +150,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_compensate_data*           | Change the applied software gradient       |
     |                                 | compensation in an evoked-response data    |
-    |                                 | file, see Section 9.2.4.                   |
+    |                                 | file, see :ref:`BEHDDFBI`.                 |
     +---------------------------------+--------------------------------------------+
     | *mne_convert_lspcov*            | Convert the LISP format noise covariance   |
     |                                 | matrix output by graph into fif,           |
@@ -169,13 +169,13 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_create_comp_data*          | Create a fif file containing software      |
     |                                 | gradient compensation information from a   |
-    |                                 | text file, see Section 9.2.6.              |
+    |                                 | text file, see :ref:`BEHBIIFF`.            |
     +---------------------------------+--------------------------------------------+
     | *mne_ctf2fiff*                  | Convert a CTF ds folder into a fif file,   |
-    |                                 | see Section 9.2.2.                         |
+    |                                 | see :ref:`BEHDEBCH`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_ctf_dig2fiff*              | Convert text format digitization data to   |
-    |                                 | fif format, see Section 9.2.3.             |
+    |                                 | fif format, see :ref:`BEHBABFA`.           |
     +---------------------------------+--------------------------------------------+
     | *mne_dicom_essentials*          | List essential information from a          |
     |                                 | DICOM file.                                |
@@ -184,7 +184,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_edf2fiff*                  | Convert EEG data from the EDF/EDF+/BDF     |
     |                                 | formats to the fif format,                 |
-    |                                 | see Section 9.2.                           |
+    |                                 | see :ref:`BEHIAADG`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_epochs2mat*                | Apply bandpass filter to raw data and      |
     |                                 | extract epochs for subsequent processing   |
@@ -194,7 +194,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | file to the standard output.               |
     +---------------------------------+--------------------------------------------+
     | *mne_eximia2fiff*               | Convert EEG data from the Nexstim eXimia   |
-    |                                 | system to fif format, see Section 9.2.11.  |
+    |                                 | system to fif format, see :ref:`BEHGCEHH`. |
     +---------------------------------+--------------------------------------------+
     | *mne_fit_sphere_to_surf*        | Fit a sphere to a surface given in fif     |
     |                                 | or FreeSurfer format, see :ref:`CHDECHBF`. |
@@ -211,7 +211,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_insert_4D_comp*            | Read Magnes compensation channel data from |
     |                                 | a text file and merge it with raw data     |
     |                                 | from other channels in a fif file, see     |
-    |                                 | Section 9.2.5.                             |
+    |                                 | :ref:`BEHGDDBH`.                           |
     +---------------------------------+--------------------------------------------+
     | *mne_list_bem*                  | List BEM information in text format,       |
     |                                 | see Section 9.6.                           |
@@ -254,7 +254,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | a data file, see :ref:`CHDDHBEE`.          |
     +---------------------------------+--------------------------------------------+
     | *mne_morph_labels*              | Morph label file definitions between       |
-    |                                 | subjects, see Section 8.5.                 |
+    |                                 | subjects, see :ref:`CHDCEAFC`.             |
     +---------------------------------+--------------------------------------------+
     | *mne_organize_dicom*            | Organized DICOM MRI image files into       |
     |                                 | directories, see Section A.2.1.            |
@@ -298,7 +298,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     +---------------------------------+--------------------------------------------+
     | *mne_tufts2fiff*                | Convert EEG data from the Tufts            |
     |                                 | University format to fif format,           |
-    |                                 | see Section 9.2.9.                         |
+    |                                 | see :ref:`BEHDGAIJ`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_view_manual*               | Starts a PDF reader to show this manual    |
     |                                 | from its standard location.                |

@@ -455,7 +455,7 @@ selection affects the averages and noise-covariance matrices subsequently
 computed. The desired compensation takes effect independent of the
 compensation state of the data in the file, *i.e.*,
 already compensated data can be uncompensated and vice versa. For more
-information on software gradient compensation please consult Section 9.2.4.
+information on software gradient compensation please consult :ref:`BEHDDFBI`.
 
 The Keep the initial skip button
 controls how the initial segment of data not stored in the raw data
@@ -1614,7 +1614,7 @@ an annotation file which will be automatically loaded each time
 the data file is opened. A text format event file suitable for this
 purpose can be created manually, extracted from an EDF+ file using
 the ``--tal`` option in mne_edf2fiff discussed
-in Section 9.2.8, or produced by custom software used during
+in :ref:`BABHDBBD`, or produced by custom software used during
 data acquisition.
 
 .. _BABCIGGH:

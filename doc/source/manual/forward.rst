@@ -191,7 +191,7 @@ and INLINE_EQUATION axis pointing front. The INLINE_EQUATION axis
 is, again normal to the INLINE_EQUATION plane
 with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The INLINE_EQUATION axis    passes through the nasion and the origin with positive direction    to the front. The INLINE_EQUATION axis is perpendicular    to the INLINE_EQUATION axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The INLINE_EQUATION axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on INLINE_EQUATION coordinate axis. The file conversion utilities (see Section 9.2)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
+.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The INLINE_EQUATION axis    passes through the nasion and the origin with positive direction    to the front. The INLINE_EQUATION axis is perpendicular    to the INLINE_EQUATION axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The INLINE_EQUATION axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on INLINE_EQUATION coordinate axis. The file conversion utilities (see :ref:`BEHIAADG`)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
 
 .. _BEHCGJDD:
 
@@ -1098,7 +1098,7 @@ the following command-line options:
 Implementation of software gradient compensation
 ================================================
 
-As described in Section 9.2.4 the CTF and 4D Neuroimaging
+As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
 data may have been subjected to noise cancellation employing the
 data from the reference sensor array. Even though these sensor are
 rather far away from the brain sources, mne_forward_solution takes
@@ -1107,7 +1107,7 @@ with the ``--meas`` option has software gradient compensation
 activated, mne_forward_solution computes
 the field of at the reference sensors in addition to the main MEG
 sensor array and computes a compensated forward solution using the
-methods descibed in Section 9.2.4.
+methods descibed in :ref:`BEHDDFBI`.
 
 .. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
 

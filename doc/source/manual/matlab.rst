@@ -585,7 +585,7 @@ The documented structures are:
     save_calibrated     logical          Were the compensation data saved in calibrated form. If this field is false, the matrix will be decalibrated using the fields row_cals and col_cals when the compensation data are saved by the toolbox.
     row_cals            double(*)        Calibration factors applied to the rows of the compensation data matrix when the data were read.
     col_cals            double(*)        Calibration factors applied to the columns of the compensation data matrix when the data were read.
-    data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see Section 9.2.4
+    data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see :ref:`BEHDDFBI`.
     ==================  ===============  ===========================================================================================================================================================================================================
 
 .. _BGBFHDIJ:

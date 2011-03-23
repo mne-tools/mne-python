@@ -808,7 +808,7 @@ Visualization options
     into account and will represent the data on the cortical surface
     of the subject defined with this option. The stc files morphed to
     a single subject's cortical surface are used by mne_average_estimates to
-    combine data from different subjects, see Section 8.6.
+    combine data from different subjects, see :ref:`CHDFDIFE`.
     If morphing is selected appropriate smoothing must be specified
     with the ``--smooth`` option. The morphing process can
     be made faster by precomputing the necessary morphing maps with mne_make_morph_maps ,
