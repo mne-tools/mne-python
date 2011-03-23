@@ -85,8 +85,8 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | files describing the anatomical MRI data,  |
     |                            | see :ref:`BABCCEHF`                        |
     +----------------------------+--------------------------------------------+
-    | *mne_setup_source_space*   | A convenience script to create a source    |
-    |                            | space description file, see Section 3.5.   |
+    | *mne_setup_source_space*   | A convenience script to create source space|
+    |                            | description file, see :ref:`CIHCHDAE`.     |
     +----------------------------+--------------------------------------------+
     | mne_show_environment       | Show information about the production      |
     |                            | environment of a file.                     |

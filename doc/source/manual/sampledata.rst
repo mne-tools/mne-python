@@ -147,7 +147,7 @@ in the sample data set:
   see Section A.1.
 
 - The MEG/EEG raw data file has been checked with the utilities described
-  in Sections 3.9.1 and 3.9.2.
+  in :ref:`BABCDBDI` and :ref:`BABCDFJH`.
 
 - Template scripts for averaging and computation of the noise-covariance
   matrices have been written.

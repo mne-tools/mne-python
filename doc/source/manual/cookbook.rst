@@ -599,7 +599,7 @@ in elevated noise level in the data. It is advisable to lowpass
 filter and downsample the large raw data files often emerging in
 cognitive and patient studies to speed up subsequent processing.
 This can be accomplished with the mne_process_raw and mne_browse_raw software
-modules. For details, see Sections 4.2.3 and 4.4.3.
+modules. For details, see :ref:`CACFAAAJ` and :ref:`CACBDDIE`.
 
 .. note:: It is recommended that the original raw file    is called <name>_raw.fif and    the downsampled version <name>_ds_raw.fif ,    respectively.
 
@@ -914,7 +914,7 @@ the following options:
 **\---depth**
 
     Employ depth weighting with the standard settings. For details,
-    see Sections 6.2.10 and 6.4.
+    see :ref:`CBBDFJIE` and :ref:`CBBDDBGF`.
 
 **\---bad <name>**
 

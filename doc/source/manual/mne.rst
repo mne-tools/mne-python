@@ -621,7 +621,7 @@ The command-line options of ``mne_inverse_operator`` are:
     statistics for the source space. Since this computation is time consuming,
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
-    already when the forward solution is computed, see :ref:`CIHCHDAE` and Section 3.11.
+    already when the forward solution is computed, see :ref:`CIHCHDAE` and :ref:`BABCHEJD`.
     For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
     the moment.
 

@@ -1498,7 +1498,7 @@ interesting time points in the data. When a raw data file is opened,
 a standard event file is consulted for the list of events. If this
 file is not present, the digital trigger channel, defined by the --digtrig option
 or the ``MNE_TRIGGER_CH_NAME`` environment variable is
-scanned for events. For more information, see Sections :ref:`BABBGJEA` and :ref:`CACDCHAJ`.
+scanned for events. For more information, see :ref:`BABBGJEA` and :ref:`CACDCHAJ`.
 
 In addition to the events detected on the trigger channel,
 it is possible to associate user-defined events to the data, either
@@ -1560,7 +1560,7 @@ below. The loading dialogs have the following options:
     Only those events which will contain comments and in which the comment
     matches the entered text are loaded. This filtering option is useful, *e.g.*,
     in loading averaging or covariance matrix computation log files,
-    see Sections :ref:`BABIHFBI` and :ref:`BABCGEJE`.
+    see :ref:`BABIHFBI` and :ref:`BABCGEJE`.
     If the word *omit* is entered as the filter,
     only events corresponding to discarded epochs are loaded and the
     reason for rejection can be investigated in detail.
@@ -2425,7 +2425,7 @@ originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
 described in :ref:`CBBDDBGF`. For more information on SSP,
-please consult the references listed in Section 13.4.
+please consult the references listed in :ref:`CEGIEEBB`.
 
 .. _CACFGIEC:
 
