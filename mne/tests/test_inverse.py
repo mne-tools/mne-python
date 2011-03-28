@@ -26,7 +26,7 @@ def test_compute_mne_inverse():
     evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
     inverse_operator = mne.read_inverse_operator(fname_inv)
 
-    res = mne.compute_inverse(evoked, inverse_operator, lambda2, dSPM)
+    res = mne.apply_inverse(evoked, inverse_operator, lambda2, dSPM)
 
     assert np.all(res['sol'] > 0)
     assert np.all(res['sol'] < 35)

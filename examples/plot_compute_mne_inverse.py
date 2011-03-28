@@ -34,7 +34,7 @@ evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 inverse_operator = mne.read_inverse_operator(fname_inv)
 
 # Compute inverse solution
-res = mne.compute_inverse(evoked, inverse_operator, lambda2, dSPM)
+res = mne.apply_inverse(evoked, inverse_operator, lambda2, dSPM)
 
 # Save result in stc files
 lh_vertices = res['inv']['src'][0]['vertno']

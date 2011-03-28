@@ -230,10 +230,10 @@ def read_inverse_operator(fname):
     #  Some empty fields to be filled in later
     #
     inv['proj'] = []      #   This is the projector to apply to the data
-    inv['whitener'] = []      #   This whitens the data
-    inv['reginv'] = []      #   This the diagonal matrix implementing
-                             #   regularization and the inverse
-    inv['noisenorm'] = []      #   These are the noise-normalization factors
+    inv['whitener'] = []  #   This whitens the data
+    inv['reginv'] = []    #   This the diagonal matrix implementing
+                          #   regularization and the inverse
+    inv['noisenorm'] = [] #   These are the noise-normalization factors
     #
     nuse = 0
     for k in range(len(inv['src'])):
@@ -259,38 +259,42 @@ def read_inverse_operator(fname):
 # Compute inverse solution
 
 def combine_xyz(vec):
-    """
-    %
-    % function [comb] = mne_combine_xyz(vec)
-    %
-    % Compute the three Cartesian components of a vector together
-    %
-    %
-    % vec         - Input row or column vector [ x1 y1 z1 ... x_n y_n z_n ]
-    % comb        - Output vector [x1^2+y1^2+z1^2 ... x_n^2+y_n^2+z_n^2 ]
-    %
+    """Compute the three Cartesian components of a vector together
+
+    Parameters
+    ----------
+    vec : array
+        Input row or column vector [ x1 y1 z1 ... x_n y_n z_n ]
+
+    Returns
+    -------
+    comb : array
+        Output vector [x1^2+y1^2+z1^2 ... x_n^2+y_n^2+z_n^2]
     """
     if vec.ndim != 1 or (vec.size % 3) != 0:
         raise ValueError, ('Input must be a 1D vector with '
                            '3N entries')
-
-    s = _block_diag(vec[None, :], 3)
-    comb = (s * s.T).diagonal()
-    return comb
+    return np.sqrt((noise_norm.ravel()**2).reshape(-1, 3).sum(axis=1))
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
-    """
-    %
-    % [inv] = mne_prepare_inverse_operator(orig,nave,lambda2,dSPM)
-    %
-    % Prepare for actually computing the inverse
-    %
-    % orig        - The inverse operator structure read from a file
-    % nave        - Number of averages (scales the noise covariance)
-    % lambda2     - The regularization factor
-    % dSPM        - Compute the noise-normalization factors for dSPM?
-    %
+    """Prepare an inverse operator for actually computing the inverse
+
+    Parameters
+    ----------
+    orig : dict
+        The inverse operator structure read from a file
+    nave : int
+        Number of averages (scales the noise covariance)
+    lambda2 : float
+        The regularization factor. Recommended to be 1 / SNR**2
+    dSPM : bool
+        If True, compute the noise-normalization factors for dSPM.
+
+    Returns
+    -------
+    inv : dict
+        Prepared inverse operator
     """
 
     if nave <= 0:
@@ -380,13 +384,15 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
             #
             #   The three-component case is a little bit more involved
-            #   The variances at three consequtive entries must be squeared and
+            #   The variances at three consequtive entries must be squared and
             #   added together
             #
             #   Even in this case return only one noise-normalization factor
             #   per source location
             #
+            1/0
             noise_norm = np.sqrt(combine_xyz(noise_norm))
+
             #
             #   This would replicate the same value on three consequtive
             #   entries
@@ -401,8 +407,8 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     return inv
 
 
-def compute_inverse(evoked, inverse_operator, lambda2, dSPM=True):
-    """Compute inverse solution
+def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
+    """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
     Actual code using these principles might be different because
