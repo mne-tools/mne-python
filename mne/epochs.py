@@ -7,6 +7,7 @@ import copy
 import numpy as np
 import fiff
 from .fiff import Evoked
+from .fiff.pick import channel_type
 
 
 class Epochs(object):
@@ -28,6 +29,9 @@ class Epochs(object):
 
     tmax : float
         End time after event
+
+    name : string
+        Comment that describes the Evoked data created.
 
     keep_comp : boolean
         Apply CTF gradient compensation
@@ -63,15 +67,15 @@ class Epochs(object):
 
     """
 
-    def __init__(self, raw, events, event_id, tmin, tmax,
-                picks=None, keep_comp=False,
-                dest_comp=0, baseline=(None, 0),
+    def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
+                picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False):
         self.raw = raw
         self.event_id = event_id
         self.tmin = tmin
         self.tmax = tmax
         self.picks = picks
+        self.name = name
         self.keep_comp = keep_comp
         self.dest_comp = dest_comp
         self.baseline = baseline
@@ -217,6 +221,69 @@ class Epochs(object):
         else:
             return self._get_data_from_disk()
 
+    def reject(self, grad=None, mag=None, eeg=None, eog=None):
+        """Reject some epochs based on threshold values
+
+        Parameters
+        ----------
+        grad : float
+            Max value for gradiometers. (about 5000e-13).
+            If None do not reject based on gradiometers.
+        mag : float
+            Max value for magnetometers. (about  6e-12)
+            If None do not reject based on magnetometers.
+        eeg : float
+            Max value for EEG. (about 40e-6)
+            If None do not reject based on EEG.
+        eog : float
+            Max value for EEG. (about 250e-6)
+            If None do not reject based on EOG.
+
+        Returns
+        -------
+        data : array of shape [n_epochs, n_channels, n_times]
+            The epochs data
+        """
+        grad_idx = []
+        mag_idx = []
+        eeg_idx = []
+        eog_idx = []
+        for idx, ch in enumerate(self.ch_names):
+            if grad is not None and  channel_type(self.info, idx) == 'grad':
+                grad_idx.append(idx)
+            if mag is not None and channel_type(self.info, idx) == 'mag':
+                mag_idx.append(idx)
+            if eeg is not None and channel_type(self.info, idx) == 'eeg':
+                eeg_idx.append(idx)
+            if eog is not None and channel_type(self.info, idx) == 'eog':
+                eog_idx.append(idx)
+
+        if len(eog_idx) == 0:
+            print "No EOG channel found. Do not rejecting based on EOG."
+
+        good_epochs = []
+        for k, e in enumerate(self):
+            if len(grad_idx) > 0 and np.max(e[grad_idx]) > grad:
+                print 'Rejecting epoch based on gradiometers.'
+                continue
+            if len(mag_idx) > 0 and np.max(e[mag_idx]) > mag:
+                print 'Rejecting epoch based on magnetometers.'
+                continue
+            if len(eeg_idx) > 0 and np.max(e[eeg_idx]) > eeg:
+                print 'Rejecting epoch based on EEG.'
+                continue
+            if len(eog_idx) > 0 and np.max(e[eog_idx]) > eog:
+                print 'Rejecting epoch based on EOG.'
+                continue
+            good_epochs.append(k)
+
+        n_good_epochs = len(good_epochs)
+        print "Keeping %d epochs (%d bad)" % (n_good_epochs,
+                                              len(self.events) - n_good_epochs)
+        self.events = self.events[good_epochs]
+        if self.preload:
+            self._data = self._data[good_epochs]
+
     def __iter__(self):
         """To iteration over epochs easy.
         """
@@ -241,13 +308,8 @@ class Epochs(object):
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
 
-    def average(self, comment="Evoked data"):
+    def average(self):
         """Compute average of epochs
-
-        Parameters
-        ----------
-        comment : string
-            Comment that describes the Evoked data created.
 
         Returns
         -------
@@ -268,7 +330,7 @@ class Epochs(object):
             data /= n_events
         evoked.data = data
         evoked.times = self.times.copy()
-        evoked.comment = comment
+        evoked.comment = self.name
         evoked.aspect_kind = np.array([100]) # XXX
         evoked.nave = n_events
         evoked.first = - np.sum(self.times < 0)

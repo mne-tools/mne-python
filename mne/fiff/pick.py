@@ -20,7 +20,7 @@ def channel_type(info, idx):
 
     Returns
     -------
-    type : 'grad' | 'mag' | 'eeg' | 'stim'
+    type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
         Type of channel
     """
 
@@ -34,6 +34,12 @@ def channel_type(info, idx):
         return 'eeg'
     elif kind == FIFF.FIFFV_STIM_CH:
         return 'stim'
+    elif kind == FIFF.FIFFV_EOG_CH:
+        return 'eog'
+    elif kind == FIFF.FIFFV_EMG_CH:
+        return 'emg'
+    elif kind == FIFF.FIFFV_ECG_CH:
+        return 'ecg'
 
 
 def pick_channels(ch_names, include, exclude=[]):

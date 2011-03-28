@@ -9,4 +9,5 @@ from .source_space import read_source_spaces
 from .inverse import read_inverse_operator, compute_inverse, minimum_norm
 from .epochs import Epochs
 from .label import label_time_courses, read_label
+from .misc import parse_config
 import fiff
