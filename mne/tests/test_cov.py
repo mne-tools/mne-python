@@ -53,19 +53,16 @@ def test_whitening_cov():
     """Whitening of evoked data and leadfields
     """
     data_path = sample.data_path('.')
-    fwd_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-eeg-oct-6-fwd.fif')
     ave_fname = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-ave.fif')
     cov_fname = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-cov.fif')
 
     # Reading
-    ave = read_evoked(ave_fname, setno=0, baseline=(None, 0))
-    fwd = mne.read_forward_solution(fwd_fname)
+    evoked = read_evoked(ave_fname, setno=0, baseline=(None, 0))
 
     cov = mne.Covariance()
     cov.load(cov_fname)
+    cov.whitener(evoked.info)
 
-    ave_whiten, fwd_whiten, W = cov.whiten_evoked_and_forward(ave, fwd)
     # XXX : test something

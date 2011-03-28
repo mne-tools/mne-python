@@ -396,6 +396,9 @@ class Evoked(object):
         s += ", n_channels x n_times : %s x %s" % self.data.shape
         return "Evoked (%s)" % s
 
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
 
 def read_evoked(fname, setno=0, baseline=None):
     """Read an evoked dataset

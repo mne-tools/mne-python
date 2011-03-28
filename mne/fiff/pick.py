@@ -36,7 +36,7 @@ def channel_type(info, idx):
         return 'stim'
 
 
-def pick_channels(ch_names, include, exclude):
+def pick_channels(ch_names, include, exclude=[]):
     """Pick channels by names
 
     Returns the indices of the good channels in ch_names.

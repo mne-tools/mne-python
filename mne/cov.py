@@ -16,9 +16,34 @@ from .fiff.channels import _read_bad_channels
 
 from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
-from .fiff.proj import write_proj
+from .fiff.proj import write_proj, make_projector
 from .fiff import fiff_open
 from .fiff.pick import pick_types, pick_channels_forward
+
+
+def rank(A, tol=1e-8):
+    s = linalg.svd(A, compute_uv=0)
+    return np.sum(np.where(s > s[0]*tol, 1, 0))
+
+
+def _get_whitener(A, rnk, pca, ch_type):
+    # whitening operator
+    D, V = linalg.eigh(A, overwrite_a=True)
+    I = np.argsort(D)[::-1]
+    D = D[I]
+    V = V[:, I]
+    D = 1.0 / D
+    if not pca: # No PCA case.
+        print 'Not doing PCA for %s.' % ch_type
+        W = np.sqrt(D)[:, None] * V.T
+    else: # Rey's approach. MNE has been changed to implement this.
+        print 'Setting small %s eigenvalues to zero.' % ch_type
+        D[rnk:] = 0.0
+        W = np.sqrt(D)[:, None] * V.T
+        # This line will reduce the actual number of variables in data
+        # and leadfield to the true rank.
+        W = W[:rnk]
+    return W
 
 
 class Covariance(object):
@@ -46,10 +71,124 @@ class Covariance(object):
 
         self._cov = cov
         self.data = cov['data']
+        self.ch_names = cov['names']
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
         write_cov_file(fname, self._cov)
+
+    def whitener(self, info, mag_reg=0.1, grad_reg=0.1, eeg_reg=0.1, pca=True):
+        """Compute whitener based on a list of channels
+
+        Parameters
+        ----------
+        info : dict
+            Measurement info of data to apply the whitener.
+            Defines data channels and which are the bad channels
+            to be ignored.
+        mag_reg : float
+            Regularization of the magnetometers.
+            Recommended between 0.05 and 0.2
+        grad_reg : float
+            Regularization of the gradiometers.
+            Recommended between 0.05 and 0.2
+        eeg_reg : float
+            Regularization of the EGG channels.
+            Recommended between 0.05 and 0.2
+        pca : bool
+            If True, whitening is restricted to the space of
+            the data. It makes sense when data have a low rank
+            due to SSP or maxfilter.
+
+        Returns
+        -------
+        W : array
+            Whitening matrix
+        ch_names : list of strings
+            List of channel names on which to apply the whitener.
+            It corresponds to the columns of W.
+        """
+        bads = info['bads']
+        C_idx = [k for k, name in enumerate(self.ch_names)
+                 if name in info['ch_names'] and name not in bads]
+        ch_names = [self.ch_names[k] for k in C_idx]
+        C_noise = self.data[np.ix_(C_idx, C_idx)] # take covariance submatrix
+
+        # # Create the projection operator
+        # proj, ncomp, _ = make_projector(info['projs'], ch_names)
+        # if ncomp > 0:
+        #     print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
+        #     C_noise = np.dot(proj, np.dot(C_noise, proj.T))
+
+        # Regularize Noise Covariance Matrix.
+        variances = np.diag(C_noise)
+        ind_meg = pick_types(info, meg=True, eeg=False, exclude=bads)
+        names_meg = [info['ch_names'][k] for k in ind_meg]
+        C_ind_meg = [ch_names.index(name) for name in names_meg]
+
+        ind_grad = pick_types(info, meg='grad', eeg=False, exclude=bads)
+        names_grad = [info['ch_names'][k] for k in ind_grad]
+        C_ind_grad = [ch_names.index(name) for name in names_grad]
+
+        ind_mag = pick_types(info, meg='mag', eeg=False, exclude=bads)
+        names_mag = [info['ch_names'][k] for k in ind_mag]
+        C_ind_mag = [ch_names.index(name) for name in names_mag]
+
+        ind_eeg = pick_types(info, meg=False, eeg=True, exclude=bads)
+        names_eeg = [info['ch_names'][k] for k in ind_eeg]
+        C_ind_eeg = [ch_names.index(name) for name in names_eeg]
+
+        has_meg = len(ind_meg) > 0
+        has_eeg = len(ind_eeg) > 0
+
+        if self.kind == 'diagonal':
+            C_noise = np.diag(variances)
+            rnkC_noise = len(variances)
+            print 'Rank of noise covariance is %d' % rnkC_noise
+        else:
+            # estimate noise covariance matrix rank
+            # Loop on all the required data types (MEG MAG, MEG GRAD, EEG)
+
+            if has_meg: # Separate rank of MEG
+                rank_meg = rank(C_noise[C_ind_meg][:, C_ind_meg])
+                print 'Rank of MEG part of noise covariance is %d' % rank_meg
+            if has_eeg: # Separate rank of EEG
+                rank_eeg = rank(C_noise[C_ind_eeg][:, C_ind_eeg])
+                print 'Rank of EEG part of noise covariance is %d' % rank_eeg
+
+            for ind, reg in zip([C_ind_grad, C_ind_mag, C_ind_eeg],
+                                [grad_reg, mag_reg, eeg_reg]):
+                if len(ind) > 0:
+                    # add constant on diagonal
+                    C_noise[ind, ind] += reg * np.mean(variances[ind])
+
+            if has_meg and has_eeg: # Sets cross terms to zero
+                C_noise[np.ix_(C_ind_meg, C_ind_eeg)] = 0.0
+                C_noise[np.ix_(C_ind_eeg, C_ind_meg)] = 0.0
+
+        # whitening operator
+        if has_meg:
+            W_meg = _get_whitener(C_noise[C_ind_meg][:, C_ind_meg], rank_meg,
+                                  pca, 'MEG')
+
+        if has_eeg:
+            W_eeg = _get_whitener(C_noise[C_ind_eeg][:, C_ind_eeg], rank_eeg,
+                                  pca, 'EEG')
+
+        if has_meg and not has_eeg: # Only MEG case.
+            W = W_meg
+        elif has_eeg and not has_meg: # Only EEG case.
+            W = W_eeg
+        elif has_eeg and has_meg: # Bimodal MEG and EEG case.
+            # Whitening of MEG and EEG separately, which assumes zero
+            # covariance between MEG and EEG (i.e., a block diagonal noise
+            # covariance). This was recommended by Matti as EEG does not
+            # measure all the signals from the same environmental noise sources
+            # as MEG.
+            W = np.r_[np.c_[W_meg, np.zeros((W_meg.shape[0], W_eeg.shape[1]))],
+                      np.c_[np.zeros((W_eeg.shape[0], W_meg.shape[1])), W_eeg]]
+
+        return W, names_meg + names_eeg
 
     def estimate_from_raw(self, raw, picks=None, quantum_sec=10):
         """Estimate noise covariance matrix from a raw FIF file
@@ -81,122 +220,6 @@ class Covariance(object):
 
         self.data = cov / n_samples # XXX : check
         print '[done]'
-
-    def _regularize(self, data, variances, ch_names, eps):
-        """Operates inplace in data
-        """
-        if len(ch_names) > 0:
-            ind = [self._cov['names'].index(name) for name in ch_names]
-            reg = eps * np.mean(variances[ind])
-            for ii in ind:
-                data[ind,ind] += reg
-
-    def whiten_evoked(self, evoked, eps=0.2):
-        """Whiten an evoked data file
-
-        The whitening matrix is estimated and then multiplied to data.
-        It makes the additive white noise assumption of MNE
-        realistic.
-
-        Parameters
-        ----------
-        evoked : Evoked object
-            A evoked data set
-        eps : float
-            The regularization factor used.
-
-        Returns
-        -------
-        evoked_whiten : Evoked object
-            Evoked data set after whitening.
-        W : array of shape [n_channels, n_channels]
-            The whitening matrix
-        """
-
-        data = self.data.copy() # will be the regularized covariance
-        variances = np.diag(data)
-
-        # Add (eps x identity matrix) to magnetometers only.
-        # This is based on the mean magnetometer variance like MNE C-code does it.
-        mag_ind = pick_types(evoked.info, meg='mag', eeg=False, stim=False)
-        mag_names = [evoked.info['chs'][k]['ch_name'] for k in mag_ind]
-        self._regularize(data, variances, mag_names, eps)
-
-        # Add (eps x identity matrix) to gradiometers only.
-        grad_ind = pick_types(evoked.info, meg='grad', eeg=False, stim=False)
-        grad_names = [evoked.info['chs'][k]['ch_name'] for k in grad_ind]
-        self._regularize(data, variances, grad_names, eps)
-
-        # Add (eps x identity matrix) to eeg only.
-        eeg_ind = pick_types(evoked.info, meg=False, eeg=True, stim=False)
-        eeg_names = [evoked.info['chs'][k]['ch_name'] for k in eeg_ind]
-        self._regularize(data, variances, eeg_names, eps)
-
-        d, V = linalg.eigh(data) # Compute eigen value decomposition.
-
-        # Compute the unique square root inverse, which is a whitening matrix.
-        # This matrix can be multiplied with data and leadfield matrix to get
-        # whitened inverse solutions.
-        d = 1.0 / np.sqrt(d)
-        W = d[:,None] * V.T
-
-        # Get all channel indices
-        n_channels = len(evoked.info['chs'])
-        ave_ch_names = [evoked.info['chs'][k]['ch_name']
-                                            for k in range(n_channels)]
-        ind = [ave_ch_names.index(name) for name in self._cov['names']]
-
-        evoked_whiten = copy.copy(evoked)
-        evoked_whiten.data[ind] = np.dot(W, evoked.data[ind])
-
-        return evoked_whiten, W
-
-    def whiten_evoked_and_forward(self, evoked, fwd, eps=0.2):
-        """Whiten an evoked data set and a forward solution
-
-        The whitening matrix is estimated and then multiplied to
-        forward solution a.k.a. the leadfield matrix.
-        It makes the additive white noise assumption of MNE
-        realistic.
-
-        Parameters
-        ----------
-        evoked : Evoked object
-            A evoked data set
-        fwd : forward data
-            A forward solution read with mne.read_forward
-        eps : float
-            The regularization factor used.
-
-        Returns
-        -------
-        ave : Evoked object
-            The whitened evoked data set
-        fwd : dict
-            The whitened forward solution.
-        W : array of shape [n_channels, n_channels]
-            The whitening matrix
-        """
-        # handle evoked
-        evoked_whiten, W = self.whiten_evoked(evoked, eps=eps)
-
-        evoked_ch_names = [ch['ch_name'] for ch in evoked_whiten.info['chs']]
-
-        # handle forward (keep channels in covariance matrix)
-        fwd_whiten = copy.copy(fwd)
-        ind = [fwd_whiten['sol']['row_names'].index(name)
-                                                for name in self._cov['names']]
-        fwd_whiten['sol']['data'][ind] = np.dot(W,
-                                                fwd_whiten['sol']['data'][ind])
-        fwd_whiten['sol']['row_names'] = [fwd_whiten['sol']['row_names'][k]
-                                                                  for k in ind]
-        fwd_whiten['chs'] = [fwd_whiten['chs'][k] for k in ind]
-
-        # keep in forward the channels in the evoked dataset
-        fwd_whiten = pick_channels_forward(fwd, include=evoked_ch_names,
-                                                exclude=evoked.info['bads'])
-
-        return evoked_whiten, fwd_whiten, W
 
     def __repr__(self):
         s = "kind : %s" % self.kind

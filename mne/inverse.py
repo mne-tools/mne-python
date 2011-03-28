@@ -1,10 +1,12 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Rey Ramirez
 #
 # License: BSD (3-clause)
 
 from math import sqrt
 import numpy as np
+from scipy import linalg
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -485,3 +487,236 @@ def compute_inverse(evoked, inverse_operator, lambda2, dSPM=True):
     print '[done]'
 
     return res
+
+
+def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
+                 orientation='fixed', snr=3, loose=0.2, depth=True,
+                 weightexp=0.5, weightlimit=10, magreg=0.1,
+                 gradreg=0.1, eegreg=0.1, fMRI=None, fMRIthresh=None,
+                 fMRIoff=0.1, pca=True):
+    """Minimum norm estimate (MNE)
+
+    Compute MNE, dSPM and sLORETA on evoked data starting from
+    a forward operator.
+
+    Parameters
+    ----------
+    evoked : Evoked
+        Evoked data to invert
+    forward : dict
+        Forward operator
+    cov : Covariance
+        Noise covariance matrix
+    picks : array-like
+        List of indices of channels to include
+    method : 'wmne' | 'dspm' | 'sloreta'
+        The method to use
+    orientation : 'fixed' | 'free' | 'loose'
+        Type of orientation constraints 'fixed'.
+    snr : float
+        Signal-to noise ratio defined as in MNE (default: 3).
+    loose : float in [0, 1]
+        Value that weights the source variances of the dipole components
+        defining the tangent space of the cortical surfaces.
+    depth : bool
+        Flag to do depth weighting (default: True).
+    weightexp : float
+        Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
+    weightlimit : float
+        Maximal amount depth weighting (default: 10).
+    magreg : float
+        Amount of regularization of the magnetometer noise covariance matrix
+    gradreg : float
+        Amount of regularization of the gradiometer noise covariance matrix.
+    eegreg : float
+        Amount of regularization of the EEG noise covariance matrix.
+    fMRI : array of shape [n_sources]
+        Vector of fMRI values are the source points.
+    fMRIthresh : float
+        fMRI threshold. The source variances of source points with fMRI smaller
+        than fMRIthresh will be multiplied by OPTIONS.fMRIoff.
+    fMRIoff : float
+        Weight assigned to non-active source points according to fMRI and fMRIthresh.
+
+    Returns
+    -------
+    stc : dict
+        Source time courses
+    """
+
+    # %% ===== CHECK FOR INVALID VALUES =====
+    # if OPTIONS.diagnoise
+    #     OPTIONS.pca=0; % Rey added this. If OPTIONS.diagnoise is 1, then OPTIONS.pca=0;  3/23/11
+    #     display('wMNE> If using diagonal noise covariance, PCA option should be off. Setting PCA option off.')
+    # end
+
+    assert method in ['wmne', 'dspm', 'sloreta']
+    assert orientation in ['fixed', 'free', 'loose']
+
+    if not 0 <= loose <= 1:
+        raise ValueError('loose value should be smaller than 1 and bigger than '
+                         '0, or empty for no loose orientations.')
+    if not 0 <= weightexp <= 1:
+        raise ValueError('weightexp should be a scalar between 0 and 1')
+    if not 0 <= gradreg <= 1:
+        raise ValueError('gradreg should be a scalar between 0 and 1')
+    if not 0 <= magreg <= 1:
+        raise ValueError('magreg should be a scalar between 0 and 1')
+    if not 0 <= eegreg <= 1:
+        raise ValueError('eegreg should be a scalar between 0 and 1')
+
+    # Set regularization parameter based on SNR
+    lambda2 = 1.0 / snr**2
+
+    normals = []
+    for s in forward['src']:
+        normals.append(s['nn'][s['inuse'] != 0])
+    normals = np.concatenate(normals)
+
+    W, ch_names = cov.whitener(evoked.info, magreg, gradreg, eegreg, pca)
+
+    gain = forward['sol']['data']
+    fwd_ch_names = [forward['chs'][k]['ch_name'] for k in range(gain.shape[0])]
+    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    gain = gain[fwd_idx]
+
+    print "Computing inverse solution with %d channels." % len(ch_names)
+
+    rank_noise = len(W)
+    print 'Total rank is %d' % rank_noise
+
+    # processing lead field matrices, weights, areas & orientations
+    # Initializing.
+    n_positions = gain.shape[1] / 3
+
+    if orientation is 'fixed':
+        n_dip_per_pos = 1
+    elif orientation in ['free', 'loose']:
+        n_dip_per_pos = 3
+
+    n_dipoles = n_positions * n_dip_per_pos
+
+    w = np.ones(n_dipoles)
+
+    # compute power
+    if depth:
+        w = np.sum(gain**2, axis=0)
+        w = w.reshape(-1, 3).sum(axis=1)
+        w = w[:,None] * np.ones((1, n_dip_per_pos))
+        w = w.ravel()
+
+    if orientation is 'fixed':
+        print 'Appying fixed dipole orientations.'
+        gain = gain * _block_diag(normals.ravel()[None,:], 3).T
+    elif orientation is 'free':
+        print 'Using free dipole orientations. No constraints.'
+    elif orientation is 'loose':
+        print 'Transforming lead field matrix to cortical coordinate system.'
+        1/0
+        # gain, Q_Cortex = bst_xyz2lf(gain, normals) # XXX
+        # # Getting indices for tangential dipoles.
+        # itangentialtmp = start:endd;
+        # itangentialtmp(1:3:end) = [];
+        # itangential = [itangential itangentialtmp];  %#ok<AGROW>
+
+    # Whiten lead field.
+    print 'Whitening lead field matrix.'
+    gain = np.dot(W, gain)
+
+    # Computing reciprocal of power.
+    w = 1.0 / w
+
+    # apply areas
+    # if ~isempty(areas)
+    #     display('wMNE> Applying areas to compute current source density.')
+    #     areas = areas.^2;
+    #     w = w .* areas;
+    # end
+    # clear areas
+
+    # apply depth weighthing
+    if depth:
+        # apply weight limit
+        # Applying weight limit.
+        print 'Applying weight limit.'
+        weightlimit2 = weightlimit**2
+        # limit = min(w(w>min(w) * weightlimit2));  % This is the Matti way.
+        # we do the Rey way (robust to possible weight discontinuity).
+        limit = np.min(w) * weightlimit2
+        w[w > limit] = limit
+
+        # apply weight exponent
+        # Applying weight exponent.
+        print 'Applying weight exponent.'
+        w = w ** weightexp
+
+    # apply loose orientations
+    if orientation is 'loose':
+        print 'Applying loose dipole orientations. Loose value of %d.' % loose
+        w[itangential] *= loose
+
+    # Apply fMRI Priors
+    if fMRI is not None:
+        print 'Applying fMRI priors.'
+        w[fMRI < fMRIthresh] *= fMRIoff
+
+    # Adjusting Source Covariance matrix to make trace of L*C_J*L' equal
+    # to number of sensors.
+    print 'Adjusting source covariance matrix.'
+    source_std = np.sqrt(w) # sqrt(C_J)
+    trclcl = linalg.norm(gain * source_std[None,:], ord='fro')
+    source_std *= sqrt(rank_noise) / trclcl # correct C_J
+    gain *= source_std[None,:]
+
+    # Compute SVD.
+    print 'Computing SVD of whitened and weighted lead field matrix.'
+    U, s, Vh = linalg.svd(gain, full_matrices=False)
+    ss = s / (s**2 + lambda2)
+
+    # Compute whitened MNE operator.
+    Kernel = source_std[:,None] * np.dot(Vh.T, ss[:,None] * U.T)
+
+    # Compute dSPM operator.
+    if method is 'dspm':
+        print 'Computing dSPM inverse operator.'
+        dspm_diag = np.sum(Kernel**2, axis=1)
+        if n_dip_per_pos == 1:
+            dspm_diag = np.sqrt(dspm_diag)
+        elif n_dip_per_pos in [2, 3]:
+            dspm_diag = dspm_diag.reshape(-1, n_dip_per_pos)
+            dspm_diag = np.sqrt(np.sum(dspm_diag, axis=1))
+            dspm_diag = (np.ones((1, n_dip_per_pos)) * dspm_diag[:,None]).ravel()
+
+        Kernel /= dspm_diag[:,None]
+
+    # whitened sLORETA imaging kernel
+    elif method is 'sloreta':
+        print 'Computing sLORETA inverse operator.'
+        if n_dip_per_pos == 1:
+            sloreta_diag = np.sqrt(np.sum(Kernel * gain.T, axis=1))
+            Kernel /= sloreta_diag[:,None]
+        elif n_dip_per_pos in [2, 3]:
+            for k in n_positions:
+                start = k*n_dip_per_pos
+                stop = (k+1)*n_dip_per_pos
+                R = np.dot(Kernel[start:stop,:], gain[:,start:stop])
+                SIR = linalg.matfuncs.sqrtm(R, linalg.pinv(R))
+                Kernel[start:stop] = np.dot(SIR, Kernel[start:stop])
+
+    # Multiply inverse operator by whitening matrix, so no need to whiten data
+    Kernel = np.dot(Kernel, W)
+    sel = [evoked.ch_names.index(name) for name in ch_names]
+    sol = np.dot(Kernel, evoked.data[sel])
+
+    stc = dict()
+    stc['inv'] = dict()
+    stc['inv']['src'] = forward['src']
+    # stc['vertices'] = np.concatenate(forward['src'][0]['vertno'],
+    #                                  forward['src'][1]['vertno'])
+    stc['sol'] = sol
+    stc['tmin'] = float(evoked.first) / evoked.info['sfreq']
+    stc['tstep'] = 1.0 / evoked.info['sfreq']
+    print '[done]'
+
+    return stc, Kernel, W
+
