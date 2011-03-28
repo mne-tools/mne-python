@@ -274,7 +274,7 @@ def combine_xyz(vec):
     if vec.ndim != 1 or (vec.size % 3) != 0:
         raise ValueError, ('Input must be a 1D vector with '
                            '3N entries')
-    return np.sqrt((noise_norm.ravel()**2).reshape(-1, 3).sum(axis=1))
+    return np.sqrt((vec.ravel()**2).reshape(-1, 3).sum(axis=1))
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
@@ -390,7 +390,6 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
             #   Even in this case return only one noise-normalization factor
             #   per source location
             #
-            1/0
             noise_norm = np.sqrt(combine_xyz(noise_norm))
 
             #
