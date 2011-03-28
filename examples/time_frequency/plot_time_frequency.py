@@ -44,6 +44,7 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
 picks = [picks[97]]
 epochs = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
+epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
 data = epochs.get_data() # as 3D matrix
 evoked = epochs.average() # compute evoked fields
 

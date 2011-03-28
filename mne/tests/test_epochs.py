@@ -32,4 +32,5 @@ def test_read_epochs():
 
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
+    epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
     epochs.average()
