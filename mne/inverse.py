@@ -713,6 +713,13 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
     sel = [evoked.ch_names.index(name) for name in ch_names]
     sol = np.dot(Kernel, evoked.data[sel])
 
+    if n_dip_per_pos > 1:
+        print 'combining the current components...',
+        sol1 = np.empty((sol.shape[0]/3, sol.shape[1]))
+        for k in range(sol.shape[1]):
+            sol1[:, k] = np.sqrt(combine_xyz(sol[:, k]))
+        sol = sol1
+
     stc = dict()
     stc['inv'] = dict()
     stc['inv']['src'] = forward['src']
