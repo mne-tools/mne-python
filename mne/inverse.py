@@ -274,7 +274,7 @@ def combine_xyz(vec):
     if vec.ndim != 1 or (vec.size % 3) != 0:
         raise ValueError, ('Input must be a 1D vector with '
                            '3N entries')
-    return np.sqrt((vec.ravel()**2).reshape(-1, 3).sum(axis=1))
+    return (vec.ravel()**2).reshape(-1, 3).sum(axis=1)
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
