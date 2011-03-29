@@ -18,19 +18,31 @@ def test_read_epochs():
     tmin = -0.2
     tmax = 0.5
 
-    #   Setup for reading the raw data
+    # Setup for reading the raw data
+    raw = fiff.Raw(raw_fname)
+    events = mne.read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+                            eog=True, include=['STI 014'])
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    epochs.average()
+
+
+def test_reject_epochs():
+    event_id = 1
+    tmin = -0.2
+    tmax = 0.5
+
+    # Setup for reading the raw data
     raw = fiff.Raw(raw_fname)
     events = mne.read_events(event_name)
 
-    # Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
-    include = ['STI 014'];
-    want_meg = True
-    want_eeg = False
-    want_stim = False
-    picks = fiff.pick_types(raw.info, want_meg, want_eeg, want_stim,
-                            include, raw.info['bads'])
-
+    picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
+                            eog=True, include=['STI 014'])
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
-    epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
-    epochs.average()
+    n_epochs = len(epochs)
+    epochs.reject(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+    n_clean_epochs = len(epochs)
+    assert n_epochs > n_clean_epochs
+    assert n_clean_epochs == 3

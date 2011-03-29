@@ -72,22 +72,26 @@ def pick_channels(ch_names, include, exclude=[]):
     return sel
 
 
-def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
+def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
+               emg=False, include=[], exclude=[]):
     """Pick channels by type and names
 
     Parameters
     ----------
     info : dict
         The measurement info
-
     meg : bool or string
         Is True include MEG channels or False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
         or magnetometers.
-
     eeg : bool
         Is True include EEG channels
-
+    eog : bool
+        Is True include EOG channels
+    ecg : bool
+        Is True include ECG channels
+    emg : bool
+        Is True include EMG channels
     stim : bool
         Is True include stimulus channels
 
@@ -119,6 +123,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_STIM_CH and stim:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EOG_CH and eog:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_ECG_CH and ecg:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EMG_CH and emg:
             pick[k] = True
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]

@@ -227,16 +227,16 @@ class Epochs(object):
         Parameters
         ----------
         grad : float
-            Max value for gradiometers. (about 5000e-13).
+            Max value for gradiometers. (about 4000 fT / cm = 4000e-13 T / m).
             If None do not reject based on gradiometers.
         mag : float
-            Max value for magnetometers. (about  6e-12)
+            Max value for magnetometers. (about  4000 fT = 4e-12 T)
             If None do not reject based on magnetometers.
         eeg : float
-            Max value for EEG. (about 40e-6)
+            Max value for EEG. (about 40e-6 uV)
             If None do not reject based on EEG.
         eog : float
-            Max value for EEG. (about 250e-6)
+            Max value for EEG. (about 250e-6 uV)
             If None do not reject based on EOG.
 
         Returns
@@ -258,24 +258,40 @@ class Epochs(object):
             if eog is not None and channel_type(self.info, idx) == 'eog':
                 eog_idx.append(idx)
 
-        if len(eog_idx) == 0:
-            print "No EOG channel found. Do not rejecting based on EOG."
+        if grad is not None and len(grad_idx) == 0:
+            raise ValueError("No GRAD channel found. Cannot reject based on GRAD.")
+        elif grad is not None:
+            print "grad reject : %s fT/cm" % (1e13*grad)
+        if mag is not None and len(mag_idx) == 0:
+            raise ValueError("No MAG channel found. Cannot reject based on MAG.")
+        elif mag is not None:
+            print "mag  reject : %s fT" % (1e15*mag)
+        if eeg is not None and len(eeg_idx) == 0:
+            raise ValueError("No EEG channel found. Cannot reject based on EEG.")
+        elif eeg is not None:
+            print "EEG  reject : %s uV" % (1e6*eeg)
+        if eog is not None and len(eog_idx) == 0:
+            raise ValueError("No EOG channel found. Cannot reject based on EOG.")
+        elif eog is not None:
+            print "EOG  reject : %s uV" % (1e6*eog)
 
         good_epochs = []
         for k, e in enumerate(self):
-            if len(grad_idx) > 0 and np.max(e[grad_idx]) > grad:
-                print 'Rejecting epoch based on gradiometers.'
-                continue
-            if len(mag_idx) > 0 and np.max(e[mag_idx]) > mag:
-                print 'Rejecting epoch based on magnetometers.'
-                continue
-            if len(eeg_idx) > 0 and np.max(e[eeg_idx]) > eeg:
-                print 'Rejecting epoch based on EEG.'
-                continue
-            if len(eog_idx) > 0 and np.max(e[eog_idx]) > eog:
-                print 'Rejecting epoch based on EOG.'
-                continue
-            good_epochs.append(k)
+            for thresh, idx, name in zip([grad, mag, eeg, eog],
+                                         [grad_idx, mag_idx, eeg_idx, eog_idx],
+                                         ['GRAD', 'MAG', 'EEG', 'EOG']):
+                if len(idx) > 0:
+                    e_idx = e[idx]
+                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                    idx_max_delta = np.argmax(deltas)
+                    delta = deltas[idx_max_delta]
+                    if delta > thresh:
+                        ch_name = self.ch_names[idx[idx_max_delta]]
+                        print '\tRejecting epoch based on %s : %s (%s > %s).' \
+                                    % (name, ch_name, delta, thresh)
+                        break
+            else:
+                good_epochs.append(k)
 
         n_good_epochs = len(good_epochs)
         print "Keeping %d epochs (%d bad)" % (n_good_epochs,
