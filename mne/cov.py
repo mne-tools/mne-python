@@ -4,7 +4,6 @@
 # License: BSD (3-clause)
 
 import os
-import copy
 import numpy as np
 from scipy import linalg
 
@@ -18,7 +17,7 @@ from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
 from .fiff.proj import write_proj, make_projector
 from .fiff import fiff_open
-from .fiff.pick import pick_types, pick_channels_forward
+from .fiff.pick import pick_types
 
 
 def rank(A, tol=1e-8):
@@ -61,8 +60,8 @@ class Covariance(object):
         if self.kind in Covariance._kind_to_id:
             cov_kind = Covariance._kind_to_id[self.kind]
         else:
-            raise ValueError, ('Unknown type of covariance. '
-                               'Choose between full, sparse or diagonal.')
+            raise ValueError('Unknown type of covariance. '
+                             'Choose between full, sparse or diagonal.')
 
         # Reading
         fid, tree, _ = fiff_open(fname)
@@ -108,17 +107,22 @@ class Covariance(object):
             List of channel names on which to apply the whitener.
             It corresponds to the columns of W.
         """
+
+        if pca and self.kind == 'diagonal':
+            print "Setting pca to False with a diagonal covariance matrix."
+            pca = False
+
         bads = info['bads']
         C_idx = [k for k, name in enumerate(self.ch_names)
                  if name in info['ch_names'] and name not in bads]
         ch_names = [self.ch_names[k] for k in C_idx]
         C_noise = self.data[np.ix_(C_idx, C_idx)] # take covariance submatrix
 
-        # # Create the projection operator
-        # proj, ncomp, _ = make_projector(info['projs'], ch_names)
-        # if ncomp > 0:
-        #     print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
-        #     C_noise = np.dot(proj, np.dot(C_noise, proj.T))
+        # Create the projection operator
+        proj, ncomp, _ = make_projector(info['projs'], ch_names)
+        if ncomp > 0:
+            print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
+            C_noise = np.dot(proj, np.dot(C_noise, proj.T))
 
         # Regularize Noise Covariance Matrix.
         variances = np.diag(C_noise)
@@ -214,7 +218,7 @@ class Covariance(object):
             elif self.kind is 'diagonal':
                 cov += np.diag(np.sum(data ** 2, axis=1))
             else:
-                raise ValueError, "Unsupported covariance kind"
+                raise ValueError("Unsupported covariance kind")
 
             n_samples += data.shape[1]
 
@@ -250,7 +254,7 @@ def read_cov(fid, node, cov_kind):
     #   Find all covariance matrices
     covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
     if len(covs) == 0:
-        raise ValueError, 'No covariance matrices found'
+        raise ValueError('No covariance matrices found')
 
     #   Is any of the covariance matrices a noise covariance
     for p in range(len(covs)):
@@ -261,7 +265,7 @@ def read_cov(fid, node, cov_kind):
             #   Find all the necessary data
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIM)
             if tag is None:
-                raise ValueError, 'Covariance matrix dimension not found'
+                raise ValueError('Covariance matrix dimension not found')
 
             dim = tag.data
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_NFREE)
@@ -276,14 +280,14 @@ def read_cov(fid, node, cov_kind):
             else:
                 names = tag.data.split(':')
                 if len(names) != dim:
-                    raise ValueError, ('Number of names does not match '
+                    raise ValueError('Number of names does not match '
                                        'covariance matrix dimension')
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)
             if tag is None:
                 tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIAG)
                 if tag is None:
-                    raise ValueError, 'No covariance matrix data found'
+                    raise ValueError('No covariance matrix data found')
                 else:
                     #   Diagonal is stored
                     data = tag.data
@@ -331,7 +335,7 @@ def read_cov(fid, node, cov_kind):
                        eigvec=eigvec)
             return cov
 
-    raise ValueError, 'Did not find the desired covariance matrix'
+    raise ValueError('Did not find the desired covariance matrix')
 
     return None
 

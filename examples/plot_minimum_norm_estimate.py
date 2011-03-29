@@ -37,7 +37,7 @@ noise_cov = mne.Covariance()
 noise_cov.load(fname_cov)
 
 # Compute inverse solution
-stc, K, W = mne.minimum_norm(evoked, forward, noise_cov, orientation='free',
+stc, K, W = mne.minimum_norm(evoked, forward, noise_cov, orientation='loose',
                              method='dspm', snr=3, loose=0.2, pca=True)
 
 # Save result in stc files

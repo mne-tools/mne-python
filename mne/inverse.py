@@ -1,6 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Rey Ramirez
+#          Rey Rene Ramirez, Ph.D. <rrramirez at mcw.edu>
 #
 # License: BSD (3-clause)
 
@@ -46,7 +46,7 @@ def read_inverse_operator(fname):
     invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     if invs is None:
         fid.close()
-        raise ValueError, 'No inverse solutions in %s' % fname
+        raise ValueError('No inverse solutions in %s' % fname)
 
     invs = invs[0]
     #
@@ -55,7 +55,7 @@ def read_inverse_operator(fname):
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
     if len(parent_mri) == 0:
         fid.close()
-        raise ValueError, 'No parent MRI information in %s' % fname
+        raise ValueError('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
 
     print '\tReading inverse operator info...',
@@ -65,7 +65,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
     if tag is None:
         fid.close()
-        raise ValueError, 'Modalities not found'
+        raise ValueError('Modalities not found')
 
     inv = dict()
     inv['methods'] = tag.data
@@ -73,14 +73,14 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
         fid.close()
-        raise ValueError, 'Source orientation constraints not found'
+        raise ValueError('Source orientation constraints not found')
 
-    inv['source_ori'] = tag.data
+    inv['source_ori'] = int(tag.data)
 
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         fid.close()
-        raise ValueError, 'Number of sources not found'
+        raise ValueError('Number of sources not found')
 
     inv['nsource'] = tag.data
     inv['nchan'] = 0
@@ -90,7 +90,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
         fid.close()
-        raise ValueError, 'Coordinate frame tag not found'
+        raise ValueError('Coordinate frame tag not found')
 
     inv['coord_frame'] = tag.data
     #
@@ -99,7 +99,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
     if tag is None:
         fid.close()
-        raise ValueError, 'Source orientation information not found'
+        raise ValueError('Source orientation information not found')
 
     inv['source_nn'] = tag.data
     print '[done]'
@@ -110,7 +110,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
-        raise ValueError, 'Singular values not found'
+        raise ValueError('Singular values not found')
 
     inv['sing'] = tag.data
     inv['nchan'] = len(inv['sing'])
@@ -127,7 +127,7 @@ def read_inverse_operator(fname):
             inv['eigen_leads'] = _read_named_matrix(fid, invs,
                                         FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
         except Exception as inst:
-            raise ValueError, '%s' % inst
+            raise ValueError('%s' % inst)
     #
     #   Having the eigenleads as columns is better for the inverse calculations
     #
@@ -136,7 +136,7 @@ def read_inverse_operator(fname):
         inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                                 FIFF.FIFF_MNE_INVERSE_FIELDS)
     except Exception as inst:
-        raise ValueError, '%s' % inst
+        raise ValueError('%s' % inst)
 
     print '[done]'
     #
@@ -147,19 +147,20 @@ def read_inverse_operator(fname):
         print '\tNoise covariance matrix read.'
     except Exception as inst:
         fid.close()
-        raise ValueError, '%s' % inst
+        raise ValueError('%s' % inst)
 
     try:
         inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
         print '\tSource covariance matrix read.'
     except Exception as inst:
         fid.close()
-        raise ValueError, '%s' % inst
+        raise ValueError('%s' % inst)
     #
     #   Read the various priors
     #
     try:
-        inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+        inv['orient_prior'] = read_cov(fid, invs,
+                                       FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
         print '\tOrientation priors read.'
     except Exception as inst:
         inv['orient_prior'] = []
@@ -184,7 +185,7 @@ def read_inverse_operator(fname):
         inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
     except Exception as inst:
         fid.close()
-        raise ValueError, 'Could not read the source spaces (%s)' % inst
+        raise ValueError('Could not read the source spaces (%s)' % inst)
 
     for s in inv['src']:
         s['id'] = find_source_space_hemi(s)
@@ -195,7 +196,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         fid.close()
-        raise ValueError, 'MRI/head coordinate transformation not found'
+        raise ValueError('MRI/head coordinate transformation not found')
     else:
         mri_head_t = tag.data
         if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
@@ -204,8 +205,8 @@ def read_inverse_operator(fname):
             if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
-                raise ValueError, ('MRI/head coordinate transformation '
-                                   'not found')
+                raise ValueError('MRI/head coordinate transformation '
+                                 'not found')
 
     inv['mri_head_t'] = mri_head_t
     #
@@ -215,8 +216,8 @@ def read_inverse_operator(fname):
     if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
             inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
         fid.close()
-        raise ValueError, 'Only inverse solutions computed in MRI or ' \
-                          'head coordinates are acceptable'
+        raise ValueError('Only inverse solutions computed in MRI or '
+                         'head coordinates are acceptable')
 
     #
     #  Number of averages is initially one
@@ -242,7 +243,7 @@ def read_inverse_operator(fname):
                                                 inv['coord_frame'], mri_head_t)
         except Exception as inst:
             fid.close()
-            raise ValueError, 'Could not transform source space (%s)', inst
+            raise ValueError('Could not transform source space (%s)' % inst)
 
         nuse += inv['src'][k]['nuse']
 
@@ -259,22 +260,26 @@ def read_inverse_operator(fname):
 # Compute inverse solution
 
 def combine_xyz(vec):
-    """Compute the three Cartesian components of a vector together
+    """Compute the three Cartesian components of a vector or matrix together
 
     Parameters
     ----------
-    vec : array
-        Input row or column vector [ x1 y1 z1 ... x_n y_n z_n ]
+    vec : 2d array of shape [3 n x p]
+        Input [ x1 y1 z1 ... x_n y_n z_n ] where x1 ... z_n
+        can be vectors
 
     Returns
     -------
     comb : array
-        Output vector [x1^2+y1^2+z1^2 ... x_n^2+y_n^2+z_n^2]
+        Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
-    if vec.ndim != 1 or (vec.size % 3) != 0:
-        raise ValueError, ('Input must be a 1D vector with '
-                           '3N entries')
-    return (vec.ravel()**2).reshape(-1, 3).sum(axis=1)
+    if vec.ndim != 2:
+        raise ValueError('Input must be 2D')
+    if (vec.shape[0] % 3) != 0:
+        raise ValueError('Input must have 3N rows')
+
+    n, p = vec.shape
+    return np.sqrt((np.abs(vec).reshape(n/3, 3, p)**2).sum(axis=1))
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
@@ -298,7 +303,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     """
 
     if nave <= 0:
-        raise ValueError, 'The number of averages should be positive'
+        raise ValueError('The number of averages should be positive')
 
     print 'Preparing the inverse operator for use...'
     inv = orig.copy()
@@ -390,13 +395,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
             #   Even in this case return only one noise-normalization factor
             #   per source location
             #
-            noise_norm = np.sqrt(combine_xyz(noise_norm))
-
-            #
-            #   This would replicate the same value on three consequtive
-            #   entries
-            #
-            #   noise_norm = kron(sqrt(mne_combine_xyz(noise_norm)),ones(3,1));
+            noise_norm = combine_xyz(noise_norm[:,None]).ravel()
 
         inv['noisenorm'] = 1.0 / np.abs(noise_norm)
         print '[done]'
@@ -449,10 +448,11 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    trans = inv['reginv'][:,None] * reduce(np.dot, [inv['eigen_fields']['data'],
-                                                    inv['whitener'],
-                                                    inv['proj'],
-                                                    evoked.data])
+    trans = inv['reginv'][:, None] * reduce(np.dot,
+                                           [inv['eigen_fields']['data'],
+                                           inv['whitener'],
+                                           inv['proj'],
+                                           evoked.data])
 
     #
     #   Transformation into current distributions by weighting the eigenleads
@@ -474,11 +474,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
 
     if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
         print 'combining the current components...',
-        sol1 = np.zeros((sol.shape[0]/3, sol.shape[1]))
-        for k in range(sol.shape[1]):
-            sol1[:, k] = np.sqrt(combine_xyz(sol[:, k]))
-
-        sol = sol1
+        sol = combine_xyz(sol)
 
     if dSPM:
         print '(dSPM)...',
@@ -494,11 +490,55 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
     return res
 
 
+def _xyz2lf(Lf_xyz, normals):
+    """Reorient leadfield to one component matching the normal to the cortex
+
+    This program takes a leadfield matix computed for dipole components
+    pointing in the x, y, and z directions, and outputs a new lead field
+    matrix for dipole components pointing in the normal direction of the
+    cortical surfaces and in the two tangential directions to the cortex
+    (that is on the tangent cortical space). These two tangential dipole
+    components are uniquely determined by the SVD (reduction of variance).
+
+    Parameters
+    ----------
+    Lf_xyz : array of shape [n_sensors, n_positions x 3]
+        Leadfield
+    normals : array of shape [n_positions, 3]
+        Normals to the cortex
+
+    Returns
+    -------
+    Lf_cortex : array of shape [n_sensors, n_positions x 3]
+        Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
+        that the first column is the gain vector for the cortical normal dipole
+        and the following two column vectors are the gain vectors for the
+        tangential orientations (tangent space of cortical surface).
+    """
+    n_sensors, n_dipoles = Lf_xyz.shape
+    n_positions = n_dipoles / 3
+    Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
+    n_sensors, n_positions, _ = Lf_xyz.shape
+    Lf_cortex = np.zeros_like(Lf_xyz)
+
+    for k in range(n_positions):
+        lf_normal = np.dot(Lf_xyz[:,k,:], normals[k])
+        lf_normal_n = lf_normal[:,None] / linalg.norm(lf_normal)
+        P = np.eye(n_sensors,n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
+        lf_p = np.dot(P, Lf_xyz[:,k,:])
+        U, s, Vh = linalg.svd(lf_p)
+        Lf_cortex[:,k,0] = lf_normal
+        Lf_cortex[:,k,1:] = np.c_[U[:,0]*s[0], U[:,1]*s[1]]
+
+    Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
+    return Lf_cortex
+
+
 def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
                  orientation='fixed', snr=3, loose=0.2, depth=True,
-                 weightexp=0.5, weightlimit=10, magreg=0.1,
-                 gradreg=0.1, eegreg=0.1, fMRI=None, fMRIthresh=None,
-                 fMRIoff=0.1, pca=True):
+                 weight_exp=0.5, weight_limit=10, mag_reg=0.1,
+                 grad_reg=0.1, eeg_reg=0.1, fmri=None, fmri_thresh=None,
+                 fmri_off=0.1, pca=True):
     """Minimum norm estimate (MNE)
 
     Compute MNE, dSPM and sLORETA on evoked data starting from
@@ -525,50 +565,44 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         defining the tangent space of the cortical surfaces.
     depth : bool
         Flag to do depth weighting (default: True).
-    weightexp : float
+    weight_exp : float
         Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
-    weightlimit : float
+    weight_limit : float
         Maximal amount depth weighting (default: 10).
-    magreg : float
+    mag_reg : float
         Amount of regularization of the magnetometer noise covariance matrix
-    gradreg : float
+    grad_reg : float
         Amount of regularization of the gradiometer noise covariance matrix.
-    eegreg : float
+    eeg_reg : float
         Amount of regularization of the EEG noise covariance matrix.
-    fMRI : array of shape [n_sources]
+    fmri : array of shape [n_sources]
         Vector of fMRI values are the source points.
-    fMRIthresh : float
-        fMRI threshold. The source variances of source points with fMRI smaller
-        than fMRIthresh will be multiplied by OPTIONS.fMRIoff.
-    fMRIoff : float
-        Weight assigned to non-active source points according to fMRI and fMRIthresh.
+    fmri_thresh : float
+        fMRI threshold. The source variances of source points with fmri smaller
+        than fmri_thresh will be multiplied by fmri_off.
+    fmri_off : float
+        Weight assigned to non-active source points according to fmri
+        and fmri_thresh.
 
     Returns
     -------
     stc : dict
         Source time courses
     """
-
-    # %% ===== CHECK FOR INVALID VALUES =====
-    # if OPTIONS.diagnoise
-    #     OPTIONS.pca=0; % Rey added this. If OPTIONS.diagnoise is 1, then OPTIONS.pca=0;  3/23/11
-    #     display('wMNE> If using diagonal noise covariance, PCA option should be off. Setting PCA option off.')
-    # end
-
     assert method in ['wmne', 'dspm', 'sloreta']
     assert orientation in ['fixed', 'free', 'loose']
 
     if not 0 <= loose <= 1:
-        raise ValueError('loose value should be smaller than 1 and bigger than '
-                         '0, or empty for no loose orientations.')
-    if not 0 <= weightexp <= 1:
-        raise ValueError('weightexp should be a scalar between 0 and 1')
-    if not 0 <= gradreg <= 1:
-        raise ValueError('gradreg should be a scalar between 0 and 1')
-    if not 0 <= magreg <= 1:
-        raise ValueError('magreg should be a scalar between 0 and 1')
-    if not 0 <= eegreg <= 1:
-        raise ValueError('eegreg should be a scalar between 0 and 1')
+        raise ValueError('loose value should be smaller than 1 and bigger than'
+                         ' 0, or empty for no loose orientations.')
+    if not 0 <= weight_exp <= 1:
+        raise ValueError('weight_exp should be a scalar between 0 and 1')
+    if not 0 <= grad_reg <= 1:
+        raise ValueError('grad_reg should be a scalar between 0 and 1')
+    if not 0 <= mag_reg <= 1:
+        raise ValueError('mag_reg should be a scalar between 0 and 1')
+    if not 0 <= eeg_reg <= 1:
+        raise ValueError('eeg_reg should be a scalar between 0 and 1')
 
     # Set regularization parameter based on SNR
     lambda2 = 1.0 / snr**2
@@ -578,7 +612,7 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         normals.append(s['nn'][s['inuse'] != 0])
     normals = np.concatenate(normals)
 
-    W, ch_names = cov.whitener(evoked.info, magreg, gradreg, eegreg, pca)
+    W, ch_names = cov.whitener(evoked.info, mag_reg, grad_reg, eeg_reg, pca)
 
     gain = forward['sol']['data']
     fwd_ch_names = [forward['chs'][k]['ch_name'] for k in range(gain.shape[0])]
@@ -617,12 +651,9 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         print 'Using free dipole orientations. No constraints.'
     elif orientation is 'loose':
         print 'Transforming lead field matrix to cortical coordinate system.'
-        1/0
-        # gain, Q_Cortex = bst_xyz2lf(gain, normals) # XXX
-        # # Getting indices for tangential dipoles.
-        # itangentialtmp = start:endd;
-        # itangentialtmp(1:3:end) = [];
-        # itangential = [itangential itangentialtmp];  %#ok<AGROW>
+        gain = _xyz2lf(gain, normals)
+        # Getting indices for tangential dipoles: [1, 2, 4, 5]
+        itangential = [k for k in range(n_dipoles) if n_dipoles % 3 != 0]
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
@@ -644,26 +675,26 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         # apply weight limit
         # Applying weight limit.
         print 'Applying weight limit.'
-        weightlimit2 = weightlimit**2
-        # limit = min(w(w>min(w) * weightlimit2));  % This is the Matti way.
+        weight_limit2 = weight_limit**2
+        # limit = min(w(w>min(w) * weight_limit2));  % This is the Matti way.
         # we do the Rey way (robust to possible weight discontinuity).
-        limit = np.min(w) * weightlimit2
+        limit = np.min(w) * weight_limit2
         w[w > limit] = limit
 
         # apply weight exponent
         # Applying weight exponent.
         print 'Applying weight exponent.'
-        w = w ** weightexp
+        w = w ** weight_exp
 
     # apply loose orientations
     if orientation is 'loose':
-        print 'Applying loose dipole orientations. Loose value of %d.' % loose
+        print 'Applying loose dipole orientations. Loose value of %s.' % loose
         w[itangential] *= loose
 
     # Apply fMRI Priors
-    if fMRI is not None:
+    if fmri is not None:
         print 'Applying fMRI priors.'
-        w[fMRI < fMRIthresh] *= fMRIoff
+        w[fmri < fmri_thresh] *= fmri_off
 
     # Adjusting Source Covariance matrix to make trace of L*C_J*L' equal
     # to number of sensors.
@@ -690,7 +721,8 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         elif n_dip_per_pos in [2, 3]:
             dspm_diag = dspm_diag.reshape(-1, n_dip_per_pos)
             dspm_diag = np.sqrt(np.sum(dspm_diag, axis=1))
-            dspm_diag = (np.ones((1, n_dip_per_pos)) * dspm_diag[:,None]).ravel()
+            dspm_diag = (np.ones((1, n_dip_per_pos)) *
+                         dspm_diag[:,None]).ravel()
 
         Kernel /= dspm_diag[:,None]
 
@@ -715,10 +747,7 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
 
     if n_dip_per_pos > 1:
         print 'combining the current components...',
-        sol1 = np.empty((sol.shape[0]/3, sol.shape[1]))
-        for k in range(sol.shape[1]):
-            sol1[:, k] = np.sqrt(combine_xyz(sol[:, k]))
-        sol = sol1
+        sol = combine_xyz(sol)
 
     stc = dict()
     stc['inv'] = dict()
@@ -731,4 +760,3 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
     print '[done]'
 
     return stc, Kernel, W
-
