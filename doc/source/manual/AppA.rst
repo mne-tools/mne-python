@@ -71,7 +71,7 @@ least with the same scanner. For easy co-registration, the images
 should have FOV, matrix, slice thickness, gap, and slice orientation
 as the MPRAGE data. For information on suitable pulse sequences,
 see reference\. Fischl *et al.* and J. Jovicich *et
-al.*, 2006] in Section 13.3. At the Martinos
+al.*, 2006] in :ref:`CEGEGDEI`. At the Martinos
 Center, use of the 1.5-T Avanto scanner (Bay 2) is recommended for
 best results.
 

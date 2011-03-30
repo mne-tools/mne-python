@@ -19,7 +19,7 @@ The manual has been significantly expanded and reorganized. Chapter 7 describing
 been added. Chapter 12 contains instructions for analyzing
 the sample data set provided with the software. Useful background
 material is listed in Chapter 13. Almost all utility programs
-are now covered in the manual.
+are now covered in the manual.***do we need to remove all "chapter" references?***
 
 General software changes
 ========================
@@ -127,7 +127,7 @@ There are several improvements in the raw data processor mne_browse_raw/mne_proc
 - It is now possible to load evoked-response data sets from
   files. Time scales of the evoked-response data and data averaged
   in mne_browse_raw can be now
-  set from the scales dialog. Section 12.9 in Chapter 12 has
+  set from the scales dialog. :ref:`CHDHBGGH` has
   been updated to employ mne_browse_raw in
   viewing the averages computed from the sample raw data set.
 
@@ -140,7 +140,7 @@ There are several improvements in the raw data processor mne_browse_raw/mne_proc
 - Text format event files can now be loaded for easy inspection
   of rejected epochs, for example.
 
-- Handling of derived channels has been added, see Sections 4.4.12 and 11.5.
+- Handling of derived channels has been added, see Sections 4.4.12 and :ref:`CHDHJABJ`.
 
 - SSS information is now transferred to the covariance matrix
   output files.
@@ -262,7 +262,7 @@ mne_show_fiff
 
 Replacement for the Neuromag utility show_fiff .
 This utility conforms to the standard command-line option conventions
-in MNE software. For details, see Section 11.3.
+in MNE software. For details, see :ref:`CHDHEDEF`.
 
 mne_make_cor_set
 ----------------
@@ -302,7 +302,7 @@ mne_make_derivations
 
 This new utility will take derivation data from a text file
 and convert it to fif format for use with mne_browse_raw ,
-see Section 11.5.
+see :ref:`CHDHJABJ`.
 
 BEM mesh generation
 ===================
@@ -588,7 +588,7 @@ The functionality is included in mne_process_raw .
 mne_rename_channels
 -------------------
 
-Added the ``--revert`` option, see Section 11.4.5.
+Added the ``--revert`` option, see :ref:`CHDCFEAJ`.
 
 mne_setup_forward_model
 -----------------------
@@ -600,7 +600,7 @@ mne_simu
 --------
 
 Added source waveform expressions and the ``--raw`` option,
-see Section 11.13.
+see :ref:`CHDECAFD`.
 
 mne_transform_points
 --------------------
@@ -648,7 +648,7 @@ mne_anonymize
 -------------
 
 New utility to remove subject identifying information from
-measurement files, see Section 11.4.7.
+measurement files, see :ref:`CHDIJHIC`.
 
 mne_opengl_test
 ---------------
@@ -675,7 +675,7 @@ mne_copy_processing_history
 ---------------------------
 
 This new utility copies the processing history block from
-one data file to another, see Section 11.4.8.
+one data file to another, see :ref:`CJACECAH`.
 
 Release notes for MNE software 2.7
 ##################################
@@ -765,7 +765,7 @@ Miscellaneous
   and bin/admin directories.
 
 - mne_anonymize now has the
-  --his option to remove the HIS ID of the subject, see Section 11.4.7,
+  --his option to remove the HIS ID of the subject, see :ref:`CHDIJHIC`.
 
 - mne_check_surface now has
   the --bem and --id options to check surfaces from a BEM fif file.
@@ -787,10 +787,10 @@ Miscellaneous
   see Section 8.5.
 
 - Added the --blocks and --indent options to mne_show_fiff ,
-  see Section 11.3.
+  see :ref:`CHDHEDEF`.
 
 - Added the --proj option as well as map types 5 and 6 to mne_sensitivity_map ,
-  see Section 11.10.
+  see :ref:`CHDDCBGI`.
 
 - Fixed a bug in mne_inverse_operator which
   caused erroneous calculation of EEG-only source estimates if the
@@ -824,7 +824,7 @@ mne_add_patch_info
 ==================
 
 Added the capability to compute distances between source
-space vertices, see Section 11.7.
+space vertices, see :ref:`BEHCBCGG`.
 
 Matlab toolbox
 ==============
@@ -834,7 +834,7 @@ Matlab toolbox
 
 - mne_read_source_spaces.m now reads the inter-vertex distance
   information now optionally produced by mne_add_patch_info ,
-  see Section 11.7.
+  see :ref:`BEHCBCGG`.
 
 Miscellaneous
 =============

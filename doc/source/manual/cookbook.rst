@@ -818,10 +818,10 @@ anatomy only, not on the MEG/EEG data to be analyzed.
 .. math::    1 + 1 = 2
 
 defined so that if the augmented location vectors in MRI
-head and MRI coordinate systems are denoted by INLINE_EQUATION and INLINE_EQUATION,
+head and MRI coordinate systems are denoted by INLINE_EQUATION and :math:`r_{head}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
 respectively,
 
-.. math::    1 + 1 = 2
+.. math::    r_{MRI} = T r_{head}
 
 .. note:: It is not possible to calculate an EEG forward    solution with a single-layer BEM.
 
