@@ -132,7 +132,7 @@ There are several improvements in the raw data processor mne_browse_raw/mne_proc
   viewing the averages computed from the sample raw data set.
 
 - It is now possible to create new SSP operators in mne_browse_raw ,
-  see Section 4.6.4.
+  see :ref:`CACEAHEI`.
 
 - Listing of amplitude values have been added to both the strip-chart
   and topographical displays.
@@ -386,7 +386,7 @@ New features include:
 
 - Both in mne_browse_raw and
   in mne_analyze , a non-standard
-  default layout can be set on a user-by-user basis, see Section 4.5.6.
+  default layout can be set on a user-by-user basis, see :ref:`CACFGGCF`.
 
 - Added the ``--digtrigmask`` option.
 
@@ -431,7 +431,7 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
   taking into account the initial skip in the event files. The new
   format is indicated by an additional "pseudoevent" in
   the beginning of the file. mne_browse_raw and mne_process_raw are
-  still compatible with the old event file format. For details, see Section 4.10.5.
+  still compatible with the old event file format. For details, see :ref:`CACBCEGC`.
 
 - Using information from the fif data files, the wall clock
   time corresponding to the current file position is shown on the
@@ -455,17 +455,17 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
 - The ``--savehere`` option was added, see :ref:`CACFAAAJ`.
 
 - The stderr parameter was
-  added to the averaging definition files, see Section 4.13.3.
+  added to the averaging definition files, see :ref:`CACHACHH`.
 
 - Added compatibility with Elekta-Neuromag Report Composer (cliplab and
   improved the quality of hardcopies.
 
 - Both in mne_browse_raw and
   in mne_analyze , a non-standard
-  default layout can be set on a user-by-user basis, see Section 4.5.6.
+  default layout can be set on a user-by-user basis, see :ref:`CACFGGCF`.
 
 - mne_browse_raw now includes
-  an interactive editor to create derived channels, see Section 4.5.4.
+  an interactive editor to create derived channels, see :ref:`CACJIEHI`.
 
 - The menus in mne_browse_raw were
   reorganized and an time point specification text field was added
@@ -493,22 +493,22 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
   to the File menu.
 
 - Added new browsing functionality using the mouse wheel or
-  trackball, see Section 4.9.1.
+  trackball, see :ref:`BABIDADB`.
 
-- Added optional items to the topographical data displays, see Section 4.5.2.
+- Added optional items to the topographical data displays, see :ref:`CACBEHCD`.
 
-- Added an event list window, see Section 4.10.2.
+- Added an event list window, see :ref:`BABFDICC`.
 
-- Added an annotator window, see Section 4.10.4.
+- Added an annotator window, see :ref:`BABCIGGH`.
 
 - Keep events sorted by time.
 
 - User-defined events are automatically kept in a fif-format
-  annotation file, see Section 4.10.
+  annotation file, see :ref:`BABDFAHA`.
 
 - Added the delay parameter
   to the averaging and covariance matrix estimation description files,
-  see Sections 4.13.3 and 4.14.3.
+  see :ref:`CACHACHH` and :ref:`BABECIAH`.
 
 Detailed information on these changes can be found in Chapter 4.
 
@@ -741,7 +741,7 @@ mne_browse_raw
 
 - Added the --projevent option to batch mode.
 
-- It is now possible to compute an SSP operator for EEG, see Section 4.6.4.
+- It is now possible to compute an SSP operator for EEG, see :ref:`CACEAHEI`.
 
 mne_analyze
 ===========
@@ -813,9 +813,9 @@ mne_browse_raw
 
 - Added possibility for multiple event
   parameters and the mask parameter in averaging and noise covariance
-  calculation, see Section 4.13.3.
+  calculation, see :ref:`CACHACHH`.
 
-- Added simple conditional averaging, see Section 4.13.3.
+- Added simple conditional averaging, see :ref:`CACHACHH`.
 
 Release notes for MNE software 2.7.2
 ####################################
