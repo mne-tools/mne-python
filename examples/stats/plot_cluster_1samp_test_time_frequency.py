@@ -46,21 +46,22 @@ include = []
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=False, include=include, exclude=exclude)
-
-picks = [picks[97]]
-ch_name = raw.info['ch_names'][picks[0]]
 
 # Load condition 1
 event_id = 1
 epochs = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
-epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
+epochs.reject(grad=4000e-13, eog=150e-6)
 data = epochs.get_data() # as 3D matrix
 data *= 1e13 # change unit to fT / cm
 # Time vector
 times = 1e3 * epochs.times # change unit to ms
+
+# Take only one channel
+ch_name = raw.info['ch_names'][97]
+data = data[:,97:98,:]
 
 evoked_data = np.mean(data, 0)
 

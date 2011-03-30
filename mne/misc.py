@@ -19,26 +19,19 @@ def parse_config(fname):
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
     """
+    reject_params = read_reject_parameters(fname)
+
     try:
         with open(fname, 'r') as f:
-            ave_lines = f.readlines()
+            lines = f.readlines()
     except:
         print("Error while reading %s" % fname)
 
-    reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject']
-    reject_pynames = ['grad_reject', 'mag_reject', 'eeg_reject', 'eog_reject']
-    reject_params = dict()
-    for line in ave_lines:
-        words = line.split()
-        if words[0] in reject_names:
-            reject_params[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
-
-    cat_ind = [i for i, x in enumerate(ave_lines) if "category {" in x]
+    cat_ind = [i for i, x in enumerate(lines) if "category {" in x]
     event_dict = dict()
     for ind in cat_ind:
         for k in range(ind+1, ind+7):
-            words = ave_lines[k].split()
+            words = lines[k].split()
             if len(words) >= 2:
                 key = words[0]
                 if key == 'event':
@@ -48,7 +41,7 @@ def parse_config(fname):
             raise ValueError('Could not find event id.')
         event_dict[event] = dict(**reject_params)
         for k in range(ind+1, ind+7):
-            words = ave_lines[k].split()
+            words = lines[k].split()
             if len(words) >= 2:
                 key = words[0]
                 if key == 'name':
@@ -62,3 +55,23 @@ def parse_config(fname):
                     event_dict[event][key] = float(words[1])
     return event_dict
 
+def read_reject_parameters(fname):
+    """Read rejection parameters from .cov or .ave config file"""
+
+    try:
+        with open(fname, 'r') as f:
+            lines = f.readlines()
+    except:
+        print("Error while reading %s" % fname)
+
+    reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject']
+    reject_pynames = ['grad', 'mag', 'eeg', 'eog']
+    reject_params = dict()
+    for line in lines:
+        words = line.split()
+        print words
+        if words[0] in reject_names:
+            reject_params[reject_pynames[reject_names.index(words[0])]] = \
+                                                                float(words[1])
+
+    return reject_params

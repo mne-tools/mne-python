@@ -47,17 +47,16 @@ include = []
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=False, include=include, exclude=exclude)
 
-picks = [picks[97]]
 ch_name = raw.info['ch_names'][picks[0]]
 
 # Load condition 1
 event_id = 1
 epochs_condition_1 = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
-epochs_condition_1.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
+epochs_condition_1.reject(grad=4000e-13, eog=150e-6)
 data_condition_1 = epochs_condition_1.get_data() # as 3D matrix
 data_condition_1 *= 1e13 # change unit to fT / cm
 
@@ -65,9 +64,13 @@ data_condition_1 *= 1e13 # change unit to fT / cm
 event_id = 2
 epochs_condition_2 = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
-epochs_condition_2.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
+epochs_condition_2.reject(grad=4000e-13, eog=150e-6)
 data_condition_2 = epochs_condition_2.get_data() # as 3D matrix
 data_condition_2 *= 1e13 # change unit to fT / cm
+
+# Take only one channel
+data_condition_1 = data_condition_1[:,97:98,:]
+data_condition_2 = data_condition_2[:,97:98,:]
 
 # Time vector
 times = 1e3 * epochs_condition_1.times # change unit to ms

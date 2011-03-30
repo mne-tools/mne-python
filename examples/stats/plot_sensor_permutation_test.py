@@ -40,11 +40,11 @@ include = [] # or stim channel ['STI 014']
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # pick MEG Magnetometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                                             include=include, exclude=exclude)
 epochs = mne.Epochs(raw, events, event_id,
                             tmin, tmax, picks=picks, baseline=(None, 0))
-epochs.reject(grad=4000e-13, mag=4e-12, eog=150e-6)
+epochs.reject(grad=4000e-13, eog=150e-6)
 data = epochs.get_data()
 times = epochs.times
 

@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os
+from math import floor, ceil
 import numpy as np
 from scipy import linalg
 
@@ -18,7 +19,7 @@ from .fiff.write import start_block, end_block, write_int, write_name_list, \
 from .fiff.proj import write_proj, make_projector
 from .fiff import fiff_open
 from .fiff.pick import pick_types
-
+from .epochs import Epochs
 
 def rank(A, tol=1e-8):
     s = linalg.svd(A, compute_uv=0)
@@ -51,11 +52,11 @@ class Covariance(object):
     _kind_to_id = dict(full=1, sparse=2, diagonal=3) # XXX : check
     _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'} # XXX : check
 
-    def __init__(self, kind='full'):
+    def __init__(self, fname, kind='full'):
         self.kind = kind
 
-    def load(self, fname):
-        """load covariance matrix from FIF file"""
+        if fname is None:
+            return
 
         if self.kind in Covariance._kind_to_id:
             cov_kind = Covariance._kind_to_id[self.kind]
@@ -194,43 +195,14 @@ class Covariance(object):
 
         return W, names_meg + names_eeg
 
-    def estimate_from_raw(self, raw, picks=None, quantum_sec=10):
-        """Estimate noise covariance matrix from a raw FIF file
-        """
-        #   Set up the reading parameters
-        start = raw.first_samp
-        stop = raw.last_samp + 1
-        quantum = int(quantum_sec * raw.info['sfreq'])
-
-        cov = 0
-        n_samples = 0
-
-        # Read data
-        for first in range(start, stop, quantum):
-            last = first + quantum
-            if last >= stop:
-                last = stop
-
-            data, times = raw[picks, first:last]
-
-            if self.kind is 'full':
-                cov += np.dot(data, data.T)
-            elif self.kind is 'diagonal':
-                cov += np.diag(np.sum(data ** 2, axis=1))
-            else:
-                raise ValueError("Unsupported covariance kind")
-
-            n_samples += data.shape[1]
-
-        self.data = cov / n_samples # XXX : check
-        print '[done]'
-
     def __repr__(self):
         s = "kind : %s" % self.kind
         s += ", size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
         return "Covariance (%s)" % s
 
+###############################################################################
+# IO
 
 def read_cov(fid, node, cov_kind):
     """Read a noise covariance matrix
@@ -259,7 +231,8 @@ def read_cov(fid, node, cov_kind):
     #   Is any of the covariance matrices a noise covariance
     for p in range(len(covs)):
         tag = find_tag(fid, covs[p], FIFF.FIFF_MNE_COV_KIND)
-        if tag is not None and tag.data == cov_kind:
+
+        if tag is not None and int(tag.data) == cov_kind:
             this = covs[p]
 
             #   Find all the necessary data
@@ -338,6 +311,124 @@ def read_cov(fid, node, cov_kind):
     raise ValueError('Did not find the desired covariance matrix')
 
     return None
+
+###############################################################################
+# Estimate from data
+
+def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax,
+                                           keep_sample_mean):
+    """Estimate noise covariance matrix from epochs
+
+    XXX : doc missing
+    """
+    picks_no_eog = pick_types(epochs.info, meg=True, eeg=True, eog=False)
+    n_channels = len(picks_no_eog)
+    ch_names = [epochs.ch_names[k] for k in picks_no_eog]
+    data = np.zeros((n_channels, n_channels))
+    n_samples = 0
+    if bmin is None:
+        bmin = epochs.times[0]
+    if bmax is None:
+        bmax = epochs.times[-1]
+    bmask = (epochs.times >= bmin) & (epochs.times <= bmax)
+    for e in epochs:
+        e = e[picks_no_eog]
+        mu = e[:,bmask].mean(axis=1)
+        e -= mu[:,None]
+        if not keep_sample_mean:
+            e -= np.mean(e, axis=0)
+        data += np.dot(e, e.T)
+        n_samples += e.shape[1]
+    print "Number of samples used : %d" % n_samples
+    print '[done]'
+    return data, n_samples, ch_names
+
+
+def noise_covariance_segment(raw, reject_params=None, keep_sample_mean=True,
+                             tmin=None, tmax=None, tstep=0.2):
+    """Estimate noise covariance matrix from a continuous segment of raw data
+
+    XXX : doc missing
+
+    Parameters
+    ----------
+    Returns
+    -------
+    """
+    sfreq = raw.info['sfreq']
+
+    # Convert to samples
+    start = raw.first_samp if tmin is None else int(floor(tmin * sfreq))
+    stop = raw.last_samp if tmax is None else int(ceil(tmax * sfreq))
+    step = int(ceil(tstep * raw.info['sfreq']))
+
+    picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
+    picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
+    idx = [list(picks).index(k) for k in picks_data]
+
+    data = 0
+    n_samples = 0
+    mu = 0
+
+    # Read data in chuncks
+    for first in range(start, stop, step):
+        last = first + step
+        if last >= stop:
+            last = stop
+        raw_segment, times = raw[picks, first:last]
+        # XXX : check for artefacts
+        mu += raw_segment[idx].sum(axis=1)
+        data += np.dot(raw_segment[idx], raw_segment[idx].T)
+        n_samples += raw_segment.shape[1]
+
+    mu /= n_samples
+    data -= n_samples * mu[:,None] * mu[None,:]
+    data /= (n_samples - 1.0)
+    print "Number of samples used : %d" % n_samples
+    print '[done]'
+
+    cov = Covariance(None)
+    cov.data = data
+    cov.ch_names = [raw.info['ch_names'][k] for k in picks_data]
+    return cov
+
+
+def noise_covariance(raw, events, event_ids, tmin, tmax,
+                     bmin=None, bmax=None, reject_params=None,
+                     keep_sample_mean=True):
+    """Estimate noise covariance matrix from raw file
+
+    XXX : doc missing
+
+    Parameters
+    ----------
+    Returns
+    -------
+    """
+    # Pick all channels
+    picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
+    if isinstance(event_ids, int):
+        event_ids = list(event_ids)
+    data = 0.0
+    n_samples = 0
+
+    for event_id in event_ids:
+        print "Processing event : %d" % event_id
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            baseline=(None, 0))
+        d, n, ch_names = _estimate_noise_covariance_from_epochs(epochs,
+                      bmin=bmin, bmax=bmax, keep_sample_mean=keep_sample_mean)
+
+        # XXX : check artefacts
+        data += d
+        n_samples += n
+
+    data /= n_samples - 1
+    cov = Covariance(None)
+    cov.data = data
+    cov.ch_names = ch_names
+    return cov
+
 
 ###############################################################################
 # Writing

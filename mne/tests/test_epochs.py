@@ -14,6 +14,8 @@ event_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
 
 
 def test_read_epochs():
+    """Reading epochs from raw files
+    """
     event_id = 1
     tmin = -0.2
     tmax = 0.5
@@ -29,6 +31,8 @@ def test_read_epochs():
 
 
 def test_reject_epochs():
+    """Test of epochs rejection
+    """
     event_id = 1
     tmin = -0.2
     tmax = 0.5
@@ -44,5 +48,8 @@ def test_reject_epochs():
     n_epochs = len(epochs)
     epochs.reject(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
     n_clean_epochs = len(epochs)
+    # Should match
+    # mne_process_raw --raw test_raw.fif --projoff \
+    #   --saveavetag -ave --ave test.ave --filteroff
     assert n_epochs > n_clean_epochs
     assert n_clean_epochs == 3

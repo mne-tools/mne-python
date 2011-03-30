@@ -81,9 +81,6 @@ class Epochs(object):
         self.baseline = baseline
         self.preload = preload
 
-        if len(picks) == 0:
-            raise ValueError, "Picks cannot be empty."
-
         # Handle measurement info
         self.info = copy.copy(raw.info)
         if picks is not None:
@@ -96,6 +93,9 @@ class Epochs(object):
             self.ch_names = raw.info['ch_names']
         else:
             self.ch_names = [raw.info['ch_names'][k] for k in picks]
+
+        if len(picks) == 0:
+            raise ValueError, "Picks cannot be empty."
 
         #   Set up projection
         if raw.info['projs'] is None:
@@ -144,7 +144,7 @@ class Epochs(object):
 
         # Handle times
         sfreq = raw.info['sfreq']
-        self.times = np.arange(int(tmin*sfreq), int(tmax*sfreq),
+        self.times = np.arange(int(round(tmin*sfreq)), int(round(tmax*sfreq)),
                           dtype=np.float) / sfreq
 
         if self.preload:
@@ -172,7 +172,7 @@ class Epochs(object):
         event_samp = self.events[idx, 0]
 
         # Read a data segment
-        start = int(event_samp + self.tmin*sfreq)
+        start = int(round(event_samp + self.tmin*sfreq))
         stop = start + len(self.times)
         epoch, _ = self.raw[self.picks, start:stop]
 

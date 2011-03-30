@@ -33,8 +33,7 @@ dSPM = True
 # Load data
 evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 forward = mne.read_forward_solution(fname_fwd)
-noise_cov = mne.Covariance()
-noise_cov.load(fname_cov)
+noise_cov = mne.Covariance(fname_cov)
 
 # Compute inverse solution
 stc, K, W = mne.minimum_norm(evoked, forward, noise_cov, orientation='loose',

@@ -35,15 +35,14 @@ events = mne.find_events(raw)
 
 # pick EEG channels - bad channels (modify to your needs)
 exclude = raw.info['bads'] + ['EEG 053'] # bads + 1 more
-picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False,
+picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
                         exclude=exclude)
 epochs = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
-epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
+epochs.reject(eeg=40e-6, eog=150e-6)
 evoked = epochs.average() # average epochs and get an Evoked dataset.
 
-cov = mne.Covariance()
-cov.load(cov_fname)
+cov = mne.Covariance(cov_fname)
 
 # Whiten data
 W, ch_names = cov.whitener(evoked.info, pca=False) # get whitening matrix

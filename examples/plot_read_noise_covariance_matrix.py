@@ -15,9 +15,7 @@ from mne.datasets import sample
 data_path = sample.data_path('.')
 fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
-cov = mne.Covariance(kind='full')
-cov.load(fname)
-
+cov = mne.Covariance(fname)
 print cov
 
 ###############################################################################

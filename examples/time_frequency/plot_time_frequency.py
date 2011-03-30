@@ -38,18 +38,21 @@ include = []
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=False, include=include, exclude=exclude)
 
-picks = [picks[97]]
 epochs = mne.Epochs(raw, events, event_id,
                     tmin, tmax, picks=picks, baseline=(None, 0))
-epochs.reject(grad=4000e-13, mag=4e-12, eeg=40e-6, eog=150e-6)
+epochs.reject(grad=4000e-13, eog=150e-6)
 data = epochs.get_data() # as 3D matrix
 evoked = epochs.average() # compute evoked fields
 
 times = 1e3 * epochs.times # change unit to ms
 evoked_data = evoked.data * 1e13 # change unit to fT / cm
+
+# Take only one channel
+data = data[:,97:98,:]
+evoked_data = evoked_data[97:98,:]
 
 frequencies = np.arange(7, 30, 3) # define frequencies of interest
 Fs = raw.info['sfreq'] # sampling in Hz
