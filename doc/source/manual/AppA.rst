@@ -254,7 +254,7 @@ as outlined below
 
 **1. Set up the MRIs for Neuromag software access**
 
-    Run the mne_setup_mri too as described in Section 3.4.
+    Run the mne_setup_mri too as described in :ref:`BABCCEHF`.
     As a result, the directories mri/T1-neuromag and mri/brain-neuromag
     are set up.
 

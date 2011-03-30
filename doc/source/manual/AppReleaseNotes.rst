@@ -41,7 +41,7 @@ The following overall changes have been made:
   directory tree.
 
 - Support for topologically connected source spaces was added,
-  see Section 3.5.
+  see :ref:`CIHCHDAE`.
 
 - A lot of bugs were fixed.
 
@@ -208,7 +208,7 @@ mne_surf2bem
 Added the ``--shift`` option to move surface vertices
 outwards. Fixed some loopholes in topology checks. Also added the ``--innershift`` option
 to mne_setup_forward_model . For
-more information, see Sections 3.7 and 5.6.
+more information, see :ref:`CIHDBFEG` and Section 5.6.
 
 mne_forward_solution
 ====================
@@ -452,7 +452,7 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
   systems. These kind of data should never be used as an input for source
   localization.
 
-- The ``--savehere`` option was added, see Section 4.2.3.
+- The ``--savehere`` option was added, see :ref:`CACFAAAJ`.
 
 - The stderr parameter was
   added to the averaging definition files, see Section 4.13.3.
@@ -594,7 +594,7 @@ mne_setup_forward_model
 -----------------------
 
 Added the ``--outershift`` and ``--scalpshift`` options,
-see Section 3.7.
+see :ref:`CIHDBFEG`.
 
 mne_simu
 --------
@@ -781,7 +781,7 @@ Miscellaneous
   see Section 9.8.
 
 - Added the --morph option to mne_setup_source_space and mne_make_source_space ,
-  see Sections 3.5 and 5.4, respectively.
+  see :ref:`CIHCHDAE` and Section 5.4, respectively.
 
 - Added the --prefix option to mne_morph_labels ,
   see Section 8.5.

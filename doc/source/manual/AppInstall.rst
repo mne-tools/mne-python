@@ -154,7 +154,7 @@ How to get started
 After you have installed the software, a good place to start
 is to look at the manual:
 
-- Source the correct setup script, see Section 2.4,
+- Source the correct setup script, see :ref:`CIHCDHGI`,
   and
 
 - Say: ``mne_view_manual`` .

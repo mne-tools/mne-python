@@ -16,7 +16,7 @@ User environment
 
 In the Martinos Center computer network, the 2.7 version
 of MNE is located at /usr/pubsw/packages/mne/stable. To use this
-version, follow  Section 2.4 substituting /usr/pubsw/packages/mne/stable
+version, follow  :ref:`CIHCDHGI` substituting /usr/pubsw/packages/mne/stable
 for <MNE> and /usr/pubsw/packages/matlab/current
 for <Matlab> . For most users,
 the default shell is tcsh.
