@@ -30,7 +30,7 @@ The following overall changes have been made:
   of Neuromag software was written.
 
 - The MEG sensor information is now imported from the coil definition file
-  instead of being hardcoded in the software. For details, see Section 5.8.4.
+  instead of being hardcoded in the software. For details, see :ref:`BJECIGEB`.
 
 - CTF and 4D Neuroimaging sensors are now supported.
 
@@ -77,9 +77,9 @@ The following changes have been made in mne_analyze :
   now supported.
 
 - An iterative coordinate alignment procedure was added, see
-  Section 7.16.
+  :ref:`CACEHGCD`.
 
-- Utility to view continuous HPI information was added, see Section 7.17.
+- Utility to view continuous HPI information was added, see :ref:`CACIADAI`.
 
 - Several small changes and bug fixes were done.
 
@@ -164,24 +164,24 @@ The following new features have been added:
 
 - Sketchy surface display mode for source spaces with selection
   triangulation information created with the ``--ico`` option
-  to mne_setup_source_space .
+  to mne_setup_source_space.
 
 - Rotation of the coordinate frame in the coordinate system
-  alignment dialog, see Section 7.16;
+  alignment dialog, see :ref:`CACEHGCD`.
 
 - Several new graphics output file formats as well as automatic
-  and snapshot output modes, see Section 7.8.8.
+  and snapshot output modes, see :ref:`CACIJFII`.
 
 - It is now possible to inquire timecourses from stc overlays.
   Both labels and surface picking are supported.
 
 - Added an option to include surface vertex numbers to the timecourse output,
-  see Section 7.13.3.1.
+  see :ref:`CACJJGFA`.
 
-- Overlays matching the scalp surface can now be loaded, see Section 7.14.
+- Overlays matching the scalp surface can now be loaded, see :ref:`CACFCHEC`.
 
 - The dipole display dialog has now control over the dipole
-  display properties. Multiple dipoles can be now displayed, see Section 7.15.3.
+  display properties. Multiple dipoles can be now displayed, see :ref:`CACGGAIA`.
 
 - Time stepping with cursor keys has been added.
 
@@ -200,7 +200,7 @@ frames is now included in the output file.
 mne_make_movie
 ==============
 
-Added the ``--labelverts`` option, see Section 6.5.8.
+Added the ``--labelverts`` option, see :ref:`CBBHHCEF`.
 
 mne_surf2bem
 ============
@@ -208,7 +208,7 @@ mne_surf2bem
 Added the ``--shift`` option to move surface vertices
 outwards. Fixed some loopholes in topology checks. Also added the ``--innershift`` option
 to mne_setup_forward_model . For
-more information, see :ref:`CIHDBFEG` and Section 5.6.
+more information, see :ref:`CIHDBFEG` and :ref:`BEHCACCJ`.
 
 mne_forward_solution
 ====================
@@ -236,7 +236,7 @@ The following changes have been made in mne_inverse_operator :
 mne_compute_raw_inverse
 =======================
 
-This utility is now documented in Section 6.6. The
+This utility is now documented in :ref:`CBBCGHAH`. The
 utility mne_make_raw_inverse_operator has
 been removed from the software.
 
@@ -394,10 +394,10 @@ New features include:
   or trackball.
 
 - Added remote control of the FreeSurfer MRI
-  viewer (tkmedit ), see Section 7.18.
+  viewer (tkmedit ), see :ref:`CACCHCBF`.
 
 - Added fitting of single equivalent current dipoles and channel
-  selections, see Section 7.15.
+  selections, see :ref:`CHDGHIJJ`.
 
 - Added loading of FreeSurfer cortical
   parcellation data as labels.
@@ -411,12 +411,12 @@ New features include:
 - A shortcut button to direct a file selector to the appropriate
   default directory was added to several file loading dialogs.
 
-- The vertex coordinates can now be displayed, see Section 7.8.4.
+- The vertex coordinates can now be displayed, see :ref:`CHDIEHDH`.
 
 mne_average_forward_solutions
 -----------------------------
 
-EEG forward solutions are now averaged as well, see Section 5.10.
+EEG forward solutions are now averaged as well, see :ref:`CHDBBFCA`.
 
 mne_browse_raw and mne_process_raw
 ----------------------------------
@@ -516,7 +516,7 @@ mne_compute_raw_inverse
 -----------------------
 
 The ``--digtrig`` , ``--extra`` , ``--noextra`` , ``--split`` , ``--labeldir`` , and ``--out`` options
-were added, see Section 6.6.
+were added, see :ref:`CBBCGHAH`.
 
 mne_convert_surface
 -------------------
@@ -545,7 +545,7 @@ mne_forward_solution
 --------------------
 
 Added code to compute the derivatives of with respect to
-the dipole position coordinates, see Section 5.9.
+the dipole position coordinates, see :ref:`CHDDIBAH`.
 
 mne_list_bem
 ------------
@@ -563,7 +563,7 @@ mne_make_movie
 --------------
 
 Added the --noscalebar, --nocomments, --morphgrade, --rate,
-and --pickrange options, see Section 6.5.
+and --pickrange options, see :ref:`CBBECEDE`.
 
 mne_make_source_space
 ---------------------
@@ -572,7 +572,7 @@ The ``--spacing`` option is now implemented in this
 program, which means mne_mris_trix is
 now obsolete. The mne_setup_source_space script
 was modified accordingly. Support for tri, dec, and dip files was dropped,
-see Section 5.4.
+see :ref:`BEHCGJDD`.
 
 mne_mdip2stc
 ------------
@@ -665,7 +665,7 @@ an MRI overlay, see Section 9.4.
 mne_volume_source_space
 -----------------------
 
-Create a a grid of source points within a volume, see Section 5.5. mne_volume_source_space also
+Create a a grid of source points within a volume, see :ref:`BJEFEHJI`. mne_volume_source_space also
 optionally creates a trilinear interpolator matrix to facilitate
 converting values a distribution in the volume grid into an MRI
 overlay using mne_volume_data2mri ,
@@ -747,7 +747,7 @@ mne_analyze
 ===========
 
 - Both hemispheres can now be displayed
-  simultaneously, see Section 7.8.3.
+  simultaneously, see :ref:`CACCABEA`.
 
 - If the source space was created with mne_make_source_space version 2.3
   or later, the subject's surface data are automatically
@@ -772,7 +772,7 @@ Miscellaneous
   For details, try mne_check_surface --help.
 
 - mne_compute_raw_inverse now
-  has the --orignames option, see Section 6.6.1.
+  has the --orignames option, see :ref:`CHDEIHFA`.
 
 - Added --headcoord option to mne_convert_dig_data ,
   see Section 9.3.
@@ -781,7 +781,7 @@ Miscellaneous
   see Section 9.8.
 
 - Added the --morph option to mne_setup_source_space and mne_make_source_space ,
-  see :ref:`CIHCHDAE` and Section 5.4, respectively.
+  see :ref:`CIHCHDAE` and :ref:`BEHCGJDD`, respectively.
 
 - Added the --prefix option to mne_morph_labels ,
   see Section 8.5.
@@ -804,9 +804,9 @@ mne_analyze
 ===========
 
 - Added a new restricted mode for visualizing
-  head position within the helmet, see Sections 7.2 and 7.21.
+  head position within the helmet, see :ref:`CHDJECCG` and Section 7.21.**doesn't exist**
 
-- Added information about mne_make_scalp_surfaces to Section 7.16.1.
+- Added information about mne_make_scalp_surfaces to :ref:`CHDCGHIF`.
 
 mne_browse_raw
 ==============
@@ -843,10 +843,10 @@ Miscellaneous
   see Section 9.7.1.
 
 - Added --alpha option to mne_make_movie ,
-  see Section 6.5.5.
+  see :ref:`CBBBBHIF`.
 
 - Added --noiserank option to mne_inverse_operator and mne_do_inverse_operator ,
-  see Sections 6.4 and 3.13, respectively.
+  see :ref:`CBBDDBGF`and Section 3.13, respectively.
 
 - The fif output from mne_convert_dig_data now
   includes the transformation between the digitizer and MNE head coordinate

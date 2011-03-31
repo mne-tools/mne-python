@@ -374,4 +374,4 @@ is:
 
 .. note:: If left and right are flipped in BrainSuite,    use the --flip option in mne_convert_surface to    set the coordinate transformation correctly.
 
-.. note:: The BrainSuite scalp    surface can be also used for visualization in mne_analyze ,    see Section 7.16.1.
+.. note:: The BrainSuite scalp    surface can be also used for visualization in mne_analyze ,    see :ref:`CHDCGHIF`.

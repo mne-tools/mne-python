@@ -127,7 +127,7 @@ This chapter contains information about the options accepted
 by the program mne_compute_mne ,
 which is gradually becoming obsolete. All of its functions will
 be eventually included to mne_make_movie ,
-see Section 6.5. At this time, mne_compute_mne is
+see :ref:`CBBECEDE`. At this time, mne_compute_mne is
 still needed to produce time-collapsed w files unless you are willing
 to write a Matlab script of your own for this purpose.
 
@@ -256,7 +256,7 @@ the following command-line options:
 **\---pred <name>**
 
     Save the predicted data into this file. This is a fif file containing
-    the predicted data waveforms, see Section 6.2.7.
+    the predicted data waveforms, see :ref:`CHDCACDC`.
 
 **\---outputnorm <name>**
 
