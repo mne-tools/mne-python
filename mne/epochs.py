@@ -7,7 +7,7 @@ import copy
 import numpy as np
 import fiff
 from .fiff import Evoked
-from .fiff.pick import channel_type
+from .fiff.pick import channel_type, pick_types
 
 
 class Epochs(object):
@@ -351,4 +351,17 @@ class Epochs(object):
         evoked.nave = n_events
         evoked.first = - np.sum(self.times < 0)
         evoked.last = np.sum(self.times > 0)
+
+        # dropping EOG, ECG and STIM channels. Keeping only data
+        data_picks = pick_types(evoked.info, meg=True, eeg=True,
+                                stim=False, eog=False, ecg=False,
+                                emg=False)
+        if len(data_picks) == 0:
+            raise ValueError('No data channel found when averaging.')
+
+        evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
+        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
+                                    for k in data_picks]
+        evoked.info['nchan'] = len(data_picks)
+        evoked.data = evoked.data[data_picks]
         return evoked
