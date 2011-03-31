@@ -36,9 +36,6 @@ class Epochs(object):
     keep_comp : boolean
         Apply CTF gradient compensation
 
-    info : dict
-        Measurement info
-
     baseline: None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -52,6 +49,22 @@ class Epochs(object):
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
+
+    reject : dict
+        Epoch rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done.
+        Values are float. Example:
+        reject = dict(grad=4000e-13, # T / m (gradiometers)
+                      mag=4e-12, # T (magnetometers)
+                      eeg=40e-6, # uV (EEG channels)
+                      eog=250e-6 # uV (EOG channels)
+                      )
+
+    flat : dict
+        Epoch rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
 
     Methods
     -------
@@ -69,7 +82,7 @@ class Epochs(object):
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False):
+                preload=False, reject=None, flat=None):
         self.raw = raw
         self.event_id = event_id
         self.tmin = tmin
@@ -80,6 +93,8 @@ class Epochs(object):
         self.dest_comp = dest_comp
         self.baseline = baseline
         self.preload = preload
+        self.reject = reject
+        self.flat = flat
 
         # Handle measurement info
         self.info = copy.copy(raw.info)
@@ -147,11 +162,11 @@ class Epochs(object):
         self.times = np.arange(int(round(tmin*sfreq)), int(round(tmax*sfreq)),
                           dtype=np.float) / sfreq
 
+        # setup epoch rejection
+        self._reject_setup()
+
         if self.preload:
             self._data = self._get_data_from_disk()
-
-    def __len__(self):
-        return len(self.events)
 
     def get_epoch(self, idx):
         """Load one epoch
@@ -204,9 +219,52 @@ class Epochs(object):
         n_times = len(self.times)
         n_events = len(self.events)
         data = np.empty((n_events, n_channels, n_times))
+        cnt = 0
+        n_reject = 0
         for k in range(n_events):
-            data[k] = self._get_epoch_from_disk(k)
-        return data
+            e = self._get_epoch_from_disk(k)
+            if self._is_good_epoch(e):
+                data[cnt] = self._get_epoch_from_disk(k)
+                cnt += 1
+            else:
+                n_reject += 1
+        print "Rejecting %d epochs." % n_reject
+        return data[:cnt]
+
+    def _is_good_epoch(self, e):
+        """Test is epoch e is good
+        """
+        if self.reject is not None:
+            for key, thresh in self.reject.iteritems():
+                idx = self._channel_type_idx[key]
+                name = key.upper()
+                if len(idx) > 0:
+                    e_idx = e[idx]
+                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                    idx_max_delta = np.argmax(deltas)
+                    delta = deltas[idx_max_delta]
+                    if delta > thresh:
+                        ch_name = self.ch_names[idx[idx_max_delta]]
+                        print '\tRejecting epoch based on %s : %s (%s > %s).' \
+                                    % (name, ch_name, delta, thresh)
+                        return False
+        if self.flat is not None:
+            for key, thresh in self.flat.iteritems():
+                idx = self._channel_type_idx[key]
+                name = key.upper()
+                if len(idx) > 0:
+                    e_idx = e[idx]
+                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                    idx_min_delta = np.argmin(deltas)
+                    delta = deltas[idx_min_delta]
+                    if delta < thresh:
+                        ch_name = self.ch_names[idx[idx_min_delta]]
+                        print '\tRejecting flat epoch based on %s : %s (%s < %s).' \
+                                    % (name, ch_name, delta, thresh)
+                        return False
+
+        return True
+
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -221,84 +279,26 @@ class Epochs(object):
         else:
             return self._get_data_from_disk()
 
-    def reject(self, grad=None, mag=None, eeg=None, eog=None):
-        """Reject some epochs based on threshold values
-
-        Parameters
-        ----------
-        grad : float
-            Max value for gradiometers. (about 4000 fT / cm = 4000e-13 T / m).
-            If None do not reject based on gradiometers.
-        mag : float
-            Max value for magnetometers. (about  4000 fT = 4e-12 T)
-            If None do not reject based on magnetometers.
-        eeg : float
-            Max value for EEG. (about 40e-6 uV)
-            If None do not reject based on EEG.
-        eog : float
-            Max value for EEG. (about 250e-6 uV)
-            If None do not reject based on EOG.
-
-        Returns
-        -------
-        data : array of shape [n_epochs, n_channels, n_times]
-            The epochs data
+    def _reject_setup(self):
+        """Setup reject process
         """
-        grad_idx = []
-        mag_idx = []
-        eeg_idx = []
-        eog_idx = []
-        for idx, ch in enumerate(self.ch_names):
-            if grad is not None and  channel_type(self.info, idx) == 'grad':
-                grad_idx.append(idx)
-            if mag is not None and channel_type(self.info, idx) == 'mag':
-                mag_idx.append(idx)
-            if eeg is not None and channel_type(self.info, idx) == 'eeg':
-                eeg_idx.append(idx)
-            if eog is not None and channel_type(self.info, idx) == 'eog':
-                eog_idx.append(idx)
+        if self.reject is None and self.flat is None:
+            return
 
-        if grad is not None and len(grad_idx) == 0:
-            raise ValueError("No GRAD channel found. Cannot reject based on GRAD.")
-        elif grad is not None:
-            print "grad reject : %s fT/cm" % (1e13*grad)
-        if mag is not None and len(mag_idx) == 0:
-            raise ValueError("No MAG channel found. Cannot reject based on MAG.")
-        elif mag is not None:
-            print "mag  reject : %s fT" % (1e15*mag)
-        if eeg is not None and len(eeg_idx) == 0:
-            raise ValueError("No EEG channel found. Cannot reject based on EEG.")
-        elif eeg is not None:
-            print "EEG  reject : %s uV" % (1e6*eeg)
-        if eog is not None and len(eog_idx) == 0:
-            raise ValueError("No EOG channel found. Cannot reject based on EOG.")
-        elif eog is not None:
-            print "EOG  reject : %s uV" % (1e6*eog)
+        idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
+        for k, ch in enumerate(self.ch_names):
+            for key in idx.keys():
+                if channel_type(self.info, k) == key:
+                    idx[key].append(k)
 
-        good_epochs = []
-        for k, e in enumerate(self):
-            for thresh, idx, name in zip([grad, mag, eeg, eog],
-                                         [grad_idx, mag_idx, eeg_idx, eog_idx],
-                                         ['GRAD', 'MAG', 'EEG', 'EOG']):
-                if len(idx) > 0:
-                    e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                    idx_max_delta = np.argmax(deltas)
-                    delta = deltas[idx_max_delta]
-                    if delta > thresh:
-                        ch_name = self.ch_names[idx[idx_max_delta]]
-                        print '\tRejecting epoch based on %s : %s (%s > %s).' \
-                                    % (name, ch_name, delta, thresh)
-                        break
-            else:
-                good_epochs.append(k)
+        for key in idx.keys():
+            if (self.reject is not None and key in self.reject) \
+                    or (self.flat is not None and key in self.flat):
+                if len(idx[key]) == 0:
+                    raise ValueError("No %s channel found. Cannot reject based"
+                                 " on %s." % (key.upper(), key.upper()))
 
-        n_good_epochs = len(good_epochs)
-        print "Keeping %d epochs (%d bad)" % (n_good_epochs,
-                                              len(self.events) - n_good_epochs)
-        self.events = self.events[good_epochs]
-        if self.preload:
-            self._data = self._data[good_epochs]
+        self._channel_type_idx = idx
 
     def __iter__(self):
         """To iteration over epochs easy.

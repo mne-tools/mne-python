@@ -41,9 +41,8 @@ exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=False, include=include, exclude=exclude)
 
-epochs = mne.Epochs(raw, events, event_id,
-                    tmin, tmax, picks=picks, baseline=(None, 0))
-epochs.reject(grad=4000e-13, eog=150e-6)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 data = epochs.get_data() # as 3D matrix
 evoked = epochs.average() # compute evoked fields
 

@@ -64,14 +64,35 @@ def read_reject_parameters(fname):
     except:
         print("Error while reading %s" % fname)
 
-    reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject']
-    reject_pynames = ['grad', 'mag', 'eeg', 'eog']
-    reject_params = dict()
+    reject_names = ['gradReject', 'magReject', 'eegReject', 'eogReject', 'ecgReject']
+    reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']
+    reject = dict()
     for line in lines:
         words = line.split()
         print words
         if words[0] in reject_names:
-            reject_params[reject_pynames[reject_names.index(words[0])]] = \
+            reject[reject_pynames[reject_names.index(words[0])]] = \
                                                                 float(words[1])
 
-    return reject_params
+    return reject
+
+def read_flat_parameters(fname):
+    """Read flat channel rejection parameters from .cov or .ave config file"""
+
+    try:
+        with open(fname, 'r') as f:
+            lines = f.readlines()
+    except:
+        print("Error while reading %s" % fname)
+
+    reject_names = ['gradFlat', 'magFlat', 'eegFlat', 'eogFlat', 'ecgFlat']
+    reject_pynames = ['grad', 'mag', 'eeg', 'eog', 'ecg']
+    flat = dict()
+    for line in lines:
+        words = line.split()
+        print words
+        if words[0] in reject_names:
+            flat[reject_pynames[reject_names.index(words[0])]] = \
+                                                                float(words[1])
+
+    return flat

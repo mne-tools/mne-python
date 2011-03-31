@@ -44,12 +44,14 @@ def test_reject_epochs():
     picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
                             eog=True, include=['STI 014'])
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
-    n_epochs = len(epochs)
-    epochs.reject(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
-    n_clean_epochs = len(epochs)
+                        baseline=(None, 0),
+                        reject=dict(grad=1000e-12, mag=4e-12, eeg=80e-6,
+                                    eog=150e-6))
+    data = epochs.get_data()
+    n_events = len(epochs.events)
+    n_clean_epochs = len(data)
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
-    assert n_epochs > n_clean_epochs
+    assert n_events > n_clean_epochs
     assert n_clean_epochs == 3

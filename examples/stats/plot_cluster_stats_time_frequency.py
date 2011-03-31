@@ -53,18 +53,19 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 ch_name = raw.info['ch_names'][picks[0]]
 
 # Load condition 1
+reject = dict(grad=4000e-13, eog=150e-6)
 event_id = 1
-epochs_condition_1 = mne.Epochs(raw, events, event_id,
-                    tmin, tmax, picks=picks, baseline=(None, 0))
-epochs_condition_1.reject(grad=4000e-13, eog=150e-6)
+epochs_condition_1 = mne.Epochs(raw, events, event_id, tmin, tmax,
+                                picks=picks, baseline=(None, 0),
+                                reject=reject)
 data_condition_1 = epochs_condition_1.get_data() # as 3D matrix
 data_condition_1 *= 1e13 # change unit to fT / cm
 
 # Load condition 2
 event_id = 2
-epochs_condition_2 = mne.Epochs(raw, events, event_id,
-                    tmin, tmax, picks=picks, baseline=(None, 0))
-epochs_condition_2.reject(grad=4000e-13, eog=150e-6)
+epochs_condition_2 = mne.Epochs(raw, events, event_id, tmin, tmax,
+                                picks=picks, baseline=(None, 0),
+                                reject=reject)
 data_condition_2 = epochs_condition_2.get_data() # as 3D matrix
 data_condition_2 *= 1e13 # change unit to fT / cm
 
