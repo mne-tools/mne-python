@@ -54,7 +54,7 @@ All of these surfaces are in the FreeSurfer format. In addition,
 there will be a directory called ``bem/watershed/ws`` which
 contains the brain MRI volume. Furthermore, mne_watershed_bem script
 converts the scalp surface to fif format and saves the result to ``bem/`` <subject> ``-head.fif`` . The mne_analyze tool
-described Chapter 7 looks for this file the visualizations
+described :ref:`ch_interactive_analysis` looks for this file the visualizations
 involving the scalp surface.
 
 .. _BABFCDJH:
@@ -319,7 +319,7 @@ For further information, see http://brainsuite.usc.edu/.
 
 The conversion of BrainSuite tessellation
 files to MNE software compatible formats is accomplished with the mne_convert_surface utility,
-covered in Section 9.7.
+covered in :ref:`BEHDIAJG`.
 
 The workflow needed to employ the BrainSuite tessellations
 is:

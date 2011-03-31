@@ -15,20 +15,20 @@ Dale, Fischl, Hämäläinen, and others.
 The software depends on anatomical MRI processing tools provided
 by the FreeSurfer software.
 
-Chapter 2 of this manual gives an overview of the software
+:ref:`CHDBAFGJ` gives an overview of the software
 modules included with MNE software. :ref:`ch_cookbook` is a concise cookbook
 describing a typical workflow for a novice user employing the convenience
-scripts as far as possible. Chapters :ref:`ch_browse` to :ref:`ch_misc` give more detailed
+scripts as far as possible. :ref:`ch_browse` to :ref:`ch_misc` give more detailed
 information about the software modules. :ref:`ch_sample_data` discusses
 processing of the sample data set included with the MNE software. :ref:`ch_reading` lists
 some useful background material for the methods employed in the
 MNE software.
 
-Appendix A is an overview of the BEM model mesh
-generation methods, Appendix B contains information specific
-to the setup at Martinos Center of Biomedical Imaging, Appendix C is
-a software installation and configuration guide, Appendix D summarizes
-the software history, and Appendix E contains the End-User
+:ref:`BGBDEIGC` is an overview of the BEM model mesh
+generation methods, :ref:`BGBDEIGC` contains information specific
+to the setup at Martinos Center of Biomedical Imaging, :ref:`BGBDEIGC` is
+a software installation and configuration guide, :ref:`BGBDEIGC` summarizes
+the software history, and :ref:`BGBDEIGC` contains the End-User
 License Agreement.
 
 .. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <version> ``.pdf`` . For    the present manual, <version> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`CIHCDHGI`.

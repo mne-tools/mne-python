@@ -250,14 +250,14 @@ of the intracranial volume. For EEG, the standard model contains
 the intracranial space, the skull, and the scalp.
 
 At present, no bulletproof method exists for creating the
-triangulations. Feasible approaches are described in Appendix A.
+triangulations. Feasible approaches are described in :ref:`BGBDEIGC`.
 
 .. _BABDBBFC:
 
 Setting up the triangulation files
 ==================================
 
-The segmentation algorithms described in Appendix A produce
+The segmentation algorithms described in :ref:`BGBDEIGC` produce
 either FreeSurfer surfaces or triangulation
 data in text. Before proceeding to the creation of the boundary
 element model, standard files (or symbolic links created with the ``ln -s`` command) have to be present in the subject's ``bem`` directory.
@@ -374,7 +374,7 @@ the following options:
     the process is aborted if it is incorrect after taking into account
     the state of the swapping. Should this happen, try to run mne_setup_forward_model again including
     the ``--noswap`` flag. In particular, if you employ the seglab software
-    to create the triangulations (see Appendix A), the ``--noswap`` flag
+    to create the triangulations (see :ref:`BGBDEIGC`), the ``--noswap`` flag
     is required. This option is ignored if ``--surf`` is specified
 
 **\---ico <number>**

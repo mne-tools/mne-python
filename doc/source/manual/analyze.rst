@@ -1173,7 +1173,7 @@ selected, the following additional surfaces will be loaded:
 
 The scalp surface is loaded from the file ``bem/`` <subject>``-head.fif`` under
 the subject's FreeSurfer directory. This surface is automatically
-prepared if you use the watershed algorithm as described in Section A.1.
+prepared if you use the watershed algorithm as described in :ref:`BABBDHAG`.
 If you have another source for the head triangulation you can use
 the utility mne_surf2bem to create
 the fif format scalp surface file, see :ref:`BEHCACCJ`.

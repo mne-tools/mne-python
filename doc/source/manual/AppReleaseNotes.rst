@@ -15,11 +15,11 @@ Release notes for MNE software 2.4
 Manual
 ======
 
-The manual has been significantly expanded and reorganized. Chapter 7 describing mne_analyze has
-been added. Chapter 12 contains instructions for analyzing
+The manual has been significantly expanded and reorganized. :ref:`ch_interactive_analysis`describing mne_analyze has
+been added. :ref:`ch_sample_data` contains instructions for analyzing
 the sample data set provided with the software. Useful background
-material is listed in Chapter 13. Almost all utility programs
-are now covered in the manual.***do we need to remove all "chapter" references?***
+material is listed in :ref:`ch_reading`. Almost all utility programs
+are now covered in the manual.
 
 General software changes
 ========================
@@ -51,13 +51,13 @@ File conversion utilities
 The following import utilities were added:
 
 - mne_ctf2fiff to
-  convert CTF data to the fif format, see Section 9.2.2.
+  convert CTF data to the fif format, see :ref:`BEHDEBCH`.
 
 - mne_tufts2fiff to convert
-  EEG data from Tufts university to fif format, see Section 9.2.9.
+  EEG data from Tufts university to fif format, see :ref:`BEHDGAIJ`.
 
 The output of the Matlab conversion utilities was changed
-to use structures. For details, see Sections 9.12, 9.7, and 9.13.
+to use structures. For details, see :ref:`BEHCCEBJ`, :ref:`BEHDIAJG`, and :ref:`BEHCBCGG`.
 
 Matlab tools to import and export w and stc files were added.
 
@@ -95,7 +95,7 @@ Averaging
 The highly inefficient program mne_grand_average has
 been removed from the distribution and replaced with the combined
 use of mne_make_movie and a new
-averaging program mne_average_estimates , see Section 8.6.
+averaging program mne_average_estimates , see :ref:`CHDFDIFE`.
 
 Release notes for MNE software 2.5
 ##################################
@@ -105,9 +105,9 @@ Manual
 
 The MNE Matlab toolbox is now covered in a separate chapter.
 Change bars are employed to indicate changes in the chapters that
-existed in the previous version of the manual. Note that Chapter 10 describing
+existed in the previous version of the manual. Note that :ref:`ch_matlab` describing
 the Matlab toolbox is totally new and change bars have not been
-used there. Furthermore, Appendix B now contains all the
+used there. Furthermore, :ref:`BGBDEIGC` now contains all the
 information specific to the Martinos Center.
 
 mne_browse_raw
@@ -140,7 +140,7 @@ There are several improvements in the raw data processor mne_browse_raw/mne_proc
 - Text format event files can now be loaded for easy inspection
   of rejected epochs, for example.
 
-- Handling of derived channels has been added, see Sections 4.4.12 and :ref:`CHDHJABJ`.
+- Handling of derived channels has been added, see :ref:`CACFHAFH` and :ref:`CHDHJABJ`.
 
 - SSS information is now transferred to the covariance matrix
   output files.
@@ -152,7 +152,7 @@ mne_epochs2mat
 
 This new utility extracts epochs from a raw data file, applies
 a bandpass filter to them and outputs them in a format convenient
-for processing in Matlab, see Section 9.14.
+for processing in Matlab, see :ref:`BEHFIDCB`.
 
 mne_analyze
 ===========
@@ -275,14 +275,14 @@ mne_compensate_data
 -------------------
 
 This utility applies or removes CTF software gradient compensation
-from evoked-response data, see Section 9.2.4.
+from evoked-response data, see :ref:`BEHDDFBI`.
 
 mne_insert_4D_comp
 ------------------
 
 This utility merges 4D Magnes compensation data from a text
 file and the main helmet sensor data from a fif file and creates
-a new fif file Section 9.2.5.
+a new fif file :ref:`BEHGDDBH`.
 
 mne_ctf_dig2fiff
 ----------------
@@ -295,7 +295,7 @@ mne_kit2fiff
 ------------
 
 The purpose of this new utility is to import data from the
-KIT MEG system, see Section 9.2.7.
+KIT MEG system, see :ref:`BEHBJGGF`.
 
 mne_make_derivations
 --------------------
@@ -308,8 +308,8 @@ BEM mesh generation
 ===================
 
 All information concerning BEM mesh generation has been moved
-to Appendix A. Utilities for BEM mesh generation using
-FLASH images have been added, see Section A.2.
+to :ref:`BGBDEIGC`. Utilities for BEM mesh generation using
+FLASH images have been added, see :ref:`BABFCDJH`.
 
 Matlab toolbox
 ==============
@@ -329,7 +329,7 @@ features include:
   matrices, forward solutions, and inverse operator decompositions
   directly from fif files.
 
-The Matlab toolbox is documented in Chapter 10.
+The Matlab toolbox is documented in :ref:`ch_matlab`.
 
 The mne_div_w utility
 has been removed because it is now easy to perform its function
@@ -343,7 +343,7 @@ Manual
 
 The changes described below briefly are documented in the
 relevant sections of the manual. Change bars are employed to indicate
-changes with respect to manual version 2.5. Chapter 5 now
+changes with respect to manual version 2.5. :ref:`ch_forward` now
 contains a comprehensive discussion of the various coordinate systems
 used in MEG/EEG data.
 
@@ -510,7 +510,7 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
   to the averaging and covariance matrix estimation description files,
   see :ref:`CACHACHH` and :ref:`BABECIAH`.
 
-Detailed information on these changes can be found in Chapter 4.
+Detailed information on these changes can be found in :ref:`ch_browse`.
 
 mne_compute_raw_inverse
 -----------------------
@@ -538,7 +538,7 @@ mne_epochs2mat
 --------------
 
 The name of the digital trigger channel can be specified
-with the MNE_TRIGGER_CH_NAME environment variable, see Section 9.14. Added
+with the MNE_TRIGGER_CH_NAME environment variable, see :ref:`BEHFIDCB`. Added
 the ``--digtrigmask`` option.
 
 mne_forward_solution
@@ -550,14 +550,14 @@ the dipole position coordinates, see :ref:`CHDDIBAH`.
 mne_list_bem
 ------------
 
-The --surfno option is replaced with the --id option, see Section 9.6.
+The --surfno option is replaced with the --id option, see :ref:`BEHBBEHJ`.
 
 mne_make_cor_set
 ----------------
 
 Include data from mgh/mgz files to the output automatically.
 Include the Talairach transformations from the FreeSurfer data to
-the output file if possible. For details, see Section 9.8.
+the output file if possible. For details, see :ref:`BABBHHHE`.
 
 mne_make_movie
 --------------
@@ -610,7 +610,7 @@ Removed the ``--tomrivol`` option.
 Matlab toolbox
 --------------
 
-Several new functions were added, see Chapter 10.
+Several new functions were added, see :ref:`ch_matlab`.
 
 .. note:: The matlab function fiff_setup_read_raw has    a significant change. The sample numbers now take into account possible    intial skip in the file, *i.e.*, the time between    the start of the data acquisition and the start of saving the data    to disk. The first_samp member    of the returned structure indicates the initial skip in samples.    If you want your own routines, which assume that initial skip has    been removed, perform indentically with the previous version, subtract first_samp from    the sample numbers you specify to fiff_read_raw_segment .    Furthermore, fiff_setup_read_raw has    an optional argument to allow reading of unprocessed MaxShield data acquired    with the Elekta MEG systems.
 
@@ -621,28 +621,28 @@ mne_collect_transforms
 ----------------------
 
 This utility collects coordinate transformation information
-from several sources into a single file, see Section 9.9.
+from several sources into a single file, see :ref:`BABBIFIJ`.
 
 mne_convert_dig_data
 --------------------
 
 This new utility convertes digitization (Polhemus) data between
-different file formats, see Section 9.3.
+different file formats, see :ref:`BABCJEAD`.
 
 mne_edf2fiff
 ------------
 
 This is a new utility to convert EEG data from EDF, EDF+,
-and BDF formats to the fif format, see Section 9.2.8.
+and BDF formats to the fif format, see :ref:`BABHDBBD`.
 
 mne_brain_vision2fiff
 ---------------------
 
 This is a new utility to convert BrainVision EEG data to
-the fif format, see Section 9.2.10. This utility is also
+the fif format, see :ref:`BEHCCCDC`. This utility is also
 used by the mne_eximia_2fiff script
 to convert EEG data from the Nexstim eXimia EEG system to the fif
-format, see Section 9.2.11.
+format, see :ref:`BEHGCEHH`.
 
 mne_anonymize
 -------------
@@ -660,7 +660,7 @@ mne_volume_data2mri
 -------------------
 
 Convert data defined in a volume created with mne_volume_source_space to
-an MRI overlay, see Section 9.4.
+an MRI overlay, see :ref:`BEHDEJEC`.
 
 mne_volume_source_space
 -----------------------
@@ -669,7 +669,7 @@ Create a a grid of source points within a volume, see :ref:`BJEFEHJI`. mne_volum
 optionally creates a trilinear interpolator matrix to facilitate
 converting values a distribution in the volume grid into an MRI
 overlay using mne_volume_data2mri ,
-see Section 9.4.
+see :ref:`BEHDEJEC`.
 
 mne_copy_processing_history
 ---------------------------
@@ -709,7 +709,7 @@ MNE software and setup for individual users:
 - The setup scripts have changed.
 
 The installation and user-level effects of the new software
-organization are discussed in Chapter 2 and Appendix C.
+organization are discussed in :ref:`CHDBAFGJ` and :ref:`BGBDEIGC`.
 
 In addition, several minor bugs have been fixed in the source
 code. Most relevant changes visible to the user are listed below.
@@ -732,10 +732,10 @@ mne_browse_raw
 ==============
 
 - Rejection criteria to detect flat channels
-  have been added, see Sections 4.13.2 and 4.14.2.
+  have been added, see :ref:`BABIHFBI` and :ref:`BABCGEJE`.
 
 - Possibility to detect temporal skew between trigger input
-  lines has been added, see Sections 4.13.2 and 4.14.2.
+  lines has been added, see :ref:`BABIHFBI` and :ref:`BABCGEJE`.
 
 - --allowmaxshield option now works in the batch mode as well.
 
@@ -775,16 +775,16 @@ Miscellaneous
   has the --orignames option, see :ref:`CHDEIHFA`.
 
 - Added --headcoord option to mne_convert_dig_data ,
-  see Section 9.3.
+  see :ref:BABCJEAD`.
 
 - Added --talairach option to mne_make_cor_set ,
-  see Section 9.8.
+  see :ref:`BABBHHHE`.
 
 - Added the --morph option to mne_setup_source_space and mne_make_source_space ,
   see :ref:`CIHCHDAE` and :ref:`BEHCGJDD`, respectively.
 
 - Added the --prefix option to mne_morph_labels ,
-  see Section 8.5.
+  see :ref:`CHDCEAFC`.
 
 - Added the --blocks and --indent options to mne_show_fiff ,
   see :ref:`CHDHEDEF`.
@@ -840,7 +840,7 @@ Miscellaneous
 =============
 
 - Added --shift option to mne_convert_surface ,
-  see Section 9.7.1.
+  see :ref:`BABEABAA`.
 
 - Added --alpha option to mne_make_movie ,
   see :ref:`CBBBBHIF`.
@@ -850,11 +850,11 @@ Miscellaneous
 
 - The fif output from mne_convert_dig_data now
   includes the transformation between the digitizer and MNE head coordinate
-  systems if such a transformation has been requested, see Section 9.3.
-  This also affects the output from mne_eximia2fiff, see Section 9.2.11.
+  systems if such a transformation has been requested, see :ref:`BABCJEAD`.
+  This also affects the output from mne_eximia2fiff, see :ref:`BEHGCEHH`.
 
 - Added --noflash30, --noconvert, and --unwarp options to mne_flash_bem ,
-  see Section A.2.
+  see :ref:`BABFCDJH`.
 
 Release notes for MNE software 2.7.3
 ####################################
@@ -867,10 +867,10 @@ Miscellaneous
 
 - The --mghmri option in combination with --surfout inserts
   the volume geometry information to the output of mne_convert_surface ,
-  see Section 9.7.
+  see :ref:`BEHDIAJG`.
 
 - Added --replacegeom option to mne_convert_surface ,
-  see Section 9.7.
+  see :ref:`BEHDIAJG`.
 
 - Modified mne_watershed_bem and mne_flash_bem to
   include the volume geometry information to the output. This allows
