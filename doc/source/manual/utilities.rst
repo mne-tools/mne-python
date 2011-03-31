@@ -1,6 +1,6 @@
 
 
-.. _CHDBFDFG:
+.. _ch_misc:
 
 =======================
 Miscellaneous utilities
@@ -276,7 +276,7 @@ to this channel. The channel type options are listed in :ref:`CHDFHGCA`.
 
 .. warning:: Do not attempt to designate MEG channels    to EEG channels or vice versa. This may result in strange errors    during source estimation.
 
-.. note:: You might consider renaming the EEG channels    with descriptive labels related to the standard 10-20 system. This    allows you to use standard EEG channel names when defining derivations,    see Sections :ref:`CHDHJABJ` and 4.4.12, as well as in the    channel selection files used in mne_browse_raw ,    see Section 4.5.5.
+.. note:: You might consider renaming the EEG channels    with descriptive labels related to the standard 10-20 system. This    allows you to use standard EEG channel names when defining derivations,    see :ref:`CHDHJABJ` and :ref:`CACFHAFH`, as well as in the    channel selection files used in mne_browse_raw ,    see :ref:`CACCJEJD`.
 
 .. _CHDBDDDF:
 
@@ -533,9 +533,9 @@ the following criteria have to be met:
   in the currently loaded data set.
 
 The validity check is done when a derivation file is loaded
-into mne_browse_raw , see Section 4.4.12.
+into mne_browse_raw , see :ref:`CACFHAFH`.
 
-.. note:: You might consider renaming the EEG channels    with descriptive labels related to the standard 10-20 system using    the mne_rename_channels utility,    see :ref:`CHDCFEAJ`. This allows you to use standard EEG    channel names in the derivations you define as well as in the channel    selection files used in mne_browse_raw ,    see Section 4.5.5.
+.. note:: You might consider renaming the EEG channels    with descriptive labels related to the standard 10-20 system using    the mne_rename_channels utility,    see :ref:`CHDCFEAJ`. This allows you to use standard EEG    channel names in the derivations you define as well as in the channel    selection files used in mne_browse_raw ,    see :ref:`CACCJEJD`.
 
 .. _CHDDGDJA:
 
@@ -545,8 +545,8 @@ Creating a custom EEG layout
 Purpose
 =======
 
-Both MNE software (mne_analyze and mne_browse_raw )
-and Neuromag software (xplotter and xfit )
+Both MNE software (mne_analyze and mne_browse_raw)
+and Neuromag software (xplotter and xfit)
 employ text layout files to create topographical displays of MEG
 and EEG data. While the MEG channel layout is fixed, the EEG layout
 varies from experiment to experiment, depending on the number of
@@ -610,8 +610,8 @@ The command-line options are:
 
 .. _BEHCBCGG:
 
-Adding neighborhood information to source spaces
-################################################
+Adding neighborhood/topology information to source spaces
+#########################################################
 
 Purpose
 =======
@@ -925,7 +925,7 @@ Furthermore, assume that the colums orthogonal matrix INLINE_EQUATION (INLINE_EQ
 the orthogonal basis of the noise subspace corresponding to the signal
 space projection (SSP) operator INLINE_EQUATION specified
 with one or more ``--proj`` options so that  INLINE_EQUATION.
-For more information on SSP, see Section 4.16.
+For more information on SSP, see :ref:`CACCHABI`.
 
 With these definitions the map selections defined with the ``--map`` option correspond
 to the following
@@ -1023,7 +1023,7 @@ the following command-line options:
     Output the data in the head points (hpts)
     format accepted by tkmedit . In
     this format, the coordinates are preceded by a point category (hpi,
-    cardinal or fiducial, eeg, extra) and a sequence number, see Section 9.3.1.
+    cardinal or fiducial, eeg, extra) and a sequence number, see :ref:`CJADJEBH`.
 
 **\---meters**
 

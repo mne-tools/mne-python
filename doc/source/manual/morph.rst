@@ -29,7 +29,7 @@ maps which can be either computed on demand or precomputed using mne_make_morph_
 see :ref:`CHDBBHDH`. The morphing is performed with help
 of the registered spherical surfaces (``lh.sphere.reg`` and ``rh.sphere.reg`` )
 which must be produced in FreeSurfer .
-A morphing map is a linear mapping from cortical surface values
+A morphing map is a linear mapping froprem cortical surface values
 in subject A (INLINE_EQUATION) to those in another
 subject B (INLINE_EQUATION)
 

@@ -61,7 +61,7 @@ as a compressed tar archive located at ``$MNE_ROOT/sample-data/MNE-sample-data.t
 To make a personal copy of the sample data set, follow these steps:
 
 - Set up for using the MNE software as
-  instructed in Section 2.4 of this manual.
+  instructed in :ref:`CIHCDHGI` of this manual.
 
 - Create a directory for your personal copy: ``mkdir`` <yourdir> , where <yourdir> is
   the location where you want your personal copy to reside. Tho store
@@ -78,7 +78,7 @@ To make a personal copy of the sample data set, follow these steps:
 To start the tutorials you need to:
 
 - Set up MNE software user environment,
-  see Section 2.4.
+  see :ref:`CIHCDHGI`.
 
 - Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <yourdir> ``/subjects`` (csh
   and tcsh) or ``export SUBJECTS_DIR=`` <yourdir> ``/subjects`` (POSIX-compatible
@@ -147,7 +147,7 @@ in the sample data set:
   see Section A.1.
 
 - The MEG/EEG raw data file has been checked with the utilities described
-  in Sections 3.9.1 and 3.9.2.
+  in :ref:`BABCDBDI` and :ref:`BABCDFJH`.
 
 - Template scripts for averaging and computation of the noise-covariance
   matrices have been written.
@@ -166,7 +166,7 @@ MRI viewer, MRIlab, say
 ``mne_setup_mri``
 
 This command sets up the directories ``subjects/sample/mri/T1-neuromag`` and ``subjects/sample/mri/brain-neuromag`` .
-For more information, see Section 3.4.
+For more information, see :ref:`BABCCEHF`.
 
 .. _CHDIGEJG:
 
@@ -178,7 +178,7 @@ The source space with a 5-mm grid spacing is set up by saying:
 ``mne_setup_source_space --ico -6``
 
 This command sets up the source-space related files in directory ``subjects/sample/bem`` as
-described in Section 3.5.
+described in :ref:`CIHCHDAE`.
 
 .. _CHDJDGBD:
 
@@ -191,7 +191,7 @@ model are accomplished with the command:
 ``mne_setup_forward_model --homog --surf --ico 4``
 
 This command sets up the homogeneous BEM-model related files
-in directory ``subjects/sample/bem`` as described in section Section 3.7. In
+in directory ``subjects/sample/bem`` as described in :ref:`CIHDBFEG`. In
 addition to the homogeneous BEM, you also need the three-layer BEM model,
 which can be used for both EEG and MEG:
 
@@ -218,7 +218,7 @@ commands:
 
 ``mne_make_eeg_layout --fif sample_audvis_raw.fif --lout $HOME/.mne/lout/sample-EEG.lout``
 
-Please refer to Section 11.6 for more information
+Please refer to :ref:`CHDDGDJA` for more information
 on mne_make_eeg_layout .
 
 .. note:: It is usually sufficient to create one EEG layout    for each electrode cap you are using in your experiment rather than    using a different layout file for each data file generated using    the same cap.
@@ -301,7 +301,7 @@ Off-line averaging
 ##################
 
 Go to directory ``$SAMPLE/MEG/sample`` . With help
-of Section 4.13, familiarize yourself with the averaging
+of :ref:`CACBBDGC`, familiarize yourself with the averaging
 script ``audvis.ave`` .
 
 Using the averaging script interactively
@@ -479,7 +479,7 @@ In this case the projections are set on. The projection information
 is then attached to the noise-covariance matrix and will be automatically
 loaded when the inverse-operator decomposition is computed.
 
-.. note:: You can study the contents of the covariance    matrix computation description file ``audvis.cov`` with    help of Section 4.14
+.. note:: You can study the contents of the covariance    matrix computation description file ``audvis.cov`` with the help of :ref:`CACEBACG`.
 
 .. _CHDIJBIG:
 
@@ -665,7 +665,7 @@ of the MNEs and dSPMs is accomplished by the command:
 This produces a depth-weighted inverse operator decomposition
 with 'loose' orientation constraint applied. More
 details on the convenience script mne_do_inverse_operator are
-provided in Section 3.13.
+provided in :ref:`CIHCFJEI`.
 
 The above command employs both EEG and MEG data. To create
 separate solution for EEG and MEG, run the commands:
@@ -727,14 +727,14 @@ Select Windows/Show viewer... .
 After a while the viewer window appears. Click on the N100m peak
 again. Once the field map preparation computations are complete,
 the magnetic field and potential maps appear. Investigate the viewer
-window options with help of Section 7.10.
+window options with help of :ref:`CACEFFJF`.
 
 Show current estimates
 ======================
 
 The options affecting the current estimates are accessible
 from Adjust/Estimate parameters... .
-With help of Section 7.12, investigate the effects of the
+With help of :ref:`CACBHDBF`, investigate the effects of the
 parameter settings.
 
 Labels and timecourses
@@ -745,14 +745,14 @@ called ``label`` :
 
 ``mkdir label``
 
-Using the information in Section 7.13.4 create two
-labels: ``A-lh.label`` and ``A-rh.label`` in the
+Using the information in :ref:`CACJCFJJ`, create two
+labels ``A-lh.label`` and ``A-rh.label`` in the
 approximate location of the left and right auditory cortices. Save
 these labels in the newly created ``label`` directory.
 
 Load all labels from the ``label`` directory and
 investigate the timecourses in these two labels as well as at invidual
-vertices. Information on label processing can be found from Section 7.13.
+vertices. Information on label processing can be found from :ref:`CACCCFHH`.
 
 Morphing
 ========
@@ -760,7 +760,7 @@ Morphing
 Goto to ``$SUBJECTS_DIR`` and create the directory ``morph-maps`` .
 Load the inflated surface for subject morph as
 the morphing surfaces. Try switching between the original and morphing
-surfaces. More information about morphing is available in Section 7.9 and
+surfaces. More information about morphing is available in :ref:`CACGBEIB` and
 in :ref:`ch_morph`.
 
 There is also a left-hemisphere occipital patch file available

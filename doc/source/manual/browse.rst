@@ -455,7 +455,7 @@ selection affects the averages and noise-covariance matrices subsequently
 computed. The desired compensation takes effect independent of the
 compensation state of the data in the file, *i.e.*,
 already compensated data can be uncompensated and vice versa. For more
-information on software gradient compensation please consult Section 9.2.4.
+information on software gradient compensation please consult :ref:`BEHDDFBI`.
 
 The Keep the initial skip button
 controls how the initial segment of data not stored in the raw data
@@ -588,7 +588,7 @@ Load derivations
 
 This menu choice allows loading of channel derivation data
 files created with the mne_make_derivations utility,
-see Section 11.5, or using the interactive derivations
+see :ref:`CHDHJABJ`, or using the interactive derivations
 editor in mne_browse_raw , see :ref:`CACJIEHI`, Most common use of derivations is to calculate
 differences between EEG channels, *i.e.*, bipolar
 EEG data. Since any number of channels can be included in a derivation
@@ -860,7 +860,7 @@ Brings up the interactive derivations editor. This editor
 can be used to add or modify derived channels, *i.e.*,
 linear combinations of signals actually recorded. Channel derivations
 can be also created and modified using the mne_make_derivations tool,
-see Section 11.5. The interactive editor contains two main
+see :ref:`CHDHJABJ`. The interactive editor contains two main
 areas:
 
 - Interactive tools for specifying a channel
@@ -886,7 +886,7 @@ associated selections interactively involves the following steps:
 
 - If desired, EEG channels can be relabeled
   with descriptive names using the mne_rename_channels utility,
-  see Section 11.4.5. It is strongly recommended that you
+  see :ref:`CHDCFEAJ`. It is strongly recommended that you
   keep a copy of the channel alias file used by mne_rename_channels .
   If necessary, you can then easily return to the original channel
   names by running mne_rename_channels again
@@ -1069,7 +1069,7 @@ for the Neuromag Vectorview data because newer systems do not have
 spaces in the channel names like the original Vectorview systems
 did.
 
-.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see Section 11.6.
+.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see :ref:`CHDDGDJA`.
 
 .. _CACDDIDH:
 
@@ -1338,7 +1338,7 @@ the following items:
     Starts mne_analyze in the head position visualization mode and shows
     the relative position of the MEG sensor array and the head using
     the data in the presently open raw data file. For more details on
-    the head position visualization mode, see Section 7.21.
+    the head position visualization mode, see Section 7.21.**what?? does not exist!**
 
 **Quit mne_analyze...**
 
@@ -1498,7 +1498,7 @@ interesting time points in the data. When a raw data file is opened,
 a standard event file is consulted for the list of events. If this
 file is not present, the digital trigger channel, defined by the --digtrig option
 or the ``MNE_TRIGGER_CH_NAME`` environment variable is
-scanned for events. For more information, see Sections :ref:`BABBGJEA` and :ref:`CACDCHAJ`.
+scanned for events. For more information, see :ref:`BABBGJEA` and :ref:`CACDCHAJ`.
 
 In addition to the events detected on the trigger channel,
 it is possible to associate user-defined events to the data, either
@@ -1560,7 +1560,7 @@ below. The loading dialogs have the following options:
     Only those events which will contain comments and in which the comment
     matches the entered text are loaded. This filtering option is useful, *e.g.*,
     in loading averaging or covariance matrix computation log files,
-    see Sections :ref:`BABIHFBI` and :ref:`BABCGEJE`.
+    see :ref:`BABIHFBI` and :ref:`BABCGEJE`.
     If the word *omit* is entered as the filter,
     only events corresponding to discarded epochs are loaded and the
     reason for rejection can be investigated in detail.
@@ -1614,7 +1614,7 @@ an annotation file which will be automatically loaded each time
 the data file is opened. A text format event file suitable for this
 purpose can be created manually, extracted from an EDF+ file using
 the ``--tal`` option in mne_edf2fiff discussed
-in Section 9.2.8, or produced by custom software used during
+in :ref:`BABHDBBD`, or produced by custom software used during
 data acquisition.
 
 .. _BABCIGGH:
@@ -1778,7 +1778,7 @@ layouts reside in ``$MNE_ROOT/share/mne/mne_analyze/lout`` .
 In addition any layout files residing in ``$HOME/.mne/lout`` are listed.
 The format of the layout files is the same as for the Neuromag programs xplotter and xfit .
 A custom EEG layout can be easily created with the mne_make_eeg_layout utility,
-see Section 11.6.
+see :ref:`CHDDGDJA`.
 
 Several actions can be performed with the mouse in the topographical data
 display:
@@ -2424,8 +2424,8 @@ Since the signal-space projection modifies the signal vectors
 originating in the brain, it is necessary to apply the projection
 to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
-described in Section 6.4. For more information on SSP,
-please consult the references listed in Section 13.4.
+described in :ref:`CBBDDBGF`. For more information on SSP,
+please consult the references listed in :ref:`CEGIEEBB`.
 
 .. _CACFGIEC:
 
@@ -2583,7 +2583,7 @@ are read by mne_inverse_operator and
 applied to the forward solution as well as appropriate. Inclusion
 of the projections into the covariance matrix limits the possibilities
 to use the ``--bad`` and ``--proj`` options in mne_inverse_operator ,
-see Section 6.4.
+see :ref:`CBBDDBGF`.
 
 .. _CACGHEGC:
 

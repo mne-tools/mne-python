@@ -14,7 +14,7 @@ facilitate interfacing with binary file formats of the MNE software.
 The toolbox is located at ``$MNE_ROOT/share/matlab`` . The
 names of the MNE Matlab toolbox functions begin either with mne_ or
 with fiff_ . When you source the mne_setup script
-as described in Section 2.4 on of the following actions
+as described in :ref:`CIHCDHGI`, one of the following actions
 takes place:
 
 - If you do not have the Matlab startup.m
@@ -174,7 +174,7 @@ they are listed in :ref:`BGBEFADJ`.
     mne_read_events               Read an event list from a fif file produced by mne_browse_raw or mne_process_raw .
     mne_read_forward_solution     Read a forward solution from a fif file.
     mne_read_inverse_operator     Read an inverse operator from a fif file.
-    mne_read_morph_map            Read an morphing map produced with mne_make_morph_maps , see Section 8.4.
+    mne_read_morph_map            Read an morphing map produced with mne_make_morph_maps , see :ref:`CHDBBHDH`.
     mne_read_noise_cov            Read a noise-covariance matrix from a fif file.
     mne_read_source_spaces        Read source space information from a fif file.
     ============================  =====================================================================================
@@ -241,7 +241,7 @@ they are listed in :ref:`BGBEFADJ`.
     mne_omit_first_line               Omit first line from a multi-line message. This routine is useful for formatting error messages.
     mne_prepare_inverse_operator      Prepare inverse operator data for calculating L2 minimum-norm solutions and dSPM.
     mne_setup_toolbox                 Set up the MNE Matlab toolbox.
-    mne_transform_coordinates         Transform locations between different coordinate systems. This function uses the output file from mne_collect_transforms described in Section 9.9 as input.
+    mne_transform_coordinates         Transform locations between different coordinate systems. This function uses the output file from mne_collect_transforms described in :ref:`BABBIFIJ` as input.
     mne_transpose_named_matrix        Create a transpose of a named matrix.
     mne_transform_source_space_to     Transform source space data to another coordinate frame.
     ================================  ==============================================================================================================================================================
@@ -253,7 +253,7 @@ they are listed in :ref:`BGBEFADJ`.
     =========================  =================================================================================
     Function                   Purpose
     =========================  =================================================================================
-    mne_ex_average_epochs      Example of averaging epoch data produced by mne_epochs2mat , see Section 9.14.
+    mne_ex_average_epochs      Example of averaging epoch data produced by mne_epochs2mat , see :ref:`BEHFIDCB`.
     mne_ex_cancel_noise        Example of noise cancellation procedures.
     mne_ex_compute_inverse     Example of computing a L2 minimum-norm estimate or a dSPM solution
     mne_ex_data_sets           Example of listing evoked-response data sets.
@@ -264,7 +264,7 @@ they are listed in :ref:`BGBEFADJ`.
     mne_ex_read_write_raw      Example of processing raw data (read and write).
     =========================  =================================================================================
 
-.. note:: In order for the inverse operator calculation    to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software,    the so-called *processing history* block must    be included in data files. Previous versions of the MNE Matlab functions    did not copy processing history to files saved. As of March 30,    2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have    been enchanced to include these data to the output file as appropriate.    If you have older raw data files created in Matlab from input which    has been processed Maxfilter, it is necessary to copy the *processing    history* block from the original to modified raw data    file using the mne_copy_processing_history utility described    in Section 11.4.8. The raw data processing programs mne_browse_raw and mne_process_raw have    handled copying of the processing history since revision 2.5 of    the MNE software.
+.. note:: In order for the inverse operator calculation    to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software,    the so-called *processing history* block must    be included in data files. Previous versions of the MNE Matlab functions    did not copy processing history to files saved. As of March 30,    2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have    been enchanced to include these data to the output file as appropriate.    If you have older raw data files created in Matlab from input which    has been processed Maxfilter, it is necessary to copy the *processing    history* block from the original to modified raw data    file using the mne_copy_processing_history utility described    in :ref:`CJACECAH`. The raw data processing programs mne_browse_raw and mne_process_raw have    handled copying of the processing history since revision 2.5 of    the MNE software.
 
 Some data structures
 ####################
@@ -312,7 +312,7 @@ The documented structures are:
 
     The coil definition structure useful for forward calculations and array
     visualization, see :ref:`BGBGBEBH`. For more detailed information on
-    coil definitions, see Section 5.8.
+    coil definitions, see :ref:`BJEIAEIE`.
 
 **ch**
 
@@ -523,7 +523,7 @@ The documented structures are:
 
 .. _BGBGBEBH:
 
-.. table:: The coildef structure. For more detailed information, see Section 5.8.
+.. table:: The coildef structure. For more detailed information, see :ref:`BJEIAEIE`.
 
     ==============  =======================  ========================================================================================
     Field           Data type                Description
@@ -585,7 +585,7 @@ The documented structures are:
     save_calibrated     logical          Were the compensation data saved in calibrated form. If this field is false, the matrix will be decalibrated using the fields row_cals and col_cals when the compensation data are saved by the toolbox.
     row_cals            double(*)        Calibration factors applied to the rows of the compensation data matrix when the data were read.
     col_cals            double(*)        Calibration factors applied to the columns of the compensation data matrix when the data were read.
-    data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see Section 9.2.4
+    data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see :ref:`BEHDDFBI`.
     ==================  ===============  ===========================================================================================================================================================================================================
 
 .. _BGBFHDIJ:
@@ -641,7 +641,7 @@ The documented structures are:
     nearest          int32(np)           This field is present only if patch information has been computed for a source space. For each vertex in the triangulation, these values indicate the nearest active source space vertex.
     nearest_dist     double(np)          This field is present only if patch information has been computed for a source space. For each vertex in the triangulation, these values indicate the distance to the nearest active source space vertex.
     dist             double(np,np)       Distances between vertices on this surface given as a sparse matrix. A zero off-diagonal entry in this matrix indicates that the corresponding distance has not been calculated.
-    dist_limit       double              The value given to mne_add_patch_info with the --dist option, see Section 11.7.2. This value is presently always negative, indicating that only distances between active source space vertices, as indicated by the vertno field of this structure, have been calculated.
+    dist_limit       double              The value given to mne_add_patch_info with the --dist option, see :ref:`CJAGCDCC`. This value is presently always negative, indicating that only distances between active source space vertices, as indicated by the vertno field of this structure, have been calculated.
     ===============  ==================  ============================================================================================================================================================================================================================================================================
 
 .. _BGBJJIED:
@@ -677,7 +677,7 @@ The documented structures are:
     nsource         int32                 Total number of source space points.
     nchan           int32                 Number of channels.
     sol             named matrix          The forward solution matrix.
-    sol_grad        named matrix          The derivatives of the forward solution with respect to the dipole location coordinates, see Section 5.9.6. This field is present only if the forward solution was computed with the ``--grad`` option, see Section 5.9.2.
+    sol_grad        named matrix          The derivatives of the forward solution with respect to the dipole location coordinates, see :ref:`BJEFEJJG`. This field is present only if the forward solution was computed with the ``--grad`` option, see :ref:`BJEIGFAE`.
     mri_head_t      trans                 Transformation from the MRI coordinate frame to the (Neuromag) head coordinate frame.
     src             surf(*)               The description of the source spaces
     source_rr       double(nsource,3)     The source locations.

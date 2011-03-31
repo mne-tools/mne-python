@@ -165,7 +165,7 @@ be adjusted with the regularization options ``--magreg`` , ``--gradreg`` ,
 and ``--eegreg`` specified at the time of the inverse operator
 decomposition, see :ref:`CBBDDBGF`. The convenience script mne_do_inverse_solution has
 the ``--magreg`` and ``--gradreg`` combined to
-a sigle option, ``--megreg`` , see Section 3.13.
+a sigle option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for INLINE_EQUATION is INLINE_EQUATION.
 
 .. _CHDBEHBC:
@@ -281,8 +281,8 @@ Cortical patch statistics
 =========================
 
 If the ``--cps`` option was used in source space
-creation (see Section 3.5) or if mne_add_patch_info described
-in Section 11.7 was run manually the source space file
+creation (see :ref:`CIHCHDAE`) or if mne_add_patch_info described
+in :ref:`BEHCBCGG` was run manually the source space file
 will contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
 from the vertex to this source space point. The vertices for which
@@ -476,8 +476,8 @@ The command-line options of ``mne_inverse_operator`` are:
 
     Use an adaptive loose orientation constraint. This option can be
     only employed if the source spaces included in the forward solution
-    have the patch information computed, see Section 3.5. Blaa
-    blaa...
+    have the patch information computed, see :ref:`CIHCHDAE`. Blaa
+    blaa...**what???**
 
 **\---fwd <name>**
 
@@ -530,17 +530,17 @@ The command-line options of ``mne_inverse_operator`` are:
 
 **\---depth**
 
-    Employ depth weighting. For details, see Section :ref:`CBBDFJIE`.
+    Employ depth weighting. For details, see :ref:`CBBDFJIE`.
 
 **\---weightexp <value>**
 
     This parameter determines the steepness of the depth weighting function
-    (default = 0.8). For details, see Section :ref:`CBBDFJIE`.
+    (default = 0.8). For details, see :ref:`CBBDFJIE`.
 
 **\---weightlimit <value>**
 
     Maximum relative strength of the depth weighting (default = 10). For
-    details, see Section :ref:`CBBDFJIE`.
+    details, see :ref:`CBBDFJIE`.
 
 **\---fmri <name>**
 
@@ -610,7 +610,7 @@ The command-line options of ``mne_inverse_operator`` are:
 **\---proj <name>**
 
     Include signal-space projection (SSP) information from this file. For information
-    on SSP, see Section 4.16. If the projections are present in
+    on SSP, see :ref:`CACCHABI`. If the projections are present in
     the noise-covariance matrix, the ``--proj`` option is
     not allowed.
 
@@ -621,7 +621,7 @@ The command-line options of ``mne_inverse_operator`` are:
     statistics for the source space. Since this computation is time consuming,
     it is recommended that the patch statistics are precomputed and
     the source space file containing the patch information is employed
-    already when the forward solution is computed, see Sections 3.5 and 3.11.
+    already when the forward solution is computed, see :ref:`CIHCHDAE` and :ref:`BABCHEJD`.
     For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
     the moment.
 
@@ -808,11 +808,11 @@ Visualization options
     into account and will represent the data on the cortical surface
     of the subject defined with this option. The stc files morphed to
     a single subject's cortical surface are used by mne_average_estimates to
-    combine data from different subjects, see Section 8.6.
+    combine data from different subjects, see :ref:`CHDFDIFE`.
     If morphing is selected appropriate smoothing must be specified
     with the ``--smooth`` option. The morphing process can
     be made faster by precomputing the necessary morphing maps with mne_make_morph_maps ,
-    see Section 8.4. More information about morphing and averaging
+    see :ref:`CHDBBHDH`. More information about morphing and averaging
     can be found in :ref:`ch_morph`.
 
 **\---morphgrade <number>**
@@ -1042,11 +1042,11 @@ Label processing
     specify regions of interests (ROIs). A label file name should end
     with ``-lh.label`` for left-hemisphere ROIs and with ``-rh.label`` for
     right-hemisphere ones. The corresponding output files are tagged
-    with ``-lh-`` <data type> ``.amp`` and ``-rh-`` <data type> ``.amp`` , respectively. <data type> equals ``'mne`` ' for
+    with ``-lh-`` <data type> ``.amp`` and ``-rh-`` <data type> ``.amp``, respectively. <data type> equals ``'mne`` ' for
     expected current data and ``'spm`` ' for
     dSPM data. Each line of the output file contains the waveform of
     the output quantity at one of the source locations falling inside
-    the ROI. For more information about the label output formats, see Section 7.13.3.1.
+    the ROI. For more information about the label output formats, see :ref:`CACJJGFA`.
 
 **\---labelcoords**
 
@@ -1320,4 +1320,4 @@ the sign of the estimates at this vertex are inverted. The inversion
 is reflected in the current direction vector listed in the channel
 information, see above.
 
-.. note:: The raw data files output by mne_compute_raw_inverse can    be converted to mat files with mne_raw2mat ,    see Section 9.13. Alternatively, the files can be read    directly from Matlab using the routines in the MNE Matlab toolbox,    see :ref:`ch_matlab`. The evoked data output can be easily read directly    from Matlab using the fiff_load_evoked routine    in the MNE Matlab toolbox. Both raw data and evoked output files    can be loaded into mne_browse_raw ,    see :ref:`ch_browse`.
+.. note:: The raw data files output by mne_compute_raw_inverse can    be converted to mat files with mne_raw2mat ,    see :ref:`BEHCBCGG`. Alternatively, the files can be read    directly from Matlab using the routines in the MNE Matlab toolbox,    see :ref:`ch_matlab`. The evoked data output can be easily read directly    from Matlab using the fiff_load_evoked routine    in the MNE Matlab toolbox. Both raw data and evoked output files    can be loaded into mne_browse_raw ,    see :ref:`ch_browse`.

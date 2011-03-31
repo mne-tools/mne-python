@@ -266,7 +266,7 @@ is shown in :ref:`CACFDIJJ`:
 **Lights...**
 
     Adjust the lighting of the scenes in the main display and the viewer, see
-    Sections :ref:`CACBHDBF` and :ref:`CACEFFJF`.
+    :ref:`CACBHDBF` and :ref:`CACEFFJF`.
 
 **Field mapping...**
 
@@ -528,7 +528,7 @@ The epoch selector contains the following controls:
 - The event source specifier. The event source can be either
   the data file, *i.e.,* the digital trigger channel or
   a event data file produced with mne_browse_raw or mne_process_raw ,
-  see Section 4.4.10. Using an event data file is useful
+  see :ref:`CACJGIFA`. Using an event data file is useful
   if, *e.g.*, the epochs to be processed epileptic spikes.
 
 - The time range specification. This determines the length of
@@ -568,7 +568,7 @@ which brings up a window with a list of available layouts. The system-wide
 layouts reside in $MNE_ROOT/share/mne_analyze/lout. In addition
 any layout files residing in $HOME/.mne/lout are listed. The format
 of the layout files and selection of the default layout is discussed
-in Section 4.5.6.
+in :ref:`CACFGGCF`.
 
 Several actions can be performed with the mouse in the topographical data
 display:
@@ -936,7 +936,7 @@ includes the following lines:
     Shows the location in the *FreeSurfer* Talairach
     coordinates which give a better match to the Talairach atlas.
 
-The above coordinate systems are discussed in detail in Section 5.2.
+The above coordinate systems are discussed in detail in :ref:`CHDEDFIB`.
 
 .. note:: By default, the tksurfer program,    part of the FreeSurfer package, shows    the vertex locations on the *orig* rather than *white* surfaces.    Therefore, the coordinates shown in mne_analyze and tksurfer are    by default slightly different (usually by < 1 mm). To make the    two programs consistent, you can start tksurfer with    the ``-orig white`` option.
 
@@ -1114,7 +1114,7 @@ from the option menu labelled Output mode :
 **Snapshot**
 
     A new image file is produced every time ``s`` is pressed
-    in the image window, see Sections :ref:`CACCABEA` and :ref:`CACFDDCB`. The image file name is used as the stem of
+    in the image window, see :ref:`CACCABEA` and :ref:`CACFDDCB`. The image file name is used as the stem of
     the output files. For example, if the name is, ``sample.jpg`` ,
     the output files will be ``sample_shot_001.jpg`` , ``sample_shot_002.jpg`` , *etc.*
 
@@ -1176,13 +1176,13 @@ the subject's FreeSurfer directory. This surface is automatically
 prepared if you use the watershed algorithm as described in Section A.1.
 If you have another source for the head triangulation you can use
 the utility mne_surf2bem to create
-the fif format scalp surface file, see Section 5.6.
+the fif format scalp surface file, see :ref:`BEHCACCJ`.
 
 If a file called ``bem/`` <subject>``-bem.fif`` under
 the subject's FreeSurfer directory is present, mne_analyze tries
 to load the BEM surface triangulations from there. This file can
 be a symbolic link to one of the ``-bem.files`` created
-by mne_prepare_bem_model , see Section 5.7.
+by mne_prepare_bem_model , see :ref:`CHDJFHEB`.
 If the BEM file contains a head surface triangulation, it will be
 used instead of the one present in the ``bem/`` <subject>``-head.fif`` file.
 
@@ -1984,12 +1984,12 @@ specifies the forward model to be used:
 **EEG scalp radius [mm]**
 
     Specifies the radius of the outermost shell in the EEG sphere model. For
-    details, see Section 5.9.4.
+    details, see :ref:`CHDIAFIG`.
 
 **EEG sphere model name**
 
     Specifies the name of the EEG sphere model to use. For details,
-    see Section 5.9.4.
+    see :ref:`CHDIAFIG`.
 
 **BEM model**
 
@@ -2002,7 +2002,7 @@ specifies the forward model to be used:
 
 **Accurate field calculation**
 
-    Switches on the more accurate geometry definition of MEG coils, see Section 5.8.
+    Switches on the more accurate geometry definition of MEG coils, see :ref:`BJEIAEIE`.
     In dipole fitting, there is very little difference between the *accurate* and *normal* coil
     geometry definitions.
 
@@ -2343,7 +2343,7 @@ The saving and loading choices are:
     Loads the MEG/MRI coordinate transformation from the file specified.
 
 The MEG/MRI coordinate transformation files are employed
-in the forward calculations. The convenience script mne_do_forward solution described in Section 3.11 uses
+in the forward calculations. The convenience script mne_do_forward solution described in :ref:`BABCHEJD` uses
 a search sequence which is compatible with the file naming conventions
 described above. It is recommended that -trans.fif file
 saved with the Save default and Save... options

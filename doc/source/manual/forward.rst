@@ -191,7 +191,7 @@ and INLINE_EQUATION axis pointing front. The INLINE_EQUATION axis
 is, again normal to the INLINE_EQUATION plane
 with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The INLINE_EQUATION axis    passes through the nasion and the origin with positive direction    to the front. The INLINE_EQUATION axis is perpendicular    to the INLINE_EQUATION axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The INLINE_EQUATION axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on INLINE_EQUATION coordinate axis. The file conversion utilities (see Section 9.2)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
+.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The INLINE_EQUATION axis    passes through the nasion and the origin with positive direction    to the front. The INLINE_EQUATION axis is perpendicular    to the INLINE_EQUATION axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The INLINE_EQUATION axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on INLINE_EQUATION coordinate axis. The file conversion utilities (see :ref:`BEHIAADG`)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
 
 .. _BEHCGJDD:
 
@@ -201,7 +201,7 @@ Creating a surface-based source space
 The fif format source space files containing the dipole locations
 and orientations are created with the utility mne_make_source_space .
 This utility is usually invoked by the convenience script mne_setup_source_space ,
-see Section 3.5.
+see :ref:`CIHCHDAE`.
 
 The command-line options are:
 
@@ -338,7 +338,7 @@ The command-line options are:
     Specifies a MRI volume (in mgz or mgh format).
     If this argument is present the output source space file will contain
     a (sparse) interpolation matrix which allows mne_volume_data2mri to
-    create an MRI overlay file, see Section 9.4.
+    create an MRI overlay file, see :ref:`BEHDEJEC`.
 
 **\---pos <name>**
 
@@ -387,7 +387,7 @@ conductivity information so that it can be employed in the BEM calculations.
 
 .. note:: The utility mne_tri2fiff previously    used for this task has been replaced by mne_surf2bem .
 
-.. note:: The convenience script mne_setup_forward_model described    in Section 3.7 calls mne_surf2bem with    the appropriate options.
+.. note:: The convenience script mne_setup_forward_model described in :ref:`CIHDBFEG` calls mne_surf2bem with    the appropriate options.
 
 .. note:: The vertices of all surfaces should be given    in the MRI coordinate system.
 
@@ -571,7 +571,7 @@ Computing the BEM geometry data
 The utility mne_prepare_bem_model computes
 the geometry information for BEM. This utility is usually invoked
 by the convenience script mne_setup_forward_model ,
-see Section 3.7. The command-line options are:
+see :ref:`CIHDBFEG`. The command-line options are:
 
 **\---bem <name>**
 
@@ -579,7 +579,7 @@ see Section 3.7. The command-line options are:
     surfaces and the conductivities of the compartments. The standard
     ending for this file is ``-bem.fif`` and it is produced
     either with the utility mne_surf2bem (:ref:`BEHCACCJ`) or the convenience script mne_setup_forward_model ,
-    see Section 3.7.
+    see :ref:`CIHDBFEG`.
 
 **\---sol <name>**
 
@@ -940,7 +940,7 @@ In this approach, the convenience of the automatic file naming conventions
 present in mne_do_forward_solution are
 lost. However, there are some special-purpose options available
 in mne_forward_solution only.
-Please refer to Section 3.11 for information on mne_do_forward_solution .
+Please refer to :ref:`BABCHEJD` for information on mne_do_forward_solution.
 
 .. _BJEIGFAE:
 
@@ -1039,7 +1039,7 @@ the following command-line options:
 
     The name of the MRI description file containing the MEG/MRI coordinate
     transformation. This file was saved as part of the alignment procedure
-    outlined in Section 3.10. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
+    outlined in :ref:`CHDBEHDC`. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
 
 **\---trans	 <name>**
 
@@ -1098,7 +1098,7 @@ the following command-line options:
 Implementation of software gradient compensation
 ================================================
 
-As described in Section 9.2.4 the CTF and 4D Neuroimaging
+As described in :ref:`BEHDDFBI`BEHDEJEC the CTF and 4D Neuroimaging
 data may have been subjected to noise cancellation employing the
 data from the reference sensor array. Even though these sensor are
 rather far away from the brain sources, mne_forward_solution takes
@@ -1107,7 +1107,7 @@ with the ``--meas`` option has software gradient compensation
 activated, mne_forward_solution computes
 the field of at the reference sensors in addition to the main MEG
 sensor array and computes a compensated forward solution using the
-methods descibed in Section 9.2.4.
+methods descibed in :ref:`BEHDDFBI`.
 
 .. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
 

@@ -18,7 +18,7 @@ by the FreeSurfer software.
 Chapter 2 of this manual gives an overview of the software
 modules included with MNE software. :ref:`ch_cookbook` is a concise cookbook
 describing a typical workflow for a novice user employing the convenience
-scripts as far as possible. Chapters 4 to 11 give more detailed
+scripts as far as possible. Chapters :ref:`ch_browse` to :ref:`ch_misc` give more detailed
 information about the software modules. :ref:`ch_sample_data` discusses
 processing of the sample data set included with the MNE software. :ref:`ch_reading` lists
 some useful background material for the methods employed in the
@@ -31,7 +31,7 @@ a software installation and configuration guide, Appendix D summarizes
 the software history, and Appendix E contains the End-User
 License Agreement.
 
-.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <version> ``.pdf`` . For    the present manual, <version> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see Section 2.4.
+.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <version> ``.pdf`` . For    the present manual, <version> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`CIHCDHGI`.
 
 We want to thank all MNE Software users at the Martinos Center and
 in other institutions for their collaboration during the creation

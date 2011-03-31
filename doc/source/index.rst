@@ -29,6 +29,11 @@ Manual:
    manual/utilities
    manual/sampledata
    manual/reading
+   manual/AppA
+   manual/AppB
+   manual/AppInstall
+   manual/AppReleaseNotes
+   manual/AppEULA
    mne-python
 
 * :ref:`search`

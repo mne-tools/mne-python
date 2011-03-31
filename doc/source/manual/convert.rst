@@ -467,7 +467,7 @@ but can be added, together with other channels, with the ``--type`` .
 The channels from 160 onwards are designated as miscellaneous input
 channels (MISC 001, MISC 002, etc.). The channel names and types
 of these channels can be afterwards changed with the mne_rename_channels utility,
-see Section 11.4.5. In addition, it is possible to synthesize
+see :ref:`CHDCFEAJ`. In addition, it is possible to synthesize
 the digital trigger channel (STI 014) from available analog
 trigger channel data, see the ``--stim`` option, below.
 The synthesized trigger channel data value at sample INLINE_EQUATION will
@@ -702,24 +702,24 @@ the EDF/EDF+/BDF file is converted to the fif format in MNE:
   digitized electrode location associated with them. If these channels
   are used for EOG or EMG measurements, their channel types should
   be changed to the correct ones using the mne_rename_channels utility,
-  see Section 11.4.5. EEG channels which do not have a location
+  see :ref:`CHDCFEAJ`. EEG channels which do not have a location
   associated with them should be assigned to be MISC channels.
 
 - After the channel types are correctly defined, a topographical
   layout file can be created for mne_browse_raw and mne_analyze using
   the mne_make_eeg_layout utility,
-  see Section 11.6.
+  see :ref:`CHDDGDJA`.
 
 - The trigger channel name in BDF files is "Status".
   This must be specified with the --digtrig option or with help of
   the MNE_TRIGGER_CH_NAME environment variable when mne_browse_raw or mne_process_raw is
-  invoked, see Section 4.2.1.
+  invoked, see :ref:`BABBGJEA`.
 
 - Only the two least significant bytes on the "Status" channel
   of BDF files are significant as trigger information the --digtrigmask
   0xff option MNE_TRIGGER_CH_MASK environment variable should be used
   to specify this to mne_browse_raw and mne_process_raw ,
-  see Section 4.2.1.
+  see :ref:`BABBGJEA`.
 
 .. _BEHDGAIJ:
 
@@ -991,7 +991,7 @@ Converting volumetric data into an MRI overlay
 ##############################################
 
 With help of the mne_volume_source_space utility
-(Section 5.5) it is possible to create a source space which
+(:ref:`BJEFEHJI`) it is possible to create a source space which
 is defined within a volume rather than a surface. If the ``--mri`` option
 was used in mne_volume_source_space , the
 source space file contains an interpolator matrix which performs
@@ -1207,7 +1207,7 @@ the following command-line options:
 
 **\---tri <name>**
 
-    Specifies a text format input file. The format of this file is described in Section 5.6.3.
+    Specifies a text format input file. The format of this file is described in :ref:`BEHDEFCD`.
 
 **\---meters**
 
@@ -1295,7 +1295,7 @@ the following command-line options:
 **\---triout <name>**
 
     Specifies an ASCII output file that will contain the surface data
-    in the triangle file format desribed in Section 5.6.3.
+    in the triangle file format desribed in :ref:`BEHDEFCD`.
 
 **\---pntout <name>**
 
@@ -1367,7 +1367,7 @@ data as input. The command-line options are:
     the talairach.xfm file referred to in the MRI volume, and the the
     fixed transforms INLINE_EQUATION and INLINE_EQUATION will
     added to the output file. For definition of the coordinate transformations,
-    see Section 5.2.
+    see :ref:`CHDEDFIB`.
 
 **\---talairach <name>**
 
@@ -1906,7 +1906,7 @@ the following command-line options are:
 
     The file containing the event definitions. This can be a text or
     fif format file produced by mne_process_raw or mne_browse_raw ,
-    see Section 4.10.5. With help of this file it is possible
+    see :ref:`CACBCEGC`. With help of this file it is possible
     to select virtually any data segment from the raw data file. If
     this option is missing, the digital trigger channel in the raw data
     file or a fif format event file produced automatically by mne_process_raw or mne_browse_raw is
