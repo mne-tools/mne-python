@@ -234,8 +234,8 @@ Inspecting the meshes
 
 It is advisable to check the validity of the BEM meshes before
 using them. This can be done with help of tkmedit either
-before or after executing mne_setup_forward_model ,
-see Section 3.7.
+before or after executing mne_setup_forward_model,
+see :ref:`CIHDBFEG`.
 
 Using seglab
 ############

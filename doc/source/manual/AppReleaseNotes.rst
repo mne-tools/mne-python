@@ -654,7 +654,7 @@ mne_opengl_test
 ---------------
 
 New utility for testing the OpenGL graphics performance,
-see Section C.2.5.
+see :ref:`CIHIIBDA`.
 
 mne_volume_data2mri
 -------------------
@@ -846,7 +846,7 @@ Miscellaneous
   see :ref:`CBBBBHIF`.
 
 - Added --noiserank option to mne_inverse_operator and mne_do_inverse_operator ,
-  see :ref:`CBBDDBGF`and Section 3.13, respectively.
+  see :ref:`CBBDDBGF`and :ref:`CIHCFJEI`, respectively.
 
 - The fif output from mne_convert_dig_data now
   includes the transformation between the digitizer and MNE head coordinate

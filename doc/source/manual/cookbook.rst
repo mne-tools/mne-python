@@ -815,10 +815,17 @@ anatomy only, not on the MEG/EEG data to be analyzed.
 
 .. note:: The MEG head to MRI transformation matrix specified    with the ``--trans`` option should be a text file containing    a 4-by-4 matrix:
 
-.. math::    1 + 1 = 2
+.. math::    T = \[
+		\begin{matrix}
+		R_11 & R_12 & R_13 x_0 \\
+		R_13 & R_13 & R_13 y_0 \\
+		R_13 & R_13 & R_13 z_0 \\
+		0 & 0 & 0 & 1 \\
+		\end{matrix}
+		\]
 
 defined so that if the augmented location vectors in MRI
-head and MRI coordinate systems are denoted by INLINE_EQUATION and :math:`r_{head}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
+head and MRI coordinate systems are denoted by :math:`r_{head}[x_{head}\ y_{head}\ z_{head}\ 1]` and :math:`r_{MRI}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
 respectively,
 
 .. math::    r_{MRI} = T r_{head}
