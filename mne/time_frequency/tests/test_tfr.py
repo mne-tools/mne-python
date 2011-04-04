@@ -32,8 +32,8 @@ def test_time_frequency():
                                     stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
-    epochs = mne.Epochs(raw, events, event_id,
-                                    tmin, tmax, picks=picks, baseline=(None, 0))
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
 

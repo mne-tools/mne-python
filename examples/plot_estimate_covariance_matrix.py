@@ -20,7 +20,7 @@ fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 raw = fiff.Raw(fname)
 
 # Set up pick list: MEG + STI 014 - bad channels
-cov = mne.noise_covariance_segment(raw)
+cov = mne.noise_covariance_segment(raw, reject=dict(eeg=40e-6, eog=150e-6))
 print cov
 
 ###############################################################################

@@ -7,7 +7,7 @@ import copy
 import numpy as np
 import fiff
 from .fiff import Evoked
-from .fiff.pick import channel_type, pick_types
+from .fiff.pick import pick_types, channel_indices_by_type
 
 
 class Epochs(object):
@@ -223,48 +223,15 @@ class Epochs(object):
         n_reject = 0
         for k in range(n_events):
             e = self._get_epoch_from_disk(k)
-            if self._is_good_epoch(e):
+            if ((self.reject is not None or self.flat is not None) and
+                not _is_good(e, self.ch_names, self._channel_type_idx,
+                         self.reject, self.flat)):
+                n_reject += 1
+            else:
                 data[cnt] = self._get_epoch_from_disk(k)
                 cnt += 1
-            else:
-                n_reject += 1
         print "Rejecting %d epochs." % n_reject
         return data[:cnt]
-
-    def _is_good_epoch(self, e):
-        """Test is epoch e is good
-        """
-        if self.reject is not None:
-            for key, thresh in self.reject.iteritems():
-                idx = self._channel_type_idx[key]
-                name = key.upper()
-                if len(idx) > 0:
-                    e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                    idx_max_delta = np.argmax(deltas)
-                    delta = deltas[idx_max_delta]
-                    if delta > thresh:
-                        ch_name = self.ch_names[idx[idx_max_delta]]
-                        print '\tRejecting epoch based on %s : %s (%s > %s).' \
-                                    % (name, ch_name, delta, thresh)
-                        return False
-        if self.flat is not None:
-            for key, thresh in self.flat.iteritems():
-                idx = self._channel_type_idx[key]
-                name = key.upper()
-                if len(idx) > 0:
-                    e_idx = e[idx]
-                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                    idx_min_delta = np.argmin(deltas)
-                    delta = deltas[idx_min_delta]
-                    if delta < thresh:
-                        ch_name = self.ch_names[idx[idx_min_delta]]
-                        print '\tRejecting flat epoch based on %s : %s (%s < %s).' \
-                                    % (name, ch_name, delta, thresh)
-                        return False
-
-        return True
-
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -285,11 +252,7 @@ class Epochs(object):
         if self.reject is None and self.flat is None:
             return
 
-        idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
-        for k, ch in enumerate(self.ch_names):
-            for key in idx.keys():
-                if channel_type(self.info, k) == key:
-                    idx[key].append(k)
+        idx = channel_indices_by_type(self.info)
 
         for key in idx.keys():
             if (self.reject is not None and key in self.reject) \
@@ -347,7 +310,7 @@ class Epochs(object):
         evoked.data = data
         evoked.times = self.times.copy()
         evoked.comment = self.name
-        evoked.aspect_kind = np.array([100]) # XXX
+        evoked.aspect_kind = np.array([100]) # for standard average file
         evoked.nave = n_events
         evoked.first = - np.sum(self.times < 0)
         evoked.last = np.sum(self.times > 0)
@@ -365,3 +328,39 @@ class Epochs(object):
         evoked.info['nchan'] = len(data_picks)
         evoked.data = evoked.data[data_picks]
         return evoked
+
+
+def _is_good(e, ch_names, channel_type_idx, reject, flat):
+    """Test if data segment e is good according to the criteria
+    defined in reject and flat.
+    """
+    if reject is not None:
+        for key, thresh in reject.iteritems():
+            idx = channel_type_idx[key]
+            name = key.upper()
+            if len(idx) > 0:
+                e_idx = e[idx]
+                deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                idx_max_delta = np.argmax(deltas)
+                delta = deltas[idx_max_delta]
+                if delta > thresh:
+                    ch_name = ch_names[idx[idx_max_delta]]
+                    print '\tRejecting epoch based on %s : %s (%s > %s).' \
+                                % (name, ch_name, delta, thresh)
+                    return False
+    if flat is not None:
+        for key, thresh in flat.iteritems():
+            idx = channel_type_idx[key]
+            name = key.upper()
+            if len(idx) > 0:
+                e_idx = e[idx]
+                deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                idx_min_delta = np.argmin(deltas)
+                delta = deltas[idx_min_delta]
+                if delta < thresh:
+                    ch_name = ch_names[idx[idx_min_delta]]
+                    print '\tRejecting flat epoch based on %s : %s (%s < %s).' \
+                                % (name, ch_name, delta, thresh)
+                    return False
+
+    return True

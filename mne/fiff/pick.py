@@ -261,3 +261,14 @@ def pick_channels_forward(orig, include=[], exclude=[]):
                                         for k in sel]
 
     return fwd
+
+def channel_indices_by_type(info):
+    """Get indices of channels by type
+    """
+    idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
+    for k, ch in enumerate(info['chs']):
+        for key in idx.keys():
+            if channel_type(info, k) == key:
+                idx[key].append(k)
+
+    return idx

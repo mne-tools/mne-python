@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import os
 from math import floor, ceil
 import numpy as np
@@ -18,8 +19,9 @@ from .fiff.write import start_block, end_block, write_int, write_name_list, \
                        write_double, write_float_matrix, start_file, end_file
 from .fiff.proj import write_proj, make_projector
 from .fiff import fiff_open
-from .fiff.pick import pick_types
-from .epochs import Epochs
+from .fiff.pick import pick_types, channel_indices_by_type
+from .epochs import Epochs, _is_good
+
 
 def rank(A, tol=1e-8):
     s = linalg.svd(A, compute_uv=0)
@@ -315,11 +317,9 @@ def read_cov(fid, node, cov_kind):
 ###############################################################################
 # Estimate from data
 
-def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax,
+def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
                                            keep_sample_mean):
     """Estimate noise covariance matrix from epochs
-
-    XXX : doc missing
     """
     picks_no_eog = pick_types(epochs.info, meg=True, eeg=True, eog=False)
     n_channels = len(picks_no_eog)
@@ -331,7 +331,15 @@ def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax,
     if bmax is None:
         bmax = epochs.times[-1]
     bmask = (epochs.times >= bmin) & (epochs.times <= bmax)
+
+    idx_by_type = channel_indices_by_type(epochs.info)
+
     for e in epochs:
+
+        if not _is_good(e, epochs.ch_names, idx_by_type, reject, flat):
+            print "Artefact detected in epoch"
+            continue
+
         e = e[picks_no_eog]
         mu = e[:,bmask].mean(axis=1)
         e -= mu[:,None]
@@ -339,21 +347,52 @@ def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax,
             e -= np.mean(e, axis=0)
         data += np.dot(e, e.T)
         n_samples += e.shape[1]
+
     print "Number of samples used : %d" % n_samples
     print '[done]'
     return data, n_samples, ch_names
 
 
-def noise_covariance_segment(raw, reject_params=None, keep_sample_mean=True,
-                             tmin=None, tmax=None, tstep=0.2):
+def noise_covariance_segment(raw, tmin=None, tmax=None, tstep=0.2,
+                             reject=None, flat=None, keep_sample_mean=True):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
-    XXX : doc missing
+    It is typically useful to estimate a noise covariance
+    from empty room data or time intervals before starting
+    the stimulation.
 
     Parameters
     ----------
+    raw : instance of Raw
+        Raw data
+    tmin : float
+        Beginning of time interval in seconds
+    tmax : float
+        End of time interval in seconds
+    tstep : float
+        Size of data chunks for artefact rejection.
+    reject : dict
+        Rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done.
+        Values are float. Example:
+        reject = dict(grad=4000e-13, # T / m (gradiometers)
+                      mag=4e-12, # T (magnetometers)
+                      eeg=40e-6, # uV (EEG channels)
+                      eog=250e-6 # uV (EOG channels)
+                      )
+    flat : dict
+        Rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+    keep_sample_mean : bool
+        If False data are centered at each instant before computing
+        the covariance.
+
     Returns
     -------
+    cov : instance of Covariance
+        Noise covariance matrix.
     """
     sfreq = raw.info['sfreq']
 
@@ -370,16 +409,24 @@ def noise_covariance_segment(raw, reject_params=None, keep_sample_mean=True,
     n_samples = 0
     mu = 0
 
+    info = copy.copy(raw.info)
+    info['chs'] = [info['chs'][k] for k in picks]
+    info['ch_names'] = [info['ch_names'][k] for k in picks]
+    info['nchan'] = len(picks)
+    idx_by_type = channel_indices_by_type(info)
+
     # Read data in chuncks
     for first in range(start, stop, step):
         last = first + step
         if last >= stop:
             last = stop
         raw_segment, times = raw[picks, first:last]
-        # XXX : check for artefacts
-        mu += raw_segment[idx].sum(axis=1)
-        data += np.dot(raw_segment[idx], raw_segment[idx].T)
-        n_samples += raw_segment.shape[1]
+        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat):
+            mu += raw_segment[idx].sum(axis=1)
+            data += np.dot(raw_segment[idx], raw_segment[idx].T)
+            n_samples += raw_segment.shape[1]
+        else:
+            print "Artefact detected in [%d, %d]" % (first, last)
 
     mu /= n_samples
     data -= n_samples * mu[:,None] * mu[None,:]
@@ -394,16 +441,53 @@ def noise_covariance_segment(raw, reject_params=None, keep_sample_mean=True,
 
 
 def noise_covariance(raw, events, event_ids, tmin, tmax,
-                     bmin=None, bmax=None, reject_params=None,
+                     bmin=None, bmax=None, reject=None, flat=None,
                      keep_sample_mean=True):
-    """Estimate noise covariance matrix from raw file
+    """Estimate noise covariance matrix from raw file and events.
 
-    XXX : doc missing
+    The noise covariance is typically estimated on pre-stim periods
+    when the stim onset if defined from events.
 
     Parameters
     ----------
+    raw : Raw instance
+        The raw data
+    events : array
+        The events a.k.a. the triggers
+    event_ids : array-like of int
+        The valid events to consider
+    tmin : float
+        Initial time in (s) around trigger. Ex: if tmin=0.2
+        then the beginning is 200ms before trigger onset.
+    tmax : float
+        Final time in (s) around trigger. Ex: if tmax=0.5
+        then the end is 500ms after trigger onset.
+    bmin : float
+        Used to specify a specific baseline for the offset.
+        bmin is the init of baseline.
+    bmax : float
+        bmax is the end of baseline.
+    reject : dict
+        Rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done.
+        Values are float. Example:
+        reject = dict(grad=4000e-13, # T / m (gradiometers)
+                      mag=4e-12, # T (magnetometers)
+                      eeg=40e-6, # uV (EEG channels)
+                      eog=250e-6 # uV (EOG channels)
+                      )
+    flat : dict
+        Rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+    keep_sample_mean : bool
+        If False data are centered at each instant before computing
+        the covariance.
     Returns
     -------
+    cov : instance of Covariance
+        The computed covariance.
     """
     # Pick all channels
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
@@ -417,11 +501,14 @@ def noise_covariance(raw, events, event_ids, tmin, tmax,
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             baseline=(None, 0))
         d, n, ch_names = _estimate_noise_covariance_from_epochs(epochs,
-                      bmin=bmin, bmax=bmax, keep_sample_mean=keep_sample_mean)
-
-        # XXX : check artefacts
+                      bmin=bmin, bmax=bmax, reject=reject, flat=flat,
+                      keep_sample_mean=keep_sample_mean)
         data += d
         n_samples += n
+
+    if n_samples == 0:
+        raise ValueError('Not enough samples to compute the noise covariance'
+                         ' matrix : %d samples' % n_samples)
 
     data /= n_samples - 1
     cov = Covariance(None)

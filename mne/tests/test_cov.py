@@ -39,7 +39,7 @@ def test_cov_estimation_on_raw_segment():
     cov = mne.noise_covariance_segment(raw)
     cov_mne = mne.Covariance(erm_cov_fname)
     assert cov_mne.ch_names == cov.ch_names
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro') 
+    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-6
 
 
@@ -49,13 +49,14 @@ def test_cov_estimation_with_triggers():
     raw = Raw(raw_fname)
     events = mne.find_events(raw)
     event_ids = [1, 2, 3, 4]
-    cov = mne.noise_covariance(raw, events, event_ids,
-                               tmin=-0.2, tmax=0, keep_sample_mean=True)
+    cov = mne.noise_covariance(raw, events, event_ids, tmin=-0.2, tmax=0,
+                               reject=dict(grad=10000e-13, mag=4e-12,
+                                           eeg=80e-6, eog=150e-6),
+                               keep_sample_mean=True)
     cov_mne = mne.Covariance(cov_fname)
     assert cov_mne.ch_names == cov.ch_names
-    # XXX : check something
-    # assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-    #         / linalg.norm(cov.data, ord='fro')) < 0.1 # XXX : fix
+    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.05
 
 
 def test_whitening_cov():
