@@ -168,6 +168,26 @@ class Epochs(object):
         if self.preload:
             self._data = self._get_data_from_disk()
 
+    def drop_picks(self, bad_picks):
+        """Drop some picks
+
+        Allows to discard some channels.
+        """
+        self.picks = list(self.picks)
+        idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
+        self.picks = [self.picks[k] for k in idx]
+
+        # XXX : could maybe be factorized
+        n_channels = self.info['nchan']
+        self.info['chs'] = [self.info['chs'][k] for k in idx]
+        self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
+        self.info['nchan'] = len(idx)
+        self.ch_names = self.info['ch_names']
+
+        if self.preload:
+            self._data = self._data[:,idx,:]
+
+
     def get_epoch(self, idx):
         """Load one epoch
 
@@ -281,7 +301,7 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
-        s = "n_epochs : %s" % len(self)
+        s = "n_events : %s" % len(self.events)
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)

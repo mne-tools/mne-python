@@ -28,6 +28,13 @@ def test_read_epochs():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
     epochs.average()
+    data = epochs.get_data()
+
+    eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
+                                eog=True)
+    epochs.drop_picks(eog_picks)
+    data_no_eog = epochs.get_data()
+    assert data.shape[1] == (data_no_eog.shape[1] + len(eog_picks))
 
 
 def test_reject_epochs():
@@ -46,7 +53,8 @@ def test_reject_epochs():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0),
                         reject=dict(grad=1000e-12, mag=4e-12, eeg=80e-6,
-                                    eog=150e-6))
+                                    eog=150e-6),
+                        flat=dict(grad=1e-15, mag=1e-15))
     data = epochs.get_data()
     n_events = len(epochs.events)
     n_clean_epochs = len(data)
