@@ -2371,13 +2371,13 @@ Without loss of generality we can always decompose any INLINE_EQUATION-channel
 measurement INLINE_EQUATION into its signal and
 noise components as
 
-.. math::    1 + 1 = 2
+.. math::    b(t) = b_s(t) + b_n(t)
 
 Further, if we know that INLINE_EQUATION is
 well characterized by a few field patterns INLINE_EQUATION,
 we can express the disturbance as
 
-.. math::    1 + 1 = 2
+.. math::    b_n(t) = Uc_n(t) + e(t)\ ,
 
 where the columns of INLINE_EQUATION constitute
 an orthonormal basis for INLINE_EQUATION, INLINE_EQUATION is
@@ -2390,11 +2390,11 @@ a small basis set INLINE_EQUATION such that the
 conditions described above are satisfied. We can now construct the
 orthogonal complement operator
 
-.. math::    1 + 1 = 2
+.. math::    P_{\perp} = I - UU^T
 
 and apply it to INLINE_EQUATION yielding
 
-.. math::    1 + 1 = 2
+.. math::    b(t) = P_{\perp}b_s(t)\ ,
 
 since INLINE_EQUATION. The projection operator INLINE_EQUATION is
 called the signal-space projection operator and generally provides
@@ -2458,16 +2458,16 @@ software employs the average-electrode reference, which means that
 the average over all electrode signals INLINE_EQUATION is
 subtracted from each INLINE_EQUATION:
 
-.. math::    1 + 1 = 2
+.. math::    v_{j}' = v_j - \frac{1}{p} \sum_{k} v_k\ .
 
 It is easy to see that the above equation actually corresponds
 to the projection:
 
-.. math::    1 + 1 = 2
+.. math::    v' = (I - uu^T)v\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    u = \frac{1}{\sqrt{p}}[1\ ...\ 1]^T\ .
 
 .. _CACHAAEG:
 
@@ -2486,11 +2486,11 @@ accepted INLINE_EQUATION samples from all channels to
 the vectors INLINE_EQUATION. The estimate of the covariance
 matrix is then computed as:
 
-.. math::    1 + 1 = 2
+.. math::    \hat{C} = \frac{1}{M - 1} \sum_{j = 1}^M {(s_j - \bar{s})(s_j - \bar{s})}^T
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    \bar{s} = \frac{1}{M} \sum_{j = 1}^M s_j
 
 is the average of the signals over all times. Note that no
 attempt is made to correct for low frequency drifts in the data.
@@ -2501,7 +2501,7 @@ applied.
 For actual computations, it is convenient to rewrite the
 expression for the covariance matrix as
 
-.. math::    1 + 1 = 2
+.. math::    \hat{C} = \frac{1}{M - 1} \sum_{j = 1}^M {s_j s_j^T} - \frac{M}{M - 1} \bar{s} \bar{s}^T
 
 .. _BABHJDEJ:
 
@@ -2515,7 +2515,7 @@ epoch.
 
 Let the vectors
 
-.. math::    1 + 1 = 2
+.. math::    s_{rpj}\ ,\ p = 1\ ...\ P_r\ ,\ j = 1\ ...\ N_r\ ,\ r = 1\ ...\ R 
 
 be the samples from all channels in the baseline corrected epochs
 used to calculate the covariance matrix. In the above, INLINE_EQUATION is
@@ -2529,31 +2529,31 @@ correction is applied to the epochs but the means at individual
 samples are not subtracted. Thus the covariance matrix will be computed
 as:
 
-.. math::    1 + 1 = 2
+.. math::    \hat{C} = \frac{1}{N_C} \sum_{r,p,j} {s_{rpj} s_{rpj}^T}\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    N_C = \sum_{r = 1}^R N_r P_r\ .
 
 If keepsamplemean is *not* specified,
 we estimate the covariance matrix as
 
-.. math::    1 + 1 = 2
+.. math::    \hat{C} = \frac{1}{N_C} \sum_{r = 1}^R \sum_{j = 1}^{N_r} \sum_{p = 1}^{P_r} {(s_{rpj} - \bar{s_{rj}}) ((s_{rpj} - \bar{s_{rj}})^T}\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    \bar{s_{rj}} = \frac{1}{P_r} \sum_{p = 1}^{P_r} s_{rpj}
 
 and
 
-.. math::    1 + 1 = 2
+.. math::    N_C = \sum_{r = 1}^R {N_r (P_r - 1)}\ ,
 
 which reflects the fact that INLINE_EQUATION means
 are computed for category INLINE_EQUATION. It
 is easy to see that the expression for the covariance matrix estimate
 can be cast into a more convenient form
 
-.. math::    1 + 1 = 2
+.. math::    \hat{C} = \frac{1}{N_C} \sum_{r,p,j} {s_{rpj} s_{rpj}^T} - \frac{1}{N_C} \sum_r P_r \sum_j {\bar{s_{rj}} \bar{s_rj}^T}/ .
 
 Subtraction of the means at individual samples is useful
 if it can be expected that the evoked response from previous stimulus
@@ -2567,11 +2567,11 @@ estimates INLINE_EQUATION with corresponding degrees
 of freedom INLINE_EQUATION. We can combine these
 matrices together as
 
-.. math::    1 + 1 = 2
+.. math::    C = \sum_q {\alpha_q \hat{C}_q}\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    \alpha_q = \frac{N_q}{\sum_q {N_q}}\ .
 
 SSP information included with covariance matrices
 =================================================
