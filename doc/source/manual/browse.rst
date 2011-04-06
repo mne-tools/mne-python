@@ -2515,7 +2515,7 @@ epoch.
 
 Let the vectors
 
-.. math::    s_{rpj}\ ,\ p = 1\ ...\ P_r\ ,\ j = 1\ ...\ N_r\ ,\ r = 1\ ...\ R 
+.. math::    s_{rpj}\ ;\ p = 1 \dotsc P_r\ ;\ j = 1 \dotsc N_r\ ;\ r = 1 \dotsc R 
 
 be the samples from all channels in the baseline corrected epochs
 used to calculate the covariance matrix. In the above, INLINE_EQUATION is
