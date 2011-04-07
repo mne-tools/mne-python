@@ -122,7 +122,27 @@ coordinate transformation symbols (INLINE_EQUATION)
 indicate the transformations actually present in the FreeSurfer
 files. Generally,
 
-.. math::    1 + 1 = 2
+.. math::    \begin{bmatrix}
+		x_2 \\
+		y_2 \\
+		z_2 \\
+		1
+	        \end{bmatrix} = T_{12} \begin{bmatrix}
+		x_1 \\
+		y_1 \\
+		z_1 \\
+		1
+	        \end{bmatrix} = \begin{bmatrix}
+		R_{11} & R_{12} & R_{13} & x_0 \\
+		R_{13} & R_{13} & R_{13} & y_0 \\
+		R_{13} & R_{13} & R_{13} & z_0 \\
+		0 & 0 & 0 & 1
+	        \end{bmatrix} \begin{bmatrix}
+		x_1 \\
+		y_1 \\
+		z_1 \\
+		1
+	        \end{bmatrix}\ ,
 
 where INLINE_EQUATION are the location
 coordinates in two coordinate systems, INLINE_EQUATION is
@@ -134,11 +154,21 @@ matrix relating the two coordinate systems. The coordinate transformations
 are present in different files produced by FreeSurfer and MNE as
 summarized in :ref:`CHDJDEDJ`. The fixed transformations INLINE_EQUATION and INLINE_EQUATION are:
 
-.. math::    1 + 1 = 2
+.. math::    T_{-} = \begin{bmatrix}
+		0.99 & 0 & 0 & 0 \\
+		0 & 0.9688 & 0.042 & 0 \\
+		0 & -0.0485 & 0.839 & 0 \\
+		0 & 0 & 0 & 1
+	        \end{bmatrix}
 
 and
 
-.. math::    1 + 1 = 2
+.. math::    T_{+} = \begin{bmatrix}
+		0.99 & 0 & 0 & 0 \\
+		0 & 0.9688 & 0.046 & 0 \\
+		0 & -0.0485 & 0.9189 & 0 \\
+		0 & 0 & 0 & 1
+	        \end{bmatrix}
 
 .. note:: This section does not discuss the transformation    between the MRI voxel indices and the different MRI coordinates.    However, it is important to note that in FreeSurfer, MNE, as well    as in Neuromag software an integer voxel coordinate corresponds    to the location of the center of a voxel. Detailed information on    the FreeSurfer MRI systems can be found at  https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
 
@@ -638,11 +668,16 @@ a location of a point INLINE_EQUATION in sensor coordinates
 is transformed to device coordinates (INLINE_EQUATION)
 by
 
-.. math::    1 + 1 = 2
+.. math::    [r_D 1] = [r_c 1] T_{CD}\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    T = \begin{bmatrix}
+		e_x & 0 \\
+		e_y & 0 \\
+		e_z & 0 \\
+		r_{0D} & 1
+	        \end{bmatrix}\ .
 
 Calculation of the magnetic field
 =================================
@@ -661,7 +696,7 @@ field component normal to the coil plane, the output of the *k*th
 MEG channel, INLINE_EQUATION, can be approximated
 by:
 
-.. math::    1 + 1 = 2
+.. math::    b_k = \sum_{p = 1}^{N_k} {w_{kp} B(r_{kp}) \cdot n_{kp}}
 
 where INLINE_EQUATION are a set of INLINE_EQUATION integration
 points covering the pickup coil loops of the sensor, INLINE_EQUATION is
@@ -1158,7 +1193,7 @@ al.* and references therein). mne_forward_solution approximates
 the solution with three dipoles in a homogeneous sphere whose locations
 and amplitudes are determined by minimizing the cost function:
 
-.. math::    1 + 1 = 2
+.. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
 
 where INLINE_EQUATION and INLINE_EQUATION are
 the locations and amplitudes of the approximating dipoles and INLINE_EQUATION and INLINE_EQUATION are
@@ -1174,26 +1209,26 @@ inner skull surface.
 Field derivatives
 =================
 
-If the --grad option is specified, mne_forward_solution includes
+If the --grad **problem - double dash shows up in html as single long dash..!** option is specified, mne_forward_solution includes
 the derivatives of the forward solution with respect to the dipole
 location coordinates to the output file. Let
 
-.. math::    1 + 1 = 2
+.. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
 be the INLINE_EQUATION matrix containing
 the signals produced by three orthogonal dipoles at location INLINE_EQUATION making
 up INLINE_EQUATIONthe gain matrix
 
-.. math::    1 + 1 = 2
+.. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
 With the --grad option, the output from mne_forward_solution also
 contains the INLINE_EQUATION derivative matrix
 
-.. math::    1 + 1 = 2
+.. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
 
 where INLINE_EQUATION are the location
 coordinates of the INLINE_EQUATION dipole. If

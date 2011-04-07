@@ -34,7 +34,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | see :ref:`ch_browse`.                      |
     +----------------------------+--------------------------------------------+
     | *mne_compute_mne*          | Computes the minimum-norm estimates,       |
-    |                            | see Section B.3.1. Most of the             |
+    |                            | see :ref:`BABDABHI`. Most of the           |
     |                            | functionality of mne_compute_mne is        |
     |                            | included in mne_make_movie.                |
     +----------------------------+--------------------------------------------+
@@ -180,7 +180,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | *mne_dicom_essentials*          | List essential information from a          |
     |                                 | DICOM file.                                |
     |                                 | This utility is used by the script         |
-    |                                 | mne_organize_dicom, see Section A.2.1.     |
+    |                                 | mne_organize_dicom, see :ref:`BABEBJHI`.   |
     +---------------------------------+--------------------------------------------+
     | *mne_edf2fiff*                  | Convert EEG data from the EDF/EDF+/BDF     |
     |                                 | formats to the fif format,                 |
@@ -206,7 +206,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | STI 014, see :ref:`BABCDBDI`.              |
     +---------------------------------+--------------------------------------------+
     | *mne_flash_bem*                 | Create BEM tessellation using multi-echo   |
-    |                                 | FLASH MRI data, see Section A.2.           |
+    |                                 | FLASH MRI data, see :ref:`BABFCDJH`.       |
     +---------------------------------+--------------------------------------------+
     | *mne_insert_4D_comp*            | Read Magnes compensation channel data from |
     |                                 | a text file and merge it with raw data     |
@@ -257,7 +257,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | subjects, see :ref:`CHDCEAFC`.             |
     +---------------------------------+--------------------------------------------+
     | *mne_organize_dicom*            | Organized DICOM MRI image files into       |
-    |                                 | directories, see Section A.2.1.            |
+    |                                 | directories, see :ref:`BABEBJHI`.          |
     +---------------------------------+--------------------------------------------+
     | *mne_prepare_bem_model*         | Perform the geometry calculations for      |
     |                                 | BEM forward solutions, see :ref:`CHDJFHEB`.|
@@ -312,7 +312,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                                 | see :ref:`BJEFEHJI`.                       |
     +---------------------------------+--------------------------------------------+
     | *mne_watershed_bem*             | Do the segmentation for BEM using the      |
-    |                                 | watershed algorithm, see Section A.1.      |
+    |                                 | watershed algorithm, see :ref:`BABBDHAG`.  |
     +---------------------------------+--------------------------------------------+
 
 
@@ -398,7 +398,7 @@ For csh/tcsh the corresponding commands are:
 ``setenv MNE_ROOT`` <MNE> ``setenv MATLAB_ROOT`` <Matlab> ``source $MNE_ROOT/bin/mne_setup``
 
 For BEM mesh generation using the watershed algorithm or
-on the basis of multi-echo FLASH MRI data (see Appendix A) and
+on the basis of multi-echo FLASH MRI data (see :ref:`BGBDEIGC`) and
 for accessing the tkmedit program
 from mne_analyze, see :ref:`CACCHCBF`,
 the MNE software needs access to a FreeSurfer license
@@ -435,4 +435,4 @@ listed in :ref:`CIHDGFAA`.
     |                         | values, see :ref:`BABBGJEA`.               |
     +-------------------------+--------------------------------------------+
 
-.. note:: Appendix B contains information specific to the setup at the Martinos Center including instructions to access    the Neuromag software.
+.. note:: :ref:`BGBDEIGC` contains information specific to the setup at the Martinos Center including instructions to access the Neuromag software.

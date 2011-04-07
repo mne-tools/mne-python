@@ -250,14 +250,14 @@ of the intracranial volume. For EEG, the standard model contains
 the intracranial space, the skull, and the scalp.
 
 At present, no bulletproof method exists for creating the
-triangulations. Feasible approaches are described in Appendix A.
+triangulations. Feasible approaches are described in :ref:`BGBDEIGC`.
 
 .. _BABDBBFC:
 
 Setting up the triangulation files
 ==================================
 
-The segmentation algorithms described in Appendix A produce
+The segmentation algorithms described in :ref:`BGBDEIGC` produce
 either FreeSurfer surfaces or triangulation
 data in text. Before proceeding to the creation of the boundary
 element model, standard files (or symbolic links created with the ``ln -s`` command) have to be present in the subject's ``bem`` directory.
@@ -374,7 +374,7 @@ the following options:
     the process is aborted if it is incorrect after taking into account
     the state of the swapping. Should this happen, try to run mne_setup_forward_model again including
     the ``--noswap`` flag. In particular, if you employ the seglab software
-    to create the triangulations (see Appendix A), the ``--noswap`` flag
+    to create the triangulations (see :ref:`BGBDEIGC`), the ``--noswap`` flag
     is required. This option is ignored if ``--surf`` is specified
 
 **\---ico <number>**
@@ -815,13 +815,18 @@ anatomy only, not on the MEG/EEG data to be analyzed.
 
 .. note:: The MEG head to MRI transformation matrix specified    with the ``--trans`` option should be a text file containing    a 4-by-4 matrix:
 
-.. math::    1 + 1 = 2
-
+.. math::    T = \begin{bmatrix}
+		R_{11} & R_{12} & R_{13} & x_0 \\
+		R_{13} & R_{13} & R_{13} & y_0 \\
+		R_{13} & R_{13} & R_{13} & z_0 \\
+		0 & 0 & 0 & 1
+		\end{bmatrix}
+	     
 defined so that if the augmented location vectors in MRI
-head and MRI coordinate systems are denoted by INLINE_EQUATION and INLINE_EQUATION,
+head and MRI coordinate systems are denoted by :math:`r_{head}[x_{head}\ y_{head}\ z_{head}\ 1]` and :math:`r_{MRI}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
 respectively,
 
-.. math::    1 + 1 = 2
+.. math::    r_{MRI} = T r_{head}
 
 .. note:: It is not possible to calculate an EEG forward    solution with a single-layer BEM.
 

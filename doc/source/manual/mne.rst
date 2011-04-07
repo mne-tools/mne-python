@@ -47,7 +47,7 @@ fixed-orientation sources and M = 3P if the source orientations
 are unconstrained. The regularized linear inverse operator following
 from the Bayesian approach is given by the INLINE_EQUATION matrix
 
-.. math::    1 + 1 = 2
+.. math::    M = R' G^T (G R' G^T + C)^{-1}\ ,
 
 where G is the gain matrix relating the source strengths
 to the measured MEG/EEG data, C is the data noise-covariance matrix
@@ -70,7 +70,7 @@ The a priori variance of the currents is, in practise, unknown.
 We can express this by writing INLINE_EQUATION,
 which yields the inverse operator
 
-.. math::    1 + 1 = 2
+.. math::    M = R G^T (G R G^T + \lambda^2 C)^{-1}\ ,
 
 where the unknown current amplitude is now interpreted in
 terms of the regularization parameter INLINE_EQUATION.
@@ -82,7 +82,7 @@ estimate is obtained.
 We can arrive in the regularized linear inverse operator
 also by minimizing the cost function
 
-.. math::    1 + 1 = 2
+.. math::    S = \tilde{e}^T \tilde{e} + \lambda^2 j^T R^{-1} j\ ,
 
 where the first term consists of the difference between the
 whitened measured data (see :ref:`CHDDHAGE`) and those predicted
@@ -99,7 +99,7 @@ Whitening and scaling
 The MNE software employs data whitening so that a 'whitened' inverse operator
 assumes the form
 
-.. math::    1 + 1 = 2
+.. math::    \tilde{M} = R \tilde{G}^T (\tilde{G} R \tilde{G}^T + I)^{-1}\ ,
 
 where INLINE_EQUATION is the spatially
 whitened gain matrix. The expected current values are INLINE_EQUATION,
@@ -152,7 +152,7 @@ the noise-covariance matrix is advisable.
 The MNE software accomplishes the regularization by replacing
 a noise-covariance matrix estimate INLINE_EQUATION with
 
-.. math::    1 + 1 = 2
+.. math::    C' = C + \sum_k {\varepsilon_k \bar{\sigma_k}^2 I^{(k)}}\ ,
 
 where the index INLINE_EQUATION goes across
 the different channel groups (MEG planar gradiometers, MEG axial
@@ -179,7 +179,7 @@ directly. However, for computational convenience we prefer to take
 another route, which employs the singular-value decomposition (SVD)
 of the matrix
 
-.. math::    1 + 1 = 2
+.. math::    A = \tilde{G} R^{^1/_2} = U \Lambda V^T
 
 where the superscript **INLINE_EQUATION indicates a
 square root of INLINE_EQUATION. For a diagonal matrix,
@@ -189,16 +189,16 @@ thus INLINE_EQUATION.
 
 With the above SVD it is easy to show that
 
-.. math::    1 + 1 = 2
+.. math::    \tilde{M} = R^{^1/_2} V \Gamma U^T
 
 where the elements of the diagonal matrix INLINE_EQUATION are
 
-.. math::    1 + 1 = 2
+.. math::    \gamma_k = \frac{1}{\lambda_k} \frac{\lambda_k^2}{\lambda_k^2 \lambda^2}\ .
 
 With INLINE_EQUATION the expression for
 the expected current is
 
-.. math::    1 + 1 = 2
+.. math::    \hat{j}(t) = R^C V \Gamma w(t) = \sum_k {\bar{v_k} \gamma_k w_k(t)}\ ,
 
 where INLINE_EQUATION, INLINE_EQUATION being
 the kth column of V. It is thus seen that the current estimate is
@@ -237,12 +237,12 @@ variance. Noise normalization serves three purposes:
 In practice, noise normalization requires the computation
 of the diagonal elements of the matrix
 
-.. math::    1 + 1 = 2
+.. math::    M C M^T = \tilde{M} \tilde{M}^T\ .
 
 With help of the singular-value decomposition approach we
 see directly that
 
-.. math::    1 + 1 = 2
+.. math::    \tilde{M} \tilde{M}^T\ = \bar{V} \Gamma^2 \bar{V}^T\ .
 
 Under the conditions expressed at the end of :ref:`CHDBEHBC`, it follows that the t-statistic values associated
 with fixed-orientation sources) are thus proportional to INLINE_EQUATION while
@@ -269,7 +269,7 @@ the regularization applied.
 
 In the SVD approach we easily find
 
-.. math::    1 + 1 = 2
+.. math::    \hat{x}(t) = G \hat{j}(t) = C^{^1/_2} U \Pi w(t)\ ,
 
 where the diagonal matrix INLINE_EQUATION has
 elements INLINE_EQUATION The predicted data is
@@ -350,7 +350,7 @@ weighting scheme employed in MNE analyze, the elements of R corresponding
 to the INLINE_EQUATION source location are be
 scaled by a factor
 
-.. math::    1 + 1 = 2
+.. math::    f_p = (g_{1p}^T g_{1p} + g_{2p}^T g_{2p} + g_{3p}^T g_{3p})^{-\gamma}\ ,
 
 where INLINE_EQUATION are the three colums
 of INLINE_EQUATION corresponding to source location INLINE_EQUATION and INLINE_EQUATION is
@@ -387,47 +387,47 @@ is originally one corresponding to raw data. Therefore, it has to
 be scaled correctly to correspond to the actual or effective number
 of epochs in the condition to be analyzed. In general, we have
 
-.. math::    1 + 1 = 2
+.. math::    C = C_0 / L_{eff}
 
 where INLINE_EQUATION is the effective
 number of averages. To calculate INLINE_EQUATION for
 an arbitrary linear combination of conditions
 
-.. math::    1 + 1 = 2
+.. math::    y(t) = \sum_{i = 1}^n {w_i x_i(t)}
 
 we make use of the the fact that the noise-covariance matrix
 
-.. math::    1 + 1 = 2
+.. math::    C_y = \sum_{i = 1}^n {w_i^2 C_{x_i}} = C_0 \sum_{i = 1}^n {w_i^2 / L_i}
 
 which leads to
 
-.. math::    1 + 1 = 2
+.. math::    1 / L_{eff} = \sum_{i = 1}^n {w_i^2 / L_i}
 
 An important special case  of the above is a weighted average,
 where
 
-.. math::    1 + 1 = 2
+.. math::    w_i = L_i / \sum_{i = 1}^n {L_i}
 
 and, therefore
 
-.. math::    1 + 1 = 2
+.. math::    L_{eff} = \sum_{i = 1}^n {L_i}
 
 Instead of a weighted average, one often computes a weighted
 sum, a simplest case being a difference or sum of two categories.
 For a difference INLINE_EQUATION and INLINE_EQUATION and
 thus
 
-.. math::    1 + 1 = 2
+.. math::    1 / L_{eff} = 1 / L_1 + 1 / L_2
 
 or
 
-.. math::    1 + 1 = 2
+.. math::    L_{eff} = \frac{L_1 L_2}{L_1 + L_2}
 
 Interestingly, the same holds for a sum, where  INLINE_EQUATION.
 Generalizing, for any combination of sums and differences, where INLINE_EQUATION or INLINE_EQUATION , INLINE_EQUATION,
 we have
 
-.. math::    1 + 1 = 2
+.. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
 
 .. _CBBDDBGF:
 

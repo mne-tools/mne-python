@@ -144,7 +144,7 @@ in the sample data set:
   been computed using the FreeSurfer software.
 
 - The BEM surfaces have been created with the watershed algorithm,
-  see Section A.1.
+  see :ref:`BABBDHAG`.
 
 - The MEG/EEG raw data file has been checked with the utilities described
   in :ref:`BABCDBDI` and :ref:`BABCDFJH`.
@@ -462,7 +462,7 @@ Observe the following:
 - There is a later response in the right parietal area, almost
   identical to both visual stimuli.
 
-.. note:: If you have the Neuromag software available,    the averaged data can be also viewed in the Neuromag data plotter    (xplotter ). See Section B.2 for    instructions on how to use the Neuromag software at the MGH Martinos    Center.
+.. note:: If you have the Neuromag software available,    the averaged data can be also viewed in the Neuromag data plotter    (xplotter ). See :ref:`BABGFDJG` for    instructions on how to use the Neuromag software at the MGH Martinos    Center.
 
 Computing the noise-covariance matrix
 #####################################

@@ -154,21 +154,21 @@ How to get started
 After you have installed the software, a good place to start
 is to look at the manual:
 
-- Source the correct setup script, see Section 2.4,
+- Source the correct setup script, see :ref:`CIHCDHGI`,
   and
 
 - Say: ``mne_view_manual`` .
 
 Chapters of interest for a novice user include:
 
-- Chapters 1 and 2 contain introduction
+- :ref:`CHDDEFAB` and :ref:`CHDBAFGJ` contain introduction
   to the software and setup instructions.
 
-- Chapter 3 is an overview of the necessary steps to
+- :ref:`ch_cookbook` is an overview of the necessary steps to
   compute the cortically constrained minimum-norm solutions.
 
-- Chapter 12 is a hands-on exercise demonstrating analysis
+- :ref:`ch_sample_data` is a hands-on exercise demonstrating analysis
   of the sample data set.
 
-- Chapter 13 contains a list of useful references for
+- :ref:`ch_reading` contains a list of useful references for
   understanding the methods implemented in the MNE software.

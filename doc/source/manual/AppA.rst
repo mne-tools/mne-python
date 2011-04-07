@@ -54,7 +54,7 @@ All of these surfaces are in the FreeSurfer format. In addition,
 there will be a directory called ``bem/watershed/ws`` which
 contains the brain MRI volume. Furthermore, mne_watershed_bem script
 converts the scalp surface to fif format and saves the result to ``bem/`` <subject> ``-head.fif`` . The mne_analyze tool
-described Chapter 7 looks for this file the visualizations
+described :ref:`ch_interactive_analysis` looks for this file the visualizations
 involving the scalp surface.
 
 .. _BABFCDJH:
@@ -71,7 +71,7 @@ least with the same scanner. For easy co-registration, the images
 should have FOV, matrix, slice thickness, gap, and slice orientation
 as the MPRAGE data. For information on suitable pulse sequences,
 see reference\. Fischl *et al.* and J. Jovicich *et
-al.*, 2006] in Section 13.3. At the Martinos
+al.*, 2006] in :ref:`CEGEGDEI`. At the Martinos
 Center, use of the 1.5-T Avanto scanner (Bay 2) is recommended for
 best results.
 
@@ -234,8 +234,8 @@ Inspecting the meshes
 
 It is advisable to check the validity of the BEM meshes before
 using them. This can be done with help of tkmedit either
-before or after executing mne_setup_forward_model ,
-see Section 3.7.
+before or after executing mne_setup_forward_model,
+see :ref:`CIHDBFEG`.
 
 Using seglab
 ############
@@ -254,7 +254,7 @@ as outlined below
 
 **1. Set up the MRIs for Neuromag software access**
 
-    Run the mne_setup_mri too as described in Section 3.4.
+    Run the mne_setup_mri too as described in :ref:`BABCCEHF`.
     As a result, the directories mri/T1-neuromag and mri/brain-neuromag
     are set up.
 
@@ -319,7 +319,7 @@ For further information, see http://brainsuite.usc.edu/.
 
 The conversion of BrainSuite tessellation
 files to MNE software compatible formats is accomplished with the mne_convert_surface utility,
-covered in Section 9.7.
+covered in :ref:`BEHDIAJG`.
 
 The workflow needed to employ the BrainSuite tessellations
 is:
@@ -374,4 +374,4 @@ is:
 
 .. note:: If left and right are flipped in BrainSuite,    use the --flip option in mne_convert_surface to    set the coordinate transformation correctly.
 
-.. note:: The BrainSuite scalp    surface can be also used for visualization in mne_analyze ,    see Section 7.16.1.
+.. note:: The BrainSuite scalp    surface can be also used for visualization in mne_analyze ,    see :ref:`CHDCGHIF`.
