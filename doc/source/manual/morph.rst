@@ -33,7 +33,7 @@ A morphing map is a linear mapping froprem cortical surface values
 in subject A (INLINE_EQUATION) to those in another
 subject B (INLINE_EQUATION)
 
-.. math::    1 + 1 = 2
+.. math::    x^{(B)} = M^{(AB)} x^{(A)}\ ,
 
 where INLINE_EQUATION is a sparse matrix
 with at most three nonzero elements on each row. These elements
@@ -47,15 +47,15 @@ the location INLINE_EQUATION within the triangle INLINE_EQUATION.
 
 It follows from the above definition that in general
 
-.. math::    1 + 1 = 2
+.. math::    M^{(AB)} \neq (M^{(BA)})^{-1}\ ,
 
 *i.e.*,
 
-.. math::    1 + 1 = 2
+.. math::    x_{(A)} \neq M^{(BA)} M^{(AB)} x^{(A)}\ ,
 
 even if
 
-.. math::    1 + 1 = 2
+.. math::    x^{(A)} \approx M^{(BA)} M^{(AB)} x^{(A)}\ ,
 
 *i.e.*, the mapping is *almost* a
 bijection.
@@ -79,7 +79,7 @@ iterative procedure, which produces a blurred image INLINE_EQUATIONfrom
 the original sparse image INLINE_EQUATION by applying
 in each iteration step a sparse blurring matrix:
 
-.. math::    1 + 1 = 2
+.. math::    x^{(p)} = S^{(p)} x^{(p - 1)}\ .
 
 On each row INLINE_EQUATIONof the matrix INLINE_EQUATIONthere
 are INLINE_EQUATION nonzero entries whose values
@@ -96,7 +96,7 @@ the topology of the triangulation are fixed the matrices INLINE_EQUATION are
 fixed and independent of the data. Therefore, it would be in principle
 possible to construct a composite blurring matrix
 
-.. math::    1 + 1 = 2
+.. math::    S^{(N)} = \prod_{p = 1}^N {S^{(p)}}\ .
 
 However, it turns out to be computationally more effective
 to do blurring with an iteration. The above formula for INLINE_EQUATION also
@@ -387,15 +387,15 @@ the rows are the signals at different vertices of the cortical surface.
 The average computed by mne_average_estimates is
 then:
 
-.. math::    1 + 1 = 2
+.. math::    A_{jk} = |w[\newcommand\sgn{\mathop{\mathrm{sgn}}\nolimits}\sgn(B_{jk})]^{\alpha}|B_{jk}|^{\beta}
 
 with
 
-.. math::    1 + 1 = 2
+.. math::    B_{jk} = \sum_{p = 1}^p {\bar{w_p}[\newcommand\sgn{\mathop{\mathrm{sgn}}\nolimits}\sgn(S_{jk}^{(p)})^{\alpha_p}|S_{jk}^{(p)}|^{\beta_p}}
 
 and
 
-.. math::    1 + 1 = 2
+.. math::    \bar{w_p} = w_p / \sum_{p = 1}^p {|w_p|}\ .
 
 In the above, INLINE_EQUATION and INLINE_EQUATION are
 the powers and weights assigned to each of the subjects whereas INLINE_EQUATION and INLINE_EQUATION are

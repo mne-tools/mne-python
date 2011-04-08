@@ -1405,7 +1405,7 @@ signal at channel INLINE_EQUATION. This signal
 is related to the primary current distribution INLINE_EQUATIONthrough
 the lead field INLINE_EQUATION:
 
-.. math::    1 + 1 = 2
+.. math::    x_k = \int_G {L_k(r) \cdot J^p(r)}\,dG\ ,
 
 where the integration space INLINE_EQUATION in
 our case is a spherical surface. The oblique boldface characters
@@ -1413,48 +1413,51 @@ denote three-component locations vectors and vector fields.
 
 The inner product of two leadfields is defined as:
 
-.. math::    1 + 1 = 2
+.. math::    \langle L_j \mid L_k \rangle = \int_G {L_j(r) \cdot L_k(r)}\,dG\ ,
 
 These products constitute the Gram matrix INLINE_EQUATION.
 The minimum -norm estimate can be expressed as a weighted sum of
 the lead fields:
 
-.. math::    1 + 1 = 2
+.. math::    J^* = w^T L\ ,
 
 where INLINE_EQUATION is a weight vector
 and INLINE_EQUATION is a vector composed of the
 continuous lead-field functions. The weights are determined by the
 requirement
 
-.. math::    1 + 1 = 2
+.. math::    x = \langle L \mid J^* \rangle = \Gamma w\ ,
 
 i.e., the estimate must predict the measured signals. Hence,
 
-.. math::    1 + 1 = 2
+.. math::    w = \Gamma^{-1} x\ .
 
 However, the Gram matrix is ill conditioned and regularization
 must be employed to yield a stable solution. With help of the SVD
 
-.. math::    1 + 1 = 2
+.. math::    \Gamma = U \Lambda V^T
 
 a regularized minimum-norm can now found by replacing the
 data matching condition by
 
-.. math::    1 + 1 = 2
+.. math::    x^{(p)} = \Gamma^{(p)} w^{(p)}\ ,
 
 where
 
-.. math::    1 + 1 = 2
+.. math::    x^{(p)} = (U^{(p)})^T x \text{  and  } \Gamma^{(p)} = (U^{(p)})^T \Gamma\ ,
 
 respectively. In the above, the columns of INLINE_EQUATION are
 the first *k* left singular vectors of INLINE_EQUATION.
 The weights of the regularized estimate are
 
-.. math::    1 + 1 = 2
+.. math::    w^{(p)} = V \Lambda^{(p)} U^T x\ ,
 
 where INLINE_EQUATION is diagonal with
 
-.. math::    1 + 1 = 2
+.. math::    \Lambda_{jj}^{(p)} = \Bigg\{ \begin{array}{l}
+		 1/{\lambda_j},j \leq p\\
+		 \text{otherwise}
+	     \end{array}
 
 INLINE_EQUATION being the INLINE_EQUATION singular
 value of INLINE_EQUATION. The truncation point INLINE_EQUATION is
@@ -1462,19 +1465,19 @@ selected in mne_analyze by specifying
 a tolerance INLINE_EQUATION, which is used to
 determine INLINE_EQUATION such that
 
-.. math::    1 + 1 = 2
+.. math::    1 - \frac{\sum_{j = 1}^p {\lambda_j}}{\sum_{j = 1}^N {\lambda_j}} < \varepsilon
 
 The extrapolated and interpolated magnetic field or potential
 distribution estimates INLINE_EQUATION in a virtual
 grid of sensors can be now easily computed from the regularized
 minimum-norm estimate. With
 
-.. math::    1 + 1 = 2
+.. math::    \Gamma_{jk}' = \langle L_j' \mid L_k \rangle\ ,
 
 where INLINE_EQUATION are the lead fields
 of the virtual sensors,
 
-.. math::    1 + 1 = 2
+.. math::    \hat{x'} = \Gamma' w^{(k)}\ .
 
 Field mapping preferences
 =========================
@@ -1678,7 +1681,7 @@ data in green.
 The SNR estimate is computed from the whitened data INLINE_EQUATION,
 related to the measured data INLINE_EQUATION by
 
-.. math::    1 + 1 = 2
+.. math::    \tilde{x}(t) = C^{-^1/_2} x(t)\ ,
 
 where INLINE_EQUATION is the whitening
 operator, introduced in :ref:`CHDDHAGE`.
