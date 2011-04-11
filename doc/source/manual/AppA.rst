@@ -162,7 +162,7 @@ already in place. The following options can be specified:
 
 **\---unwarp <type>**
 
-    Run grad_unwarp with -unwarp <type> option on each of the converted
+    Run grad_unwarp with ``--unwarp`` <type> option on each of the converted
     data sets.
 
 Before running mne_flash_bem do
@@ -185,7 +185,7 @@ the following:
 - Set the ``SUBJECTS_DIR`` and ``SUBJECT`` environment
   variables
 
-.. note:: If mne_flash_bem is    run with the --noflash30 option, the flash30 directory is not needed, *i.e.*,    only the 5-degree flip angle flash data are employed.
+.. note:: If mne_flash_bem is    run with the ``--noflash30`` option, the flash30 directory is not needed, *i.e.*,    only the 5-degree flip angle flash data are employed.
 
 It may take a while for mne_flash_bem to
 complete. It uses the FreeSurfer directory structure under ``$SUBJECTS_DIR/$SUBJECT`` .
@@ -195,7 +195,7 @@ The script encapsulates the following processing steps:
   to each of the eight echoes in each of the FLASH directories in ``mri/flash`` .
   The files will be called ``mef`` <flip-angle> _<echo-number> ``.mgz`` .
 
-- If the --unwarp option is specified, run grad_unwarp and produce
+- If the ``--unwarp`` option is specified, run grad_unwarp and produce
   files ``mef`` <flip-angle> _<echo-number> ``u.mgz`` .
   These files will be then used in the following steps.
 
@@ -223,7 +223,7 @@ The script encapsulates the following processing steps:
 - The COR format volumes created by mne_flash_bem are
   removed.
 
-If the --noflash30 option is specified to mne_flash_bem ,
+If the ``--noflash30`` option is specified to mne_flash_bem ,
 steps 3 and 4 in the above are replaced by averaging over the different
 echo times in 5-degree flip angle data.
 
@@ -372,6 +372,6 @@ is:
     Proceed to mne_setup_forward_model .
     Use the ``--surf`` and ``--noswap`` options.
 
-.. note:: If left and right are flipped in BrainSuite,    use the --flip option in mne_convert_surface to    set the coordinate transformation correctly.
+.. note:: If left and right are flipped in BrainSuite,    use the ``--flip`` option in mne_convert_surface to    set the coordinate transformation correctly.
 
 .. note:: The BrainSuite scalp    surface can be also used for visualization in mne_analyze ,    see :ref:`CHDCGHIF`.

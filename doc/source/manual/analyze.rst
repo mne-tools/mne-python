@@ -110,7 +110,7 @@ options:
     Specify a file containing the transformation between the MEG device
     and head coordinate frames. This option is only usable if the *head
     position visualization* position visualization mode has
-    been first invoked with the --visualizehpi option.
+    been first invoked with the ``--visualizehpi`` option.
 
 **\---scalehead**
 
@@ -2682,7 +2682,7 @@ Visualizing the head position
 #############################
 
 When mne_analyze is invoked
-with the --visualizehpi option, a simplified user interface shown
+with the ``--visualizehpi`` option, a simplified user interface shown
 in :ref:`CHDJJGII` is displayed. This interface consists only
 of the viewer window. This *head position visualization* mode
 can be used with existing data files but is most useful for showing
@@ -2717,7 +2717,7 @@ place:
   between the MEG device and head coordinate frames, as well as the
   average head surface provided with the MNE software are loaded.
 
-- If the --scalehead option is invoked, the average head surface
+- If the ``--scalehead`` option is invoked, the average head surface
   is scaled to the approximate size of the subject's head
   by fitting a sphere to the digitizer and to the head surface points
   lying above the plane of the fiducial landmarks, respectively. The
@@ -2738,7 +2738,7 @@ place:
   HPI, the position of the MEG helmet surface is shown in the viewer
   window.
 
-If the --rthelmet option was present, the room-temperature
+If the ``--rthelmet`` option was present, the room-temperature
 helmet surface is shown instead of the MEG sensor surface. The digitizer
 and HPI data files are reloaded and the above steps 1. - 4. are
 repeated when the Reload HPI button

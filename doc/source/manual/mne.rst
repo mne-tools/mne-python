@@ -477,7 +477,7 @@ The command-line options of ``mne_inverse_operator`` are:
     Use an adaptive loose orientation constraint. This option can be
     only employed if the source spaces included in the forward solution
     have the patch information computed, see :ref:`CIHCHDAE`. Blaa
-    blaa...**what???**
+    blaa...***what???**
 
 **\---fwd <name>**
 
@@ -488,12 +488,12 @@ The command-line options of ``mne_inverse_operator`` are:
     Specifies the name of the noise-covariance matrix to use. If this
     file contains a projection operator, attached by mne_browse_raw and mne_process_raw ,
     no additional projection vectors can be added with the ``--proj`` option. For
-    backward compatibility, --senscov can be used as a synonym for --noisecov.
+    backward compatibility, ``--senscov`` can be used as a synonym for ``--noisecov``.
 
 **\---noiserank <value>**
 
     Specifies the rank of the noise covariance matrix explicitly rather than
-    trying to reduce it automatically. This option is sheldom needed,
+    trying to reduce it automatically. This option is seldom needed,
 
 **\---gradreg <value>**
 
@@ -575,7 +575,7 @@ The command-line options of ``mne_inverse_operator`` are:
 **\---bad <name>**
 
     A text file to designate bad channels, listed one channel name on each
-    line of the file. If the noise-covariance matrix specified with the ``--noise`` cov option
+    line of the file. If the noise-covariance matrix specified with the ``--noisecov`` option
     contains projections, bad channel lists can be included only if
     they specify all channels containing non-zero entries in a projection
     vector. For example, bad channels can usually specify all magnetometers
@@ -838,7 +838,7 @@ Visualization options
     of the complete cortical surface. A complete name of a patch file
     in the FreeSurface surf directory must be given. The name should
     begin with lh or rh to allow association of the patch with a hemisphere.
-    Maximum of two --patch options can be in effect, one patch for each
+    Maximum of two ``--patch`` options can be in effect, one patch for each
     hemisphere. If the name refers to a flat patch, the name can be
     optionally followed by a colon and a rotation angle in degrees.
     The flat patch will be then rotated counterclockwise by this amount

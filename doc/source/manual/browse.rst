@@ -31,8 +31,8 @@ Command-line options
 ####################
 
 This section first describes the options common to mne_browse_raw and mne_process_raw .
-Thereafter, options unique to the interactive (mne_browse_raw )
-and batch (mne_process_raw ) modes are
+Thereafter, options unique to the interactive (mne_browse_raw)
+and batch (mne_process_raw) modes are
 listed.
 
 .. _BABBGJEA:
@@ -176,7 +176,7 @@ Common options
 Interactive mode options
 ========================
 
-These options apply to the interactive (mne_browse_raw )
+These options apply to the interactive (mne_browse_raw)
 version only.
 
 **\---allowmaxshield**
@@ -2523,7 +2523,7 @@ the number of accepted epochs in category INLINE_EQUATION, INLINE_EQUATION is
 the number of samples in the epochs of category INLINE_EQUATION,
 and INLINE_EQUATION is the number of categories.
 
-If the recommended keepsamplemean option
+If the recommended ``--keepsamplemean`` option
 is specified in the covariance matrix definition file, the baseline
 correction is applied to the epochs but the means at individual
 samples are not subtracted. Thus the covariance matrix will be computed

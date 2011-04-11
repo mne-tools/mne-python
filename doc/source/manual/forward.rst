@@ -279,7 +279,7 @@ The command-line options are:
     or an octahedron (<number> < 0).
     This method uses the cortical surface inflated to a sphere as a
     tool to find the appropriate vertices for the source space. The
-    benefit of the --ico option is that the source space will have triangulation
+    benefit of the ``--ico`` option is that the source space will have triangulation
     information between the decimated vertices included, which some
     future versions of MNE software may be able to utilize. The number
     of triangles increases by a factor of four in each subdivision,
@@ -575,7 +575,7 @@ topology checks are performed:
   be very close to INLINE_EQUATION. If the result
   is INLINE_EQUATION instead, it is conceivable
   that the ordering of the triangle vertices is incorrect and the
-  --swap option should be specified.
+  ``--swap`` option should be specified.
 
 - The correct ordering of the surfaces is verified by checking
   that the surfaces are inside each other as expected. This is accomplished
@@ -1079,7 +1079,7 @@ the following command-line options:
 **\---trans	 <name>**
 
     The name of a text file containing the 4 x 4 matrix for the coordinate transformation
-    from head to mri coordinates. With --trans, --mri option is not
+    from head to mri coordinates. With ``--trans``, ``--mri`` option is not
     required.
 
 **\---notrans**
@@ -1209,7 +1209,7 @@ inner skull surface.
 Field derivatives
 =================
 
-If the --grad **problem - double dash shows up in html as single long dash..!** option is specified, mne_forward_solution includes
+If the ``--grad`` option is specified, mne_forward_solution includes
 the derivatives of the forward solution with respect to the dipole
 location coordinates to the output file. Let
 
@@ -1221,7 +1221,7 @@ up INLINE_EQUATIONthe gain matrix
 
 .. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
-With the --grad option, the output from mne_forward_solution also
+With the ``--grad`` option, the output from mne_forward_solution also
 contains the INLINE_EQUATION derivative matrix
 
 .. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
@@ -1232,7 +1232,7 @@ where
 
 where INLINE_EQUATION are the location
 coordinates of the INLINE_EQUATION dipole. If
-the dipole orientations are to the cortical normal with the --fixed
+the dipole orientations are to the cortical normal with the ``--fixed``
 option, the dimensions of INLINE_EQUATION and INLINE_EQUATION are INLINE_EQUATION and INLINE_EQUATION,
 respectively. Both INLINE_EQUATION and INLINE_EQUATION can
 be read with the mne_read_forward_solution Matlab

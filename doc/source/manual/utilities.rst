@@ -220,7 +220,7 @@ in MEG/EEG data files. Such situations include:
 
 - Changing the name of the digital trigger channel of interest
   to STI 014 so that mne_browse_raw and mne_process_raw will
-  recognize the correct channel without the need to specify the --digtrig
+  recognize the correct channel without the need to specify the ``--digtrig``
   option or the MNE_TRIGGER_CH_NAME environment variable every time a
   data file is loaded.
 
@@ -358,7 +358,7 @@ file:
     FIFF_SUBJ_COMMENT         Comment about the subject
     ========================  ==============================================
 
-.. note:: mne_anonymize normally    keeps the FIFF_SUBJ_HIS_ID tag which can be used to identify the    subjects uniquely after the information listed in :ref:`CHDEHBCG` have    been removed. If the --his option is specified on the command line,    the FIFF_SUBJ_HIS_ID tag will be removed as well. The data of the    tags listed in :ref:`CHDEHBCG` and the optional FIFF_SUBJ_HIS_ID    tag are overwritten with zeros and the space claimed by omitting    these tags is added to the free space list of the file. Therefore, after mne_anonymize has    processed a data file there is no way to recover the removed information.    Use this utility with caution.
+.. note:: mne_anonymize normally    keeps the FIFF_SUBJ_HIS_ID tag which can be used to identify the    subjects uniquely after the information listed in :ref:`CHDEHBCG` have    been removed. If the ``--his`` option is specified on the command line,    the FIFF_SUBJ_HIS_ID tag will be removed as well. The data of the    tags listed in :ref:`CHDEHBCG` and the optional FIFF_SUBJ_HIS_ID    tag are overwritten with zeros and the space claimed by omitting    these tags is added to the free space list of the file. Therefore, after mne_anonymize has    processed a data file there is no way to recover the removed information.    Use this utility with caution.
 
 mne_anonymize recognizes
 the following command-line options:
@@ -698,16 +698,16 @@ the sizes of the patches, their average normals, and the standard
 deviation of the normal directions. This information is also returned
 by the mne_read_source_space Matlab function as described in Table 10.28.
 
-The --dist option to mne_add_patch_info invokes
+The ``--dist`` option to mne_add_patch_info invokes
 the calculation of inter-vertex distances. These distances are computed
 along the the cortical surface (usually the white matter) on which
 the source space vertices are located.
 
 Since the calculation of all possible distances would take
-a very long time, the distance given with the --dist option allows
+a very long time, the distance given with the ``--dist`` option allows
 restriction to the neighborhood of each source space vertex. This
 neighborhood is defined as the sphere around each source space vertex,
-with radius given by the --dist option. Because the distance calculation
+with radius given by the ``--dist`` option. Because the distance calculation
 is done along the folded cortical surface whose details are given
 by the dense triangulation of the cortical surface produced by FreeSurfer,
 some of the distances computed will be larger than the value give
@@ -862,7 +862,7 @@ the following command-line options:
 **\---proj <name>**
 
     Specifies a file containing an SSP operator to be applied. If necessary,
-    multiple --proj options can be specified. For map types 1 - 4 (see
+    multiple ``--proj`` options can be specified. For map types 1 - 4 (see
     below), SSP is applied to the forward model data. For map types
     5 and 6, the effects of SSP are evaluated against the unmodified
     forward model.
@@ -902,7 +902,7 @@ Available sensitivity maps
 
 In the following, let
 
-.. math::    1 + 1 = 2
+.. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
 denote the three consecutive columns of the gain matrix INLINE_EQUATION corresponding to
 the fields of three orthogonal dipoles at source space location INLINE_EQUATION.
@@ -912,7 +912,7 @@ to the cortical normal direction and the INLINE_EQUATION plane
 is thus the tangent plane of the cortex at the source space location INLINE_EQUATION.
 Next, compute the SVD
 
-.. math::    1 + 1 = 2
+.. math::    G_k = U_k \Lambda_k V_k
 
 and let INLINE_EQUATION, where INLINE_EQUATION and INLINE_EQUATION are
 the largest singular value and the corresponding left singular vector
@@ -1202,12 +1202,12 @@ by first generating vectors of Gaussian random numbers INLINE_EQUATION with INLI
 Thereafter, the noise-covariance matrix INLINE_EQUATIONis
 used to color the noise:
 
-.. math::    1 + 1 = 2
+.. math::    n_c(t) = \frac{1}{\sqrt{L}} \Lambda U^T n(t)\ ,
 
 where we have used the eigenvalue decomposition positive-definite
 covariance matrix:
 
-.. math::    1 + 1 = 2
+.. math::    C = U \Lambda^2 U^T\ .
 
 Note that it is assumed that the noise-covariance matrix
 is given for raw data, *i.e.*, for INLINE_EQUATION.
@@ -1220,7 +1220,7 @@ Simulated data
 The default source waveform INLINE_EQUATION for
 the INLINE_EQUATION label is nonzero at times INLINE_EQUATION, INLINE_EQUATION with:
 
-.. math::    1 + 1 = 2
+.. math::    q_k(t_{kp}) = Q_k \cos^2{(\frac{\pi p}{100} - \frac{\pi}{2})}\ ,
 
 i.e., the source waveforms are non-overlapping 100-samples
 wide INLINE_EQUATION pulses. The sampling frequency INLINE_EQUATION.
@@ -1232,7 +1232,7 @@ potentials produced by the dipoles normal to the cortical mantle
 at label INLINE_EQUATION **by INLINE_EQUATION. The simulated
 signals are then:
 
-.. math::    1 + 1 = 2
+.. math::    x(t_j) = \sum_{k = 1}^{N_s} {q_k(t_j) x_k + n_c(t_j)}\ ,
 
 where INLINE_EQUATION is the number of
 sources.
