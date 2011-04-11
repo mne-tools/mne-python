@@ -641,7 +641,7 @@ The documented structures are:
     nearest          int32(np)           This field is present only if patch information has been computed for a source space. For each vertex in the triangulation, these values indicate the nearest active source space vertex.
     nearest_dist     double(np)          This field is present only if patch information has been computed for a source space. For each vertex in the triangulation, these values indicate the distance to the nearest active source space vertex.
     dist             double(np,np)       Distances between vertices on this surface given as a sparse matrix. A zero off-diagonal entry in this matrix indicates that the corresponding distance has not been calculated.
-    dist_limit       double              The value given to mne_add_patch_info with the --dist option, see :ref:`CJAGCDCC`. This value is presently always negative, indicating that only distances between active source space vertices, as indicated by the vertno field of this structure, have been calculated.
+    dist_limit       double              The value given to mne_add_patch_info with the ``--dist`` option, see :ref:`CJAGCDCC`. This value is presently always negative, indicating that only distances between active source space vertices, as indicated by the vertno field of this structure, have been calculated.
     ===============  ==================  ============================================================================================================================================================================================================================================================================
 
 .. _BGBJJIED:

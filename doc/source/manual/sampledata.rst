@@ -360,7 +360,7 @@ The functions of the options are:
 
     Specifies how the averages are named. With this option, the ``_raw.fif`` ending
     is stripped of the original raw data file and the tag specified
-    with this option (``-ave`` ) is added. The average file
+    with this option (``--ave`` ) is added. The average file
     and the corresponding log file will have the extensions ``.fif`` and ``.log`` , respectively.
 
 **\---ave**

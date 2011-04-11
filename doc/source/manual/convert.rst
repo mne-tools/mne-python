@@ -246,7 +246,7 @@ sensor channels, INLINE_EQUATION reference sensor
 channels, and INLINE_EQUATION other channels.
 The data from all channels can be concatenated into a single vector
 
-.. math::    1 + 1 = 2
+.. math::    x = [x_1^T x_2^T x_3^T]^T\ ,
 
 where INLINE_EQUATION, INLINE_EQUATION,
 and INLINE_EQUATION are the data vectors corresponding
@@ -255,23 +255,31 @@ channels, respectively. The data before and after compensation,
 denoted here by INLINE_EQUATION and INLINE_EQUATION, respectively,
 are related by
 
-.. math::    1 + 1 = 2
+.. math::    x_{(k)} = M_{(k)} x_{(0)}\ ,
 
 where the composite compensation matrix is
 
-.. math::    1 + 1 = 2
+.. math::    M_{(k)} = \begin{bmatrix}
+		I_{n_1} & C_{(k)} & 0 \\
+		0 & I_{n_2} & 0 \\
+		0 & 0 & I_{n_3}
+		\end{bmatrix}\ .
 
 In the above, INLINE_EQUATION is a INLINE_EQUATION compensation
 data matrix corresponding to compensation "grade" INLINE_EQUATION.
 It is easy to see that
 
-.. math::    1 + 1 = 2
+.. math::    M_{(k)}^{-1} = \begin{bmatrix}
+		I_{n_1} & -C_{(k)} & 0 \\
+		0 & I_{n_2} & 0 \\
+		0 & 0 & I_{n_3}
+		\end{bmatrix}\ .
 
 To convert from compensation grade INLINE_EQUATION to INLINE_EQUATION one
 can simply multiply the inverse of one compensate compensation matrix
 by another and apply the product to the data:
 
-.. math::    1 + 1 = 2
+.. math::    x_{(k)} = M_{(k)} M_{(p)}^{-1} x_{(p)}\ .
 
 This operation is performed by mne_compensate_data ,
 which has the following command-line options:
@@ -473,12 +481,15 @@ trigger channel data, see the ``--stim`` option, below.
 The synthesized trigger channel data value at sample INLINE_EQUATION will
 be:
 
-.. math::    1 + 1 = 2
+.. math::    s(k) = \sum_{p = 1}^n {t_p(k) 2^{p - 1}}\ ,
 
 where INLINE_EQUATION are the thresholded
 from the input channel data INLINE_EQUATION:
 
-.. math::    1 + 1 = 2
+.. math::    t_p(k) = \Bigg\{ \begin{array}{l}
+		 0 \text{  if  } d_p(k) \leq t\\
+		 1 \text{  if  } d_p(k) > t
+	     \end{array}\ .
 
 The threshold value INLINE_EQUATION can
 be adjusted with the ``--stimthresh`` option, see below.
@@ -612,7 +623,7 @@ be used to store trigger information. The Time-stamped Annotation
 Lists (TALs) on the annotation  data can be converted to a trigger
 channel (STI 014) using an annotation map file which associates
 an annotation label with a number on the trigger channel. The TALs
-can be listed with the --listtal option,
+can be listed with the ``--listtal`` option,
 see below.
 
 .. warning:: The data samples in a BDF file    are represented in a 3-byte (24-bit) format. Since 3-byte raw data    buffers are not presently supported in the fif format    these data will be changed to 4-byte integers in the conversion.    Since the maximum size of a fif file is 2 GBytes, the maximum size of    a BDF file to be converted is approximately 1.5 GBytes
@@ -640,12 +651,12 @@ The command-line options of mne_edf2fiff are:
 
     List the time-stamped annotation list (TAL) data from an EDF+ file here.
     This output is useful to assist in creating the annotation map file,
-    see the --annotmap option, below.
+    see the ``--annotmap`` option, below.
     This output file is an event file compatible with mne_browse_raw and mne_process_raw ,
     see :ref:`ch_browse`. In addition, in the mapping between TAL
-    labels and trigger numbers provided by the --annotmap option is
+    labels and trigger numbers provided by the ``--annotmap`` option is
     employed to assign trigger numbers in the event file produced. In
-    the absense of the --annotmap option default trigger number 1024
+    the absense of the ``--annotmap`` option default trigger number 1024
     is used.
 
 **\---annotmap <filename>**
@@ -711,12 +722,12 @@ the EDF/EDF+/BDF file is converted to the fif format in MNE:
   see :ref:`CHDDGDJA`.
 
 - The trigger channel name in BDF files is "Status".
-  This must be specified with the --digtrig option or with help of
+  This must be specified with the ``--digtrig`` option or with help of
   the MNE_TRIGGER_CH_NAME environment variable when mne_browse_raw or mne_process_raw is
   invoked, see :ref:`BABBGJEA`.
 
 - Only the two least significant bytes on the "Status" channel
-  of BDF files are significant as trigger information the --digtrigmask
+  of BDF files are significant as trigger information the ``--digtrigmask``
   0xff option MNE_TRIGGER_CH_MASK environment variable should be used
   to specify this to mne_browse_raw and mne_process_raw ,
   see :ref:`BABBGJEA`.
@@ -854,7 +865,7 @@ to the fif format with help of the mne_eximia2fiff script.
 It creates a BrainVision ``vhdr`` file and calls mne_brain_vision2fiff.
 Usage:
 
-``mne_eximia2fiff`` [--dig dfile ] [``--orignames`` ] file1 file2 ...
+``mne_eximia2fiff`` [``--dig`` dfile ] [``--orignames`` ] file1 file2 ...
 
 where file1 file2 ...
 are eXimia ``nxe`` files and the ``--orignames`` option
@@ -863,7 +874,7 @@ If you want to convert all data files in a directory, say
 
 ``mne_eximia2fiff *.nxe``
 
-The optional file specified with the --dig option is assumed
+The optional file specified with the ``--dig`` option is assumed
 to contain digitizer data from the recording in the Nexstim format.
 The resulting fif data file will contain these data converted to
 the fif format as well as the coordinate transformation between
@@ -982,7 +993,7 @@ where
 
     Location of the point, usually in the MEG head coordinate system, see :ref:`BJEBIBAI`.
     Some programs have options to accept coordinates in meters instead
-    of millimeters. With --meters option, mne_transform_points lists
+    of millimeters. With ``--meters`` option, mne_transform_points lists
     the coordinates in meters.
 
 .. _BEHDEJEC:
@@ -1182,7 +1193,7 @@ Converting surface data between different formats
 The utility mne_convert_surface converts
 surface data files between different formats.
 
-.. note:: The MNE Matlab toolbox functions enable    reading of FreeSurfer surface files directly. Therefore, the --mat    option has been removed. The dfs file format conversion functionality    has been moved here from mne_convert_dfs .    Consequently, mne_convert_dfs has    been removed from MNE software.
+.. note:: The MNE Matlab toolbox functions enable    reading of FreeSurfer surface files directly. Therefore, the ``--mat``   option has been removed. The dfs file format conversion functionality    has been moved here from mne_convert_dfs .    Consequently, mne_convert_dfs has    been removed from MNE software.
 
 .. _BABEABAA:
 
@@ -1245,7 +1256,7 @@ the following command-line options:
     coordinates, *i.e.*, the coordinate system of
     the MRI stack in the file. In addition, this option can be used
     to insert "volume geometry" information to the FreeSurfer
-    surface file output (--surfout option). If the input file already
+    surface file output (``--surfout`` option). If the input file already
     contains the volume geometry information, --replacegeom is needed
     to override the input volume geometry and to proceed to writing
     the data.
@@ -1253,7 +1264,7 @@ the following command-line options:
 **\---replacegeom**
 
     Replaces existing volume geometry information. Used in conjunction
-    with the --mghmri option described above.
+    with the ``--mghmri`` option described above.
 
 **\---fifmri <name>**
 
@@ -1321,13 +1332,18 @@ the following command-line options:
 The coordinate transformation file specified with the ``--trans`` should contain
 a 4 x 4 coordinate transformation matrix:
 
-.. math::    1 + 1 = 2
+.. math::    T = \begin{bmatrix}
+		R_{11} & R_{12} & R_{13} & x_0 \\
+		R_{13} & R_{13} & R_{13} & y_0 \\
+		R_{13} & R_{13} & R_{13} & z_0 \\
+		0 & 0 & 0 & 1
+		\end{bmatrix}
 
 defined so that if the augmented location vectors in the
 dfs file and MRI coordinate systems are denoted by INLINE_EQUATION and INLINE_EQUATION,
 respectively,
 
-.. math::    1 + 1 = 2
+.. math::    r_{MRI} = Tr_{dfs}
 
 .. _BABBHHHE:
 
@@ -1704,7 +1720,7 @@ The symbols employed in variable size descriptions are:
 
 .. _BEHCICCA:
 
-.. table:: Matlab structures produced by mne_convert_mne_data . The prefix given with the --tag option is indicated <tag> , see :ref:`BEHCICCF`. Its default value is MNE.
+.. table:: Matlab structures produced by mne_convert_mne_data . The prefix given with the ``--tag`` option is indicated <tag> , see :ref:`BEHCICCF`. Its default value is MNE.
 
     ===============  =======================================
     Structure        Contents
@@ -2030,7 +2046,7 @@ contains INLINE_EQUATION channels and INLINE_EQUATION time
 points, the data INLINE_EQUATION ar e ordered
 as
 
-.. math::    1 + 1 = 2
+.. math::    s_{111} \dotso s_{1n1} s_{211} \dotso s_{mn1} \dotso s_{mnp}\ ,
 
 where the first index stands for the time point, the second
 for the channel, and the third for the epoch number, respectively.

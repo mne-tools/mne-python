@@ -484,7 +484,7 @@ Improvements in the raw data processor mne_browse_raw /mne_process_raw include:
 - Added possibility to compute a projection operator from epochs
   specified by events.
 
-- Added the keepsamplemean option
+- Added the ``--keepsamplemean`` option
   to the covariance matrix computation files.
 
 - Added the ``--digtrigmask`` option.
@@ -550,7 +550,7 @@ the dipole position coordinates, see :ref:`CHDDIBAH`.
 mne_list_bem
 ------------
 
-The --surfno option is replaced with the --id option, see :ref:`BEHBBEHJ`.
+The ``--surfno`` option is replaced with the ``--id`` option, see :ref:`BEHBBEHJ`.
 
 mne_make_cor_set
 ----------------
@@ -562,8 +562,8 @@ the output file if possible. For details, see :ref:`BABBHHHE`.
 mne_make_movie
 --------------
 
-Added the --noscalebar, --nocomments, --morphgrade, --rate,
-and --pickrange options, see :ref:`CBBECEDE`.
+Added the ``--noscalebar``, ``--nocomments``, ``--morphgrade``, ``--rate``,
+and ``--pickrange`` options, see :ref:`CBBECEDE`.
 
 mne_make_source_space
 ---------------------
@@ -737,9 +737,9 @@ mne_browse_raw
 - Possibility to detect temporal skew between trigger input
   lines has been added, see :ref:`BABIHFBI` and :ref:`BABCGEJE`.
 
-- --allowmaxshield option now works in the batch mode as well.
+- ``--allowmaxshield`` option now works in the batch mode as well.
 
-- Added the --projevent option to batch mode.
+- Added the ``--projevent`` option to batch mode.
 
 - It is now possible to compute an SSP operator for EEG, see :ref:`CACEAHEI`.
 
@@ -765,31 +765,31 @@ Miscellaneous
   and bin/admin directories.
 
 - mne_anonymize now has the
-  --his option to remove the HIS ID of the subject, see :ref:`CHDIJHIC`.
+  ``--his`` option to remove the HIS ID of the subject, see :ref:`CHDIJHIC`.
 
 - mne_check_surface now has
-  the --bem and --id options to check surfaces from a BEM fif file.
+  the ``--bem`` and ``--id`` options to check surfaces from a BEM fif file.
   For details, try mne_check_surface --help.
 
 - mne_compute_raw_inverse now
-  has the --orignames option, see :ref:`CHDEIHFA`.
+  has the ``--orignames`` option, see :ref:`CHDEIHFA`.
 
-- Added --headcoord option to mne_convert_dig_data ,
+- Added ``--headcoord`` option to mne_convert_dig_data ,
   see :ref:BABCJEAD`.
 
-- Added --talairach option to mne_make_cor_set ,
+- Added ``--talairach`` option to mne_make_cor_set ,
   see :ref:`BABBHHHE`.
 
-- Added the --morph option to mne_setup_source_space and mne_make_source_space ,
+- Added the ``--morph`` option to mne_setup_source_space and mne_make_source_space ,
   see :ref:`CIHCHDAE` and :ref:`BEHCGJDD`, respectively.
 
-- Added the --prefix option to mne_morph_labels ,
+- Added the ``--prefix`` option to mne_morph_labels ,
   see :ref:`CHDCEAFC`.
 
-- Added the --blocks and --indent options to mne_show_fiff ,
+- Added the ``--blocks`` and ``--indent`` options to mne_show_fiff ,
   see :ref:`CHDHEDEF`.
 
-- Added the --proj option as well as map types 5 and 6 to mne_sensitivity_map ,
+- Added the ``--proj`` option as well as map types 5 and 6 to mne_sensitivity_map ,
   see :ref:`CHDDCBGI`.
 
 - Fixed a bug in mne_inverse_operator which
@@ -839,13 +839,13 @@ Matlab toolbox
 Miscellaneous
 =============
 
-- Added --shift option to mne_convert_surface ,
+- Added ``--shift`` option to mne_convert_surface ,
   see :ref:`BABEABAA`.
 
-- Added --alpha option to mne_make_movie ,
+- Added ``--alpha`` option to mne_make_movie ,
   see :ref:`CBBBBHIF`.
 
-- Added --noiserank option to mne_inverse_operator and mne_do_inverse_operator ,
+- Added ``--noiserank`` option to mne_inverse_operator and mne_do_inverse_operator ,
   see :ref:`CBBDDBGF`and :ref:`CIHCFJEI`, respectively.
 
 - The fif output from mne_convert_dig_data now
@@ -853,7 +853,7 @@ Miscellaneous
   systems if such a transformation has been requested, see :ref:`BABCJEAD`.
   This also affects the output from mne_eximia2fiff, see :ref:`BEHGCEHH`.
 
-- Added --noflash30, --noconvert, and --unwarp options to mne_flash_bem ,
+- Added ``--noflash30``, ``--noconvert``, and ``--unwarp`` options to mne_flash_bem ,
   see :ref:`BABFCDJH`.
 
 Release notes for MNE software 2.7.3
@@ -865,11 +865,11 @@ Miscellaneous
 - Added preservation of the volume geometry
   information in the FreeSurfer surface files.
 
-- The --mghmri option in combination with --surfout inserts
+- The ``--mghmri`` option in combination with ``--surfout`` inserts
   the volume geometry information to the output of mne_convert_surface ,
   see :ref:`BEHDIAJG`.
 
-- Added --replacegeom option to mne_convert_surface ,
+- Added ``--replacegeom`` option to mne_convert_surface ,
   see :ref:`BEHDIAJG`.
 
 - Modified mne_watershed_bem and mne_flash_bem to

@@ -344,7 +344,7 @@ In the description of interactive software modules the notation <menu>/<item> is
 often used to denotes menu selections. For example, File/Quit stands
 for the Quit button in the File menu.
 
-All software modules employ the double-dash (--) option convention, *i.e.*, the
+All software modules employ the double-dash (``--``) option convention, *i.e.*, the
 option names are preceded by two dashes.
 
 Most of the programs have two common options to obtain general

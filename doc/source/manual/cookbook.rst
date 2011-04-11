@@ -30,7 +30,7 @@ Before starting the data analysis, setup the environment
 variable SUBJECTS_DIR to select the directory under which the anatomical
 MRI data are stored. Optionally, set SUBJECT as the name of the
 subject's MRI data directory under SUBJECTS_DIR. With this
-setting you can avoid entering the --subject option common to many
+setting you can avoid entering the ``--subject`` option common to many
 MNE programs and scripts. In the following sections, files in the
 FreeSurfer directory hierarchy are usually referred to without specifying
 the leading directories. Thus, bem/msh-7-src.fif is used to refer
@@ -441,7 +441,7 @@ As a result of running the mne_setup_foward_model script, the
 following files are created into the ``bem`` directory:
 
 - BEM model geometry specifications <subject>-<ntri-scalp>-<ntri-outer_skull>-<ntri-inner_skull>- ``bem.fif`` or <subject>-<ntri-inner_skull> ``-bem.fif`` containing
-  the BEM geometry in fif format. The latter file is created if -homog
+  the BEM geometry in fif format. The latter file is created if ``--homog``
   option is specified. Here, <ntri-xxx> indicates
   the number of triangles on the corresponding surface.
 
@@ -472,7 +472,7 @@ using Import/Strings from the File menu.
 
 .. note:: With help of the ``--nosol`` option    it is possible to create candidate BEM geometry data files quickly    and do the checking with respect to the anatomical MRI data. When    the result is satisfactory, mne_setup_forward_model can be run without ``--nosol`` to    invoke the time-consuming calculation of the solution file as well.
 
-.. note:: The triangle meshes created by the seglab program    have counterclockwise vertex ordering and thus require the --noswap    option.
+.. note:: The triangle meshes created by the seglab program    have counterclockwise vertex ordering and thus require the ``--noswap``    option.
 
 .. note:: Up to this point all processing stages depend    on the anatomical (geometrical) information only and thus remain    identical across different MEG studies.
 
@@ -1009,7 +1009,7 @@ the following options:
     Save the inverse operator decomposition here. By default, the script looks
     for a file whose name is derived from the forward solution file by
     replacing its ending ``-fwd.fif`` by <options> ``-inv.fif`` , where
-    <options> includes options --meg, --eeg, and --fixed with the double
+    <options> includes options ``--meg``, ``--eeg``, and ``--fixed`` with the double
     dashes replaced by single ones.
 
 **\---destdir <directory>**
