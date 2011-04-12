@@ -30,7 +30,7 @@ inplace:
 test: in
 	$(NOSETESTS) mne
 test-doc:
-	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/modules/
+	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
 test-coverage:
 	$(NOSETESTS) --with-coverage --cover-package=mne
