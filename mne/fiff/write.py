@@ -28,7 +28,7 @@ def write_int(fid, kind, data):
     """Writes a 32-bit integer tag to a fif file"""
     FIFFT_INT = 3
     data_size = 4
-    data = np.array(data, dtype='>i4')
+    data = np.array(data, dtype='>i4').T
     _write(fid, data, kind, data_size, FIFFT_INT, '>i4')
 
 
@@ -36,7 +36,7 @@ def write_double(fid, kind, data):
     """Writes a double-precision floating point tag to a fif file"""
     FIFFT_DOUBLE = 5
     data_size = 8
-    data = np.array(data, dtype='>f8')
+    data = np.array(data, dtype='>f8').T
     _write(fid, data, kind, data_size, FIFFT_DOUBLE, '>f8')
 
 
@@ -44,7 +44,7 @@ def write_float(fid, kind, data):
     """Writes a single-precision floating point tag to a fif file"""
     FIFFT_FLOAT = 4
     data_size = 4
-    data = np.array(data, dtype='>f4')
+    data = np.array(data, dtype='>f4').T
     _write(fid, data, kind, data_size, FIFFT_FLOAT, '>f4')
 
 

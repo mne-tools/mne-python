@@ -178,7 +178,6 @@ class Epochs(object):
         self.picks = [self.picks[k] for k in idx]
 
         # XXX : could maybe be factorized
-        n_channels = self.info['nchan']
         self.info['chs'] = [self.info['chs'][k] for k in idx]
         self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
         self.info['nchan'] = len(idx)
@@ -207,7 +206,8 @@ class Epochs(object):
         event_samp = self.events[idx, 0]
 
         # Read a data segment
-        start = int(round(event_samp + self.tmin*sfreq))
+        first_samp = self.raw.first_samp
+        start = int(round(event_samp + self.tmin*sfreq)) - first_samp
         stop = start + len(self.times)
         epoch, _ = self.raw[self.picks, start:stop]
 
@@ -332,8 +332,8 @@ class Epochs(object):
         evoked.comment = self.name
         evoked.aspect_kind = np.array([100]) # for standard average file
         evoked.nave = n_events
-        evoked.first = - np.sum(self.times < 0)
-        evoked.last = np.sum(self.times > 0)
+        evoked.first = - int(np.sum(self.times < 0))
+        evoked.last = int(np.sum(self.times > 0))
 
         # dropping EOG, ECG and STIM channels. Keeping only data
         data_picks = pick_types(evoked.info, meg=True, eeg=True,

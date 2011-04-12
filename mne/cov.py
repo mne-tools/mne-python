@@ -338,7 +338,7 @@ def read_cov(fid, node, cov_kind):
 ###############################################################################
 # Estimate from data
 
-def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
+def _estimate_compute_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
                                            keep_sample_mean):
     """Estimate noise covariance matrix from epochs
     """
@@ -374,7 +374,7 @@ def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
     return data, n_samples, ch_names
 
 
-def noise_covariance_segment(raw, tmin=None, tmax=None, tstep=0.2,
+def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                              reject=None, flat=None, keep_sample_mean=True):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
@@ -418,8 +418,11 @@ def noise_covariance_segment(raw, tmin=None, tmax=None, tstep=0.2,
     sfreq = raw.info['sfreq']
 
     # Convert to samples
-    start = raw.first_samp if tmin is None else int(floor(tmin * sfreq))
-    stop = raw.last_samp if tmax is None else int(ceil(tmax * sfreq))
+    start = 0 if tmin is None else int(floor(tmin * sfreq))
+    if tmax is None:
+        stop = raw.last_samp - raw.first_samp
+    else:
+        stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
 
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
@@ -461,7 +464,7 @@ def noise_covariance_segment(raw, tmin=None, tmax=None, tstep=0.2,
     return cov
 
 
-def noise_covariance(raw, events, event_ids, tmin, tmax,
+def compute_covariance(raw, events, event_ids, tmin, tmax,
                      bmin=None, bmax=None, reject=None, flat=None,
                      keep_sample_mean=True):
     """Estimate noise covariance matrix from raw file and events.
@@ -521,7 +524,7 @@ def noise_covariance(raw, events, event_ids, tmin, tmax,
         print "Processing event : %d" % event_id
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             baseline=(None, 0))
-        d, n, ch_names = _estimate_noise_covariance_from_epochs(epochs,
+        d, n, ch_names = _estimate_compute_covariance_from_epochs(epochs,
                       bmin=bmin, bmax=bmax, reject=reject, flat=flat,
                       keep_sample_mean=keep_sample_mean)
         data += d

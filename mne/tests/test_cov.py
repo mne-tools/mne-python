@@ -36,9 +36,11 @@ def test_cov_estimation_on_raw_segment():
     """Estimate raw on continuous recordings (typically empty room)
     """
     raw = Raw(raw_fname)
-    cov = mne.noise_covariance_segment(raw)
+    cov = mne.compute_raw_data_covariance(raw)
     cov_mne = mne.Covariance(erm_cov_fname)
     assert cov_mne.ch_names == cov.ch_names
+    print (linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro'))
     assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-6
 
@@ -49,7 +51,7 @@ def test_cov_estimation_with_triggers():
     raw = Raw(raw_fname)
     events = mne.find_events(raw)
     event_ids = [1, 2, 3, 4]
-    cov = mne.noise_covariance(raw, events, event_ids, tmin=-0.2, tmax=0,
+    cov = mne.compute_covariance(raw, events, event_ids, tmin=-0.2, tmax=0,
                                reject=dict(grad=10000e-13, mag=4e-12,
                                            eeg=80e-6, eog=150e-6),
                                keep_sample_mean=True)
@@ -72,6 +74,6 @@ def test_whitening_cov():
     evoked = read_evoked(ave_fname, setno=0, baseline=(None, 0))
 
     cov = mne.Covariance(cov_fname)
-    cov.whitener(evoked.info)
+    cov.get_whitener(evoked.info)
 
     # XXX : test something

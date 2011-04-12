@@ -44,9 +44,9 @@ evoked = epochs.average() # average epochs and get an Evoked dataset.
 cov = mne.Covariance(cov_fname)
 
 # Whiten data
-W, ch_names = cov.whitener(evoked.info, pca=False) # get whitening matrix
-sel = mne.fiff.pick_channels(evoked.ch_names, include=ch_names) # channels id
-whitened_data = np.dot(W, evoked.data[sel]) # apply whitening
+whitener = cov.get_whitener(evoked.info, pca=False) # get whitening matrix
+sel = mne.fiff.pick_channels(evoked.ch_names, include=whitener.ch_names)
+whitened_data = np.dot(whitener.W, evoked.data[sel]) # apply whitening
 
 ###############################################################################
 # Show result

@@ -29,15 +29,15 @@ include = ['STI 014']
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bad channels + 2 more
 
 picks = fiff.pick_types(raw.info, meg=want_meg, eeg=want_eeg,
-                                   stim=want_stim, include=include,
-                                   exclude=exclude)
+                                  stim=want_stim, include=include,
+                                  exclude=exclude)
 
 some_picks = picks[:5] # take 5 first
-start, stop = raw.time_to_index(100, 115) # 100 s to 115 s data segment
-data, times = raw[some_picks, start:stop]
+start, stop = raw.time_to_index(0, 15) # read the first 15s of data
+data, times = raw[some_picks, start:(stop+1)]
 
-raw.save('sample_audvis_meg_raw.fif', picks=picks, first_samp=start,
-            last_samp=stop-1) # save MEG data in FIF file
+# save 150s of MEG data in FIF file
+raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks)
 
 ###############################################################################
 # Show MEG data
