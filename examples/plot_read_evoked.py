@@ -21,8 +21,6 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 # Reading
 evoked = fiff.Evoked(fname, setno=0, baseline=(None, 0))
 
-evoked.save('test-ave.fif') # save file to disk
-
 ###############################################################################
 # Show result
 picks = fiff.pick_types(evoked.info, meg=True, eeg=True,

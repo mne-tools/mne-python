@@ -159,7 +159,7 @@ def read_tag(fid, pos=None):
                 # Find dimensions and return to the beginning of tag data
                 pos = fid.tell()
                 fid.seek(tag.size-4, 1)
-                ndim = np.fromfile(fid, dtype='>i', count=1)
+                ndim = int(np.fromfile(fid, dtype='>i', count=1))
                 fid.seek(-(ndim+2)*4, 1)
                 dims = np.fromfile(fid, dtype='>i', count=ndim+1)
                 if ndim != 2:
@@ -222,21 +222,21 @@ def read_tag(fid, pos=None):
             #
             elif tag.type == FIFF.FIFFT_ID_STRUCT:
                 tag.data = dict()
-                tag.data['version'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['version'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['version'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['version'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 tag.data['machid'] = np.fromfile(fid, dtype=">i4", count=2)
-                tag.data['secs'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['usecs'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['secs'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['usecs'] = int(np.fromfile(fid, dtype=">i4", count=1))
             elif tag.type == FIFF.FIFFT_DIG_POINT_STRUCT:
                 tag.data = dict()
-                tag.data['kind'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['ident'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['kind'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['ident'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 tag.data['r'] = np.fromfile(fid, dtype=">i4", count=3)
                 tag.data['coord_frame'] = 0
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                 tag.data = Bunch()
-                tag.data['from_'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['to'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['from_'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['to'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 rot = np.fromfile(fid, dtype=">f4", count=9).reshape(3, 3)
                 move = np.fromfile(fid, dtype=">f4", count=3)
                 tag.data['trans'] = np.r_[np.c_[rot, move],
@@ -248,12 +248,12 @@ def read_tag(fid, pos=None):
                 fid.seek(12*4, 1)
             elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
                 tag.data = Bunch()
-                tag.data['scanno'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['logno'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['kind'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['range'] = np.fromfile(fid, dtype=">f4", count=1)
-                tag.data['cal'] = np.fromfile(fid, dtype=">f4", count=1)
-                tag.data['coil_type'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['scanno'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['logno'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['kind'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['range'] = float(np.fromfile(fid, dtype=">f4", count=1))
+                tag.data['cal'] = float(np.fromfile(fid, dtype=">f4", count=1))
+                tag.data['coil_type'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 #
                 #   Read the coil coordinate system definition
                 #
@@ -280,8 +280,8 @@ def read_tag(fid, pos=None):
                 #
                 #   Unit and exponent
                 #
-                tag.data['unit'] = np.fromfile(fid, dtype=">i4", count=1)
-                tag.data['unit_mul'] = np.fromfile(fid, dtype=">i4", count=1)
+                tag.data['unit'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['unit_mul'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 #
                 #   Handle the channel name
                 #
@@ -293,8 +293,8 @@ def read_tag(fid, pos=None):
                                     ch_name[:np.where(ch_name == '')[0][0]])
 
             elif tag.type == FIFF.FIFFT_OLD_PACK:
-                offset = np.fromfile(fid, dtype=">f4", count=1)
-                scale = np.fromfile(fid, dtype=">f4", count=1)
+                offset = float(np.fromfile(fid, dtype=">f4", count=1))
+                scale = float(np.fromfile(fid, dtype=">f4", count=1))
                 tag.data = np.fromfile(fid, dtype=">h2", count=(tag.size-8)/2)
                 tag.data = scale*tag.data + offset
             elif tag.type == FIFF.FIFFT_DIR_ENTRY_STRUCT:

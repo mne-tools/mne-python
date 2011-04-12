@@ -70,7 +70,7 @@ def read_proj(fid, node):
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_KIND)
         if tag is not None:
-            kind = tag.data
+            kind = int(tag.data)
         else:
             raise ValueError, 'Projection item kind missing'
 
