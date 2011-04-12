@@ -35,9 +35,12 @@ evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 forward = mne.read_forward_solution(fname_fwd)
 noise_cov = mne.Covariance(fname_cov)
 
+# Compute whitener from noise covariance matrix
+whitener = noise_cov.get_whitener(evoked.info, mag_reg=0.1,
+                                  grad_reg=0.1, eeg_reg=0.1, pca=True)
 # Compute inverse solution
-stc, K, W = mne.minimum_norm(evoked, forward, noise_cov, orientation='loose',
-                             method='dspm', snr=3, loose=0.2, pca=True)
+stc, K, W = mne.minimum_norm(evoked, forward, whitener, orientation='loose',
+                             method='dspm', snr=3, loose=0.2)
 
 # Save result in stc files
 lh_vertices = stc['inv']['src'][0]['vertno']

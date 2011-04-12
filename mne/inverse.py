@@ -534,11 +534,10 @@ def _xyz2lf(Lf_xyz, normals):
     return Lf_cortex
 
 
-def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
+def minimum_norm(evoked, forward, whitener, method='dspm',
                  orientation='fixed', snr=3, loose=0.2, depth=True,
-                 weight_exp=0.5, weight_limit=10, mag_reg=0.1,
-                 grad_reg=0.1, eeg_reg=0.1, fmri=None, fmri_thresh=None,
-                 fmri_off=0.1, pca=True):
+                 weight_exp=0.5, weight_limit=10, fmri=None, fmri_thresh=None,
+                 fmri_off=0.1):
     """Minimum norm estimate (MNE)
 
     Compute MNE, dSPM and sLORETA on evoked data starting from
@@ -552,8 +551,6 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         Forward operator
     cov : Covariance
         Noise covariance matrix
-    picks : array-like
-        List of indices of channels to include
     method : 'wmne' | 'dspm' | 'sloreta'
         The method to use
     orientation : 'fixed' | 'free' | 'loose'
@@ -597,12 +594,6 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
                          ' 0, or empty for no loose orientations.')
     if not 0 <= weight_exp <= 1:
         raise ValueError('weight_exp should be a scalar between 0 and 1')
-    if not 0 <= grad_reg <= 1:
-        raise ValueError('grad_reg should be a scalar between 0 and 1')
-    if not 0 <= mag_reg <= 1:
-        raise ValueError('mag_reg should be a scalar between 0 and 1')
-    if not 0 <= eeg_reg <= 1:
-        raise ValueError('eeg_reg should be a scalar between 0 and 1')
 
     # Set regularization parameter based on SNR
     lambda2 = 1.0 / snr**2
@@ -612,7 +603,7 @@ def minimum_norm(evoked, forward, cov, picks=None, method='dspm',
         normals.append(s['nn'][s['inuse'] != 0])
     normals = np.concatenate(normals)
 
-    W, ch_names = cov.whitener(evoked.info, mag_reg, grad_reg, eeg_reg, pca)
+    W, ch_names = whitener.W, whitener.ch_names
 
     gain = forward['sol']['data']
     fwd_ch_names = [forward['chs'][k]['ch_name'] for k in range(gain.shape[0])]

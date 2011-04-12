@@ -79,7 +79,8 @@ class Covariance(object):
         """save covariance matrix in a FIF file"""
         write_cov_file(fname, self._cov)
 
-    def whitener(self, info, mag_reg=0.1, grad_reg=0.1, eeg_reg=0.1, pca=True):
+    def get_whitener(self, info, mag_reg=0.1, grad_reg=0.1, eeg_reg=0.1,
+                     pca=True):
         """Compute whitener based on a list of channels
 
         Parameters
@@ -104,12 +105,15 @@ class Covariance(object):
 
         Returns
         -------
-        W : array
-            Whitening matrix
-        ch_names : list of strings
-            List of channel names on which to apply the whitener.
-            It corresponds to the columns of W.
+        W : instance of Whitener
         """
+
+        if not 0 <= grad_reg <= 1:
+            raise ValueError('grad_reg should be a scalar between 0 and 1')
+        if not 0 <= mag_reg <= 1:
+            raise ValueError('mag_reg should be a scalar between 0 and 1')
+        if not 0 <= eeg_reg <= 1:
+            raise ValueError('eeg_reg should be a scalar between 0 and 1')
 
         if pca and self.kind == 'diagonal':
             print "Setting pca to False with a diagonal covariance matrix."
@@ -195,13 +199,30 @@ class Covariance(object):
             W = np.r_[np.c_[W_meg, np.zeros((W_meg.shape[0], W_eeg.shape[1]))],
                       np.c_[np.zeros((W_eeg.shape[0], W_meg.shape[1])), W_eeg]]
 
-        return W, names_meg + names_eeg
+        whitener = Whitener(W, names_meg + names_eeg)
+        return whitener
 
     def __repr__(self):
         s = "kind : %s" % self.kind
         s += ", size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
         return "Covariance (%s)" % s
+
+
+class Whitener(object):
+    """Whitener
+
+    Attributes
+    ----------
+    W : array
+        Whiten matrix
+    ch_names : list of strings
+        Channel names (columns of W)
+    """
+
+    def __init__(self, W, ch_names):
+        self.W = W
+        self.ch_names = ch_names
 
 ###############################################################################
 # IO
@@ -341,8 +362,8 @@ def _estimate_noise_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
             continue
 
         e = e[picks_no_eog]
-        mu = e[:,bmask].mean(axis=1)
-        e -= mu[:,None]
+        mu = e[:, bmask].mean(axis=1)
+        e -= mu[:, None]
         if not keep_sample_mean:
             e -= np.mean(e, axis=0)
         data += np.dot(e, e.T)
