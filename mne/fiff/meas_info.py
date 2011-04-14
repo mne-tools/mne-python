@@ -201,7 +201,7 @@ def read_meas_info(fid, tree):
     info['nchan'] = nchan
     info['sfreq'] = sfreq
     info['highpass'] = highpass if highpass is not None else 0
-    info['lowpass'] = lowpass if lowpass is not None else info['sfreq']/2.0
+    info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
 
     #   Add the channel information and make a list of channel names
     #   for convenience

@@ -110,7 +110,7 @@ class Epochs(object):
             self.ch_names = [raw.info['ch_names'][k] for k in picks]
 
         if len(picks) == 0:
-            raise ValueError, "Picks cannot be empty."
+            raise ValueError("Picks cannot be empty.")
 
         #   Set up projection
         if raw.info['projs'] is None:
@@ -155,12 +155,13 @@ class Epochs(object):
         if n_events > 0:
             print '%d matching events found' % n_events
         else:
-            raise ValueError, 'No desired events found.'
+            raise ValueError('No desired events found.')
 
         # Handle times
         sfreq = raw.info['sfreq']
-        self.times = np.arange(int(round(tmin*sfreq)), int(round(tmax*sfreq)),
-                          dtype=np.float) / sfreq
+        self.times = np.arange(int(round(tmin * sfreq)),
+                               int(round(tmax * sfreq)),
+                               dtype=np.float) / sfreq
 
         # setup epoch rejection
         self._reject_setup()
@@ -184,8 +185,7 @@ class Epochs(object):
         self.ch_names = self.info['ch_names']
 
         if self.preload:
-            self._data = self._data[:,idx,:]
-
+            self._data = self._data[:, idx, :]
 
     def get_epoch(self, idx):
         """Load one epoch
@@ -207,7 +207,7 @@ class Epochs(object):
 
         # Read a data segment
         first_samp = self.raw.first_samp
-        start = int(round(event_samp + self.tmin*sfreq)) - first_samp
+        start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
         epoch, _ = self.raw[self.picks, start:stop]
 
@@ -330,7 +330,7 @@ class Epochs(object):
         evoked.data = data
         evoked.times = self.times.copy()
         evoked.comment = self.name
-        evoked.aspect_kind = np.array([100]) # for standard average file
+        evoked.aspect_kind = np.array([100])  # for standard average file
         evoked.nave = n_events
         evoked.first = - int(np.sum(self.times < 0))
         evoked.last = int(np.sum(self.times > 0))
@@ -379,8 +379,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    print '\tRejecting flat epoch based on %s : %s (%s < %s).' \
-                                % (name, ch_name, delta, thresh)
+                    print ('\tRejecting flat epoch based on %s : %s (%s < %s).'
+                                % (name, ch_name, delta, thresh))
                     return False
 
     return True

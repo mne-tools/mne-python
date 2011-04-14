@@ -4,6 +4,7 @@ from scipy import linalg
 
 # from .fiff import FIFF
 
+
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
     """
@@ -43,7 +44,7 @@ def transform_source_space_to(src, dest, trans):
         raise ValueError('Cannot transform the source space using this '
                          'coordinate transformation')
 
-    t = trans['trans'][:3,:]
+    t = trans['trans'][:3, :]
     res = src
     res['coord_frame'] = dest
 
