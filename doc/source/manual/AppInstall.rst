@@ -37,14 +37,14 @@ Download the software
 Download the software package of interest. The file names
 follow the convention:
 
-MNE-*<version>*-<rev> -*<Operating
-system>*-*<Processor>*.*<ext>*
+MNE-* <*version*>*- <*rev*> -* <*Operating
+system*>*-* <*Processor*>*.* <*ext*>*
 
-The present version number is 2.7.0. The <rev> field
+The present version number is 2.7.0. The <*rev*> field
 is the SVN revision number at the time this package was created.
-The <Operating system> field
-is either Linux or MacOSX. The <processor> field
-is either i386 or x86_64. The <ext> field
+The <*Operating system*> field
+is either Linux or MacOSX. The <*processor*> field
+is either i386 or x86_64. The <*ext*> field
 is 'gz' for compressed tar archive files and 'dmg' for
 Mac OSX disk images.
 
@@ -53,27 +53,27 @@ Installing from a compressed tar archive
 
 Go to the directory where you want the software to be installed:
 
-``cd`` <dir>
+``cd`` <*dir*>
 
 Unpack the tar archive:
 
-``tar zxvf`` <software package>
+``tar zxvf`` <*software package*>
 
-The name of the software directory under <dir> will
+The name of the software directory under <*dir*> will
 be the same as the package file without the .gz extension.
 
 Installing from a Mac OSX disk  image
 =====================================
 
 - Double click on the disk image file.
-  A window opens with the installer package (<name> .pkg)
+  A window opens with the installer package ( <*name*> .pkg)
   inside.
 
 - Double click the the package file. The installer starts.
 
 - Follow the instructions in the installer.
 
-.. note:: The software will be installed to /Applications/<name> by    default. If you want another location, select Choose Folder... on the Select a Destination screen    in the installer.
+.. note:: The software will be installed to /Applications/ <*name*> by    default. If you want another location, select Choose Folder... on the Select a Destination screen    in the installer.
 
 .. note:: To provide centralized support in an environment    with
 

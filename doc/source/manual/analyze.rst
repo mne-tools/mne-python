@@ -67,21 +67,21 @@ options:
 
     List the command-line options.
 
-**\---cd <dir>**
+**\---cd <*dir*>**
 
     Change to this directory before starting.
 
-**\---subject <name>**
+**\---subject <*name*>**
 
     Specify the default subject name for surface loading.
 
-**\---digtrig <name>**
+**\---digtrig <*name*>**
 
     Name of the digital trigger channel. The default value is 'STI
     014'. Underscores in the channel name will be replaced
     by spaces.
 
-**\---digtrigmask <number>**
+**\---digtrigmask <*number*>**
 
     Mask to be applied to the raw data trigger channel values before considering
     them. This option is useful if one wants to set some bits in a don't
@@ -98,14 +98,14 @@ options:
     Start mne_analyze in the restricted *head
     position visualization* mode. For details, see :ref:`CHDEDFAE`.
 
-**\---dig <filename>**
+**\---dig <*filename*>**
 
     Specify a file containing the head shape digitization data. This option
     is only usable if the *head position visualization* position
     visualization mode has been first invoked with the --visualizehpi
     option.
 
-**\---hpi <filename>**
+**\---hpi <*filename*>**
 
     Specify a file containing the transformation between the MEG device
     and head coordinate frames. This option is only usable if the *head
@@ -436,7 +436,7 @@ dialog shown in :ref:`CACFHAIH` appears. It has four sections:
   - MRI/head transform source specifies a file to read the MRI/MEG coordinate
     transformation information from. This is usually the inverse operator
     file. However, you can also load data with inverse operator set
-    to <none> to view the data
+    to <*none*> to view the data
     as well as field and potential maps derived thereof. In this case
     you need to specify the coordinate transformation file using the Select... button,
     usually located in ``mri/T1-neuromag/sets`` under the subject's
@@ -448,7 +448,7 @@ dialog shown in :ref:`CACFHAIH` appears. It has four sections:
 
   - Use EEG average electrode ref. selects
     whether the average electrode reference is applied to the data.
-    This is only available if the inverse operator is set to <none> .
+    This is only available if the inverse operator is set to <*none*> .
 
   - nave specifies the effective
     number of averages to compute the SNR correctly. Usually your measurement
@@ -952,30 +952,30 @@ If the file ``$HOME/.mne/eyes`` exists, it is used instead.
 All lines in the eyes file starting with # are comments.
 The view orientation definition lines have the format:
 
-<name>:<Left>:<Right>:<Left up>:<Right up> ,
+<*name*>:<*Left*>:<*Right*>:<*Left up*>:<*Right up*> ,
 
 where
 
-**<name>**
+**<*name*>**
 
     is the name of this viewing orientation,
 
-**<Left>**
+**<*Left*>**
 
     specifies the coordinates of the viewing 'eye' location
     for the left hemisphere, separated by spaces,
 
-**<Right>**
+**<*Right*>**
 
     specifies the coordinates of the viewing location for the right
     hemisphere,
 
-**<Left up>**
+**<*Left up*>**
 
     specifies the direction which is pointing up in the image for left hemisphere,
     and
 
-**<Right up>**
+**<*Right up*>**
 
     is the corresponding up vector for the right hemisphere.
 
@@ -1171,20 +1171,20 @@ selected, the following additional surfaces will be loaded:
 
 - The BEM surfaces.
 
-The scalp surface is loaded from the file ``bem/`` <subject>``-head.fif`` under
+The scalp surface is loaded from the file ``bem/`` <*subject*>``-head.fif`` under
 the subject's FreeSurfer directory. This surface is automatically
 prepared if you use the watershed algorithm as described in :ref:`BABBDHAG`.
 If you have another source for the head triangulation you can use
 the utility mne_surf2bem to create
 the fif format scalp surface file, see :ref:`BEHCACCJ`.
 
-If a file called ``bem/`` <subject>``-bem.fif`` under
+If a file called ``bem/`` <*subject*>``-bem.fif`` under
 the subject's FreeSurfer directory is present, mne_analyze tries
 to load the BEM surface triangulations from there. This file can
 be a symbolic link to one of the ``-bem.files`` created
 by mne_prepare_bem_model , see :ref:`CHDJFHEB`.
 If the BEM file contains a head surface triangulation, it will be
-used instead of the one present in the ``bem/`` <subject>``-head.fif`` file.
+used instead of the one present in the ``bem/`` <*subject*>``-head.fif`` file.
 
 Once all required surfaces have been loaded, the viewer window
 shown in :ref:`CACJDFFH` pops up. In addition to the display
@@ -1716,7 +1716,7 @@ The labels provide means to interrogate timecourse information
 from ROIs. The label files can be created in mne_analyze ,
 see :ref:`CACJCFJJ` or in tksurfer ,
 which is part of the FreeSurfer software. For mne_analyze left-hemisphere
-and right-hemisphere label files should be named <name> ``-lh.label`` and <name> ``-rh.label`` ,
+and right-hemisphere label files should be named <*name*> ``-lh.label`` and <*name*> ``-rh.label`` ,
 respectively.
 
 Individual label files can be loaded from Labels/Load label... . All label files in a directory can be
@@ -1879,8 +1879,8 @@ from w and stc files containing single time slice (static) and dynamic
 data (movies), respectively. These data files can be produced by mne_make_movie ,
 FreeSurfer software, and custom programs or Matlab scripts.
 
-The names of the files to be imported should end with ``-`` <hemi> .<type> , where <hemi> indicates
-the hemisphere (``lh`` or ``rh`` and <type> is ``w`` or ``stc`` .
+The names of the files to be imported should end with ``-`` <*hemi*> .<*type*> , where <*hemi*> indicates
+the hemisphere (``lh`` or ``rh`` and <*type*> is ``w`` or ``stc`` .
 
 Overlays are managed from the dialog shown in :ref:`CACIGHEJ` which is invoked from File/Manage overlays... .
 
@@ -2331,7 +2331,7 @@ The saving and loading choices are:
 **Save MRI set**
 
     This option searches for a file called COR.fif in $SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets.
-    The file is copied to COR-<username>-<date>-<time>.fif
+    The file is copied to COR-<*username*>-<*date*>-<*time*>.fif
     and the current MEG/MRI coordinate transformation as well as the
     fiducial locations in MRI coordinates are inserted.
 
@@ -2389,21 +2389,21 @@ Suggested usage:
 
 - Set the SUBJECTS_DIR correctly.
 
-- Run mkheadsurf: ``mkheadsurf -subjid`` <subject> .
+- Run mkheadsurf: ``mkheadsurf -subjid`` <*subject*> .
 
-- Goto the directory ``$SUBJECTS_DIR/`` <subject> ``/bem`` .
+- Goto the directory ``$SUBJECTS_DIR/`` <*subject*> ``/bem`` .
 
-- Convert the head surface file: ``mne_surf2bem --surf ../surf/lh.smseghead --id 4 --check --fif`` <subject> ``-head-dense.fif``
+- Convert the head surface file: ``mne_surf2bem --surf ../surf/lh.smseghead --id 4 --check --fif`` <*subject*> ``-head-dense.fif``
 
-- Rename the existing head surface file to <subject> ``-head-sparse.fif``
+- Rename the existing head surface file to <*subject*> ``-head-sparse.fif``
 
-- Copy <subject> ``-head-dense.fif`` to <subject> ``-head.fif``
+- Copy <*subject*> ``-head-dense.fif`` to <*subject*> ``-head.fif``
 
 - Click Reload in the viewer
   window.
 
 After this you can switch between the dense and smooth head
-surface tessellations by copying either <subject> ``-head-dense.fif`` or <subject> ``-head-sparse.fif`` to <subject> ``-head.fif`` .
+surface tessellations by copying either <*subject*> ``-head-dense.fif`` or <*subject*> ``-head-sparse.fif`` to <*subject*> ``-head.fif`` .
 
 If you have Matlab software available on your system, you
 can also benefit from the script mne_make_scalp_surfaces .
@@ -2416,7 +2416,7 @@ and 'sparse' scalp surface tessellations. The
 dense tessellation contains the output of mkheadsurf while
 the medium and sparse tessellations comprise 30,000 and 2,500 triangles,
 respectively. You can then make a symbolic link of one of these
-to <subject> ``-head.fif`` .
+to <*subject*> ``-head.fif`` .
 The medium grade tessellation is an excellent compromize between
 geometric accuracy and speed in the coordinate system alignment.
 
@@ -2438,7 +2438,7 @@ There a three supported ways to create this file:
   function (not yet written) to create this file.
 
 - Copy a MRI description file with the MEG-MRI coordinate transformation
-  created with MRIlab (typically $SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets/COR-<date>.fif
+  created with MRIlab (typically $SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets/COR-<*date*>.fif
   to $SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-fiducials.fif.
 
 - For the average subject, fsaverage ,
