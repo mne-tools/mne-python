@@ -337,10 +337,10 @@ In most cases, however, you can easily fit the commands listed in
 this manual on one line and thus omit the backslashes. The order
 of options  is irrelevant. Entries to be typed literally are shown
 like ``this`` . *Italicized* text indicates
-conceptual entries. For example, *<dir>* indicates a directory
+conceptual entries. For example, *<*dir*>* indicates a directory
 name.
 
-In the description of interactive software modules the notation <menu>/<item> is
+In the description of interactive software modules the notation <*menu*>/<*item*> is
 often used to denotes menu selections. For example, File/Quit stands
 for the Quit button in the File menu.
 
@@ -384,10 +384,10 @@ by saying
 If the output indicates a POSIX shell (bash or sh) you should issue
 the three commands:
 
-``export MNE_ROOT=`` <MNE> ``export MATLAB_ROOT=`` <Matlab> ``. $MNE_ROOT/bin/mne_setup_sh``
+``export MNE_ROOT=`` <*MNE*> ``export MATLAB_ROOT=`` <*Matlab*> ``. $MNE_ROOT/bin/mne_setup_sh``
 
-with <MNE> replaced
-by the directory where you have installed the MNE software and <Matlab> is
+with <*MNE*> replaced
+by the directory where you have installed the MNE software and <*Matlab*> is
 the directory where Matlab is installed. If you do not have Matlab,
 leave MATLAB_ROOT undefined. If Matlab is not available, the utilities
 mne_convert_mne_data , mne_epochs2mat , mne_raw2mat ,
@@ -395,7 +395,7 @@ and mne_simu will not work.
 
 For csh/tcsh the corresponding commands are:
 
-``setenv MNE_ROOT`` <MNE> ``setenv MATLAB_ROOT`` <Matlab> ``source $MNE_ROOT/bin/mne_setup``
+``setenv MNE_ROOT`` <*MNE*> ``setenv MATLAB_ROOT`` <*Matlab*> ``source $MNE_ROOT/bin/mne_setup``
 
 For BEM mesh generation using the watershed algorithm or
 on the basis of multi-echo FLASH MRI data (see :ref:`BGBDEIGC`) and

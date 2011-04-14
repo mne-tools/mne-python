@@ -63,16 +63,16 @@ To make a personal copy of the sample data set, follow these steps:
 - Set up for using the MNE software as
   instructed in :ref:`CIHCDHGI` of this manual.
 
-- Create a directory for your personal copy: ``mkdir`` <yourdir> , where <yourdir> is
+- Create a directory for your personal copy: ``mkdir`` <*yourdir*> , where <*yourdir*> is
   the location where you want your personal copy to reside. Tho store
   the sample data set and to finish the tutorials in this Chapter, you
-  need approximately 600 MBytes of space on the disk where <yourdir> is
+  need approximately 600 MBytes of space on the disk where <*yourdir*> is
   located.
 
-- Go to your newly created sample data directory: ``cd`` <yourdir> .
+- Go to your newly created sample data directory: ``cd`` <*yourdir*> .
 
-- Extract the sample data: ``tar zxvf`` <dir> ``/MNE-sample-data.tar.gz`` ,
-  where <dir> is the location
+- Extract the sample data: ``tar zxvf`` <*dir*> ``/MNE-sample-data.tar.gz`` ,
+  where <*dir*> is the location
   of the tar archive, provided by your system administrator.
 
 To start the tutorials you need to:
@@ -80,21 +80,21 @@ To start the tutorials you need to:
 - Set up MNE software user environment,
   see :ref:`CIHCDHGI`.
 
-- Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <yourdir> ``/subjects`` (csh
-  and tcsh) or ``export SUBJECTS_DIR=`` <yourdir> ``/subjects`` (POSIX-compatible
+- Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <*yourdir*> ``/subjects`` (csh
+  and tcsh) or ``export SUBJECTS_DIR=`` <*yourdir*> ``/subjects`` (POSIX-compatible
   shell). Most users at the Martinos Center have tcsh as their login shell.
 
 - Assign the SUBJECT environment variable the value ``sample`` .
 
 - For convenience, you can also set the environment variable
-  SAMPLE to <yourdir> . The following
+  SAMPLE to <*yourdir*> . The following
   tutorial examples assume you have done this.
 
 - Set up the FreeSurfer environment
   using the commands specific to your site. The FreeSurfer license
   is needed for the source space creation covered in :ref:`CHDIGEJG`.
 
-.. note:: From this point on, directories and files under    your personal copy of the sample data set under <yourdir> will    be referred to by relative pathnames. For example, the file <yourdir> ``/MEG/sample/audvis.ave`` will    be simply called ``MEG/sample/audvis.ave`` .
+.. note:: From this point on, directories and files under    your personal copy of the sample data set under <*yourdir*> will    be referred to by relative pathnames. For example, the file <*yourdir*> ``/MEG/sample/audvis.ave`` will    be simply called ``MEG/sample/audvis.ave`` .
 
 .. note:: You can also proceed without FreeSurfer installed    if you choose to use source space creation using the recursively    subdivided octahedron or icosahedron method. For more information,    see the Note in :ref:`CHDIGEJG`.
 
@@ -615,9 +615,9 @@ This will create the MRI set file in the ``$SUBJECTS_DIR/sample/mri/T1-neuromag/
 which was created by mne_setup_mri_data ,
 see :ref:`CHDBBAEJ`. The file will be called
 
-``COR-`` <username>-<date>-<time> .fif
+``COR-`` <*username*>- <*date*>- <*time*> .fif
 
-where <username> is
+where <*username*> is
 your login name.
 
 You can also save transformation to a fif file through the Save... button.

@@ -31,7 +31,7 @@ a software installation and configuration guide, :ref:`BGBDEIGC` summarizes
 the software history, and :ref:`BGBDEIGC` contains the End-User
 License Agreement.
 
-.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <version> ``.pdf`` . For    the present manual, <version> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`CIHCDHGI`.
+.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <*version*> ``.pdf`` . For    the present manual, <*version*> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`CIHCDHGI`.
 
 We want to thank all MNE Software users at the Martinos Center and
 in other institutions for their collaboration during the creation

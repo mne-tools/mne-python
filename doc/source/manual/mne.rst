@@ -464,51 +464,51 @@ The command-line options of ``mne_inverse_operator`` are:
     Use fixed source orientations normal to the cortical mantle. By default,
     the source orientations are not constrained.
 
-**\---loose <amount>**
+**\---loose <*amount*>**
 
     Employ a loose orientation constraint (LOC). This means that the source
     covariance matrix entries corresponding to the current component
     normal to the cortex are set equal to one and the transverse components
-    are set to <amount> . Recommended
+    are set to <*amount*> . Recommended
     value of amount is 0.2...0.6.
 
-**\---loosevar <amount>**
+**\---loosevar <*amount*>**
 
     Use an adaptive loose orientation constraint. This option can be
     only employed if the source spaces included in the forward solution
     have the patch information computed, see :ref:`CIHCHDAE`. Blaa
     blaa...***what???**
 
-**\---fwd <name>**
+**\---fwd <*name*>**
 
     Specifies the name of the forward solution to use.
 
-**\---noisecov <name>**
+**\---noisecov <*name*>**
 
     Specifies the name of the noise-covariance matrix to use. If this
     file contains a projection operator, attached by mne_browse_raw and mne_process_raw ,
     no additional projection vectors can be added with the ``--proj`` option. For
     backward compatibility, ``--senscov`` can be used as a synonym for ``--noisecov``.
 
-**\---noiserank <value>**
+**\---noiserank <*value*>**
 
     Specifies the rank of the noise covariance matrix explicitly rather than
     trying to reduce it automatically. This option is seldom needed,
 
-**\---gradreg <value>**
+**\---gradreg <*value*>**
 
     Regularize the planar gradiometer section (channels for which the unit
     of measurement is T/m) of the noise-covariance matrix by the given
     amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
 
-**\---magreg <value>**
+**\---magreg <*value*>**
 
     Regularize the magnetometer and axial gradiometer section (channels
     for which the unit of measurement is T) of the noise-covariance matrix
     by the given amount. The value is restricted to the range 0...1.
     For details, see :ref:`CBBHEGAB`.
 
-**\---eegreg <value>**
+**\---eegreg <*value*>**
 
     Regularize the EEG section of the noise-covariance matrix by the given
     amount. The value is restricted to the range 0...1. For details, see :ref:`CBBHEGAB`.
@@ -520,7 +520,7 @@ The command-line options of ``mne_inverse_operator`` are:
     data has been insufficient to calculate a reliable estimate of the
     full noise-covariance matrix.
 
-**\---srccov <name>**
+**\---srccov <*name*>**
 
     Specifies the name of the diagonal source-covariance matrix to use.
     By default the source covariance matrix is a multiple of the identity matrix.
@@ -532,17 +532,17 @@ The command-line options of ``mne_inverse_operator`` are:
 
     Employ depth weighting. For details, see :ref:`CBBDFJIE`.
 
-**\---weightexp <value>**
+**\---weightexp <*value*>**
 
     This parameter determines the steepness of the depth weighting function
     (default = 0.8). For details, see :ref:`CBBDFJIE`.
 
-**\---weightlimit <value>**
+**\---weightlimit <*value*>**
 
     Maximum relative strength of the depth weighting (default = 10). For
     details, see :ref:`CBBDFJIE`.
 
-**\---fmri <name>**
+**\---fmri <*name*>**
 
     With help of this w file, an *a priori* weighting
     can be applied to the source covariance matrix. The source of the
@@ -553,11 +553,11 @@ The command-line options of ``mne_inverse_operator`` are:
     with mne_smooth_w to contain
     nonzero values at all vertices of the triangular tessellation of
     the cortical surface. The name of the file given is used as a stem of
-    the w files. The actual files should be called <name> ``-lh.pri`` and <name> ``-rh.pri`` for
+    the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
     the left and right hemsphere weight files, respectively. The application
     of the weighting is discussed in :ref:`CBBDIJHI`.
 
-**\---fmrithresh <value>**
+**\---fmrithresh <*value*>**
 
     This option is mandatory and has an effect only if a weighting function
     has been specified with the ``--fmri`` option. If the value
@@ -566,13 +566,13 @@ The command-line options of ``mne_inverse_operator`` are:
     values are multiplied by the value specified with the ``--fmrioff`` option
     (default 0.1). Otherwise it is left unchanged.
 
-**\---fmrioff <value>**
+**\---fmrioff <*value*>**
 
     The value by which the source covariance elements are multiplied
     if the *a priori* weight falls below the threshold
     set with ``--fmrithresh`` , see above.
 
-**\---bad <name>**
+**\---bad <*name*>**
 
     A text file to designate bad channels, listed one channel name on each
     line of the file. If the noise-covariance matrix specified with the ``--noisecov`` option
@@ -598,7 +598,7 @@ The command-line options of ``mne_inverse_operator`` are:
     location is used. If the ``--loose`` or ``--loosevar`` option
     is employed, ``--surfsrc`` is implied.
 
-**\---exclude <name>**
+**\---exclude <*name*>**
 
     Exclude the source space points defined by the given FreeSurfer 'label' file
     from the source reconstruction. This is accomplished by setting
@@ -607,7 +607,7 @@ The command-line options of ``mne_inverse_operator`` are:
     if it refers to the left hemisphere and with ``-rh.label`` if
     it lists points in the right hemisphere, respectively.
 
-**\---proj <name>**
+**\---proj <*name*>**
 
     Include signal-space projection (SSP) information from this file. For information
     on SSP, see :ref:`CACCHABI`. If the projections are present in
@@ -625,7 +625,7 @@ The command-line options of ``mne_inverse_operator`` are:
     For technical details of the patch information, please consult :ref:`CBBDBHDI`. This option is considered experimental at
     the moment.
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Save the inverse operator decomposition here.
 
@@ -661,49 +661,49 @@ General options
 Input files
 ===========
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Load the inverse operator decomposition from here.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     Load the MEG or EEG data from this file.
 
-**\---set <number>**
+**\---set <*number*>**
 
     The data set (condition) number to load. This is the sequential
     number of the condition. You can easily see the association by looking
     at the condition list in mne_analyze when
     you load the file.
 
-**\---stcin <name>**
+**\---stcin <*name*>**
 
     Specifies an stc file to read as input.
 
 Times and baseline
 ==================
 
-**\---tmin <time/ms>**
+**\---tmin <*time/ms*>**
 
     Specifies the starting time employed in the analysis. If ``--tmin`` option
     is missing the analysis starts from the beginning of the epoch.
 
-**\---tmax <time/ms>**
+**\---tmax <*time/ms*>**
 
     Specifies the finishing time employed in the analysis. If ``--tmax`` option
     is missing the analysis extends to the end of the epoch.
 
-**\---tstep <step/ms>**
+**\---tstep <*step/ms*>**
 
     Time step between consequtive movie frames, specified in milliseconds.
 
-**\---integ < INLINE_EQUATION/ms>**
+**\---integ  < INLINE_EQUATION/ms*>**
 
     Integration time for each frame. Defaults to zero. The integration will
     be performed on sensor data. If the time specified for a fram is INLINE_EQUATION,
     the integration range will be INLINE_EQUATION.
 
-**\---pick <time/ms>**
+**\---pick <*time/ms*>**
 
     Pick a time for the production of rgb, tif, jpg, png, or w files.
     Several pick options may be present. The time must be with in the
@@ -722,17 +722,17 @@ Times and baseline
     snapshots into a composite "filmstrip" reprensentation.
     However, such scripts are not yet part of the MNE software.
 
-**\---bmin <time/ms>**
+**\---bmin <*time/ms*>**
 
     Specifies the starting time of the baseline. In order to activate
     baseline correction, both ``--bmin`` and ``--bmax`` options
     must be present.
 
-**\---bmax <time/ms>**
+**\---bmax <*time/ms*>**
 
     Specifies the finishing time of the baseline.
 
-**\---baselines <file_name>**
+**\---baselines <*file_name*>**
 
     Specifies a file which contains the baseline settings. Each line
     of the file should contain a name of a channel, followed by the
@@ -746,7 +746,7 @@ Times and baseline
 Options controlling the estimates
 =================================
 
-**\---nave <value>**
+**\---nave <*value*>**
 
     Specifies the effective number of averaged epochs in the input data, INLINE_EQUATION,
     as discussed in :ref:`CBBDGIAE`. If the input data file is
@@ -759,7 +759,7 @@ Options controlling the estimates
     employing this flag or by adjusting the number of averages in the
     data file with help of the utility mne_change_nave .
 
-**\---snr <value>**
+**\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
     be set as INLINE_EQUATION. The default value is
@@ -793,14 +793,14 @@ Options controlling the estimates
 Visualization options
 =====================
 
-**\---subject <subject>**
+**\---subject <*subject*>**
 
     Specifies the subject whose MRI data is employed in the visualization.
     This must be the same subject that was used for computing the current
     estimates. The environment variable SUBJECTS_DIR must be set to
     point to a locations where the subjects are to be found.
 
-**\---morph <subject>**
+**\---morph <*subject*>**
 
     Morph the data to to the cortical surface of another subject. The Quicktime
     movie, stc-file, graphics snapshot, and w-file outputs are affected
@@ -815,24 +815,24 @@ Visualization options
     see :ref:`CHDBBHDH`. More information about morphing and averaging
     can be found in :ref:`ch_morph`.
 
-**\---morphgrade <number>**
+**\---morphgrade <*number*>**
 
     Adjusts the number of vertices in the stc files produced when morphing
     is in effect. By default the number of vertices is 10242 corresponding
     to --morphgrade value 5. Allowed values are 3, 4, 5, and 6 corresponding
     to 642, 2562, 10242, and 40962 vertices, respectively.
 
-**\---surface <surface name>**
+**\---surface <*surface name*>**
 
     Name of the surface employed in the visualization. The default is inflated .
 
-**\---curv <name>**
+**\---curv <*name*>**
 
     Specify a nonstandard curvature file name. The default curvature files
     are ``lh.curv`` and ``rh.curv`` . With this option,
-    the names become ``lh.`` <name> and ``rh.`` <name> .
+    the names become ``lh.`` <*name*> and ``rh.`` <*name*> .
 
-**\---patch <name> [:<angle/deg> ]**
+**\---patch <*name*> [: <*angle/deg*> ]**
 
     Specify the name of a surface patch to be used for visualization instead
     of the complete cortical surface. A complete name of a patch file
@@ -845,17 +845,17 @@ Visualization options
     before display. You can check a suitable value for the rotation
     angle by loading the patch interactively in mne_analyze .
 
-**\---width <value>**
+**\---width <*value*>**
 
     Width of the graphics output frames in pixels. The default width
     is 600 pixels.
 
-**\---height <value>**
+**\---height <*value*>**
 
     Height of the graphics output frames in pixels. The default height
     is 400 pixels.
 
-**\---mag <factor>**
+**\---mag <*factor*>**
 
     Magnify the the visualized scene by this factor.
 
@@ -869,7 +869,7 @@ Visualization options
     Select the right hemisphere for graphics output. By default, both hemisphere
     are processed.
 
-**\---view <name>**
+**\---view <*name*>**
 
     Select the name of the view for mov, rgb, and tif graphics output files.
     The default viewnames, defined in ``$MNE_ROOT/share/mne/mne_analyze/eyes`` ,
@@ -882,7 +882,7 @@ Visualization options
     right hemisphere up vector. The entities are separated by semicolons.
     Lines beginning with the pound sign (#) are considered to be comments.
 
-**\---smooth <nstep>**
+**\---smooth <*nstep*>**
 
     Number of smoothsteps to take when producing the output frames. Depending
     on the source space decimation, an appropriate number is 4 - 7.
@@ -899,7 +899,7 @@ Visualization options
 
     Do not include the scalebar in the image output files or movies.
 
-**\---alpha <value>**
+**\---alpha <*value*>**
 
     Adjust the opacity of maps shown on the cortical surface (0 = transparent,
     1 = totally opaque). The default value is 1.
@@ -907,28 +907,28 @@ Visualization options
 Thresholding
 ============
 
-**\---fthresh <value>**
+**\---fthresh <*value*>**
 
     Specifies the threshold for the displayed colormaps. At the threshold,
     the overlayed color will be equal to the background surface color.
     For currents, the value will be multiplied byINLINE_EQUATION.
     The default value is 8.
 
-**\---fmid <value>**
+**\---fmid <*value*>**
 
     Specifies the midpoint for the displayed colormaps. At this value, the
     overlayed color will be read (positive values) or blue (negative values).
     For currents, the value will be multiplied byINLINE_EQUATION.
     The default value is 15.
 
-**\---fmax <value>**
+**\---fmax <*value*>**
 
     Specifies the maximum point for the displayed colormaps. At this value,
     the overlayed color will bright yellow (positive values) or light
     blue (negative values). For currents, the value will be multiplied
     byINLINE_EQUATION. The default value is 20.
 
-**\---fslope <value>**
+**\---fslope <*value*>**
 
     Included for backwards compatibility. If this option is specified
     and ``--fmax`` option is *not* specified, INLINE_EQUATION.
@@ -936,81 +936,81 @@ Thresholding
 Output files
 ============
 
-**\---mov <name>**
+**\---mov <*name*>**
 
     Produce QuickTime movie files. This is the 'stem' of
     the ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
-    then appended. The name of the view is indicated with ``-`` <viename> .
+    then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.mov`` is added to indicate a QuickTime output
     file. The movie is produced for all times as dictated by the ``--tmin`` , ``--tmax`` , ``--tstep`` ,
     and ``--integ`` options.
 
-**\---qual <value>**
+**\---qual <*value*>**
 
     Quality of the QuickTime movie output. The default quality is 80 and
     allowed range is 25 - 100. The size of the movie files is a monotonously
     increasing function of the movie quality.
 
-**\---rate <rate>**
+**\---rate <*rate*>**
 
     Specifies the frame rate of the QuickTime movies. The default value is INLINE_EQUATION,
     where INLINE_EQUATION is the time between subsequent
     movie frames produced in seconds.
 
-**\---rgb <name>**
+**\---rgb <*name*>**
 
     Produce rgb snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
-    then appended. The name of the view is indicated with ``-`` <viename> .
+    then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.rgb`` is added to indicate an rgb output file.
     Files are produced for all picked times as dictated by the ``--pick`` and ``--integ`` options.
 
-**\---tif <name>**
+**\---tif <*name*>**
 
     Produce tif snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
-    then appended. The name of the view is indicated with ``-`` <viename> .
+    then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.tif`` is added to indicate an rgb output file.
     Files are produced for all picked times as dictated by the ``--pick`` and ``--integ`` options.
     The tif output files are *not* compressed. Pass
     the files through an image processing program to compress them.
 
-**\---jpg <name>**
+**\---jpg <*name*>**
 
     Produce jpg snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
-    then appended. The name of the view is indicated with ``-`` <viename> .
+    then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.jpg`` is added to indicate an rgb output file.
     Files are produced for all picked times as dictated by the ``--pick`` and ``--integ`` options.
 
-**\---png <name>**
+**\---png <*name*>**
 
     Produce png snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
-    then appended. The name of the view is indicated with ``-`` <viename> .
+    then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.png`` is added to indicate an rgb output file.
     Files are produced for all picked times as dictated by the ``--pick`` and ``--integ`` options.
 
-**\---w <name>**
+**\---w <*name*>**
 
     Produce w file snapshots. This is the 'stem' of
     the ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <name> .
+    upto and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` .w or ``-rh`` .w
     is then appended. Files are produced for all picked times as dictated
     by the ``--pick`` and ``--integ`` options.
 
-**\---stc <name>**
+**\---stc <*name*>**
 
     Produce stc files for either the original subject or the one selected with
     the ``--morph`` option. These files will contain data only
@@ -1021,20 +1021,20 @@ Output files
     averaged together, e.g., in Matlab since they always contain an
     identical set of vertices.
 
-**\---norm <name>**
+**\---norm <*name*>**
 
     Indicates that a separate w file
     containing the noise-normalization values will be produced. The
     option ``--spm`` must also be present. Nevertheless, the
     movies and stc files output will
-    contain MNE values. The noise normalization data files will be called <name>-<SNR> ``-lh.w`` and <name>-<SNR> ``-rh.w`` .
+    contain MNE values. The noise normalization data files will be called <*name*>- <*SNR*> ``-lh.w`` and <*name*>- <*SNR*> ``-rh.w`` .
 
 .. _CBBHHCEF:
 
 Label processing
 ================
 
-**\---label <name>**
+**\---label <*name*>**
 
     Specifies a label file to process. For each label file, the values
     of the computed estimates are listed in text files. The label files
@@ -1042,7 +1042,7 @@ Label processing
     specify regions of interests (ROIs). A label file name should end
     with ``-lh.label`` for left-hemisphere ROIs and with ``-rh.label`` for
     right-hemisphere ones. The corresponding output files are tagged
-    with ``-lh-`` <data type> ``.amp`` and ``-rh-`` <data type> ``.amp``, respectively. <data type> equals ``'mne`` ' for
+    with ``-lh-`` <*data type*> ``.amp`` and ``-rh-`` <*data type*> ``.amp``, respectively. <*data type*> equals ``'mne`` ' for
     expected current data and ``'spm`` ' for
     dSPM data. Each line of the output file contains the waveform of
     the output quantity at one of the source locations falling inside
@@ -1069,14 +1069,14 @@ Label processing
     Output the label data time by time instead of the default vertex-by-vertex
     output.
 
-**\---labeltag <tag>**
+**\---labeltag <*tag*>**
 
     End the output files with the specified tag. By default, the output files
     will end with ``-mne.amp`` or ``-spm.amp`` depending
     on whether MNE or one of the noise-normalized estimates (dSPM or sLORETA)
     was selected.
 
-**\---labeloutdir <directory>**
+**\---labeloutdir <*directory*>**
 
     Specifies the directory where the output files will be located.
     By default, they will be in the current working directory.
@@ -1086,7 +1086,7 @@ Label processing
     Include comments in the output files. The comment lines begin with the
     percent sign to make the files compatible with Matlab.
 
-**\---scaleby <factor>**
+**\---scaleby <*factor*>**
 
     By default, the current values output to the files will be in the
     actual physical units (Am). This option allows scaling of the current
@@ -1140,34 +1140,34 @@ Command-line options
 
     List the command-line options.
 
-**\---in <filename>**
+**\---in <*filename*>**
 
     Specifies the input data file. This can be either an evoked data
     file or a raw data file.
 
-**\---bmin <time/ms>**
+**\---bmin <*time/ms*>**
 
     Specifies the starting time of the baseline. In order to activate
     baseline correction, both ``--bmin`` and ``--bmax`` options
     must be present. This option applies to evoked data only.
 
-**\---bmax <time/ms>**
+**\---bmax <*time/ms*>**
 
     Specifies the finishing time of the baseline. This option applies
     to evoked data only.
 
-**\---set <number>**
+**\---set <*number*>**
 
     The data set (condition) number to load. This is the sequential
     number of the condition. You can easily see the association by looking
     at the condition list in mne_analyze when
     you load the file.
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Load the inverse operator decomposition from here.
 
-**\---nave <value>**
+**\---nave <*value*>**
 
     Specifies the effective number of averaged epochs in the input data, INLINE_EQUATION,
     as discussed in :ref:`CBBDGIAE`. If the input data file is
@@ -1180,7 +1180,7 @@ Command-line options
     employing this flag or by adjusting the number of averages in the
     data file with help of the utility mne_change_nave .
 
-**\---snr <value>**
+**\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
     be set as INLINE_EQUATION. The default value is
@@ -1201,7 +1201,7 @@ Command-line options
     Provide source locations and orientations in the MRI coordinate frame
     instead of the default head coordinate frame.
 
-**\---label <name>**
+**\---label <*name*>**
 
     Specifies a label file to process. For each label file, the values
     of the computed estimates stored in a fif file. For more details,
@@ -1209,7 +1209,7 @@ Command-line options
     or mne_analyze and specify regions
     of interests (ROIs). A label file name should end with ``-lh.label`` for
     left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
-    ones. The corresponding output files are tagged with ``-lh-`` <data type> ``.fif`` and ``-rh-`` <data type> ``.fif`` , respectively. <data type> equals ``'mne`` ' for expected
+    ones. The corresponding output files are tagged with ``-lh-`` <*data type*> ``.fif`` and ``-rh-`` <*data type*> ``.fif`` , respectively. <*data type*> equals ``'mne`` ' for expected
     current data and ``'spm`` ' for dSPM data.
     For raw data, ``_raw.fif`` is employed instead of ``.fif`` .
     The output files are stored in the same directory as the label files.
@@ -1229,7 +1229,7 @@ Command-line options
     flag will not have any effect if the inverse operator has been computed
     with the strict orientation constraint active.
 
-**\---labeldir <directory>**
+**\---labeldir <*directory*>**
 
     All previous ``--label`` options will be ignored when this
     option is encountered. For each label in the directory, the output
@@ -1244,12 +1244,12 @@ Command-line options
     of the label files, truncated to 15 characters, instead of names
     containing the vertex numbers.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Required with ``--labeldir`` . This is the output file for
     the data.
 
-**\---extra <name>**
+**\---extra <*name*>**
 
     By default, the output includes the current estimate signals and
     the digital trigger channel, see ``--digtrig`` option,
@@ -1263,13 +1263,13 @@ Command-line options
 
     No additional channels will be included with this option present.
 
-**\---digtrig <name>**
+**\---digtrig <*name*>**
 
     Name of the composite digital trigger channel. The default value
     is 'STI 014'. Underscores in the channel name
     will be replaced by spaces.
 
-**\---split <size/MB>**
+**\---split <*size/MB*>**
 
     Specifies the maximum size of the raw data files saved. By default, the
     output is split into files which are just below 2 GB so that the
@@ -1288,7 +1288,7 @@ by postprocessing software as follows:
 
 **channel name**
 
-    Will be set to J[xyz] <number> ,
+    Will be set to J[xyz] <*number*> ,
     where the source component is indicated by the coordinat axis name
     and number is the vertex number, starting from zero, in the complete
     triangulation of the hemisphere in question.

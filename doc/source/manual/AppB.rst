@@ -17,8 +17,8 @@ User environment
 In the Martinos Center computer network, the 2.7 version
 of MNE is located at /usr/pubsw/packages/mne/stable. To use this
 version, follow  :ref:`CIHCDHGI` substituting /usr/pubsw/packages/mne/stable
-for <MNE> and /usr/pubsw/packages/matlab/current
-for <Matlab> . For most users,
+for <*MNE*> and /usr/pubsw/packages/matlab/current
+for <*Matlab*> . For most users,
 the default shell is tcsh.
 
 .. note:: A new version of MNE is build every night from    the latest sources. This version is located at /usr/pubsw/packages/mne/nightly.
@@ -142,31 +142,31 @@ the following command-line options:
 
     List the command-line options.
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Load the inverse operator decomposition from here.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     Load the MEG or EEG data from this file.
 
-**\---set <number>**
+**\---set <*number*>**
 
     The data set (condition) number to load. The list of data sets can
     be seen, *e.g.*, in mne_analyze , mne_browse_raw ,
     and xplotter .
 
-**\---bmin <time/ms>**
+**\---bmin <*time/ms*>**
 
     Specifies the starting time of the baseline. In order to activate
     baseline correction, both ``--bmin`` and ``--bmax`` options
     must be present.
 
-**\---bmax <time/ms>**
+**\---bmax <*time/ms*>**
 
     Specifies the finishing time of the baseline.
 
-**\---nave <value>**
+**\---nave <*value*>**
 
     Specifies the number of averaged epochs in the input data. If the input
     data file is one produced by mne_process_raw or mne_browse_raw ,
@@ -177,7 +177,7 @@ the following command-line options:
     either by employing this flag or by adjusting the number of averages
     in the data file with help of mne_change_nave .
 
-**\---snr <value>**
+**\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
     be set as INLINE_EQUATION. If the SNR option is
@@ -237,11 +237,11 @@ the following command-line options:
     Output true current values in SI units (Am). By default, the currents are
     scaled so that the maximum current value is set to 50 (Am).
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output file name. This is the 'stem' of
     the output file name. The actual name is derived by removing anything up
-    to and including the last period from the end of <name> .
+    to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. Finally, ``.stc`` or ``.w`` is added,
     depending on the output file type.
@@ -253,12 +253,12 @@ the following command-line options:
     and dSPMs can be output as wfiles if one of the collapse options
     is selected.
 
-**\---pred <name>**
+**\---pred <*name*>**
 
     Save the predicted data into this file. This is a fif file containing
     the predicted data waveforms, see :ref:`CHDCACDC`.
 
-**\---outputnorm <name>**
+**\---outputnorm <*name*>**
 
     Output noise-normalization factors to this file.
 
@@ -267,7 +267,7 @@ the following command-line options:
     Output inverse noise-normalization factors to the file defined by
     the ``--outputnorm`` option.
 
-**\---dip <name>**
+**\---dip <*name*>**
 
     Specifies a dipole distribution snapshot file. This is a file containing the
     current distribution at a time specified with the ``--diptime`` option.
@@ -277,16 +277,16 @@ the following command-line options:
     distribution. This option is only effective if the ``--spm`` option
     is absent.
 
-**\---diptime <time/ms>**
+**\---diptime <*time/ms*>**
 
     Time for the dipole snapshot, see ``--dip`` option above.
 
-**\---label <name>**
+**\---label <*name*>**
 
     Label to process. The label files are produced by tksurfer and specify
     regions of interests (ROIs). A label file name should end with ``-lh.label`` for
     left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
-    ones. The corresponding output files are tagged with ``-lh-`` <data type ``.amp`` and ``-rh-`` <data type ``.amp`` , respectively. <data type> equals ``MNE`` for expected current
+    ones. The corresponding output files are tagged with ``-lh-`` <*data type ``.amp`` and ``-rh-`` <*data type ``.amp`` , respectively. <*data type*> equals ``MNE`` for expected current
     data and ``spm`` for dSPM data. Each line of the output
     file contains the waveform of the output quantity at one of the
     source locations falling inside the ROI.
