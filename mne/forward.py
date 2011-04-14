@@ -22,19 +22,21 @@ def _block_diag(A, n):
 
     You have to try it on a matrix to see what it's doing.
 
-    %   If A is not sparse, then returns a sparse block diagonal "bd",
-    %   diagonalized from the
-    %   elements in "A".
-    %   "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    %   Each submatrix is ma x "n", and these submatrices are
-    %   placed down the diagonal of the matrix.
-    %
-    %   If A is already sparse, then the operation is reversed, yielding
-    # a block
-    %   row matrix, where each set of n columns corresponds to a block element
-    %   from the block diagonal.
-    %
-    %   Routine uses NO for-loops for speed considerations.
+    If A is not sparse, then returns a sparse block diagonal "bd",
+    diagonalized from the
+    elements in "A".
+    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
+    Each submatrix is ma x "n", and these submatrices are
+    placed down the diagonal of the matrix.
+
+    If A is already sparse, then the operation is reversed, yielding
+    a block
+    row matrix, where each set of n columns corresponds to a block element
+    from the block diagonal.
+
+    Routine uses NO for-loops for speed considerations.
+
+    XXX : format doc
     """
     from scipy import sparse
 
@@ -294,10 +296,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         raise ValueError, 'MRI/head coordinate transformation not found'
     else:
         mri_head_t = tag.data;
-        if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or
+        if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
             mri_head_t = invert_transform(mri_head_t)
-            if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI
+            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
                 raise ValueError, 'MRI/head coordinate transformation not ' \

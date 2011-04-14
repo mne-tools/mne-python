@@ -41,16 +41,16 @@ def read_meas_info(fid, tree):
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
     if len(meas) == 0:
-        raise ValueError, 'Could not find measurement data'
+        raise ValueError('Could not find measurement data')
     if len(meas) > 1:
-        raise ValueError, 'Cannot read more that 1 measurement data'
+        raise ValueError('Cannot read more that 1 measurement data')
     meas = meas[0]
 
     meas_info = dir_tree_find(meas, FIFF.FIFFB_MEAS_INFO)
     if len(meas_info) == 0:
-        raise ValueError, 'Could not find measurement info'
+        raise ValueError('Could not find measurement info')
     if len(meas_info) > 1:
-        raise ValueError, 'Cannot read more that 1 measurement info'
+        raise ValueError('Cannot read more that 1 measurement info')
     meas_info = meas_info[0]
 
     #   Read measurement info
@@ -88,72 +88,72 @@ def read_meas_info(fid, tree):
         elif kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, pos)
             cand = tag.data
-            if cand['from_'] == FIFF.FIFFV_COORD_DEVICE and \
-                                cand['to'] == FIFF.FIFFV_COORD_HEAD: # XXX : from
+            if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
+                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
-            elif cand['from_'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
+            elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                                 cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
 
     # Check that we have everything we need
     if nchan is None:
-       raise ValueError, 'Number of channels in not defined'
+        raise ValueError('Number of channels in not defined')
 
     if sfreq is None:
-        raise ValueError, 'Sampling frequency is not defined'
+        raise ValueError('Sampling frequency is not defined')
 
     if len(chs) == 0:
-        raise ValueError, 'Channel information not defined'
+        raise ValueError('Channel information not defined')
 
     if len(chs) != nchan:
-        raise ValueError, 'Incorrect number of channel definitions found'
+        raise ValueError('Incorrect number of channel definitions found')
 
     if dev_head_t is None or ctf_head_t is None:
         hpi_result = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
         if len(hpi_result) == 1:
             hpi_result = hpi_result[0]
             for k in range(hpi_result.nent):
-               kind = hpi_result.directory[k].kind
-               pos  = hpi_result.directory[k].pos
-               if kind == FIFF.FIFF_COORD_TRANS:
+                kind = hpi_result.directory[k].kind
+                pos = hpi_result.directory[k].pos
+                if kind == FIFF.FIFF_COORD_TRANS:
                     tag = read_tag(fid, pos)
-                    cand = tag.data;
-                    if cand.from_ == FIFF.FIFFV_COORD_DEVICE and \
-                                cand.to == FIFF.FIFFV_COORD_HEAD: # XXX: from
-                        dev_head_t = cand;
-                    elif cand.from_ == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
-                                cand.to == FIFF.FIFFV_COORD_HEAD:
-                        ctf_head_t = cand;
+                    cand = tag.data
+                    if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
+                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                        dev_head_t = cand
+                    elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
+                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                        ctf_head_t = cand
 
     #   Locate the Polhemus data
-    isotrak = dir_tree_find(meas_info,FIFF.FIFFB_ISOTRAK)
+    isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     if len(isotrak):
         isotrak = isotrak[0]
     else:
         if len(isotrak) == 0:
-            raise ValueError, 'Isotrak not found'
+            raise ValueError('Isotrak not found')
         if len(isotrak) > 1:
-            raise ValueError, 'Multiple Isotrak found'
+            raise ValueError('Multiple Isotrak found')
 
     dig = []
     if len(isotrak) == 1:
         for k in range(isotrak.nent):
-            kind = isotrak.directory[k].kind;
-            pos  = isotrak.directory[k].pos;
+            kind = isotrak.directory[k].kind
+            pos = isotrak.directory[k].pos
             if kind == FIFF.FIFF_DIG_POINT:
-                tag = read_tag(fid,pos);
+                tag = read_tag(fid, pos)
                 dig.append(tag.data)
                 dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     #   Locate the acquisition information
-    acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS);
+    acqpars = dir_tree_find(meas_info, FIFF.FIFFB_DACQ_PARS)
     acq_pars = None
     acq_stim = None
     if len(acqpars) == 1:
         acqpars = acqpars[0]
         for k in range(acqpars.nent):
             kind = acqpars.directory[k].kind
-            pos  = acqpars.directory[k].pos
+            pos = acqpars.directory[k].pos
             if kind == FIFF.FIFF_DACQ_PARS:
                 tag = read_tag(fid, pos)
                 acq_pars = tag.data
@@ -174,9 +174,9 @@ def read_meas_info(fid, tree):
     #   Put the data together
     #
     if tree.id is not None:
-       info = dict(file_id=tree.id)
+        info = dict(file_id=tree.id)
     else:
-       info = dict(file_id=None)
+        info = dict(file_id=None)
 
     #  Make the most appropriate selection for the measurement id
     if meas_info.parent_id is None:
@@ -191,12 +191,12 @@ def read_meas_info(fid, tree):
         else:
             info['meas_id'] = meas_info.id
     else:
-       info['meas_id'] = meas_info.parent_id;
+        info['meas_id'] = meas_info.parent_id
 
     if meas_date is None:
-       info['meas_date'] = [info['meas_id']['secs'], info['meas_id']['usecs']]
+        info['meas_date'] = [info['meas_id']['secs'], info['meas_id']['usecs']]
     else:
-       info['meas_date'] = meas_date
+        info['meas_date'] = meas_date
 
     info['nchan'] = nchan
     info['sfreq'] = sfreq
@@ -205,7 +205,7 @@ def read_meas_info(fid, tree):
 
     #   Add the channel information and make a list of channel names
     #   for convenience
-    info['chs'] = chs;
+    info['chs'] = chs
     info['ch_names'] = [ch.ch_name for ch in chs]
 
     #
@@ -214,11 +214,12 @@ def read_meas_info(fid, tree):
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
     if dev_head_t is not None and ctf_head_t is not None:
-       info['dev_ctf_t'] = info['dev_head_t']
-       info['dev_ctf_t'].to = info['ctf_head_t'].from_ # XXX : see if better name
-       info['dev_ctf_t'].trans = np.dot(np.inv(ctf_head_t.trans), info.dev_ctf_t.trans)
+        info['dev_ctf_t'] = info['dev_head_t']
+        info['dev_ctf_t']['to'] = info['ctf_head_t']['from']
+        info['dev_ctf_t']['trans'] = np.dot(np.inv(ctf_head_t['trans']),
+                                        info['dev_ctf_t']['trans'])
     else:
-       info['dev_ctf_t'] = []
+        info['dev_ctf_t'] = []
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -299,4 +300,3 @@ def write_meas_info(fid, info):
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
-

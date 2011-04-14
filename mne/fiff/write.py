@@ -184,7 +184,7 @@ def write_coord_trans(fid, trans):
     fid.write(np.array(FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(trans['from_'], dtype='>i4').tostring())
+    fid.write(np.array(trans['from'], dtype='>i4').tostring())
     fid.write(np.array(trans['to'], dtype='>i4').tostring())
 
     #   The transform...

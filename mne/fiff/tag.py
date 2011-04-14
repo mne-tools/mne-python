@@ -235,7 +235,7 @@ def read_tag(fid, pos=None):
                 tag.data['coord_frame'] = 0
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                 tag.data = Bunch()
-                tag.data['from_'] = int(np.fromfile(fid, dtype=">i4", count=1))
+                tag.data['from'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 tag.data['to'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 rot = np.fromfile(fid, dtype=">f4", count=9).reshape(3, 3)
                 move = np.fromfile(fid, dtype=">f4", count=3)

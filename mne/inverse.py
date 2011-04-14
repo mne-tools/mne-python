@@ -199,10 +199,10 @@ def read_inverse_operator(fname):
         raise ValueError('MRI/head coordinate transformation not found')
     else:
         mri_head_t = tag.data
-        if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
+        if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
             mri_head_t = invert_transform(mri_head_t)
-            if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
+            if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation '
