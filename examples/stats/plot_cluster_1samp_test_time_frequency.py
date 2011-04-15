@@ -33,14 +33,13 @@ from mne.datasets import sample
 # Set parameters
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 event_id = 1
 tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
-events = mne.read_events(event_fname)
+events = mne.find_events(raw)
 
 include = []
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
@@ -81,12 +80,12 @@ evoked_data = evoked_data[:,time_mask]
 times = times[time_mask]
 
 epochs_power = epochs_power[:,0,:,:]
-epochs_power = np.log(epochs_power) # take log of ratio
+epochs_power = np.log10(epochs_power) # take log of ratio
 # under the null hypothesis epochs_power should be now be 0
 
 ###############################################################################
 # Compute statistic
-threshold = 3
+threshold = 2
 T_obs, clusters, cluster_p_values, H0 = \
                    permutation_cluster_t_test(epochs_power,
                                n_permutations=100, threshold=threshold, tail=0)
