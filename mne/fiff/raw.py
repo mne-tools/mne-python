@@ -611,8 +611,7 @@ def write_raw_buffer(fid, buf, cals):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    write_float(fid, FIFF.FIFF_DATA_BUFFER,  # XXX can do better
-                                    np.dot(np.diag(1.0 / np.ravel(cals)), buf))
+    write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):

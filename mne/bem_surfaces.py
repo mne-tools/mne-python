@@ -4,7 +4,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -173,8 +172,7 @@ def _read_bem_surface(fid, this, def_coord_frame):
 
 
 def _complete_surface_info(this):
-    """ XXX : should be factorize with complete_source_space_info
-    """
+    """Complete surface info"""
     #
     #   Main triangulation
     #
@@ -189,27 +187,21 @@ def _complete_surface_info(this):
     #
     #   Triangle normals and areas
     #
-    for p in range(this['ntri']):
-        size = linalg.norm(this['tri_nn'][p, :])
-        this['tri_area'][p] = size / 2.0
-    if size > 0.0:
-        this['tri_nn'][p, :] = this['tri_nn'][p, :] / size
+    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
+    this['tri_area'] = size / 2.0
+    this['tri_nn'] /= size[:, None]
     #
     #   Accumulate the vertex normals
     #
     print 'vertex normals...',
     this['nn'] = np.zeros((this['np'], 3))
     for p in range(this['ntri']):
-        this['nn'][this['tris'][p, :], :] = this['nn'][this['tris'][p, :], :] \
-                              + np.kron(np.ones((3, 1)), this['tri_nn'][p, :])
+        this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
     #
     #   Compute the lengths of the vertex normals and scale
     #
     print 'normalize...',
-    for p in range(this['np']):
-        size = linalg.norm(this['nn'][p, :])
-        if size > 0:
-            this['nn'][p, :] = this['nn'][p, :] / size
+    this['nn'] /= np.sqrt(np.sum(this['nn'] ** 2, axis=1))[:, None]
 
     print '[done]'
     return this
