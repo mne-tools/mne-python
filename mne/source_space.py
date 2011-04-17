@@ -234,12 +234,9 @@ def complete_source_space_info(this):
     r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
     this['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
-
-    for p in range(this['ntri']):  # XXX : can do better
-        size = sqrt(np.sum(this['tri_nn'][p, :] ** 2))
-        this['tri_area'][p] = size / 2.0
-        this['tri_nn'][p, :] = this['tri_nn'][p, :] / size
-
+    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
+    this['tri_area'] = size / 2.0
+    this['tri_nn'] /= size[:, None]
     print '[done]'
 
     #   Selected triangles
