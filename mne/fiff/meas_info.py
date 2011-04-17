@@ -13,7 +13,7 @@ from .proj import read_proj, write_proj
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import _read_bad_channels
 
-from .write import start_block, end_block, write_id, \
+from .write import start_block, end_block, \
                    write_float, write_int, write_coord_trans, write_ch_info, \
                    write_dig_point, write_name_list
 

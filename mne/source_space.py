@@ -218,7 +218,7 @@ def _read_one_source_space(fid, this):
 
     res['pinfo'] = patch_info(res['nearest'])
     if res['pinfo'] is not None:
-        print 'Patch information added...'
+        print 'Patch information added...',
 
     return res
 

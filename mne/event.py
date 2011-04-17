@@ -102,7 +102,6 @@ def find_events(raw, stim_channel='STI 014'):
     data, times = raw[pick, :]
     data = data.ravel()
     idx = np.where(np.diff(data.ravel()) > 0)[0]
-    n_events = len(idx)
     events_id = data[idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
