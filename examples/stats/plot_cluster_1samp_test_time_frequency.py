@@ -42,7 +42,7 @@ raw = fiff.Raw(raw_fname)
 events = mne.find_events(raw)
 
 include = []
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
@@ -52,22 +52,22 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 event_id = 1
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
-data = epochs.get_data() # as 3D matrix
-data *= 1e13 # change unit to fT / cm
+data = epochs.get_data()  # as 3D matrix
+data *= 1e13  # change unit to fT / cm
 # Time vector
-times = 1e3 * epochs.times # change unit to ms
+times = 1e3 * epochs.times  # change unit to ms
 
 # Take only one channel
 ch_name = raw.info['ch_names'][97]
-data = data[:,97:98,:]
+data = data[:, 97:98, :]
 
 evoked_data = np.mean(data, 0)
 
 # data -= evoked_data[None,:,:] # remove evoked component
 # evoked_data = np.mean(data, 0)
 
-frequencies = np.arange(8, 40, 2) # define frequencies of interest
-Fs = raw.info['sfreq'] # sampling in Hz
+frequencies = np.arange(8, 40, 2)  # define frequencies of interest
+Fs = raw.info['sfreq']  # sampling in Hz
 epochs_power = single_trial_power(data, Fs=Fs, frequencies=frequencies,
                                   n_cycles=4, use_fft=False, n_jobs=1,
                                   baseline=(-100, 0), times=times,
@@ -75,12 +75,12 @@ epochs_power = single_trial_power(data, Fs=Fs, frequencies=frequencies,
 
 # Crop in time to keep only what is between 0 and 400 ms
 time_mask = (times > 0) & (times < 400)
-epochs_power = epochs_power[:,:,:,time_mask]
-evoked_data = evoked_data[:,time_mask]
+epochs_power = epochs_power[:, :, :, time_mask]
+evoked_data = evoked_data[:, time_mask]
 times = times[time_mask]
 
-epochs_power = epochs_power[:,0,:,:]
-epochs_power = np.log10(epochs_power) # take log of ratio
+epochs_power = epochs_power[:, 0, :, :]
+epochs_power = np.log10(epochs_power)  # take log of ratio
 # under the null hypothesis epochs_power should be now be 0
 
 ###############################################################################

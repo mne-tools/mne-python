@@ -32,7 +32,7 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
                             exclude=exclude)
 
@@ -40,7 +40,7 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-evoked = epochs.average() # average epochs to get the evoked response
+evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result

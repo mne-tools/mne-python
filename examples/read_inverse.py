@@ -32,6 +32,8 @@ lh_faces = inv['src'][0]['use_tris']
 rh_points = inv['src'][1]['rr']
 rh_faces = inv['src'][1]['use_tris']
 from enthought.mayavi import mlab
-mlab.triangular_mesh(lh_points[:,0], lh_points[:,1], lh_points[:,2], lh_faces)
-mlab.triangular_mesh(rh_points[:,0], rh_points[:,1], rh_points[:,2], rh_faces)
+mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
+                     lh_faces)
+mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
+                     rh_faces)
 mlab.show()

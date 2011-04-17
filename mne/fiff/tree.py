@@ -46,7 +46,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         block = 0
 
     if verbose:
-        print '\t'*indent + 'start { %d' % block
+        print '\t' * indent + 'start { %d' % block
 
     this = start
 
@@ -63,7 +63,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         if directory[this].kind == FIFF_BLOCK_START:
             if this != start:
                 child, this = make_dir_tree(fid, directory, this,
-                                                        indent+1, verbose)
+                                                        indent + 1, verbose)
                 tree.nchild += 1
                 tree.children.append(child)
         elif directory[this].kind == FIFF_BLOCK_END:
@@ -96,9 +96,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         tree.directory = None
 
     if verbose:
-        print '\t'*(indent+1) + 'block = %d nent = %d nchild = %d' % (
+        print '\t' * (indent + 1) + 'block = %d nent = %d nchild = %d' % (
                                 tree.block, tree.nent, tree.nchild)
-        print '\t'*indent, 'end } %d' % block
+        print '\t' * indent, 'end } %d' % block
 
     last = this
     return tree, last
@@ -114,13 +114,7 @@ from .write import write_id, start_block, end_block, _write
 
 
 def copy_tree(fidin, in_id, nodes, fidout):
-    """
-    %
-    %    fiff_copy_tree(fidin, in_id, nodes, fidout)
-    %
-    %    Copies directory subtrees from fidin to fidout
-    %
-    """
+    """Copies directory subtrees from fidin to fidout"""
 
     if len(nodes) <= 0:
         return
@@ -147,7 +141,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
             #   Read and write tags, pass data through transparently
             fidin.seek(d.pos, 0)
 
-            s = fidin.read(4*4)
+            s = fidin.read(4 * 4)
             tag = Tag(*struct.unpack(">iIii", s))
             tag.data = np.fromfile(fidin, dtype='>B', count=tag.size)
 

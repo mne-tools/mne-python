@@ -26,11 +26,10 @@ def _read_bad_channels(fid, node):
     """
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
-    bads = [];
+    bads = []
     if len(nodes) > 0:
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
             if tag.data is not None:
                 bads = tag.data.split(':')
     return bads
-

@@ -20,7 +20,7 @@ class Layout(object):
         lout_fname = op.join(path, kind + '.lout')
 
         f = open(lout_fname)
-        f.readline() # skip first line
+        f.readline()  # skip first line
 
         names = []
         pos = []
@@ -41,9 +41,9 @@ class Layout(object):
 
         scaling = max(np.max(pos[:, 0]), np.max(pos[:, 1])) + pos[0, 2]
         pos /= scaling
-        pos[:,:2] += 0.03
-        pos[:,:2] *= 0.97 / 1.03
-        pos[:,2:] *= 0.94
+        pos[:, :2] += 0.03
+        pos[:, :2] *= 0.97 / 1.03
+        pos[:, 2:] *= 0.94
 
         f.close()
 
@@ -52,14 +52,14 @@ class Layout(object):
         self.names = names
 
 # if __name__ == '__main__':
-# 
+#
 #     layout = Layout()
-# 
+#
 #     import pylab as pl
 #     pl.rcParams['axes.edgecolor'] = 'w'
 #     pl.close('all')
 #     pl.figure(facecolor='k', )
-# 
+#
 #     for i in range(5):
 #     # for i in range(len(pos)):
 #         ax = pl.axes(layout.pos[i], axisbg='k')
@@ -67,5 +67,5 @@ class Layout(object):
 #         pl.xticks([], ())
 #         pl.yticks([], ())
 #         pl.gca().grid(color='w')
-# 
+#
 #     pl.show()

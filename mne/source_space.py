@@ -70,7 +70,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
     #   Find all source spaces
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
-        raise ValueError, 'No source spaces found'
+        raise ValueError('No source spaces found')
 
     src = list()
     for s in spaces:
@@ -123,7 +123,7 @@ def _read_one_source_space(fid, this):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
-        raise ValueError, 'Number of vertices not found'
+        raise ValueError('Number of vertices not found')
 
     res['np'] = tag.data
 
@@ -139,40 +139,40 @@ def _read_one_source_space(fid, this):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
-        raise ValueError, 'Coordinate frame information not found'
+        raise ValueError('Coordinate frame information not found')
 
     res['coord_frame'] = tag.data
 
     #   Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS)
     if tag is None:
-        raise ValueError, 'Vertex data not found'
+        raise ValueError('Vertex data not found')
 
-    res['rr'] = tag.data.astype(np.float) # make it double precision for mayavi
+    res['rr'] = tag.data.astype(np.float)  # double precision for mayavi
     if res['rr'].shape[0] != res['np']:
-        raise ValueError, 'Vertex information is incorrect'
+        raise ValueError('Vertex information is incorrect')
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
     if tag is None:
-        raise ValueError, 'Vertex normals not found'
+        raise ValueError('Vertex normals not found')
 
     res['nn'] = tag.data
     if res['nn'].shape[0] != res['np']:
-        raise ValueError, 'Vertex normal information is incorrect'
+        raise ValueError('Vertex normal information is incorrect')
 
     if res['ntri'] > 0:
         tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
         if tag is None:
             tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES)
             if tag is None:
-                raise ValueError, 'Triangulation not found'
+                raise ValueError('Triangulation not found')
             else:
-                res['tris'] = tag.data - 1 # index start at 0 in Python
+                res['tris'] = tag.data - 1  # index start at 0 in Python
         else:
-            res['tris'] = tag.data - 1 # index start at 0 in Python
+            res['tris'] = tag.data - 1  # index start at 0 in Python
 
         if res['tris'].shape[0] != res['ntri']:
-            raise ValueError, 'Triangulation information is incorrect'
+            raise ValueError('Triangulation information is incorrect')
     else:
         res['tris'] = None
 
@@ -186,12 +186,12 @@ def _read_one_source_space(fid, this):
         res['nuse'] = tag.data
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION)
         if tag is None:
-            raise ValueError, 'Source selection information missing'
+            raise ValueError('Source selection information missing')
 
         res['inuse'] = tag.data.astype(np.int).T
         if len(res['inuse']) != res['np']:
-            raise ValueError, 'Incorrect number of entries in source space ' \
-                              'selection'
+            raise ValueError('Incorrect number of entries in source space '
+                             'selection')
 
         res['vertno'] = np.where(res['inuse'])[0]
 
@@ -203,7 +203,7 @@ def _read_one_source_space(fid, this):
         res['use_tris'] = None
     else:
         res['nuse_tri'] = tag1.data
-        res['use_tris'] = tag2.data - 1 # index start at 0 in Python
+        res['use_tris'] = tag2.data - 1  # index start at 0 in Python
 
     #   Patch-related information
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST)
@@ -233,24 +233,25 @@ def complete_source_space_info(this):
     r2 = this['rr'][this['tris'][:, 1], :]
     r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
-    this['tri_nn'] = np.cross((r2-r1), (r3-r1))
+    this['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
 
-    for p in range(this['ntri']): # XXX : can do better
-        size = sqrt(np.sum(this['tri_nn'][p,:]**2))
+    for p in range(this['ntri']):  # XXX : can do better
+        size = sqrt(np.sum(this['tri_nn'][p, :] ** 2))
         this['tri_area'][p] = size / 2.0
-        this['tri_nn'][p,:] = this['tri_nn'][p,:] / size
+        this['tri_nn'][p, :] = this['tri_nn'][p, :] / size
 
     print '[done]'
 
     #   Selected triangles
     print '\tCompleting selection triangulation info...',
     if this['nuse_tri'] > 0:
-        r1 = this['rr'][this['use_tris'][:, 0],:]
-        r2 = this['rr'][this['use_tris'][:, 1],:]
-        r3 = this['rr'][this['use_tris'][:, 2],:]
+        r1 = this['rr'][this['use_tris'][:, 0], :]
+        r2 = this['rr'][this['use_tris'][:, 1], :]
+        r3 = this['rr'][this['use_tris'][:, 2], :]
         this['use_tri_cent'] = (r1 + r2 + r3) / 3.0
-        this['use_tri_nn'] = np.cross((r2-r1), (r3-r1))
-        this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn']**2, axis=1)) / 2.0
+        this['use_tri_nn'] = np.cross((r2 - r1), (r3 - r1))
+        this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
+                                       ) / 2.0
 
     print '[done]'
 

@@ -70,23 +70,25 @@ class Evoked(object):
         processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
         if len(processed) == 0:
             fid.close()
-            raise ValueError, 'Could not find processed data'
+            raise ValueError('Could not find processed data')
 
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
         if len(evoked_node) == 0:
             fid.close()
-            raise ValueError, 'Could not find evoked data'
+            raise ValueError('Could not find evoked data')
 
         if setno is None:
             if len(evoked_node) > 1:
                 fid.close()
-                raise ValueError, '%d datasets present. setno parameter mush be set'
+                raise ValueError('%d datasets present. '
+                                 'setno parameter mush be set'
+                                 % len(evoked_node))
             else:
                 setno = 0
 
         if setno >= len(evoked_node) or setno < 0:
             fid.close()
-            raise ValueError, 'Data set selector out of range'
+            raise ValueError('Data set selector out of range')
 
         my_evoked = evoked_node[setno]
 
@@ -130,26 +132,28 @@ class Evoked(object):
         if nchan > 0:
             if chs is None:
                 fid.close()
-                raise ValueError, 'Local channel information was not found ' \
-                                  'when it was expected.'
+                raise ValueError('Local channel information was not found '
+                                 'when it was expected.')
 
             if len(chs) != nchan:
                 fid.close()
-                raise ValueError, 'Number of channels and number of channel ' \
-                                  'definitions are different'
+                raise ValueError('Number of channels and number of channel '
+                                 'definitions are different')
 
             info['chs'] = chs
             info['nchan'] = nchan
-            print '\tFound channel information in evoked data. nchan = %d' % nchan
+            print ('\tFound channel information in evoked data. nchan = %d'
+                                                                    % nchan)
             if sfreq > 0:
                 info['sfreq'] = sfreq
 
         nsamp = last - first + 1
         print '\tFound the data of interest:'
         print '\t\tt = %10.2f ... %10.2f ms (%s)' % (
-             1000*first/info['sfreq'], 1000*last/info['sfreq'], comment)
+            1000 * first / info['sfreq'], 1000 * last / info['sfreq'], comment)
         if info['comps'] is not None:
-            print '\t\t%d CTF compensation matrices available' % len(info['comps'])
+            print ('\t\t%d CTF compensation matrices available'
+                                                          % len(info['comps']))
 
         # Read the data in the aspect block
         nave = 1
@@ -175,8 +179,8 @@ class Evoked(object):
         nepoch = len(epoch)
         if nepoch != 1 and nepoch != info.nchan:
             fid.close()
-            raise ValueError, 'Number of epoch tags is unreasonable '\
-                              '(nepoch = %d nchan = %d)' % (nepoch, info.nchan)
+            raise ValueError('Number of epoch tags is unreasonable '
+                             '(nepoch = %d nchan = %d)' % (nepoch, info.nchan))
 
         if nepoch == 1:
             # Only one epoch
@@ -193,12 +197,12 @@ class Evoked(object):
 
         if all_data.shape[1] != nsamp:
             fid.close()
-            raise ValueError, 'Incorrect number of samples (%d instead of %d)' % (
-                                        all_data.shape[1], nsamp)
+            raise ValueError('Incorrect number of samples (%d instead of %d)'
+                              % (all_data.shape[1], nsamp))
 
         # Calibrate
         cals = np.array([info['chs'][k].cal for k in range(info['nchan'])])
-        all_data = np.dot(np.diag(cals.ravel()), all_data) # XXX : can be better
+        all_data = cals[:, None] * all_data
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
@@ -215,7 +219,7 @@ class Evoked(object):
                 imax = len(times)
             else:
                 imax = int(np.where(times <= bmax)[0][-1]) + 1
-            all_data -= np.mean(all_data[:, imin:imax], axis=1)[:,None]
+            all_data -= np.mean(all_data[:, imin:imax], axis=1)[:, None]
         else:
             print "No baseline correction applied..."
 
@@ -270,7 +274,7 @@ class Evoked(object):
         write_int(fid, FIFF.FIFF_NAVE, self.nave)
 
         decal = np.zeros((self.info['nchan'], self.info['nchan']))
-        for k in range(self.info['nchan']): # XXX : can be improved
+        for k in range(self.info['nchan']):
             decal[k, k] = 1.0 / self.info['chs'][k]['cal']
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, self.data))
@@ -303,7 +307,7 @@ class Evoked(object):
         self.times = times[mask]
         self.first = - int(np.sum(self.times < 0))
         self.last = int(np.sum(self.times > 0))
-        self.data = self.data[:,mask]
+        self.data = self.data[:, mask]
 
 
 def read_evoked(fname, setno=0, baseline=None):

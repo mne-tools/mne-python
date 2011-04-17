@@ -90,16 +90,16 @@ FIFF.FIFFV_RESP_CH    = 602                # Respiration monitoring
 #
 # Quaternion channels for head position monitoring
 #
-FIFF.FIFFV_QUAT_0   = 700                 # Quaternion parameter q0 obsolete for unit quaternion
-FIFF.FIFFV_QUAT_1   = 701                 # Quaternion parameter q1 rotation
-FIFF.FIFFV_QUAT_2   = 702                 # Quaternion parameter q2 rotation
-FIFF.FIFFV_QUAT_3   = 703                 # Quaternion parameter q3 rotation
-FIFF.FIFFV_QUAT_4   = 704                 # Quaternion parameter q4 translation
-FIFF.FIFFV_QUAT_5   = 705                 # Quaternion parameter q5 translation
-FIFF.FIFFV_QUAT_6   = 706                 # Quaternion parameter q6 translation
-FIFF.FIFFV_HPI_G    = 707                 # Goodness-of-fit in continuous hpi
-FIFF.FIFFV_HPI_ERR  = 708                 # Estimation error in continuous hpi
-FIFF.FIFFV_HPI_MOV  = 709                 # Estimated head movement speed in continuous hpi
+FIFF.FIFFV_QUAT_0   = 700   # Quaternion param q0 obsolete for unit quaternion
+FIFF.FIFFV_QUAT_1   = 701   # Quaternion param q1 rotation
+FIFF.FIFFV_QUAT_2   = 702   # Quaternion param q2 rotation
+FIFF.FIFFV_QUAT_3   = 703   # Quaternion param q3 rotation
+FIFF.FIFFV_QUAT_4   = 704   # Quaternion param q4 translation
+FIFF.FIFFV_QUAT_5   = 705   # Quaternion param q5 translation
+FIFF.FIFFV_QUAT_6   = 706   # Quaternion param q6 translation
+FIFF.FIFFV_HPI_G    = 707   # Goodness-of-fit in continuous hpi
+FIFF.FIFFV_HPI_ERR  = 708   # Estimation error in continuous hpi
+FIFF.FIFFV_HPI_MOV  = 709   # Estimated head movement speed in continuous hpi
 #
 # Coordinate frames
 #
@@ -119,22 +119,22 @@ FIFF.FIFFV_COORD_IMAGING_DEVICE = 9
 FIFF.FIFF_FIRST_SAMPLE   = 208
 FIFF.FIFF_LAST_SAMPLE    = 209
 FIFF.FIFF_ASPECT_KIND    = 210
-FIFF.FIFF_DATA_BUFFER    = 300          # Buffer containing measurement data
-FIFF.FIFF_DATA_SKIP      = 301          # Data skip in buffers
-FIFF.FIFF_EPOCH          = 302          # Buffer containing one epoch and channel
-FIFF.FIFF_DATA_SKIP_SAMP = 303          # Data skip in samples
+FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
+FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
+FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
+FIFF.FIFF_DATA_SKIP_SAMP = 303    # Data skip in samples
 
 #
 # Different aspects of data
 #
-FIFF.FIFFV_ASPECT_AVERAGE       = 100      # Normal average of epochs
-FIFF.FIFFV_ASPECT_STD_ERR       = 101      # Std. error of mean
-FIFF.FIFFV_ASPECT_SINGLE        = 102      # Single epoch cut out from the continuous data
+FIFF.FIFFV_ASPECT_AVERAGE       = 100  # Normal average of epochs
+FIFF.FIFFV_ASPECT_STD_ERR       = 101  # Std. error of mean
+FIFF.FIFFV_ASPECT_SINGLE        = 102  # Single epoch cut out from the continuous data
 FIFF.FIFFV_ASPECT_SUBAVERAGE    = 103
-FIFF.FIFFV_ASPECT_ALTAVERAGE    = 104      # Alternating subaverage
-FIFF.FIFFV_ASPECT_SAMPLE        = 105      # A sample cut out by graph
-FIFF.FIFFV_ASPECT_POWER_DENSITY = 106    # Power density spectrum
-FIFF.FIFFV_ASPECT_DIPOLE_WAVE   = 200    # Dipole amplitude curve
+FIFF.FIFFV_ASPECT_ALTAVERAGE    = 104  # Alternating subaverage
+FIFF.FIFFV_ASPECT_SAMPLE        = 105  # A sample cut out by graph
+FIFF.FIFFV_ASPECT_POWER_DENSITY = 106  # Power density spectrum
+FIFF.FIFFV_ASPECT_DIPOLE_WAVE   = 200  # Dipole amplitude curve
 #
 # BEM surface IDs
 #
@@ -217,46 +217,46 @@ FIFF.FIFF_MNE_ROW_NAMES              = 3502
 FIFF.FIFF_MNE_COL_NAMES              = 3503
 FIFF.FIFF_MNE_NROW                   = 3504
 FIFF.FIFF_MNE_NCOL                   = 3505
-FIFF.FIFF_MNE_COORD_FRAME            = 3506      # Coordinate frame employed. Defaults:
+FIFF.FIFF_MNE_COORD_FRAME            = 3506  # Coordinate frame employed. Defaults:
                           #  FIFFB_MNE_SOURCE_SPACE       FIFFV_COORD_MRI
                           #  FIFFB_MNE_FORWARD_SOLUTION   FIFFV_COORD_HEAD
                           #  FIFFB_MNE_INVERSE_SOLUTION   FIFFV_COORD_HEAD
 FIFF.FIFF_MNE_CH_NAME_LIST           = 3507
-FIFF.FIFF_MNE_FILE_NAME              = 3508      # This removes the collision with fiff_file.h (used to be 3501)
+FIFF.FIFF_MNE_FILE_NAME              = 3508  # This removes the collision with fiff_file.h (used to be 3501)
 #
 # 3510... 3590... Source space or surface
 #
-FIFF.FIFF_MNE_SOURCE_SPACE_POINTS        = 3510    # The vertices
-FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS       = 3511    # The vertex normals
-FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS       = 3512    # How many vertices
-FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION     = 3513    # Which are selected to the source space
-FIFF.FIFF_MNE_SOURCE_SPACE_NUSE          = 3514    # How many are in use
-FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST       = 3515    # Nearest source space vertex for all vertices
-FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST  = 3516    # Distance to the Nearest source space vertex for all vertices
-FIFF.FIFF_MNE_SOURCE_SPACE_ID            = 3517    # Identifier
-FIFF.FIFF_MNE_SOURCE_SPACE_TYPE          = 3518    # Surface or volume
+FIFF.FIFF_MNE_SOURCE_SPACE_POINTS        = 3510  # The vertices
+FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS       = 3511  # The vertex normals
+FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS       = 3512  # How many vertices
+FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION     = 3513  # Which are selected to the source space
+FIFF.FIFF_MNE_SOURCE_SPACE_NUSE          = 3514  # How many are in use
+FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST       = 3515  # Nearest source space vertex for all vertices
+FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST  = 3516  # Distance to the Nearest source space vertex for all vertices
+FIFF.FIFF_MNE_SOURCE_SPACE_ID            = 3517  # Identifier
+FIFF.FIFF_MNE_SOURCE_SPACE_TYPE          = 3518  # Surface or volume
 
-FIFF.FIFF_MNE_SOURCE_SPACE_NTRI          = 3590    # Number of triangles
-FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES     = 3591    # The triangulation
-FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI      = 3592    # Number of triangles corresponding to the number of vertices in use
-FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES = 3593    # The triangulation of the used vertices in the source space
+FIFF.FIFF_MNE_SOURCE_SPACE_NTRI          = 3590  # Number of triangles
+FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES     = 3591  # The triangulation
+FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI      = 3592  # Number of triangles corresponding to the number of vertices in use
+FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES = 3593  # The triangulation of the used vertices in the source space
 #
 # 3520... Forward solution
 #
 FIFF.FIFF_MNE_FORWARD_SOLUTION       = 3520
-FIFF.FIFF_MNE_SOURCE_ORIENTATION     = 3521    # Fixed or free
+FIFF.FIFF_MNE_SOURCE_ORIENTATION     = 3521  # Fixed or free
 FIFF.FIFF_MNE_INCLUDED_METHODS       = 3522
 FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD  = 3523
 #
 # 3530... Covariance matrix
 #
-FIFF.FIFF_MNE_COV_KIND               = 3530      # What kind of a covariance matrix
-FIFF.FIFF_MNE_COV_DIM                = 3531      # Matrix dimension
-FIFF.FIFF_MNE_COV                    = 3532      # Full matrix in packed representation (lower triangle)
-FIFF.FIFF_MNE_COV_DIAG               = 3533      # Diagonal matrix
-FIFF.FIFF_MNE_COV_EIGENVALUES        = 3534       # Eigenvalues and eigenvectors of the above
+FIFF.FIFF_MNE_COV_KIND               = 3530  # What kind of a covariance matrix
+FIFF.FIFF_MNE_COV_DIM                = 3531  # Matrix dimension
+FIFF.FIFF_MNE_COV                    = 3532  # Full matrix in packed representation (lower triangle)
+FIFF.FIFF_MNE_COV_DIAG               = 3533  # Diagonal matrix
+FIFF.FIFF_MNE_COV_EIGENVALUES        = 3534  # Eigenvalues and eigenvectors of the above
 FIFF.FIFF_MNE_COV_EIGENVECTORS       = 3535
-FIFF.FIFF_MNE_COV_NFREE              = 3536       # Number of degrees of freedom
+FIFF.FIFF_MNE_COV_NFREE              = 3536  # Number of degrees of freedom
 #
 # 3540... Inverse operator
 #
@@ -428,10 +428,10 @@ FIFF.FIFF_UNIT_LX  = 116
 #
 # Others we need
 #
-FIFF.FIFF_UNIT_T_M   = 201 # T/m
-FIFF.FIFF_UNIT_AM    = 202 # Am
-FIFF.FIFF_UNIT_AM_M2 = 203 # Am/m^2
-FIFF.FIFF_UNIT_AM_M3 = 204 # Am/m^3
+FIFF.FIFF_UNIT_T_M   = 201  # T/m
+FIFF.FIFF_UNIT_AM    = 202  # Am
+FIFF.FIFF_UNIT_AM_M2 = 203  # Am/m^2
+FIFF.FIFF_UNIT_AM_M3 = 204  # Am/m^3
 #
 # Multipliers
 #

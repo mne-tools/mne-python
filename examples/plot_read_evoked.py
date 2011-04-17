@@ -24,5 +24,5 @@ evoked = fiff.Evoked(fname, setno=0, baseline=(None, 0))
 ###############################################################################
 # Show result
 picks = fiff.pick_types(evoked.info, meg=True, eeg=True,
-                        exclude=evoked.info['bads']) # Pick channels to view
+                        exclude=evoked.info['bads'])  # Pick channels to view
 plot_evoked(evoked, picks=picks)

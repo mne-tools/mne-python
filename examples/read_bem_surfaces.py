@@ -22,9 +22,9 @@ print "Number of surfaces : %d" % len(surfaces)
 ###############################################################################
 # Show result
 
-head_col = (0.95, 0.83, 0.83) # light pink
+head_col = (0.95, 0.83, 0.83)  # light pink
 skull_col = (0.91, 0.89, 0.67)
-brain_col = (0.67, 0.89, 0.91) # light blue
+brain_col = (0.67, 0.89, 0.91)  # light blue
 colors = [head_col, skull_col, brain_col]
 
 # 3D source space
@@ -33,5 +33,5 @@ mlab.clf()
 for c, surf in zip(colors, surfaces):
     points = surf['rr']
     faces = surf['tris']
-    mlab.triangular_mesh(points[:,0], points[:,1], points[:,2], faces,
+    mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2], faces,
                          color=c, opacity=0.3)

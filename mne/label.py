@@ -67,7 +67,7 @@ def label_time_courses(labelfile, stcfile):
                    if stc['vertices'][k] in vertices]
 
     if len(vertices) == 0:
-        raise ValueError, 'No vertices match the label in the stc file'
+        raise ValueError('No vertices match the label in the stc file')
 
     values = stc['data'][idx]
     times = stc['tmin'] + stc['tstep'] * np.arange(stc['data'].shape[1])

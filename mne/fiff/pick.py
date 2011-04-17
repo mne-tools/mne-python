@@ -8,6 +8,7 @@ from copy import copy
 import numpy as np
 from .constants import FIFF
 
+
 def channel_type(info, idx):
     """Get channel type
 
@@ -159,7 +160,7 @@ def pick_info(info, sel=[]):
 
     res = copy(info)
     if len(sel) == 0:
-        raise ValueError, 'Warning : No channels match the selection.'
+        raise ValueError('Warning : No channels match the selection.')
 
     res['chs'] = [res['chs'][k] for k in sel]
     res['ch_names'] = [res['ch_names'][k] for k in sel]
@@ -195,7 +196,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
                         exclude=exclude)
 
     if len(sel) == 0:
-        raise ValueError, 'Warning : No channels match the selection.'
+        raise ValueError('Warning : No channels match the selection.')
 
     res = copy(orig)
     #
@@ -205,7 +206,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     #
     #   Create the reduced data set
     #
-    res.data = res.data[sel,:]
+    res.data = res.data[sel, :]
 
     return res
 
@@ -242,7 +243,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     #   Do we have something?
     nuse = len(sel)
     if nuse == 0:
-        raise ValueError, 'Nothing remains after picking'
+        raise ValueError('Nothing remains after picking')
 
     print '\t%d out of %d channels remain after picking' % (nuse,
                                                             fwd['nchan'])
@@ -261,6 +262,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
                                         for k in sel]
 
     return fwd
+
 
 def channel_indices_by_type(info):
     """Get indices of channels by type

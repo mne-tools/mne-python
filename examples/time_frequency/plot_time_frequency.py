@@ -35,7 +35,7 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
@@ -43,22 +43,22 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
-data = epochs.get_data() # as 3D matrix
-evoked = epochs.average() # compute evoked fields
+data = epochs.get_data()  # as 3D matrix
+evoked = epochs.average()  # compute evoked fields
 
-times = 1e3 * epochs.times # change unit to ms
-evoked_data = evoked.data * 1e13 # change unit to fT / cm
+times = 1e3 * epochs.times  # change unit to ms
+evoked_data = evoked.data * 1e13  # change unit to fT / cm
 
 # Take only one channel
-data = data[:,97:98,:]
-evoked_data = evoked_data[97:98,:]
+data = data[:, 97:98, :]
+evoked_data = evoked_data[97:98, :]
 
-frequencies = np.arange(7, 30, 3) # define frequencies of interest
-Fs = raw.info['sfreq'] # sampling in Hz
+frequencies = np.arange(7, 30, 3)  # define frequencies of interest
+Fs = raw.info['sfreq']  # sampling in Hz
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                    n_cycles=2, n_jobs=1, use_fft=False)
 
-power /= np.mean(power[:,:,times<0], axis=2)[:,:,None] # baseline ratio
+power /= np.mean(power[:, :, times < 0], axis=2)[:, :, None]  # baseline ratio
 
 ###############################################################################
 # View time-frequency plots
@@ -74,7 +74,7 @@ pl.xlim(times[0], times[-1])
 pl.ylim(-150, 300)
 
 pl.subplot(3, 1, 2)
-pl.imshow(20*np.log10(power[0]), extent=[times[0], times[-1],
+pl.imshow(20 * np.log10(power[0]), extent=[times[0], times[-1],
                                       frequencies[0], frequencies[-1]],
           aspect='auto', origin='lower')
 pl.xlabel('Time (s)')

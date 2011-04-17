@@ -36,8 +36,8 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
-include = [] # or stim channel ['STI 014']
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+include = []  # or stim channel ['STI 014']
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # pick MEG Magnetometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,

@@ -26,7 +26,7 @@ fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 setno = 0
 snr = 3.0
-lambda2 = 1.0 / snr**2
+lambda2 = 1.0 / snr ** 2
 dSPM = True
 
 # Load data
@@ -50,7 +50,7 @@ mne.write_stc('mne_dSPM_inverse-rh.stc', tmin=res['tmin'], tstep=res['tstep'],
 ###############################################################################
 # View activation time-series
 times = res['tmin'] + res['tstep'] * np.arange(lh_data.shape[1])
-pl.plot(1e3*times, res['sol'][::100,:].T)
+pl.plot(1e3 * times, res['sol'][::100, :].T)
 pl.xlabel('time (ms)')
 pl.ylabel('dSPM value')
 pl.show()

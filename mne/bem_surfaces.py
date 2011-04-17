@@ -178,8 +178,8 @@ def _complete_surface_info(this):
     #
     #   Main triangulation
     #
-    print '\tCompleting triangulation info...'
-    print 'triangle normals...'
+    print '\tCompleting triangulation info...',
+    print 'triangle normals...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -197,7 +197,7 @@ def _complete_surface_info(this):
     #
     #   Accumulate the vertex normals
     #
-    print 'vertex normals...'
+    print 'vertex normals...',
     this['nn'] = np.zeros((this['np'], 3))
     for p in range(this['ntri']):
         this['nn'][this['tris'][p, :], :] = this['nn'][this['tris'][p, :], :] \
@@ -205,7 +205,7 @@ def _complete_surface_info(this):
     #
     #   Compute the lengths of the vertex normals and scale
     #
-    print 'normalize...'
+    print 'normalize...',
     for p in range(this['np']):
         size = linalg.norm(this['nn'][p, :])
         if size > 0:

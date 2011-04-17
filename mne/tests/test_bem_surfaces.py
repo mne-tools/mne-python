@@ -10,6 +10,7 @@ data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'subjects', 'sample', 'bem',
                                         'sample-5120-5120-5120-bem-sol.fif')
 
+
 def test_io_bem_surfaces():
     """Testing reading of bem surfaces
     """
