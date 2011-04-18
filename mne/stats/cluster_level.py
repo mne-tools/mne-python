@@ -8,7 +8,7 @@
 
 import numpy as np
 from scipy import ndimage
-from scipy.stats import ttest_1samp
+from scipy import stats
 
 from .parametric import f_oneway
 
@@ -170,7 +170,15 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 permutation_cluster_test.__test__ = False
 
 
-def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
+def ttest_1samp(X):
+    """Returns T-values
+    """
+    T, _ = stats.ttest_1samp(X, 0)
+    return T
+
+
+def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
+                                   tail=0, stat_fun=ttest_1samp):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -220,7 +228,7 @@ def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
     shape_ones = tuple([1] * X[0].ndim)
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
-    T_obs, _ = ttest_1samp(X, 0)
+    T_obs = stat_fun(X)
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail)
 
@@ -234,7 +242,7 @@ def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
             X_copy *= signs
 
             # Recompute statistic on randomized data
-            T_obs_surr, _ = ttest_1samp(X_copy, 0)
+            T_obs_surr = stat_fun(X_copy)
             _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail)
 
             if len(perm_clusters_sums) > 0:
@@ -250,7 +258,7 @@ def permutation_cluster_t_test(X, threshold=1.67, n_permutations=1000, tail=0):
         return T_obs, np.array([]), np.array([]), np.array([])
 
 
-permutation_cluster_t_test.__test__ = False
+permutation_cluster_1samp_test.__test__ = False
 
 # if __name__ == "__main__":
 #     noiselevel = 30
