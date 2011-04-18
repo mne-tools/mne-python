@@ -29,7 +29,7 @@ def plot_topo(evoked, layout):
     pl.rcParams['axes.edgecolor'] = 'k'
 
 
-def plot_evoked(evoked, picks=None, unit=True):
+def plot_evoked(evoked, picks=None, unit=True, show=True):
     """Plot evoked data
 
     Parameters
@@ -40,6 +40,8 @@ def plot_evoked(evoked, picks=None, unit=True):
         The indices of channels to plot. If None show all.
     unit : bool
         Scale plot with channel (SI) unit.
+    show : bool
+        Call pylab.show() as the end or not.
     """
     pl.clf()
     if picks is None:
@@ -71,4 +73,5 @@ def plot_evoked(evoked, picks=None, unit=True):
             pl.ylabel('data (%s)' % ch_unit)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
-    pl.show()
+    if show:
+        pl.show()
