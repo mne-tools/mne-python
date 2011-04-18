@@ -25,7 +25,7 @@ from .epochs import Epochs, _is_good
 
 def rank(A, tol=1e-8):
     s = linalg.svd(A, compute_uv=0)
-    return np.sum(np.where(s > s[0]*tol, 1, 0))
+    return np.sum(np.where(s > s[0] * tol, 1, 0))
 
 
 def _get_whitener(A, rnk, pca, ch_type):
@@ -35,10 +35,10 @@ def _get_whitener(A, rnk, pca, ch_type):
     D = D[I]
     V = V[:, I]
     D = 1.0 / D
-    if not pca: # No PCA case.
+    if not pca:  # No PCA case.
         print 'Not doing PCA for %s.' % ch_type
         W = np.sqrt(D)[:, None] * V.T
-    else: # Rey's approach. MNE has been changed to implement this.
+    else:  # Rey's approach. MNE has been changed to implement this.
         print 'Setting small %s eigenvalues to zero.' % ch_type
         D[rnk:] = 0.0
         W = np.sqrt(D)[:, None] * V.T
@@ -51,8 +51,8 @@ def _get_whitener(A, rnk, pca, ch_type):
 class Covariance(object):
     """Noise covariance matrix"""
 
-    _kind_to_id = dict(full=1, sparse=2, diagonal=3) # XXX : check
-    _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'} # XXX : check
+    _kind_to_id = dict(full=1, sparse=2, diagonal=3)  # XXX : check
+    _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'}  # XXX : check
 
     def __init__(self, fname, kind='full'):
         self.kind = kind
@@ -123,7 +123,7 @@ class Covariance(object):
         C_idx = [k for k, name in enumerate(self.ch_names)
                  if name in info['ch_names'] and name not in bads]
         ch_names = [self.ch_names[k] for k in C_idx]
-        C_noise = self.data[np.ix_(C_idx, C_idx)] # take covariance submatrix
+        C_noise = self.data[np.ix_(C_idx, C_idx)]  # take covariance submatrix
 
         # Create the projection operator
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -160,10 +160,10 @@ class Covariance(object):
             # estimate noise covariance matrix rank
             # Loop on all the required data types (MEG MAG, MEG GRAD, EEG)
 
-            if has_meg: # Separate rank of MEG
+            if has_meg:  # Separate rank of MEG
                 rank_meg = rank(C_noise[C_ind_meg][:, C_ind_meg])
                 print 'Rank of MEG part of noise covariance is %d' % rank_meg
-            if has_eeg: # Separate rank of EEG
+            if has_eeg:  # Separate rank of EEG
                 rank_eeg = rank(C_noise[C_ind_eeg][:, C_ind_eeg])
                 print 'Rank of EEG part of noise covariance is %d' % rank_eeg
 
@@ -173,7 +173,7 @@ class Covariance(object):
                     # add constant on diagonal
                     C_noise[ind, ind] += reg * np.mean(variances[ind])
 
-            if has_meg and has_eeg: # Sets cross terms to zero
+            if has_meg and has_eeg:  # Sets cross terms to zero
                 C_noise[np.ix_(C_ind_meg, C_ind_eeg)] = 0.0
                 C_noise[np.ix_(C_ind_eeg, C_ind_meg)] = 0.0
 
@@ -186,11 +186,11 @@ class Covariance(object):
             W_eeg = _get_whitener(C_noise[C_ind_eeg][:, C_ind_eeg], rank_eeg,
                                   pca, 'EEG')
 
-        if has_meg and not has_eeg: # Only MEG case.
+        if has_meg and not has_eeg:  # Only MEG case.
             W = W_meg
-        elif has_eeg and not has_meg: # Only EEG case.
+        elif has_eeg and not has_meg:  # Only EEG case.
             W = W_eeg
-        elif has_eeg and has_meg: # Bimodal MEG and EEG case.
+        elif has_eeg and has_meg:  # Bimodal MEG and EEG case.
             # Whitening of MEG and EEG separately, which assumes zero
             # covariance between MEG and EEG (i.e., a block diagonal noise
             # covariance). This was recommended by Matti as EEG does not
@@ -226,6 +226,7 @@ class Whitener(object):
 
 ###############################################################################
 # IO
+
 
 def read_cov(fid, node, cov_kind):
     """Read a noise covariance matrix
@@ -299,7 +300,7 @@ def read_cov(fid, node, cov_kind):
                     data = np.zeros((dim, dim))
                     data[np.tril(np.ones((dim, dim))) > 0] = vals
                     data = data + data.T
-                    data.flat[::dim+1] /= 2.0
+                    data.flat[::dim + 1] /= 2.0
                     diagmat = False
                     print '\t%d x %d full covariance (kind = %d) found.' \
                                                         % (dim, dim, cov_kind)
@@ -337,6 +338,7 @@ def read_cov(fid, node, cov_kind):
 
 ###############################################################################
 # Estimate from data
+
 
 def _estimate_compute_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
                                            keep_sample_mean):
@@ -453,7 +455,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
             print "Artefact detected in [%d, %d]" % (first, last)
 
     mu /= n_samples
-    data -= n_samples * mu[:,None] * mu[None,:]
+    data -= n_samples * mu[:, None] * mu[None, :]
     data /= (n_samples - 1.0)
     print "Number of samples used : %d" % n_samples
     print '[done]'

@@ -123,14 +123,14 @@ this directory exists.
 The names of the files in ``$SUBJECTS_DIR/morph-maps`` are
 of the form:
 
-<A> -<B> -``morph.fif`` ,
+ <*A*> - <*B*> -``morph.fif`` ,
 
-where <A> and <B> are
+where <*A*> and <*B*> are
 names of subjects. These files contain the maps for both hemispheres,
 and in both directions, *i.e.*, both INLINE_EQUATION and INLINE_EQUATION, as
-defined above. Thus the files <A> -<B> -``morph.fif`` or <B> -<A> -``morph.fif`` are
+defined above. Thus the files <*A*> - <*B*> -``morph.fif`` or <*B*> - <*A*> -``morph.fif`` are
 functionally equivalent. The name of the file produced by mne_analyze or mne_make_movie depends
-on the role of <A> and <B> in
+on the role of <*A*> and <*B*> in
 the analysis.
 
 If you choose to compute the morphing maps in batch in advance,
@@ -149,11 +149,11 @@ accepts the following command-line options:
 
     Recompute the morphing maps even if they already exist.
 
-**\---from <subject>**
+**\---from <*subject*>**
 
     Compute morphing maps from this subject.
 
-**\---to <subject>**
+**\---to <*subject*>**
 
     Compute morphing maps to this subject.
 
@@ -186,25 +186,25 @@ options:
 
     List the command-line options.
 
-**\---from <subject>**
+**\---from <*subject*>**
 
     Name of the subject for which the labels were originally defined.
 
-**\---to <subject>**
+**\---to <*subject*>**
 
     Name of the subject for which the morphed labels should be created.
 
-**\---labeldir <directory>**
+**\---labeldir <*directory*>**
 
     A directory containing the labels to morph.
 
-**\---prefix <prefix>**
+**\---prefix <*prefix*>**
 
-    Adds <prefix> in the beginning
-    of the output label names. A dash will be inserted between <prefix> and
+    Adds <*prefix*> in the beginning
+    of the output label names. A dash will be inserted between <*prefix*> and
     the rest of the name.
 
-**\---smooth <number>**
+**\---smooth <*number*>**
 
     Apply smoothing with the indicated number of iteration steps (see :ref:`CHDEBAHH`) to the labels before morphing them. This is
     advisable because otherwise the resulting labels may have little
@@ -278,7 +278,7 @@ command line arguments are:
 
     List the command-line options.
 
-**\---desc <filenname>**
+**\---desc <*filenname*>**
 
     Specifies the description file for averaging. The format of this
     file is described below.
@@ -307,37 +307,37 @@ specifies the destination for the average.
 
 The global phrases are:
 
-**tmin <value/ms>**
+**tmin <*value/ms*>**
 
     The minimum time to be considered. The output stc file starts at
     this time point if the time ranges of the stc files include this
     time. Otherwise the output starts from the next later available
     time point.
 
-**tstep <step/ms>**
+**tstep <*step/ms*>**
 
     Time step between consecutive movie frames, specified in milliseconds.
 
-**tmax <value/ms>**
+**tmax <*value/ms*>**
 
     The maximum time point to be considered. A multiple of tstep will be
     added to the first time point selected until this value or the last time
     point in one of the input stc files is reached.
 
-**integ < INLINE_EQUATION/ms>**
+**integ  < INLINE_EQUATION/ms*>**
 
     Integration time for each frame. Defaults to zero. The integration will
     be performed on sensor data. If the time specified for a frame is INLINE_EQUATION,
     the integration range will be INLINE_EQUATION.
 
-**stc <filename>**
+**stc <*filename*>**
 
     Specifies an input stc file. The filename can be specified with
     one of the ``-lh.stc`` and ``-rh.stc`` endings
     or without them. This phrase ends the present context and starts
     an input context.
 
-**deststc <filename>**
+**deststc <*filename*>**
 
     Specifies the output stc file. The filename can be specified with
     one of the ``-lh.stc`` and ``-rh.stc`` endings
@@ -354,7 +354,7 @@ The global phrases are:
 
 The contextual phrases are:
 
-**weight <value>**
+**weight <*value*>**
 
     Specifies the weight of the current data set. This phrase is valid
     in the input and output contexts.
@@ -367,7 +367,7 @@ The contextual phrases are:
     or output contexts, applies only to the data associated with that
     context.
 
-**pow <value>**
+**pow <*value*>**
 
     Specifies that the data should raised to the specified power. For
     negative values, the absolute value of the data will be taken and

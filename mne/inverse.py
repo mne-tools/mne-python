@@ -199,10 +199,10 @@ def read_inverse_operator(fname):
         raise ValueError('MRI/head coordinate transformation not found')
     else:
         mri_head_t = tag.data
-        if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
+        if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
             mri_head_t = invert_transform(mri_head_t)
-            if mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or \
+            if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation '
@@ -230,11 +230,11 @@ def read_inverse_operator(fname):
     #
     #  Some empty fields to be filled in later
     #
-    inv['proj'] = []      #   This is the projector to apply to the data
-    inv['whitener'] = []  #   This whitens the data
-    inv['reginv'] = []    #   This the diagonal matrix implementing
-                          #   regularization and the inverse
-    inv['noisenorm'] = [] #   These are the noise-normalization factors
+    inv['proj'] = []       # This is the projector to apply to the data
+    inv['whitener'] = []   # This whitens the data
+    inv['reginv'] = []     # This the diagonal matrix implementing
+                           # regularization and the inverse
+    inv['noisenorm'] = []  # These are the noise-normalization factors
     #
     nuse = 0
     for k in range(len(inv['src'])):
@@ -259,6 +259,7 @@ def read_inverse_operator(fname):
 ###############################################################################
 # Compute inverse solution
 
+
 def combine_xyz(vec):
     """Compute the three Cartesian components of a vector or matrix together
 
@@ -279,7 +280,7 @@ def combine_xyz(vec):
         raise ValueError('Input must have 3N rows')
 
     n, p = vec.shape
-    return np.sqrt((np.abs(vec).reshape(n/3, 3, p)**2).sum(axis=1))
+    return np.sqrt((np.abs(vec).reshape(n / 3, 3, p) ** 2).sum(axis=1))
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
@@ -318,14 +319,13 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     if inv['eigen_leads_weighted']:
         inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
 
-
     print ('\tScaled noise and source covariance from nave = %d to '
           'nave = %d' % (inv['nave'], nave))
     inv['nave'] = nave
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
-    inv['reginv'] = inv['sing'] / (inv['sing']**2 + lambda2)
+    inv['reginv'] = inv['sing'] / (inv['sing'] ** 2 + lambda2)
     print '\tCreated the regularized inverter'
     #
     #   Create the projection operator
@@ -376,12 +376,12 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         if inv['eigen_leads_weighted']:
             for k in range(inv['eigen_leads']['nrow']):
                 one = inv['eigen_leads']['data'][k, :] * inv['reginv']
-                noise_norm[k] = sqrt(np.sum(one**2))
+                noise_norm[k] = sqrt(np.sum(one ** 2))
         else:
             for k in range(inv['eigen_leads']['nrow']):
                 one = sqrt(inv['source_cov']['data'][k]) * \
                             inv['eigen_leads']['data'][k, :] * inv['reginv']
-                noise_norm[k] = sqrt(np.sum(one**2))
+                noise_norm[k] = sqrt(np.sum(one ** 2))
 
         #
         #   Compute the final result
@@ -395,7 +395,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
             #   Even in this case return only one noise-normalization factor
             #   per source location
             #
-            noise_norm = combine_xyz(noise_norm[:,None]).ravel()
+            noise_norm = combine_xyz(noise_norm[:, None]).ravel()
 
         inv['noisenorm'] = 1.0 / np.abs(noise_norm)
         print '[done]'
@@ -522,13 +522,13 @@ def _xyz2lf(Lf_xyz, normals):
     Lf_cortex = np.zeros_like(Lf_xyz)
 
     for k in range(n_positions):
-        lf_normal = np.dot(Lf_xyz[:,k,:], normals[k])
-        lf_normal_n = lf_normal[:,None] / linalg.norm(lf_normal)
-        P = np.eye(n_sensors,n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
-        lf_p = np.dot(P, Lf_xyz[:,k,:])
+        lf_normal = np.dot(Lf_xyz[:, k, :], normals[k])
+        lf_normal_n = lf_normal[:, None] / linalg.norm(lf_normal)
+        P = np.eye(n_sensors, n_sensors) - np.dot(lf_normal_n, lf_normal_n.T)
+        lf_p = np.dot(P, Lf_xyz[:, k, :])
         U, s, Vh = linalg.svd(lf_p)
-        Lf_cortex[:,k,0] = lf_normal
-        Lf_cortex[:,k,1:] = np.c_[U[:,0]*s[0], U[:,1]*s[1]]
+        Lf_cortex[:, k, 0] = lf_normal
+        Lf_cortex[:, k, 1:] = np.c_[U[:, 0] * s[0], U[:, 1] * s[1]]
 
     Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
     return Lf_cortex
@@ -596,7 +596,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         raise ValueError('weight_exp should be a scalar between 0 and 1')
 
     # Set regularization parameter based on SNR
-    lambda2 = 1.0 / snr**2
+    lambda2 = 1.0 / snr ** 2
 
     normals = []
     for s in forward['src']:
@@ -630,14 +630,14 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
 
     # compute power
     if depth:
-        w = np.sum(gain**2, axis=0)
+        w = np.sum(gain ** 2, axis=0)
         w = w.reshape(-1, 3).sum(axis=1)
-        w = w[:,None] * np.ones((1, n_dip_per_pos))
+        w = w[:, None] * np.ones((1, n_dip_per_pos))
         w = w.ravel()
 
     if orientation is 'fixed':
         print 'Appying fixed dipole orientations.'
-        gain = gain * _block_diag(normals.ravel()[None,:], 3).T
+        gain = gain * _block_diag(normals.ravel()[None, :], 3).T
     elif orientation is 'free':
         print 'Using free dipole orientations. No constraints.'
     elif orientation is 'loose':
@@ -666,7 +666,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         # apply weight limit
         # Applying weight limit.
         print 'Applying weight limit.'
-        weight_limit2 = weight_limit**2
+        weight_limit2 = weight_limit ** 2
         # limit = min(w(w>min(w) * weight_limit2));  % This is the Matti way.
         # we do the Rey way (robust to possible weight discontinuity).
         limit = np.min(w) * weight_limit2
@@ -690,44 +690,44 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     # Adjusting Source Covariance matrix to make trace of L*C_J*L' equal
     # to number of sensors.
     print 'Adjusting source covariance matrix.'
-    source_std = np.sqrt(w) # sqrt(C_J)
-    trclcl = linalg.norm(gain * source_std[None,:], ord='fro')
-    source_std *= sqrt(rank_noise) / trclcl # correct C_J
-    gain *= source_std[None,:]
+    source_std = np.sqrt(w)  # sqrt(C_J)
+    trclcl = linalg.norm(gain * source_std[None, :], ord='fro')
+    source_std *= sqrt(rank_noise) / trclcl  # correct C_J
+    gain *= source_std[None, :]
 
     # Compute SVD.
     print 'Computing SVD of whitened and weighted lead field matrix.'
     U, s, Vh = linalg.svd(gain, full_matrices=False)
-    ss = s / (s**2 + lambda2)
+    ss = s / (s ** 2 + lambda2)
 
     # Compute whitened MNE operator.
-    Kernel = source_std[:,None] * np.dot(Vh.T, ss[:,None] * U.T)
+    Kernel = source_std[:, None] * np.dot(Vh.T, ss[:, None] * U.T)
 
     # Compute dSPM operator.
     if method is 'dspm':
         print 'Computing dSPM inverse operator.'
-        dspm_diag = np.sum(Kernel**2, axis=1)
+        dspm_diag = np.sum(Kernel ** 2, axis=1)
         if n_dip_per_pos == 1:
             dspm_diag = np.sqrt(dspm_diag)
         elif n_dip_per_pos in [2, 3]:
             dspm_diag = dspm_diag.reshape(-1, n_dip_per_pos)
             dspm_diag = np.sqrt(np.sum(dspm_diag, axis=1))
             dspm_diag = (np.ones((1, n_dip_per_pos)) *
-                         dspm_diag[:,None]).ravel()
+                         dspm_diag[:, None]).ravel()
 
-        Kernel /= dspm_diag[:,None]
+        Kernel /= dspm_diag[:, None]
 
     # whitened sLORETA imaging kernel
     elif method is 'sloreta':
         print 'Computing sLORETA inverse operator.'
         if n_dip_per_pos == 1:
             sloreta_diag = np.sqrt(np.sum(Kernel * gain.T, axis=1))
-            Kernel /= sloreta_diag[:,None]
+            Kernel /= sloreta_diag[:, None]
         elif n_dip_per_pos in [2, 3]:
             for k in n_positions:
-                start = k*n_dip_per_pos
-                stop = (k+1)*n_dip_per_pos
-                R = np.dot(Kernel[start:stop,:], gain[:,start:stop])
+                start = k * n_dip_per_pos
+                stop = (k + 1) * n_dip_per_pos
+                R = np.dot(Kernel[start:stop, :], gain[:, start:stop])
                 SIR = linalg.matfuncs.sqrtm(R, linalg.pinv(R))
                 Kernel[start:stop] = np.dot(SIR, Kernel[start:stop])
 

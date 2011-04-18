@@ -43,7 +43,7 @@ to the standard output. The command line options for mne_show_fiff are:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in  <*name*>**
 
     Specifies the fif file whose contents will be listed.
 
@@ -58,7 +58,7 @@ to the standard output. The command line options for mne_show_fiff are:
     Only list the blocks (the tree structure) of the file. The tags
     within each block are not listed.
 
-**\---indent <number>**
+**\---indent  <*number*>**
 
     Number of spaces for indentation for each deeper level in the tree structure
     of the fif files. The default indentation is 3 spaces in terse and
@@ -70,7 +70,7 @@ to the standard output. The command line options for mne_show_fiff are:
     This options has no effect unless the ``--verbose`` option
     is also present.
 
-**\---tag <number>**
+**\---tag  <*number*>**
 
     List only tags of this kind. Multiple ``--tag`` options
     can be specified to list several different kinds of data.
@@ -102,14 +102,14 @@ This utility adds or replaces information about unusable
 
     List the command-line options.
 
-**\---bad <filename>**
+**\---bad  <*filename*>**
 
     Specify a text file containing the names of the bad channels, one channel
     name per line. The names of the channels in this file must match
     those in the data file exactly. If this option is missing, the bad channel
     information is cleared.
 
-**<data file name>**
+** <*data file name*>**
 
     The remaining arguments are taken as data file names to be modified.
 
@@ -133,7 +133,7 @@ when stimulus input 16 is used and the data are acquired in the
 32-bit  mode. This problem can be fixed by running mne_fix_stim14 on
 a raw data file with the ``--32`` option:
 
-``mne_fix_stim14 --32`` <raw data file>
+``mne_fix_stim14 --32``  <*raw data file*>
 
 In this case, the correction will be applied to the stimulus
 channels 'STI101' and 'STI201'.
@@ -158,11 +158,11 @@ options are:
 
     List the command-line options.
 
-**\---file <name>**
+**\---file  <*name*>**
 
     Specify the measurement data file to be checked or modified.
 
-**\---dig <name>**
+**\---dig  <*name*>**
 
     Name of the file containing the Polhemus digitizer information. Default
     is the data file name.
@@ -236,11 +236,11 @@ options:
 
     List the command-line options.
 
-**\---fif <name>**
+**\---fif  <*name*>**
 
     Specifies the name of the data file to modify.
 
-**\---alias <name>**
+**\---alias  <*name*>**
 
     Specifies the text file which contains the modifications to be applied,
     see below.
@@ -307,11 +307,11 @@ the following command-line options:
 
     List the command-line options.
 
-**\---raw <name>**
+**\---raw  <*name*>**
 
     Specifies the raw data file to be modified.
 
-**\---trg <name>**
+**\---trg  <*name*>**
 
     Specifies the trigger line modification list. This text file should
     contain two entries per line: the sample number and the trigger
@@ -375,7 +375,7 @@ the following command-line options:
 
     Remove the FIFF_SUBJ_HIS_ID tag as well, see above.
 
-**\---file <name>**
+**\---file  <*name*>**
 
     Specifies the name of the file to be modified.
 
@@ -404,13 +404,13 @@ the MNE software.
 mne_copy_processing_history is
 simple to use:
 
-``mne_copy_processing_history --from`` <from> ``--to`` <to> ,
+``mne_copy_processing_history --from``  <*from*> ``--to``  <*to*> ,
 
-where <from> is an
-original raw data file containing the processing history and <to> is
+where  <*from*> is an
+original raw data file containing the processing history and  <*to*> is
 a file output with older MNE Matlab routines. Be careful: this operation
-cannot be undone. If the <from> file
-does not have the processing history block or the <to> file
+cannot be undone. If the  <*from*> file
+does not have the processing history block or the  <*to*> file
 already has it, the destination file remains unchanged.
 
 .. _CHDHJABJ:
@@ -450,12 +450,12 @@ the following command-line options:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in  <*name*>**
 
     Specifies a measurement file which contains the EEG electrode locations.
     This file is not modified.
 
-**\---inmat <name>**
+**\---inmat  <*name*>**
 
     Specifies the output file where the layout is stored. Suffix ``.lout`` is recommended
     for layout files. mne_analyze and mne_browse_raw look
@@ -466,18 +466,18 @@ the following command-line options:
     Indicates that the file specified with the ``--inmat`` option
     contains a transpose of the derivation matrix.
 
-**\---thresh <value>**
+**\---thresh  <*value*>**
 
     Specifies the threshold between values to be considered zero and non-zero
     in the input file specified with the ``--inmat`` option.
     The default threshold is INLINE_EQUATION.
 
-**\---out <name>**
+**\---out  <*name*>**
 
     Specifies output fif file to contain the derivation data. The recommended
-    name of the derivation file has the format <name> ``-deriv.fif`` .
+    name of the derivation file has the format  <*name*> ``-deriv.fif`` .
 
-**\---list <name>**
+**\---list  <*name*>**
 
     List the contents of a derivation file to standard output. If this
     option is missing and ``--out`` is specified, the content
@@ -492,9 +492,9 @@ All lines in the input files starting with the pound sign
 (#) are considered to be comments. The format of a derivation in
 a arithmetic input file is:
 
-<name> ``=`` [<INLINE_EQUATION>``*`` ]<INLINE_EQUATION > ``+`` <INLINE_EQUATION>``*`` ]<INLINE_EQUATION >INLINE_EQUATION
+ <*name*> ``=`` [ <*INLINE_EQUATION*>``*`` ] <*INLINE_EQUATION > ``+``  <*INLINE_EQUATION*>``*`` ] <*INLINE_EQUATION >INLINE_EQUATION
 
-where <name> is the
+where  <*name*> is the
 name of the derived channel, INLINE_EQUATION are
 the names of the channels comprising the derivation, and INLINE_EQUATION are
 their weights. Note that spaces are necessary between the items.
@@ -512,8 +512,8 @@ two times ``EEG 002`` .
 
 The format of a matrix derivation file is:
 
-<nrow> <ncol> <names of the input channels>
-<INLINE_EQUATION> <weights> INLINE_EQUATION
+ <*nrow*>  <*ncol*>  <*names of the input channels*>
+ <*INLINE_EQUATION*>  <*weights*> INLINE_EQUATION
 
 The combination of the two arithmetic examples, above can
 be thus represented as:
@@ -586,7 +586,7 @@ The command-line options are:
 
     List the command-line options.
 
-**\---lout <name>**
+**\---lout  <*name*>**
 
     Specifies the name of the layout file to be output.
 
@@ -595,16 +595,16 @@ The command-line options are:
     Do not fit a sphere to the electrode locations but use a standard sphere
     center (INLINE_EQUATION, and INLINE_EQUATION instead.
 
-**\---prad <value>**
+**\---prad  <*value*>**
 
     Specifies a non-standard projection radius INLINE_EQUATION,
     see above.
 
-**\---width <value>**
+**\---width  <*value*>**
 
     Specifies the width of the viewports. Default value = 5.
 
-**\---height <value>**
+**\---height  <*value*>**
 
     Specifies the height of the viewports. Default value = 4.
 
@@ -646,19 +646,19 @@ the following command-line options:
 
     Provide verbose output during the calculations.
 
-**\---dist <dist/mm>**
+**\---dist  <*dist/mm*>**
 
     Invokes the calculation of distances between vertices included in
     the source space along the cortical surface. Only pairs whose distance in
     the three-dimensional volume is less than the specified distance are
     considered. For details, see :ref:`CJAIFJDD`, below.
 
-**\---src <name>**
+**\---src  <*name*>**
 
     The input source space file. The source space files usually end
     with ``-src.fif`` .
 
-**\---srcp <name>**
+**\---srcp  <*name*>**
 
     The output source space file which will contain the patch information.
     If the file exists it will overwritten without asking for permission.
@@ -667,14 +667,14 @@ the following command-line options:
     file is ``mh-7-src.fif`` , a recommended output file name
     is ``mh-7p-src.fif`` .
 
-**\---w <name>**
+**\---w  <*name*>**
 
     Name of a w file, which will contain the patch area information. Two
-    files will be created: <name> ``-lh.w`` and <name> ``-rh.w`` .
+    files will be created:  <*name*> ``-lh.w`` and  <*name*> ``-rh.w`` .
     The numbers in the files are patch areas in INLINE_EQUATION.
     The source space vertices are marked with value 150.
 
-**\---labeldir <directory>**
+**\---labeldir  <*directory*>**
 
     Create a label file corresponding to each of the patches in the
     given directory. The directory must be created before running mne_add_patch_info .
@@ -737,22 +737,22 @@ following command-line options:
 
     List the command-line options.
 
-**\---cov <name>**
+**\---cov  <*name*>**
 
     The covariance matrix file to be used a source. The covariance matrix
     files usually end with ``-cov.fif`` .
 
-**\---proj <name>**
+**\---proj  <*name*>**
 
     The output file to contain the projection. It is recommended that
     the file name ends with ``-proj.fif`` .
 
-**\---bad <name>**
+**\---bad  <*name*>**
 
     Specify channels not to be included when an eigenvalue decomposition
     of the covariance matrix is computed.
 
-**\---include <val1> [:<val2> ]**
+**\---include  <*val1*> [: <*val2*> ]**
 
     Select an eigenvector or a range of eigenvectors to include. It
     is recommended that magnetometers, gradiometers, and EEG data are handled
@@ -806,11 +806,11 @@ the following command-line options:
 
     List the command-line options.
 
-**\---bem <name>**
+**\---bem  <*name*>**
 
     A BEM file to use. The names of these files usually end with ``bem.fif`` or ``bem-sol.fif`` .
 
-**\---surf <name>**
+**\---surf  <*name*>**
 
     A FreeSurfer surface file to read. This is an alternative to using
     a surface from the BEM file.
@@ -821,7 +821,7 @@ the following command-line options:
     fitting. If the surface is specified with the ``--surf`` option,
     this one is irrelevant.
 
-**\---mritrans <name>**
+**\---mritrans  <*name*>**
 
     A file containing a transformation matrix between the MEG head coordinates
     and MRI coordinates. With this option, the sphere origin will be
@@ -854,12 +854,12 @@ the following command-line options:
 
     List the command-line options.
 
-**\---fwd <name>**
+**\---fwd  <*name*>**
 
     Specifies a forward solution file to analyze. By default the MEG
     forward solution is considered.
 
-**\---proj <name>**
+**\---proj  <*name*>**
 
     Specifies a file containing an SSP operator to be applied. If necessary,
     multiple ``--proj`` options can be specified. For map types 1 - 4 (see
@@ -879,18 +879,18 @@ the following command-line options:
 
     Include MEG magnetometers instead of gradiometers
 
-**\---w <name>**
+**\---w  <*name*>**
 
     Specifies the stem of the output w files. To obtain the final output file
     names, ``-lh.w`` and ``-rh.w`` is appended for
     the left and right hemisphere, respectively.
 
-**\---smooth <number>**
+**\---smooth  <*number*>**
 
     Specifies the number of smooth steps to apply to the resulting w files.
     Default: no smoothing.
 
-**\---map <number>**
+**\---map  <*number*>**
 
     Select the type of a sensitivity map to compute. At present, valid numbers
     are 1 - 6. For details, see :ref:`CHDCDJIJ`, below.
@@ -994,26 +994,26 @@ the following command-line options:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in  <*name*>**
 
     Specifies the input file. The file must contain three numbers on
     each line which are the *x*, *y*,
     and *z* coordinates of point in space. By default,
     the input is in millimeters.
 
-**\---iso <name>**
+**\---iso  <*name*>**
 
     Specifies a name of a fif file containing Isotrak data. If this
     option is present file will be used as the input instead of the
     text file specified with the ``--in`` option.
 
-**\---trans <name>**
+**\---trans  <*name*>**
 
     Specifies the name of a fif file containing the coordinate transformation
     between the MEG head coordinates and MRI coordinates. If this file
     is not present, the transformation will be replaced by a unit transform.
 
-**\---out <name>**
+**\---out  <*name*>**
 
     Specifies the output file. This file has the same format as the
     input file.
@@ -1052,21 +1052,21 @@ The command-line options are:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in  <*name*>**
 
     Specifies the input data file.
 
-**\---set <number>**
+**\---set  <*number*>**
 
     The data set number to compute baselines from or to apply baselines
     to. If this option is omitted, all average data sets in the input file
     are processed.
 
-**\---out <name>**
+**\---out  <*name*>**
 
     The output file.
 
-**\---baselines <name>**
+**\---baselines  <*name*>**
 
     Specifies a text file which contains the baseline values to be applied. Each
     line should contain a channel name, colon, and the baseline value
@@ -1074,19 +1074,19 @@ The command-line options are:
     option is encountered, the limits specified by previous ``--bmin`` and ``--bmax`` options will not
     have an effect.
 
-**\---list <name>**
+**\---list  <*name*>**
 
     Specifies a text file to contain the baseline values. Listing is
     provided only if a specific data set is selected with the ``--set`` option.
 
-**\---bmin <value/ms>**
+**\---bmin  <*value/ms*>**
 
     Lower limit of the baseline. Effective only if ``--baselines`` option is
     not present. Both ``--bmin`` and ``--bmax`` must
     be present to compute the baseline values. If either ``--bmin`` or ``--bmax`` is
     encountered, previous ``--baselines`` option will be ignored.
 
-**\---bmax <value/ms>**
+**\---bmax  <*value/ms*>**
 
     Upper limit of the baseline.
 
@@ -1118,11 +1118,11 @@ command-line options:
 
     List the command-line options.
 
-**\---fwd <name>**
+**\---fwd  <*name*>**
 
     Specify a forward solution file to employ in the simulation.
 
-**\---label <name>**
+**\---label  <*name*>**
 
     Specify a label
 
@@ -1134,7 +1134,7 @@ command-line options:
 
     Provide EEG data in the output file.
 
-**\---out <name>**
+**\---out  <*name*>**
 
     Specify the output file. By default, this will be an evoked data
     file in the fif format.
@@ -1148,13 +1148,13 @@ command-line options:
     Produce Matlab output of the simulated fields instead of the fif evoked
     file.
 
-**\---label <name>**
+**\---label  <*name*>**
 
     Define an ROI. Several label files can be present. By default, the sources
     in the labels will have INLINE_EQUATION-shaped non-overlapping
     timecourses, see below.
 
-**\---timecourse <name>**
+**\---timecourse  <*name*>**
 
     Specifies a text file which contains an expression for a source
     time course, see :ref:`CHDCFIBH`. If no --timecourse options
@@ -1164,22 +1164,22 @@ command-line options:
     number of expressions is smaller than the number of labels, the
     last expression specified will reused for the remaining labels.
 
-**\---sfreq <freq/Hz>**
+**\---sfreq  <*freq/Hz*>**
 
     Specifies the sampling frequency of the output data (default = 1000 Hz). This
     option is used only with the time course files.
 
-**\---tmin <time/ms>**
+**\---tmin  <*time/ms*>**
 
     Specifies the starting time of the data, used only with time course files
     (default -200 ms).
 
-**\---tmax <time/ms>**
+**\---tmax  <*time/ms*>**
 
     Specifies the ending time of the data, used only with time course files
     (default 500 ms).
 
-**\---seed <number>**
+**\---seed  <*number*>**
 
     Specifies the seed for random numbers. This seed is used both for adding
     noise, see :ref:`CHDFBJIJ` and for random numbers in source waveform
@@ -1246,7 +1246,7 @@ The ``--timecourse`` option provides flexible possibilities
 to define the source waveforms in a functional form. The source
 waveform expression files consist of lines of the form:
 
-<variable> ``=`` <arithmetic expression>
+ <*variable*> ``=``  <*arithmetic expression*>
 
 Each file may contain multiple lines. At the end of the evaluation,
 only the values in the variable ``y`` (``q`` )
@@ -1276,7 +1276,7 @@ The available variables are listed in :ref:`CHDJBIEE`.
 The arithmetic expressions can use usual arithmetic operations
 as well as  mathematical functions listed in :ref:`CHDJIBHA`.
 The arguments can be vectors or scalar numbers. In addition, standard
-relational operators (<, >, ==, <=, >=) and their textual
+relational operators ( <*, >, ==,  <*=, >=) and their textual
 equivalents (lt, gt, eq, le, ge) are available. Table :ref:`CHDDJEHH` gives some useful examples of source waveform
 expressions.
 
@@ -1326,7 +1326,7 @@ expressions.
     q = 20e-9*sin(2*pi*10*x)                       A 10-Hz sine wave with 20 nAm amplitude
     q = 20e-9*sin(2*pi*2*x)*sin(2*pi*10*x)         A 10-Hz 20-nAm sine wave, amplitude modulated sinusoidally at 2 Hz.
     q = 20e-9*cosw(t,100,100,100)                  INLINE_EQUATION-shaped pulse, centered at INLINE_EQUATION with 100 ms leading and trailing slopes, 20 nAm amplitude.
-    q = 30e-9*(t > 0)*(t < 300)*sin(2*pi*20*x)     20-Hz sine wave, 30 nAm amplitude, cropped in time to 0...300 ms.
+    q = 30e-9*(t > 0)*(t  <* 300)*sin(2*pi*20*x)     20-Hz sine wave, 30 nAm amplitude, cropped in time to 0...300 ms.
     =============================================  =======================================================================================================================
 
 .. _CHDEDHCG:
@@ -1349,14 +1349,14 @@ The command line options for mne_annot2labels are:
 
     List the command-line options.
 
-**\---subject <name>**
+**\---subject  <*name*>**
 
     Specifies the name of the subject. If this option is not present
     the ``$SUBJECT`` environment variable is consulted. If
     the subject name cannot be determined, the program quits.
 
-**\---parc <name>**
+**\---parc  <*name*>**
 
     Specifies the parcellation name to convert. The corresponding parcellation
-    file names will be ``$SUBJECTS_DIR/$SUBJECT/label/`` <hemi> ``h.`` <name> ``.annot`` where <hemi> is ``l`` or ``r`` for the
+    file names will be ``$SUBJECTS_DIR/$SUBJECT/label/``  <*hemi*> ``h.``  <*name*> ``.annot`` where  <*hemi*> is ``l`` or ``r`` for the
     left and right hemisphere, respectively.

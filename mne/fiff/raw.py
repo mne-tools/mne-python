@@ -100,13 +100,13 @@ class Raw(dict):
             elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                 #   Figure out the number of samples in this buffer
                 if ent.type == FIFF.FIFFT_DAU_PACK16:
-                    nsamp = ent.size / (2*nchan)
+                    nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_SHORT:
-                    nsamp = ent.size / (2*nchan)
+                    nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
-                    nsamp = ent.size / (4*nchan)
+                    nsamp = ent.size / (4 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
-                    nsamp = ent.size / (4*nchan)
+                    nsamp = ent.size / (4 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
@@ -122,9 +122,9 @@ class Raw(dict):
                 if nskip > 0:
                     import pdb; pdb.set_trace()
                     rawdir.append(dict(ent=None, first=first_samp,
-                                       last=first_samp + nskip*nsamp - 1,
-                                       nsamp=nskip*nsamp))
-                    first_samp += nskip*nsamp
+                                       last=first_samp + nskip * nsamp - 1,
+                                       nsamp=nskip * nsamp))
+                    first_samp += nskip * nsamp
                     nskip = 0
 
                 #  Add a data buffer
@@ -156,8 +156,8 @@ class Raw(dict):
 
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
-        if isinstance(item, tuple): # slicing required
-            if len(item) == 2: # channels and time instants
+        if isinstance(item, tuple):  # slicing required
+            if len(item) == 2:  # channels and time instants
                 time_slice = item[1]
                 if isinstance(item[0], slice):
                     start = item[0].start if item[0].start is not None else 0
@@ -321,11 +321,11 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
             cal = np.diag(raw.cals[sel].ravel())
         else:
             if raw.proj is None:
-                mult = raw.comp[sel,:] * cal
+                mult = raw.comp[sel, :] * cal
             elif raw.comp is None:
-                mult = raw.proj[sel,:] * cal
+                mult = raw.proj[sel, :] * cal
             else:
-                mult = raw.proj[sel,:] * raw.comp * cal
+                mult = raw.proj[sel, :] * raw.comp * cal
 
     do_debug = False
     # do_debug = True
@@ -361,7 +361,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
                     else:
                         one = tag.data.reshape(this['nsamp'],
                                                nchan).astype(np.float).T
-                        one = cal * one[sel,:]
+                        one = cal * one[sel, :]
                 else:
                     one = mult * tag.data.reshape(this['nsamp'],
                                                   nchan).astype(np.float).T
@@ -396,17 +396,17 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
             #   Now we are ready to pick
             picksamp = last_pick - first_pick
             if picksamp > 0:
-                data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
+                data[:, dest:(dest + picksamp)] = one[:, first_pick:last_pick]
                 dest += picksamp
 
         #   Done?
-        if this['last'] >= stop-1:
+        if this['last'] >= stop - 1:
             print ' [done]'
             break
 
     times = (np.arange(start, stop) - raw.first_samp) / raw.info['sfreq']
 
-    raw.fid.seek(0, 0) # Go back to beginning of the file
+    raw.fid.seek(0, 0)  # Go back to beginning of the file
 
     return data, times
 
@@ -580,7 +580,7 @@ def start_writing_raw(name, info, sel=None):
         #
         #   Scan numbers may have been messed up
         #
-        chs[k].scanno = k + 1 # scanno starts at 1 in FIF format
+        chs[k].scanno = k + 1  # scanno starts at 1 in FIF format
         chs[k].range = 1.0
         cals.append(chs[k]['cal'])
         write_ch_info(fid, chs[k])
@@ -611,8 +611,7 @@ def write_raw_buffer(fid, buf, cals):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    write_float(fid, FIFF.FIFF_DATA_BUFFER, # XXX can do better
-                                    np.dot(np.diag(1.0 / np.ravel(cals)), buf))
+    write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):

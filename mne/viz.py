@@ -22,7 +22,7 @@ def plot_topo(evoked, layout):
         if name in ch_names:
             idx = ch_names.index(name)
             ax = pl.axes(layout.pos[idx], axisbg='k')
-            ax.plot(times, data[idx,:], 'w')
+            ax.plot(times, data[idx, :], 'w')
             pl.xticks([], ())
             pl.yticks([], ())
 
@@ -55,18 +55,18 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
             channel_types.append(t)
 
     counter = 1
-    times = 1e3 * evoked.times # time in miliseconds
+    times = 1e3 * evoked.times  # time in miliseconds
     for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
                            [1e6, 1e13, 1e15],
                            ['EEG', 'Gradiometers', 'Magnetometers'],
                            ['uV', 'fT/cm', 'fT']):
         if unit is False:
             scaling = 1.0
-            ch_unit = 'NA' # no unit
+            ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] is t]
         if len(idx) > 0:
             pl.subplot(n_channel_types, 1, counter)
-            pl.plot(times, scaling*evoked.data[idx,:].T)
+            pl.plot(times, scaling * evoked.data[idx, :].T)
             pl.title(name)
             pl.xlabel('time (ms)')
             counter += 1

@@ -34,23 +34,23 @@ raw = fiff.Raw(raw_fname)
 events = mne.find_events(raw)
 
 # pick EEG channels - bad channels (modify to your needs)
-exclude = raw.info['bads'] + ['EEG 053'] # bads + 1 more
+exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
 picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
                         exclude=exclude)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=40e-6, eog=150e-6))
-evoked = epochs.average() # average epochs and get an Evoked dataset.
+evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 cov = mne.Covariance(cov_fname)
 
 # Whiten data
-whitener = cov.get_whitener(evoked.info, pca=False) # get whitening matrix
+whitener = cov.get_whitener(evoked.info, pca=False)  # get whitening matrix
 sel = mne.fiff.pick_channels(evoked.ch_names, include=whitener.ch_names)
-whitened_data = np.dot(whitener.W, evoked.data[sel]) # apply whitening
+whitened_data = np.dot(whitener.W, evoked.data[sel])  # apply whitening
 
 ###############################################################################
 # Show result
-times = 1e3 * epochs.times # in ms
+times = 1e3 * epochs.times  # in ms
 import pylab as pl
 pl.clf()
 pl.plot(times, whitened_data.T)

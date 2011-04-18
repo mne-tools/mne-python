@@ -93,14 +93,14 @@ def write_id(fid, kind, id_=None):
     if id_ is None:
         id_ = dict()
         id_['version'] = (1 << 16) | 2
-        id_['machid'] = 65536 * np.random.rand(2) # Machine id (andom for now)
+        id_['machid'] = 65536 * np.random.rand(2)  # Machine id (andom for now)
         id_['secs'] = time.time()
-        id_['usecs'] = 0            #   Do not know how we could get this XXX
+        id_['usecs'] = 0            # Do not know how we could get this XXX
 
     FIFFT_ID_STRUCT = 31
     FIFFV_NEXT_SEQ = 0
 
-    data_size = 5 * 4                       #   The id comprises five integers
+    data_size = 5 * 4                       # The id comprises five integers
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_ID_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
@@ -179,12 +179,12 @@ def write_coord_trans(fid, trans):
     #  fiff_float_t invmove[3];            /*!< The inverse transform (translation part) */
     #} *fiffCoordTrans, fiffCoordTransRec; /*!< Coordinate transformation descriptor */
 
-    data_size = 4*2*12 + 4*2
+    data_size = 4 * 2 * 12 + 4 * 2
     fid.write(np.array(FIFF_COORD_TRANS, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
-    fid.write(np.array(trans['from_'], dtype='>i4').tostring())
+    fid.write(np.array(trans['from'], dtype='>i4').tostring())
     fid.write(np.array(trans['to'], dtype='>i4').tostring())
 
     #   The transform...
@@ -216,7 +216,6 @@ def write_ch_info(fid, ch):
     #  fiff_float_t ez[3];                   /*!< Coil coordinate system z-axis unit vector */
     #} fiffChPosRec,*fiffChPos;                /*!< Measurement channel position and coil type */
 
-
     #typedef struct _fiffChInfoRec {
     #  fiff_int_t    scanNo;    /*!< Scanning order # */
     #  fiff_int_t    logNo;     /*!< Logical channel # */
@@ -229,7 +228,7 @@ def write_ch_info(fid, ch):
     #  fiff_char_t   ch_name[16];   /*!< Descriptive name for the channel */
     #} fiffChInfoRec,*fiffChInfo;   /*!< Description of one channel */
 
-    data_size = 4*13 + 4*7 + 16
+    data_size = 4 * 13 + 4 * 7 + 16
 
     fid.write(np.array(FIFF_CH_INFO, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_CH_INFO_STRUCT, dtype='>i4').tostring())
@@ -243,7 +242,7 @@ def write_ch_info(fid, ch):
     fid.write(np.array(ch['range'], dtype='>f4').tostring())
     fid.write(np.array(ch['cal'], dtype='>f4').tostring())
     fid.write(np.array(ch['coil_type'], dtype='>i4').tostring())
-    fid.write(np.array(ch['loc'], dtype='>f4').tostring()) # writing 12 values
+    fid.write(np.array(ch['loc'], dtype='>f4').tostring())  # writing 12 values
 
     #   unit and unit multiplier
     fid.write(np.array(ch['unit'], dtype='>i4').tostring())

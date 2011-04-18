@@ -31,14 +31,14 @@ def bin_perm_rep(ndim, a=0, b=1):
     """
 
     # Create the leftmost column as 0,0,...,1,1,...
-    nperms = 2**ndim
+    nperms = 2 ** ndim
     perms = np.empty((nperms, ndim), type(a))
     perms.fill(a)
     half_point = nperms / 2
     perms[half_point:, 0] = b
     # Fill the rest of the table by sampling the pervious column every 2 items
     for j in range(1, ndim):
-        half_col = perms[::2, j-1]
+        half_col = perms[::2, j - 1]
         perms[:half_point, j] = half_col
         perms[half_point:, j] = half_col
 
@@ -101,24 +101,24 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     n_samples, n_tests = X.shape
 
     do_exact = False
-    if n_permutations is 'all' or (n_permutations >= 2**n_samples - 1):
+    if n_permutations is 'all' or (n_permutations >= 2 ** n_samples - 1):
         do_exact = True
-        n_permutations = 2**n_samples - 1
+        n_permutations = 2 ** n_samples - 1
 
-    X2 = np.mean(X**2, axis=0) # precompute moments
+    X2 = np.mean(X ** 2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
-    std0 = np.sqrt(X2 - mu0**2) * dof_scaling # get std with variance splitting
+    std0 = np.sqrt(X2 - mu0 ** 2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
 
     if do_exact:
-        perms = bin_perm_rep(n_samples, a=1, b=-1)[1:,:]
+        perms = bin_perm_rep(n_samples, a=1, b=-1)[1:, :]
     else:
         perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
     mus = np.dot(perms, X) / float(n_samples)
-    stds = np.sqrt(X2[None,:] - mus**2) * dof_scaling # std with splitting
-    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1) # t-max
+    stds = np.sqrt(X2[None, :] - mus ** 2) * dof_scaling  # std with splitting
+    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
     H0 = np.sort(max_abs)
 
     scaling = float(n_permutations + 1)
@@ -132,5 +132,4 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
 
     return T_obs, p_values, H0
 
-permutation_t_test.__test__ = False # for nosetests
-
+permutation_t_test.__test__ = False  # for nosetests

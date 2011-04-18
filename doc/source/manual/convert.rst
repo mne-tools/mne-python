@@ -87,17 +87,17 @@ The command-line options of mne_ctf2fiff are:
 
     Produce a verbose listing of the conversion process to stdout.
 
-**\---ds <directory>**
+**\---ds <*directory*>**
 
     Read the data from this directory
 
-**\---omit <filename>**
+**\---omit <*filename*>**
 
     Read the names of channels to be omitted from this text file. Enter one
     channel name per line. The names should match exactly with those
     listed in the CTF data structures. By default, all channels are included.
 
-**\---fif <filename>**
+**\---fif <*filename*>**
 
     The name of the output file. If the length of the raw data exceeds
     the 2-GByte fif file limit, several output files will be produced.
@@ -118,37 +118,37 @@ The command-line options of mne_ctf2fiff are:
 During conversion, the following files are consulted from
 the ds directory:
 
-**<name> .res4**
+** <*name*> .res4**
 
     This file contains most of the header information pertaining the acquisition.
 
-**<name> .hc**
+** <*name*> .hc**
 
     This file contains the HPI coil locations in sensor and head coordinates.
 
-**<name> .meg4**
+** <*name*> .meg4**
 
     This file contains the actual MEG data. If the data are split across several
     files due to the 2-GByte file size restriction, the 'extension' files
-    are called <name> ``.`` <number> ``_meg4`` .
+    are called <*name*> ``.`` <*number*> ``_meg4`` .
 
-**<name> .eeg**
+** <*name*> .eeg**
 
     This is an optional input file containing the EEG electrode locations. More
     details are given below.
 
-If the <name> ``.eeg`` file,
+If the <*name*> ``.eeg`` file,
 produced from the Polhemus data file with CTF software, is present,
 it is assumed to contain lines with the format:
 
-<number> <name> <x/cm> <y/cm> <z/cm>
+ <*number*> <*name*> <*x/cm*> <*y/cm*> <*z/cm*>
 
-The field <number> is
+The field <*number*> is
 a sequential number to be assigned to the converted data point in
-the fif file. <name> is either
+the fif file. <*name*> is either
 a name of an EEG channel, one of ``left`` , ``right`` ,
 or ``nasion`` to indicate a fiducial landmark, or any word
-which is not a name of any channel in the data. If <name> is
+which is not a name of any channel in the data. If <*name*> is
 a name of an EEG channel available in the data, the location is
 included in the Polhemus data as an EEG electrode locations and
 inserted as the location of the EEG electrode. If the name is one
@@ -202,7 +202,7 @@ The command-line options for mne_ctf_dig2fiff are:
 
     List the command-line options.
 
-**\---dig <name>**
+**\---dig <*name*>**
 
     Specifies the input data file in CTF output format.
 
@@ -210,12 +210,12 @@ The command-line options for mne_ctf_dig2fiff are:
 
     Fiducial locations are numbered instead of labeled, see above.
 
-**\---hpts <name>**
+**\---hpts <*name*>**
 
     Specifies the output hpts file. The format of this text file is
     described in :ref:`CJADJEBH`.
 
-**\---fif <name>**
+**\---fif <*name*>**
 
     Specifies the output fif file.
 
@@ -292,15 +292,15 @@ which has the following command-line options:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in <*name*>**
 
     Specifies the input data file.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output data file.
 
-**\---grad <number>**
+**\---grad <*number*>**
 
     Specifies the desired compensation grade in the output file. The value
     can be 1, 2, 3, or 101. The values starting from 101 will be used
@@ -330,16 +330,16 @@ This utility has the following command-line options:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in <*name*>**
 
     Specifies the input fif file containing the helmet sensor data.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output fif file which will contain both the helmet
     sensor data and the compensation channel data.
 
-**\---ref <name>**
+**\---ref <*name*>**
 
     Specifies a text file containing the reference sensor data.
 
@@ -398,30 +398,30 @@ The command line options of mne_create_comp_data are:
 
     List the command-line options.
 
-**\---in <name>**
+**\---in <*name*>**
 
     Specifies the input text file containing the compensation data.
 
-**\---kind <value>**
+**\---kind <*value*>**
 
     The compensation type to be stored in the output file with the data. This
     value defaults to 101 for the Magnes compensation and does not need
     to be changed.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output fif file containing the compensation channel weight
     matrix INLINE_EQUATION, see :ref:`BEHDDFBI`.
 
 The format of the text-format compensation data file is:
 
-<number of MEG helmet channels> <number of compensation channels included>
-<INLINE_EQUATION> <INLINE_EQUATION>INLINE_EQUATION
-<INLINE_EQUATION> <weights>
-<INLINE_EQUATION> <weights> INLINE_EQUATION
+ <*number of MEG helmet channels*> <*number of compensation channels included*>
+ <*INLINE_EQUATION*> <*INLINE_EQUATION*>INLINE_EQUATION
+ <*INLINE_EQUATION*> <*weights*>
+ <*INLINE_EQUATION*> <*weights*> INLINE_EQUATION
 
-In the above <INLINE_EQUATION> denote
-names of MEG helmet channels and <INLINE_EQUATION>
+In the above <*INLINE_EQUATION*> denote
+names of MEG helmet channels and <*INLINE_EQUATION*>
 those of the compensation channels, respectively. If the channel
 names contain spaces, they must be surrounded by quotes, for example, ``"MEG 0111"`` .
 
@@ -505,55 +505,55 @@ the following command-line options:
 
     List the command-line options.
 
-**\---elp <filename>**
+**\---elp <*filename*>**
 
     The name of the file containing the locations of the fiducials and
     the HPI coils. This option is mandatory.
 
-**\---hsp <filename>**
+**\---hsp <*filename*>**
 
     The name of the file containing the locations of the fiducials and additional
     points on the head surface. This file is optional.
 
-**\---sns <filename>**
+**\---sns <*filename*>**
 
     The name of file containing the sensor locations and orientations. This
     option is mandatory.
 
-**\---hpi <filename>**
+**\---hpi <*filename*>**
 
     The name of a text file containing the locations of the HPI coils
     in the MEG device coordinate frame, given in millimeters. The order of
     the coils in this file does not have to be the same as that in the elp file.
     This option is mandatory.
 
-**\---raw <filename>**
+**\---raw <*filename*>**
 
     Specifies the name of the raw data file. If this file is not specified, the
     output fif file will only contain the measurement info block.
 
-**\---sfreq <value/Hz>**
+**\---sfreq <*value/Hz*>**
 
     The sampling frequency of the data. If this option is not specified, the
     sampling frequency defaults to 1000 Hz.
 
-**\---lowpass <value/Hz>**
+**\---lowpass <*value/Hz*>**
 
     The lowpass filter corner frequency used in the data acquisition.
     If not specified, this value defaults to 200 Hz.
 
-**\---highpass <value/Hz>**
+**\---highpass <*value/Hz*>**
 
     The highpass filter corner frequency used in the data acquisition.
     If not specified, this value defaults to 0 Hz (DC recording).
 
-**\---out <filename>**
+**\---out <*filename*>**
 
     Specifies the name of the output fif format data file. If this file
     is not specified, no output is produced but the elp , hpi ,
     and hsp files are processed normally.
 
-**\---stim <chs>**
+**\---stim <*chs*>**
 
     Specifies a colon-separated list of numbers of channels to be used
     to synthesize a digital trigger channel. These numbers refer to
@@ -562,12 +562,12 @@ the following command-line options:
     channel in the file. If this option is absent, the output file will
     not contain a trigger channel.
 
-**\---stimthresh <value>**
+**\---stimthresh <*value*>**
 
     The threshold value used when synthesizing the digital trigger channel,
     see above. Defaults to 1.0.
 
-**\---add <chs>**
+**\---add <*chs*>**
 
     Specifies a colon-separated list of numbers of channels to include between
     the 157 default MEG channels and the digital trigger channel. These
@@ -643,11 +643,11 @@ The command-line options of mne_edf2fiff are:
 
     List the command-line options.
 
-**\---edf <filename>**
+**\---edf <*filename*>**
 
     Specifies the name of the raw data file to process.
 
-**\---tal <filename>**
+**\---tal <*filename*>**
 
     List the time-stamped annotation list (TAL) data from an EDF+ file here.
     This output is useful to assist in creating the annotation map file,
@@ -659,7 +659,7 @@ The command-line options of mne_edf2fiff are:
     the absense of the ``--annotmap`` option default trigger number 1024
     is used.
 
-**\---annotmap <filename>**
+**\---annotmap <*filename*>**
 
     Specify a file which maps the labels of the TALs to numbers on a trigger
     channel (STI 014) which will be added to the output file if this
@@ -670,7 +670,7 @@ The command-line options of mne_edf2fiff are:
     annotation labeled with the text 'Trigger-1' will
     be translated to the number 9 on the trigger channel.
 
-**\---elp <filename>**
+**\---elp <*filename*>**
 
     Specifies the name of the an electrode location file. This file
     is in the "probe" file format used by the *Source
@@ -684,7 +684,7 @@ The command-line options of mne_edf2fiff are:
     When this option is encountered on the command line any previously
     specified hpts file will be ignored.
 
-**\---hpts <filename>**
+**\---hpts <*filename*>**
 
     Specifies the name of an electrode position file in  the hpts format discussed
     in :ref:`CJADJEBH`. The mandatory entries are the fiducial marker
@@ -699,7 +699,7 @@ The command-line options of mne_edf2fiff are:
     Assumes that the digitization data in an hpts file
     is given in meters instead of millimeters.
 
-**\---fif <filename>**
+**\---fif <*filename*>**
 
     Specifies the name of the fif file to be output.
 
@@ -764,16 +764,16 @@ the following command-line options:
 
     List the command-line options.
 
-**\---raw <filename>**
+**\---raw <*filename*>**
 
     Specifies the name of the raw data file to process.
 
-**\---cal <filename>**
+**\---cal <*filename*>**
 
     The name of the calibration data file. If calibration data are missing, the
     calibration coefficients will be set to unity.
 
-**\---elp <filename>**
+**\---elp <*filename*>**
 
     The name of the electrode location file. If this file is missing,
     the electrode locations will be unspecified. This file is in the "probe" file
@@ -813,7 +813,7 @@ The command-line options of mne_brain_vision2fiff are:
 
     List the command-line options.
 
-**\---header <name>**
+**\---header <*name*>**
 
     The name of the BrainVision header file. The extension of this file
     is ``vhdr`` . The header file typically refers to a marker
@@ -822,7 +822,7 @@ The command-line options of mne_brain_vision2fiff are:
     The ``vmrk`` file is ignored if the ``--eximia`` option
     is present.
 
-**\---dig <name>**
+**\---dig <*name*>**
 
     The name of the fif file containing the digitization data.
 
@@ -841,19 +841,19 @@ The command-line options of mne_brain_vision2fiff are:
     by the mne_eximia2fiff script,
     see :ref:`BEHGCEHH`.
 
-**\---split <size/MB>**
+**\---split <*size/MB*>**
 
-    Split the output data into several files which are no more than <size> MB.
+    Split the output data into several files which are no more than <*size*> MB.
     By default, the output is split into files which are just below
     2 GB so that the fif file maximum size is not exceeded.
 
-**\---out <filename>**
+**\---out <*filename*>**
 
-    Specifies the name of the output fif format data file. If <filename> ends
+    Specifies the name of the output fif format data file. If <*filename*> ends
     with ``.fif`` or ``_raw.fif`` , these endings are
     deleted. After these modifications, ``_raw.fif`` is inserted
     after the remaining part of the file name. If the file is split
-    into multiple parts, the additional parts will be called <name> ``-`` <number> ``_raw.fif`` .
+    into multiple parts, the additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif`` .
 
 .. _BEHGCEHH:
 
@@ -925,23 +925,23 @@ The command-line options of mne_convert_dig_data are:
 
     List the command-line options.
 
-**\---fif <name>**
+**\---fif <*name*>**
 
     Specifies the name of an input fif file.
 
-**\---hpts <name>**
+**\---hpts <*name*>**
 
     Specifies the name of an input hpts file.
 
-**\---elp <name>**
+**\---elp <*name*>**
 
     Specifies the name of an input elp file.
 
-**\---fifout <name>**
+**\---fifout <*name*>**
 
     Specifies the name of an output fif file.
 
-**\---hptsout <name>**
+**\---hptsout <*name*>**
 
     Specifies the name of an output hpts file.
 
@@ -968,11 +968,11 @@ The hpts format digitzer
 data file may contain comment lines starting with the pound sign
 (#) and data lines of the form:
 
-<category> <identifier> <x/mm> <y/mm> <z/mm>
+ <*category*> <*identifier*> <*x/mm*> <*y/mm*> <*z/mm*>
 
 where
 
-**<category>**
+** <*category*>**
 
     defines the type of points. Allowed categories are: hpi , cardinal (fiducial ),eeg ,
     and extra corresponding to head-position
@@ -981,7 +981,7 @@ where
     recognize the fiducial as an
     alias for cardinal .
 
-**<identifier>**
+** <*identifier*>**
 
     identifies the point. The identifiers are usually sequential numbers. For
     cardinal landmarks, 1 = left auricular point, 2 = nasion, and 3
@@ -989,7 +989,7 @@ where
     the reference electrode. Some programs (not tkmedit )
     accept electrode labels as identifiers in the eeg category.
 
-**<x/mm> , <y/mm> , <z/mm>**
+** <*x/mm*> , <*y/mm*> , <*z/mm*>**
 
     Location of the point, usually in the MEG head coordinate system, see :ref:`BJEBIBAI`.
     Some programs have options to accept coordinates in meters instead
@@ -1030,31 +1030,31 @@ the following command-line options:
 
     List the command-line options.
 
-**\---src <filename>**
+**\---src <*filename*>**
 
     The name of the volumetric source space file created with mne_volume_source_space .
     The source space must have been created with the ``--mri`` option,
     which adds the appropriate sparse trilinear interpolator matrix
     to the source space.
 
-**\---w <filename>**
+**\---w <*filename*>**
 
     The name of a w file to convert
     into an MRI overlay.
 
-**\---stc <filename>**
+**\---stc <*filename*>**
 
     The name of the stc file to convert
     into an MRI overlay. If this file has many time frames, the output
     file may be huge. Note: If both ``-w`` and ``--stc`` are
     specified, ``-w`` takes precedence.
 
-**\---scale <number>**
+**\---scale <*number*>**
 
     Multiply the stc or w by
     this scaling constant before producing the overlay.
 
-**\---out <filename>**
+**\---out <*filename*>**
 
     Specifies the name of the output MRI overlay file. The name must end
     with either ``.mgh`` or ``.mgz`` identifying the
@@ -1079,13 +1079,13 @@ The command-line options are:
 
     List the command-line options.
 
-**\---src <name>**
+**\---src <*name*>**
 
     The source space to be listed. This can be either the output from mne_make_source_space
     (*src.fif), output from the forward calculation (*fwd.fif), or
     the output from the inverse operator decomposition (*inv.fif).
 
-**\---mri <name>**
+**\---mri <*name*>**
 
     A file containing the transformation between the head and MRI coordinates
     is specified with this option. This file can be either a Neuromag
@@ -1094,32 +1094,32 @@ The command-line options are:
     If this file is included, the output will be in head coordinates.
     Otherwise the source space will be listed in MRI coordinates.
 
-**\---dip <name>**
+**\---dip <*name*>**
 
     Specifies the 'stem' for the Neuromag text format
-    dipole files to be output. Two files will be produced: <stem> -lh.dip
-    and <stem> -rh.dip. These correspond
+    dipole files to be output. Two files will be produced: <*stem*> -lh.dip
+    and <*stem*> -rh.dip. These correspond
     to the left and right hemisphere part of the source space, respectively.
     This source space data can be imported to MRIlab through the File/Import/Dipoles menu
     item.
 
-**\---pnt <name>**
+**\---pnt <*name*>**
 
     Specifies the 'stem' for Neuromag text format
-    point files to be output. Two files will be produced: <stem> -lh.pnt
-    and <stem> -rh.pnt. These correspond
+    point files to be output. Two files will be produced: <*stem*> -lh.pnt
+    and <*stem*> -rh.pnt. These correspond
     to the left and right hemisphere part of the source space, respectively.
     This source space data can be imported to MRIlab through the File/Import/Strings menu
     item.
 
-**\---exclude <name>**
+**\---exclude <*name*>**
 
     Exclude the source space points defined by the given FreeSurfer 'label' file
     from the output. The name of the file should end with ``-lh.label``
     if it refers to the left hemisphere and with ``-rh.label`` if
     it lists points in the right hemisphere, respectively.
 
-**\---include <name>**
+**\---include <*name*>**
 
     Include only the source space points defined by the given FreeSurfer 'label' file
     to the output. The file naming convention is the same as described
@@ -1152,15 +1152,15 @@ The command-line options are:
 
     List the command-line options.
 
-**\---bem <name>**
+**\---bem <*name*>**
 
     The BEM file to be listed. The file name normally ends with -bem.fif or -bem-sol.fif .
 
-**\---out <name>**
+**\---out <*name*>**
 
     The output file name.
 
-**\---id <number>**
+**\---id <*number*>**
 
     Identify the surface to be listed. The surfaces are numbered starting with
     the innermost surface. Thus, for a three-layer model the surface numbers
@@ -1211,12 +1211,12 @@ the following command-line options:
 
     List the command-line options.
 
-**\---fif <name>**
+**\---fif <*name*>**
 
     Specifies a fif format input file. The first surface (source space)
     from this file will be read.
 
-**\---tri <name>**
+**\---tri <*name*>**
 
     Specifies a text format input file. The format of this file is described in :ref:`BEHDEFCD`.
 
@@ -1238,17 +1238,17 @@ the following command-line options:
     This option does not have any effect on the interpretation of the FreeSurfer surface
     files specified with the ``--surf`` option.
 
-**\---surf <name>**
+**\---surf <*name*>**
 
     Specifies a FreeSurfer format
     input file.
 
-**\---dfs <name>**
+**\---dfs <*name*>**
 
     Specifies the name of a dfs file to be converted. The surfaces produced
     by BrainSuite are in the dfs format.
 
-**\---mghmri <name>**
+**\---mghmri <*name*>**
 
     Specifies a mgh/mgz format MRI data file which will be used to define
     the coordinate transformation to be applied to the data read from
@@ -1266,14 +1266,14 @@ the following command-line options:
     Replaces existing volume geometry information. Used in conjunction
     with the ``--mghmri`` option described above.
 
-**\---fifmri <name>**
+**\---fifmri <*name*>**
 
     Specifies a fif format MRI destription file which will be used to define
     the coordinate transformation to be applied to the data read from
     a dfs file to bring it to the same coordinate system as the MRI stack
     in the file.
 
-**\---trans <name>**
+**\---trans <*name*>**
 
     Specifies the name of a text file which contains the coordinate
     transformation to be applied to the data read from the dfs file
@@ -1290,25 +1290,25 @@ the following command-line options:
     (LAS) with its origin in the right-posterior-inferior (RPI) corner
     of the MRI stack.
 
-**\---shift <value/mm>**
+**\---shift <*value/mm*>**
 
     Shift the surface vertices to the direction of the surface normals
     by this amount before saving the surface.
 
-**\---surfout <name>**
+**\---surfout <*name*>**
 
     Specifies a FreeSurfer format output file.
 
-**\---fifout <name>**
+**\---fifout <*name*>**
 
     Specifies a fif format output file.
 
-**\---triout <name>**
+**\---triout <*name*>**
 
     Specifies an ASCII output file that will contain the surface data
     in the triangle file format desribed in :ref:`BEHDEFCD`.
 
-**\---pntout <name>**
+**\---pntout <*name*>**
 
     Specifies a ASCII output file which will contain the vertex numbers only.
 
@@ -1322,7 +1322,7 @@ the following command-line options:
     Defines the vertex ordering of ASCII triangle files to be output.
     For details, see ``--swap`` option, above.
 
-**\---smfout <name>**
+**\---smfout <*name*>**
 
     Specifies a smf (Simple Model Format) output file. For details of this
     format, see http://people.scs.fsu.edu/~burkardt/data/smf.txt.
@@ -1363,7 +1363,7 @@ data as input. The command-line options are:
 
     List the command-line options.
 
-**\---dir <directory>**
+**\---dir <*directory*>**
 
     Specifies a directory containing the MRI volume in COR format. Any
     previous ``--mgh`` options are cancelled when this option
@@ -1374,7 +1374,7 @@ data as input. The command-line options are:
     Include the pixel data to the output file. This option is implied
     with the ``--mgh`` option.
 
-**\---mgh <name>**
+**\---mgh <*name*>**
 
     An MRI volume volume file in mgh or mgz format.
     The ``--withdata`` option is implied with this type of
@@ -1385,12 +1385,12 @@ data as input. The command-line options are:
     added to the output file. For definition of the coordinate transformations,
     see :ref:`CHDEDFIB`.
 
-**\---talairach <name>**
+**\---talairach <*name*>**
 
     Take the Talairach transform from this file instead of the one specified
     in mgh/mgz files.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output file, which is a fif-format MRI description
     file.
@@ -1417,13 +1417,13 @@ The command-line options are:
 
     List the command-line options.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     Specifies a measurement data file which provides INLINE_EQUATION.
     A forward solution or an inverse operator file can also be specified
     as implied by Table 5.1.
 
-**\---mri <name>**
+**\---mri <*name*>**
 
     Specifies an MRI description or a standalone coordinate transformation
     file produced by mne_analyze which
@@ -1432,7 +1432,7 @@ The command-line options are:
     tries to find INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION,
     and INLINE_EQUATION from this file.
 
-**\---mgh <name>**
+**\---mgh <*name*>**
 
     An MRI volume volume file in mgh or mgz format.
     This file provides INLINE_EQUATION. The transformation INLINE_EQUATION will
@@ -1440,7 +1440,7 @@ The command-line options are:
     The fixed transforms INLINE_EQUATION and INLINE_EQUATIONwill
     be also created.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output file. If this option is not present, the collected transformations
     will be output on screen but not saved.
@@ -1465,11 +1465,11 @@ The command-line options are:
 
     List the command-line options.
 
-**\---ncov <name>**
+**\---ncov <*name*>**
 
     The ncov file to be converted.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     A fif format measurement file used to assign channel names to the noise-covariance
     matrix elements. This file should have precisely the same channel
@@ -1495,24 +1495,24 @@ The command-line options are:
 
     List the command-line options.
 
-**\---lspcov <name>**
+**\---lspcov <*name*>**
 
     The LISP noise-covariance matrix file to be converted.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     A fif format measurement file used to assign channel names to the noise-covariance
     matrix elements. This file should have precisely the same channel
     order within MEG and EEG as the LISP-format covariance matrix file.
 
-**\---out <name>**
+**\---out <*name*>**
 
     The name of a fif format output file. The file name should end with
     -cov.fif.text format output file. No information about the channel names
     is included. The covariance matrix file is listed row by row. This
     file can be loaded to MATLAB, for example
 
-**\---outasc <name>**
+**\---outasc <*name*>**
 
     The name of a text format output file. No information about the channel
     names is included. The covariance matrix file is listed row by row.
@@ -1549,7 +1549,7 @@ by mne_convert_mne_data are:
 
     List the command-line options.
 
-**\---fwd <name>**
+**\---fwd <*name*>**
 
     Specity the name of the forward solution file to be converted. Channels
     specified with the ``--bad`` option will be excluded from
@@ -1577,19 +1577,19 @@ by mne_convert_mne_data are:
     When creating a 'measurement' fif file, do not
     output a forward model file, just the noise-covariance matrix.
 
-**\---senscov <name>**
+**\---senscov <*name*>**
 
     Specifies the fif file containing a sensor covariance matrix to
     be included with the output. If no other input files are specified
     only the covariance matrix is output
 
-**\---srccov <name>**
+**\---srccov <*name*>**
 
     Specifies the fif file containing the source covariance matrix to
     be included with the output. Only diagonal source covariance files
     can be handled at the moment.
 
-**\---bad <name>**
+**\---bad <*name*>**
 
     Specifies the name of the file containing the names of the channels to
     be omitted, one channel name per line. This does not affect the output
@@ -1599,8 +1599,8 @@ by mne_convert_mne_data are:
 **\---fif**
 
     Output the forward model and the noise-covariance matrix into 'measurement' fif
-    files. The forward model files are tagged with <modalities> ``-meas-fwd.fif`` and
-    the noise-covariance matrix files with <modalities> ``-meas-cov.fif`` .
+    files. The forward model files are tagged with <*modalities*> ``-meas-fwd.fif`` and
+    the noise-covariance matrix files with <*modalities*> ``-meas-cov.fif`` .
     Here, modalities is ``-meg`` if MEG is included, ``-eeg`` if
     EEG is included, and ``-meg-eeg`` if both types of signals
     are present. The inclusion of modalities is controlled by the ``--meg`` and ``--eeg`` options.
@@ -1608,17 +1608,17 @@ by mne_convert_mne_data are:
 **\---mat**
 
     Output the data into MATLAB mat files. This is the default. The
-    forward model files are tagged with <modalities> ``-fwd.mat`` forward model
+    forward model files are tagged with <*modalities*> ``-fwd.mat`` forward model
     and noise-covariance matrix output, with ``-inv.mat`` for inverse
     operator output, and with ``-inv-meas.mat`` for combined inverse
     operator and measurement data output, respectively. The meaning
-    of <modalities> is the same
+    of <*modalities*> is the same
     as in the fif output, described above.
 
-**\---tag <name>**
+**\---tag <*name*>**
 
     By default, all variables in the matlab output files start with
-    MNE_. This option allows to change this prefix to <name> _.
+    MNE_. This option allows to change this prefix to <*name*> _.
 
 **\---meg**
 
@@ -1630,7 +1630,7 @@ by mne_convert_mne_data are:
     Include EEG channels from the forward solution and noise-covariance
     matrix.
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Output the inverse operator data from the specified file into a
     mat file. The source and noise covariance matrices as well as active channels
@@ -1639,7 +1639,7 @@ by mne_convert_mne_data are:
     the options ``--meg`` , ``--eeg`` , ``--senscov`` , ``--srccov`` , ``--noiseonly`` ,
     and ``--bad`` do not affect the output of the inverse operator.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     Specifies the file containing measurement data to be output together with
     the inverse operator. The channels corresponding to the inverse operator
@@ -1647,16 +1647,16 @@ by mne_convert_mne_data are:
     option is present. Otherwise, the channel selection given with ``--sel`` option will
     be taken into account.
 
-**\---set <number>**
+**\---set <*number*>**
 
     Select the data set to be output from the measurement file.
 
-**\---bmin <value/ms>**
+**\---bmin <*value/ms*>**
 
     Specifies the baseline minimum value setting for the measurement signal
     output.
 
-**\---bmax <value/ms>**
+**\---bmax <*value/ms*>**
 
     Specifies the baseline maximum value setting for the measurement signal
     output.
@@ -1676,16 +1676,16 @@ of options appropriate for your needs.
     ============================================  ========  =====================================================================================  ===============================
     Desired output                                Format    Required options                                                                       Optional options
     ============================================  ========  =====================================================================================  ===============================
-    forward model                                 fif       --fwd <name>  --out <name>  --meg and/or --eeg --fif                                   --bad <name>  --surfsrc
-    forward model                                 mat       --fwd <name>  --out <name>  --meg and/or --eeg                                         --bad <name>  --surfsrc
-    forward model and  sensor covariance          mat       --fwd <name>  --out <name>  --senscov <name>  --meg and/or --eeg                       --bad <name>  --surfsrc
-    sensor covariance                             fif       --fwd <name>  --out <name>  --senscov <name>  --noiseonly --fif --meg and/or --eeg     --bad <name>
-    sensor covariance                             mat       --senscov <name>  --out <name                                                          --bad <name>
-    sensor covariance eigenvalues                 text      --senscov <name>  --out <name  --eig                                                   --bad <name>
-    evoked MEG/EEG data                           mat       --meas <name>  --out <name                                                             --sel <name>  --set <number>
-    evoked MEG/EEG data forward model             mat       --meas <name>  --fwd <name>  --out <name>                                              --bad <name>  --set <number>
-    inverse operator data                         mat       --inv <name>  --out <name
-    inverse operator data evoked MEG/EEG data     mat       --inv <name>  --meas <name>  --out <name
+    forward model                                 fif       --fwd <*name*>  --out <*name*>  --meg and/or --eeg --fif                                   --bad <*name*>  --surfsrc
+    forward model                                 mat       --fwd <*name*>  --out <*name*>  --meg and/or --eeg                                         --bad <*name*>  --surfsrc
+    forward model and  sensor covariance          mat       --fwd <*name*>  --out <*name*>  --senscov <*name*>  --meg and/or --eeg                       --bad <*name*>  --surfsrc
+    sensor covariance                             fif       --fwd <*name*>  --out <*name*>  --senscov <*name*>  --noiseonly --fif --meg and/or --eeg     --bad <*name*>
+    sensor covariance                             mat       --senscov <*name*>  --out <*name                                                          --bad <*name*>
+    sensor covariance eigenvalues                 text      --senscov <*name*>  --out <*name  --eig                                                   --bad <*name*>
+    evoked MEG/EEG data                           mat       --meas <*name*>  --out <*name                                                             --sel <*name*>  --set <*number*>
+    evoked MEG/EEG data forward model             mat       --meas <*name*>  --fwd <*name*>  --out <*name*>                                              --bad <*name*>  --set <*number*>
+    inverse operator data                         mat       --inv <*name*>  --out <*name
+    inverse operator data evoked MEG/EEG data     mat       --inv <*name*>  --meas <*name*>  --out <*name
     ============================================  ========  =====================================================================================  ===============================
 
 Matlab data structures
@@ -1720,15 +1720,15 @@ The symbols employed in variable size descriptions are:
 
 .. _BEHCICCA:
 
-.. table:: Matlab structures produced by mne_convert_mne_data . The prefix given with the ``--tag`` option is indicated <tag> , see :ref:`BEHCICCF`. Its default value is MNE.
+.. table:: Matlab structures produced by mne_convert_mne_data . The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHCICCF`. Its default value is MNE.
 
     ===============  =======================================
     Structure        Contents
     ===============  =======================================
-    <tag> _meas      Measured data
-    <tag> _inv       The inverse operator decomposition
-    <tag> _fwd       The forward solution
-    <tag> _noise     A standalone noise-covariance matrix
+    <*tag*> _meas      Measured data
+    <*tag*> _inv       The inverse operator decomposition
+    <*tag*> _fwd       The forward solution
+    <*tag*> _noise     A standalone noise-covariance matrix
     ===============  =======================================
 
 .. _BABCBIGF:
@@ -1794,11 +1794,11 @@ following command-line options:
 
     List the command-line options.
 
-**\---raw <name>**
+**\---raw <*name*>**
 
     Specifies the name of the raw data fif file to convert.
 
-**\---mat <name>**
+**\---mat <*name*>**
 
     Specifies the name of the destination Matlab file.
 
@@ -1807,33 +1807,33 @@ following command-line options:
     With this option present, only information about the raw data file
     is included. The raw data itself is omitted.
 
-**\---sel <name>**
+**\---sel <*name*>**
 
     Specifies a text file which contains the names of the channels to include
     in the output file, one channel name per line. If the ``--info`` option
     is specified, ``--sel`` does not have any effect.
 
-**\---tag <tag>**
+**\---tag <*tag*>**
 
     By default, all Matlab variables included in the output file start
-    with MNE_. This option changes the prefix to <tag> _.
+    with MNE_. This option changes the prefix to <*tag*> _.
 
 Matlab data structures
 ======================
 
 The Matlab files output by mne_raw2mat can
-contain two data structures, <tag>_raw and <tag>_raw_info .
+contain two data structures, <*tag*>_raw and <*tag*>_raw_info .
 If ``--info`` option is specifed, the file contains the
 latter structure only.
 
-The <tag>_raw stucture
+The <*tag*>_raw stucture
 contains only one field, data which
 is a matrix containing the raw data. Each row of this matrix constitutes
 the data from one channel in the original file. The data type of
 this matrix is the same of the original data (2-byte signed integer,
 4-byte signed integer, or single-precision float).
 
-The fields of the <tag>_raw_info structure
+The fields of the <*tag*>_raw_info structure
 are listed in :ref:`BEHFDCIH`. Further explanation of the bufs field
 is provided in :ref:`BEHJEIHJ`.
 
@@ -1902,23 +1902,23 @@ the following command-line options are:
 
     List the command-line options.
 
-**\---raw <name>**
+**\---raw <*name*>**
 
     Specifies the name of the raw data fif file to use as input.
 
-**\---mat <name>**
+**\---mat <*name*>**
 
     Specifies the name of the destination file. Anything following the last
     period in the file name will be removed before composing the output
-    file name. The binary epoch file will be called <trimmed name> ``.epochs`` and
-    the corresponding Matlab description file will be <trimmed name> ``_desc.mat`` .
+    file name. The binary epoch file will be called <*trimmed name*> ``.epochs`` and
+    the corresponding Matlab description file will be <*trimmed name*> ``_desc.mat`` .
 
-**\---tag <tag>**
+**\---tag <*tag*>**
 
     By default, all Matlab variables included in the description file
-    start with MNE_. This option changes the prefix to <tag> _.
+    start with MNE_. This option changes the prefix to <*tag*> _.
 
-**\---events <name>**
+**\---events <*name*>**
 
     The file containing the event definitions. This can be a text or
     fif format file produced by mne_process_raw or mne_browse_raw ,
@@ -1928,19 +1928,19 @@ the following command-line options are:
     file or a fif format event file produced automatically by mne_process_raw or mne_browse_raw is
     consulted for event information.
 
-**\---event <name>**
+**\---event <*name*>**
 
     Event number identifying the epochs of interest.
 
-**\---tmin <time/ms>**
+**\---tmin <*time/ms*>**
 
     The starting point of the epoch with respect to the event of interest.
 
-**\---tmax <time/ms>**
+**\---tmax <*time/ms*>**
 
     The endpoint of the epoch with respect to the event of interest.
 
-**\---sel <name>**
+**\---sel <*name*>**
 
     Specifies a text file which contains the names of the channels to include
     in the output file, one channel name per line. If the ``--inv`` option
@@ -1949,7 +1949,7 @@ the following command-line options are:
     channel can be included with the ``--includetrig`` option, described
     below.
 
-**\---inv <name>**
+**\---inv <*name*>**
 
     Specifies an inverse operator, which will be employed in two ways. First,
     the channels included to output will be those included in the inverse
@@ -1957,13 +1957,13 @@ the following command-line options are:
     the inverse operator file will be applied to the data. This option
     cancels the effect of ``--sel`` and ``--proj`` options.
 
-**\---digtrig <name>**
+**\---digtrig <*name*>**
 
     Name of the composite digital trigger channel. The default value
     is 'STI 014'. Underscores in the channel name
     will be replaced by spaces.
 
-**\---digtrigmask <number>**
+**\---digtrigmask <*number*>**
 
     Mask to be applied to the trigger channel values before considering them.
     This option is useful if one wants to set some bits in a don't care
@@ -1981,7 +1981,7 @@ the following command-line options are:
     This option should not be used if the trigger channel is already
     included in the selection specified with the ``--sel`` option.
 
-**\---filtersize <size>**
+**\---filtersize <*size*>**
 
     Adjust the length of the FFT to be applied in filtering. The number will
     be rounded up to the next power of two. If the size is INLINE_EQUATION,
@@ -1992,7 +1992,7 @@ the following command-line options are:
     length will actually be INLINE_EQUATION. The default
     value is 4096.
 
-**\---highpass <value/Hz>**
+**\---highpass <*value/Hz*>**
 
     Highpass filter frequency limit. If this is too low with respect
     to the selected FFT length and data file sampling frequency, the
@@ -2001,17 +2001,17 @@ the following command-line options are:
     data. This value can be adjusted in the interactive version of the
     program. The default is 0, i.e., no highpass filter in effect.
 
-**\---highpassw <value/Hz>**
+**\---highpassw <*value/Hz*>**
 
     The width of the transition band of the highpass filter. The default
     is 6 frequency bins, where one bin is INLINE_EQUATION.
 
-**\---lowpass <value/Hz>**
+**\---lowpass <*value/Hz*>**
 
     Lowpass filter frequency limit. This value can be adjusted in the interactive
     version of the program. The default is 40 Hz.
 
-**\---lowpassw <value/Hz>**
+**\---lowpassw <*value/Hz*>**
 
     The width of the transition band of the lowpass filter. This value
     can be adjusted in the interactive version of the program. The default
@@ -2021,7 +2021,7 @@ the following command-line options are:
 
     Do not filter the data.
 
-**\---proj <name>**
+**\---proj <*name*>**
 
     Include signal-space projection (SSP) information from this file.
     If the ``--inv`` option is present, ``--proj`` has
@@ -2060,7 +2060,7 @@ Matlab data structures
 ======================
 
 The Matlab description files output by mne_epochs2mat contain
-a data structure <tag>_epoch_info .
+a data structure <*tag*>_epoch_info .
 The fields of the this structure are listed in :ref:`BEHFDCIH`.
 Further explanation of the epochs member
 is provided in :ref:`BEHHAGHE`.

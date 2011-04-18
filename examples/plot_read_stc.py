@@ -31,7 +31,7 @@ print "stc data size: %s (nb of vertices) x %s (nb of samples)" % (
 # View source activations
 times = stc['tmin'] + stc['tstep'] * np.arange(n_samples)
 import pylab as pl
-pl.plot(times, stc['data'][::100,:].T)
+pl.plot(times, stc['data'][::100, :].T)
 pl.xlabel('time (ms)')
 pl.ylabel('Source amplitude')
 pl.show()

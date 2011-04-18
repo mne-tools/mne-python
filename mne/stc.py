@@ -29,9 +29,9 @@ def read_stc(filename):
 
     stc = dict()
 
-    fid.seek(0, 2) # go to end of file
+    fid.seek(0, 2)  # go to end of file
     file_length = fid.tell()
-    fid.seek(0, 0) # go to beginning of file
+    fid.seek(0, 0)  # go to beginning of file
 
     # read tmin in ms
     stc['tmin'] = float(np.fromfile(fid, dtype=">f4", count=1))
@@ -50,11 +50,11 @@ def read_stc(filename):
     # read the number of timepts
     data_n = np.fromfile(fid, dtype=">I4", count=1)
 
-    if ((file_length/4 -4 - vertices_n) % (data_n*vertices_n)) != 0:
-        raise ValueError, 'incorrect stc file size'
+    if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
+        raise ValueError('incorrect stc file size')
 
     # read the data matrix
-    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n*data_n)
+    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
     stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
 
     # close the file
@@ -81,9 +81,9 @@ def write_stc(filename, tmin, tstep, vertices, data):
     fid = open(filename, 'wb')
 
     # write start time in ms
-    fid.write(np.array(1000*tmin, dtype='>f4').tostring())
+    fid.write(np.array(1000 * tmin, dtype='>f4').tostring())
     # write sampling rate in ms
-    fid.write(np.array(1000*tstep, dtype='>f4').tostring())
+    fid.write(np.array(1000 * tstep, dtype='>f4').tostring())
     # write number of vertices
     fid.write(np.array(vertices.shape[0], dtype='>I4').tostring())
     # write the vertex indices

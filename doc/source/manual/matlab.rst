@@ -477,7 +477,7 @@ The documented structures are:
     ==========  ===========  ============================================================
     Field       Data type    Description
     ==========  ===========  ============================================================
-    version     int32        The fif file version (major << 16 | minor).
+    version     int32        The fif file version (major  < < 16 | minor).
     machid      int32(2)     Unique identifier of the computer this id was created on.
     secs        int32        Time since January 1, 1970 (seconds).
     usecs       int32        Time since January 1, 1970 (microseconds past secs ).
@@ -716,4 +716,4 @@ The documented structures are:
 On-line documentation for individual routines
 #############################################
 
-Each of the routines listed in Tables :ref:`BGBCGHAG` - :ref:`BGBEFADJ` has on-line documentation accessible by saying ``help`` <routine name> in Matlab.
+Each of the routines listed in Tables :ref:`BGBCGHAG` - :ref:`BGBEFADJ` has on-line documentation accessible by saying ``help`` <*routine name*> in Matlab.

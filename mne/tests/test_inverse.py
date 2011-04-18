@@ -24,7 +24,7 @@ def test_apply_mne_inverse_operator():
 
     setno = 0
     snr = 3.0
-    lambda2 = 1.0 / snr**2
+    lambda2 = 1.0 / snr ** 2
     dSPM = True
 
     evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
@@ -46,7 +46,7 @@ def test_compute_minimum_norm():
     evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
     whitener = noise_cov.get_whitener(evoked.info, mag_reg=0.1,
                                       grad_reg=0.1, eeg_reg=0.1, pca=True)
-    stc, K, W = mne.minimum_norm(evoked, forward, whitener, orientation='loose',
-                                 method='dspm', snr=3, loose=0.2)
+    stc, K, W = mne.minimum_norm(evoked, forward, whitener,
+                        orientation='loose', method='dspm', snr=3, loose=0.2)
 
     # XXX : test something

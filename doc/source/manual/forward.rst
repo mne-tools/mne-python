@@ -243,14 +243,14 @@ The command-line options are:
 
     List the command-line options.
 
-**\---subject <name>**
+**\---subject <*name*>**
 
     Name of the subject in SUBJECTS_DIR. In the absense of this option,
     the SUBJECT environment variable will be consulted. If it is not
     defined, mne_setup_source_space exits
     with an error.
 
-**\---morph <name>**
+**\---morph <*name*>**
 
     Name of a subject in SUBJECTS_DIR. If this option is present, the source
     space will be first constructed for the subject defined by the --subject
@@ -262,21 +262,21 @@ The command-line options are:
     source locations in the "morph" subject is not going
     to be as uniform as it would be without morphing.
 
-**\---surf <name1>:<name2>:...**
+**\---surf <*name1*>: <*name2*>:...**
 
     FreeSurfer surface file names specifying the source surfaces, separated
     by colons.
 
-**\---spacing <spacing/mm>**
+**\---spacing <*spacing/mm*>**
 
     Specifies the approximate grid spacing of the source space in mm.
 
-**\---ico <number>**
+**\---ico <*number*>**
 
     Instead of using the traditional method for cortical surface decimation
     it is possible to create the source space using the topology of
-    a recursively subdivided icosahedron (<number> > 0)
-    or an octahedron (<number> < 0).
+    a recursively subdivided icosahedron ( <*number*> > 0)
+    or an octahedron ( <*number*>  < 0).
     This method uses the cortical surface inflated to a sphere as a
     tool to find the appropriate vertices for the source space. The
     benefit of the ``--ico`` option is that the source space will have triangulation
@@ -288,7 +288,7 @@ The command-line options are:
     is INLINE_EQUATION, the number of vertices in
     the *k*th subdivision of an icosahedron and an
     octahedron are INLINE_EQUATION and INLINE_EQUATION,
-    respectively. The recommended values for <number> and
+    respectively. The recommended values for <*number*> and
     the corresponding number of source space locations are listed in Table 3.1.
 
 **\---all**
@@ -299,9 +299,9 @@ The command-line options are:
     triangulation. This option is always recommended to include complete
     information.
 
-**\---src <name>**
+**\---src <*name*>**
 
-    Output file name. Use a name *<dir>/<name>*-src.fif
+    Output file name. Use a name * <*dir*>/ <*name*>*-src.fif
 
 .. note:: If both ``--ico`` and ``--spacing`` options    are present the later one on the command line takes precedence.
 
@@ -328,49 +328,49 @@ The command-line options are:
 
     List the command-line options.
 
-**\---surf <name>**
+**\---surf <*name*>**
 
     Specifies a FreeSurfer surface file containing the surface which
     will be used as the boundary for the source space.
 
-**\---bem <name>**
+**\---bem <*name*>**
 
     Specifies a BEM file (ending in ``-bem.fif`` ). The inner
     skull surface will be used as the boundary for the source space.
 
-**\---origin <x/mm> :<y/mm> :<z/mm>**
+**\---origin <*x/mm*> : <*y/mm*> : <*z/mm*>**
 
     If neither of the two surface options described above is present,
     the source space will be spherical with the origin at this location,
     given in MRI (RAS) coordinates.
 
-**\---rad <radius/mm>**
+**\---rad <*radius/mm*>**
 
     Specifies the radius of a spherical source space. Default value
     = 90 mm
 
-**\---grid <spacing/mm>**
+**\---grid <*spacing/mm*>**
 
     Specifies the grid spacing in the source space.
 
-**\---mindist <distance/mm>**
+**\---mindist <*distance/mm*>**
 
     Only points which are further than this distance from the bounding surface
     are included. Default value = 5 mm.
 
-**\---exclude <distance/mm>**
+**\---exclude <*distance/mm*>**
 
     Exclude points that are closer than this distance to the center
     of mass of the bounding surface. By default, there will be no exclusion.
 
-**\---mri <name>**
+**\---mri <*name*>**
 
     Specifies a MRI volume (in mgz or mgh format).
     If this argument is present the output source space file will contain
     a (sparse) interpolation matrix which allows mne_volume_data2mri to
     create an MRI overlay file, see :ref:`BEHDEJEC`.
 
-**\---pos <name>**
+**\---pos <*name*>**
 
     Specifies a name of a text file containing the source locations
     and, optionally, orientations. Each line of the file should contain
@@ -393,9 +393,9 @@ The command-line options are:
     Indicates that the source locations in the file defined with the ``--pos`` option
     are give in meters instead of millimeters.
 
-**\---src <name>**
+**\---src <*name*>**
 
-    Specifies the output file name. Use a name *<dir>/<name>*-src.fif
+    Specifies the output file name. Use a name * <*dir*>/ <*name*>*-src.fif
 
 **\---all**
 
@@ -435,14 +435,14 @@ command-line options:
 
     List the command-line options.
 
-**\---surf <name>**
+**\---surf <*name*>**
 
     Specifies a FreeSurfer binary format surface file. Before specifying the
     next surface (``--surf`` or ``--tri`` options)
     details of the surface specification can be given with the options
     listed in :ref:`BEHCDICC`.
 
-**\---tri <name>**
+**\---tri <*name*>**
 
     Specifies a text format surface file. Before specifying the next
     surface (``--surf`` or ``--tri`` options) details
@@ -460,7 +460,7 @@ command-line options:
     In addition to the checks implied by the ``--check`` option,
     check skull and skull thicknesses. For more information, see :ref:`BEHCBDDE`.
 
-**\---fif <name>**
+**\---fif <*name*>**
 
     The output fif file containing the BEM. These files normally reside in
     the bem subdirectory under the subject's mri data. A name
@@ -485,11 +485,11 @@ to define details for the corresponding surface.
     not have any effect on the interpretation of the FreeSurfer surface
     files specified with the ``--surf`` option.
 
-**\---sigma <value>**
+**\---sigma <*value*>**
 
     The conductivity of the compartment inside this surface in S/m.
 
-**\---shift <value/mm>**
+**\---shift <*value/mm*>**
 
     Shift the vertices of this surface by this amount, given in mm,
     in the outward direction, *i.e.*, in the positive
@@ -501,12 +501,12 @@ to define details for the corresponding surface.
     of millimeters. This option applies to text format files only. This
     definition does not affect the units of the shift option.
 
-**\---id <number>**
+**\---id <*number*>**
 
     Identification number to assign to this surface. (1 = inner skull, 3
     = outer skull, 4 = scalp).
 
-**\---ico <number>**
+**\---ico <*number*>**
 
     Downsample the surface to the designated subdivision of an icosahedron.
     This option is relevant (and required) only if the triangulation
@@ -524,11 +524,11 @@ Tessellation file format
 
 The format of the text format surface files is the following:
 
-<nvert> <vertex 1> <vertex 2>
-...<vertex nvert> <ntri> <triangle 1> <triangle 2>
-...<triangle ntri> ,
+ <*nvert*> <*vertex 1*> <*vertex 2*>
+... <*vertex nvert*> <*ntri*> <*triangle 1*> <*triangle 2*>
+... <*triangle ntri*> ,
 
-where <nvert> and <ntri> are
+where <*nvert*> and <*ntri*> are
 the number of vertices and number of triangles in the tessellation,
 respectively.
 
@@ -603,7 +603,7 @@ the geometry information for BEM. This utility is usually invoked
 by the convenience script mne_setup_forward_model ,
 see :ref:`CIHDBFEG`. The command-line options are:
 
-**\---bem <name>**
+**\---bem <*name*>**
 
     Specify the name of the file containing the triangulations of the BEM
     surfaces and the conductivities of the compartments. The standard
@@ -611,15 +611,15 @@ see :ref:`CIHDBFEG`. The command-line options are:
     either with the utility mne_surf2bem (:ref:`BEHCACCJ`) or the convenience script mne_setup_forward_model ,
     see :ref:`CIHDBFEG`.
 
-**\---sol <name>**
+**\---sol <*name*>**
 
     Specify the name of the file containing the triangulation and conductivity
     information together with the BEM geometry matrix computed by mne_prepare_bem_model .
     The standard ending for this file is ``-bem-sol.fif`` .
 
-**\---method <approximation method>**
+**\---method <*approximation method*>**
 
-    Select the BEM approach. If <approximation method> is ``constant`` ,
+    Select the BEM approach. If <*approximation method*> is ``constant`` ,
     the BEM basis functions are constant functions on each triangle
     and the collocation points are the midpoints of the triangles. With ``linear`` ,
     the BEM basis functions are linear functions on each triangle and
@@ -866,25 +866,25 @@ $MNE_ROOT/share/mne/coil_def.dat. In this file, any lines starting
 with the pound sign (#) are comments. A coil definition starts with
 a description line containing the following fields:
 
-**<class>**
+** <*class*>**
 
     This is a number indicating class of this coil. Possible values
     are listed in :ref:`BJEFABHA`.
 
-**<id>**
+** <*id*>**
 
     Coil id value. This value is listed in the first column of Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`.
 
-**<accuracy>**
+** <*accuracy*>**
 
     The coil representation accuracy. Possible values and their meanings
     are listed in :ref:`BJEHIBJC`.
 
-**<np>**
+** <*np*>**
 
     Number of integration points in this representation.
 
-**<size/m>**
+** <*size/m*>**
 
     The size of the coil. For circular coils this is the diameter of
     the coil and for square ones the side length of the square. This
@@ -892,14 +892,14 @@ a description line containing the following fields:
     geometry. It should not be employed to infer a coil approximation
     for the forward calculations.
 
-**<baseline/m>**
+** <*baseline/m*>**
 
     The baseline of a this kind of a coil. This will be zero for magnetometer
     coils. This information is mainly included to facilitate drawing
     of the coil geometry. It should not be employed to infer a coil
     approximation for the forward calculations.
 
-**<description>**
+** <*description*>**
 
     Short description of this kind of a coil. If the description contains several
     words, it is enclosed in quotes.
@@ -934,15 +934,15 @@ a description line containing the following fields:
 Each coil description line is followed by one or more integration
 point lines, consisting of seven numbers:
 
-**<weight>**
+** <*weight*>**
 
     Gives the weight for this integration point (last column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
 
-**<x/m> <y/m> <z/m>**
+** <*x/m*> <*y/m*> <*z/m*>**
 
     Indicates the location of the integration point (fourth column in Tables :ref:`BGBBHGEC` and :ref:`CHDBDFJE`).
 
-**<nx> <ny> <nz>**
+** <*nx*> <*ny*> <*nz*>**
 
     Components of a unit vector indicating the field component to be selected.
     Note that listing a separate unit vector for each integration points
@@ -985,13 +985,13 @@ Command line options
 mne_forward_solution accepts
 the following command-line options:
 
-**\---src <name>**
+**\---src <*name*>**
 
     Source space name to use. The name of the file must be specified exactly,
     including the directory. Typically, the source space files reside
     in $SUBJECTS_DIR/$SUBJECT/bem.
 
-**\---bem <name>**
+**\---bem <*name*>**
 
     Specifies the BEM to be used. These files end with bem.fif or bem-sol.fif and
     reside in $SUBJECTS_DIR/$SUBJECT/bem. The former file contains only
@@ -1000,27 +1000,27 @@ the following command-line options:
     see :ref:`CHDJFHEB`. If precomputed geometry is not available,
     the linear collocation solution will be computed by mne_forward_solution .
 
-**\---origin <x/mm> :<x/mm> :<z/mm>**
+**\---origin <*x/mm*> : <*x/mm*> : <*z/mm*>**
 
     Indicates that the sphere model should be used in the forward calculations.
     The origin is specified in MEG head coordinates unless the ``--mricoord`` option
     is present. The MEG sphere model solution computed using the analytical
     Sarvas formula. For EEG, an approximative solution described in
 
-**\---eegmodels <name>**
+**\---eegmodels <*name*>**
 
     This option is significant only if the sphere model is used and
     EEG channels are present. The specified file contains specifications
     of the EEG sphere model layer structures as detailed in :ref:`CHDIAFIG`. If this option is absent the file ``$HOME/.mne/EEG_models`` will
     be consulted if it exists.
 
-**\---eegmodel <model name>**
+**\---eegmodel <*model name*>**
 
     Specifies the name of the sphere model to be used for EEG. If this option
     is missing, the model Default will
     be employed, see :ref:`CHDIAFIG`.
 
-**\---eegrad <radius/mm>**
+**\---eegrad <*radius/mm*>**
 
     Specifies the radius of the outermost surface (scalp) of the EEG sphere
     model, see :ref:`CHDIAFIG`. The default value is 90 mm.
@@ -1045,7 +1045,7 @@ the following command-line options:
 
     Compute the forward solution for all vertices on the source space.
 
-**\---label <name>**
+**\---label <*name*>**
 
     Compute the solution only for points within the specified label. Multiple
     labels can be present. The label files should end with ``-lh.label`` or ``-rh.label`` for
@@ -1053,7 +1053,7 @@ the following command-line options:
     is present, all surface points falling within the labels are included.
     Otherwise, only decimated points with in the label are selected.
 
-**\---mindist <dist/mm>**
+**\---mindist <*dist/mm*>**
 
     Omit source space points closer than this value to the inner skull surface.
     Any source space points outside the inner skull surface are automatically
@@ -1065,18 +1065,18 @@ the following command-line options:
     value should be about equal to the wish for the side length of the
     triangles.
 
-**\---mindistout <name>**
+**\---mindistout <*name*>**
 
     Specifies a file name to contain the coordinates of source space points
     omitted due to the ``--mindist`` option.
 
-**\---mri <name>**
+**\---mri <*name*>**
 
     The name of the MRI description file containing the MEG/MRI coordinate
     transformation. This file was saved as part of the alignment procedure
     outlined in :ref:`CHDBEHDC`. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
 
-**\---trans	 <name>**
+**\---trans	 <*name*>**
 
     The name of a text file containing the 4 x 4 matrix for the coordinate transformation
     from head to mri coordinates. With ``--trans``, ``--mri`` option is not
@@ -1101,7 +1101,7 @@ the following command-line options:
     MEG head coordinate system. This option is useful only in special
     circumstances.
 
-**\---meas <name>**
+**\---meas <*name*>**
 
     This file is the measurement fif file or an off-line average file
     produced thereof. It is recommended that the average file is employed for
@@ -1110,11 +1110,11 @@ the following command-line options:
     EEG electrode locations as well as the coordinate transformation between
     the MEG device coordinates and MEG head-based coordinates.
 
-**\---fwd <name>**
+**\---fwd <*name*>**
 
     This file will contain the forward solution as well as the coordinate transformations,
     sensor and electrode location information, and the source space
-    data. A name of the form <name>-fwd.fif is
+    data. A name of the form <*name*>-fwd.fif is
     recommended.
 
 **\---meg**
@@ -1161,7 +1161,7 @@ The EEG sphere model definition files may contain comment
 lines starting with a # and model
 definition lines in the following format:
 
-<name>:<radius1>:<conductivity1>:<radius2>:<conductivity2>:...
+ <*name*>: <*radius1*>: <*conductivity1*>: <*radius2*>: <*conductivity2*>:...
 
 When the file is loaded the layers are sorted so that the
 radiuses will be in ascending order and the radius of the outermost
@@ -1267,7 +1267,7 @@ the following command-line options:
 
     List the command-line options.
 
-**\---fwd <name> :[<weight> ]**
+**\---fwd <*name*> :[ <*weight*> ]**
 
     Specifies a forward solution to include. If no weight is specified,
     1.0 is asssumed. In the averaging process the weights are divided
@@ -1275,6 +1275,6 @@ the following command-line options:
     and their spefied weights are 2 and 3, the average is formed with
     a weight of 2/5 for the first solution and 3/5 for the second one.
 
-**\---out <name>**
+**\---out <*name*>**
 
     Specifies the output file which will contain the averaged forward solution.

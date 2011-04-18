@@ -48,18 +48,18 @@ Common options
 
     List the command-line options.
 
-**\---cd <dir>**
+**\---cd <*dir*>**
 
     Change to this directory before starting.
 
-**\---raw <name>**
+**\---raw <*name*>**
 
     Specifies the raw data file to be opened. This option is required
     for batch version, mne_process_raw. If
     a raw data file is not specified for the interactive version, mne_browse_raw ,
     and empty interactive browser will open.
 
-**\---grad <number>**
+**\---grad <*number*>**
 
     Apply software gradient compensation of the given order to the data loaded
     with the ``--raw`` option. This option is effective only
@@ -74,18 +74,18 @@ Common options
     For interactive data loading, the software gradient compensation
     is specified in the corresponding file selection dialog, see :ref:`CACDCHAJ`.
 
-**\---filtersize <size>**
+**\---filtersize <*size*>**
 
     Adjust the length of the FFT to be applied in filtering. The number will
-    be rounded up to the next power of two. If the size is INLINE_EQUATION,
-    the corresponding length of time is INLINE_EQUATION,
-    where INLINE_EQUATION is the sampling frequency
+    be rounded up to the next power of two. If the size is :math:`N`,
+    the corresponding length of time is :math:`N/f_s`,
+    where :math:`f_s` is the sampling frequency
     of your data. The filtering procedure includes overlapping tapers
-    of length INLINE_EQUATION so that the total FFT
-    length will actually be INLINE_EQUATION. This
+    of length :math:`N/2` so that the total FFT
+    length will actually be :math:`2N`. This
     value cannot be changed after the program has been started.
 
-**\---highpass <value/Hz>**
+**\---highpass <*value/Hz*>**
 
     Highpass filter frequency limit. If this is too low with respect
     to the selected FFT length and, the data will not be highpass filtered. It
@@ -95,24 +95,24 @@ Common options
     no highpass filter apart from that used during the acquisition will
     be in effect.
 
-**\---highpassw <value/Hz>**
+**\---highpassw <*value/Hz*>**
 
     The width of the transition band of the highpass filter. The default
-    is 6 frequency bins, where one bin is INLINE_EQUATION. This
+    is 6 frequency bins, where one bin is :math:`f_s / (2N)`. This
     value cannot be adjusted in the interactive version of the program.
 
-**\---lowpass <value/Hz>**
+**\---lowpass <*value/Hz*>**
 
     Lowpass filter frequency limit. This value can be adjusted in the interactive
     version of the program. The default is 40 Hz.
 
-**\---lowpassw <value/Hz>**
+**\---lowpassw <*value/Hz*>**
 
     The width of the transition band of the lowpass filter. This value
     can be adjusted in the interactive version of the program. The default
     is 5 Hz.
 
-**\---eoghighpass <value/Hz>**
+**\---eoghighpass <*value/Hz*>**
 
     Highpass filter frequency limit for EOG. If this is too low with respect
     to the selected FFT length and, the data will not be highpass filtered.
@@ -122,19 +122,19 @@ Common options
     no highpass filter apart from that used during the acquisition will
     be in effect.
 
-**\---eoghighpassw <value/Hz>**
+**\---eoghighpassw <*value/Hz*>**
 
     The width of the transition band of the EOG highpass filter. The default
-    is 6 frequency bins, where one bin is INLINE_EQUATION.
+    is 6 frequency bins, where one bin is :math:`f_s / (2N)`.
     This value cannot be adjusted in the interactive version of the
     program.
 
-**\---eoglowpass <value/Hz>**
+**\---eoglowpass <*value/Hz*>**
 
     Lowpass filter frequency limit for EOG. This value can be adjusted in
     the interactive version of the program. The default is 40 Hz.
 
-**\---eoglowpassw <value/Hz>**
+**\---eoglowpassw <*value/Hz*>**
 
     The width of the transition band of the EOG lowpass filter. This value
     can be adjusted in the interactive version of the program. The default
@@ -145,13 +145,13 @@ Common options
     Do not filter the data. This initial value can be changed in the
     interactive version of the program.
 
-**\---digtrig <name>**
+**\---digtrig <*name*>**
 
     Name of the composite digital trigger channel. The default value
     is 'STI 014'. Underscores in the channel name
     will be replaced by spaces.
 
-**\---digtrigmask <number>**
+**\---digtrigmask <*number*>**
 
     Mask to be applied to the trigger channel values before considering them.
     This option is useful if one wants to set some bits in a don't care
@@ -185,12 +185,12 @@ version only.
     on. These kind of data should never be used for source localization
     without further processing with Elekta-Neuromag software.
 
-**\---deriv <name>**
+**\---deriv <*name*>**
 
     Specifies the name of a derivation file. This overrides the use
     of a standard derivation file, see :ref:`CACFHAFH`.
 
-**\---sel <name>**
+**\---sel <*name*>**
 
     Specifies the channel selection file to be used. This overrides
     the use of the standard channel selection files, see :ref:`CACCJEJD`.
@@ -202,7 +202,7 @@ Batch-mode options
 
 These options apply to the batch-mode version, mne_process_raw only.
 
-**\---proj <name>**
+**\---proj <*name*>**
 
     Specify the name of the file of the file containing a signal-space
     projection (SSP) operator. If ``--proj`` options are present
@@ -228,14 +228,14 @@ These options apply to the batch-mode version, mne_process_raw only.
     eight options define the parameters of the noise subspace estimation. More
     information on the signal-space projection can be found in :ref:`CACCHABI`.
 
-**\---projevent <no>**
+**\---projevent <*no*>**
 
     Specifies the events which identify the time points of interest
     for projector calculation. When this option is present, ``--projtmin`` and ``--projtmax`` are
     relative to the time point of the event rather than the whole raw
     data file.
 
-**\---projtmin <time/s>**
+**\---projtmin <*time/s*>**
 
     Specify the beginning time for the calculation of the covariance matrix
     which serves as the basis for the new SSP operator. This option
@@ -243,7 +243,7 @@ These options apply to the batch-mode version, mne_process_raw only.
     of the raw data file otherwise. This option is effective only if ``--makeproj`` or ``--saveprojtag`` options
     are present.
 
-**\---projtmax <time/s>**
+**\---projtmax <*time/s*>**
 
     Specify the ending time for the calculation of the covariance matrix which
     serves as the basis for the new SSP operator. This option is required
@@ -251,14 +251,14 @@ These options apply to the batch-mode version, mne_process_raw only.
     file otherwise. This option is effective only if ``--makeproj`` or ``--saveprojtag`` options
     are present.
 
-**\---projngrad <number>**
+**\---projngrad <*number*>**
 
     Number of SSP components to include for planar gradiometers (default
     = 5). This value is system dependent. For example, in a well-shielded
     quiet environment, no planar gradiometer projections are usually
     needed.
 
-**\---projnmag <number>**
+**\---projnmag <*number*>**
 
     Number of SSP components to include for magnetometers / axial gradiometers
     (default = 8). This value is system dependent. For example, in a
@@ -266,32 +266,32 @@ These options apply to the batch-mode version, mne_process_raw only.
     while in a noisy environment with light shielding even more than
     8 components may be necessary.
 
-**\---projgradrej <value/ fT/cm>**
+**\---projgradrej <*value/ fT/cm*>**
 
     Rejection limit for planar gradiometers in the estimation of the covariance
     matrix frfixom which the new SSP operator is derived. The default
     value is 2000 fT/cm. Again, this value is system dependent.
 
-**\---projmagrej <value/ fT>**
+**\---projmagrej <*value/ fT*>**
 
     Rejection limit for planar gradiometers in the estimation of the covariance
     matrix from which the new SSP operator is derived. The default value
     is 3000 fT. Again, this value is system dependent.
 
-**\---saveprojtag <tag>**
+**\---saveprojtag <*tag*>**
 
     This option defines the names of files to hold the SSP operator.
     If this option is present the ``--makeproj`` option is
     implied. The SSP operator file name is formed by removing the trailing ``.fif`` or ``_raw.fif`` from
-    the raw data file name by appending  <tag> .fif
-    to this stem. Recommended value for <tag> is ``-proj`` .
+    the raw data file name by appending  <*tag*> .fif
+    to this stem. Recommended value for <*tag*> is ``-proj`` .
 
 **\---saveprojaug**
 
     Specify this option if you want to use the projection operator file output
     in the Elekta-Neuromag Signal processor (graph) software.
 
-**\---eventsout <name>**
+**\---eventsout <*name*>**
 
     List the digital trigger channel events to the specified file. By default,
     only transitions from zero to a non-zero value are listed. If multiple
@@ -303,7 +303,7 @@ These options apply to the batch-mode version, mne_process_raw only.
 
     List all transitions to file specified with the ``--eventsout`` option.
 
-**\---events <name>**
+**\---events <*name*>**
 
     Specifies the name of a fif or text format event file (see :ref:`CACBCEGC`) to be associated with a raw data file to be
     processed. If multiple raw data files are specified, the number
@@ -316,7 +316,7 @@ These options apply to the batch-mode version, mne_process_raw only.
     if it ends with ``.fif`` , the file is assumed to be in
     fif format, otherwise a text file is expected.
 
-**\---ave <name>**
+**\---ave <*name*>**
 
     Specifies the name of an off-line averaging description file. For details
     of the format of this file, please consult :ref:`CACBBDGC`.
@@ -326,21 +326,21 @@ These options apply to the batch-mode version, mne_process_raw only.
     the raw data files in the order given. If it is smaller, the last
     description file will be used for the remaining raw data files.
 
-**\---saveavetag <tag>**
+**\---saveavetag <*tag*>**
 
     If this option is present and averaging is evoked with the ``--ave`` option,
     the outfile and logfile options in the averaging description file
     are ignored. Instead, trailing ``.fif`` or ``_raw.fif`` is
-    removed from the raw data file name and <tag> ``.fif`` or <tag> ``.log`` is appended
+    removed from the raw data file name and <*tag*> ``.fif`` or <*tag*> ``.log`` is appended
     to create the output and log file names, respectively.
 
-**\---gave <name>**
+**\---gave <*name*>**
 
     If multiple raw data files are specified as input and averaging
     is requested, the grand average over all data files will be saved
-    to <name> .
+    to <*name*> .
 
-**\---cov <name>**
+**\---cov <*name*>**
 
     Specify the name of a description file for covariance matrix estimation. For
     details of the format of this file, please see :ref:`CACEBACG`.
@@ -350,13 +350,13 @@ These options apply to the batch-mode version, mne_process_raw only.
     files in the order given. If it is smaller, the last description
     file will be used for the remaining raw data files.
 
-**\---savecovtag <tag>**
+**\---savecovtag <*tag*>**
 
     If this option is present and covariance matrix estimation is evoked with
     the ``--cov`` option, the outfile and logfile options in
     the covariance estimation description file are ignored. Instead,
     trailing ``.fif`` or ``_raw.fif`` is removed from
-    the raw data file name and <tag> .fif or <tag> .log
+    the raw data file name and <*tag*> .fif or <*tag*> .log
     is appended to create the output and log file names, respectively.
     For compatibility with other MNE software scripts, ``--savecovtag -cov`` is recommended.
 
@@ -368,26 +368,26 @@ These options apply to the batch-mode version, mne_process_raw only.
     option the output files will be generated in the current working
     directory instead.
 
-**\---gcov <name>**
+**\---gcov <*name*>**
 
     If multiple raw data files are specified as input and covariance matrix estimation
     is requested, the grand average over all data files will be saved
-    to <name> . The details of
+    to <*name*> . The details of
     the covariance matrix estimation are given in :ref:`CACHAAEG`.
 
-**\---save <name>**
+**\---save <*name*>**
 
     Save a filtered and optionally down-sampled version of the data
-    file to <name> . If multiple
+    file to <*name*> . If multiple
     raw data files are specified, an equal number of ``--save`` options
-    should be present. If <filename> ends
+    should be present. If <*filename*> ends
     with ``.fif`` or ``_raw.fif`` , these endings are
     deleted. After these modifications, ``_raw.fif`` is inserted
     after the remaining part of the file name. If the file is split
     into multiple parts (see ``--split`` option below), the
-    additional parts will be called <name> ``-`` <number> ``_raw.fif``
+    additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif``
 
-**\---split <size/MB>**
+**\---split <*size/MB*>**
 
     Specifies the maximum size of the raw data files saved with the ``--save`` option.
     By default, the output is split into files which are just below
@@ -398,7 +398,7 @@ These options apply to the batch-mode version, mne_process_raw only.
     Do not include any subject information in the output files created with
     the ``--save`` option.
 
-**\---decim <number>**
+**\---decim <*number*>**
 
     The data are decimated by this factor before saving to the file
     specified with the ``--save`` option. For decimation to
@@ -469,9 +469,9 @@ the data stored to disk.
 When a raw data file is opened, the digital trigger channel
 is scanned for events. For large files this may take a while.
 
-.. note:: After scanning the trigger channel for events, mne_browse_raw and mne_process_raw produce    a fif file containing the event information. This file will be called <raw data file name without fif extension> ``-eve.fif`` . If    the same raw data file is opened again, this file will be consulted    for event information thus making it unnecessary to scan through    the file for trigger line events.
+.. note:: After scanning the trigger channel for events, mne_browse_raw and mne_process_raw produce    a fif file containing the event information. This file will be called <*raw data file name without fif extension*> ``-eve.fif`` . If    the same raw data file is opened again, this file will be consulted    for event information thus making it unnecessary to scan through    the file for trigger line events.
 
-.. note:: You can produce the fif event file by running mne_process_raw as follows: ``mne_process_raw --raw`` <raw data file> .    The fif format event files can be read and written with the mne_read_events and mne_write_events functions    in the MNE Matlab toolbox, see :ref:`ch_matlab`.
+.. note:: You can produce the fif event file by running mne_process_raw as follows: ``mne_process_raw --raw`` <*raw data file*> .    The fif format event files can be read and written with the mne_read_events and mne_write_events functions    in the MNE Matlab toolbox, see :ref:`ch_matlab`.
 
 .. _CACBHGFE:
 
@@ -504,11 +504,11 @@ three times the lowpass filter corner frequency. The output will
 be split into files which are just below 2 GB so that the fif file
 maximum size is not exceed.
 
-If <filename> ends
+If <*filename*> ends
 with ``.fif`` or ``_raw.fif`` , these endings are
 deleted. After these modifications, ``_raw.fif`` is inserted
 after the remaining part of the file name. If the file is split
-into multiple parts, the additional parts will be called <name> ``-`` <number> ``_raw.fif`` .
+into multiple parts, the additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif`` .
 For downsampling and saving options in mne_process_raw ,
 see :ref:`CACFAAAJ`.
 
@@ -693,7 +693,7 @@ The items in the dialog have the following functions:
 
 **Lowpass transition (Hz)**
 
-    The width of the INLINE_EQUATION-shaped transition
+    The width of the :math:`\cos^2`-shaped transition
     from one to zero, centered at the Lowpass value.
 
 **Filter active**
@@ -732,7 +732,7 @@ The items in the dialog have the following functions:
 
     Sets the scale for MEG planar gradiometer channels in fT/cm. All scale
     values are defined from zero to maximum, *i.e.*,
-    the viewport where signals are plotted in have the limits ±<scale value> .
+    the viewport where signals are plotted in have the limits ± <*scale value*> .
 
 **MEG axmult (cm)**
 
@@ -740,13 +740,13 @@ The items in the dialog have the following functions:
     by multiplying the gradiometer scale by this number, yielding units
     of fT.
 
-**EEG (INLINE_EQUATION)**
+**EEG (:math:`\mu`V)** EQUATION PROBLEM
 
-    The scale for EEG channels in INLINE_EQUATION.
+    The scale for EEG channels in :math:`\mu`V. EQUATION PROBLEM
 
-**EOG (INLINE_EQUATION)**
+**EOG (:math:`\mu`V)** EQUATION PROBLEM
 
-    The scale for EOG channels in INLINE_EQUATION.
+    The scale for EOG channels in :math:`\mu`V. EQUATION PROBLEM
 
 **ECG (mV)**
 
@@ -1038,23 +1038,22 @@ returns to the default layout.
 
 The format of the layout files is:
 
-<plot area limits> <viewport definition #1>
-...<viewport definition #N>
+ <*plot area limits*> <*viewport definition #1*>
+... <*viewport definition #N*>
 
-The <plot area limits> define
-the size of the plot area (INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION)
-which should accommodate all view ports. When the layout is used, the
+The <*plot area limits*> define
+the size of the plot area (:math:`x_{min}\ x_{max}\ y_{min}\ y_{max}`) which should accommodate all view ports. When the layout is used, the
 plot area will preserve its aspect ratio; if the plot window has
 a different aspect ratio, there will be empty space on the sides.
 
 The viewports define the locations of the individual channels
 in the plot. Each viewport definition consists of
 
-<number> INLINE_EQUATION INLINE_EQUATION <width> <height> < name> [:<name> ]...
+ <*number*> :math:`x_0\ y_0` <*width*> <*height*> <*name*> [: <*name*> ]...
 
-where number is a viewport number (not used by the MNE software), INLINE_EQUATION and INLINE_EQUATION are
-the coordinates of the lower-left corner of the viewport, <width> and <height> are
-the viewport dimensions, and <name> is
+where number is a viewport number (not used by the MNE software), :math:`x_0` and :math:`y_0` are
+the coordinates of the lower-left corner of the viewport, <*width*> and <*height*> are
+the viewport dimensions, and <*name*> is
 a name of a channel. Multiple channel names can be specified by
 separating them with a colon.
 
@@ -1138,11 +1137,11 @@ The items in the dialog have the following functions:
 
     Rejection criterion for MEG magnetometers and axial gradiometers.
 
-**EEG rejection ( INLINE_EQUATIONV)**
+EEG rejection (:math:`\mu`V) EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
 
     Rejection criterion for EEG channels.
 
-**EOG rejection ( INLINE_EQUATIONV)**
+**EOG rejection (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
 
     Rejection criterion for EOG channels.
 
@@ -1161,11 +1160,11 @@ The items in the dialog have the following functions:
 
     Signal detection criterion for MEG magnetometers and axial gradiometers.
 
-**EEG no signal ( INLINE_EQUATIONV)**
+**EEG no signal (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
 
     Signal detection criterion for EEG channels.
 
-**EOG no signal ( INLINE_EQUATIONV)**
+**EOG no signal (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
 
     Signal detection criterion for EOG channels.
 
@@ -1460,10 +1459,10 @@ mouse can be used to browse the data as follows:
 **Left and right arrow keys**
 
     If a single time point is selected (green line), move the time point forward
-    and backward by INLINE_EQUATION. If the shift
-    key is down, the time point is moved by INLINE_EQUATION.
+    and backward by :math:`\pm 1` ms. If the shift
+    key is down, the time point is moved by :math:`\pm 10` ms.
     If the control key is down (with or without shift), the time point
-    is moved by INLINE_EQUATION. If mne_browse_raw is
+    is moved by :math:`\pm 100` ms. If mne_browse_raw is
     controlling mne_analyze (see :ref:`CACGHEGC`), the mne_analyze displays
     will be updated accordingly. If the picked time point falls outside
     the currently displayed section of data, the display will be automatically
@@ -1476,7 +1475,7 @@ mouse can be used to browse the data as follows:
 **Rotate the trackball left/right or rotate the wheel with shift down**
 
     Scroll backward or forward in the data by one screen. With Alt key (Command or Apple key
-    in the Mac keyboard), the amount of scrolling will be INLINE_EQUATION instead
+    in the Mac keyboard), the amount of scrolling will be :math:`1` s instead
     of the length of one screen. If shift key is held down with the
     trackball, both left/right and up/down movements scroll the data
     in time.
@@ -1509,7 +1508,7 @@ If a data files has annotations (user-defined events) associated
 with it in mne_browse_raw , information
 about them is automatically saved to an annotation file when a data file is closed, *i.e.*,
 when you quit mne_browse_raw or
-load a new data file. This annotation file is called <raw data file name without fif extension> ``-annot.fif`` and
+load a new data file. This annotation file is called <*raw data file name without fif extension*> ``-annot.fif`` and
 will be stored in the same directory as the raw data file. Therefore,
 write permission to this directory is required to save the annotation
 file.
@@ -1651,11 +1650,11 @@ on the digital trigger line in a raw data file. Any lines beginning
 with the pound sign (``#`` ) are considered as comments.
 The format of the event file data is:
 
-<sample> <time> <from> <to> <text>
+ <*sample*> <*time*> <*from*> <*to*> <*text*>
 
 where
 
-**<sample>**
+** <*sample*>**
 
     is
     the sample number. This sample number takes into account the initial
@@ -1663,38 +1662,38 @@ where
     and/or FIFF_DATA_SKIP tags in the beginning of raw data. Therefore,
     the event file contents are independent of the Keep initial skip setting in the open dialog.
 
-**<time>**
+** <*time*>**
 
     is
     the time from the beginning of the file to this sample in seconds.
 
-**<from>**
+** <*from*>**
 
     is
-    the value of the digital trigger channel at <sample> -1.
+    the value of the digital trigger channel at <*sample*> -1.
 
-**<to>**
+** <*to*>**
 
     is
-    the value of the digital trigger channel at <sample> .
+    the value of the digital trigger channel at <*sample*> .
 
-**<text>**
+** <*text*>**
 
     is
     an optional annotation associated with the event. This comment will
     be displayed in the event list and on the message line when you
     move to an event.
 
-When an event file is read back, the <sample> value
-will be primarily used to specify the time. If you want the <time> to
+When an event file is read back, the <*sample*> value
+will be primarily used to specify the time. If you want the <*time*> to
 be converted to the sample number instead, specify a negative value
-for <sample> .
+for <*sample*> .
 
 Each event file starts with a "pseudo event" where
-both <from> and <to> fields
+both <*from*> and <*to*> fields
 are equal to zero.
 
-.. warning:: In previous versions of the MNE software,    the event files did not contain the initial empty pseudo event.    In addition the sample numbers did not take into account the initial    empty space in the raw data files. The present version of MNE software    is still backwards compatible with the old version of the event    files and interprets the sample numbers appropriately. However,    the recognition of the old and new event file formats depends on    the initial pseudo event and, therefore, this first event should never    be removed from the new event files. Likewise, if an initial pseudo event    with <from> and <to> fields    equal to zero is added to and old event file, the results will be    unpredictable.
+.. warning:: In previous versions of the MNE software,    the event files did not contain the initial empty pseudo event.    In addition the sample numbers did not take into account the initial    empty space in the raw data files. The present version of MNE software    is still backwards compatible with the old version of the event    files and interprets the sample numbers appropriately. However,    the recognition of the old and new event file formats depends on    the initial pseudo event and, therefore, this first event should never    be removed from the new event files. Likewise, if an initial pseudo event    with <*from*> and <*to*> fields    equal to zero is added to and old event file, the results will be    unpredictable.
 
 .. note:: If you have created Matlab, Excel or other scripts    to process the event files, they may need revision to include the    initial pseudo event in order for mne_browse_raw and mne_process_raw to    recognize the edited event files correctly.
 
@@ -1832,12 +1831,12 @@ files.
 The general format of the description file is:
 
 ``average {``
-<common parameters>
+ <*common parameters*>
 ``category {``
-<category definition parameters>
+ <*category definition parameters*>
 ``}``
 
-....``}``
+... ``}``
 
 The file may contain arbitrarily many categories. The word ``category`` interchangeable
 with ``condition`` .
@@ -1852,13 +1851,13 @@ Common parameters
 The average definition starts with the common parameters.
 They include:
 
-**outfile <name>**
+**outfile <*name*>**
 
     The name of the file where the averages are to be stored. In interactive
     mode, this can be omitted. The resulting average structure can be
     viewed and stored from the Manage averages window.
 
-**eventfile <name>**
+**eventfile <*name*>**
 
     Optional file to contain event specifications. If this file is present, the
     trigger events in the raw data file are ignored and this file is
@@ -1867,44 +1866,44 @@ They include:
     to be in fif format, otherwise a text file is expected. The text event
     file format is described in :ref:`CACBCEGC`.
 
-**logfile <name>**
+**logfile <*name*>**
 
     This optional file will contain detailed information about the averaging
     process. In the interactive mode, the log information can be viewed
     from the Manage averages window.
 
-**gradReject <value / T/m>**
+**gradReject <*value / T/m*>**
 
     Rejection limit for MEG gradiometer channels. If the peak-to-peak amplitude
     within the extracted epoch exceeds this value on any of the gradiometer
     channels, the epoch will be omitted from the average.
 
-**magReject <value / T>**
+**magReject <*value / T*>**
 
     Rejection limit for MEG magnetometer and axial gradiometer channels.
     If the peak-to-peak amplitude within the extracted epoch exceeds
     this value on any of the magnetometer or axial gradiometer channels,
     the epoch will be omitted from the average.
 
-**eegReject <value / V>**
+**eegReject <*value / V*>**
 
     Rejection limit for EEG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the EEG channels,
     the epoch will be omitted from the average.
 
-**eogReject <value / V>**
+**eogReject <*value / V*>**
 
     Rejection limit for EOG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the EOG channels,
     the epoch will be omitted from the average.
 
-**ecgReject <value / V>**
+**ecgReject <*value / V*>**
 
     Rejection limit for ECG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the ECG channels,
     the epoch will be omitted from the average.
 
-**gradFlat <value / T/m>**
+**gradFlat <*value / T/m*>**
 
     Signal detection criterion for MEG planar gradiometers. The peak-to-peak
     value of all planar gradiometer signals must exceed this value,
@@ -1912,24 +1911,24 @@ They include:
     with saturated or otherwise dysfunctional channels. The default value
     is zero, *i.e.*, no rejection.
 
-**magFlat <value / T>**
+**magFlat <*value / T*>**
 
     Signal detection criterion for MEG magnetometers and axial gradiometers
     channels.
 
-**eegFlat <value / V>**
+**eegFlat <*value / V*>**
 
     Signal detection criterion for EEG channels.
 
-**eogFlat <value / V>**
+**eogFlat <*value / V*>**
 
     Signal detection criterion for EOG channels.
 
-**ecgFlat <value / V>**
+**ecgFlat <*value / V*>**
 
     Signal detection criterion for ECG channels.
 
-**stimIgnore <time / s>**
+**stimIgnore <*time / s*>**
 
     Ignore this many seconds on both sides of the trigger when considering
     the epoch. This parameter is useful for ignoring large stimulus artefacts, *e.g.*,
@@ -1942,14 +1941,14 @@ They include:
     If this option is included in the off-line averaging description
     file, the following procedure is used to counteract this: if there is
     a transition from zero to a nonzero value on the digital trigger channel
-    at sample INLINE_EQUATION, the following sample
+    at sample :math:`n`, the following sample
     will be checked for a transition from this nonzero value to another
     nonzero value. If such an event pair is found, the two events will
     be jointly considered as a transition from zero to the second non-zero
     value. With the fixSkew option, mne_browse_raw/mne_process_raw behaves
     like the Elekta-Neuromag on-line averaging and Maxfilter (TM) software.
 
-**name <text>**
+**name <*text*>**
 
     A descriptive name for this set of averages. If the name contains multiple
     words, enclose it in quotation marks "like this".
@@ -1965,7 +1964,7 @@ Category definition
 A category (condition) is defined by the parameters listed
 in this section.
 
-**event <number>**
+**event <*number*>**
 
     The zero time point of an epoch to be averaged is defined by a transition
     from zero to this number on the digital trigger channel. The interpretation
@@ -1973,27 +1972,27 @@ in this section.
     the ignore and mask keywords. If multiple event parameters are present
     for a category, all specified events will be included in the average.
 
-**ignore <number>**
+**ignore <*number*>**
 
     If this parameter is specified the selected bits on trigger channel
     values can be mask (set to zero) out prior to checking for an existence of
     an event. For example, to ignore the values of trigger input lines three
-    and eight, specify ``ignore 132`` (INLINE_EQUATION).
+    and eight, specify ``ignore 132`` (:math:`2^2 + 2^7 = 132`).
 
-**mask <number>**
+**mask <*number*>**
 
     Works similarly to ignore except that a mask specifies the trigger channel
     bits to be included. For example, to look at trigger input lines
     one to three only, ignoring others, specify ``mask 7`` (INLINE_EQUATION)
 
-**prevevent <number>**
+**prevevent <*number*>**
 
     Specifies the event that is required to occur immediately before
     the event(s) specified with event parameter(s)
     in order for averaging to occur. Only one previous event number
     can be specified.
 
-**prevignore <number>**
+**prevignore <*number*>**
 
     Works like ignore but for the
     events specified with prevevent .
@@ -2001,21 +2000,21 @@ in this section.
     missing, the mask implied by ignore and mask is
     applied to prevevent as well.
 
-**prevmask <number>**
+**prevmask <*number*>**
 
     Works like mask but for the events
     specified with prevevent . If prevignore and prevmask are
     missing, the mask implied by ignore and mask is
     applied to prevevent as well.
 
-**nextevent <number>**
+**nextevent <*number*>**
 
     Specifies the event that is required to occur immediately after
     the event(s) specified with event parameter(s)
     in order for averaging to occur. Only one next event number can
     be specified.
 
-**nextignore <number>**
+**nextignore <*number*>**
 
     Works like ignore but for the
     events specified with nextevent .
@@ -2023,14 +2022,14 @@ in this section.
     missing, the mask implied by ignore and mask is
     applied to nextevent as well.
 
-**nextmask <number>**
+**nextmask <*number*>**
 
     Works like mask but for the events
     specified with nextevent . If nextignore and nextmask are
     missing, the mask implied by ignore and mask is
     applied to nextevent as well.
 
-**delay <time / s>**
+**delay <*time / s*>**
 
     Adds a delay to the time of the occurrence of an event. Therefore,
     if this parameter is positive, the zero time point of the epoch
@@ -2038,33 +2037,33 @@ in this section.
     the parameter is negative, the zero time point of the epoch will
     be earlier than the event. By default, there will be no delay.
 
-**tmin <time / s>**
+**tmin <*time / s*>**
 
     Beginning time point of the epoch.
 
-**tmax <time / s>**
+**tmax <*time / s*>**
 
     End time point of the epoch.
 
-**bmin <time / s>**
+**bmin <*time / s*>**
 
     Beginning time point of the baseline. If both ``bmin`` and ``bmax`` parameters
     are present, the baseline defined by this time range is subtracted
     from each epoch before they are added to the average.
 
-**basemin <time / s>**
+**basemin <*time / s*>**
 
     Synonym for bmin.
 
-**bmax <time / s>**
+**bmax <*time / s*>**
 
     End time point of the baseline.
 
-**basemax <time / s>**
+**basemax <*time / s*>**
 
     Synonym for bmax.
 
-**name <text>**
+**name <*text*>**
 
     A descriptive name for this category. If the name contains multiple words,
     enclose it in quotation marks "like this". The
@@ -2107,12 +2106,12 @@ description files.
 The general format of the description file is:
 
 ``cov {``
-<common parameters>
+ <*common parameters*>
 ``def {``
-<covariance definition parameters>
+ <*covariance definition parameters*>
 ``}``
 
-....``}``
+... ``}``
 
 The file may contain arbitrarily many covariance definitions,
 starting with ``def`` .
@@ -2127,12 +2126,12 @@ Common parameters
 The average definition starts with the common parameters.
 They include:
 
-**outfile <name>**
+**outfile <*name*>**
 
     The name of the file where the covariance matrix is to be stores. This
     parameter is mandatory.
 
-**eventfile <name>**
+**eventfile <*name*>**
 
     Optional file to contain event specifications. This file can be
     either in fif or text format (see :ref:`CACBCEGC`). The event
@@ -2142,44 +2141,44 @@ They include:
     raw data file are ignored and this event file is consulted instead.
     The event file format is described in :ref:`CACBCEGC`.
 
-**logfile <name>**
+**logfile <*name*>**
 
     This optional file will contain detailed information about the averaging
     process. In the interactive mode, the log information can be viewed
     from the Manage averages window.
 
-**gradReject <value / T/m>**
+**gradReject <*value / T/m*>**
 
     Rejection limit for MEG gradiometer channels. If the peak-to-peak amplitude
     within the extracted epoch exceeds this value on any of the gradiometer
     channels, the epoch will be omitted from the average.
 
-**magReject <value / T>**
+**magReject <*value / T*>**
 
     Rejection limit for MEG magnetometer and axial gradiometer channels.
     If the peak-to-peak amplitude within the extracted epoch exceeds
     this value on any of the magnetometer or axial gradiometer channels,
     the epoch will be omitted from the average.
 
-**eegReject <value / V>**
+**eegReject <*value / V*>**
 
     Rejection limit for EEG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the EEG channels,
     the epoch will be omitted from the average.
 
-**eogReject <value / V>**
+**eogReject <*value / V*>**
 
     Rejection limit for EOG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the EOG channels,
     the epoch will be omitted from the average.
 
-**ecgReject <value / V>**
+**ecgReject <*value / V*>**
 
     Rejection limit for ECG channels. If the peak-to-peak amplitude within
     the extracted epoch exceeds this value on any of the ECG channels,
     the epoch will be omitted from the average.
 
-**gradFlat <value / T/m>**
+**gradFlat <*value / T/m*>**
 
     Signal detection criterion for MEG planar gradiometers. The peak-to-peak
     value of all planar gradiometer signals must exceed this value,
@@ -2187,24 +2186,24 @@ They include:
     with saturated or otherwise dysfunctional channels. The default value
     is zero, *i.e.*, no rejection.
 
-**magFlat <value / T>**
+**magFlat <*value / T*>**
 
     Signal detection criterion for MEG magnetometers and axial gradiometers
     channels.
 
-**eegFlat <value / V>**
+**eegFlat <*value / V*>**
 
     Signal detection criterion for EEG channels.
 
-**eogFlat <value / V>**
+**eogFlat <*value / V*>**
 
     Signal detection criterion for EOG channels.
 
-**ecgFlat <value / V>**
+**ecgFlat <*value / V*>**
 
     Signal detection criterion for ECG channels.
 
-**stimIgnore <time / s>**
+**stimIgnore <*time / s*>**
 
     Ignore this many seconds on both sides of the trigger when considering
     the epoch. This parameter is useful for ignoring large stimulus artefacts, *e.g.*,
@@ -2217,7 +2216,7 @@ They include:
     If this option is included in the off-line averaging description
     file, the following procedure is used to counteract this: if there is
     a transition from zero to a nonzero value on the digital trigger channel
-    at sample INLINE_EQUATION, the following sample
+    at sample :math:`n`, the following sample
     will be checked for a transition from this nonzero value to another
     nonzero value. If such an event pair is found, the two events will
     be jointly considered as a transition from zero to the second non-zero
@@ -2241,7 +2240,7 @@ Covariance definitions
 The covariance definitions starting with def specify the
 epochs to be included in the estimation of the covariance matrix.
 
-**event <number>**
+**event <*number*>**
 
     The zero time point of an epoch to be averaged is defined by a transition
     from zero to this number on the digital trigger channel. The interpretation
@@ -2251,20 +2250,20 @@ epochs to be included in the estimation of the covariance matrix.
     parameter is missing or set to zero, the covariance matrix is computed
     over a section of the raw data, defined by the ``tmin`` and ``tmax`` parameters.
 
-**ignore <number>**
+**ignore <*number*>**
 
     If this parameter is specified the selected bits on trigger channel
     values can be mask (set to zero) out prior to checking for an existence of
     an event. For example, to ignore the values of trigger input lines three
-    and eight, specify ``ignore 132`` (INLINE_EQUATION).
+    and eight, specify ``ignore 132`` (:math:`2^2 + 2^7 = 132`).
 
-**mask <number>**
+**mask <*number*>**
 
     Works similarly to ignore except that a mask specifies the trigger channel
     bits to be included. For example, to look at trigger input lines
     one to three only, ignoring others, specify ``mask 7`` (INLINE_EQUATION)
 
-**delay <time / s>**
+**delay <*time / s*>**
 
     Adds a delay to the time of the occurrence of an event. Therefore,
     if this parameter is positive, the zero time point of the epoch
@@ -2273,19 +2272,19 @@ epochs to be included in the estimation of the covariance matrix.
     be earlier than the time of the event. By default, there will be
     no delay.
 
-**tmin <time / s>**
+**tmin <*time / s*>**
 
     Beginning time point of the epoch. If the ``event`` parameter
     is zero or missing, this defines the beginning point of the raw
     data range to be included.
 
-**tmax <time / s>**
+**tmax <*time / s*>**
 
     End time point of the epoch. If the ``event`` parameter
     is zero or missing, this defines the end point of the raw data range
     to be included.
 
-**bmin <time / s>**
+**bmin <*time / s*>**
 
     It is possible to remove a baseline from the epochs before they
     are included in the covariance matrix estimation. This parameter
@@ -2294,15 +2293,15 @@ epochs to be included in the estimation of the covariance matrix.
     Setting of ``bmin`` and ``bmax`` is always recommended
     for epoch-based covariance matrix estimation.
 
-**basemin <time / s>**
+**basemin <*time / s*>**
 
     Synonym for bmin.
 
-**bmax <time / s>**
+**bmax <*time / s*>**
 
     End time point of the baseline, see above.
 
-**basemax <time / s>**
+**basemax <*time / s*>**
 
     Synonym for bmax.
 
@@ -2367,54 +2366,54 @@ noise sources. Furthermore, it is implicitly assumed that the linear
 space spanned by the significant external noise patters has a low
 dimension.
 
-Without loss of generality we can always decompose any INLINE_EQUATION-channel
-measurement INLINE_EQUATION into its signal and
+Without loss of generality we can always decompose any :math:`n`-channel
+measurement :math:`b(t)` into its signal and
 noise components as
 
 .. math::    b(t) = b_s(t) + b_n(t)
 
-Further, if we know that INLINE_EQUATION is
-well characterized by a few field patterns INLINE_EQUATION,
+Further, if we know that :math:`b_n(t)` is
+well characterized by a few field patterns :math:`b_1 \dotso b_m`,
 we can express the disturbance as
 
 .. math::    b_n(t) = Uc_n(t) + e(t)\ ,
 
-where the columns of INLINE_EQUATION constitute
-an orthonormal basis for INLINE_EQUATION, INLINE_EQUATION is
-an INLINE_EQUATION-component column vector, and
-the error term INLINE_EQUATION is small and does
-not exhibit any consistent spatial distributions over time, *i.e.*, INLINE_EQUATION.
-Subsequently, we will call the column space of INLINE_EQUATION the
+where the columns of :math:`U` constitute
+an orthonormal basis for :math:`b_1 \dotso b_m`, :math:`c_n(t)` is
+an :math:`m`-component column vector, and
+the error term :math:`e(t)` is small and does
+not exhibit any consistent spatial distributions over time, *i.e.*, :math:`C_e = E \{e e^T\} = I`.
+Subsequently, we will call the column space of :math:`U` the
 noise subspace. The basic idea of SSP is that we can actually find
-a small basis set INLINE_EQUATION such that the
+a small basis set :math:`b_1 \dotso b_m` such that the
 conditions described above are satisfied. We can now construct the
 orthogonal complement operator
 
 .. math::    P_{\perp} = I - UU^T
 
-and apply it to INLINE_EQUATION yielding
+and apply it to :math:`b(t)` yielding
 
 .. math::    b(t) = P_{\perp}b_s(t)\ ,
 
-since INLINE_EQUATION. The projection operator INLINE_EQUATION is
+since :math:`P_{\perp}b_n(t) = P_{\perp}Uc_n(t) \approx 0`. The projection operator :math:`P_{\perp}` is
 called the signal-space projection operator and generally provides
 considerable rejection of noise, suppressing external disturbances
 by a factor of 10 or more. The effectiveness of SSP depends on two
 factors:
 
-- The basis set INLINE_EQUATION should
+- The basis set :math:`b_1 \dotso b_m` should
   be able to characterize the disturbance field patterns completely
   and
 
-- The angles between the noise subspace space spanned by INLINE_EQUATION and the
-  signal vectors INLINE_EQUATION should be as close
-  to INLINE_EQUATION as possible.
+- The angles between the noise subspace space spanned by :math:`b_1 \dotso b_m` and the
+  signal vectors :math:`b_s(t)` should be as close
+  to :math:`\pi / 2` as possible.
 
 If the first requirement is not satisfied, some noise will
-leak through because INLINE_EQUATION. If the any
-of the brain signal vectors INLINE_EQUATION is
+leak through because :math:`P_{\perp}b_n(t) \neq 0`. If the any
+of the brain signal vectors :math:`b_s(t)` is
 close to the noise subspace not only the noise but also the signal
-will be attenuated by the application of INLINE_EQUATION and,
+will be attenuated by the application of :math:`P_{\perp}` and,
 consequently, there might by little gain in signal-to-noise ratio. :ref:`CACFGIEC` demonstrates the effect of SSP on the Vectorview
 magnetometer data. After the elimination of a three-dimensional
 noise subspace, the absolute value of the noise is dampened approximately
@@ -2434,7 +2433,7 @@ please consult the references listed in :ref:`CEGIEEBB`.
 
     An example of the effect of SSP
     
-    The covariance matrix INLINE_EQUATION of noise data on the 102 Vectorview magnetometers was computed (a) before and (b) after the application of SSP with three-dimensional noise subspace. The plotted quantity is INLINE_EQUATION. Note that the vertical scale in (b) is ten times smaller than in (a).
+    The covariance matrix :math:`C_n` of noise data on the 102 Vectorview magnetometers was computed (a) before and (b) after the application of SSP with three-dimensional noise subspace. The plotted quantity is :math:`\sqrt {|(C_n)_{jk}|}`. Note that the vertical scale in (b) is ten times smaller than in (a).
 
 .. _BABFFCHF:
 
@@ -2442,7 +2441,7 @@ Estimation of the noise subspace
 ================================
 
 As described above, application of SSP requires the estimation
-of the signal vectors INLINE_EQUATION constituting
+of the signal vectors :math:`b_1 \dotso b_m` constituting
 the noise subspace. The most common approach, also implemented in mne_browse_raw is
 to compute a covariance matrix of empty room data, compute its eigenvalue
 decomposition, and employ the eigenvectors corresponding to the
@@ -2455,8 +2454,8 @@ EEG average electrode reference
 
 In the computation of EEG-based source estimates, the MNE
 software employs the average-electrode reference, which means that
-the average over all electrode signals INLINE_EQUATION is
-subtracted from each INLINE_EQUATION:
+the average over all electrode signals :math:`v_1 \dotso v_p` is
+subtracted from each :math:`v_j`:
 
 .. math::    v_{j}' = v_j - \frac{1}{p} \sum_{k} v_k\ .
 
@@ -2482,8 +2481,8 @@ Continuous raw data
 
 If a covariance matrix of a raw data is computed the data
 are checked for artefacts in 200-sample pieces. Let us collect the
-accepted INLINE_EQUATION samples from all channels to
-the vectors INLINE_EQUATION. The estimate of the covariance
+accepted :math:`M` samples from all channels to
+the vectors :math:`s_j,\ j = 1, \dotsc ,M`. The estimate of the covariance
 matrix is then computed as:
 
 .. math::    \hat{C} = \frac{1}{M - 1} \sum_{j = 1}^M {(s_j - \bar{s})(s_j - \bar{s})}^T
@@ -2518,10 +2517,10 @@ Let the vectors
 .. math::    s_{rpj}\ ;\ p = 1 \dotsc P_r\ ;\ j = 1 \dotsc N_r\ ;\ r = 1 \dotsc R 
 
 be the samples from all channels in the baseline corrected epochs
-used to calculate the covariance matrix. In the above, INLINE_EQUATION is
-the number of accepted epochs in category INLINE_EQUATION, INLINE_EQUATION is
-the number of samples in the epochs of category INLINE_EQUATION,
-and INLINE_EQUATION is the number of categories.
+used to calculate the covariance matrix. In the above, :math:`P_r` is
+the number of accepted epochs in category :math:`r`, :math:`N_r` is
+the number of samples in the epochs of category :math:`r`,
+and :math:`R` is the number of categories.
 
 If the recommended ``--keepsamplemean`` option
 is specified in the covariance matrix definition file, the baseline
@@ -2548,8 +2547,8 @@ and
 
 .. math::    N_C = \sum_{r = 1}^R {N_r (P_r - 1)}\ ,
 
-which reflects the fact that INLINE_EQUATION means
-are computed for category INLINE_EQUATION. It
+which reflects the fact that :math:`N_r` means
+are computed for category :math:`r`. It
 is easy to see that the expression for the covariance matrix estimate
 can be cast into a more convenient form
 
@@ -2563,8 +2562,8 @@ Combination of covariance matrix estimates
 ==========================================
 
 Let us assume that we have computed multiple covariance matrix
-estimates INLINE_EQUATION with corresponding degrees
-of freedom INLINE_EQUATION. We can combine these
+estimates :math:`\hat{C_1} \dotso \hat{C_Q}` with corresponding degrees
+of freedom :math:`N_1 \dotso N_Q`. We can combine these
 matrices together as
 
 .. math::    C = \sum_q {\alpha_q \hat{C}_q}\ ,

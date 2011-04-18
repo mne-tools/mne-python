@@ -17,7 +17,7 @@ The name of the program is mri_watershed .
 Its use in the MNE environment is facilitated by the script mne_watershed_bem ,
 which assumes the following options:
 
-**\---subject <subject>**
+**\---subject  <*subject*>**
 
     Defines the name of the subject. This can be also accomplished
     by setting the SUBJECT environment variable.
@@ -34,26 +34,26 @@ which assumes the following options:
 After mne_watershed_bem has
 completed, the following files appear in the subject's ``bem/watershed`` directory:
 
-**<subject> _brain_surface**
+** <*subject*> _brain_surface**
 
     Contains the brain surface triangulation.
 
-**<subject> _inner_skull_surface**
+** <*subject*> _inner_skull_surface**
 
     Contains the inner skull triangulation.
 
-**<subject> _outer_skull_surface**
+** <*subject*> _outer_skull_surface**
 
     Contains the outer skull triangulation.
 
-**<subject> _outer_skin_surface**
+** <*subject*> _outer_skin_surface**
 
     Contains the scalp triangulation.
 
 All of these surfaces are in the FreeSurfer format. In addition,
 there will be a directory called ``bem/watershed/ws`` which
 contains the brain MRI volume. Furthermore, mne_watershed_bem script
-converts the scalp surface to fif format and saves the result to ``bem/`` <subject> ``-head.fif`` . The mne_analyze tool
+converts the scalp surface to fif format and saves the result to ``bem/``  <*subject*> ``-head.fif`` . The mne_analyze tool
 described :ref:`ch_interactive_analysis` looks for this file the visualizations
 involving the scalp surface.
 
@@ -105,23 +105,23 @@ proceed as follows:
 
 - Copy all of your images or create symbolic
   links to them in a single directory. The images must be in DICOM
-  format. We will refer to this directory as <source> .
+  format. We will refer to this directory as  <*source*> .
 
 - Create another directory to hold the output of mne_organize_dicom . We
-  will refer to this directory as <dest> .
+  will refer to this directory as  <*dest*> .
 
-- Change the working directory to <dest> .
+- Change the working directory to  <*dest*> .
 
-- Say ``mne_organize_dicom`` <source> .
-  Depending on the total number of images in <source> this
+- Say ``mne_organize_dicom``  <*source*> .
+  Depending on the total number of images in  <*source*> this
   script may take quite a while to run. Progress is  indicated by
   listing the number of images processed at 50-image intervals.
 
-As a result, <dest> will
-contain several directories named <three-digit number> _<protocol_name> corresponding
+As a result,  <*dest*> will
+contain several directories named  <*three-digit number*> _ <*protocol_name*> corresponding
 to the different series of images acquired. Spaces and parenthesis
 in protocol names will be replaced by underscores. Under each of
-these directories there are one or more directories named <three-digit> number
+these directories there are one or more directories named  <*three-digit*> number
 corresponding to one or more subsets of images in this series (protocol).
 The only subset division scheme implemented in mne_organize_dicom is
 that according to different echoes, typically found in multi-echo
@@ -160,9 +160,9 @@ already in place. The following options can be specified:
 
     The 30-degree flip angle data are not used.
 
-**\---unwarp <type>**
+**\---unwarp  <*type*>**
 
-    Run grad_unwarp with ``--unwarp`` <type> option on each of the converted
+    Run grad_unwarp with ``--unwarp``  <*type*> option on each of the converted
     data sets.
 
 Before running mne_flash_bem do
@@ -171,16 +171,16 @@ the following:
 - Run mne_organize_dicom as
   described above.
 
-- Change to the <dest> directory
+- Change to the  <*dest*> directory
   where mne_organize_dicom created the
   image directory structure.
 
 - Create symbolic links from the directories containing the
   5-degree and 30-degree flip angle FLASH series to ``flash05`` and ``flash30`` , respectively:
 
-  - ``ln -s`` <FLASH 5 series dir> ``flash05``
+  - ``ln -s``  <*FLASH 5 series dir*> ``flash05``
 
-  - ``ln -s`` <FLASH 30 series dir> ``flash30``
+  - ``ln -s``  <*FLASH 30 series dir*> ``flash30``
 
 - Set the ``SUBJECTS_DIR`` and ``SUBJECT`` environment
   variables
@@ -193,10 +193,10 @@ The script encapsulates the following processing steps:
 
 - It creates an mgz file corresponding
   to each of the eight echoes in each of the FLASH directories in ``mri/flash`` .
-  The files will be called ``mef`` <flip-angle> _<echo-number> ``.mgz`` .
+  The files will be called ``mef``  <*flip-angle*> _ <*echo-number*> ``.mgz`` .
 
 - If the ``--unwarp`` option is specified, run grad_unwarp and produce
-  files ``mef`` <flip-angle> _<echo-number> ``u.mgz`` .
+  files ``mef``  <*flip-angle*> _ <*echo-number*> ``u.mgz`` .
   These files will be then used in the following steps.
 
 - It creates parameter maps in ``mri/flash/parameter_maps`` using mri_ms_fitparms .
@@ -329,17 +329,17 @@ is:
     Using the mri_convert utility
     available in FreeSurfer , convert
     an MRI volume to the img (Analyze) format. This volume should be the
-    T1.mgz volume or a volume registered with T1.mgz in FreeSurfer :``mri_convert`` <volume> ``.mgz`` <volume> ``.img``
+    T1.mgz volume or a volume registered with T1.mgz in FreeSurfer :``mri_convert``  <*volume*> ``.mgz``  <*volume*> ``.img``
 
 **Step 2**
 
-    Transfer <volume> ``.mgz`` to
+    Transfer  <*volume*> ``.mgz`` to
     a location accessible to BrainSuite , running
     on Windows.
 
 **Step 3**
 
-    Using <volume> ``.img`` as
+    Using  <*volume*> ``.img`` as
     input, create the tessellations of scalp, outer skull, and inner
     skull surfaces in BrainSuite .
 

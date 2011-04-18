@@ -9,6 +9,7 @@ stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'
 label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
+
 def test_label_io_and_time_course_estimates():
     """Test IO for STC files
     """

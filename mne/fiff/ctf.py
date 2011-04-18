@@ -31,17 +31,18 @@ def _read_named_matrix(fid, node, matkind):
                     node = node.children(k)
                     break
         else:
-            raise ValueError, 'Desired named matrix (kind = %d) not' \
-                              ' available' % matkind
+            raise ValueError('Desired named matrix (kind = %d) not'
+                             ' available' % matkind)
 
     else:
         if not has_tag(node, matkind):
-            raise 'Desired named matrix (kind = %d) not available' % matkind
+            raise ValueError('Desired named matrix (kind = %d) not available'
+                                                                    % matkind)
 
     #   Read everything we need
     tag = find_tag(fid, node, matkind)
     if tag is None:
-        raise ValueError, 'Matrix data missing'
+        raise ValueError('Matrix data missing')
     else:
         data = tag.data
 
@@ -49,14 +50,14 @@ def _read_named_matrix(fid, node, matkind):
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NROW)
     if tag is not None:
         if tag.data != nrow:
-            raise ValueError, 'Number of rows in matrix data and ' \
-                              'FIFF_MNE_NROW tag do not match'
+            raise ValueError('Number of rows in matrix data and '
+                             'FIFF_MNE_NROW tag do not match')
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NCOL)
     if tag is not None:
         if tag.data != ncol:
-            raise ValueError, 'Number of columns in matrix data and ' \
-                              'FIFF_MNE_NCOL tag do not match'
+            raise ValueError('Number of columns in matrix data and '
+                             'FIFF_MNE_NCOL tag do not match')
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_ROW_NAMES)
     if tag is not None:
@@ -110,7 +111,7 @@ def read_ctf_comp(fid, node, chs):
 
     for node in comps:
         # XXX
-        raise NotImplementedError, "CTF data processing is not supported yet"
+        raise NotImplementedError("CTF data processing is not supported yet")
 
         #
         # #   Read the data we need
@@ -223,7 +224,7 @@ def write_ctf_comp(fid, comps):
         return
 
     # XXX
-    raise NotImplementedError, "CTF data processing is not supported yet"
+    raise NotImplementedError("CTF data processing is not supported yet")
 
     # #  This is very simple in fact
     # start_block(fid, FIFF.FIFFB_MNE_CTF_COMP)

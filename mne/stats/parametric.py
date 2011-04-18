@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import stats
 
+
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
 # copy the data while keeping the inputs unchanged.
@@ -46,7 +47,8 @@ def _f_oneway(*args):
     References
     ----------
     .. [1] Lowry, Richard.  "Concepts and Applications of Inferential
-           Statistics". Chapter 14. http://faculty.vassar.edu/lowry/ch14pt1.html
+           Statistics". Chapter 14.
+           http://faculty.vassar.edu/lowry/ch14pt1.html
 
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
@@ -54,10 +56,11 @@ def _f_oneway(*args):
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
-    ss_alldata = reduce(lambda x, y: x+y, [np.sum(a**2, axis=0) for a in args])
+    ss_alldata = reduce(lambda x, y: x + y,
+                        [np.sum(a ** 2, axis=0) for a in args])
     sums_args = [np.sum(a, axis=0) for a in args]
-    square_of_sums_alldata = reduce(lambda x, y: x+y, sums_args)**2
-    square_of_sums_args = [s**2 for s in sums_args]
+    square_of_sums_alldata = reduce(lambda x, y: x + y, sums_args) ** 2
+    square_of_sums_args = [s ** 2 for s in sums_args]
     sstot = ss_alldata - square_of_sums_alldata / float(n_samples)
     ssbn = 0
     for k, _ in enumerate(args):
@@ -76,4 +79,3 @@ def _f_oneway(*args):
 def f_oneway(*args):
     """Call scipy.stats.f_oneway, but return only f-value"""
     return _f_oneway(*args)[0]
-

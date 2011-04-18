@@ -60,37 +60,38 @@ def read_proj(fid, node):
             if tag is not None:
                 desc = tag.data
             else:
-                raise ValueError, 'Projection item description missing'
+                raise ValueError('Projection item description missing')
 
-        tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
-        if tag is not None:
-            namelist = tag.data
-        else:
-            raise ValueError, 'Projection item channel list missing'
+        # XXX : is this useful ?
+        # tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
+        # if tag is not None:
+        #     namelist = tag.data
+        # else:
+        #     raise ValueError('Projection item channel list missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_KIND)
         if tag is not None:
             kind = int(tag.data)
         else:
-            raise ValueError, 'Projection item kind missing'
+            raise ValueError('Projection item kind missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_NVEC)
         if tag is not None:
             nvec = int(tag.data)
         else:
-            raise ValueError, 'Number of projection vectors not specified'
+            raise ValueError('Number of projection vectors not specified')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST)
         if tag is not None:
             names = tag.data.split(':')
         else:
-            raise ValueError, 'Projection item channel list missing'
+            raise ValueError('Projection item channel list missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_PROJ_ITEM_VECTORS)
         if tag is not None:
             data = tag.data
         else:
-            raise ValueError, 'Projection item data missing'
+            raise ValueError('Projection item data missing')
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE)
         if tag is not None:
@@ -99,8 +100,8 @@ def read_proj(fid, node):
             active = False
 
         if data.shape[1] != len(names):
-            raise ValueError, ('Number of channel names does not match the '
-                               'size of data matrix')
+            raise ValueError('Number of channel names does not match the '
+                             'size of data matrix')
 
         #   Use exactly the same fields in data as in a named matrix
         one = Bunch(kind=kind, active=active, desc=desc,
@@ -162,6 +163,7 @@ def write_proj(fid, projs):
 
     end_block(fid, FIFF.FIFFB_PROJ)
 
+
 ###############################################################################
 # Utils
 
@@ -188,7 +190,7 @@ def make_projector(projs, ch_names, bads=[]):
     """
     nchan = len(ch_names)
     if nchan == 0:
-        raise ValueError, 'No channel names specified'
+        raise ValueError('No channel names specified')
 
     proj = np.eye(nchan, nchan)
     nproj = 0
@@ -214,45 +216,44 @@ def make_projector(projs, ch_names, bads=[]):
     nonzero = 0
     for k, p in enumerate(projs):
         if p.active:
-            one = p # XXX really necessary?
-            if len(one['data']['col_names']) != \
-                        len(np.unique(one['data']['col_names'])):
-                raise ValueError, ('Channel name list in projection item %d'
-                                  ' contains duplicate items' % k)
+            if len(p['data']['col_names']) != \
+                        len(np.unique(p['data']['col_names'])):
+                raise ValueError('Channel name list in projection item %d'
+                                 ' contains duplicate items' % k)
 
             # Get the two selection vectors to pick correct elements from
             # the projection vectors omitting bad channels
             sel = []
             vecsel = []
             for c, name in enumerate(ch_names):
-                if name in one['data']['col_names']:
+                if name in p['data']['col_names']:
                     sel.append(c)
-                    vecsel.append(one['data']['col_names'].index(name))
+                    vecsel.append(p['data']['col_names'].index(name))
 
             # If there is something to pick, pickit
             if len(sel) > 0:
-                for v in range(one['data']['nrow']):
-                    vecs[sel, nvec+v] = one['data']['data'][v, vecsel].T
+                for v in range(p['data']['nrow']):
+                    vecs[sel, nvec + v] = p['data']['data'][v, vecsel].T
 
             # Rescale for better detection of small singular values
-            for v in range(one['data']['nrow']):
-                onesize = sqrt(np.sum(vecs[:, nvec + v] * vecs[:, nvec + v]))
-                if onesize > 0:
-                    vecs[:, nvec+v] /= onesize
+            for v in range(p['data']['nrow']):
+                psize = sqrt(np.sum(vecs[:, nvec + v] * vecs[:, nvec + v]))
+                if psize > 0:
+                    vecs[:, nvec + v] /= psize
                     nonzero += 1
 
-            nvec += one['data']['nrow']
+            nvec += p['data']['nrow']
 
     #   Check whether all of the vectors are exactly zero
     if nonzero == 0:
         return proj, nproj, U
 
     # Reorthogonalize the vectors
-    U, S, V = linalg.svd(vecs[:,:nvec], full_matrices=False)
+    U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
 
     # Throw away the linearly dependent guys
     nproj = np.sum((S / S[0]) > 1e-2)
-    U = U[:,:nproj]
+    U = U[:, :nproj]
 
     # Here is the celebrated result
     proj -= np.dot(U, U.T)

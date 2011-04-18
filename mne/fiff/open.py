@@ -32,25 +32,24 @@ def fiff_open(fname, verbose=False):
         list of nodes.
 
     """
-
-    fid = open(fname, "rb") # Open in binary mode
+    fid = open(fname, "rb")  # Open in binary mode
 
     tag = read_tag_info(fid)
 
     #   Check that this looks like a fif file
     if tag.kind != FIFF.FIFF_FILE_ID:
-        raise ValueError, 'file does not start with a file id tag'
+        raise ValueError('file does not start with a file id tag')
 
     if tag.type != FIFF.FIFFT_ID_STRUCT:
-        raise ValueError, 'file does not start with a file id tag'
+        raise ValueError('file does not start with a file id tag')
 
     if tag.size != 20:
-        raise ValueError, 'file does not start with a file id tag'
+        raise ValueError('file does not start with a file id tag')
 
     tag = read_tag(fid)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
-        raise ValueError, 'file does have a directory pointer'
+        raise ValueError('file does have a directory pointer')
 
     #   Read or create the directory tree
     if verbose:

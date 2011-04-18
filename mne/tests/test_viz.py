@@ -1,7 +1,5 @@
 import os.path as op
 
-import pylab as pl
-
 from mne import fiff
 from mne.layouts import Layout
 from mne.viz import plot_topo
