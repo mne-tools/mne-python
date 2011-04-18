@@ -245,7 +245,7 @@ class Epochs(object):
             e = self._get_epoch_from_disk(k)
             if ((self.reject is not None or self.flat is not None) and
                 not _is_good(e, self.ch_names, self._channel_type_idx,
-                         self.reject, self.flat)):
+                         self.reject, self.flat)) or e.shape[1] < n_times:
                 n_reject += 1
             else:
                 data[cnt] = self._get_epoch_from_disk(k)
