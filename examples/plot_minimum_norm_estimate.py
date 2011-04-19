@@ -14,11 +14,11 @@ and stores the solution in stc files for visualisation.
 
 print __doc__
 
-import numpy as np
 import pylab as pl
 import mne
 from mne.datasets import sample
 from mne.fiff import Evoked
+from mne.minimum_norm import minimum_norm
 
 data_path = sample.data_path('.')
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -39,25 +39,16 @@ noise_cov = mne.Covariance(fname_cov)
 whitener = noise_cov.get_whitener(evoked.info, mag_reg=0.1,
                                   grad_reg=0.1, eeg_reg=0.1, pca=True)
 # Compute inverse solution
-stc, K, W = mne.minimum_norm(evoked, forward, whitener, orientation='loose',
+stc = minimum_norm(evoked, forward, whitener, orientation='loose',
                              method='dspm', snr=3, loose=0.2)
 
 # Save result in stc files
-lh_vertices = stc['inv']['src'][0]['vertno']
-rh_vertices = stc['inv']['src'][1]['vertno']
-lh_data = stc['sol'][:len(lh_vertices)]
-rh_data = stc['sol'][-len(rh_vertices):]
-
-mne.write_stc('mne_dSPM_inverse-lh.stc', tmin=stc['tmin'], tstep=stc['tstep'],
-            vertices=lh_vertices, data=lh_data)
-mne.write_stc('mne_dSPM_inverse-rh.stc', tmin=stc['tmin'], tstep=stc['tstep'],
-            vertices=rh_vertices, data=rh_data)
+stc.save('mne_dSPM_inverse')
 
 ###############################################################################
 # View activation time-series
-times = stc['tmin'] + stc['tstep'] * np.arange(stc['sol'].shape[1])
 pl.close('all')
-pl.plot(1e3 * times, stc['sol'][::100, :].T)
+pl.plot(1e3 * stc.times, stc.data[::100, :].T)
 pl.xlabel('time (ms)')
 pl.ylabel('dSPM value')
 pl.show()

@@ -98,3 +98,56 @@ def write_stc(filename, tmin, tstep, vertices, data):
 
     # close the file
     fid.close()
+
+
+class SourceEstimate(object):
+    """SourceEstimate container
+
+    Can be saved and loaded from .stc files
+
+    Attributes
+    ----------
+    data : array of shape [n_dipoles x n_times]
+        The data in source space
+    times : array of shape [n_times]
+        The time vector
+    lh_vertno : array of shape [n_dipoles in left hemisphere]
+        The indices of the dipoles in the left hemisphere
+    rh_vertno : array of shape [n_dipoles in right hemisphere]
+        The indices of the dipoles in the right hemisphere
+    """
+    def __init__(self, fname):
+        if fname is not None:
+            lh = read_stc(fname + '-lh.stc')
+            rh = read_stc(fname + '-lh.stc')
+            self.data = np.r_[lh['data'], rh['data']]
+            assert lh['tmin'] == rh['tmin']
+            assert lh['tstep'] == rh['tstep']
+            self.tmin = lh['tmin']
+            self.tstep = lh['tstep']
+            self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
+            self.lh_vertno = lh['vertices']
+            self.rh_vertno = rh['vertices']
+
+    def _init_times(self):
+        """create self.times"""
+        self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
+
+    def save(self, fname):
+        """save to source estimates to file"""
+        lh_data = self.data[:len(self.lh_vertno)]
+        rh_data = self.data[-len(self.rh_vertno):]
+
+        print 'Writing STC to disk...',
+        write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
+                       vertices=self.lh_vertno, data=lh_data)
+        write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
+                       vertices=self.rh_vertno, data=rh_data)
+        print '[done]'
+
+    # def view(self, src, t, n_smooth=200, colorbar=True):
+    #     """View in source space
+    #     """
+    #     idx = np.where(evoked.times > 1e-3*t)[0][0]
+    #     plot_sources(src, self.data[:,idx], text='%d ms' % t,
+    #                  colorbar=colorbar, n_smooth=n_smooth)

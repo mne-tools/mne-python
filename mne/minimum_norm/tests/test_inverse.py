@@ -3,10 +3,12 @@ import os.path as op
 import numpy as np
 # from numpy.testing import assert_array_almost_equal, assert_equal
 
-import mne
-from mne.datasets import sample
+from ...datasets import sample
+from ... import fiff, Covariance, read_forward_solution
+from ..inverse import minimum_norm, apply_inverse, read_inverse_operator
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
+
+examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname_inv = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis-meg-oct-6-meg-inv.fif')
@@ -27,13 +29,13 @@ def test_apply_mne_inverse_operator():
     lambda2 = 1.0 / snr ** 2
     dSPM = True
 
-    evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
-    inverse_operator = mne.read_inverse_operator(fname_inv)
+    evoked = fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
+    inverse_operator = read_inverse_operator(fname_inv)
 
-    res = mne.apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
 
-    assert np.all(res['sol'] > 0)
-    assert np.all(res['sol'] < 35)
+    assert np.all(stc.data > 0)
+    assert np.all(stc.data < 35)
 
 
 def test_compute_minimum_norm():
@@ -41,12 +43,13 @@ def test_compute_minimum_norm():
     """
 
     setno = 0
-    noise_cov = mne.Covariance(fname_cov)
-    forward = mne.read_forward_solution(fname_fwd)
-    evoked = mne.fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
+    noise_cov = Covariance(fname_cov)
+    forward = read_forward_solution(fname_fwd)
+    evoked = fiff.Evoked(fname_data, setno=setno, baseline=(None, 0))
     whitener = noise_cov.get_whitener(evoked.info, mag_reg=0.1,
                                       grad_reg=0.1, eeg_reg=0.1, pca=True)
-    stc, K, W = mne.minimum_norm(evoked, forward, whitener,
-                        orientation='loose', method='dspm', snr=3, loose=0.2)
+    stc = minimum_norm(evoked, forward, whitener,
+                       orientation='loose', method='dspm', snr=3, loose=0.2)
 
+    assert np.all(stc.data > 0)
     # XXX : test something

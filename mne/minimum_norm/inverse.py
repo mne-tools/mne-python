@@ -8,18 +8,19 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import find_tag
-from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from .fiff.proj import read_proj, make_projector
-from .fiff.tree import dir_tree_find
-from .fiff.pick import pick_channels_evoked
+from ..fiff.constants import FIFF
+from ..fiff.open import fiff_open
+from ..fiff.tag import find_tag
+from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix
+from ..fiff.proj import read_proj, make_projector
+from ..fiff.tree import dir_tree_find
+from ..fiff.pick import pick_channels_evoked
 
-from .cov import read_cov
-from .source_space import read_source_spaces_from_tree, find_source_space_hemi
-from .forward import _block_diag
-from .transforms import invert_transform, transform_source_space_to
+from ..cov import read_cov
+from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
+from ..forward import _block_diag
+from ..transforms import invert_transform, transform_source_space_to
+from ..stc import SourceEstimate
 
 
 def read_inverse_operator(fname):
@@ -480,14 +481,17 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
         print '(dSPM)...',
         sol *= inv['noisenorm'][:, None]
 
-    res = dict()
-    res['inv'] = inv
-    res['sol'] = sol
-    res['tmin'] = float(evoked.first) / evoked.info['sfreq']
-    res['tstep'] = 1.0 / evoked.info['sfreq']
+    src = inv['src']
+    stc = SourceEstimate(None)
+    stc.data = sol
+    stc.tmin = float(evoked.first) / evoked.info['sfreq']
+    stc.tstep = 1.0 / evoked.info['sfreq']
+    stc.lh_vertno = src[0]['vertno']
+    stc.rh_vertno = src[1]['vertno']
+    stc._init_times()
     print '[done]'
 
-    return res
+    return stc
 
 
 def _xyz2lf(Lf_xyz, normals):
@@ -740,14 +744,14 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         print 'combining the current components...',
         sol = combine_xyz(sol)
 
-    stc = dict()
-    stc['inv'] = dict()
-    stc['inv']['src'] = forward['src']
-    # stc['vertices'] = np.concatenate(forward['src'][0]['vertno'],
-    #                                  forward['src'][1]['vertno'])
-    stc['sol'] = sol
-    stc['tmin'] = float(evoked.first) / evoked.info['sfreq']
-    stc['tstep'] = 1.0 / evoked.info['sfreq']
+    src = forward['src']
+    stc = SourceEstimate(None)
+    stc.data = sol
+    stc.tmin = float(evoked.first) / evoked.info['sfreq']
+    stc.tstep = 1.0 / evoked.info['sfreq']
+    stc.lh_vertno = src[0]['vertno']
+    stc.rh_vertno = src[1]['vertno']
+    stc._init_times()
     print '[done]'
 
-    return stc, Kernel, W
+    return stc
