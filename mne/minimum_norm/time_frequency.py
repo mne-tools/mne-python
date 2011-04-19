@@ -12,11 +12,27 @@ from .inverse import combine_xyz, prepare_inverse_operator
 
 def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                          dSPM=True, n_cycles=5, df=1, use_fft=False,
-                         baseline=None, baseline_mode='ratio'):
-    """XXX for source_induced_power
+                         baseline=None, baseline_mode='logratio'):
+    """Compute source space induced power
 
     Parameters
     ----------
+    epochs: instance of Epochs
+        The epochs
+    inverse_operator: instance of inverse operator
+        The inverse operator
+    bands: dict
+        Example : bands = dict(alpha=[8, 9])
+    lambda2: float
+        The regularization parameter of the minimum norm
+    dSPM: bool
+        Do dSPM or not?
+    n_cycles: int
+        Number of cycles
+    df: float
+        delta frequency within bands
+    use_fft: bool
+        Do convolutions in time or frequency domain with FFT
     baseline: None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -25,13 +41,11 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : None | 'ratio' | 'zscore'
+    baseline_mode : None | 'logratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
-
-
     """
 
     #

@@ -16,6 +16,7 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
+from mne.viz import plot_source_estimate
 
 ###############################################################################
 # Set parameters
@@ -51,3 +52,6 @@ stcs = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
 
 for b, stc in stcs.iteritems():
     stc.save('induced_power_%s' % b)
+
+# View sources
+plot_source_estimate(inverse_operator['src'], stcs['alpha'])

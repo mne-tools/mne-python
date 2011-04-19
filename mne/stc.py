@@ -119,7 +119,7 @@ class SourceEstimate(object):
     def __init__(self, fname):
         if fname is not None:
             lh = read_stc(fname + '-lh.stc')
-            rh = read_stc(fname + '-lh.stc')
+            rh = read_stc(fname + '-rh.stc')
             self.data = np.r_[lh['data'], rh['data']]
             assert lh['tmin'] == rh['tmin']
             assert lh['tstep'] == rh['tstep']
@@ -144,10 +144,3 @@ class SourceEstimate(object):
         write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
                        vertices=self.rh_vertno, data=rh_data)
         print '[done]'
-
-    # def view(self, src, t, n_smooth=200, colorbar=True):
-    #     """View in source space
-    #     """
-    #     idx = np.where(evoked.times > 1e-3*t)[0][0]
-    #     plot_sources(src, self.data[:,idx], text='%d ms' % t,
-    #                  colorbar=colorbar, n_smooth=n_smooth)
