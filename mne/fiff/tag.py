@@ -172,19 +172,20 @@ def read_tag(fid, pos=None):
                 nrow = dims[1]
                 ncol = dims[2]
                 sparse_data = np.fromfile(fid, dtype='>f4', count=nnz)
+                shape = (dims[1], dims[2])
                 if matrix_coding == matrix_coding_CCS:
                     #    CCS
                     sparse.csc_matrix()
                     sparse_indices = np.fromfile(fid, dtype='>i4', count=nnz)
                     sparse_ptrs = np.fromfile(fid, dtype='>i4', count=ncol + 1)
                     tag.data = sparse.csc_matrix((sparse_data, sparse_indices,
-                                                 sparse_ptrs), shape=dims)
+                                                 sparse_ptrs), shape=shape)
                 else:
                     #    RCS
                     sparse_indices = np.fromfile(fid, dtype='>i4', count=nnz)
                     sparse_ptrs = np.fromfile(fid, dtype='>i4', count=nrow + 1)
                     tag.data = sparse.csr_matrix((sparse_data, sparse_indices,
-                                                 sparse_ptrs), shape=dims)
+                                                 sparse_ptrs), shape=shape)
             else:
                 raise ValueError('Cannot handle other than dense or sparse '
                                  'matrices yet')

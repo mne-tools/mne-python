@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+import os
+import copy
 import numpy as np
 
 
@@ -144,3 +146,219 @@ class SourceEstimate(object):
         write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
                        vertices=self.rh_vertno, data=rh_data)
         print '[done]'
+
+    def __repr__(self):
+        s = "%d vertices" % (len(self.lh_vertno) + len(self.rh_vertno))
+        s += ", tmin : %s (ms)" % (1e3 * self.tmin)
+        s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
+        s += ", tstep : %s (ms)" % (1e3 * self.tstep)
+        s += ", data size : %s x %s" % self.data.shape
+        return "SourceEstimate (%s)" % s
+
+
+###############################################################################
+# Morphing
+
+from .fiff.constants import FIFF
+from .fiff.tag import find_tag
+from .fiff.open import fiff_open
+from .fiff.tree import dir_tree_find
+from .bem_surfaces import read_bem_surfaces
+from .surfer import read_surface
+
+
+def read_morph_map(subject_from, subject_to, subjects_dir=None):
+    """Read morph map generated with mne_make_morph_maps
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment
+
+    Returns
+    -------
+    maps : dict
+        The morph maps for the 2 hemisphere
+    """
+
+    if subjects_dir is None:
+        if 'SUBJECTS_DIR' in os.environ:
+            subjects_dir = os.environ['SUBJECTS_DIR']
+        else:
+            raise ValueError('SUBJECTS_DIR environment variable not set')
+
+    # Does the file exist
+    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
+                                              subject_to)
+    if not os.path.exists(name):
+        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
+                                                  subject_from)
+        if not os.path.exists(name):
+            raise ValueError('The requested morph map does not exist')
+
+    fid, tree, _ = fiff_open(name)
+
+    # Locate all maps
+    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+    if len(maps) == 0:
+        fid.close()
+        raise ValueError('Morphing map data not found')
+
+    # Find the correct ones
+    leftmap = None
+    rightmap = None
+    for m in maps:
+        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+        if tag.data == subject_from:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+            if tag.data == subject_to:
+                #  Names match: which hemishere is this?
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    leftmap = tag.data
+                    print '\tLeft-hemisphere map read.'
+                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    rightmap = tag.data
+                    print '\tRight-hemisphere map read.'
+
+    fid.close()
+    if leftmap is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    if rightmap is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    return leftmap, rightmap
+
+
+def mesh_edges(tris):
+    """Returns sparse matrix with edges as an adjacency matrix
+
+    Parameters
+    ----------
+    tris : array of shape [n_triangles x 3]
+        The triangles
+
+    Returns
+    -------
+    edges : sparse matrix
+        The adjacency matrix
+    """
+    from scipy import sparse
+    npoints = np.max(tris) + 1
+    ntris = len(tris)
+    a, b, c = tris.T
+    edges = sparse.coo_matrix((np.ones(ntris), (a, b)),
+                                            shape=(npoints, npoints))
+    edges = edges + sparse.coo_matrix((np.ones(ntris), (b, c)),
+                                            shape=(npoints, npoints))
+    edges = edges + sparse.coo_matrix((np.ones(ntris), (c, a)),
+                                            shape=(npoints, npoints))
+    edges = edges.tocsr()
+    edges = edges + edges.T
+    return edges
+
+
+def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
+               subjects_dir=None):
+    """Morph a source estimate from one subject to another
+
+    The functions requires to set MNE_ROOT and SUBJECTS_DIR variables.
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR
+    src_from : dict
+        Source space for original "from" subject
+    stc_from : SourceEstimate
+        Source estimates for subject "from" to morph
+    grade : int
+        Resolution of the icosahedral mesh (typically 5)
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment
+
+    Returns
+    -------
+    stc_to : SourceEstimate
+        Source estimate for the destination subject.
+    """
+    from scipy import sparse
+
+    if subjects_dir is None:
+        if 'SUBJECTS_DIR' in os.environ:
+            subjects_dir = os.environ['SUBJECTS_DIR']
+        else:
+            raise ValueError('SUBJECTS_DIR environment variable not set')
+
+    maps = read_morph_map(subject_from, subject_to)
+
+    lh_data = stc_from.data[:len(stc_from.lh_vertno)]
+    rh_data = stc_from.data[-len(stc_from.rh_vertno):]
+    data = [lh_data, rh_data]
+    dmap = [None, None]
+
+    for hemi in [0, 1]:
+        e = mesh_edges(src_from[hemi]['tris'])
+        e.data[e.data == 2] = 1
+        n_vertices = e.shape[0]
+        e = e + sparse.eye(n_vertices, n_vertices)
+        idx_use = np.where(src_from[hemi]['inuse'])[0]  # XXX
+        n_iter = 100  # max nb of smoothing iterations
+        for k in range(n_iter):
+            data1 = e[:, idx_use] * np.ones(len(idx_use))
+            data[hemi] = e[:, idx_use] * data[hemi]
+            idx_use = np.where(data1)[0]
+            if (k == (n_iter - 1)) or (len(idx_use) >= n_vertices):
+                data[hemi][idx_use, :] /= data1[idx_use][:, None]
+                break
+            else:
+                data[hemi] = data[hemi][idx_use, :] / data1[idx_use][:, None]
+
+        print '\t%d smooth iterations done.' % k
+        dmap[hemi] = maps[hemi] * data[hemi]
+
+    ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
+                                 'icos.fif')
+
+    surfaces = read_bem_surfaces(ico_file_name)
+
+    for s in surfaces:
+        if s['id'] == (9000 + grade):
+            ico = s
+            break
+
+    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'lh.sphere.reg')
+    lhs = read_surface(sphere)[0]
+    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
+    rhs = read_surface(sphere)[0]
+
+    nearest = np.zeros((2, ico['np']), dtype=np.int)
+
+    lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
+    rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
+
+    rr = ico['rr']
+    dr = 16
+    for k in range(0, len(rr), dr):
+        dots = np.dot(rr[k:k + dr], lhs.T)
+        nearest[0, k:k + dr] = np.argmax(dots, axis=1)
+        dots = np.dot(rr[k:k + dr], rhs.T)
+        nearest[1, k:k + dr] = np.argmax(dots, axis=1)
+
+    stc_to = copy.copy(stc_from)
+    stc_to.lh_vertno = nearest[0]
+    stc_to.rh_vertno = nearest[1]
+    stc_to.data = np.r_[dmap[0][nearest[0], :], dmap[1][nearest[1], :]]
+
+    print '[done]'
+
+    return stc_to

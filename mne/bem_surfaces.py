@@ -101,6 +101,7 @@ def _read_bem_surface(fid, this, def_coord_frame):
     #   Read all the interesting stuff
     #
     tag = find_tag(fid, this, FIFF_BEM_SURF_ID)
+
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
     else:
@@ -117,7 +118,6 @@ def _read_bem_surface(fid, this, def_coord_frame):
         fid.close()
         raise ValueError('Number of vertices not found')
 
-    res = dict()
     res['np'] = tag.data
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)

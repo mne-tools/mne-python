@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-from math import sqrt
 import numpy as np
 
 from .fiff.constants import FIFF

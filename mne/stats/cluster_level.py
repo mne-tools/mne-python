@@ -291,7 +291,7 @@ permutation_cluster_1samp_test.__test__ = False
 #     # X, threshold, tail = condition1, 1.67, 1
 #     # X, threshold, tail = -condition1, -1.67, -1
 #     # # X, threshold, tail = condition1, 1.67, 0
-#     # fs, clusters, cluster_p_values, histogram = permutation_cluster_t_test(
+#     # fs, clusters, cluster_p_values, histogram = permutation_cluster_1samp_test(
 #     #                                     condition1, n_permutations=500, tail=tail,
 #     #                                     threshold=threshold)
 #

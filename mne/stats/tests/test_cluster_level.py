@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 
 from ..cluster_level import permutation_cluster_test, \
-                            permutation_cluster_t_test
+                            permutation_cluster_1samp_test
 
 noiselevel = 20
 
@@ -41,15 +41,15 @@ def test_cluster_permutation_t_test():
     """
 
     my_condition1 = condition1[:,:,None] # to test 2D also
-    T_obs, clusters, cluster_p_values, hist = permutation_cluster_t_test(
+    T_obs, clusters, cluster_p_values, hist = permutation_cluster_1samp_test(
                                 my_condition1, n_permutations=500, tail=0)
     assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
-    T_obs_pos, _, cluster_p_values_pos, _ = permutation_cluster_t_test(
+    T_obs_pos, _, cluster_p_values_pos, _ = permutation_cluster_1samp_test(
                                 my_condition1, n_permutations=500, tail=1,
                                 threshold=1.67)
 
-    T_obs_neg, _, cluster_p_values_neg, _ = permutation_cluster_t_test(
+    T_obs_neg, _, cluster_p_values_neg, _ = permutation_cluster_1samp_test(
                                 -my_condition1, n_permutations=500, tail=-1,
                                 threshold=-1.67)
     assert_array_equal(T_obs_pos, -T_obs_neg)
