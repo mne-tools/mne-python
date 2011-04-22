@@ -10,9 +10,7 @@ import numpy as np
 
 def fread3(fobj):
     """Docstring"""
-    b1 = np.fromfile(fobj, ">u1", 1)[0]
-    b2 = np.fromfile(fobj, ">u1", 1)[0]
-    b3 = np.fromfile(fobj, ">u1", 1)[0]
+    b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
     return (b1 << 16) + (b2 << 8) + b3
 
 
