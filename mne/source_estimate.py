@@ -163,8 +163,7 @@ from .fiff.constants import FIFF
 from .fiff.tag import find_tag
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
-from .bem_surfaces import read_bem_surfaces
-from .surfer import read_surface
+from .surface import read_bem_surfaces, read_surface
 
 
 def read_morph_map(subject_from, subject_to, subjects_dir=None):

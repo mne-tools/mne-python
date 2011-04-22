@@ -31,5 +31,3 @@ def test_read_source_spaces():
     assert rh_faces.max() == rh_points.shape[0] - 1
     assert rh_use_faces.min() >= 0
     assert rh_use_faces.max() <= lh_points.shape[0] - 1
-
-def test_morph_data():
