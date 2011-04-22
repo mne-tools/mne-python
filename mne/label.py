@@ -1,6 +1,6 @@
 import numpy as np
 
-from .stc import read_stc
+from .source_estimate import read_stc
 
 
 def read_label(filename):
