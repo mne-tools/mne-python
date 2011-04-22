@@ -45,6 +45,6 @@ def read_surface(filepath):
         del blankline
         vnum = np.fromfile(fobj, ">i4", 1)[0]
         fnum = np.fromfile(fobj, ">i4", 1)[0]
-        vertex_coords = np.fromfile(fobj, ">f4", vnum*3).reshape(vnum, 3)
-        faces = np.fromfile(fobj, ">i4", fnum*3).reshape(fnum, 3)
+        vertex_coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
+        faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
     return vertex_coords, faces
