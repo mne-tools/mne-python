@@ -94,39 +94,39 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
 
     stcs = dict()
     src = inv['src']
-    n_times = len(epochs.times)
 
     for name, band in bands.iteritems():
         print 'Computing power in band %s [%s, %s] Hz...' % (name, band[0],
                                                              band[1])
 
         freqs = np.arange(band[0], band[1] + df / 2.0, df)  # frequencies
-        n_freqs = len(freqs)
         Ws = morlet(Fs, freqs, n_cycles=n_cycles)
 
         power = 0
 
         for e in epochs_data:
             e = e[sel]  # keep only selected channels
-            tfr = cwt(e, Ws, use_fft=use_fft)
-            tfr = tfr.reshape(len(e), -1)
 
-            sol = np.dot(K, tfr)
+            for w in Ws:
+                tfr = cwt(e, [w], use_fft=use_fft)
+                tfr = np.asfortranarray(tfr.reshape(len(e), -1))
 
-            if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-                # print 'combining the current components...',
-                sol = combine_xyz(sol)
+                for t in [np.real(tfr), np.imag(tfr)]:
+                    sol = np.dot(K, t)
 
-            if dSPM:
-                # print '(dSPM)...',
-                sol *= inv['noisenorm'][:, None]
+                    if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+                        # print 'combining the current components...',
+                        sol = combine_xyz(sol, square=True)
 
-            # average power in band
-            sol = np.mean(np.reshape(sol ** 2, (-1, n_freqs, n_times)), axis=1)
-            power += sol
-            del sol
+                    if dSPM:
+                        # print '(dSPM)...',
+                        sol *= inv['noisenorm'][:, None] ** 2
 
-        power /= len(epochs_data)
+                    power += sol
+                    del sol
+
+        # average power in band + mean over epochs
+        power /= len(epochs_data) * len(freqs)
 
         # Run baseline correction
         if baseline is not None:

@@ -263,7 +263,6 @@ def mesh_edges(tris):
     edges = edges + edges.T
     return edges
 
-
 def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
                subjects_dir=None):
     """Morph a source estimate from one subject to another
@@ -313,8 +312,9 @@ def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
         idx_use = np.where(src_from[hemi]['inuse'])[0]  # XXX
         n_iter = 100  # max nb of smoothing iterations
         for k in range(n_iter):
-            data1 = e[:, idx_use] * np.ones(len(idx_use))
-            data[hemi] = e[:, idx_use] * data[hemi]
+            e_use = e[:, idx_use]
+            data1 = e_use * np.ones(len(idx_use))
+            data[hemi] = e_use * data[hemi]
             idx_use = np.where(data1)[0]
             if (k == (n_iter - 1)) or (len(idx_use) >= n_vertices):
                 data[hemi][idx_use, :] /= data1[idx_use][:, None]

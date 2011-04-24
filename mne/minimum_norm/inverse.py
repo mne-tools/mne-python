@@ -261,7 +261,7 @@ def read_inverse_operator(fname):
 # Compute inverse solution
 
 
-def combine_xyz(vec):
+def combine_xyz(vec, square=False):
     """Compute the three Cartesian components of a vector or matrix together
 
     Parameters
@@ -281,7 +281,14 @@ def combine_xyz(vec):
         raise ValueError('Input must have 3N rows')
 
     n, p = vec.shape
-    return np.sqrt((np.abs(vec).reshape(n / 3, 3, p) ** 2).sum(axis=1))
+    if np.iscomplexobj(vec):
+        vec = np.abs(vec)
+    comb = vec[0::3] ** 2
+    comb += vec[1::3] ** 2
+    comb += vec[2::3] ** 2
+    if not square:
+        comb = np.sqrt(comb)
+    return comb
 
 
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
