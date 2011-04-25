@@ -10,9 +10,35 @@ from ..time_frequency.tfr import cwt, morlet
 from .inverse import combine_xyz, prepare_inverse_operator
 
 
+def _compute_power(data, K, sel, Ws, source_ori, use_fft):
+    """Aux function for source_induced_power"""
+    power = 0
+
+    for e in data:
+        e = e[sel]  # keep only selected channels
+
+        for w in Ws:
+            tfr = cwt(e, [w], use_fft=use_fft)
+            tfr = np.asfortranarray(tfr.reshape(len(e), -1))
+
+            for t in [np.real(tfr), np.imag(tfr)]:
+                sol = np.dot(K, t)
+
+                if source_ori == FIFF.FIFFV_MNE_FREE_ORI:
+                    # print 'combining the current components...',
+                    sol = combine_xyz(sol, square=True)
+                else:
+                    sol = sol ** 2
+
+                power += sol
+                del sol
+
+    return power
+
+
 def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                          dSPM=True, n_cycles=5, df=1, use_fft=False,
-                         baseline=None, baseline_mode='logratio'):
+                         baseline=None, baseline_mode='logratio', n_jobs=1):
     """Compute source space induced power
 
     Parameters
@@ -46,7 +72,27 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         power during baseline) or zscore (power is divided by standard
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
+    n_jobs : int
+        Number of jobs to run in parallel
     """
+
+    if n_jobs == -1:
+        try:
+            import multiprocessing
+            n_jobs = multiprocessing.cpu_count()
+        except ImportError:
+            print "multiprocessing not installed. Cannot run in parallel."
+            n_jobs = 1
+
+    try:
+        from scikits.learn.externals.joblib import Parallel, delayed
+        parallel = Parallel(n_jobs)
+        my_compute_power = delayed(_compute_power)
+    except ImportError:
+        print "joblib not installed. Cannot run in parallel."
+        n_jobs = 1
+        my_compute_power = _compute_power
+        parallel = list
 
     #
     #   Set up the inverse according to the parameters
@@ -72,6 +118,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                                            [inv['eigen_fields']['data'],
                                            inv['whitener'],
                                            inv['proj']])
+
     #
     #   Transformation into current distributions by weighting the
     #   eigenleads with the weights computed above
@@ -102,28 +149,13 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         freqs = np.arange(band[0], band[1] + df / 2.0, df)  # frequencies
         Ws = morlet(Fs, freqs, n_cycles=n_cycles)
 
-        power = 0
+        power = sum(parallel(my_compute_power(data, K, sel, Ws,
+                                                inv['source_ori'], use_fft)
+                            for data in np.array_split(epochs_data, n_jobs)))
 
-        for e in epochs_data:
-            e = e[sel]  # keep only selected channels
-
-            for w in Ws:
-                tfr = cwt(e, [w], use_fft=use_fft)
-                tfr = np.asfortranarray(tfr.reshape(len(e), -1))
-
-                for t in [np.real(tfr), np.imag(tfr)]:
-                    sol = np.dot(K, t)
-
-                    if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-                        # print 'combining the current components...',
-                        sol = combine_xyz(sol, square=True)
-
-                    if dSPM:
-                        # print '(dSPM)...',
-                        sol *= inv['noisenorm'][:, None] ** 2
-
-                    power += sol
-                    del sol
+        if dSPM:
+            # print '(dSPM)...',
+            power *= inv['noisenorm'][:, None] ** 2
 
         # average power in band + mean over epochs
         power /= len(epochs_data) * len(freqs)
