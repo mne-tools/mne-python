@@ -38,7 +38,8 @@ def _compute_power(data, K, sel, Ws, source_ori, use_fft):
 
 def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                          dSPM=True, n_cycles=5, df=1, use_fft=False,
-                         baseline=None, baseline_mode='logratio', n_jobs=1):
+                         baseline=None, baseline_mode='logratio',
+                         subtract_evoked=False, n_jobs=1):
     """Compute source space induced power
 
     Parameters
@@ -67,12 +68,15 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    baseline_mode : None | 'logratio' | 'zscore'
+    baseline_mode: None | 'logratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
-    n_jobs : int
+    subtract_evoked: bool
+        If True, the evoked component (average of all epochs) if subtracted
+        from each epochs.
+    n_jobs: int
         Number of jobs to run in parallel
     """
 
@@ -98,6 +102,10 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
     #   Set up the inverse according to the parameters
     #
     epochs_data = epochs.get_data()
+
+    if subtract_evoked:  # subtract with a copy not to touch epochs
+        epochs_data = epochs_data - np.mean(epochs_data, axis=0)
+
     nave = len(epochs_data)  # XXX : can do better when no preload
 
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
