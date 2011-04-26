@@ -66,6 +66,9 @@ class Epochs(object):
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
 
+    proj : bool, optional
+        Apply SSP projection vectors
+
     Methods
     -------
     get_epoch(i) : self
@@ -82,7 +85,7 @@ class Epochs(object):
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None):
+                preload=False, reject=None, flat=None, proj=True):
         self.raw = raw
         self.event_id = event_id
         self.tmin = tmin
@@ -113,28 +116,28 @@ class Epochs(object):
             raise ValueError("Picks cannot be empty.")
 
         #   Set up projection
-        if raw.info['projs'] is None:
+        if self.info['projs'] is None or not proj:
             print 'No projector specified for these data'
-            raw['proj'] = []
+            self.proj = None
         else:
             #   Activate the projection items
-            for proj in raw.info['projs']:
+            for proj in self.info['projs']:
                 proj['active'] = True
 
-            print '%d projection items activated' % len(raw.info['projs'])
+            print '%d projection items activated' % len(self.info['projs'])
 
             #   Create the projector
-            proj, nproj = fiff.proj.make_projector_info(raw.info)
+            proj, nproj = fiff.proj.make_projector_info(self.info)
             if nproj == 0:
                 print 'The projection vectors do not apply to these channels'
-                raw['proj'] = None
+                self.proj = None
             else:
                 print ('Created an SSP operator (subspace dimension = %d)'
                                                                     % nproj)
-                raw['proj'] = proj
+                self.proj = proj
 
         #   Set up the CTF compensator
-        current_comp = fiff.get_current_comp(raw.info)
+        current_comp = fiff.get_current_comp(self.info)
         if current_comp > 0:
             print 'Current compensation grade : %d' % current_comp
 
@@ -184,6 +187,9 @@ class Epochs(object):
         self.info['nchan'] = len(idx)
         self.ch_names = self.info['ch_names']
 
+        if self.proj is not None:
+            self.proj = self.proj[idx][:, idx]
+
         if self.preload:
             self._data = self._data[:, idx, :]
 
@@ -210,6 +216,10 @@ class Epochs(object):
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
         epoch, _ = self.raw[self.picks, start:stop]
+
+        if self.proj is not None:
+            print "SSP projectors applied..."
+            epoch = np.dot(self.proj, epoch)
 
         # Run baseline correction
         times = self.times

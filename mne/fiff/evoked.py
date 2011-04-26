@@ -10,6 +10,7 @@ from .open import fiff_open
 from .tag import read_tag
 from .tree import dir_tree_find
 from .meas_info import read_meas_info, write_meas_info
+from .proj import make_projector_info
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
@@ -43,7 +44,7 @@ class Evoked(object):
         Evoked response.
     """
 
-    def __init__(self, fname, setno=None, baseline=None):
+    def __init__(self, fname, setno=None, baseline=None, proj=True):
         """
         Parameters
         ----------
@@ -54,6 +55,10 @@ class Evoked(object):
         setno : int
             Dataset ID number. Optional if there is only one data set
             in file.
+
+        proj : bool, optional
+            Apply SSP projection vectors
+
         """
 
         if fname is None:
@@ -205,6 +210,31 @@ class Evoked(object):
         all_data = cals[:, None] * all_data
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
+
+        # Set up projection
+        if info['projs'] is None or not proj:
+            print 'No projector specified for these data'
+            self.proj = None
+        else:
+            #   Activate the projection items
+            for proj in info['projs']:
+                proj['active'] = True
+
+            print '%d projection items activated' % len(info['projs'])
+
+            #   Create the projector
+            proj, nproj = make_projector_info(info)
+            if nproj == 0:
+                print 'The projection vectors do not apply to these channels'
+                self.proj = None
+            else:
+                print ('Created an SSP operator (subspace dimension = %d)'
+                                                                    % nproj)
+                self.proj = proj
+
+        if self.proj is not None:
+            print "SSP projectors applied..."
+            all_data = np.dot(self.proj, all_data)
 
         # Run baseline correction
         if baseline is not None:
