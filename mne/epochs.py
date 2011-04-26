@@ -142,7 +142,7 @@ class Epochs(object):
             dest_comp = current_comp
 
         if current_comp != dest_comp:
-            raw.comp = fiff.raw.make_compensator(raw.info, current_comp,
+            raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
                                                  dest_comp)
             print 'Appropriate compensator added to change to grade %d.' % (
                                                                     dest_comp)

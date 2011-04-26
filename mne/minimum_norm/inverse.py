@@ -348,7 +348,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #
     inv['whitener'] = np.zeros((inv['noise_cov']['dim'],
                                 inv['noise_cov']['dim']))
-    if inv['noise_cov']['diag'] == 0:
+    if not inv['noise_cov']['diag']:
         #
         #   Omit the zeroes due to projection
         #
