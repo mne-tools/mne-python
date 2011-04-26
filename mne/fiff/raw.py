@@ -247,6 +247,10 @@ class Raw(dict):
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
 
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
 
 def read_raw_segment(raw, start=0, stop=None, sel=None):
     """Read a chunck of raw data
