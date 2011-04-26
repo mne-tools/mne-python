@@ -164,8 +164,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         if baseline is not None:
             print "Applying baseline correction ..."
             times = epochs.times
-            bmin = baseline[0]
-            bmax = baseline[1]
+            bmin, bmax = baseline
             if bmin is None:
                 imin = 0
             else:
