@@ -85,6 +85,9 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
 
+    n_jobs : int
+        Number of CPUs to use for computation.
+
     Returns
     -------
     T_obs : array of shape [n_tests]
@@ -97,8 +100,6 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
 
-    n_jobs : int
-        Number of CPUs to use for computation.
     Notes
     -----
     A reference (among many) in field of neuroimaging:
