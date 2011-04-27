@@ -51,7 +51,7 @@ temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
 data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
 
 n_permutations = 50000
-T0, p_values, H0 = permutation_t_test(data, n_permutations)
+T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
 
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.info['ch_names'][k]

@@ -45,7 +45,16 @@ def bin_perm_rep(ndim, a=0, b=1):
     return perms
 
 
-def permutation_t_test(X, n_permutations=10000, tail=0):
+def _max_stat(X, X2, perms, dof_scaling):
+    """Aux function for permutation_t_test (for parallel comp)"""
+    n_samples = len(X)
+    mus = np.dot(perms, X) / float(n_samples)
+    stds = np.sqrt(X2[None, :] - mus ** 2) * dof_scaling  # std with splitting
+    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
+    return max_abs
+
+
+def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
     """One sample/paired sample permutation test based on a t-statistic.
 
     This function can perform the test on one variable or
@@ -88,6 +97,8 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
         T-statistic obtained by permutations and t-max trick for multiple
         comparison.
 
+    n_jobs : int
+        Number of CPUs to use for computation.
     Notes
     -----
     A reference (among many) in field of neuroimaging:
@@ -116,9 +127,26 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     else:
         perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
-    mus = np.dot(perms, X) / float(n_samples)
-    stds = np.sqrt(X2[None, :] - mus ** 2) * dof_scaling  # std with splitting
-    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
+    try:
+        from scikits.learn.externals.joblib import Parallel, delayed
+        parallel = Parallel(n_jobs)
+        my_max_stat = delayed(_max_stat)
+    except ImportError:
+        print "joblib not installed. Cannot run in parallel."
+        n_jobs = 1
+        my_max_stat = _max_stat
+        parallel = list
+
+    if n_jobs == -1:
+        try:
+            import multiprocessing
+            n_jobs = multiprocessing.cpu_count()
+        except ImportError:
+            print "multiprocessing not installed. Cannot run in parallel."
+            n_jobs = 1
+
+    max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
+                                      for p in np.array_split(perms, n_jobs)))
     H0 = np.sort(max_abs)
 
     scaling = float(n_permutations + 1)
