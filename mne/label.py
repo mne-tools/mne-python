@@ -33,6 +33,13 @@ def read_label(filename):
     label['vertices'] = np.array(data[0], dtype=np.int32)
     label['pos'] = 1e-3 * data[1:4].T
     label['values'] = data[4]
+    if filename.endswith('lh.label'):
+        label['hemi'] = 'lh'
+    elif filename.endswith('rh.label'):
+        label['hemi'] = 'rh'
+    else:
+        raise ValueError('Cannot find which hemisphere it is. File should end'
+                         ' with lh.label or rh.label')
     fid.close()
 
     return label

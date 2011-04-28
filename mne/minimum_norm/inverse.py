@@ -14,7 +14,7 @@ from ..fiff.tag import find_tag
 from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from ..fiff.proj import read_proj, make_projector
 from ..fiff.tree import dir_tree_find
-from ..fiff.pick import pick_channels_evoked
+from ..fiff.pick import pick_channels_evoked, pick_channels
 
 from ..cov import read_cov
 from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
@@ -433,8 +433,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
 
     Returns
     -------
-    res: dict
-        Inverse solution
+    stc: SourceEstimate
+        The source estimates
     """
 
     #
@@ -495,6 +495,132 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
     stc.tstep = 1.0 / evoked.info['sfreq']
     stc.lh_vertno = src[0]['vertno']
     stc.rh_vertno = src[1]['vertno']
+    stc._init_times()
+    print '[done]'
+
+    return stc
+
+
+def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                      label=None, start=None, stop=None, nave=1):
+    """Apply inverse operator to Raw data
+
+    Computes a L2-norm inverse solution
+    Actual code using these principles might be different because
+    the inverse operator is often reused across data sets.
+
+    Parameters
+    ----------
+    raw: Raw object
+        Evoked data
+    inverse_operator: dict
+        Inverse operator read with mne.read_inverse_operator
+    lambda2: float
+        The regularization parameter
+    dSPM: bool
+        do dSPM ?
+    label: Label
+        Restricts the source estimates to a given label
+    start: int
+        Index of first time sample (index not time is seconds)
+    stop: int
+        Index of last time sample (index not time is seconds)
+    nave: int
+        Number of averages used to regularize the solution.
+        Set to 1 on raw data.
+    Returns
+    -------
+    stc: SourceEstimate
+        The source estimates
+    """
+
+    #
+    #   Set up the inverse according to the parameters
+    #
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = pick_channels(raw.ch_names, include=inv['noise_cov']['names'])
+    print 'Picked %d channels from the data' % len(sel)
+    print 'Computing inverse...',
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+
+    src = inv['src']
+    lh_vertno = src[0]['vertno']
+    rh_vertno = src[1]['vertno']
+
+    data, times = raw[sel, start:stop]
+
+    trans = inv['reginv'][:, None] * reduce(np.dot,
+                                            [inv['eigen_fields']['data'],
+                                            inv['whitener'],
+                                            inv['proj'],
+                                            data])
+
+    eigen_leads = inv['eigen_leads']['data']
+    source_cov = inv['source_cov']['data'][:, None]
+    noise_norm = inv['noisenorm'][:, None]
+
+    if label is not None:
+        if label['hemi'] == 'lh':
+            vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
+            src_sel = np.searchsorted(lh_vertno, vertno_sel)
+            lh_vertno = vertno_sel
+            rh_vertno = np.array([])
+        elif label['hemi'] == 'rh':
+            vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
+            src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
+            lh_vertno = np.array([])
+            rh_vertno = vertno_sel
+
+        noise_norm = noise_norm[src_sel]
+
+        if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+            src_sel = 3 * src_sel
+            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
+            src_sel = src_sel.ravel()
+
+        eigen_leads = eigen_leads[src_sel]
+        source_cov = source_cov[src_sel]
+
+    #
+    #   Transformation into current distributions by weighting the eigenleads
+    #   with the weights computed above
+    #
+    if inv['eigen_leads_weighted']:
+        #
+        #     R^0.5 has been already factored in
+        #
+        print '(eigenleads already weighted)...',
+        sol = np.dot(eigen_leads, trans)
+    else:
+        #
+        #     R^0.5 has to factored in
+        #
+        print '(eigenleads need to be weighted)...',
+        sol = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
+
+    if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+        print 'combining the current components...',
+        sol = combine_xyz(sol)
+
+    if dSPM:
+        print '(dSPM)...',
+        sol *= noise_norm
+
+    stc = SourceEstimate(None)
+    stc.data = sol
+    stc.tmin = float(times[0]) / raw.info['sfreq']
+    stc.tstep = 1.0 / raw.info['sfreq']
+    stc.lh_vertno = lh_vertno
+    stc.rh_vertno = rh_vertno
     stc._init_times()
     print '[done]'
 
