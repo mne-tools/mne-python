@@ -55,5 +55,13 @@ stcs = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
 for b, stc in stcs.iteritems():
     stc.save('induced_power_%s' % b)
 
-# View sources
-plot_source_estimate(inverse_operator['src'], stcs['alpha'])
+###############################################################################
+# plot mean power
+import pylab as pl
+pl.plot(stcs['alpha'].times, stcs['alpha'].data.mean(axis=0), label='Alpha')
+pl.plot(stcs['beta'].times, stcs['beta'].data.mean(axis=0), label='Beta')
+pl.xlabel('Time (ms)')
+pl.ylabel('Power')
+pl.legend()
+pl.title('Mean source induced power')
+pl.show()

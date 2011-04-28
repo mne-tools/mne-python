@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy import linalg
 
 from ..fiff.constants import FIFF
 from ..stc import SourceEstimate
@@ -10,12 +11,15 @@ from ..time_frequency.tfr import cwt, morlet
 from .inverse import combine_xyz, prepare_inverse_operator
 
 
-def _compute_power(data, K, sel, Ws, source_ori, use_fft):
+def _compute_power(data, K, sel, Ws, source_ori, use_fft, Vh):
     """Aux function for source_induced_power"""
     power = 0
 
     for e in data:
         e = e[sel]  # keep only selected channels
+
+        if Vh is not None:
+            e = np.dot(Vh, e)  # reducing data rank
 
         for w in Ws:
             tfr = cwt(e, [w], use_fft=use_fft)
@@ -38,7 +42,7 @@ def _compute_power(data, K, sel, Ws, source_ori, use_fft):
 
 def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                          dSPM=True, n_cycles=5, df=1, use_fft=False,
-                         baseline=None, baseline_mode='logratio',
+                         baseline=None, baseline_mode='logratio', pca=True,
                          subtract_evoked=False, n_jobs=1):
     """Compute source space induced power
 
@@ -73,6 +77,10 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         power during baseline) or zscore (power is divided by standard
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
+    pca: bool
+        If True, the true dimension of data is estimated before running
+        the time frequency transforms. It reduces the computation times
+        e.g. with a dataset that was maxfiltered (true dim is 64)
     subtract_evoked: bool
         If True, the evoked component (average of all epochs) if subtracted
         from each epochs.
@@ -127,6 +135,15 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
                                            inv['whitener'],
                                            inv['proj']])
 
+    if pca:
+        U, s, Vh = linalg.svd(K)
+        rank = np.sum(s > 1e-8*s[0])
+        K = np.dot(K, s[:rank] * U[:, :rank])
+        Vh = Vh[:rank]
+        print 'Reducing data rank to %d' % rank
+    else:
+        Vh = None
+
     #
     #   Transformation into current distributions by weighting the
     #   eigenleads with the weights computed above
@@ -158,7 +175,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         Ws = morlet(Fs, freqs, n_cycles=n_cycles)
 
         power = sum(parallel(my_compute_power(data, K, sel, Ws,
-                                                inv['source_ori'], use_fft)
+                                            inv['source_ori'], use_fft, Vh)
                             for data in np.array_split(epochs_data, n_jobs)))
 
         if dSPM:
