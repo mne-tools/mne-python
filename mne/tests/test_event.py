@@ -17,7 +17,7 @@ def test_io_events():
     """
     events = mne.read_events(fname)
     mne.write_events('events.fif', events)
-    events2 = mne.read_events(fname)
+    events2 = mne.read_events('events.fif')
     assert_array_almost_equal(events, events2)
 
 

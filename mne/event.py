@@ -72,7 +72,7 @@ def write_events(filename, event_list):
     fid = start_file(filename)
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list)
+    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     end_file(fid)
