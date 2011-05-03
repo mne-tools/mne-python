@@ -1,4 +1,4 @@
-.. _documentation:
+.. _mne_python:
 
 ======================
 MNE with Python
