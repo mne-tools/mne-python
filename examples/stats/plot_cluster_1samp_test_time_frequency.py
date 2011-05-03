@@ -8,11 +8,12 @@ in time-frequency power estimates. It uses a non-parametric
 statistical procedure based on permutations and cluster
 level statistics.
 
-The procedure consists in :
-- extracting epochs
-- compute single trial power estimates
-- baseline line correct the power estimates (power ratios)
-- compute stats to see if ratio deviates from 1.
+The procedure consists in:
+
+  - extracting epochs
+  - compute single trial power estimates
+  - baseline line correct the power estimates (power ratios)
+  - compute stats to see if ratio deviates from 1.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>

@@ -8,12 +8,13 @@ power estimates between conditions. It uses a non-parametric
 statistical procedure based on permutations and cluster
 level statistics.
 
-The procedure consists in :
-- extracting epochs for 2 conditions
-- compute single trial power estimates
-- baseline line correct the power estimates (power ratios)
-- compute stats to see if the power estimates are significantly different
-  between conditions.
+The procedure consists in:
+
+  - extracting epochs for 2 conditions
+  - compute single trial power estimates
+  - baseline line correct the power estimates (power ratios)
+  - compute stats to see if the power estimates are significantly different
+    between conditions.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>

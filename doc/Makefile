@@ -30,7 +30,6 @@ clean:
 	-rm -rf build/*
 
 html:
-	-rm -rf build/html/_images/*
 	-rm -rf build/html/_downloads/*1.py
 	-rm -rf build/html/_downloads/*2.py
 	-rm -rf build/html/_downloads/*3.py

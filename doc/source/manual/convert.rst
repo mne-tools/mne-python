@@ -1082,15 +1082,15 @@ The command-line options are:
 **\---src <*name*>**
 
     The source space to be listed. This can be either the output from mne_make_source_space
-    (*src.fif), output from the forward calculation (*fwd.fif), or
-    the output from the inverse operator decomposition (*inv.fif).
+    (`*src.fif`), output from the forward calculation (`*fwd.fif`), or
+    the output from the inverse operator decomposition (`*inv.fif`).
 
 **\---mri <*name*>**
 
     A file containing the transformation between the head and MRI coordinates
     is specified with this option. This file can be either a Neuromag
-    MRI description file, the output from the forward calculation (*fwd.fif),
-    or the output from the inverse operator decomposition (*inv.fif).
+    MRI description file, the output from the forward calculation (`*fwd.fif`),
+    or the output from the inverse operator decomposition (`*inv.fif`).
     If this file is included, the output will be in head coordinates.
     Otherwise the source space will be listed in MRI coordinates.
 
@@ -1618,7 +1618,7 @@ by mne_convert_mne_data are:
 **\---tag <*name*>**
 
     By default, all variables in the matlab output files start with
-    MNE_. This option allows to change this prefix to <*name*> _.
+    ``mne\_``. This option allows to change this prefix to <*name*> _.
 
 **\---meg**
 
@@ -1666,27 +1666,58 @@ by mne_convert_mne_data are:
 Guide to combining options
 ==========================
 
-The combination of options is quite complicated. The :ref:`BEHDCIII` should be helpful to determine the combination
-of options appropriate for your needs.
+The combination of options is quite complicated. The :ref:`BEHDCIII` should be
+helpful to determine the combination of options appropriate for your needs.
 
 .. _BEHDCIII:
 
 .. table:: Guide to combining mne_convert_mne_data options.
 
-    ============================================  ========  =====================================================================================  ===============================
-    Desired output                                Format    Required options                                                                       Optional options
-    ============================================  ========  =====================================================================================  ===============================
-    forward model                                 fif       --fwd <*name*>  --out <*name*>  --meg and/or --eeg --fif                                   --bad <*name*>  --surfsrc
-    forward model                                 mat       --fwd <*name*>  --out <*name*>  --meg and/or --eeg                                         --bad <*name*>  --surfsrc
-    forward model and  sensor covariance          mat       --fwd <*name*>  --out <*name*>  --senscov <*name*>  --meg and/or --eeg                       --bad <*name*>  --surfsrc
-    sensor covariance                             fif       --fwd <*name*>  --out <*name*>  --senscov <*name*>  --noiseonly --fif --meg and/or --eeg     --bad <*name*>
-    sensor covariance                             mat       --senscov <*name*>  --out <*name                                                          --bad <*name*>
-    sensor covariance eigenvalues                 text      --senscov <*name*>  --out <*name  --eig                                                   --bad <*name*>
-    evoked MEG/EEG data                           mat       --meas <*name*>  --out <*name                                                             --sel <*name*>  --set <*number*>
-    evoked MEG/EEG data forward model             mat       --meas <*name*>  --fwd <*name*>  --out <*name*>                                              --bad <*name*>  --set <*number*>
-    inverse operator data                         mat       --inv <*name*>  --out <*name
-    inverse operator data evoked MEG/EEG data     mat       --inv <*name*>  --meas <*name*>  --out <*name
-    ============================================  ========  =====================================================================================  ===============================
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | Desired output                      | Format  | Required options         | Optional options      |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | forward model                       | fif     | | \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       | \---surfsrc           |
+    |                                     |         | | \---meg and/or \---eeg |                       |
+    |                                     |         | | \---fif                |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | forward model                       | mat     | | \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       | \---surfsrc           |
+    |                                     |         | | \---meg and/or --eeg   |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | forward model and sensor covariance | mat     | | \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       | \---surfsrc           |
+    |                                     |         | | \---senscov <*name*>   |                       |
+    |                                     |         | | \---meg and/or --eeg   |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | sensor covariance                   | fif     | | \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       |                       |
+    |                                     |         | | \---senscov <*name*>   |                       |
+    |                                     |         | | \---noiseonly          |                       |
+    |                                     |         | | \---fif                |                       |
+    |                                     |         | | \---meg and/or --eeg   |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | sensor covariance                   | mat     | | \---senscov <*name*>   | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | sensor covariance eigenvalues       | text    | | \---senscov <*name*>   | \---bad <*name*>      |
+    |                                     |         | | \---out <*name*>       |                       |
+    |                                     |         | | \---eig                |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | evoked MEG/EEG data                 | mat     | | \---meas <*name*>      | \---sel <*name*>      |
+    |                                     |         | | \---out <*name*>       | \---set <*number*>    |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | evoked MEG/EEG data forward model   | mat     | | \---meas <*name*>      | \---bad <*name*>      |
+    |                                     |         | | \---fwd <*name*>       | \---set <*number*>    |
+    |                                     |         | | \---out <*name*>       |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | inverse operator data               | mat     | | \---inv <*name*>       |                       |
+    |                                     |         | | \---out <*name*>       |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
+    | inverse operator data evoked        | mat     | | \–--inv <*name*>       |                       |
+    | MEG/EEG data                        |         | | \–--meas <*name*>      |                       |
+    |                                     |         | | \–--out <*name*>       |                       |
+    +-------------------------------------+---------+--------------------------+-----------------------+
 
 Matlab data structures
 ======================
@@ -1720,7 +1751,7 @@ The symbols employed in variable size descriptions are:
 
 .. _BEHCICCA:
 
-.. table:: Matlab structures produced by mne_convert_mne_data . The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHCICCF`. Its default value is MNE.
+.. table:: Matlab structures produced by mne_convert_mne_data.
 
     ===============  =======================================
     Structure        Contents
@@ -1730,6 +1761,8 @@ The symbols employed in variable size descriptions are:
     <*tag*> _fwd       The forward solution
     <*tag*> _noise     A standalone noise-covariance matrix
     ===============  =======================================
+
+The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHCICCF`. Its default value is MNE.
 
 .. _BABCBIGF:
 
@@ -1816,7 +1849,7 @@ following command-line options:
 **\---tag <*tag*>**
 
     By default, all Matlab variables included in the output file start
-    with MNE_. This option changes the prefix to <*tag*> _.
+    with ``mne\_``. This option changes the prefix to <*tag*> _.
 
 Matlab data structures
 ======================
@@ -1916,7 +1949,7 @@ the following command-line options are:
 **\---tag <*tag*>**
 
     By default, all Matlab variables included in the description file
-    start with MNE_. This option changes the prefix to <*tag*> _.
+    start with ``mne\_``. This option changes the prefix to <*tag*> _.
 
 **\---events <*name*>**
 
@@ -2027,11 +2060,11 @@ the following command-line options are:
     If the ``--inv`` option is present, ``--proj`` has
     no effect.
 
-.. note:: Baseline has not been subtracted from the epochs.    This has to be done in subsequent processing with Matlab if so desired.
+.. note:: Baseline has not been subtracted from the epochs. This has to be done in subsequent processing with Matlab if so desired.
 
-.. note:: Strictly speaking, trigger mask value zero would    mean that all trigger inputs are ignored. However, for convenience,    setting the mask to zero or not setting it at all has the same effect    as 0xFFFFFFFF, *i.e.*, all bits set.
+.. note:: Strictly speaking, trigger mask value zero would mean that all trigger inputs are ignored. However, for convenience,    setting the mask to zero or not setting it at all has the same effect    as 0xFFFFFFFF, *i.e.*, all bits set.
 
-.. note:: The digital trigger channel can also be set with    the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_browse_raw or mne_process_raw .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
+.. note:: The digital trigger channel can also be set with the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_browse_raw or mne_process_raw .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
 
 .. note:: The digital trigger channel mask can also be    set with the MNE_TRIGGER_CH_MASK environment variable. Using the ``--digtrigmask`` option    supersedes the MNE_TRIGGER_CH_MASK environment variable.
 

@@ -1590,9 +1590,8 @@ controls:
 
     Various options controlling the estimates.
 
-.. _CACGGICI:
-
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.45\linewidth}|
+.. _CACGGICI:
 .. table:: The color scale parameters.
 
     +------------+---------------------------------------------------------+
