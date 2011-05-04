@@ -2,7 +2,7 @@
 
 """
 This script will extract the documentation from the full_configbase.py
-module, reformat it somewhat, and write it as a reST document in 
+module, reformat it somewhat, and write it as a reST document in
 $PYFIFF/doc/source.
 
 """
@@ -24,7 +24,7 @@ write = False
 space = False
 
 def flip(value):
-    if value: 
+    if value:
         return False
     else:
         return True
@@ -71,4 +71,3 @@ for num, line in enumerate(confid):
 
 confid.close()
 docfid.close()
-

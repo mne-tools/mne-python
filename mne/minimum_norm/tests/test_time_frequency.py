@@ -51,4 +51,3 @@ def test_tfr_with_inverse_operator():
     assert len(stcs) == len(bands.keys())
     assert np.all(stc.data > 0)
     assert_array_almost_equal(stc.times, epochs.times)
-

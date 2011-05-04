@@ -18,7 +18,7 @@ namelist = []
 for i, arg in enumerate(sys.argv):
     if i > 2:
         namelist.append(arg)
-atlasname = " ".join(namelist)    
+atlasname = " ".join(namelist)
 
 lutarr = np.genfromtxt(lutfile, str)
 lutarr = lutarr[:,:2]
@@ -30,7 +30,7 @@ for row in lutarr:
     if len(row[1]) > maxname:
         maxname = len(row[1])
 leftbar = max(maxid, 3)
-rightbar = max(maxname, 20) 
+rightbar = max(maxname, 20)
 
 fid = open(spxfile, "w")
 
@@ -63,4 +63,3 @@ for row in lutarr:
         fid.write("%d%s%s\n" % (id, space, name))
 
 fid.write("%s   %s\n\n" % (leftline, rightline))
-

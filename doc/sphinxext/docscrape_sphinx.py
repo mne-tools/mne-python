@@ -135,4 +135,3 @@ def get_doc_object(obj, what=None, doc=None):
         if doc is None:
             doc = pydoc.getdoc(obj)
         return SphinxDocString(doc)
-

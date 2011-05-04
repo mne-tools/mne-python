@@ -488,5 +488,3 @@ class ClassDoc(NumpyDocString):
         #    out += '.. index::\n   single: %s; %s\n\n' % (self._name, m)
 
         return out
-
-

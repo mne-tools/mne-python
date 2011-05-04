@@ -62,4 +62,3 @@ def test_time_frequency():
                                       n_cycles=2)
 
     assert_array_almost_equal(np.mean(single_power), power)
-

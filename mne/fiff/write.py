@@ -171,11 +171,11 @@ def write_coord_trans(fid, trans):
     FIFFV_NEXT_SEQ = 0
 
     #?typedef struct _fiffCoordTransRec {
-    #  fiff_int_t   from;		           /*!< Source coordinate system. */
-    #  fiff_int_t   to;		               /*!< Destination coordinate system. */
-    #  fiff_float_t rot[3][3];	           /*!< The forward transform (rotation part) */
-    #  fiff_float_t move[3];		       /*!< The forward transform (translation part) */
-    #  fiff_float_t invrot[3][3];	       /*!< The inverse transform (rotation part) */
+    #  fiff_int_t   from;                          /*!< Source coordinate system. */
+    #  fiff_int_t   to;                        /*!< Destination coordinate system. */
+    #  fiff_float_t rot[3][3];             /*!< The forward transform (rotation part) */
+    #  fiff_float_t move[3];                   /*!< The forward transform (translation part) */
+    #  fiff_float_t invrot[3][3];              /*!< The inverse transform (rotation part) */
     #  fiff_float_t invmove[3];            /*!< The inverse transform (translation part) */
     #} *fiffCoordTrans, fiffCoordTransRec; /*!< Coordinate transformation descriptor */
 

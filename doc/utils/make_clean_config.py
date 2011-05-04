@@ -6,7 +6,7 @@ fullfid = open(os.path.join(os.path.split(__file__)[0], os.path.pardir, os.path.
                             "data", "configfiles", "full_configbase.py"), "r")
 cleanfid = open(os.path.join(os.path.split(__file__)[0], os.path.pardir, os.path.pardir,
                             "data", "configfiles", "clean_configbase.py"), "w")
-                             
+
 write = True
 lastflip = None
 
@@ -17,7 +17,7 @@ def flip(value):
         return True
 
 for num, line in enumerate(fullfid):
-    
+
     if not line.startswith("#--"):
         if line.startswith("\"\"\"") and num > 15:
             write = flip(write)
@@ -28,4 +28,3 @@ for num, line in enumerate(fullfid):
 
 fullfid.close()
 cleanfid.close()
-
