@@ -161,4 +161,3 @@ def peak_finder(x0, thresh=None, extrema=1):
         print 'No significant peaks found'
 
     return peak_inds, peak_mags
-
