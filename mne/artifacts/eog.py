@@ -10,10 +10,15 @@ def find_eog_events(raw, event_id=998):
 
     Parameters
     ----------
-
+    raw : instance of Raw
+        The raw data
+    event_id : int
+        The index to assign to found events
 
     Returns
     -------
+    eog_events : array
+        Events
     """
     info = raw.info
 
