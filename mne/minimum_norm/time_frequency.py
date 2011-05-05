@@ -32,7 +32,7 @@ def _compute_power(data, K, sel, Ws, source_ori, use_fft, Vh):
                     # print 'combining the current components...',
                     sol = combine_xyz(sol, square=True)
                 else:
-                    sol = sol ** 2
+                    np.power(sol, 2, sol)
 
                 power += sol
                 del sol
