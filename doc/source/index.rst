@@ -29,5 +29,18 @@ MNE with Python
 
    mne-python
 
+Working with MNE Python's source code
+=====================================
+
+.. toctree::
+   :maxdepth: 2
+
+   gitwash/git_intro
+   gitwash/git_install
+   gitwash/following_latest
+   gitwash/patching
+   gitwash/git_development
+   gitwash/git_resources
+
 * :ref:`search`
 
