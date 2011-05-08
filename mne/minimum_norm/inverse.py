@@ -502,7 +502,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
 
 
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
-                      label=None, start=None, stop=None, nave=1):
+                      label=None, start=None, stop=None, nave=1,
+                      time_func=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -528,6 +529,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     nave: int
         Number of averages used to regularize the solution.
         Set to 1 on raw data.
+    time_func: callable
+        Linear function applied to sensor space time series.
     Returns
     -------
     stc: SourceEstimate
@@ -557,6 +560,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     rh_vertno = src[1]['vertno']
 
     data, times = raw[sel, start:stop]
+
+    if time_func is not None:
+        data = time_func(data)
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
