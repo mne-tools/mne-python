@@ -175,7 +175,7 @@ and
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}||p{0.5\linewidth}|
 .. _CHDJDEDJ:
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols INLINE_EQUATION are defined in :ref:`CHDFFJIJ` Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION, and INLINE_EQUATION in the fif files produced.).
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
     +------------------------------+-------------------------------+--------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                  |
@@ -799,22 +799,22 @@ The columns of the tables contain the following data:
     =======  ================================================================  ====  ===============================================================  ===============================================================
     Id       Description                                                       n     r/mm                                                             w
     =======  ================================================================  ====  ===============================================================  ===============================================================
-    2        Neuromag-122 planar gradiometer                                   2     INLINE_EQUATION                                                  INLINE_EQUATION
-    2000     A point magnetometer                                              1     INLINE_EQUATION                                                  1
-    3012     Vectorview type 1 planar gradiometer                              2     INLINE_EQUATION                                                  INLINE_EQUATION
-    3013     Vectorview type 2 planar gradiometer                              2     INLINE_EQUATION                                                  INLINE_EQUATION
-    3022     Vectorview type 1 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    3023     Vectorview type 2 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    3024     Vectorview type 3 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    2000     An ideal point  magnetometer                                      1     (0,0,0)                                                          1
-    4001     Magnes WH magnetometer                                            4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4002     Magnes WH 3600 axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    4003     Magnes reference magnetometer                                     4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
-    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
+    2        Neuromag-122 planar gradiometer                                   2     :math:`\pm (8.1, 0, 0)`mm                                        INLINE_EQUATION
+    2000     A point magnetometer                                              1     :math:`(0, 0, 0)`mm                                              INLINE_EQUATION
+    3012     Vectorview type 1 planar gradiometer                              2     :math:`(\pm 8.4, 0, 0.3)`mm                                      INLINE_EQUATION
+    3013     Vectorview type 2 planar gradiometer                              2     :math:`(\pm 8.4, 0, 0.3)`mm                                      INLINE_EQUATION
+    3022     Vectorview type 1 magnetometer                                    4     :math:`(\pm 6.45, \pm 6.45, 0.3)`mm                              INLINE_EQUATION
+    3023     Vectorview type 2 magnetometer                                    4     :math:`(\pm 6.45, \pm 6.45, 0.3)`mm                              INLINE_EQUATION
+    3024     Vectorview type 3 magnetometer                                    4     :math:`(\pm 5.25, \pm 5.25, 0.3)`mm                              INLINE_EQUATION
+    2000     An ideal point  magnetometer                                      1     :math:`(0,0,0)`mm                                                
+    4001     Magnes WH magnetometer                                            4     :math:`(\pm 5.75, \pm 5.75, 0)`mm                                INLINE_EQUATION
+    4002     Magnes WH 3600 axial gradiometer                                  8     :math:`(\pm 4.5, \pm 4.5, 0)`mm :math:`(\pm 4.5, \pm 4.5, 50)`mm                   INLINE_EQUATION
+    4003     Magnes reference magnetometer                                     4     :math:`(\pm 7.5, \pm 7.5, 0)`mm                                  INLINE_EQUATION
+    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION
+    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION  INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
+    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION INLINE_EQUATION
     5002     CTF reference magnetometer                                        4     INLINE_EQUATION                                                  INLINE_EQUATION
-    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
+    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION INLINE_EQUATION
     5004     CTF reference gradiometer measuring off-diagonal gradients        8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
     6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
     =======  ================================================================  ====  ===============================================================  ===============================================================
