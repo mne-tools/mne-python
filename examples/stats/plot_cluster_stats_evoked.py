@@ -38,19 +38,20 @@ include = [channel]
 
 ###############################################################################
 # Read epochs for the channel of interest
-picks = fiff.pick_types(raw.info, meg=False, include=include)
+picks = fiff.pick_types(raw.info, meg=False, eog=True, include=include)
 event_id = 1
-epochs1 = mne.Epochs(raw, events, event_id,
-                            tmin, tmax, picks=picks, baseline=(None, 0))
-condition1 = epochs1.get_data() # as 3D matrix
+reject = dict(grad=4000e-13, eog=150e-6)
+epochs1 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), reject=reject)
+condition1 = epochs1.get_data()  # as 3D matrix
 
 event_id = 2
-epochs2 = mne.Epochs(raw, events, event_id,
-                            tmin, tmax, picks=picks, baseline=(None, 0))
-condition2 = epochs2.get_data() # as 3D matrix
+epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), reject=reject)
+condition2 = epochs2.get_data()  # as 3D matrix
 
-condition1 = condition1[:,0,:] # take only one channel to get a 2D array
-condition2 = condition2[:,0,:] # take only one channel to get a 2D array
+condition1 = condition1[:, 0, :]  # take only one channel to get a 2D array
+condition2 = condition2[:, 0, :]  # take only one channel to get a 2D array
 
 ###############################################################################
 # Compute statistic
@@ -74,9 +75,9 @@ pl.subplot(212)
 for i_c, c in enumerate(clusters):
     c = c[0]
     if cluster_p_values[i_c] <= 0.05:
-        h = pl.axvspan(times[c.start], times[c.stop-1], color='r', alpha=0.3)
+        h = pl.axvspan(times[c.start], times[c.stop - 1], color='r', alpha=0.3)
     else:
-        pl.axvspan(times[c.start], times[c.stop-1], color=(0.3, 0.3, 0.3),
+        pl.axvspan(times[c.start], times[c.stop - 1], color=(0.3, 0.3, 0.3),
                    alpha=0.3)
 hf = pl.plot(times, T_obs, 'g')
 pl.legend((h, ), ('cluster p-value < 0.05', ))

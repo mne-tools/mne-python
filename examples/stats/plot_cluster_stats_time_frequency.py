@@ -8,12 +8,13 @@ power estimates between conditions. It uses a non-parametric
 statistical procedure based on permutations and cluster
 level statistics.
 
-The procedure consists in :
-- extracting epochs for 2 conditions
-- compute single trial power estimates
-- baseline line correct the power estimates (power ratios)
-- compute stats to see if the power estimates are significantly different
-  between conditions.
+The procedure consists in:
+
+  - extracting epochs for 2 conditions
+  - compute single trial power estimates
+  - baseline line correct the power estimates (power ratios)
+  - compute stats to see if the power estimates are significantly different
+    between conditions.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
@@ -44,34 +45,40 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=False, include=include, exclude=exclude)
 
-picks = [picks[97]]
 ch_name = raw.info['ch_names'][picks[0]]
 
 # Load condition 1
+reject = dict(grad=4000e-13, eog=150e-6)
 event_id = 1
-epochs_condition_1 = mne.Epochs(raw, events, event_id,
-                    tmin, tmax, picks=picks, baseline=(None, 0))
-data_condition_1 = epochs_condition_1.get_data() # as 3D matrix
-data_condition_1 *= 1e13 # change unit to fT / cm
+epochs_condition_1 = mne.Epochs(raw, events, event_id, tmin, tmax,
+                                picks=picks, baseline=(None, 0),
+                                reject=reject)
+data_condition_1 = epochs_condition_1.get_data()  # as 3D matrix
+data_condition_1 *= 1e13  # change unit to fT / cm
 
 # Load condition 2
 event_id = 2
-epochs_condition_2 = mne.Epochs(raw, events, event_id,
-                    tmin, tmax, picks=picks, baseline=(None, 0))
-data_condition_2 = epochs_condition_2.get_data() # as 3D matrix
-data_condition_2 *= 1e13 # change unit to fT / cm
+epochs_condition_2 = mne.Epochs(raw, events, event_id, tmin, tmax,
+                                picks=picks, baseline=(None, 0),
+                                reject=reject)
+data_condition_2 = epochs_condition_2.get_data()  # as 3D matrix
+data_condition_2 *= 1e13  # change unit to fT / cm
+
+# Take only one channel
+data_condition_1 = data_condition_1[:, 97:98, :]
+data_condition_2 = data_condition_2[:, 97:98, :]
 
 # Time vector
-times = 1e3 * epochs_condition_1.times # change unit to ms
+times = 1e3 * epochs_condition_1.times  # change unit to ms
 
-frequencies = np.arange(7, 30, 3) # define frequencies of interest
-Fs = raw.info['sfreq'] # sampling in Hz
+frequencies = np.arange(7, 30, 3)  # define frequencies of interest
+Fs = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
 epochs_power_1 = single_trial_power(data_condition_1, Fs=Fs,
                                    frequencies=frequencies,
@@ -81,12 +88,12 @@ epochs_power_2 = single_trial_power(data_condition_2, Fs=Fs,
                                    frequencies=frequencies,
                                    n_cycles=n_cycles, use_fft=False)
 
-epochs_power_1 = epochs_power_1[:,0,:,:] # only 1 channel to get a 3D matrix
-epochs_power_2 = epochs_power_2[:,0,:,:] # only 1 channel to get a 3D matrix
+epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
+epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix
 
 # do ratio with baseline power:
-epochs_power_1 /= np.mean(epochs_power_1[:,:,times < 0], axis=2)[:,:,None]
-epochs_power_2 /= np.mean(epochs_power_2[:,:,times < 0], axis=2)[:,:,None]
+epochs_power_1 /= np.mean(epochs_power_1[:, :, times < 0], axis=2)[:, :, None]
+epochs_power_2 /= np.mean(epochs_power_2[:, :, times < 0], axis=2)[:, :, None]
 
 ###############################################################################
 # Compute statistic

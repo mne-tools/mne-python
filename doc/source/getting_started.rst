@@ -6,7 +6,7 @@ Getting Started
 Inside the Martinos Center
 --------------------------
 People within the MGH/MIT/HMS Martinos Center should follow
-`internal instructions <getting_started_at_martinos.html>`_.
+:ref:`getting_started_martinos`.
 
 MNE is *already installed* on your system.
 

@@ -22,39 +22,41 @@ def _block_diag(A, n):
 
     You have to try it on a matrix to see what it's doing.
 
-    %   If A is not sparse, then returns a sparse block diagonal "bd",
-    %   diagonalized from the
-    %   elements in "A".
-    %   "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
-    %   Each submatrix is ma x "n", and these submatrices are
-    %   placed down the diagonal of the matrix.
-    %
-    %   If A is already sparse, then the operation is reversed, yielding
-    # a block
-    %   row matrix, where each set of n columns corresponds to a block element
-    %   from the block diagonal.
-    %
-    %   Routine uses NO for-loops for speed considerations.
+    If A is not sparse, then returns a sparse block diagonal "bd",
+    diagonalized from the
+    elements in "A".
+    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
+    Each submatrix is ma x "n", and these submatrices are
+    placed down the diagonal of the matrix.
+
+    If A is already sparse, then the operation is reversed, yielding
+    a block
+    row matrix, where each set of n columns corresponds to a block element
+    from the block diagonal.
+
+    Routine uses NO for-loops for speed considerations.
+
+    XXX : format doc
     """
     from scipy import sparse
 
-    if not sparse.issparse(A): # then make block sparse
+    if not sparse.issparse(A):  # then make block sparse
         ma, na = A.shape
-        bdn = na / int(n) # number of submatrices
+        bdn = na / int(n)  # number of submatrices
 
         if na % n > 0:
-            raise ValueError, 'Width of matrix must be a multiple of n'
+            raise ValueError('Width of matrix must be a multiple of n')
 
-        tmp = np.arange(ma*bdn, dtype=np.int).reshape(bdn, ma)
+        tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
         tmp = np.tile(tmp, (1, n))
         ii = tmp.ravel()
 
-        jj = np.arange(na, dtype=np.int)[None,:]
-        jj = jj * np.ones(ma, dtype=np.int)[:,None]
-        jj = jj.T.ravel() # column indices foreach sparse bd
+        jj = np.arange(na, dtype=np.int)[None, :]
+        jj = jj * np.ones(ma, dtype=np.int)[:, None]
+        jj = jj.T.ravel()  # column indices foreach sparse bd
 
         bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-    else: # already is sparse, unblock it
+    else:  # already is sparse, unblock it
         import pdb; pdb.set_trace()
         # [mA,na] = size(A);        % matrix always has na columns
         # % how many entries in the first column?
@@ -92,26 +94,26 @@ def _read_one(fid, node):
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
         fid.close()
-        raise ValueError, 'Source orientation tag not found'
+        raise ValueError('Source orientation tag not found')
 
     one = dict()
     one['source_ori'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
         fid.close()
-        raise ValueError, 'Coordinate frame tag not found'
+        raise ValueError('Coordinate frame tag not found')
 
     one['coord_frame'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         fid.close()
-        raise ValueError, 'Number of sources not found'
+        raise ValueError('Number of sources not found')
 
     one['nsource'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_NCHAN)
     if tag is None:
         fid.close()
-        raise ValueError, 'Number of channels not found'
+        raise ValueError('Number of channels not found')
 
     one['nchan'] = tag.data
     try:
@@ -131,17 +133,17 @@ def _read_one(fid, node):
 
     if one['sol']['data'].shape[0] != one['nchan'] or \
                 (one['sol']['data'].shape[1] != one['nsource'] and
-                 one['sol']['data'].shape[1] != 3*one['nsource']):
+                 one['sol']['data'].shape[1] != 3 * one['nsource']):
         fid.close()
-        raise ValueError, 'Forward solution matrix has wrong dimensions'
+        raise ValueError('Forward solution matrix has wrong dimensions')
 
     if one['sol_grad'] is not None:
         if one['sol_grad']['data'].shape[0] != one['nchan'] or \
-                (one['sol_grad']['data'].shape[1] != 3*one['nsource'] and
-                 one['sol_grad']['data'].shape[1] != 3*3*one['nsource']):
+                (one['sol_grad']['data'].shape[1] != 3 * one['nsource'] and
+                 one['sol_grad']['data'].shape[1] != 3 * 3 * one['nsource']):
             fid.close()
-            raise ValueError, 'Forward solution gradient matrix has ' \
-                              'wrong dimensions'
+            raise ValueError('Forward solution gradient matrix has '
+                             'wrong dimensions')
 
     return one
 
@@ -184,26 +186,26 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwds = dir_tree_find(tree, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
     if len(fwds) == 0:
         fid.close()
-        raise ValueError, 'No forward solutions in %s' % fname
+        raise ValueError('No forward solutions in %s' % fname)
 
     #   Parent MRI data
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
     if len(fwds) == 0:
         fid.close()
-        raise ValueError, 'No parent MRI information in %s' % fname
+        raise ValueError('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
 
     #   Parent MEG data
     parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
     if len(parent_meg) == 0:
         fid.close()
-        raise ValueError, 'No parent MEG information in %s' % fname
+        raise ValueError('No parent MEG information in %s' % fname)
     parent_meg = parent_meg[0]
 
     chs = list()
     for k in range(parent_meg['nent']):
         kind = parent_meg['directory'][k].kind
-        pos  = parent_meg['directory'][k].pos
+        pos = parent_meg['directory'][k].pos
         if kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
@@ -212,7 +214,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         src = read_source_spaces_from_tree(fid, tree, add_geom=False)
     except Exception as inst:
         fid.close()
-        raise ValueError, 'Could not read the source spaces (%s)' % inst
+        raise ValueError('Could not read the source spaces (%s)' % inst)
 
     for s in src:
         s['id'] = find_source_space_hemi(s)
@@ -226,8 +228,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         tag = find_tag(fid, fwds[k], FIFF.FIFF_MNE_INCLUDED_METHODS)
         if tag is None:
             fid.close()
-            raise ValueError, 'Methods not listed for one of the forward ' \
-                              'solutions'
+            raise ValueError('Methods not listed for one of the forward '
+                             'solutions')
 
         if tag.data == FIFF.FIFFV_MNE_MEG:
             megnode = fwds[k]
@@ -261,7 +263,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 megfwd['nsource'] != eegfwd['nsource'] or
                 megfwd['coord_frame'] != eegfwd['coord_frame']):
             fid.close()
-            raise ValueError, 'The MEG and EEG forward solutions do not match'
+            raise ValueError('The MEG and EEG forward solutions do not match')
 
         fwd = megfwd
         fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
@@ -291,17 +293,17 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         fid.close()
-        raise ValueError, 'MRI/head coordinate transformation not found'
+        raise ValueError('MRI/head coordinate transformation not found')
     else:
-        mri_head_t = tag.data;
-        if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI or
+        mri_head_t = tag.data
+        if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
             mri_head_t = invert_transform(mri_head_t)
-            if (mri_head_t['from_'] != FIFF.FIFFV_COORD_MRI
+            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
                 or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
-                raise ValueError, 'MRI/head coordinate transformation not ' \
-                                  'found'
+                raise ValueError('MRI/head coordinate transformation not '
+                                 'found')
 
     fid.close()
 
@@ -312,24 +314,24 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
             fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
-        raise ValueError, 'Only forward solutions computed in MRI or head ' \
-                          'coordinates are acceptable'
+        raise ValueError('Only forward solutions computed in MRI or head '
+                         'coordinates are acceptable')
 
     nuse = 0
     for s in src:
         try:
             s = transform_source_space_to(s, fwd['coord_frame'], mri_head_t)
         except Exception as inst:
-            raise ValueError, 'Could not transform source space (%s)' % inst
+            raise ValueError('Could not transform source space (%s)' % inst)
 
         nuse += s['nuse']
 
     if nuse != fwd['nsource']:
-        raise ValueError, 'Source spaces do not match the forward solution.'
+        raise ValueError('Source spaces do not match the forward solution.')
 
     print '\tSource spaces transformed to the forward solution ' \
           'coordinate frame'
-    fwd['src'] = src;
+    fwd['src'] = src
 
     #   Handle the source locations and orientations
     if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI or force_fixed == True:
@@ -337,8 +339,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         fwd['source_nn'] = np.zeros((fwd['nsource'], 3))
         for s in src:
-            fwd['source_rr'][nuse:nuse+s['nuse'],:] = s['rr'][s['vertno'],:]
-            fwd['source_nn'][nuse:nuse+s['nuse'],:] = s['nn'][s['vertno'],:]
+            fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
+                                                    s['rr'][s['vertno'], :]
+            fwd['source_nn'][nuse:nuse + s['nuse'], :] = \
+                                                    s['nn'][s['vertno'], :]
             nuse += s['nuse']
 
         #   Modify the forward solution for fixed source orientations
@@ -352,7 +356,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             if fwd['sol_grad'] is not None:
                 fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'],
                                                  np.kron(fix_rot, np.eye(3)))
-                fwd['sol_grad']['ncol'] = 3*fwd['nsource']
+                fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
 
             print '[done]'
     else:
@@ -363,20 +367,20 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             pp = 0
             nuse_total = sum([s['nuse'] for s in src])
             fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
-            fwd['source_nn'] = np.empty((3*nuse_total, 3), dtype=np.float)
+            fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
             for s in src:
-                fwd['source_rr'][nuse:nuse + s['nuse'],:] = \
-                                                    s['rr'][s['vertno'],:]
+                fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
+                                                    s['rr'][s['vertno'], :]
                 for p in range(s['nuse']):
                     #  Project out the surface normal and compute SVD
-                    nn = s['nn'][s['vertno'][p],:].T
-                    nn = nn[:,None]
-                    U, S, _ = linalg.svd(np.eye(3,3) - nn*nn.T)
+                    nn = s['nn'][s['vertno'][p], :].T
+                    nn = nn[:, None]
+                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
                     #  Make sure that ez is in the direction of nn
-                    if np.sum(nn*U[:,2]) < 0:
+                    if np.sum(nn * U[:, 2]) < 0:
                         U *= -1
 
-                    fwd['source_nn'][pp:pp+3,:] = U.T
+                    fwd['source_nn'][pp:pp + 3, :] = U.T
                     pp += 3
 
                 nuse += s['nuse']
@@ -393,8 +397,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             nuse = 0
             fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
             for s in src:
-                fwd['source_rr'][nuse:nuse+s['nuse'],:] = \
-                                                s['rr'][s['vertno'],:]
+                fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
+                                                s['rr'][s['vertno'], :]
                 nuse += s['nuse']
 
             fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
@@ -406,4 +410,3 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return fwd
-

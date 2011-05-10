@@ -31,28 +31,32 @@ def _read_named_matrix(fid, node, matkind):
                     node = node.children[k]
                     break
         else:
-            raise ValueError, 'Desired named matrix (kind = %d) not available' % matkind
+            raise ValueError('Desired named matrix (kind = %d) not available'
+                             % matkind)
     else:
-       if not has_tag(node, matkind):
-          raise ValueError, 'Desired named matrix (kind = %d) not available' % matkind
+        if not has_tag(node, matkind):
+            raise ValueError('Desired named matrix (kind = %d) not available'
+                             % matkind)
 
     #   Read everything we need
     tag = find_tag(fid, node, matkind)
     if tag is None:
-       raise ValueError, 'Matrix data missing'
+        raise ValueError('Matrix data missing')
     else:
-       data = tag.data;
+        data = tag.data
 
     nrow, ncol = data.shape
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NROW)
     if tag is not None:
-       if tag.data != nrow:
-          raise ValueError, 'Number of rows in matrix data and FIFF_MNE_NROW tag do not match'
+        if tag.data != nrow:
+            raise ValueError('Number of rows in matrix data and FIFF_MNE_NROW '
+                             'tag do not match')
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_NCOL)
     if tag is not None:
-       if tag.data != ncol:
-          raise ValueError, 'Number of columns in matrix data and FIFF_MNE_NCOL tag do not match'
+        if tag.data != ncol:
+            raise ValueError('Number of columns in matrix data and '
+                             'FIFF_MNE_NCOL tag do not match')
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_ROW_NAMES)
     if tag is not None:

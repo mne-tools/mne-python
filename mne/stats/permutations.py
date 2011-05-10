@@ -31,21 +31,30 @@ def bin_perm_rep(ndim, a=0, b=1):
     """
 
     # Create the leftmost column as 0,0,...,1,1,...
-    nperms = 2**ndim
+    nperms = 2 ** ndim
     perms = np.empty((nperms, ndim), type(a))
     perms.fill(a)
     half_point = nperms / 2
     perms[half_point:, 0] = b
     # Fill the rest of the table by sampling the pervious column every 2 items
     for j in range(1, ndim):
-        half_col = perms[::2, j-1]
+        half_col = perms[::2, j - 1]
         perms[:half_point, j] = half_col
         perms[half_point:, j] = half_col
 
     return perms
 
 
-def permutation_t_test(X, n_permutations=10000, tail=0):
+def _max_stat(X, X2, perms, dof_scaling):
+    """Aux function for permutation_t_test (for parallel comp)"""
+    n_samples = len(X)
+    mus = np.dot(perms, X) / float(n_samples)
+    stds = np.sqrt(X2[None, :] - mus ** 2) * dof_scaling  # std with splitting
+    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1)  # t-max
+    return max_abs
+
+
+def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
     """One sample/paired sample permutation test based on a t-statistic.
 
     This function can perform the test on one variable or
@@ -76,6 +85,9 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
 
+    n_jobs : int
+        Number of CPUs to use for computation.
+
     Returns
     -------
     T_obs : array of shape [n_tests]
@@ -101,24 +113,41 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
     n_samples, n_tests = X.shape
 
     do_exact = False
-    if n_permutations is 'all' or (n_permutations >= 2**n_samples - 1):
+    if n_permutations is 'all' or (n_permutations >= 2 ** n_samples - 1):
         do_exact = True
-        n_permutations = 2**n_samples - 1
+        n_permutations = 2 ** n_samples - 1
 
-    X2 = np.mean(X**2, axis=0) # precompute moments
+    X2 = np.mean(X ** 2, axis=0)  # precompute moments
     mu0 = np.mean(X, axis=0)
     dof_scaling = sqrt(n_samples / (n_samples - 1.0))
-    std0 = np.sqrt(X2 - mu0**2) * dof_scaling # get std with variance splitting
+    std0 = np.sqrt(X2 - mu0 ** 2) * dof_scaling  # get std with var splitting
     T_obs = np.mean(X, axis=0) / (std0 / sqrt(n_samples))
 
     if do_exact:
-        perms = bin_perm_rep(n_samples, a=1, b=-1)[1:,:]
+        perms = bin_perm_rep(n_samples, a=1, b=-1)[1:, :]
     else:
         perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
-    mus = np.dot(perms, X) / float(n_samples)
-    stds = np.sqrt(X2[None,:] - mus**2) * dof_scaling # std with splitting
-    max_abs = np.max(np.abs(mus) / (stds / sqrt(n_samples)), axis=1) # t-max
+    try:
+        from scikits.learn.externals.joblib import Parallel, delayed
+        parallel = Parallel(n_jobs)
+        my_max_stat = delayed(_max_stat)
+    except ImportError:
+        print "joblib not installed. Cannot run in parallel."
+        n_jobs = 1
+        my_max_stat = _max_stat
+        parallel = list
+
+    if n_jobs == -1:
+        try:
+            import multiprocessing
+            n_jobs = multiprocessing.cpu_count()
+        except ImportError:
+            print "multiprocessing not installed. Cannot run in parallel."
+            n_jobs = 1
+
+    max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
+                                      for p in np.array_split(perms, n_jobs)))
     H0 = np.sort(max_abs)
 
     scaling = float(n_permutations + 1)
@@ -132,5 +161,4 @@ def permutation_t_test(X, n_permutations=10000, tail=0):
 
     return T_obs, p_values, H0
 
-permutation_t_test.__test__ = False # for nosetests
-
+permutation_t_test.__test__ = False  # for nosetests

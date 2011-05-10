@@ -55,10 +55,10 @@ class Raw(dict):
             if allow_maxshield:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
                 if len(raw_node) == 0:
-                    raise ValueError, 'No raw data in %s' % fname
+                    raise ValueError('No raw data in %s' % fname)
             else:
                 if len(raw_node) == 0:
-                    raise ValueError, 'No raw data in %s' % fname
+                    raise ValueError('No raw data in %s' % fname)
 
         if len(raw_node) == 1:
             raw_node = raw_node[0]
@@ -82,7 +82,7 @@ class Raw(dict):
 
         #   Omit initial skip
         if directory[first].kind == FIFF.FIFF_DATA_SKIP:
-            #  This first skip can be applied only after we know the buffer size
+            # This first skip can be applied only after we know the buffer size
             tag = read_tag(fid, directory[first].pos)
             first_skip = int(tag.data)
             first += 1
@@ -100,17 +100,17 @@ class Raw(dict):
             elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                 #   Figure out the number of samples in this buffer
                 if ent.type == FIFF.FIFFT_DAU_PACK16:
-                    nsamp = ent.size / (2*nchan)
+                    nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_SHORT:
-                    nsamp = ent.size / (2*nchan)
+                    nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
-                    nsamp = ent.size / (4*nchan)
+                    nsamp = ent.size / (4 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
-                    nsamp = ent.size / (4*nchan)
+                    nsamp = ent.size / (4 * nchan)
                 else:
                     fid.close()
-                    raise ValueError, 'Cannot handle data buffers of type %d' % (
-                                                                        ent.type)
+                    raise ValueError('Cannot handle data buffers of type %d' %
+                                                                      ent.type)
 
                 #  Do we have an initial skip pending?
                 if first_skip > 0:
@@ -122,9 +122,9 @@ class Raw(dict):
                 if nskip > 0:
                     import pdb; pdb.set_trace()
                     rawdir.append(dict(ent=None, first=first_samp,
-                                       last=first_samp + nskip*nsamp - 1,
-                                       nsamp=nskip*nsamp))
-                    first_samp += nskip*nsamp
+                                       last=first_samp + nskip * nsamp - 1,
+                                       nsamp=nskip * nsamp))
+                    first_samp += nskip * nsamp
                     nskip = 0
 
                 #  Add a data buffer
@@ -154,11 +154,10 @@ class Raw(dict):
         self.fid = fid
         self.info = info
 
-
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
-        if isinstance(item, tuple): # slicing required
-            if len(item) == 2: # channels and time instants
+        if isinstance(item, tuple):  # slicing required
+            if len(item) == 2:  # channels and time instants
                 time_slice = item[1]
                 if isinstance(item[0], slice):
                     start = item[0].start if item[0].start is not None else 0
@@ -173,15 +172,15 @@ class Raw(dict):
                 sel = None
             start, stop, step = time_slice.start, time_slice.stop, \
                                 time_slice.step
+            if start is None:
+                start = 0
             if step is not None:
                 raise ValueError('step needs to be 1 : %d given' % step)
             return read_raw_segment(self, start=start, stop=stop, sel=sel)
         else:
             return super(Raw, self).__getitem__(item)
 
-
-    def save(self, fname, picks=None, quantum_sec=10, first_samp=None,
-             last_samp=None):
+    def save(self, fname, picks=None, tmin=0, tmax=None, quantum_sec=10):
         """Save raw data to file
 
         Parameters
@@ -192,33 +191,34 @@ class Raw(dict):
         picks : list of int
             Indices of channels to include
 
+        tmin : float
+            Time in seconds of first sample to save
+
+        tmax : int
+            Time in seconds of last sample to save
+
         quantum_sec : float
             Size of data chuncks in seconds.
 
-        first_samp : int
-            Index of first sample to save
-
-        last_samp : int
-            Index of last sample to save
         """
         outfid, cals = start_writing_raw(fname, self.info, picks)
         #
         #   Set up the reading parameters
         #
-        if first_samp is None:
-            start = self.first_samp
-        else:
-            start = first_samp
 
-        if last_samp is None:
-            stop = self.last_samp + 1
+        #   Convert to samples
+        start = int(floor(tmin * self.info['sfreq']))
+
+        if tmax is None:
+            stop = self.last_samp + 1 - self.first_samp
         else:
-            stop = last_samp + 1
+            stop = int(floor(tmax * self.info['sfreq']))
 
         quantum = int(ceil(quantum_sec * self.info['sfreq']))
         #
         #   Read and write all the data
         #
+        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, start)
         for first in range(start, stop, quantum):
             last = first + quantum
             if last >= stop:
@@ -231,8 +231,6 @@ class Raw(dict):
             print '[done]'
 
         finish_writing_raw(outfid)
-        self.close()
-
 
     def time_to_index(self, *args):
         indices = []
@@ -241,12 +239,20 @@ class Raw(dict):
             indices.append(ind)
         return indices
 
-
     def close(self):
         self.fid.close()
 
+    def __repr__(self):
+        s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+                                       self.last_samp - self.first_samp + 1)
+        return "Raw (%s)" % s
 
-def read_raw_segment(raw, start=None, stop=None, sel=None):
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+
+def read_raw_segment(raw, start=0, stop=None, sel=None):
     """Read a chunck of raw data
 
     Parameters
@@ -280,20 +286,16 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
 
     if stop is None:
         stop = raw.last_samp + 1
-    if start is None:
-        start = raw.first_samp
 
     #  Initial checks
-    start = int(start)
-    stop = int(stop)
-    if start < raw.first_samp:
-        start = raw.first_samp
+    start = int(start + raw.first_samp)
+    stop = int(stop + raw.first_samp)
 
     if stop >= raw.last_samp:
         stop = raw.last_samp + 1
 
     if start >= stop:
-        raise ValueError, 'No data in this range'
+        raise ValueError('No data in this range')
 
     print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
                        start, stop - 1, start / float(raw.info['sfreq']),
@@ -323,11 +325,11 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
             cal = np.diag(raw.cals[sel].ravel())
         else:
             if raw.proj is None:
-                mult = raw.comp[sel,:] * cal
+                mult = raw.comp[sel, :] * cal
             elif raw.comp is None:
-                mult = raw.proj[sel,:] * cal
+                mult = raw.proj[sel, :] * cal
             else:
-                mult = raw.proj[sel,:] * raw.comp * cal
+                mult = raw.proj[sel, :] * raw.comp * cal
 
     do_debug = False
     # do_debug = True
@@ -339,8 +341,7 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
         from scipy import sparse
         mult = sparse.csr_matrix(mult)
 
-    for k in range(len(raw.rawdir)):
-        this = raw.rawdir[k]
+    for this in raw.rawdir:
 
         #  Do we need this buffer
         if this['last'] >= start:
@@ -364,7 +365,7 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
                     else:
                         one = tag.data.reshape(this['nsamp'],
                                                nchan).astype(np.float).T
-                        one = cal * one[sel,:]
+                        one = cal * one[sel, :]
                 else:
                     one = mult * tag.data.reshape(this['nsamp'],
                                                   nchan).astype(np.float).T
@@ -399,17 +400,17 @@ def read_raw_segment(raw, start=None, stop=None, sel=None):
             #   Now we are ready to pick
             picksamp = last_pick - first_pick
             if picksamp > 0:
-                data[:, dest:dest+picksamp] = one[:, first_pick:last_pick]
+                data[:, dest:(dest + picksamp)] = one[:, first_pick:last_pick]
                 dest += picksamp
 
         #   Done?
-        if this['last'] >= stop-1:
+        if this['last'] >= stop - 1:
             print ' [done]'
             break
 
-    times = np.arange(start, stop) / raw.info['sfreq']
+    times = (np.arange(start, stop) - raw.first_samp) / raw.info['sfreq']
 
-    raw.fid.seek(0, 0) # Go back to beginning of the file
+    raw.fid.seek(0, 0)  # Go back to beginning of the file
 
     return data, times
 
@@ -583,7 +584,7 @@ def start_writing_raw(name, info, sel=None):
         #
         #   Scan numbers may have been messed up
         #
-        chs[k].scanno = k + 1 # scanno starts at 1 in FIF format
+        chs[k].scanno = k + 1  # scanno starts at 1 in FIF format
         chs[k].range = 1.0
         cals.append(chs[k]['cal'])
         write_ch_info(fid, chs[k])
@@ -612,10 +613,9 @@ def write_raw_buffer(fid, buf, cals):
         Calibration factors
     """
     if buf.shape[0] != len(cals):
-        raise ValueError, 'buffer and calibration sizes do not match'
+        raise ValueError('buffer and calibration sizes do not match')
 
-    write_float(fid, FIFF.FIFF_DATA_BUFFER,
-                                    np.dot(np.diag(1.0 / np.ravel(cals)), buf))
+    write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):
@@ -629,4 +629,3 @@ def finish_writing_raw(fid):
     end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
-

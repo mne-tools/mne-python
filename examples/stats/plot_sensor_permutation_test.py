@@ -36,14 +36,14 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
-include = [] # or stim channel ['STI 014']
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+include = []  # or stim channel ['STI 014']
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # pick MEG Magnetometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                                             include=include, exclude=exclude)
-epochs = mne.Epochs(raw, events, event_id,
-                            tmin, tmax, picks=picks, baseline=(None, 0))
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 data = epochs.get_data()
 times = epochs.times
 
@@ -51,7 +51,7 @@ temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
 data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
 
 n_permutations = 50000
-T0, p_values, H0 = permutation_t_test(data, n_permutations)
+T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
 
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.info['ch_names'][k]

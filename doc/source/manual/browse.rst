@@ -740,13 +740,13 @@ The items in the dialog have the following functions:
     by multiplying the gradiometer scale by this number, yielding units
     of fT.
 
-**EEG (:math:`\mu`V)** EQUATION PROBLEM
+**EEG** (:math:`\mu V`)
 
-    The scale for EEG channels in :math:`\mu`V. EQUATION PROBLEM
+    The scale for EEG channels in :math:`\mu V`.
 
-**EOG (:math:`\mu`V)** EQUATION PROBLEM
+**EOG** (:math:`\mu V`)
 
-    The scale for EOG channels in :math:`\mu`V. EQUATION PROBLEM
+    The scale for EOG channels in :math:`\mu V`.
 
 **ECG (mV)**
 
@@ -1038,8 +1038,10 @@ returns to the default layout.
 
 The format of the layout files is:
 
- <*plot area limits*> <*viewport definition #1*>
-... <*viewport definition #N*>
+  | <*plot area limits*>
+  | <*viewport definition #1*>
+  | ...
+  | <*viewport definition #N*>
 
 The <*plot area limits*> define
 the size of the plot area (:math:`x_{min}\ x_{max}\ y_{min}\ y_{max}`) which should accommodate all view ports. When the layout is used, the
@@ -1049,7 +1051,7 @@ a different aspect ratio, there will be empty space on the sides.
 The viewports define the locations of the individual channels
 in the plot. Each viewport definition consists of
 
- <*number*> :math:`x_0\ y_0` <*width*> <*height*> <*name*> [: <*name*> ]...
+  <*number*> :math:`x_0\ y_0` <*width*> <*height*> <*name*> [: <*name*> ] ...
 
 where number is a viewport number (not used by the MNE software), :math:`x_0` and :math:`y_0` are
 the coordinates of the lower-left corner of the viewport, <*width*> and <*height*> are
@@ -1137,11 +1139,11 @@ The items in the dialog have the following functions:
 
     Rejection criterion for MEG magnetometers and axial gradiometers.
 
-EEG rejection (:math:`\mu`V) EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
+**EEG rejection** (:math:`\mu V`)
 
     Rejection criterion for EEG channels.
 
-**EOG rejection (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
+**EOG rejection** (:math:`\mu V`)
 
     Rejection criterion for EOG channels.
 
@@ -1160,11 +1162,11 @@ EEG rejection (:math:`\mu`V) EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHE
 
     Signal detection criterion for MEG magnetometers and axial gradiometers.
 
-**EEG no signal (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
+**EEG no signal** (:math:`\mu V`)
 
     Signal detection criterion for EEG channels.
 
-**EOG no signal (:math:`\mu`V)** EQUATION PROBLEM - MATH DOES NOT APPEAR TO WORK WHEN BOLD???
+**EOG no signal** (:math:`\mu V`)
 
     Signal detection criterion for EOG channels.
 
@@ -1828,15 +1830,16 @@ marks. The case of the keywords in the file does not matter. The
 ending ``.ave`` is suggested for the average description
 files.
 
-The general format of the description file is:
+The general format of the description file is::
 
-``average {``
- <*common parameters*>
-``category {``
- <*category definition parameters*>
-``}``
-
-... ``}``
+    average {
+        <common parameters>
+        category {
+            <category definition parameters>
+        }
+        
+        ...
+    }
 
 The file may contain arbitrarily many categories. The word ``category`` interchangeable
 with ``condition`` .
@@ -2103,15 +2106,15 @@ marks. The case of the keywords in the file does not matter. The
 ending ``.cov`` is suggested for the covariance-matrix
 description files.
 
-The general format of the description file is:
+The general format of the description file is::
 
-``cov {``
- <*common parameters*>
-``def {``
- <*covariance definition parameters*>
-``}``
-
-... ``}``
+    cov {
+        <*common parameters*>
+        def {
+            <*covariance definition parameters*>
+        }
+        ...
+    }
 
 The file may contain arbitrarily many covariance definitions,
 starting with ``def`` .

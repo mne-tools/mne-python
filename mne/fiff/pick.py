@@ -9,7 +9,41 @@ import numpy as np
 from .constants import FIFF
 
 
-def pick_channels(ch_names, include, exclude):
+def channel_type(info, idx):
+    """Get channel type
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info
+    idx : int
+        Index of channel
+
+    Returns
+    -------
+    type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
+        Type of channel
+    """
+
+    kind = info['chs'][idx].kind
+    if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+        if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
+            return 'grad'
+        elif info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T:
+            return 'mag'
+    elif kind == FIFF.FIFFV_EEG_CH:
+        return 'eeg'
+    elif kind == FIFF.FIFFV_STIM_CH:
+        return 'stim'
+    elif kind == FIFF.FIFFV_EOG_CH:
+        return 'eog'
+    elif kind == FIFF.FIFFV_EMG_CH:
+        return 'emg'
+    elif kind == FIFF.FIFFV_ECG_CH:
+        return 'ecg'
+
+
+def pick_channels(ch_names, include, exclude=[]):
     """Pick channels by names
 
     Returns the indices of the good channels in ch_names.
@@ -39,25 +73,28 @@ def pick_channels(ch_names, include, exclude):
     return sel
 
 
-def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
+def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
+               emg=False, include=[], exclude=[]):
     """Pick channels by type and names
 
     Parameters
     ----------
     info : dict
         The measurement info
-
     meg : bool or string
-        Is True include MEG channels or False include None
+        If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
         or magnetometers.
-
     eeg : bool
-        Is True include EEG channels
-
+        If True include EEG channels
+    eog : bool
+        If True include EOG channels
+    ecg : bool
+        If True include ECG channels
+    emg : bool
+        If True include EMG channels
     stim : bool
-        Is True include stimulus channels
-
+        If True include stimulus channels
     include : list of string
         List of additional channels to include. If empty do not include any.
 
@@ -77,15 +114,21 @@ def pick_types(info, meg=True, eeg=False, stim=False, include=[], exclude=[]):
         if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
             if meg == True:
                 pick[k] = True
-            elif (meg is 'grad'
+            elif (meg == 'grad'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M):
                 pick[k] = True
-            elif (meg is 'mag'
+            elif (meg == 'mag'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
                 pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_STIM_CH and stim:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EOG_CH and eog:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_ECG_CH and ecg:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EMG_CH and emg:
             pick[k] = True
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]
@@ -117,7 +160,7 @@ def pick_info(info, sel=[]):
 
     res = copy(info)
     if len(sel) == 0:
-        raise ValueError, 'Warning : No channels match the selection.'
+        raise ValueError('Warning : No channels match the selection.')
 
     res['chs'] = [res['chs'][k] for k in sel]
     res['ch_names'] = [res['ch_names'][k] for k in sel]
@@ -153,7 +196,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
                         exclude=exclude)
 
     if len(sel) == 0:
-        raise ValueError, 'Warning : No channels match the selection.'
+        raise ValueError('Warning : No channels match the selection.')
 
     res = copy(orig)
     #
@@ -163,7 +206,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     #
     #   Create the reduced data set
     #
-    res.data = res.data[sel,:]
+    res.data = res.data[sel, :]
 
     return res
 
@@ -200,7 +243,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     #   Do we have something?
     nuse = len(sel)
     if nuse == 0:
-        raise ValueError, 'Nothing remains after picking'
+        raise ValueError('Nothing remains after picking')
 
     print '\t%d out of %d channels remain after picking' % (nuse,
                                                             fwd['nchan'])
@@ -219,3 +262,15 @@ def pick_channels_forward(orig, include=[], exclude=[]):
                                         for k in sel]
 
     return fwd
+
+
+def channel_indices_by_type(info):
+    """Get indices of channels by type
+    """
+    idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
+    for k, ch in enumerate(info['chs']):
+        for key in idx.keys():
+            if channel_type(info, k) == key:
+                idx[key].append(k)
+
+    return idx

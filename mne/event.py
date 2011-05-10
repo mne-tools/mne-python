@@ -37,7 +37,7 @@ def read_events(filename):
 
     if len(events) == 0:
         fid.close()
-        raise ValueError, 'Could not find event data'
+        raise ValueError('Could not find event data')
 
     events = events[0]
 
@@ -51,7 +51,7 @@ def read_events(filename):
             break
     else:
         fid.close()
-        raise ValueError, 'Could not find any events'
+        raise ValueError('Could not find any events')
 
     event_list = event_list.reshape(len(event_list) / 3, 3)
     return event_list
@@ -72,7 +72,7 @@ def write_events(filename, event_list):
     fid = start_file(filename)
 
     start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list)
+    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
     end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
     end_file(fid)
@@ -97,11 +97,12 @@ def find_events(raw, stim_channel='STI 014'):
 
     pick = pick_channels(raw.info['ch_names'], include=['STI 014'],
                          exclude=[])
-    data, times = raw[pick,:]
+    if len(pick) == 0:
+        raise ValueError('No stim channel found to extract event triggers.')
+    data, times = raw[pick, :]
     data = data.ravel()
     idx = np.where(np.diff(data.ravel()) > 0)[0]
-    n_events = len(idx)
-    events_id = data[idx+1].astype(np.int)
+    events_id = data[idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
     return events

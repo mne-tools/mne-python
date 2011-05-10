@@ -1,4 +1,4 @@
-.. _example_config:
+.. _example_command_line:
 
 =====================================
 Getting started with MNE command line
@@ -97,4 +97,4 @@ Produce stc files (activation files)::
 
 And, we're done!
 
-You can now get started with the `examples <auto_examples/index.html>`_.
+You can now get started with the Python `examples <auto_examples/index.html>`_.

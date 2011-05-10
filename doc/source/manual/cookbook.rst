@@ -196,7 +196,7 @@ The script accepts the following options:
 .. table:: Recommended subdivisions of an icosahedron and an octahedron for the creation of source spaces. The approximate source spacing and corresponding surface area have been calculated assuming a 1000-cm2 surface area per hemisphere.
 
     ==========  ========================  =====================  ===============================
-   <*number*>    Sources per hemisphere    Source spacing / mm    Surface area per source / mm2
+    <*number*>  Sources per hemisphere    Source spacing / mm    Surface area per source / mm2
     ==========  ========================  =====================  ===============================
     -5          1026                      9.9                    97
     4           2562                      6.2                    39
@@ -858,7 +858,7 @@ ways:
   data used for this purpose should be free of technical artifacts
   and epileptic activity of interest. The length of the data segment
   employed should be at least 20 seconds. One can also use a long
-  (*> 200 s) segment of data with epileptic spikes present provided
+  (`*> 200 s`) segment of data with epileptic spikes present provided
   that the spikes occur infrequently and that the segment is apparently
   stationary with respect to background brain activity.
 
@@ -1009,7 +1009,7 @@ the following options:
     Save the inverse operator decomposition here. By default, the script looks
     for a file whose name is derived from the forward solution file by
     replacing its ending ``-fwd.fif`` by <*options*> ``-inv.fif`` , where
-   <*options*> includes options ``--meg``, ``--eeg``, and ``--fixed`` with the double
+    <*options*> includes options ``--meg``, ``--eeg``, and ``--fixed`` with the double
     dashes replaced by single ones.
 
 **\---destdir <*directory*>**

@@ -1,4 +1,4 @@
-.. _documentation:
+.. _mne_python:
 
 ======================
 MNE with Python
@@ -8,5 +8,6 @@ MNE with Python
    :maxdepth: 2
 
    getting_started.rst
+   getting_started_at_martinos.rst
    auto_examples/index.rst
 

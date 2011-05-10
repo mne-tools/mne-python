@@ -1,21 +1,24 @@
 import os.path as op
 
 from numpy.testing import assert_array_almost_equal
+from scipy import linalg
 
 import mne
-from ..fiff import fiff_open, read_evoked, pick_types
+from ..fiff import fiff_open, read_evoked, Raw
 from ..datasets import sample
 
-fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
+erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
+                     'test_erm-cov.fif')
 
 
 def test_io_cov():
     """Test IO for noise covariance matrices
     """
-    fid, tree, _ = fiff_open(fname)
+    fid, tree, _ = fiff_open(cov_fname)
     cov_type = 1
     cov = mne.read_cov(fid, tree, cov_type)
     fid.close()
@@ -29,43 +32,48 @@ def test_io_cov():
     assert_array_almost_equal(cov['data'], cov2['data'])
 
 
-def test_cov_estimation():
-    """Test estimation of noise covariance from raw data
+def test_cov_estimation_on_raw_segment():
+    """Estimate raw on continuous recordings (typically empty room)
     """
-    raw = mne.fiff.Raw(raw_fname)
-    # Set up pick list: MEG + STI 014 - bad channels
-    want_meg = True
-    want_eeg = False
-    want_stim = False
+    raw = Raw(raw_fname)
+    cov = mne.compute_raw_data_covariance(raw)
+    cov_mne = mne.Covariance(erm_cov_fname)
+    assert cov_mne.ch_names == cov.ch_names
+    print (linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro'))
+    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 1e-6
 
-    picks = pick_types(raw.info, meg=want_meg, eeg=want_eeg,
-                            stim=want_stim, exclude=raw.info['bads'])
 
-    full_cov = mne.Covariance(kind='full')
-    full_cov.estimate_from_raw(raw, picks=picks)
-
-    diagonal_cov = mne.Covariance(kind='diagonal')
-    diagonal_cov.estimate_from_raw(raw, picks=picks)
-    # XXX : test something
+def test_cov_estimation_with_triggers():
+    """Estimate raw with triggers
+    """
+    raw = Raw(raw_fname)
+    events = mne.find_events(raw)
+    event_ids = [1, 2, 3, 4]
+    cov = mne.compute_covariance(raw, events, event_ids, tmin=-0.2, tmax=0,
+                               reject=dict(grad=10000e-13, mag=4e-12,
+                                           eeg=80e-6, eog=150e-6),
+                               keep_sample_mean=True)
+    cov_mne = mne.Covariance(cov_fname)
+    assert cov_mne.ch_names == cov.ch_names
+    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.05
 
 
 def test_whitening_cov():
     """Whitening of evoked data and leadfields
     """
     data_path = sample.data_path('.')
-    fwd_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-eeg-oct-6-fwd.fif')
     ave_fname = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-ave.fif')
     cov_fname = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-cov.fif')
 
     # Reading
-    ave = read_evoked(ave_fname, setno=0, baseline=(None, 0))
-    fwd = mne.read_forward_solution(fwd_fname)
+    evoked = read_evoked(ave_fname, setno=0, baseline=(None, 0))
 
-    cov = mne.Covariance()
-    cov.load(cov_fname)
+    cov = mne.Covariance(cov_fname)
+    cov.get_whitener(evoked.info)
 
-    ave_whiten, fwd_whiten, W = cov.whiten_evoked_and_forward(ave, fwd)
     # XXX : test something

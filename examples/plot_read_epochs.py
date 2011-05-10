@@ -17,6 +17,7 @@ print __doc__
 
 import mne
 from mne import fiff
+from mne.viz import plot_evoked
 from mne.datasets import sample
 data_path = sample.data_path('.')
 
@@ -24,66 +25,23 @@ data_path = sample.data_path('.')
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id = 1
-tmin = -0.2
-tmax = 0.5
+event_id, tmin, tmax = 1, -0.2, 0.5
 
-#   Setup for reading the raw data
+# Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-#   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
-include = [] # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+# Set up pick list: EEG + MEG - bad channels (modify to your needs)
+exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
+                            exclude=exclude)
 
-# EEG
-eeg_picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False,
-                                            include=include, exclude=exclude)
-eeg_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        picks=eeg_picks, baseline=(None, 0), preload=False)
-eeg_evoked = eeg_epochs.average()
-eeg_evoked_data = eeg_evoked.data
-
-# MEG Magnetometers
-meg_mag_picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
-                                            include=include, exclude=exclude)
-meg_mag_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        picks=meg_mag_picks, baseline=(None, 0), preload=False)
-meg_mag_evoked = meg_mag_epochs.average()
-meg_mag_evoked_data = meg_mag_evoked.data
-
-# MEG
-meg_grad_picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
-                                stim=False, include=include, exclude=exclude)
-meg_grad_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                        picks=meg_grad_picks, baseline=(None, 0), preload=False)
-meg_grad_evoked = meg_grad_epochs.average()
-meg_grad_evoked_data = meg_grad_evoked.data
+# Read epochs
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
-# View evoked response
-times = 1e3 * eeg_epochs.times # time in ms
-import pylab as pl
-pl.clf()
-pl.subplot(3, 1, 1)
-pl.plot(times, 1e13*meg_grad_evoked_data.T)
-pl.ylim([-200, 200])
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (fT/cm)')
-pl.title('MEG (Gradiometers) evoked field')
-pl.subplot(3, 1, 2)
-pl.plot(times, 1e15*meg_mag_evoked_data.T)
-pl.ylim([-600, 600])
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (fT)')
-pl.title('MEG (Magnetometers) evoked field')
-pl.subplot(3, 1, 3)
-pl.plot(times, 1e6*eeg_evoked_data.T)
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('Potential (uV)')
-pl.title('EEG evoked potential')
-pl.subplots_adjust(0.175, 0.07, 0.94, 0.94, 0.2, 0.53)
-pl.show()
+# Show result
+plot_evoked(evoked)

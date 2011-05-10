@@ -50,10 +50,10 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None):
             sigma_t = n_cycles / (2.0 * np.pi * sigma)
         # this scaling factor is proportional to (Tallon-Baudry 98):
         # (sigma_t*sqrt(pi))^(-1/2);
-        t = np.arange(0, 5*sigma_t, 1.0 / Fs)
+        t = np.arange(0, 5 * sigma_t, 1.0 / Fs)
         t = np.r_[-t[::-1], t[1:]]
-        W = np.exp(2.0 * 1j * np.pi * f *t)
-        W *= np.exp(-t**2 / (2.0 * sigma_t**2))
+        W = np.exp(2.0 * 1j * np.pi * f * t)
+        W *= np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
         W /= sqrt(0.5) * linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
@@ -82,7 +82,7 @@ def _cwt_fft(X, Ws, mode="same"):
     Ws_max_size = max(W.size for W in Ws)
     size = n_times + Ws_max_size - 1
     # Always use 2**n-sized FFT
-    fsize = 2**np.ceil(np.log2(size))
+    fsize = 2 ** np.ceil(np.log2(size))
 
     # precompute FFTs of Ws
     fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)
@@ -168,6 +168,7 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
 
     return tfrs
 
+
 def cwt(X, Ws, use_fft=True, mode='same'):
     """Compute time freq decomposition with continuous wavelet transform
 
@@ -210,8 +211,8 @@ def _time_frequency(X, Ws, use_fft):
     """
     n_epochs, n_times = X.shape
     n_frequencies = len(Ws)
-    psd = np.zeros((n_frequencies, n_times)) # PSD
-    plf = np.zeros((n_frequencies, n_times), dtype=np.complex) # phase lock
+    psd = np.zeros((n_frequencies, n_times))  # PSD
+    plf = np.zeros((n_frequencies, n_times), dtype=np.complex)  # phase lock
 
     mode = 'same'
     if use_fft:
@@ -221,19 +222,20 @@ def _time_frequency(X, Ws, use_fft):
 
     for tfr in tfrs:
         tfr_abs = np.abs(tfr)
-        psd += tfr_abs**2
+        psd += tfr_abs ** 2
         plf += tfr / tfr_abs
 
     return psd, plf
 
 
 def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
+                       baseline=None, baseline_mode='ratio', times=None,
                        n_jobs=1):
     """Compute time-frequency power on single epochs
 
     Parameters
     ----------
-    epochs : instance of Epochs | 3D array
+    epochs : instance Epochs | array of shape [n_epochs, n_channels, n_times]
         The epochs
     Fs : float
         Sampling rate
@@ -243,6 +245,21 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         Use the FFT for convolutions or not.
     n_cycles : float
         The number of cycles in the Morlet wavelet
+    baseline: None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
+    baseline_mode : None | 'ratio' | 'zscore'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    times : array
+        Required to define baseline
     n_jobs : int
         The number of epochs to process at the same time
 
@@ -268,16 +285,42 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         my_cwt = cwt
         parallel = list
 
+    print "Computing time-frequency power on single epochs..."
+
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
     if n_jobs == 1:
         for k, e in enumerate(epochs):
-            power[k] = np.abs(cwt(e, Ws, mode))**2
+            power[k] = np.abs(cwt(e, Ws, mode)) ** 2
     else:
         # Precompute tf decompositions in parallel
         tfrs = parallel(my_cwt(e, Ws, use_fft, mode) for e in epochs)
         for k, tfr in enumerate(tfrs):
-            power[k] = np.abs(tfr)**2
+            power[k] = np.abs(tfr) ** 2
+
+    # Run baseline correction
+    if baseline is not None:
+        if times is None:
+            raise ValueError('times parameter is required to define baseline')
+        print "Applying baseline correction ..."
+        bmin = baseline[0]
+        bmax = baseline[1]
+        if bmin is None:
+            imin = 0
+        else:
+            imin = int(np.where(times >= bmin)[0][0])
+        if bmax is None:
+            imax = len(times)
+        else:
+            imax = int(np.where(times <= bmax)[0][-1]) + 1
+        mean_baseline_power = np.mean(power[:, :, :, imin:imax], axis=3)
+        if baseline_mode is 'ratio':
+            power /= mean_baseline_power[:, :, :, None]
+        elif baseline_mode is 'zscore':
+            power -= mean_baseline_power[:, :, :, None]
+            power /= np.std(power[:, :, :, imin:imax], axis=3)[:, :, :, None]
+    else:
+        print "No baseline correction applied..."
 
     return power
 
@@ -335,20 +378,20 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
         for c in range(n_channels):
-            X = np.squeeze(epochs[:,c,:])
+            X = np.squeeze(epochs[:, c, :])
             psd[c], plf[c] = _time_frequency(X, Ws, use_fft)
 
     else:
         from joblib import Parallel, delayed
         psd_plf = Parallel(n_jobs=n_jobs)(
                     delayed(_time_frequency)(
-                            np.squeeze(epochs[:,c,:]), Ws, use_fft)
+                            np.squeeze(epochs[:, c, :]), Ws, use_fft)
                     for c in range(n_channels))
 
         psd = np.zeros((n_channels, n_frequencies, n_times))
         plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)
         for c, (psd_c, plf_c) in enumerate(psd_plf):
-            psd[c,:,:], plf[c,:,:] = psd_c, plf_c
+            psd[c, :, :], plf[c, :, :] = psd_c, plf_c
 
     psd /= n_epochs
     plf = np.abs(plf) / n_epochs

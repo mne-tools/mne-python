@@ -172,22 +172,43 @@ and
 
 .. note:: This section does not discuss the transformation    between the MRI voxel indices and the different MRI coordinates.    However, it is important to note that in FreeSurfer, MNE, as well    as in Neuromag software an integer voxel coordinate corresponds    to the location of the center of a voxel. Detailed information on    the FreeSurfer MRI systems can be found at  https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
 
-.. _CHDJDEDJ:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}||p{0.5\linewidth}|
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ` Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.).
+.. _CHDJDEDJ:
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols INLINE_EQUATION are defined in :ref:`CHDFFJIJ` Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION, and INLINE_EQUATION in the fif files produced.).
 
-    ==================  ===============================  =======================================================================================================================================
-    Transformation      FreeSurfer                       MNE
-    ==================  ===============================  =======================================================================================================================================
-    :math:`T_1`		Not present                      Measurement data files Forward solution files (*fwd.fif) Inverse operator files (*inv.fif)
-    :math:`T_{s_1} \dotso T_{s_n}`     Not present                      Channel information in files containing :math:`T_1`.
-    :math:`T_2`		Not present                      MRI description files Separate coordinate transformation files saved from mne_analyze  Forward solution files Inverse operator files
-    :math:`T_3`     	mri/*mgz files                   MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
-    :math:`T_4`     	mri/transforms/talairach.xfm     MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
-    :math:`T_-`     	Hardcoded in software            MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
-    :math:`T_+`     	Hardcoded in software            MRI description files saved with mne_make_cor_set if the input is in mgz or mgh format.
-    ==================  ===============================  =======================================================================================================================================
+    +------------------------------+-------------------------------+--------------------------------------+
+    | Transformation               | FreeSurfer                    | MNE                                  |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_1`                  | Not present                   | | Measurement data files             |
+    |                              |                               | | Forward solution files (`*fwd.fif`)|
+    |                              |                               | | Inverse operator files (`*inv.fif`)|
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_{s_1}\dots T_{s_n}` | Not present                   | Channel information in files         |
+    |                              |                               | containing :math:`T_1`.              |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_2`                  | Not present                   | | MRI description files Separate     |
+    |                              |                               | | coordinate transformation files    |
+    |                              |                               | | saved from mne_analyze             |
+    |                              |                               | | Forward solution files             |
+    |                              |                               | | Inverse operator files             |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_3`                  | `mri/*mgz` files              | MRI description files saved with     |
+    |                              |                               | mne_make_cor_set if the input is in  |
+    |                              |                               | mgz or mgh format.                   |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_4`                  | mri/transforms/talairach.xfm  | MRI description files saved with     |
+    |                              |                               | mne_make_cor_set if the input is in  |
+    |                              |                               | mgz or mgh format.                   |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_-`                  | Hardcoded in software         | MRI description files saved with     |
+    |                              |                               | mne_make_cor_set if the input is in  |
+    |                              |                               | mgz or mgh format.                   |
+    +------------------------------+-------------------------------+--------------------------------------+
+    | :math:`T_+`                  | Hardcoded in software         | MRI description files saved with     |
+    |                              |                               | mne_make_cor_set if the input is in  |
+    |                              |                               | mgz or mgh format.                   |
+    +------------------------------+-------------------------------+--------------------------------------+
 
 .. _BJEBIBAI:
 
@@ -524,9 +545,16 @@ Tessellation file format
 
 The format of the text format surface files is the following:
 
- <*nvert*> <*vertex 1*> <*vertex 2*>
-... <*vertex nvert*> <*ntri*> <*triangle 1*> <*triangle 2*>
-... <*triangle ntri*> ,
+  | <*nvert*>
+  | <*vertex 1*>
+  | <*vertex 2*>
+  | ...
+  | <*vertex nvert*>
+  | <*ntri*>
+  | <*triangle 1*>
+  | <*triangle 2*>
+  | ...
+  | <*triangle ntri*> ,
 
 where <*nvert*> and <*ntri*> are
 the number of vertices and number of triangles in the tessellation,
@@ -763,9 +791,9 @@ The columns of the tables contain the following data:
 
 .. note:: The coil geometry information is stored in the    file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created    by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
 
-.. _BGBBHGEC:
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.3\linewidth}|p{0.2\linewidth}|
+.. _BGBBHGEC:
 .. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
 
     =======  ================================================================  ====  ===============================================================  ===============================================================
@@ -791,11 +819,11 @@ The columns of the tables contain the following data:
     6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
     =======  ================================================================  ====  ===============================================================  ===============================================================
 
-.. _CHDBDFJE:
 
 .. XXX : incomplete
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
+.. _CHDBDFJE:
 .. table:: Accurate coil descriptions
 
     +------+-------------------------+----+----------------------------------+----------------------+

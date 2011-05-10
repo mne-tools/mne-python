@@ -32,25 +32,25 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
-include = [] # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['EEG 053'] # bads + 1 more
+include = []  # or stim channels ['STI 014']
+exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
-picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False,
+picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
                                             include=include, exclude=exclude)
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id,
-                            tmin, tmax, picks=picks, baseline=(None, 0))
-evoked = epochs.average() # average epochs and get an Evoked dataset.
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(eeg=40e-6, eog=150e-6))
+evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
-evoked.save('sample_audvis_eeg-ave.fif') # save evoked data to disk
+evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 
 ###############################################################################
 # View evoked response
-times = 1e3 * epochs.times # time in miliseconds
+times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
 pl.clf()
-pl.plot(times, 1e6*evoked.data.T)
+pl.plot(times, 1e6 * evoked.data.T)
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')

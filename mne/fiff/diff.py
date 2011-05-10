@@ -4,6 +4,7 @@
 
 import numpy as np
 
+
 def is_equal(first, second):
     """ Says if 2 python structures are the same. Designed to
     handle dict, list, np.ndarray etc.
@@ -14,7 +15,7 @@ def is_equal(first, second):
         all_equal = False
     if isinstance(first, dict):
         for key in first.keys():
-            if (not second.has_key(key)):
+            if (not key in second):
                 print "Missing key %s in %s" % (key, second)
                 all_equal = False
             else:
@@ -33,4 +34,3 @@ def is_equal(first, second):
             print '%s and\n%s are different' % (first, second)
             all_equal = False
     return all_equal
-

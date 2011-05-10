@@ -1,6 +1,6 @@
 import numpy as np
 
-from .stc import read_stc
+from .source_estimate import read_stc
 
 
 def read_label(filename):
@@ -33,6 +33,13 @@ def read_label(filename):
     label['vertices'] = np.array(data[0], dtype=np.int32)
     label['pos'] = 1e-3 * data[1:4].T
     label['values'] = data[4]
+    if filename.endswith('lh.label'):
+        label['hemi'] = 'lh'
+    elif filename.endswith('rh.label'):
+        label['hemi'] = 'rh'
+    else:
+        raise ValueError('Cannot find which hemisphere it is. File should end'
+                         ' with lh.label or rh.label')
     fid.close()
 
     return label
@@ -67,7 +74,7 @@ def label_time_courses(labelfile, stcfile):
                    if stc['vertices'][k] in vertices]
 
     if len(vertices) == 0:
-        raise ValueError, 'No vertices match the label in the stc file'
+        raise ValueError('No vertices match the label in the stc file')
 
     values = stc['data'][idx]
     times = stc['tmin'] + stc['tstep'] * np.arange(stc['data'].shape[1])
