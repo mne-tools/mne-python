@@ -381,15 +381,16 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     if dSPM:
         print '\tComputing noise-normalization factors...',
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
+        nrm2, = linalg.get_blas_funcs(('nrm2',), (noise_norm,))
         if inv['eigen_leads_weighted']:
             for k in range(inv['eigen_leads']['nrow']):
                 one = inv['eigen_leads']['data'][k, :] * inv['reginv']
-                noise_norm[k] = sqrt(np.sum(one ** 2))
+                noise_norm[k] = nrm2(one)
         else:
             for k in range(inv['eigen_leads']['nrow']):
                 one = sqrt(inv['source_cov']['data'][k]) * \
                             inv['eigen_leads']['data'][k, :] * inv['reginv']
-                noise_norm[k] = sqrt(np.sum(one ** 2))
+                noise_norm[k] = nrm2(one)
 
         #
         #   Compute the final result
