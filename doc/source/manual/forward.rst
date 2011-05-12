@@ -23,9 +23,9 @@ The coordinate systems used in MNE software (and FreeSurfer)
 and their relationships are depicted in :ref:`CHDFFJIJ`.
 Except for the *Sensor coordinates*, all of the
 coordinate systems are Cartesian and have the "RAS" (Right-Anterior-Superior)
-orientation, *i.e.*, the INLINE_EQUATION axis
-points to the right, the INLINE_EQUATION axis
-to the front, and the INLINE_EQUATION axis up.
+orientation, *i.e.*, the :math:`x` axis
+points to the right, the :math:`y` axis
+to the front, and the :math:`z` axis up.
 
 .. _CHDFFJIJ:
 
@@ -34,7 +34,7 @@ to the front, and the INLINE_EQUATION axis up.
 
     MEG/EEG and MRI coordinate systems
 
-    The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with INLINE_EQUATION, where INLINE_EQUATION identifies the transformation.
+    The coordinate transforms present in the fif files in MNE and the FreeSurfer files as well as those set to fixed values are indicated with :math:`T_x`, where :math:`x` identifies the transformation.
 
 The coordinate systems related
 to MEG/EEG data are:
@@ -52,7 +52,7 @@ to MEG/EEG data are:
 
     This is a coordinate system tied to the MEG device. The relationship
     of the Device and Head coordinates is determined during an MEG measurement
-    by feeding current to INLINE_EQUATION head-position
+    by feeding current to three to five head-position
     indicator (HPI) coils and by determining their locations with respect
     to the MEG sensor array from the magnetic fields they generate.
 
@@ -112,13 +112,13 @@ to MRI data are:
     further from the middle of the brain, towards the outside. The FreeSurfer
     Talairach coordinates mitigate this problem by additing a an additional
     transformation, defined separately for negatice and positive MNI
-    Talairach INLINE_EQUATION coordinates. These two
-    transformations, denoted by INLINE_EQUATION and INLINE_EQUATION in :ref:`CHDFFJIJ`, are fixed as discussed in http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
+    Talairach :math:`z` coordinates. These two
+    transformations, denoted by :math:`T_-` and :math:`T_+` in :ref:`CHDFFJIJ`, are fixed as discussed in http://imaging.mrc-cbu.cam.ac.uk/imaging/MniTalairach
     (*Approach 2*).
 
 The different coordinate systems are related by coordinate
 transformations depicted in :ref:`CHDFFJIJ`. The arrows and
-coordinate transformation symbols (INLINE_EQUATION)
+coordinate transformation symbols (:math:`T_x`)
 indicate the transformations actually present in the FreeSurfer
 files. Generally,
 
@@ -144,15 +144,15 @@ files. Generally,
 		1
 	        \end{bmatrix}\ ,
 
-where INLINE_EQUATION are the location
-coordinates in two coordinate systems, INLINE_EQUATION is
+where :math:`x_k`,:math:`y_k`,and :math:`z_k` are the location
+coordinates in two coordinate systems, :math:`T_{12}` is
 the coordinate transformation from coordinate system "1" to "2",
-INLINE_EQUATION is the location of the origin
-of coordinate system "1" in coordinate system"2",
-and INLINE_EQUATION are the elements of the rotation
+:math:`x_0`, :math:`y_0`,and :math:`z_0` is the location of the origin
+of coordinate system "1" in coordinate system "2",
+and :math:`R_{jk}` are the elements of the rotation
 matrix relating the two coordinate systems. The coordinate transformations
 are present in different files produced by FreeSurfer and MNE as
-summarized in :ref:`CHDJDEDJ`. The fixed transformations INLINE_EQUATION and INLINE_EQUATION are:
+summarized in :ref:`CHDJDEDJ`. The fixed transformations :math:`T_-` and :math:`T_+` are:
 
 .. math::    T_{-} = \begin{bmatrix}
 		0.99 & 0 & 0 & 0 \\
@@ -175,7 +175,7 @@ and
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}||p{0.5\linewidth}|
 .. _CHDJDEDJ:
-.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols INLINE_EQUATION are defined in :ref:`CHDFFJIJ` Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION, and INLINE_EQUATION in the fif files produced.).
+.. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
     +------------------------------+-------------------------------+--------------------------------------+
     | Transformation               | FreeSurfer                    | MNE                                  |
@@ -221,28 +221,28 @@ The head and device coordinate systems
     The head coordinate system
 
 The MEG/EEG head coordinate system employed in the MNE software
-is a right-handed Cartesian coordinate system. The direction of INLINE_EQUATION axis
-is from left to right, that of INLINE_EQUATION axis
-to the front, and the INLINE_EQUATION axis thus
+is a right-handed Cartesian coordinate system. The direction of :math:`x` axis
+is from left to right, that of :math:`y` axis
+to the front, and the :math:`z` axis thus
 points up.
 
-The INLINE_EQUATION axis of the head coordinate
+The :math:`x` axis of the head coordinate
 system passes through the two periauricular or preauricular points
 digitized before acquiring the data with positive direction to the
-right. The INLINE_EQUATION axis passes through
-the nasion and is normal to the INLINE_EQUATION axis.
-The INLINE_EQUATION axis points up according to
-the right-hand rule and is normal to the INLINE_EQUATION plane.
+right. The :math:`y` axis passes through
+the nasion and is normal to the :math:`x` axis.
+The :math:`z` axis points up according to
+the right-hand rule and is normal to the :math:`xy` plane.
 
 The origin of the MEG device coordinate system is device
 dependent. Its origin is located approximately at the center of
 a sphere which fits the occipital section of the MEG helmet best
-with INLINE_EQUATION axis going from left to right
-and INLINE_EQUATION axis pointing front. The INLINE_EQUATION axis
-is, again normal to the INLINE_EQUATION plane
+with :math:`x` axis axis going from left to right
+and :math:`y` axis pointing front. The :math:`z` axis
+is, again, normal to the :math:`xy` plane
 with positive direction up.
 
-.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The INLINE_EQUATION axis    passes through the nasion and the origin with positive direction    to the front. The INLINE_EQUATION axis is perpendicular    to the INLINE_EQUATION axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The INLINE_EQUATION axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on INLINE_EQUATION coordinate axis. The file conversion utilities (see :ref:`BEHIAADG`)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
+.. note:: The above definition is identical to that    of the Neuromag MEG/EEG (head) coordinate system. However, in 4-D    Neuroimaging and CTF MEG systems the head coordinate frame definition    is different. The origin of the coordinate system is at the midpoint    of the left and right auricular points. The :math:`x` axis    passes through the nasion and the origin with positive direction    to the front. The :math:`y` axis is perpendicular    to the :math:`x` axis on the and lies in    the plane defined by the three fiducial landmarks, positive direction    from right to left. The :math:`z` axis is    normal to the plane of the landmarks, pointing up. Note that in    this convention the auricular points are not necessarily located    on :math:`y` coordinate axis. The file conversion utilities (see :ref:`BEHIAADG`)    take care of these idiosyncrasies and convert all coordinate information    to the MNE software head coordinate frame.
 
 .. _BEHCGJDD:
 
@@ -306,9 +306,9 @@ The command-line options are:
     of triangles increases by a factor of four in each subdivision,
     starting from 20 triangles in an icosahedron and 8 triangles in
     an octahedron. Since the number of vertices on a closed surface
-    is INLINE_EQUATION, the number of vertices in
-    the *k*th subdivision of an icosahedron and an
-    octahedron are INLINE_EQUATION and INLINE_EQUATION,
+    is :math:`n_{vert} = (n_{tri} + 4) / 2`, the number of vertices in
+    the *k* th subdivision of an icosahedron and an
+    octahedron are :math:`10 \cdot 4^k +2` and :math:`4_{k + 1} + 2`,
     respectively. The recommended values for <*number*> and
     the corresponding number of source space locations are listed in Table 3.1.
 
@@ -322,7 +322,7 @@ The command-line options are:
 
 **\---src <*name*>**
 
-    Output file name. Use a name * <*dir*>/ <*name*>*-src.fif
+    Output file name. Use a name <*dir*>/<*name*>-src.fif
 
 .. note:: If both ``--ico`` and ``--spacing`` options    are present the later one on the command line takes precedence.
 
@@ -600,24 +600,24 @@ topology checks are performed:
 - The completeness of each surface is
   confirmed by calculating the total solid angle subtended by all
   triangles from a point inside the triangulation. The result should
-  be very close to INLINE_EQUATION. If the result
-  is INLINE_EQUATION instead, it is conceivable
+  be very close to :math:`4 \pi`. If the result
+  is :math:`-4 \pi` instead, it is conceivable
   that the ordering of the triangle vertices is incorrect and the
   ``--swap`` option should be specified.
 
 - The correct ordering of the surfaces is verified by checking
   that the surfaces are inside each other as expected. This is accomplished
   by checking that the sum solid angles subtended by triangles of
-  a surface INLINE_EQUATION at all vertices of another
-  surface INLINE_EQUATION which is supposed to be
-  inside it equals INLINE_EQUATION. Naturally, this
+  a surface :math:`S_k` at all vertices of another
+  surface :math:`S_p` which is supposed to be
+  inside it equals :math:`4 \pi`. Naturally, this
   check is applied only if the model has more than one surface. Since
   the surface relations are transitive, it is enough to check that
   the outer skull surface is inside the skin surface and that the
   inner skull surface is inside the outer skull one.
 
 - The extent of each of the triangulated volumes is checked.
-  If the extent is smaller than 50 mm, an error is reported. This
+  If the extent is smaller than 50mm, an error is reported. This
   may indicate that the vertex coordinates have been specified in
   meters instead of millimeters.
 
@@ -688,15 +688,14 @@ was used. Optionally, the MNE software forward calculation applies
 another coordinate transformation to the head-coordinate data to
 bring the coil locations and orientations to the MRI coordinate system.
 
-If INLINE_EQUATION is a row vector for
-the origin of the local sensor coordinate system and INLINE_EQUATION, INLINE_EQUATION,
-and INLINE_EQUATION are the row vectors for the
+If :math:`r_0` is a row vector for
+the origin of the local sensor coordinate system and :math:`e_x`, :math:`e_y`, and :math:`e_z` are the row vectors for the
 three orthogonal unit vectors, all given in device coordinates,
-a location of a point INLINE_EQUATION in sensor coordinates
-is transformed to device coordinates (INLINE_EQUATION)
+a location of a point :math:`r_C` in sensor coordinates
+is transformed to device coordinates (:math:`r_D`)
 by
 
-.. math::    [r_D 1] = [r_c 1] T_{CD}\ ,
+.. math::    [r_D 1] = [r_C 1] T_{CD}\ ,
 
 where
 
@@ -720,18 +719,19 @@ geometry.
 The output of each SQUID sensor is a weighted sum of the
 magnetic fluxes threading the loops comprising the detection coil.
 Since the flux threading a coil loop is an integral of the magnetic
-field component normal to the coil plane, the output of the `*k*th`
-MEG channel, INLINE_EQUATION, can be approximated by:
+field component normal to the coil plane, the output of the *k*th
+MEG channel, :math:`b_k`, can be approximated
+by:
 
 .. math::    b_k = \sum_{p = 1}^{N_k} {w_{kp} B(r_{kp}) \cdot n_{kp}}
 
-where INLINE_EQUATION are a set of INLINE_EQUATION integration
-points covering the pickup coil loops of the sensor, INLINE_EQUATION is
-the magnetic field due to the current sources calculated at INLINE_EQUATION, INLINE_EQUATION are
-the coil normal directions at these points, and INLINE_EQUATION are
+where :math:`r_{kp}` are a set of :math:`N_k` integration
+points covering the pickup coil loops of the sensor, :math:`B(r_{kp})` is
+the magnetic field due to the current sources calculated at :math:`r_{kp}`, :math:`n_{kp}` are
+the coil normal directions at these points, and :math:`w_{kp}` are
 the weights associated to the integration points. This formula essentially
 presents numerical integration of the magnetic field over the pickup
-loops of sensor INLINE_EQUATION.
+loops of sensor :math:`k`.
 
 There are three accuracy levels for the numerical integration
 expressed above. The *simple* accuracy means
@@ -792,35 +792,7 @@ The columns of the tables contain the following data:
 .. note:: The coil geometry information is stored in the    file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created    by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
 
 
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.3\linewidth}|p{0.2\linewidth}|
-.. _BGBBHGEC:
 .. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
-
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-    Id       Description                                                       n     r/mm                                                             w
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-    2        Neuromag-122 planar gradiometer                                   2     INLINE_EQUATION                                                  INLINE_EQUATION
-    2000     A point magnetometer                                              1     INLINE_EQUATION                                                  1
-    3012     Vectorview type 1 planar gradiometer                              2     INLINE_EQUATION                                                  INLINE_EQUATION
-    3013     Vectorview type 2 planar gradiometer                              2     INLINE_EQUATION                                                  INLINE_EQUATION
-    3022     Vectorview type 1 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    3023     Vectorview type 2 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    3024     Vectorview type 3 magnetometer                                    4     INLINE_EQUATION                                                  INLINE_EQUATION
-    2000     An ideal point  magnetometer                                      1     (0,0,0)                                                          1
-    4001     Magnes WH magnetometer                                            4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4002     Magnes WH 3600 axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    4003     Magnes reference magnetometer                                     4     INLINE_EQUATION                                                  INLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
-    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    5002     CTF reference magnetometer                                        4     INLINE_EQUATION                                                  INLINE_EQUATION
-    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    5004     CTF reference gradiometer measuring off-diagonal gradients        8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
-    6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-
-
-.. XXX : incomplete
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _CHDBDFJE:
@@ -1180,7 +1152,7 @@ The EEG sphere model definition file
 
 For the computation of the electric potential distribution
 on the surface of the head (EEG) it is necessary to define the conductivities
-(INLINE_EQUATION) and radiuses of the spherically
+(:math:`\sigma`) and radiuses of the spherically
 symmetric layers. Different sphere models can be specified with
 the ``--eegmodels`` option.
 
@@ -1202,7 +1174,7 @@ always provided. This model has the structure given in :ref:`BABEBGDA`
 .. table:: Structure of the default EEG model
 
     ========  =======================  =======================
-    Layer     Relative outer radius    INLINE_EQUATION (S/m)
+    Layer     Relative outer radius    :math:`\sigma` (S/m)
     ========  =======================  =======================
     Head      1.0                      0.33
     Skull     0.97                     0.04
@@ -1222,8 +1194,8 @@ and amplitudes are determined by minimizing the cost function:
 
 .. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
 
-where INLINE_EQUATION and INLINE_EQUATION are
-the locations and amplitudes of the approximating dipoles and INLINE_EQUATION and INLINE_EQUATION are
+where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
+the locations and amplitudes of the approximating dipoles and :math:`V_{true}` and :math:`V_{approx}` are
 the potential distributions given by the true and approximative
 formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in
@@ -1242,14 +1214,14 @@ location coordinates to the output file. Let
 
 .. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
-be the INLINE_EQUATION matrix containing
-the signals produced by three orthogonal dipoles at location INLINE_EQUATION making
-up INLINE_EQUATIONthe gain matrix
+be the :math:`N_{chan} \times 3` matrix containing
+the signals produced by three orthogonal dipoles at location :math:`r_k` making
+up :math:`N_{chan} \times 3N_{source}` the gain matrix
 
 .. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
 With the ``--grad`` option, the output from mne_forward_solution also
-contains the INLINE_EQUATION derivative matrix
+contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
 
 .. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
 
@@ -1257,11 +1229,11 @@ where
 
 .. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
 
-where INLINE_EQUATION are the location
-coordinates of the INLINE_EQUATION dipole. If
+where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
+coordinates of the :math:`k^{th}` dipole. If
 the dipole orientations are to the cortical normal with the ``--fixed``
-option, the dimensions of INLINE_EQUATION and INLINE_EQUATION are INLINE_EQUATION and INLINE_EQUATION,
-respectively. Both INLINE_EQUATION and INLINE_EQUATION can
+option, the dimensions of :math:`G` and :math:`D` are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
+respectively. Both :math:`G` and :math:`D` can
 be read with the mne_read_forward_solution Matlab
 function, see Table 10.1.
 
