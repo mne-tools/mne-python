@@ -7,6 +7,15 @@
 *~
 .#*
 *.swp
+*.lprof
+*.npy
+*.zip
+*.tar.*
+*.egg*
+*.tmproj
+tmtags
+auto_examples
+MNE-sample-data
 build
 
 dist/
