@@ -792,35 +792,7 @@ The columns of the tables contain the following data:
 .. note:: The coil geometry information is stored in the    file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created    by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
 
 
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.3\linewidth}|p{0.2\linewidth}|
-.. _BGBBHGEC:
 .. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
-
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-    Id       Description                                                       n     r/mm                                                             w
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-    2        Neuromag-122 planar gradiometer                                   2     :math:`\pm (8.1, 0, 0)`mm                                        INLINE_EQUATION
-    2000     A point magnetometer                                              1     :math:`(0, 0, 0)`mm                                              INLINE_EQUATION
-    3012     Vectorview type 1 planar gradiometer                              2     :math:`(\pm 8.4, 0, 0.3)`mm                                      INLINE_EQUATION
-    3013     Vectorview type 2 planar gradiometer                              2     :math:`(\pm 8.4, 0, 0.3)`mm                                      INLINE_EQUATION
-    3022     Vectorview type 1 magnetometer                                    4     :math:`(\pm 6.45, \pm 6.45, 0.3)`mm                              INLINE_EQUATION
-    3023     Vectorview type 2 magnetometer                                    4     :math:`(\pm 6.45, \pm 6.45, 0.3)`mm                              INLINE_EQUATION
-    3024     Vectorview type 3 magnetometer                                    4     :math:`(\pm 5.25, \pm 5.25, 0.3)`mm                              INLINE_EQUATION
-    2000     An ideal point  magnetometer                                      1     :math:`(0,0,0)`mm                                                
-    4001     Magnes WH magnetometer                                            4     :math:`(\pm 5.75, \pm 5.75, 0)`mm                                INLINE_EQUATION
-    4002     Magnes WH 3600 axial gradiometer                                  8     :math:`(\pm 4.5, \pm 4.5, 0)`mm :math:`(\pm 4.5, \pm 4.5, 50)`mm                   INLINE_EQUATION
-    4003     Magnes reference magnetometer                                     4     :math:`(\pm 7.5, \pm 7.5, 0)`mm                                  INLINE_EQUATION
-    4004     Magnes reference gradiometer measuring diagonal gradients         8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION
-    4005     Magnes reference gradiometer measuring off-diagonal gradients     8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION  INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
-    5001     CTF 275 axial gradiometer                                         8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION INLINE_EQUATION
-    5002     CTF reference magnetometer                                        4     INLINE_EQUATION                                                  INLINE_EQUATION
-    5003     CTF reference gradiometer measuring diagonal gradients            8     INLINE_EQUATION INLINE_EQUATION                                  INLINE_EQUATION INLINE_EQUATION
-    5004     CTF reference gradiometer measuring off-diagonal gradients        8     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION     INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION INLINE_EQUATION
-    6001     MIT KIT system axial gradiometer                                  8     INLINE_EQUATION INLINE_EQUATION                                   INLINE_EQUATION INLINE_EQUATION
-    =======  ================================================================  ====  ===============================================================  ===============================================================
-
-
-.. XXX : incomplete
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _CHDBDFJE:
@@ -1180,7 +1152,7 @@ The EEG sphere model definition file
 
 For the computation of the electric potential distribution
 on the surface of the head (EEG) it is necessary to define the conductivities
-(INLINE_EQUATION) and radiuses of the spherically
+(:math:`\sigma`) and radiuses of the spherically
 symmetric layers. Different sphere models can be specified with
 the ``--eegmodels`` option.
 
@@ -1202,7 +1174,7 @@ always provided. This model has the structure given in :ref:`BABEBGDA`
 .. table:: Structure of the default EEG model
 
     ========  =======================  =======================
-    Layer     Relative outer radius    INLINE_EQUATION (S/m)
+    Layer     Relative outer radius    :math:`\sigma` (S/m)
     ========  =======================  =======================
     Head      1.0                      0.33
     Skull     0.97                     0.04
@@ -1222,8 +1194,8 @@ and amplitudes are determined by minimizing the cost function:
 
 .. math::    S(r_1,\dotsc,r_m\ ,\ \mu_1,\dotsc,\mu_m) = \int_{scalp} {(V_{true} - V_{approx})}\,dS
 
-where INLINE_EQUATION and INLINE_EQUATION are
-the locations and amplitudes of the approximating dipoles and INLINE_EQUATION and INLINE_EQUATION are
+where :math:`r_1,\dotsc,r_m` and :math:`\mu_1,\dotsc,\mu_m` are
+the locations and amplitudes of the approximating dipoles and :math:`V_{true}` and :math:`V_{approx}` are
 the potential distributions given by the true and approximative
 formulas, respectively. It can be shown that this integral can be
 expressed in closed form using an expansion of the potentials in
@@ -1242,14 +1214,14 @@ location coordinates to the output file. Let
 
 .. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
-be the INLINE_EQUATION matrix containing
-the signals produced by three orthogonal dipoles at location INLINE_EQUATION making
-up INLINE_EQUATIONthe gain matrix
+be the :math:`N_{chan} \times 3` matrix containing
+the signals produced by three orthogonal dipoles at location :math:`r_k` making
+up :math:`N_{chan} \times 3N_{source}` the gain matrix
 
 .. math::    G = [G_1 \dotso G_{N_{source}}]\ .
 
 With the ``--grad`` option, the output from mne_forward_solution also
-contains the INLINE_EQUATION derivative matrix
+contains the :math:`N_{chan} \times 9N_{source}` derivative matrix
 
 .. math::    D = [D_1 \dotso D_{N_{source}}]\ ,
 
@@ -1257,11 +1229,11 @@ where
 
 .. math::    D_k = [\frac{\delta g_{xk}}{\delta x_k} \frac{\delta g_{xk}}{\delta y_k} \frac{\delta g_{xk}}{\delta z_k} \frac{\delta g_{yk}}{\delta x_k} \frac{\delta g_{yk}}{\delta y_k} \frac{\delta g_{yk}}{\delta z_k} \frac{\delta g_{zk}}{\delta x_k} \frac{\delta g_{zk}}{\delta y_k} \frac{\delta g_{zk}}{\delta z_k}]\ ,
 
-where INLINE_EQUATION are the location
-coordinates of the INLINE_EQUATION dipole. If
+where :math:`x_k`, :math:`y_k`, and :math:`z_k` are the location
+coordinates of the :math:`k^{th}` dipole. If
 the dipole orientations are to the cortical normal with the ``--fixed``
-option, the dimensions of INLINE_EQUATION and INLINE_EQUATION are INLINE_EQUATION and INLINE_EQUATION,
-respectively. Both INLINE_EQUATION and INLINE_EQUATION can
+option, the dimensions of :math:`G` and :math:`D` are :math:`N_{chan} \times N_{source}` and :math:`N_{chan} \times 3N_{source}`,
+respectively. Both :math:`G` and :math:`D` can
 be read with the mne_read_forward_solution Matlab
 function, see Table 10.1.
 
