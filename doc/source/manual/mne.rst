@@ -45,20 +45,20 @@ is to estimate a total of M strengths of sources located on the
 cortical mantle. If the number of source locations is P, M = P for
 fixed-orientation sources and M = 3P if the source orientations
 are unconstrained. The regularized linear inverse operator following
-from the Bayesian approach is given by the INLINE_EQUATION matrix
+from the Bayesian approach is given by the :math:`M \times N` matrix
 
 .. math::    M = R' G^T (G R' G^T + C)^{-1}\ ,
 
 where G is the gain matrix relating the source strengths
-to the measured MEG/EEG data, C is the data noise-covariance matrix
-and INLINE_EQUATION is the source covariance matrix.
-The dimensions of these matrices are INLINE_EQUATION, INLINE_EQUATION,
-and INLINE_EQUATION, respectively. The INLINE_EQUATION source-strength
-vector is obtained by multiplying the INLINE_EQUATION data
-vector by M.
+to the measured MEG/EEG data, :math:`C` is the data noise-covariance matrix
+and :math:`R'` is the source covariance matrix.
+The dimensions of these matrices are :math:`N \times M`, :math:`N \times N`,
+and :math:`M \times M`, respectively. The :math:`M \times 1` source-strength
+vector is obtained by multiplying the :math:`N \times 1` data
+vector by :math:`M`.
 
 The expected value of the current amplitudes at time *t* is
-then given by INLINE_EQUATION, where INLINE_EQUATION is
+then given by :math:`\hat{j}(t) = Mx(t)`, where :math:`x(t)` is
 a vector containing the measured MEG and EEG data values at time *t*.
 
 .. _CBBHAAJJ:
@@ -67,15 +67,15 @@ Regularization
 ==============
 
 The a priori variance of the currents is, in practise, unknown.
-We can express this by writing INLINE_EQUATION,
+We can express this by writing :math:`R' = R/ \lambda^2`,
 which yields the inverse operator
 
 .. math::    M = R G^T (G R G^T + \lambda^2 C)^{-1}\ ,
 
 where the unknown current amplitude is now interpreted in
-terms of the regularization parameter INLINE_EQUATION.
-Small INLINE_EQUATION corresponds to large current amplitudes
-and complex estimate current patterns while a large INLINE_EQUATION means the
+terms of the regularization parameter :math:`\lambda^2`.
+Small :math:`\lambda^2` corresponds to large current amplitudes
+and complex estimate current patterns while a large :math:`\lambda^2` means the
 amplitude of the current is limited and a simpler, smooth, current
 estimate is obtained.
 
@@ -87,7 +87,7 @@ also by minimizing the cost function
 where the first term consists of the difference between the
 whitened measured data (see :ref:`CHDDHAGE`) and those predicted
 by the model while the second term is a weighted-norm of the current
-estimate. It is seen that, with increasing INLINE_EQUATION,
+estimate. It is seen that, with increasing :math:`\lambda^2`,
 the source term receive more weight and larger discrepancy between
 the measured and predicted data is tolerable.
 
@@ -101,26 +101,26 @@ assumes the form
 
 .. math::    \tilde{M} = R \tilde{G}^T (\tilde{G} R \tilde{G}^T + I)^{-1}\ ,
 
-where INLINE_EQUATION is the spatially
-whitened gain matrix. The expected current values are INLINE_EQUATION,
-where INLINE_EQUATION is a the whitened measurement
+where :math:`\tilde{G} = C^{-^1/_2}G` is the spatially
+whitened gain matrix. The expected current values are :math:`\hat{j} = Mx(t)`,
+where :math:`x(t) = C^{-^1/_2}x(t)` is a the whitened measurement
 vector at *t*. The spatial whitening operator
-is obtained with the help of the eigenvalue decomposition INLINE_EQUATION as INLINE_EQUATION.
+is obtained with the help of the eigenvalue decomposition :math:`C = U_C \Lambda_C^2 U_C^T` as :math:`C^{-^1/_2} = \Lambda_C^{-1} U_C^T`.
 In the MNE software the noise-covariance matrix is stored as the
 one applying to raw data. To reflect the decrease of noise due to
-averaging, this matrix, INLINE_EQUATION, is scaled
-by the number of averages, *L*, *i.e.*, INLINE_EQUATION.
+averaging, this matrix, :math:`C_0`, is scaled
+by the number of averages, :math:`L`, *i.e.*, :math:`C = C_0 / L`.
 
 As shown above, regularization of the inverse solution is
 equivalent to a change in the variance of the current amplitudes
 in the Bayesian *a priori* distribution.
 
-Convenient choice for the source-covariance matrix INLINE_EQUATION is
-such that INLINE_EQUATION. With this choice we
-can approximate INLINE_EQUATION, where SNR is
+Convenient choice for the source-covariance matrix :math:`R` is
+such that trace :math:`(GR \tilde{G}^I)/` trace :math:`(I) = 1`. With this choice we
+can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is
 the (power) signal-to-noise ratio of the whitened data.
 
-.. note:: The definition of the signal to noise-ratio/INLINE_EQUATION relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio INLINE_EQUATION does    not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
+.. note:: The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio trace :math:`(GRG^T)/` trace :math:`(C)` does not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
 
 .. _CBBHEGAB:
 
@@ -697,11 +697,11 @@ Times and baseline
 
     Time step between consequtive movie frames, specified in milliseconds.
 
-**\---integ  < INLINE_EQUATION/ms*>**
+**\---integ  <*:math:`\Delta`t/ms*>**
 
     Integration time for each frame. Defaults to zero. The integration will
-    be performed on sensor data. If the time specified for a fram is INLINE_EQUATION,
-    the integration range will be INLINE_EQUATION.
+    be performed on sensor data. If the time specified for a frame is :math:`t_0`,
+    the integration range will be :math:`t_0 - \Delta t/2 \leq t \leq t_0 + \Delta t/2`.
 
 **\---pick <*time/ms*>**
 
@@ -748,7 +748,7 @@ Options controlling the estimates
 
 **\---nave <*value*>**
 
-    Specifies the effective number of averaged epochs in the input data, INLINE_EQUATION,
+    Specifies the effective number of averaged epochs in the input data, :math:`L_{eff}`,
     as discussed in :ref:`CBBDGIAE`. If the input data file is
     one produced by mne_browse_raw or mne_process_raw , the
     number of averages is correct in the file. However, if subtractions
@@ -762,7 +762,7 @@ Options controlling the estimates
 **\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
-    be set as INLINE_EQUATION. The default value is
+    be set as :math:`\lambda^2 = 1/SNR^2`. The default value is
     SNR = 3. Automatic selection of the regularization parameter is
     currently not supported.
 
@@ -911,14 +911,14 @@ Thresholding
 
     Specifies the threshold for the displayed colormaps. At the threshold,
     the overlayed color will be equal to the background surface color.
-    For currents, the value will be multiplied byINLINE_EQUATION.
+    For currents, the value will be multiplied by :math:`1^{-10}`.
     The default value is 8.
 
 **\---fmid <*value*>**
 
     Specifies the midpoint for the displayed colormaps. At this value, the
     overlayed color will be read (positive values) or blue (negative values).
-    For currents, the value will be multiplied byINLINE_EQUATION.
+    For currents, the value will be multiplied by :math:`1^{-10}`.
     The default value is 15.
 
 **\---fmax <*value*>**
@@ -926,12 +926,12 @@ Thresholding
     Specifies the maximum point for the displayed colormaps. At this value,
     the overlayed color will bright yellow (positive values) or light
     blue (negative values). For currents, the value will be multiplied
-    byINLINE_EQUATION. The default value is 20.
+    by :math:`1^{-10}`. The default value is 20.
 
 **\---fslope <*value*>**
 
     Included for backwards compatibility. If this option is specified
-    and ``--fmax`` option is *not* specified, INLINE_EQUATION.
+    and ``--fmax`` option is *not* specified, :math:`F_{max} = F_{mid} + 1/F_{slope}`.
 
 Output files
 ============
@@ -955,8 +955,8 @@ Output files
 
 **\---rate <*rate*>**
 
-    Specifies the frame rate of the QuickTime movies. The default value is INLINE_EQUATION,
-    where INLINE_EQUATION is the time between subsequent
+    Specifies the frame rate of the QuickTime movies. The default value is :math:`1/(10t_{step})`,
+    where :math:`t_{step}` is the time between subsequent
     movie frames produced in seconds.
 
 **\---rgb <*name*>**
@@ -1169,7 +1169,7 @@ Command-line options
 
 **\---nave <*value*>**
 
-    Specifies the effective number of averaged epochs in the input data, INLINE_EQUATION,
+    Specifies the effective number of averaged epochs in the input data, :math:`L_{eff}`,
     as discussed in :ref:`CBBDGIAE`. If the input data file is
     one produced by mne_browse_raw or mne_process_raw ,
     the number of averages is correct in the file. However, if subtractions
@@ -1183,7 +1183,7 @@ Command-line options
 **\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
-    be set as INLINE_EQUATION. The default value is
+    be set as :math:`\lambda^2 = 1/SNR^2`. The default value is
     SNR = 3. Automatic selection of the regularization parameter is
     currently not supported.
 
@@ -1312,7 +1312,7 @@ by postprocessing software as follows:
 
 The ``--align_z`` flag tries to align the signs
 of the signals at different vertices of the label. For this purpose,
-the surface normals within the label are collected into a INLINE_EQUATION matrix.
+the surface normals within the label are collected into a :math:`n_{vert} \times 3` matrix.
 The preferred orientation will be taken as the first right singular
 vector of this matrix, corresponding to its largest singular value.
 If the dot product of the surface normal of a vertex is negative,
