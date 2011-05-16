@@ -1400,14 +1400,14 @@ whenever they are enabled from the viewer options, see :ref:`CACHGDEA`.
 Technical description
 =====================
 
-Let INLINE_EQUATION be an MEG or an EEG
-signal at channel INLINE_EQUATION. This signal
-is related to the primary current distribution INLINE_EQUATIONthrough
-the lead field INLINE_EQUATION:
+Let :math:`x_k` be an MEG or an EEG
+signal at channel :math:`k = 1 \dotso N`. This signal
+is related to the primary current distribution :math:`J^p(r)` through
+the lead field :math:`L_k(r)`:
 
 .. math::    x_k = \int_G {L_k(r) \cdot J^p(r)}\,dG\ ,
 
-where the integration space INLINE_EQUATION in
+where the integration space :math:`G` in
 our case is a spherical surface. The oblique boldface characters
 denote three-component locations vectors and vector fields.
 
@@ -1415,14 +1415,14 @@ The inner product of two leadfields is defined as:
 
 .. math::    \langle L_j \mid L_k \rangle = \int_G {L_j(r) \cdot L_k(r)}\,dG\ ,
 
-These products constitute the Gram matrix INLINE_EQUATION.
+These products constitute the Gram matrix :math:`\Gamma_{jk} = \langle L_j \mid L_k \rangle`.
 The minimum -norm estimate can be expressed as a weighted sum of
 the lead fields:
 
 .. math::    J^* = w^T L\ ,
 
-where INLINE_EQUATION is a weight vector
-and INLINE_EQUATION is a vector composed of the
+where :math:`w` is a weight vector
+and :math:`L` is a vector composed of the
 continuous lead-field functions. The weights are determined by the
 requirement
 
@@ -1446,35 +1446,35 @@ where
 
 .. math::    x^{(p)} = (U^{(p)})^T x \text{  and  } \Gamma^{(p)} = (U^{(p)})^T \Gamma\ ,
 
-respectively. In the above, the columns of INLINE_EQUATION are
-the first *k* left singular vectors of INLINE_EQUATION.
+respectively. In the above, the columns of :math:`U^{(p)}` are
+the first *k* left singular vectors of :math:`\Gamma`.
 The weights of the regularized estimate are
 
 .. math::    w^{(p)} = V \Lambda^{(p)} U^T x\ ,
 
-where INLINE_EQUATION is diagonal with
+where :math:`\Lambda^{(p)}` is diagonal with
 
 .. math::    \Lambda_{jj}^{(p)} = \Bigg\{ \begin{array}{l}
 		 1/{\lambda_j},j \leq p\\
 		 \text{otherwise}
 	     \end{array}
 
-INLINE_EQUATION being the INLINE_EQUATION singular
-value of INLINE_EQUATION. The truncation point INLINE_EQUATION is
+:math:`\lambda_j` being the :math:`j` th singular
+value of :math:`\Gamma`. The truncation point :math:`p` is
 selected in mne_analyze by specifying
-a tolerance INLINE_EQUATION, which is used to
-determine INLINE_EQUATION such that
+a tolerance :math:`\varepsilon`, which is used to
+determine :math:`p` such that
 
 .. math::    1 - \frac{\sum_{j = 1}^p {\lambda_j}}{\sum_{j = 1}^N {\lambda_j}} < \varepsilon
 
 The extrapolated and interpolated magnetic field or potential
-distribution estimates INLINE_EQUATION in a virtual
+distribution estimates :math:`\hat{x'}` in a virtual
 grid of sensors can be now easily computed from the regularized
 minimum-norm estimate. With
 
 .. math::    \Gamma_{jk}' = \langle L_j' \mid L_k \rangle\ ,
 
-where INLINE_EQUATION are the lead fields
+where :math:`L_j'` are the lead fields
 of the virtual sensors,
 
 .. math::    \hat{x'} = \Gamma' w^{(k)}\ .
