@@ -368,7 +368,7 @@ is modified to favor areas of significant fMRI activation. For this purpose,
 the fMRI activation map is thresholded first at the value defined by
 the ``--fmrithresh`` option to mne_do_inverse_operator or mne_inverse_operator .
 Thereafter, the source-covariance matrix values corresponding to
-the the sites under the threshold are multiplied by INLINE_EQUATION, set
+the the sites under the threshold are multiplied by :math:`f_{off}`, set
 by the ``--fmrioff`` option.
 
 It turns out that the fMRI weighting has a strong influence
@@ -389,8 +389,8 @@ of epochs in the condition to be analyzed. In general, we have
 
 .. math::    C = C_0 / L_{eff}
 
-where INLINE_EQUATION is the effective
-number of averages. To calculate INLINE_EQUATION for
+where :math:`L_{eff}` is the effective
+number of averages. To calculate :math:`L_{eff}` for
 an arbitrary linear combination of conditions
 
 .. math::    y(t) = \sum_{i = 1}^n {w_i x_i(t)}
@@ -414,7 +414,7 @@ and, therefore
 
 Instead of a weighted average, one often computes a weighted
 sum, a simplest case being a difference or sum of two categories.
-For a difference INLINE_EQUATION and INLINE_EQUATION and
+For a difference :math:`w_1 = 1` and :math:`w_2 = -1` and
 thus
 
 .. math::    1 / L_{eff} = 1 / L_1 + 1 / L_2
@@ -423,8 +423,8 @@ or
 
 .. math::    L_{eff} = \frac{L_1 L_2}{L_1 + L_2}
 
-Interestingly, the same holds for a sum, where  INLINE_EQUATION.
-Generalizing, for any combination of sums and differences, where INLINE_EQUATION or INLINE_EQUATION , INLINE_EQUATION,
+Interestingly, the same holds for a sum, where :math:`w_1 = w_2 = 1`.
+Generalizing, for any combination of sums and differences, where :math:`w_i = 1` or :math:`w_i = -1`, :math:`i = 1 \dotso n`,
 we have
 
 .. math::    1 / L_{eff} = \sum_{i = 1}^n {1/{L_i}}
@@ -435,7 +435,7 @@ Inverse-operator decomposition
 ##############################
 
 The program ``mne_inverse_operator`` calculates
-the decomposition INLINE_EQUATION, described in :ref:`CHDBEHBC`. It is normally invoked from the convenience
+the decomposition :math:`A = \tilde{G} R^C = U \Lambda \bar{V^T}`, described in :ref:`CHDBEHBC`. It is normally invoked from the convenience
 script ``mne_do_inverse_operator`` . This section describes
 the options to ``mne_inverse_operator`` should a user need
 to invoke it directly for special-purpose processing.
