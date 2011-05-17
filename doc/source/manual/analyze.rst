@@ -1400,14 +1400,14 @@ whenever they are enabled from the viewer options, see :ref:`CACHGDEA`.
 Technical description
 =====================
 
-Let INLINE_EQUATION be an MEG or an EEG
-signal at channel INLINE_EQUATION. This signal
-is related to the primary current distribution INLINE_EQUATIONthrough
-the lead field INLINE_EQUATION:
+Let :math:`x_k` be an MEG or an EEG
+signal at channel :math:`k = 1 \dotso N`. This signal
+is related to the primary current distribution :math:`J^p(r)` through
+the lead field :math:`L_k(r)`:
 
 .. math::    x_k = \int_G {L_k(r) \cdot J^p(r)}\,dG\ ,
 
-where the integration space INLINE_EQUATION in
+where the integration space :math:`G` in
 our case is a spherical surface. The oblique boldface characters
 denote three-component locations vectors and vector fields.
 
@@ -1415,14 +1415,14 @@ The inner product of two leadfields is defined as:
 
 .. math::    \langle L_j \mid L_k \rangle = \int_G {L_j(r) \cdot L_k(r)}\,dG\ ,
 
-These products constitute the Gram matrix INLINE_EQUATION.
+These products constitute the Gram matrix :math:`\Gamma_{jk} = \langle L_j \mid L_k \rangle`.
 The minimum -norm estimate can be expressed as a weighted sum of
 the lead fields:
 
 .. math::    J^* = w^T L\ ,
 
-where INLINE_EQUATION is a weight vector
-and INLINE_EQUATION is a vector composed of the
+where :math:`w` is a weight vector
+and :math:`L` is a vector composed of the
 continuous lead-field functions. The weights are determined by the
 requirement
 
@@ -1446,35 +1446,35 @@ where
 
 .. math::    x^{(p)} = (U^{(p)})^T x \text{  and  } \Gamma^{(p)} = (U^{(p)})^T \Gamma\ ,
 
-respectively. In the above, the columns of INLINE_EQUATION are
-the first *k* left singular vectors of INLINE_EQUATION.
+respectively. In the above, the columns of :math:`U^{(p)}` are
+the first *k* left singular vectors of :math:`\Gamma`.
 The weights of the regularized estimate are
 
 .. math::    w^{(p)} = V \Lambda^{(p)} U^T x\ ,
 
-where INLINE_EQUATION is diagonal with
+where :math:`\Lambda^{(p)}` is diagonal with
 
 .. math::    \Lambda_{jj}^{(p)} = \Bigg\{ \begin{array}{l}
 		 1/{\lambda_j},j \leq p\\
 		 \text{otherwise}
 	     \end{array}
 
-INLINE_EQUATION being the INLINE_EQUATION singular
-value of INLINE_EQUATION. The truncation point INLINE_EQUATION is
+:math:`\lambda_j` being the :math:`j` th singular
+value of :math:`\Gamma`. The truncation point :math:`p` is
 selected in mne_analyze by specifying
-a tolerance INLINE_EQUATION, which is used to
-determine INLINE_EQUATION such that
+a tolerance :math:`\varepsilon`, which is used to
+determine :math:`p` such that
 
 .. math::    1 - \frac{\sum_{j = 1}^p {\lambda_j}}{\sum_{j = 1}^N {\lambda_j}} < \varepsilon
 
 The extrapolated and interpolated magnetic field or potential
-distribution estimates INLINE_EQUATION in a virtual
+distribution estimates :math:`\hat{x'}` in a virtual
 grid of sensors can be now easily computed from the regularized
 minimum-norm estimate. With
 
 .. math::    \Gamma_{jk}' = \langle L_j' \mid L_k \rangle\ ,
 
-where INLINE_EQUATION are the lead fields
+where :math:`L_j'` are the lead fields
 of the virtual sensors,
 
 .. math::    \hat{x'} = \Gamma' w^{(k)}\ .
@@ -1606,14 +1606,14 @@ controls:
     |            | yellow. Negative values will be bright blue.            |
     +------------+---------------------------------------------------------+
     | fmult      | Apply this multiplier to the above thresholds. Default  |
-    |            | is 1 for statistical maps and INLINE_EQUATION for       |
-    |            | currents (MNE). The vertical bar locations in the       |
+    |            | is :math:`1` for statistical maps and :math:`1^{-10}`   |
+    |            | for currents (MNE). The vertical bar locations in the   |
     |            | histogram take this multiplier into account but the     |
     |            | values indicated are the threshold parameters without   |
     |            | the multiplier.                                         |
     +------------+---------------------------------------------------------+
     | tcmult     | The upper limit of the timecourse vertical scale will   |
-    |            | be INLINE_EQUATION.                                     |
+    |            | be :math:`tc_{mult}f_{mult}f_{max}`.                    |
     +------------+---------------------------------------------------------+
 
 
@@ -1649,10 +1649,10 @@ The optional parameters are:
 
 **Time integr. (ms)**
 
-    Integration time for each frame (INLINE_EQUATION).
+    Integration time for each frame (:math:`\Delta t`).
     Before computing the estimates time integration will be performed
-    on sensor data. If the time specified for a frame is INLINE_EQUATION,
-    the integration range will be INLINE_EQUATION.
+    on sensor data. If the time specified for a frame is :math:`t_0`,
+    the integration range will be :math:`t_0 - ^{\Delta t}/_2 \leq t \leq t_0 + ^{\Delta t}/_2`.
 
 **# of smooth steps**
 
@@ -1677,12 +1677,12 @@ shows the SNR estimated from the whitened data in red and the apparent
 SNR inferred from the mismatch between the measured and predicted
 data in green.
 
-The SNR estimate is computed from the whitened data INLINE_EQUATION,
-related to the measured data INLINE_EQUATION by
+The SNR estimate is computed from the whitened data :math:`\tilde{x}(t)`,
+related to the measured data :math:`x(t)` by
 
 .. math::    \tilde{x}(t) = C^{-^1/_2} x(t)\ ,
 
-where INLINE_EQUATION is the whitening
+where :math:`C^{-^1/_2}` is the whitening
 operator, introduced in :ref:`CHDDHAGE`.
 
 The computation of the apparent SNR will be explained in
@@ -1755,12 +1755,12 @@ are available:
 
 **L2 norm (sample by sample)**
 
-    Compute the INLINE_EQUATION norm over the values
+    Compute the :math:`l_2` norm over the values
     in the vertices at each time point.
 
 **Pick vertex with largest L2 norm over time**
 
-    Compute the INLINE_EQUATION norm over time in
+    Compute the :math:`l_2` norm over time in
     each vertex and show the time course at the vertex with the largest
     norm.
 
@@ -1821,22 +1821,22 @@ The vertex-by-vertex output formats is summarized in :ref:`CACEFHIJ`.
 
 .. _CACEFHIJ:
 
-.. table:: Vertex-by-vertex output format. INLINE_EQUATION is the number of vertices, INLINE_EQUATION is the number of time points, INLINE_EQUATION is the number of comment lines, INLINE_EQUATION indicate the times in milliseconds, INLINE_EQUATION is a vertex number, INLINE_EQUATION are the coordinates of vertex INLINE_EQUATION in millimeters, and INLINE_EQUATION are the values at vertex INLINE_EQUATION.  Items in brackets are only included if Include coordinates is active. In the time-by-time output format the data portion of the file is transposed.
+.. table:: Vertex-by-vertex output format. :math:`n_p` is the number of vertices, :math:`n_t` is the number of time points, :math:`n_{com}` is the number of comment lines, :math:`t_1 \dotso t_{n_t}` indicate the times in milliseconds, :math:`p` is a vertex number, :math:`x_p y_p z_p` are the coordinates of vertex :math:`p` in millimeters, and :math:`v_p^{(1)} \dotso v_p^{(n_t)}` are the values at vertex :math:`p`.  Items in brackets are only included if *Include coordinates* is active. In the time-by-time output format the data portion of the file is transposed.
 
-    ==================  ======================================================
-    Line                Contents
-    ==================  ======================================================
-    INLINE_EQUATION     Comment lines beginning with %
-    INLINE_EQUATION     {0.0 }[0.0 0.0 0.0] INLINE_EQUATION
-    INLINE_EQUATION     {INLINE_EQUATION }[INLINE_EQUATION] INLINE_EQUATION
-    ==================  ======================================================
+    ===================================  ======================================================
+    Line                                 Contents
+    ===================================  ======================================================
+    :math:`1-n_{com}`                    Comment lines beginning with %
+    :math:`n_{com}+1`                    :math:`\{0.0\}[0.0\ 0.0\ 0.0] t_1 \dotso t_{n_t}`
+    :math:`(n_{com}+1)-(n_p+n_{com}+1)`  :math:`\{p\}[x_p y_p z_p]v_p^{(1)} \dotso v_p^{(n_t)}`
+    ===================================  ======================================================
 
 .. _CACJCFJJ:
 
 Creating new label files
 ========================
 
-It is easy to create new label files in mne_analyze .
+It is easy to create new label files in mne_analyze.
 For this purpose, an inflated surface should be visible in the main
 display. Follow these steps:
 
