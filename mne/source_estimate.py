@@ -155,6 +155,16 @@ class SourceEstimate(object):
         s += ", data size : %s x %s" % self.data.shape
         return "SourceEstimate (%s)" % s
 
+    def crop(self, tmin=None, tmax=None):
+        mask = np.ones(len(self.times), dtype=np.bool)
+        if tmin is not None:
+            mask = mask & (self.times >= tmin)
+        if tmax is not None:
+            mask = mask & (self.times <= tmax)
+        self.times = self.times[mask]
+        self.data = self.data[:, mask]
+        self.tmin = self.times[0]
+
 
 ###############################################################################
 # Morphing

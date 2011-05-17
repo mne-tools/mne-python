@@ -6,7 +6,7 @@ import numpy as np
 from scipy import linalg
 
 from ..fiff.constants import FIFF
-from ..stc import SourceEstimate
+from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
 from .inverse import combine_xyz, prepare_inverse_operator
 

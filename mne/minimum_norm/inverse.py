@@ -20,7 +20,7 @@ from ..cov import read_cov
 from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
 from ..forward import _block_diag
 from ..transforms import invert_transform, transform_source_space_to
-from ..stc import SourceEstimate
+from ..source_estimate import SourceEstimate
 
 
 def read_inverse_operator(fname):
