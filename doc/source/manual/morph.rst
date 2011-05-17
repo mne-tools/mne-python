@@ -29,21 +29,21 @@ maps which can be either computed on demand or precomputed using mne_make_morph_
 see :ref:`CHDBBHDH`. The morphing is performed with help
 of the registered spherical surfaces (``lh.sphere.reg`` and ``rh.sphere.reg`` )
 which must be produced in FreeSurfer .
-A morphing map is a linear mapping froprem cortical surface values
-in subject A (INLINE_EQUATION) to those in another
-subject B (INLINE_EQUATION)
+A morphing map is a linear mapping from cortical surface values
+in subject A (:math:`x^{(A)}`) to those in another
+subject B (:math:`x^{(B)}`)
 
 .. math::    x^{(B)} = M^{(AB)} x^{(A)}\ ,
 
-where INLINE_EQUATION is a sparse matrix
+where :math:`M^{(AB)}` is a sparse matrix
 with at most three nonzero elements on each row. These elements
 are determined as follows. First, using the aligned spherical surfaces,
-for each vertex INLINE_EQUATION, find the triangle INLINE_EQUATIONon the
-spherical surface of subject A which contains the location INLINE_EQUATION.
+for each vertex :math:`x_j^{(B)}`, find the triangle :math:`T_j^{(A)}` on the
+spherical surface of subject A which contains the location :math:`x_j^{(B)}`.
 Next, find the numbers of the vertices of this triangle and set
-the corresponding elements on the *j*th row of INLINE_EQUATION so that INLINE_EQUATION will
+the corresponding elements on the *j* th row of :math:`M^{(AB)}` so that :math:`x_j^{(B)}` will
 be a linear interpolation between the triangle vertex values reflecting
-the location INLINE_EQUATION within the triangle INLINE_EQUATION.
+the location :math:`x_j^{(B)}` within the triangle :math:`T_j^{(A)}`.
 
 It follows from the above definition that in general
 
@@ -75,31 +75,31 @@ might be smudging or blurring in
 accordance with similar operations in image processing programs.
 
 In MNE software terms, smoothing of the vertex data is an
-iterative procedure, which produces a blurred image INLINE_EQUATIONfrom
-the original sparse image INLINE_EQUATION by applying
+iterative procedure, which produces a blurred image :math:`x^{(N)}` from
+the original sparse image :math:`x^{(0)}` by applying
 in each iteration step a sparse blurring matrix:
 
 .. math::    x^{(p)} = S^{(p)} x^{(p - 1)}\ .
 
-On each row INLINE_EQUATIONof the matrix INLINE_EQUATIONthere
-are INLINE_EQUATION nonzero entries whose values
-equal INLINE_EQUATION. Here INLINE_EQUATION is
-the number of immediate neighbors of vertex INLINE_EQUATION which
-had non-zero values at iteration step INLINE_EQUATION.
-Matrix INLINE_EQUATION thus assigns the average
-of the non-zero neighbors as the new value for vertex INLINE_EQUATION.
+On each row :math:`j` of the matrix :math:`S^{(p)}` there
+are :math:`N_j^{(p - 1)}` nonzero entries whose values
+equal :math:`1/N_j^{(p - 1)}`. Here :math:`N_j^{(p - 1)}` is
+the number of immediate neighbors of vertex :math:`j` which
+had non-zero values at iteration step :math:`p - 1`.
+Matrix :math:`S^{(p)}` thus assigns the average
+of the non-zero neighbors as the new value for vertex :math:`j`.
 One important feature of this procedure is that it tends to preserve
 the amplitudes while blurring the surface image.
 
-Once the indices non-zero vertices in INLINE_EQUATION and
-the topology of the triangulation are fixed the matrices INLINE_EQUATION are
+Once the indices non-zero vertices in :math:`x^{(0)}` and
+the topology of the triangulation are fixed the matrices :math:`S^{(p)}` are
 fixed and independent of the data. Therefore, it would be in principle
 possible to construct a composite blurring matrix
 
 .. math::    S^{(N)} = \prod_{p = 1}^N {S^{(p)}}\ .
 
 However, it turns out to be computationally more effective
-to do blurring with an iteration. The above formula for INLINE_EQUATION also
+to do blurring with an iteration. The above formula for :math:`S^{(N)}` also
 shows that the smudging (smoothing) operation is linear.
 
 .. _CHDBBHDH:
@@ -127,7 +127,7 @@ of the form:
 
 where <*A*> and <*B*> are
 names of subjects. These files contain the maps for both hemispheres,
-and in both directions, *i.e.*, both INLINE_EQUATION and INLINE_EQUATION, as
+and in both directions, *i.e.*, both :math:`M^{(AB)}` and :math:`M^{(BA)}`, as
 defined above. Thus the files <*A*> - <*B*> -``morph.fif`` or <*B*> - <*A*> -``morph.fif`` are
 functionally equivalent. The name of the file produced by mne_analyze or mne_make_movie depends
 on the role of <*A*> and <*B*> in
@@ -324,11 +324,11 @@ The global phrases are:
     added to the first time point selected until this value or the last time
     point in one of the input stc files is reached.
 
-**integ  < INLINE_EQUATION/ms*>**
+**integ  <:math:`\Delta t` /*ms*>**
 
     Integration time for each frame. Defaults to zero. The integration will
-    be performed on sensor data. If the time specified for a frame is INLINE_EQUATION,
-    the integration range will be INLINE_EQUATION.
+    be performed on sensor data. If the time specified for a frame is :math:`t_0`,
+    the integration range will be :math:`t_0 - ^{\Delta t}/_2 \leq t \leq t_0 + ^{\Delta t}/_2`.
 
 **stc <*filename*>**
 
@@ -380,9 +380,9 @@ The contextual phrases are:
     Means pow 0.5
 
 The effects of the options can be summarized as follows.
-Suppose that the description file includes INLINE_EQUATION contexts
-and the temporally resampled data are organized in matrices INLINE_EQUATION,
-where INLINE_EQUATION is the subject index, and
+Suppose that the description file includes :math:`P` contexts
+and the temporally resampled data are organized in matrices :math:`S^{(p)}`,
+where :math:`p = 1 \dotso P` is the subject index, and
 the rows are the signals at different vertices of the cortical surface.
 The average computed by mne_average_estimates is
 then:
@@ -397,11 +397,11 @@ and
 
 .. math::    \bar{w_p} = w_p / \sum_{p = 1}^p {|w_p|}\ .
 
-In the above, INLINE_EQUATION and INLINE_EQUATION are
-the powers and weights assigned to each of the subjects whereas INLINE_EQUATION and INLINE_EQUATION are
+In the above, :math:`\beta_p` and :math:`w_p` are
+the powers and weights assigned to each of the subjects whereas :math:`\beta` and :math:`w` are
 the output weight and power value, respectively. The sign is either
-included (INLINE_EQUATION, INLINE_EQUATION)
-or omitted (INLINE_EQUATION, INLINE_EQUATION)
+included (:math:`\alpha_p = 1`, :math:`\alpha = 1`)
+or omitted (:math:`\alpha_p = 2`, :math:`\alpha = 2`)
 depending on the presence of abs phrases in the description file.
 
 .. note:: mne_average_estimates requires    that the number of vertices in the stc files are the same and that    the vertex numbers are identical. This will be the case if the files    have been produced in mne_make_movie using    the ``--morph`` option.
