@@ -1789,7 +1789,7 @@ The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHC
     meg_head_trans       4 x 4               The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates
     noise_cov            nchan x nchan       The noise covariance matrix
     source_cov           nsource             The elements of the diagonal source covariance matrix.
-    sing                 nchan               The singular values of :math:`A = C_0^{-^1/_2} G R^C = U \Lambda V^T` with :math:`R` selected so that trace :math:`(AA^T)`/trace :math:`(I = 1)` as discussed in :ref:`CHDDHAGE`
+    sing                 nchan               The singular values of :math:`A = C_0^{-^1/_2} G R^C = U \Lambda V^T` with :math:`R` selected so that :math:`\text{trace}(AA^T) / \text{trace}(I) = 1` as discussed in :ref:`CHDDHAGE`
     eigen_fields         nchan x nchan       The rows of this matrix are the left singular vectors of :math:`A`, i.e., the columns of :math:`U`, see above.
     eigen_leads          nchan x nsource     The rows of this matrix are the right singular vectors of :math:`A`, i.e., the columns of :math:`V`, see above.
     noise_eigenval       nchan               In terms of :ref:`CHDDHAGE`, eigenvalues of :math:`C_0`, i.e., not scaled with number of averages.
