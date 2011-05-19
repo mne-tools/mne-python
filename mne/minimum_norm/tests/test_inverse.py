@@ -21,9 +21,8 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 
 
 def test_apply_mne_inverse_operator():
-    """Test MNE inverse computation
+    """Test MNE inverse computation with precomputed inverse operator
     """
-
     setno = 0
     snr = 3.0
     lambda2 = 1.0 / snr ** 2
@@ -39,9 +38,8 @@ def test_apply_mne_inverse_operator():
 
 
 def test_compute_minimum_norm():
-    """Test MNE inverse computation
+    """Test MNE inverse computation starting from forward operator
     """
-
     setno = 0
     noise_cov = Covariance(fname_cov)
     forward = read_forward_solution(fname_fwd)
