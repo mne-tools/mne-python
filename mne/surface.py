@@ -247,4 +247,5 @@ def read_surface(filepath):
         fnum = np.fromfile(fobj, ">i4", 1)[0]
         vertex_coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
         faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+    vertex_coords = vertex_coords.astype(np.float)  # XXX : due to mayavi bug
     return vertex_coords, faces
