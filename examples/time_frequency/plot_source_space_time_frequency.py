@@ -18,7 +18,6 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
-from mne.viz import plot_source_estimate
 
 ###############################################################################
 # Set parameters

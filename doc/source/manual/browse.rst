@@ -1986,7 +1986,8 @@ in this section.
 
     Works similarly to ignore except that a mask specifies the trigger channel
     bits to be included. For example, to look at trigger input lines
-    one to three only, ignoring others, specify ``mask 7`` (INLINE_EQUATION)
+    one to three only, ignoring others, specify ``mask 7``
+    (:math:`2^0 + 2^1 + 2^2 = 7`).
 
 **prevevent <*number*>**
 
@@ -2264,7 +2265,8 @@ epochs to be included in the estimation of the covariance matrix.
 
     Works similarly to ignore except that a mask specifies the trigger channel
     bits to be included. For example, to look at trigger input lines
-    one to three only, ignoring others, specify ``mask 7`` (INLINE_EQUATION)
+    one to three only, ignoring others, specify ``mask 7``
+    (:math:`2^0 + 2^1 + 2^2 = 7`).
 
 **delay <*time / s*>**
 

@@ -14,13 +14,10 @@ and stores the solution in stc files for visualisation.
 
 print __doc__
 
-import numpy as np
 import pylab as pl
-import mne
 from mne.datasets import sample
 from mne.fiff import Evoked
 from mne.minimum_norm import apply_inverse, read_inverse_operator
-from mne.viz import plot_source_estimate
 
 
 data_path = sample.data_path('..')
@@ -48,6 +45,3 @@ pl.plot(1e3 * stc.times, stc.data[::100, :].T)
 pl.xlabel('time (ms)')
 pl.ylabel('dSPM value')
 pl.show()
-
-# View in 3D
-plot_source_estimate(inverse_operator['src'], stc)
