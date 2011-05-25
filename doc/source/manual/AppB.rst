@@ -180,7 +180,7 @@ the following command-line options:
 **\---snr <*value*>**
 
     An estimate for the amplitude SNR. The regularization parameter will
-    be set as INLINE_EQUATION. If the SNR option is
+    be set as :math:`\lambda = ^1/_{\text{SNR}}`. If the SNR option is
     absent, the regularization parameter will be estimated from the
     data. The regularization parameter will be then time dependent.
 
@@ -202,14 +202,14 @@ the following command-line options:
 
 **\---chi2**
 
-    Calculate an approximate INLINE_EQUATION statistic
+    Calculate an approximate :math:`\chi_2^3` statistic
     instead of the *F* statistic. This is simply
     accomplished by multiplying the *F* statistic
     by three.
 
 **\---sqrtF**
 
-    Take the square root of the INLINE_EQUATION or *F* statistic
+    Take the square root of the :math:`\chi_2^3` or *F* statistic
     before outputting the stc file.
 
 **\---collapse**
@@ -223,13 +223,13 @@ the following command-line options:
 **\---collapse1**
 
     Make all frames in the stc file (or the wfile) indentical. The value
-    at each source location is the INLINE_EQUATION norm
+    at each source location is the :math:`L_1` norm
     of the output quantity at this location over the analysis period.
 
 **\---collapse2**
 
     Make all frames in the stc file (or the wfile) identical. The value
-    at each source location is the INLINE_EQUATION norm
+    at each source location is the :math:`L_2` norm
     of the output quantity at this location over the analysis period.
 
 **\---SIcurrents**
@@ -286,7 +286,7 @@ the following command-line options:
     Label to process. The label files are produced by tksurfer and specify
     regions of interests (ROIs). A label file name should end with ``-lh.label`` for
     left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
-    ones. The corresponding output files are tagged with ``-lh-`` <*data type ``.amp`` and ``-rh-`` <*data type ``.amp`` , respectively. <*data type*> equals ``MNE`` for expected current
+    ones. The corresponding output files are tagged with ``-lh-`` <*data type* ``.amp`` and ``-rh-`` <*data type* ``.amp`` , respectively. <*data type*> equals ``MNE`` for expected current
     data and ``spm`` for dSPM data. Each line of the output
     file contains the waveform of the output quantity at one of the
     source locations falling inside the ROI.

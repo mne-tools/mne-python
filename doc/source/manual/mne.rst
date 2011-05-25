@@ -116,11 +116,11 @@ equivalent to a change in the variance of the current amplitudes
 in the Bayesian *a priori* distribution.
 
 Convenient choice for the source-covariance matrix :math:`R` is
-such that trace :math:`(\tilde{G} R \tilde{G}^T)/` trace :math:`(I) = 1`. With this choice we
+such that :math:`\text{trace}(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1`. With this choice we
 can approximate :math:`\lambda^2 \sim 1/SNR`, where SNR is
 the (power) signal-to-noise ratio of the whitened data.
 
-.. note:: The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio trace :math:`(GRG^T)/` trace :math:`(C)` does not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
+.. note:: The definition of the signal to noise-ratio/ :math:`\lambda^2` relationship    given above works nicely for the whitened forward solution. In the    un-whitened case scaling with the trace ratio :math:`\text{trace}(GRG^T) / \text{trace}(C)` does not make sense, since the diagonal elements summed have, in general,    different units of measure. For example, the MEG data are expressed    in T or T/m whereas the unit of EEG is Volts.
 
 .. _CBBHEGAB:
 
@@ -205,7 +205,7 @@ the :math:`k` th column of :math:`V`. It is thus seen that the current estimate 
 a weighted sum of the 'modified' eigenleads :math:`v_k`.
 
 It is easy to see that :math:`w(t) \propto \sqrt{L}`.
-To maintain the relation :math:`(\tilde{G} R \tilde{G}^T)/` trace :math:`(I) = 1` when :math:`L` changes
+To maintain the relation :math:`(\tilde{G} R \tilde{G}^T) / \text{trace}(I) = 1` when :math:`L` changes
 we must have :math:`R \propto 1/L`. With this approach, :math:`\lambda_k` is
 independent of  :math:`L` and, for fixed :math:`\lambda`,
 we see directly that :math:`j(t)` is independent

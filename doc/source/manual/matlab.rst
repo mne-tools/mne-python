@@ -698,18 +698,18 @@ The documented structures are:
     nchan            int32                   Number of channels.
     coord_frame      int32                   Coordinate frame in which the locations and orientations are expressed.
     source_nn        double(*,3)             The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
-    sing             double(nchan)           The singular values, *i.e.*, the diagonal values of INLINE_EQUATION, see :ref:`CHDBEHBC`.
-    eigen_leads      double(*,nchan)         The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
-    eigen_fields     double(nchan,nchan)     The matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
-    noise_cov        cov                     The noise covariance matrix C.
-    source_cov       cov                     The source covariance matrix R.
+    sing             double(nchan)           The singular values, *i.e.*, the diagonal values of :math:`\Lambda`, see :ref:`CHDBEHBC`.
+    eigen_leads      double(*,nchan)         The matrix :math:`V`, see :ref:`CHDBEHBC`.
+    eigen_fields     double(nchan,nchan)     The matrix :math:`U^T`, see :ref:`CHDBEHBC`.
+    noise_cov        cov                     The noise covariance matrix :math:`C`.
+    source_cov       cov                     The source covariance matrix :math:`R`.
     src              surf(*)                 The description of the source spaces
     mri_head_t       trans                   Transformation from the MRI coordinate frame to the (Neuromag) head coordinate frame.
     nave             double                  The number of averages.
     projs            proj(*)                 The SSP vectors which were active when the decomposition was computed
     proj             double(nchan)           The projection operator computed using projs .
     whitener                                 A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
-    reginv           double(nchan)           The diagonal matrix INLINE_EQUATION, see :ref:`CHDBEHBC`.
+    reginv           double(nchan)           The diagonal matrix :math:`\Gamma`, see :ref:`CHDBEHBC`.
     noisenorm        double(*)               A sparse matrix containing the noise normalization factors. Dimension is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     ===============  ======================  ==============================================================================================================================================================
 

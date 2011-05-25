@@ -182,7 +182,7 @@ points in centimeters. The first line should contain a single number
 which is the number of points listed in the file. Each of the following
 lines contains a sequential number of the point, followed by the
 three coordinates. mne_ctf_dig2fiff ignores
-any text following the INLINE_EQUATION coordinate
+any text following the :math:`z` coordinate
 on each line. If the ``--numfids`` option is specified,
 the first three points indicate the three fiducial locations (1
 = nasion, 2 = left auricular point, 3 = right auricular point).
@@ -241,18 +241,18 @@ fields originating in the brain. Most often, a compensation matrix
 corresponding to a scheme nicknamed *Third-order gradient
 compensation* is employed.
 
-Let us assume that the data contain INLINE_EQUATION MEG
-sensor channels, INLINE_EQUATION reference sensor
-channels, and INLINE_EQUATION other channels.
+Let us assume that the data contain :math:`n_1` MEG
+sensor channels, :math:`n_2` reference sensor
+channels, and :math:`n_3` other channels.
 The data from all channels can be concatenated into a single vector
 
 .. math::    x = [x_1^T x_2^T x_3^T]^T\ ,
 
-where INLINE_EQUATION, INLINE_EQUATION,
-and INLINE_EQUATION are the data vectors corresponding
+where :math:`x_1`, :math:`x_2`,
+and :math:`x_3` are the data vectors corresponding
 to the MEG sensor channels, reference sensor channels, and other
 channels, respectively. The data before and after compensation,
-denoted here by INLINE_EQUATION and INLINE_EQUATION, respectively,
+denoted here by :math:`x_{(0)}` and :math:`x_{(k)}`, respectively,
 are related by
 
 .. math::    x_{(k)} = M_{(k)} x_{(0)}\ ,
@@ -265,8 +265,8 @@ where the composite compensation matrix is
 		0 & 0 & I_{n_3}
 		\end{bmatrix}\ .
 
-In the above, INLINE_EQUATION is a INLINE_EQUATION compensation
-data matrix corresponding to compensation "grade" INLINE_EQUATION.
+In the above, :math:`C_{(k)}` is a :math:`n_1` by :math:`n_2` compensation
+data matrix corresponding to compensation "grade" :math:`k`.
 It is easy to see that
 
 .. math::    M_{(k)}^{-1} = \begin{bmatrix}
@@ -275,7 +275,7 @@ It is easy to see that
 		0 & 0 & I_{n_3}
 		\end{bmatrix}\ .
 
-To convert from compensation grade INLINE_EQUATION to INLINE_EQUATION one
+To convert from compensation grade :math:`k` to :math:`p` one
 can simply multiply the inverse of one compensate compensation matrix
 by another and apply the product to the data:
 
@@ -411,17 +411,17 @@ The command line options of mne_create_comp_data are:
 **\---out <*name*>**
 
     Specifies the output fif file containing the compensation channel weight
-    matrix INLINE_EQUATION, see :ref:`BEHDDFBI`.
+    matrix :math:`C_{(k)}`, see :ref:`BEHDDFBI`.
 
 The format of the text-format compensation data file is:
 
  <*number of MEG helmet channels*> <*number of compensation channels included*>
- <*INLINE_EQUATION*> <*INLINE_EQUATION*>INLINE_EQUATION
- <*INLINE_EQUATION*> <*weights*>
- <*INLINE_EQUATION*> <*weights*> INLINE_EQUATION
+ <*cname_1*> <*cname_2*> ...
+ <*name_1*> <*weights*>
+ <*name_2*> <*weights*> ...
 
-In the above <*INLINE_EQUATION*> denote
-names of MEG helmet channels and <*INLINE_EQUATION*>
+In the above <*name_k*> denote
+names of MEG helmet channels and <*cname_k*>
 those of the compensation channels, respectively. If the channel
 names contain spaces, they must be surrounded by quotes, for example, ``"MEG 0111"`` .
 
@@ -478,20 +478,20 @@ of these channels can be afterwards changed with the mne_rename_channels utility
 see :ref:`CHDCFEAJ`. In addition, it is possible to synthesize
 the digital trigger channel (STI 014) from available analog
 trigger channel data, see the ``--stim`` option, below.
-The synthesized trigger channel data value at sample INLINE_EQUATION will
+The synthesized trigger channel data value at sample :math:`k` will
 be:
 
 .. math::    s(k) = \sum_{p = 1}^n {t_p(k) 2^{p - 1}}\ ,
 
-where INLINE_EQUATION are the thresholded
-from the input channel data INLINE_EQUATION:
+where :math:`t_p(k)` are the thresholded
+from the input channel data d_p(k):
 
 .. math::    t_p(k) = \Bigg\{ \begin{array}{l}
 		 0 \text{  if  } d_p(k) \leq t\\
 		 1 \text{  if  } d_p(k) > t
 	     \end{array}\ .
 
-The threshold value INLINE_EQUATION can
+The threshold value :math:`t` can
 be adjusted with the ``--stimthresh`` option, see below.
 
 mne_kit2fiff accepts
@@ -1340,7 +1340,7 @@ a 4 x 4 coordinate transformation matrix:
 		\end{bmatrix}
 
 defined so that if the augmented location vectors in the
-dfs file and MRI coordinate systems are denoted by INLINE_EQUATION and INLINE_EQUATION,
+dfs file and MRI coordinate systems are denoted by :math:`r_{dfs} = [x_{dfs} y_{dfs} z_{dfs} 1]^T` and :math:`r_{MRI} = [x_{MRI} y_{MRI} z_{MRI} 1]^T`,
 respectively,
 
 .. math::    r_{MRI} = Tr_{dfs}
@@ -1378,10 +1378,10 @@ data as input. The command-line options are:
 
     An MRI volume volume file in mgh or mgz format.
     The ``--withdata`` option is implied with this type of
-    input. Furthermore, the INLINE_EQUATION transformation,
-    the Talairach transformation INLINE_EQUATION from
+    input. Furthermore, the :math:`T_3` transformation,
+    the Talairach transformation :math:`T_4` from
     the talairach.xfm file referred to in the MRI volume, and the the
-    fixed transforms INLINE_EQUATION and INLINE_EQUATION will
+    fixed transforms :math:`T_-` and :math:`T_+` will
     added to the output file. For definition of the coordinate transformations,
     see :ref:`CHDEDFIB`.
 
@@ -1406,7 +1406,7 @@ them into a single fif file. The coordinate transformations used
 by MNE software are summarized in Figure 5.1. The output
 of mne_collect_transforms may
 include all transforms referred to therein except for the sensor
-coordinate system transformations INLINE_EQUATION.
+coordinate system transformations :math:`T_{s_1} \dotso T_{s_n}`.
 The command-line options are:
 
 **\---version**
@@ -1419,7 +1419,7 @@ The command-line options are:
 
 **\---meas <*name*>**
 
-    Specifies a measurement data file which provides INLINE_EQUATION.
+    Specifies a measurement data file which provides :math:`T_1`.
     A forward solution or an inverse operator file can also be specified
     as implied by Table 5.1.
 
@@ -1427,18 +1427,18 @@ The command-line options are:
 
     Specifies an MRI description or a standalone coordinate transformation
     file produced by mne_analyze which
-    provides INLINE_EQUATION. If the ``--mgh`` option
+    provides :math:`T_2`. If the ``--mgh`` option
     is not present mne_collect_transforms also
-    tries to find INLINE_EQUATION, INLINE_EQUATION, INLINE_EQUATION,
-    and INLINE_EQUATION from this file.
+    tries to find :math:`T_3`, :math:`T_4`, :math:`T_-`,
+    and :math:`T_+` from this file.
 
 **\---mgh <*name*>**
 
     An MRI volume volume file in mgh or mgz format.
-    This file provides INLINE_EQUATION. The transformation INLINE_EQUATION will
+    This file provides :math:`T_3`. The transformation :math:`T_4` will
     be read from the talairach.xfm file referred to in the MRI volume.
-    The fixed transforms INLINE_EQUATION and INLINE_EQUATIONwill
-    be also created.
+    The fixed transforms :math:`T_-` and :math:`T_+` will
+    also be created.
 
 **\---out <*name*>**
 
@@ -1789,11 +1789,11 @@ The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHC
     meg_head_trans       4 x 4               The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates
     noise_cov            nchan x nchan       The noise covariance matrix
     source_cov           nsource             The elements of the diagonal source covariance matrix.
-    sing                 nchan               The singular values of INLINE_EQUATION with INLINE_EQUATION selected so that INLINE_EQUATION as discussed in :ref:`CHDDHAGE`
-    eigen_fields         nchan x nchan       The rows of this matrix are the left singular vectors of INLINE_EQUATION, i.e., the columns of INLINE_EQUATION, see above.
-    eigen_leads          nchan x nsource     The rows of this matrix are the right singular vectors of INLINE_EQUATION, i.e., the columns of INLINE_EQUATION, see above.
-    noise_eigenval       nchan               In terms of :ref:`CHDDHAGE`, eigenvalues of INLINE_EQUATION, i.e., not scaled with number of averages.
-    noise_eigenvec       nchan               Eigenvectors of the noise covariance matrix. In terms of :ref:`CHDDHAGE`, INLINE_EQUATION.
+    sing                 nchan               The singular values of :math:`A = C_0^{-^1/_2} G R^C = U \Lambda V^T` with :math:`R` selected so that :math:`\text{trace}(AA^T) / \text{trace}(I) = 1` as discussed in :ref:`CHDDHAGE`
+    eigen_fields         nchan x nchan       The rows of this matrix are the left singular vectors of :math:`A`, i.e., the columns of :math:`U`, see above.
+    eigen_leads          nchan x nsource     The rows of this matrix are the right singular vectors of :math:`A`, i.e., the columns of :math:`V`, see above.
+    noise_eigenval       nchan               In terms of :ref:`CHDDHAGE`, eigenvalues of :math:`C_0`, i.e., not scaled with number of averages.
+    noise_eigenvec       nchan               Eigenvectors of the noise covariance matrix. In terms of :ref:`CHDDHAGE`, :math:`U_C^T`.
     data                 nchan x ntime       The measured data. One row contains the data at one time point.
     times                ntime               The time points in the above matrix in seconds
     nave                 1                   Number of averages as listed in the data file.
@@ -2017,12 +2017,12 @@ the following command-line options are:
 **\---filtersize <*size*>**
 
     Adjust the length of the FFT to be applied in filtering. The number will
-    be rounded up to the next power of two. If the size is INLINE_EQUATION,
-    the corresponding length of time is INLINE_EQUATION,
-    where INLINE_EQUATION is the sampling frequency
+    be rounded up to the next power of two. If the size is :math:`N`,
+    the corresponding length of time is :math:`^N/_{f_s}`,
+    where :math:`f_s` is the sampling frequency
     of your data. The filtering procedure includes overlapping tapers
-    of length INLINE_EQUATION so that the total FFT
-    length will actually be INLINE_EQUATION. The default
+    of length :math:`^N/_2` so that the total FFT
+    length will actually be :math:`2N`. The default
     value is 4096.
 
 **\---highpass <*value/Hz*>**
@@ -2037,7 +2037,7 @@ the following command-line options are:
 **\---highpassw <*value/Hz*>**
 
     The width of the transition band of the highpass filter. The default
-    is 6 frequency bins, where one bin is INLINE_EQUATION.
+    is 6 frequency bins, where one bin is :math:`^{f_s}/_{(2N)}`.
 
 **\---lowpass <*value/Hz*>**
 
@@ -2074,9 +2074,9 @@ The binary epoch data file
 mne_epochs2mat saves the
 epoch data extracted from the raw data file is a simple binary file.
 The data are stored as big-endian single-precision floating point
-numbers. Assuming that each of the total of INLINE_EQUATION epochs
-contains INLINE_EQUATION channels and INLINE_EQUATION time
-points, the data INLINE_EQUATION ar e ordered
+numbers. Assuming that each of the total of :math:`p` epochs
+contains :math:`n` channels and :math:`m` time
+points, the data :math:`s_{jkl}` are ordered
 as
 
 .. math::    s_{111} \dotso s_{1n1} s_{211} \dotso s_{mn1} \dotso s_{mnp}\ ,

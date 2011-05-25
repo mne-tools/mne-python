@@ -470,12 +470,12 @@ the following command-line options:
 
     Specifies the threshold between values to be considered zero and non-zero
     in the input file specified with the ``--inmat`` option.
-    The default threshold is INLINE_EQUATION.
+    The default threshold is :math:`10^{-6}`.
 
 **\---out  <*name*>**
 
     Specifies output fif file to contain the derivation data. The recommended
-    name of the derivation file has the format  <*name*> ``-deriv.fif`` .
+    name of the derivation file has the format  <:math:`name`> ``-deriv.fif`` .
 
 **\---list  <*name*>**
 
@@ -492,11 +492,11 @@ All lines in the input files starting with the pound sign
 (#) are considered to be comments. The format of a derivation in
 a arithmetic input file is:
 
- <*name*> ``=`` [ <*INLINE_EQUATION*>``*`` ] <*INLINE_EQUATION > ``+``  <*INLINE_EQUATION*>``*`` ] <*INLINE_EQUATION >INLINE_EQUATION
+.. math::    \langle name \rangle = [\langle w_1 \rangle *] \langle name_1 \rangle + [\langle w_2 \rangle *] \langle name_2 \rangle \dotso
 
-where  <*name*> is the
-name of the derived channel, INLINE_EQUATION are
-the names of the channels comprising the derivation, and INLINE_EQUATION are
+where <:math:`name`> is the
+name of the derived channel, :math:`name_k` are
+the names of the channels comprising the derivation, and :math:`w_k` are
 their weights. Note that spaces are necessary between the items.
 Channel names containing spaces must be put in quotes. For example,
 
@@ -512,8 +512,7 @@ two times ``EEG 002`` .
 
 The format of a matrix derivation file is:
 
- <*nrow*>  <*ncol*>  <*names of the input channels*>
- <*INLINE_EQUATION*>  <*weights*> INLINE_EQUATION
+.. math::    \langle nrow \rangle \langle ncol \rangle \langle names\ of\ the\ input\ channels \rangle \langle name_1 \rangle \langle weights \rangle \dotso
 
 The combination of the two arithmetic examples, above can
 be thus represented as:
@@ -562,14 +561,14 @@ onto a plane. The mapping consists of the following steps:
   locations and the locations are translated by the location of the
   origin of the best-fitting sphere.
 
-- The spherical coordinates (INLINE_EQUATION)
+- The spherical coordinates (:math:`r_k`, :math:`\theta_k`, and :math:`\phi_k`)
   corresponding to each translated electrode location are computed.
 
-- The projected locations INLINE_EQUATION and INLINE_EQUATION are
-  computed. By default, INLINE_EQUATION, *i.e.* at
-  the equator (INLINE_EQUATION) the multiplier is
+- The projected locations :math:`u_k = R \theta_k \cos{\phi_k}` and :math:`v_k = R \theta_k \sin{\phi_k}` are
+  computed. By default, :math:`R = 20/{^{\pi}/_2}`, *i.e.* at
+  the equator (:math:`\theta = ^{\pi}/_2`) the multiplier is
   20. This projection radius can be adjusted with the ``--prad`` option.
-  Increasing or decreasing INLINE_EQUATION makes
+  Increasing or decreasing :math:`R` makes
   the spacing between the channel viewports larger or smaller, respectively.
 
 - A viewport with width 5 and height 4 is placed centered at
@@ -593,11 +592,11 @@ The command-line options are:
 **\---nofit**
 
     Do not fit a sphere to the electrode locations but use a standard sphere
-    center (INLINE_EQUATION, and INLINE_EQUATION instead.
+    center (:math:`x = y = 0`, and :math:`z = 40` mm) instead.
 
 **\---prad  <*value*>**
 
-    Specifies a non-standard projection radius INLINE_EQUATION,
+    Specifies a non-standard projection radius :math:`R`,
     see above.
 
 **\---width  <*value*>**
@@ -671,7 +670,7 @@ the following command-line options:
 
     Name of a w file, which will contain the patch area information. Two
     files will be created:  <*name*> ``-lh.w`` and  <*name*> ``-rh.w`` .
-    The numbers in the files are patch areas in INLINE_EQUATION.
+    The numbers in the files are patch areas in :math:`\text{mm}^2`.
     The source space vertices are marked with value 150.
 
 **\---labeldir  <*directory*>**
@@ -904,27 +903,27 @@ In the following, let
 
 .. math::    G_k = [g_{xk} g_{yk} g_{zk}]
 
-denote the three consecutive columns of the gain matrix INLINE_EQUATION corresponding to
-the fields of three orthogonal dipoles at source space location INLINE_EQUATION.
+denote the three consecutive columns of the gain matrix :math:`G` corresponding to
+the fields of three orthogonal dipoles at source space location :math:`k`.
 Further, lets assume that the source coordinate system has been
-selected so that the INLINE_EQUATION-axis points
-to the cortical normal direction and the INLINE_EQUATION plane
-is thus the tangent plane of the cortex at the source space location INLINE_EQUATION.
+selected so that the :math:`z` -axis points
+to the cortical normal direction and the :math:`xy` plane
+is thus the tangent plane of the cortex at the source space location :math:`k`
 Next, compute the SVD
 
 .. math::    G_k = U_k \Lambda_k V_k
 
-and let INLINE_EQUATION, where INLINE_EQUATION and INLINE_EQUATION are
+and let :math:`g_{1k} = u_{1k} \lambda_{1k}`, where :math:`\lambda_{1k}` and :math:`u_{1k}` are
 the largest singular value and the corresponding left singular vector
-of INLINE_EQUATION, respectively. It is easy to see
-that INLINE_EQUATION is has the largest power
+of :math:`G_k`, respectively. It is easy to see
+that :math:`g_{1k}` is has the largest power
 among the signal distributions produced by unit dipoles at source
-space location INLINE_EQUATION.
+space location :math:`k`.
 
-Furthermore, assume that the colums orthogonal matrix INLINE_EQUATION (INLINE_EQUATION) contain
+Furthermore, assume that the colums orthogonal matrix :math:`U_P` (:math:`U_P^T U_P = I`) contain
 the orthogonal basis of the noise subspace corresponding to the signal
-space projection (SSP) operator INLINE_EQUATION specified
-with one or more ``--proj`` options so that  INLINE_EQUATION.
+space projection (SSP) operator :math:`P` specified
+with one or more ``--proj`` options so that :math:`P = I - U_P U_P^T`.
 For more information on SSP, see :ref:`CACCHABI`.
 
 With these definitions the map selections defined with the ``--map`` option correspond
@@ -932,38 +931,38 @@ to the following
 
 **\---map 1**
 
-    Compute INLINE_EQUATION at each source space point.
+    Compute :math:`\sqrt{g_{1k}^T g_{1k}} = \lambda_{1k}` at each source space point.
     Normalize the result so that the maximum values equals one.
 
 **\---map 2**
 
-    Compute INLINE_EQUATION at each source space point.
+    Compute :math:`\sqrt{g_z^T g_z}` at each source space point.
     Normalize the result so that the maximum values equals one. This
     is the amplitude of the signals produced by unit dipoles normal
     to the cortical surface.
 
 **\---map 3**
 
-    Compute INLINE_EQUATION at each source space point.
+    Compute :math:`\sqrt{g_z^T g_z / g_{1k}^T g_{1k}}` at each source space point.
 
 **\---map 4**
 
-    Compute INLINE_EQUATION at each source space point.
+    Compute :math:`1 - \sqrt{g_z^T g_z / g_{1k}^T g_{1k}}` at each source space point.
     This could be called the *radiality index*.
 
 **\---map 5**
 
-    Compute the subspace correlation between INLINE_EQUATION and INLINE_EQUATION: INLINE_EQUATION.
-    This index equals zero, if INLINE_EQUATION is
-    orthogonal to INLINE_EQUATION and one if INLINE_EQUATION lies
-    in the subspace defined by INLINE_EQUATION. This
+    Compute the subspace correlation between :math:`g_z` and :math:`U_P`: :math:`\text{subcorr}^2(g_z , U_P) = (g_z^T U_P U_P^T g_z)/(g_z^T g_z)`.
+    This index equals zero, if :math:`g_z` is
+    orthogonal to :math:`U_P` and one if :math:`g_z` lies
+    in the subspace defined by :math:`U_P`. This
     map shows how close the field pattern of a dipole oriented perpendicular
     to the cortex at each cortical location is to the subspace removed
     by the SSP.
 
 **\---map 6**
 
-    Compute INLINE_EQUATION, which is the fraction
+    Compute :math:`\sqrt{g_z^T P g_z / g_z^T g_z}`, which is the fraction
     of the field pattern of a dipole oriented perpendicular to the cortex
     at each cortical location remaining after applying the SSP a dipole
     remaining
@@ -1151,7 +1150,7 @@ command-line options:
 **\---label  <*name*>**
 
     Define an ROI. Several label files can be present. By default, the sources
-    in the labels will have INLINE_EQUATION-shaped non-overlapping
+    in the labels will have :math:`\cos^2` -shaped non-overlapping
     timecourses, see below.
 
 **\---timecourse  <*name*>**
@@ -1197,9 +1196,9 @@ Noise simulation
 
 Noise is added to the signals if the ``--senscov`` and ``--nave`` options
 are present. If ``--nave`` is omitted the number of averages
-is set to INLINE_EQUATION. The noise is computed
-by first generating vectors of Gaussian random numbers INLINE_EQUATION with INLINE_EQUATION.
-Thereafter, the noise-covariance matrix INLINE_EQUATIONis
+is set to :math:`L = 100`. The noise is computed
+by first generating vectors of Gaussian random numbers :math:`n(t)` with :math:`n_j(t) \sim N(0,1)`.
+Thereafter, the noise-covariance matrix :math:`C` is
 used to color the noise:
 
 .. math::    n_c(t) = \frac{1}{\sqrt{L}} \Lambda U^T n(t)\ ,
@@ -1210,31 +1209,31 @@ covariance matrix:
 .. math::    C = U \Lambda^2 U^T\ .
 
 Note that it is assumed that the noise-covariance matrix
-is given for raw data, *i.e.*, for INLINE_EQUATION.
+is given for raw data, *i.e.*, for :math:`L = 1`.
 
 .. _CHDFIIII:
 
 Simulated data
 ==============
 
-The default source waveform INLINE_EQUATION for
-the INLINE_EQUATION label is nonzero at times INLINE_EQUATION, INLINE_EQUATION with:
+The default source waveform :math:`q_k` for
+the :math:`k^{th}` label is nonzero at times :math:`t_{kp} = (100(k - 1) + p)/f_s`, :math:`p = 0 \dotso 100` with:
 
 .. math::    q_k(t_{kp}) = Q_k \cos^2{(\frac{\pi p}{100} - \frac{\pi}{2})}\ ,
 
 i.e., the source waveforms are non-overlapping 100-samples
-wide INLINE_EQUATION pulses. The sampling frequency INLINE_EQUATION.
-The source amplitude INLINE_EQUATION is determined
-so that the strength of each of the dipoles in a label will be INLINE_EQUATION.
+wide :math:`\cos^2` pulses. The sampling frequency :math:`f_s = 600` Hz.
+The source amplitude :math:`Q_k` is determined
+so that the strength of each of the dipoles in a label will be :math:`50 \text{nAm}/N_k`.
 
 Let us denote the sums of the magnetic fields and electric
 potentials produced by the dipoles normal to the cortical mantle
-at label INLINE_EQUATION **by INLINE_EQUATION. The simulated
+at label :math:`k` by :math:`x_k`. The simulated
 signals are then:
 
 .. math::    x(t_j) = \sum_{k = 1}^{N_s} {q_k(t_j) x_k + n_c(t_j)}\ ,
 
-where INLINE_EQUATION is the number of
+where :math:`N_s` is the number of
 sources.
 
 .. _CHDCFIBH:
@@ -1251,7 +1250,7 @@ waveform expression files consist of lines of the form:
 Each file may contain multiple lines. At the end of the evaluation,
 only the values in the variable ``y`` (``q`` )
 are significant, see :ref:`CHDJBIEE`. They assume the role
-of INLINE_EQUATION to compute the simulated signals
+of :math:`q_k(t_j)` to compute the simulated signals
 as described in :ref:`CHDFIIII`, above.
 
 All expressions are case insensitive. The variables are vectors
@@ -1276,7 +1275,7 @@ The available variables are listed in :ref:`CHDJBIEE`.
 The arithmetic expressions can use usual arithmetic operations
 as well as  mathematical functions listed in :ref:`CHDJIBHA`.
 The arguments can be vectors or scalar numbers. In addition, standard
-relational operators ( <*, >, ==,  <*=, >=) and their textual
+relational operators ( <, >, ==, <=, >=) and their textual
 equivalents (lt, gt, eq, le, ge) are available. Table :ref:`CHDDJEHH` gives some useful examples of source waveform
 expressions.
 
@@ -1288,32 +1287,32 @@ expressions.
     Function          Description
     ================  ===============================================================================================================================================================================================================================
     abs(x)            absolute value
-    acos(x)           INLINE_EQUATION
-    asin(x)           INLINE_EQUATION
-    atan(x)           INLINE_EQUATION
-    atan2(x,y)        INLINE_EQUATION
-    ceil(x)           nearest integer larger than *x*
-    cos(x)            INLINE_EQUATION
-    cosw(x,a,b,c)     INLINE_EQUATION-shaped window centered at INLINE_EQUATION with a rising slope of length INLINE_EQUATION and a trailing slope of length INLINE_EQUATION.
-    deg(x)            The value of INLINE_EQUATION converted to from radians to degrees
-    erf(x)            INLINE_EQUATION
-    erfc(x)           INLINE_EQUATION
-    exp(x)            INLINE_EQUATION
-    floor(x)          Largest integer value not larger than INLINE_EQUATION
-    hypot(x,y)        INLINE_EQUATION
-    ln(x)             INLINE_EQUATION
-    log(x)            INLINE_EQUATION
-    maxp(x,y)         Takes the maximum between INLINE_EQUATION and INLINE_EQUATION
-    minp(x,y)         Takes the minimum between INLINE_EQUATION and INLINE_EQUATION
-    mod(x,y)          Gives the remainder of  INLINE_EQUATION divided by INLINE_EQUATION
+    acos(x)           :math:`\cos^{-1}x`
+    asin(x)           :math:`\sin^{-1}x`
+    atan(x)           :math:`\tan^{-1}x`
+    atan2(x,y)        :math:`\tan^{-1}(^y/_x)`
+    ceil(x)           nearest integer larger than :math:`x`
+    cos(x)            :math:`\cos x`
+    cosw(x,a,b,c)     :math:`\cos^2` -shaped window centered at :math:`b` with a rising slope of length :math:`a` and a trailing slope of length :math:`b`.
+    deg(x)            The value of :math:`x` converted to from radians to degrees
+    erf(x)            :math:`\frac{1}{2\pi} \int_0^x{\text{exp}(-t^2)dt}`
+    erfc(x)           :math:`1 - \text{erf}(x)`
+    exp(x)            :math:`e^x`
+    floor(x)          Largest integer value not larger than :math:`x`
+    hypot(x,y)        :math:`\sqrt{x^2 + y^2}`
+    ln(x)             :math:`\ln x`
+    log(x)            :math:`\log_{10} x`
+    maxp(x,y)         Takes the maximum between :math:`x` and :math:`y`
+    minp(x,y)         Takes the minimum between :math:`x` and :math:`y`
+    mod(x,y)          Gives the remainder of  :math:`x` divided by :math:`y`
     pi                Ratio of the circumference of a circle and its diameter.
     rand              Gives a vector of uniformly distributed random numbers from 0 to 1.
-    rnorm(x,y)        Gives a vector of Gaussian random numbers distributed as INLINE_EQUATION. Note that if INLINE_EQUATION and INLINE_EQUATION are vectors, each number generated will a different mean and variance according to the arguments.
-    shift(x,s)        Shifts the values in the input vector INLINE_EQUATION by the number of positions given by INLINE_EQUATION. Note that INLINE_EQUATION must be a scalar.
-    sin(x)            INLINE_EQUATION
-    sqr(x)            INLINE_EQUATION
-    sqrt(x)           INLINE_EQUATION
-    tan(x)            INLINE_EQUATION
+    rnorm(x,y)        Gives a vector of Gaussian random numbers distributed as :math:`N(x,y)`. Note that if :math:`x` and :math:`y` are vectors, each number generated will a different mean and variance according to the arguments.
+    shift(x,s)        Shifts the values in the input vector :math:`x` by the number of positions given by :math:`s`. Note that :math:`s` must be a scalar.
+    sin(x)            :math:`\sin x`
+    sqr(x)            :math:`x^2`
+    sqrt(x)           :math:`\sqrt{x}`
+    tan(x)            :math:`\tan x`
     ================  ===============================================================================================================================================================================================================================
 
 .. _CHDDJEHH:
@@ -1325,7 +1324,7 @@ expressions.
     =============================================  =======================================================================================================================
     q = 20e-9*sin(2*pi*10*x)                       A 10-Hz sine wave with 20 nAm amplitude
     q = 20e-9*sin(2*pi*2*x)*sin(2*pi*10*x)         A 10-Hz 20-nAm sine wave, amplitude modulated sinusoidally at 2 Hz.
-    q = 20e-9*cosw(t,100,100,100)                  INLINE_EQUATION-shaped pulse, centered at INLINE_EQUATION with 100 ms leading and trailing slopes, 20 nAm amplitude.
+    q = 20e-9*cosw(t,100,100,100)                  :math:`\cos^2`-shaped pulse, centered at :math:`t` = 100 ms with 100 ms leading and trailing slopes, 20 nAm amplitude.
     q = 30e-9*(t > 0)*(t  <* 300)*sin(2*pi*20*x)     20-Hz sine wave, 30 nAm amplitude, cropped in time to 0...300 ms.
     =============================================  =======================================================================================================================
 
