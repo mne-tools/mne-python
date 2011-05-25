@@ -14,7 +14,7 @@ print __doc__
 import mne
 from mne.datasets import sample
 
-data_path = sample.data_path('.')
+data_path = sample.data_path('..')
 stc_fname = data_path + '/MEG/sample/sample_audvis-meg-lh.stc'
 label = 'Aud-lh'
 label_fname = data_path + '/MEG/sample/labels/%s.label' % label

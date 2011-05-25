@@ -20,7 +20,7 @@ from mne.datasets import sample
 from mne.fiff import Evoked
 from mne.minimum_norm import minimum_norm
 
-data_path = sample.data_path('.')
+data_path = sample.data_path('..')
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'

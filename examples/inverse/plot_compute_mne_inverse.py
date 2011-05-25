@@ -23,7 +23,7 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.viz import plot_source_estimate
 
 
-data_path = sample.data_path('.')
+data_path = sample.data_path('..')
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
