@@ -1320,4 +1320,4 @@ the sign of the estimates at this vertex are inverted. The inversion
 is reflected in the current direction vector listed in the channel
 information, see above.
 
-.. note:: The raw data files output by mne_compute_raw_inverse can    be converted to mat files with mne_raw2mat ,    see :ref:`BEHCBCGG`. Alternatively, the files can be read    directly from Matlab using the routines in the MNE Matlab toolbox,    see :ref:`ch_matlab`. The evoked data output can be easily read directly    from Matlab using the fiff_load_evoked routine    in the MNE Matlab toolbox. Both raw data and evoked output files    can be loaded into mne_browse_raw ,    see :ref:`ch_browse`.
+.. note:: The raw data files output by mne_compute_raw_inverse can be converted to mat files with mne_raw2mat, see :ref:`convert_to_matlab`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into mne_browse_raw, see :ref:`ch_browse`.

@@ -1,6 +1,6 @@
 
 
-.. _BGBDEIGC:
+.. _setup_martinos:
 
 ============================
 Setup at the Martinos Center
@@ -9,14 +9,14 @@ Setup at the Martinos Center
 This Appendix contains information specific to the Martinos
 Center setup.
 
-.. _CIHCDHGI:
+.. _user_environment_martinos:
 
 User environment
 ################
 
 In the Martinos Center computer network, the 2.7 version
 of MNE is located at /usr/pubsw/packages/mne/stable. To use this
-version, follow  :ref:`CIHCDHGI` substituting /usr/pubsw/packages/mne/stable
+version, follow :ref:`user_environment` substituting /usr/pubsw/packages/mne/stable
 for <*MNE*> and /usr/pubsw/packages/matlab/current
 for <*Matlab*> . For most users,
 the default shell is tcsh.

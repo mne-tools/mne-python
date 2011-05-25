@@ -789,10 +789,19 @@ The columns of the tables contain the following data:
   of the baseline of the gradiometer to show that the output is in
   T/m.
 
-.. note:: The coil geometry information is stored in the    file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created    by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
+.. note:: The coil geometry information is stored in the file $MNE_ROOT/share/mne/coil_def.dat, which is automatically created by the utility mne_list_coil_def , see :ref:`BJEHHJIJ`.
 
+.. XXX : table of normal coil description is missing
 
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
+.. _BGBBHGEC:
 .. table:: Normal coil descriptions. Note: If a plus-minus sign occurs in several coordinates, all possible combinations have to be included.
+
+    +------+-------------------------+----+----------------------------------+----------------------+
+    | Id   | Description             | n  | r/mm                             | w                    |
+    +======+=========================+====+==================================+======================+
+    | 2    | XXX                     | X  | XXXX                             | XXXX                 |
+    +------+-------------------------+----+----------------------------------+----------------------+
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _CHDBDFJE:
@@ -917,9 +926,9 @@ a description line containing the following fields:
     1000     an EEG electrode (used internally in software only).
     =======  =======================================================
 
-.. _BJEHIBJC:
 
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.5\linewidth}|
+.. _BJEHIBJC:
 .. table:: Coil representation accuracies.
 
     =======  =====================================================================
@@ -1132,7 +1141,7 @@ the following command-line options:
 Implementation of software gradient compensation
 ================================================
 
-As described in :ref:`BEHDDFBI`BEHDEJEC the CTF and 4D Neuroimaging
+As described in :ref:`BEHDDFBI` the CTF and 4D Neuroimaging
 data may have been subjected to noise cancellation employing the
 data from the reference sensor array. Even though these sensor are
 rather far away from the brain sources, mne_forward_solution takes

@@ -1,6 +1,6 @@
 
 
-.. _BGBDEIGC:
+.. _licence:
 
 =================
 Licence agreement

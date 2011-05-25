@@ -15,7 +15,7 @@ the workflow described in :ref:`ch_cookbook`.
 
 .. note:: Going through the analysis exercise in    this chapter is not a substitute for reading other chapters of this    manual and understanding the concepts underlying MNE software.
 
-.. _CIHCDHGI:
+.. _sample_data_overview:
 
 Overview
 ########
@@ -61,7 +61,7 @@ as a compressed tar archive located at ``$MNE_ROOT/sample-data/MNE-sample-data.t
 To make a personal copy of the sample data set, follow these steps:
 
 - Set up for using the MNE software as
-  instructed in :ref:`CIHCDHGI` of this manual.
+  instructed in :ref:`user_environment` of this manual.
 
 - Create a directory for your personal copy: ``mkdir`` <*yourdir*> , where <*yourdir*> is
   the location where you want your personal copy to reside. Tho store
@@ -77,8 +77,7 @@ To make a personal copy of the sample data set, follow these steps:
 
 To start the tutorials you need to:
 
-- Set up MNE software user environment,
-  see :ref:`CIHCDHGI`.
+- Set up MNE software user environment, see :ref:`user_environment`.
 
 - Set the SUBJECTS_DIR environment variable:``setenv SUBJECTS_DIR`` <*yourdir*> ``/subjects`` (csh
   and tcsh) or ``export SUBJECTS_DIR=`` <*yourdir*> ``/subjects`` (POSIX-compatible

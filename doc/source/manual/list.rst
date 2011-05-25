@@ -13,9 +13,8 @@ The principal components of the MNE Software and their functions
 are listed in :ref:`CHDDJIDB`. Documented software is listed
 in italics. :ref:`BABDJHGH` lists various supplementary utilities.
 
-.. _CHDDJIDB:
-
 .. tabularcolumns:: |p{0.3\linewidth}|p{0.65\linewidth}|
+.. _CHDDJIDB:
 .. table:: The software components.
 
     +----------------------------+--------------------------------------------+
@@ -92,9 +91,9 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     |                            | environment of a file.                     |
     +----------------------------+--------------------------------------------+
 
-.. _BABDJHGH:
 
 .. tabularcolumns:: |p{0.3\linewidth}|p{0.65\linewidth}|
+.. _BABDJHGH:
 .. table:: Utility programs.
 
     +---------------------------------+--------------------------------------------+
@@ -265,7 +264,7 @@ in italics. :ref:`BABDJHGH` lists various supplementary utilities.
     | mne_process_stc                 | Manipulate stc files.                      |
     +---------------------------------+--------------------------------------------+
     | *mne_raw2mat*                   | Convert raw data into a Matlab file,       |
-    |                                 | see :ref:`BEHCBCGG`.                       |
+    |                                 | see :ref:`convert_to_matlab`.              |
     +---------------------------------+--------------------------------------------+
     | *mne_rename_channels*           | Change the names and types of channels     |
     |                                 | in a fif file, see :ref:`CHDCFEAJ`.        |
@@ -358,7 +357,7 @@ information:
 
     Prints the program module name, version number, and compilation date.
 
-.. _CIHCDHGI:
+.. _user_environment:
 
 User environment
 ################
@@ -398,7 +397,7 @@ For csh/tcsh the corresponding commands are:
 ``setenv MNE_ROOT`` <*MNE*> ``setenv MATLAB_ROOT`` <*Matlab*> ``source $MNE_ROOT/bin/mne_setup``
 
 For BEM mesh generation using the watershed algorithm or
-on the basis of multi-echo FLASH MRI data (see :ref:`BGBDEIGC`) and
+on the basis of multi-echo FLASH MRI data (see :ref:`create_bem_model`) and
 for accessing the tkmedit program
 from mne_analyze, see :ref:`CACCHCBF`,
 the MNE software needs access to a FreeSurfer license
@@ -409,9 +408,8 @@ as described in the FreeSurfer documentation.
 The environment variables relevant to the MNE software are
 listed in :ref:`CIHDGFAA`.
 
-.. _CIHDGFAA:
-
 .. tabularcolumns:: |p{0.3\linewidth}|p{0.55\linewidth}|
+.. _CIHDGFAA:
 .. table:: Environment variables
 
     +-------------------------+--------------------------------------------+
@@ -435,4 +433,4 @@ listed in :ref:`CIHDGFAA`.
     |                         | values, see :ref:`BABBGJEA`.               |
     +-------------------------+--------------------------------------------+
 
-.. note:: :ref:`BGBDEIGC` contains information specific to the setup at the Martinos Center including instructions to access the Neuromag software.
+.. note:: :ref:`setup_martinos` contains information specific to the setup at the Martinos Center including instructions to access the Neuromag software.

@@ -24,14 +24,14 @@ processing of the sample data set included with the MNE software. :ref:`ch_readi
 some useful background material for the methods employed in the
 MNE software.
 
-:ref:`BGBDEIGC` is an overview of the BEM model mesh
-generation methods, :ref:`BGBDEIGC` contains information specific
-to the setup at Martinos Center of Biomedical Imaging, :ref:`BGBDEIGC` is
-a software installation and configuration guide, :ref:`BGBDEIGC` summarizes
-the software history, and :ref:`BGBDEIGC` contains the End-User
+:ref:`create_bem_model` is an overview of the BEM model mesh
+generation methods, :ref:`setup_martinos` contains information specific
+to the setup at Martinos Center of Biomedical Imaging, :ref:`install_config` is
+a software installation and configuration guide, :ref:`release_notes` summarizes
+the software history, and :ref:`licence` contains the End-User
 License Agreement.
 
-.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <*version*> ``.pdf`` . For    the present manual, <*version*> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`CIHCDHGI`.
+.. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <*version*> ``.pdf`` . For    the present manual, <*version*> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`user_environment`.
 
 We want to thank all MNE Software users at the Martinos Center and
 in other institutions for their collaboration during the creation

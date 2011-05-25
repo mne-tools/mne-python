@@ -995,9 +995,9 @@ The components of the selection creation dialog shown in :ref:`CACFECED` have th
     the channel name list. The name of the selection is specified with
     the Name: text field.
 
-.. _CACHCHDJ:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.45\linewidth}|
+.. _CACHCHDJ:
 .. table:: Examples of regular expressions for channel selections
 
     +--------------------+----------------------------------------------+
@@ -1350,9 +1350,9 @@ The Help menu
 #############
 
 The contents of the Help menu
-is shown in :ref:`CACGFEAF`:
+is shown in :ref:`help_menu_browse`:
 
-.. _CACGFEAF:
+.. _help_menu_browse:
 
 .. figure:: mne_browse_raw/help_menu.png
     :alt: Help menu

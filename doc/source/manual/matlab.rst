@@ -12,9 +12,9 @@ Overview
 The MNE software contains a collection Matlab m-files to
 facilitate interfacing with binary file formats of the MNE software.
 The toolbox is located at ``$MNE_ROOT/share/matlab`` . The
-names of the MNE Matlab toolbox functions begin either with mne_ or
-with fiff_ . When you source the mne_setup script
-as described in :ref:`CIHCDHGI`, one of the following actions
+names of the MNE Matlab toolbox functions begin either with `mne_` or
+with `fiff_` . When you source the mne_setup script
+as described in :ref:`user_environment`, one of the following actions
 takes place:
 
 - If you do not have the Matlab startup.m
@@ -588,9 +588,9 @@ The documented structures are:
     data                named matrix     The compensation data matrix. The row_names list the names of the channels to which this compensation applies and the col_names the compensation channels. For more information, see :ref:`BEHDDFBI`.
     ==================  ===============  ===========================================================================================================================================================================================================
 
-.. _BGBFHDIJ:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBFHDIJ:
 .. table:: The meas info structure.
 
     =============  ==============  =====================================================================================================================
@@ -613,9 +613,9 @@ The documented structures are:
     comps          comp(*)         Software gradient compensation data.
     =============  ==============  =====================================================================================================================
 
-.. _BGBEFJCB:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBEFJCB:
 .. table:: The surf structure.
 
     ===============  ==================  ============================================================================================================================================================================================================================================================================
@@ -644,9 +644,9 @@ The documented structures are:
     dist_limit       double              The value given to mne_add_patch_info with the ``--dist`` option, see :ref:`CJAGCDCC`. This value is presently always negative, indicating that only distances between active source space vertices, as indicated by the vertno field of this structure, have been calculated.
     ===============  ==================  ============================================================================================================================================================================================================================================================================
 
-.. _BGBJJIED:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBJJIED:
 .. table:: The cov structure.
 
     =========  ==================  ======================================================================================================
@@ -664,9 +664,9 @@ The documented structures are:
     eigvec     double(dim,dim)     The eigenvectors of the covariance matrix.
     =========  ==================  ======================================================================================================
 
-.. _BGBFJIBJ:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBFJIBJ:
 .. table:: The fwd structure.
 
     ==============  ====================  =============================================================================================================================================================================================================================
@@ -684,9 +684,9 @@ The documented structures are:
     source_nn       double(*,3)           The source orientations. Number of rows is either nsource (fixed source orientations) or 3*nsource (all source orientations).
     ==============  ====================  =============================================================================================================================================================================================================================
 
-.. _BGBIEIJE:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBIEIJE:
 .. table:: The inv structure. Note: The fields proj , whitener , reginv , and noisenorm are filled in by the routine mne_prepare_inverse_operator.
 
     ===============  ======================  ==============================================================================================================================================================

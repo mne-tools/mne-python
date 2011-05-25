@@ -1,6 +1,6 @@
 
 
-.. _BGBDEIGC:
+.. _create_bem_model:
 
 =======================
 Creating the BEM meshes

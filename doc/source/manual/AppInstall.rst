@@ -1,6 +1,6 @@
 
 
-.. _BGBDEIGC:
+.. _install_config:
 
 ==============================
 Installation and configuration
@@ -154,7 +154,7 @@ How to get started
 After you have installed the software, a good place to start
 is to look at the manual:
 
-- Source the correct setup script, see :ref:`CIHCDHGI`,
+- Source the correct setup script, see :ref:`user_environment`,
   and
 
 - Say: ``mne_view_manual`` .

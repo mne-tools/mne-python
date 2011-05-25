@@ -379,10 +379,9 @@ The contents of the dipoles menu is shown in :ref:`CACCJDAF`:
 The Help menu
 =============
 
-The contents of the Help menu
-is shown in :ref:`CACGFEAF`:
+The contents of the Help menu is shown in :ref:`help_menu_analyze`:
 
-.. _CACGFEAF:
+.. _help_menu_analyze:
 
 .. figure:: mne_analyze/help_menu.png
     :alt: The Help menu

@@ -1,6 +1,6 @@
 
 
-.. _BGBDEIGC:
+.. _release_notes:
 
 =============
 Release notes
@@ -15,7 +15,8 @@ Release notes for MNE software 2.4
 Manual
 ======
 
-The manual has been significantly expanded and reorganized. :ref:`ch_interactive_analysis`describing mne_analyze has
+The manual has been significantly expanded and reorganized.
+:ref:`ch_interactive_analysis` describing mne_analyze has
 been added. :ref:`ch_sample_data` contains instructions for analyzing
 the sample data set provided with the software. Useful background
 material is listed in :ref:`ch_reading`. Almost all utility programs
@@ -57,7 +58,8 @@ The following import utilities were added:
   EEG data from Tufts university to fif format, see :ref:`BEHDGAIJ`.
 
 The output of the Matlab conversion utilities was changed
-to use structures. For details, see :ref:`BEHCCEBJ`, :ref:`BEHDIAJG`, and :ref:`BEHCBCGG`.
+to use structures. For details, see :ref:`BEHCCEBJ`, :ref:`BEHDIAJG`,
+and :ref:`convert_to_matlab`.
 
 Matlab tools to import and export w and stc files were added.
 
@@ -107,7 +109,7 @@ The MNE Matlab toolbox is now covered in a separate chapter.
 Change bars are employed to indicate changes in the chapters that
 existed in the previous version of the manual. Note that :ref:`ch_matlab` describing
 the Matlab toolbox is totally new and change bars have not been
-used there. Furthermore, :ref:`BGBDEIGC` now contains all the
+used there. Furthermore, :ref:`setup_martinos` now contains all the
 information specific to the Martinos Center.
 
 mne_browse_raw
@@ -308,7 +310,7 @@ BEM mesh generation
 ===================
 
 All information concerning BEM mesh generation has been moved
-to :ref:`BGBDEIGC`. Utilities for BEM mesh generation using
+to :ref:`create_bem_model`. Utilities for BEM mesh generation using
 FLASH images have been added, see :ref:`BABFCDJH`.
 
 Matlab toolbox
@@ -709,7 +711,7 @@ MNE software and setup for individual users:
 - The setup scripts have changed.
 
 The installation and user-level effects of the new software
-organization are discussed in :ref:`CHDBAFGJ` and :ref:`BGBDEIGC`.
+organization are discussed in :ref:`CHDBAFGJ` and :ref:`setup_martinos`.
 
 In addition, several minor bugs have been fixed in the source
 code. Most relevant changes visible to the user are listed below.
@@ -846,7 +848,7 @@ Miscellaneous
   see :ref:`CBBBBHIF`.
 
 - Added ``--noiserank`` option to mne_inverse_operator and mne_do_inverse_operator ,
-  see :ref:`CBBDDBGF`and :ref:`CIHCFJEI`, respectively.
+  see :ref:`CBBDDBGF` and :ref:`CIHCFJEI`, respectively.
 
 - The fif output from mne_convert_dig_data now
   includes the transformation between the digitizer and MNE head coordinate
