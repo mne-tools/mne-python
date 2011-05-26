@@ -210,22 +210,28 @@ def _complete_surface_info(this):
 ###############################################################################
 # Handle freesurfer
 
-def fread3(fobj):
+def _fread3(fobj):
     """Docstring"""
     b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
+    return (b1 << 16) + (b2 << 8) + b3
+
+
+def _fread3_many(fobj, n):
+    """Read 3-byte ints from an open binary file object."""
+    b1, b2, b3 = np.fromfile(fobj, ">u1", 3*n).reshape(-1, 3).astype(np.int).T
     return (b1 << 16) + (b2 << 8) + b3
 
 
 def read_curvature(filepath):
     """Load in curavature values from the ?h.curv file."""
     with open(filepath, "rb") as fobj:
-        magic = fread3(fobj)
+        magic = _fread3(fobj)
         if magic == 16777215:
             vnum = np.fromfile(fobj, ">i4", 3)[0]
             curv = np.fromfile(fobj, ">f4", vnum)
         else:
             vnum = magic
-            fread3(fobj)
+            _fread3(fobj)
             curv = np.fromfile(fobj, ">i2", vnum) / 100
         bin_curv = 1 - np.array(curv != 0, np.int)
     return bin_curv
@@ -234,18 +240,40 @@ def read_curvature(filepath):
 def read_surface(filepath):
     """Load in a Freesurfer surface mesh in triangular format."""
     with open(filepath, "rb") as fobj:
-        magic = fread3(fobj)
-        if magic == 16777215:
-            raise NotImplementedError("Quadrangle surface format reading not "
-                                      "implemented")
-        elif magic != 16777214:
+        magic = _fread3(fobj)
+        if magic == 16777215:  # Quad file
+            nvert = _fread3(fobj)
+            nquad = _fread3(fobj)
+            coords = np.fromfile(fobj, ">i2", nvert*3).astype(np.float)
+            coords = coords.reshape(-1, 3) / 100.0
+            quads = _fread3_many(fobj, nquad*4)
+            quads = quads.reshape(nquad, 4)
+            #
+            #   Face splitting follows
+            #
+            faces = np.zeros((2*nquad, 3), dtype=np.int)
+            nface = 0
+            for quad in quads:
+                if (quad[0] % 2) == 0:
+                    faces[nface] = quad[0], quad[1], quad[3]
+                    nface += 1
+                    faces[nface] = quad[2], quad[3], quad[1]
+                    nface += 1
+                else:
+                    faces[nface] = quad[0], quad[1], quad[2]
+                    nface += 1
+                    faces[nface] = quad[0], quad[2], quad[3]
+                    nface += 1
+
+        elif magic == 16777214:  # Triangle file
+            create_stamp = fobj.readline()
+            _ = fobj.readline()
+            vnum = np.fromfile(fobj, ">i4", 1)[0]
+            fnum = np.fromfile(fobj, ">i4", 1)[0]
+            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
+            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+        else:
             raise ValueError("File does not appear to be a Freesurfer surface")
-        create_stamp = fobj.readline()
-        blankline = fobj.readline()
-        del blankline
-        vnum = np.fromfile(fobj, ">i4", 1)[0]
-        fnum = np.fromfile(fobj, ">i4", 1)[0]
-        vertex_coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
-        faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
-    vertex_coords = vertex_coords.astype(np.float)  # XXX : due to mayavi bug
-    return vertex_coords, faces
+
+    coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
+    return coords, faces

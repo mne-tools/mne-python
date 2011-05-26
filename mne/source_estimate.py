@@ -273,7 +273,8 @@ def mesh_edges(tris):
     edges = edges + edges.T
     return edges
 
-def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
+
+def morph_data(subject_from, subject_to, stc_from, grade=5,
                subjects_dir=None):
     """Morph a source estimate from one subject to another
 
@@ -285,8 +286,6 @@ def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
         Name of the original subject as named in the SUBJECTS_DIR
     subject_to : string
         Name of the subject on which to morph as named in the SUBJECTS_DIR
-    src_from : dict
-        Source space for original "from" subject
     stc_from : SourceEstimate
         Source estimates for subject "from" to morph
     grade : int
@@ -307,6 +306,17 @@ def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
         else:
             raise ValueError('SUBJECTS_DIR environment variable not set')
 
+    tris = list()
+    surf_path_from = os.path.join(subjects_dir, subject_from, 'surf')
+    tris.append(read_surface(os.path.join(surf_path_from, 'lh.sphere.reg'))[1])
+    tris.append(read_surface(os.path.join(surf_path_from, 'rh.sphere.reg'))[1])
+    vertices = [stc_from.lh_vertno, stc_from.rh_vertno]
+
+    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'lh.sphere.reg')
+    lhs = read_surface(sphere)[0]
+    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
+    rhs = read_surface(sphere)[0]
+
     maps = read_morph_map(subject_from, subject_to)
 
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
@@ -315,11 +325,11 @@ def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
     dmap = [None, None]
 
     for hemi in [0, 1]:
-        e = mesh_edges(src_from[hemi]['tris'])
+        e = mesh_edges(tris[hemi])
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = np.where(src_from[hemi]['inuse'])[0]  # XXX
+        idx_use = vertices[hemi]
         n_iter = 100  # max nb of smoothing iterations
         for k in range(n_iter):
             e_use = e[:, idx_use]
@@ -344,11 +354,6 @@ def morph_data(subject_from, subject_to, src_from, stc_from, grade=5,
         if s['id'] == (9000 + grade):
             ico = s
             break
-
-    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'lh.sphere.reg')
-    lhs = read_surface(sphere)[0]
-    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
-    rhs = read_surface(sphere)[0]
 
     nearest = np.zeros((2, ico['np']), dtype=np.int)
 

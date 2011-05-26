@@ -25,10 +25,10 @@ subject_to = 'morph'
 fname = data_path + '/MEG/sample/sample_audvis-meg'
 src_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
+# Read input stc file
 stc_from = mne.SourceEstimate(fname)
-src_from = mne.read_source_spaces(src_fname)
-
-stc_to = mne.morph_data(subject_from, subject_to, src_from, stc_from)
+# Morph
+stc_to = mne.morph_data(subject_from, subject_to, stc_from)
 
 stc_to.save('%s_audvis-meg' % subject_to)
 
