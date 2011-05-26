@@ -69,6 +69,7 @@ Bugs
 
 Please report bugs you might encounter to:
 gramfort@nmr.mgh.harvard.edu
+or even better, *open an issue* on github.
 
 Testing
 -------
