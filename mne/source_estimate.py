@@ -218,8 +218,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None):
         raise ValueError('Morphing map data not found')
 
     # Find the correct ones
-    leftmap = None
-    rightmap = None
+    left_map = None
+    right_map = None
     for m in maps:
         tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
         if tag.data == subject_from:
@@ -229,21 +229,21 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None):
                 tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
                 if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    leftmap = tag.data
+                    left_map = tag.data
                     print '\tLeft-hemisphere map read.'
                 elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    rightmap = tag.data
+                    right_map = tag.data
                     print '\tRight-hemisphere map read.'
 
     fid.close()
-    if leftmap is None:
+    if left_map is None:
         raise ValueError('Left hemisphere map not found in %s' % name)
 
-    if rightmap is None:
+    if right_map is None:
         raise ValueError('Left hemisphere map not found in %s' % name)
 
-    return leftmap, rightmap
+    return left_map, right_map
 
 
 def mesh_edges(tris):
