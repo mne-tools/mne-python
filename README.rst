@@ -13,20 +13,20 @@ Charlestown, MA, USA
 
 Available under the BSD (3-clause) license.
 
-It is mainly a reimplementation of the Matlab code written by Matti Hämäläinen.
-
 Download
 ========
 
-TODO
+Just click on the *Downloads* button at https://github.com/mne-tools/mne-python
 
 Dependencies
 ============
 
 The required dependencies to build the software are python >= 2.5,
-NumPy >= 1.1, SciPy >= 0.6.
+NumPy >= 1.4, SciPy >= 0.7.
 
 To run the tests you will also need nose >= 0.10.
+and the MNE sample dataset (will be downloaded automatically
+when you run an example ... but be patient)
 
 Install
 =======
@@ -40,7 +40,7 @@ python modules. The install command is::
 Mailing list
 ============
 
-None
+http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 
 Development
 ===========
@@ -70,5 +70,3 @@ Testing
 
 You can launch the test suite using nosetests from the source folder.
 
-You'll need before to have run the MNE tutorial to have the required files
-on your drive.
