@@ -3,7 +3,7 @@
 About
 =====
 
-MNE is a python module for processing MEG and EEG data.
+MNE is a Python module for processing MEG and EEG data.
 
 It is a project initiated:
 
@@ -11,7 +11,12 @@ Athinoula A. Martinos Center for Biomedical Imaging
 Massachusetts General Hospital
 Charlestown, MA, USA
 
-Available under the BSD (3-clause) license.
+Available under the very permissive BSD (3-clause) license.
+
+Even if this code is primarily developed at the Martinos Center,
+the purpose of opening it is to welcome contributions and feedback
+from users. This code is not the property of MGH / Martinos Center,
+so feel free to use it, modify it and add your name to this project.
 
 Download
 ========
