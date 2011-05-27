@@ -138,7 +138,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
     if pca:
         U, s, Vh = linalg.svd(K)
         rank = np.sum(s > 1e-8*s[0])
-        K = np.dot(K, s[:rank] * U[:, :rank])
+        K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
         print 'Reducing data rank to %d' % rank
     else:
