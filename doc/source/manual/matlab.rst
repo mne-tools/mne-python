@@ -39,22 +39,35 @@ they are listed in :ref:`BGBEFADJ`.
 .. _BGBCGHAG:
 
 .. table:: High-level reading routines.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_find_evoked               | Find all evoked data sets from a file.                       |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_bad_channels         | Read the bad channel list.                                   |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_ctf_comp             | Read CTF software gradient compensation data.                |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_evoked               | Read evoked-response data.                                   |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_evoked_all           | Read all evoked-response data from a file.                   |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_meas_info            | Read measurement information.                                |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_mri                  | Read an MRI description file.                                |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_proj                 | Read signal-space projection data.                           |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_raw_segment          | Read a segment of raw data with time limits are specified    |
+    |                                | in samples.                                                  |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_read_raw_segment_times    | Read a segment of raw data with time limits specified        |
+    |                                | in seconds.                                                  |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_setup_read_raw            | Set up data structures before using fiff_read_raw_segment    |
+    |                                | or fiff_read_raw_segment_times.                              |
+    +--------------------------------+--------------------------------------------------------------+
 
-    ==============================  ===========================================================================================
-    Function                        Purpose
-    ==============================  ===========================================================================================
-    fiff_find_evoked                Find all evoked data sets from a file.
-    fiff_read_bad_channels          Read the bad channel list.
-    fiff_read_ctf_comp              Read CTF software gradient compensation data.
-    fiff_read_evoked                Read evoked-response data.
-    fiff_read_evoked_all            Read all evoked-response data from a file.
-    fiff_read_meas_info             Read measurement information.
-    fiff_read_mri                   Read an MRI description file.
-    fiff_read_proj                  Read signal-space projection data.
-    fiff_read_raw_segment           Read a segment of raw data with time limits are specified in samples.
-    fiff_read_raw_segment_times     Read a segment of raw data with time limits specified in seconds.
-    fiff_setup_read_raw             Set up data structures before using fiff_read_raw_segment or fiff_read_raw_segment_times
-    ==============================  ===========================================================================================
 
 .. table:: Channel selection utilities.
 
