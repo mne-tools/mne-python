@@ -45,9 +45,14 @@ def test_tfr_with_inverse_operator():
     bands = dict(alpha=[10, 10])
 
     stcs = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                                use_fft=False)
+                                use_fft=False, pca=True)
 
     stc = stcs['alpha']
     assert len(stcs) == len(bands.keys())
     assert np.all(stc.data > 0)
     assert_array_almost_equal(stc.times, epochs.times)
+
+    stcs_no_pca = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+                                use_fft=False, pca=False)
+
+    assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
