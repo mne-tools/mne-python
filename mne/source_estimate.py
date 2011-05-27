@@ -44,13 +44,13 @@ def read_stc(filename):
     stc['tstep'] /= 1000.0
 
     # read number of vertices/sources
-    vertices_n = np.fromfile(fid, dtype=">I4", count=1)
+    vertices_n = int(np.fromfile(fid, dtype=">I4", count=1))
 
     # read the source vector
     stc['vertices'] = np.fromfile(fid, dtype=">I4", count=vertices_n)
 
     # read the number of timepts
-    data_n = np.fromfile(fid, dtype=">I4", count=1)
+    data_n = int(np.fromfile(fid, dtype=">I4", count=1))
 
     if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
         raise ValueError('incorrect stc file size')

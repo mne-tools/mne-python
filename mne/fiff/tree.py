@@ -131,21 +131,22 @@ def copy_tree(fidin, in_id, nodes, fidout):
             write_id(fidout, FIFF.FIFF_BLOCK_ID)
             write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node['id'])
 
-        for d in node.directory:
-            #   Do not copy these tags
-            if d.kind == FIFF.FIFF_BLOCK_ID or \
-                    d.kind == FIFF.FIFF_PARENT_BLOCK_ID or \
-                    d.kind == FIFF.FIFF_PARENT_FILE_ID:
-                continue
+        if node.directory is not None:
+            for d in node.directory:
+                #   Do not copy these tags
+                if d.kind == FIFF.FIFF_BLOCK_ID or \
+                        d.kind == FIFF.FIFF_PARENT_BLOCK_ID or \
+                        d.kind == FIFF.FIFF_PARENT_FILE_ID:
+                    continue
 
-            #   Read and write tags, pass data through transparently
-            fidin.seek(d.pos, 0)
+                #   Read and write tags, pass data through transparently
+                fidin.seek(d.pos, 0)
 
-            s = fidin.read(4 * 4)
-            tag = Tag(*struct.unpack(">iIii", s))
-            tag.data = np.fromfile(fidin, dtype='>B', count=tag.size)
+                s = fidin.read(4 * 4)
+                tag = Tag(*struct.unpack(">iIii", s))
+                tag.data = np.fromfile(fidin, dtype='>B', count=tag.size)
 
-            _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')
+                _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')
 
         for child in node['children']:
             copy_tree(fidin, in_id, child, fidout)
