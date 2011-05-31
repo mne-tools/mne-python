@@ -70,212 +70,364 @@ they are listed in :ref:`BGBEFADJ`.
 
 
 .. table:: Channel selection utilities.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_pick_channels             | Create a selector to pick desired channels from data         |
+    |                                | according to include and exclude lists.                      |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_pick_channels_evoked      | Pick desired channels from evoked-response data according    |
+    |                                | to include and exclude lists.                                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_pick_info                 | Modify measurement info to include only selected channels.   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_pick_types                | Create a selector to pick desired channels from data         |
+    |                                | according to channel types (MEG, EEG, STIM) in combination   |
+    |                                | with include and exclude lists.                              |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_pick_types_evoked         | Pick desired channels from evoked-response data according    |
+    |                                | to channel types (MEG, EEG, STIM) in combination with        |
+    |                                | include and exclude lists.                                   |
+    +--------------------------------+--------------------------------------------------------------+
 
-    ============================  ==================================================================================================================================================
-    Function                      Purpose
-    ============================  ==================================================================================================================================================
-    fiff_pick_channels            Create a selector to pick desired channels from data according to include and exclude lists.
-    fiff_pick_channels_evoked     Pick desired channels from evoked-response data according to include and exclude lists
-    fiff_pick_info                Modify measurement info to include only selected channels.
-    fiff_pick_types               Create a selector to pick desired channels from data according to channel types (MEG, EEG, STIM) in combination with include and exclude lists.
-    fiff_pick_types_evoked        Pick desired channels from evoked-response data according to channel types (MEG, EEG, STIM) in combination with include and exclude lists.
-    ============================  ==================================================================================================================================================
 
 .. table:: Coordinate transformation utilities.
-
-    =========================  =============================================================================================================================
-    Function                   Purpose
-    =========================  =============================================================================================================================
-    fiff_invert_transform      Invert a coordinate transformation structure.
-    fiff_reset_ch_pos          Reset channel position transformation to the default values present in the file.
-    fiff_transform_eeg_chs     Transform electrode positions to another coordinate frame.
-    fiff_transform_meg_chs     Apply a coordinate transformation to the sensor location data to bring the integration points to another coordinate frame.
-    =========================  =============================================================================================================================
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_reset_ch_pos              | Reset channel position transformation to the default values  |
+    |                                | present in the file.                                         |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_transform_eeg_chs         | Transform electrode positions to another coordinate frame.   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_transform_meg_chs         | Apply a coordinate transformation to the sensor location     |
+    |                                | data to bring the integration points to another coordinate   |
+    |                                | frame.                                                       |
+    +--------------------------------+--------------------------------------------------------------+
+ 
 
 .. table:: Basic reading routines.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_define_constants          | Define a structure which contains the constant relevant      |
+    |                                | to fif files.                                                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_dir_tree_find             | Find nodes of a given type in a directory tree structure.    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_list_dir_tree             | List a directory tree structure.                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_make_dir_tree             | Create a directory tree structure.                           |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_open                      | Open a fif file and create the directory tree structure.     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_read_named_matrix         | Read a named matrix from a fif file.                         |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_read_tag                  | Read one tag from a fif file.                                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_read_tag_info             | Read the info of one tag from a fif file.                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_split_name_list           | Split a colon-separated list of names into a cell array      |
+    |                                | of strings.                                                  |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    =========================  ========================================================================
-    Function                   Purpose
-    =========================  ========================================================================
-    fiff_define_constants      Define a structure which contains the constant relevant to fif files.
-    fiff_dir_tree_find         Find nodes of a given type in a directory tree structure.
-    fiff_list_dir_tree         List a directory tree structure.
-    fiff_make_dir_tree         Create a directory tree structure.
-    fiff_open                  Open a fif file and create the directory tree structure.
-    fiff_read_named_matrix     Read a named matrix from a fif file.
-    fiff_read_tag              Read one tag from a fif file.
-    fiff_read_tag_info         Read the info of one tag from a fif file.
-    fiff_split_name_list       Split a colon-separated list of names into a cell array of strings.
-    =========================  ========================================================================
 
 .. table:: Writing routines.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_end_block                 | Write a FIFF_END_BLOCK tag.                                  |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_end_file                  | Write the standard closing.                                  |
+    +--------------------------------+--------------------------------------------------------------+
+    | fiff_start_block               | Write a FIFF_START_BLOCK tag.                                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_start_file                | Write the appropriate beginning of a file.                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_ch_info             | Write a channel information structure.                       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_coord_trans         | Write a coordinate transformation structure.                 |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_ctf_comp            | Write CTF compensation data.                                 |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_dig_point           | Write one digitizer data point.                              |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_complex             | Write single-precision complex numbers.                      |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_complex_matrix      | Write a single-precision complex matrix.                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_double              | Write double-precision floats.                               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_double_complex      | Write double-precision complex numbers.                      |
+    +--------------------------------+--------------------------------------------------------------+            
+    |fiff_write_double_complex_matrix| Write a double-precision complex matrix.                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_double_matrix       | Write a double-precision matrix.                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_evoked              | Write an evoked-reponse data file.                           |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_float               | Write single-precision floats.                               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_float_matrix        | Write a single-precision matrix.                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_id                  | Write an id tag.                                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_int                 | Write 32-bit integers.                                       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_int_matrix          | Write a matrix of 32-bit integers.                           |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_name_list           | Write a name list.                                           |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_named_matrix        | Write a named matrix.                                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_proj                | Write SSP data.                                              |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_short               | Write 16-bit integers.                                       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_string              | Write a string.                                              |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    ===================================  ===============================================
-    Function                             Purpose
-    ===================================  ===============================================
-    fiff_end_block                       Write a FIFF_END_BLOCK tag.
-    fiff_end_file                        Write the standard closing.
-    fiff_start_block                     Write a FIFF_START_BLOCK tag.
-    fiff_start_file                      Write the appropriate beginning of a file.
-    fiff_write_ch_info                   Write a channel information structure.
-    fiff_write_coord_trans               Write a coordinate transformation structure.
-    fiff_write_ctf_comp                  Write CTF compensation data.
-    fiff_write_dig_point                 Write one digitizer data point.
-    fiff_write_complex                   Write single-precision complex numbers.
-    fiff_write_complex_matrix            Write a single-precision complex matrix.
-    fiff_write_double                    Write double-precision floats.
-    fiff_write_double_complex            Write double-precision complex numbers.
-    fiff_write_double_complex_matrix     Write a double-precision complex matrix
-    fiff_write_double_matrix             Write a double-precision matrix
-    fiff_write_evoked                    Write an evoked-reponse data file.
-    fiff_write_float                     Write single-precision floats.
-    fiff_write_float_matrix              Write a single-precision matrix.
-    fiff_write_id                        Write an id tag.
-    fiff_write_int                       Write 32-bit integers.
-    fiff_write_int_matrix                Write a matrix of 32-bit integers.
-    fiff_write_name_list                 Write a name list.
-    fiff_write_named_matrix              Write a named matrix.
-    fiff_write_proj                      Write SSP data.
-    fiff_write_short                     Write 16-bit integers.
-    fiff_write_string                    Write a string.
-    ===================================  ===============================================
 
 .. table:: High-level data writing routines.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_write_evoked              | Write an evoked-response data file.                          |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_finish_writing_raw        | Write the closing tags to a raw data file.                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_start_writing_raw         | Start writing raw data file, *i.e.*, write the measurement   |
+    |                                | information.                                                 |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_dig_file            | Write a fif file containing digitization data.               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | fiff_write_raw_buffer          | Write one raw data buffer. This is used after a call to      |
+    |                                | fiff_start_writing_raw.                                      |
+    +--------------------------------+--------------------------------------------------------------+
 
-    ==========================  ==================================================================================
-    Function                    Purpose
-    ==========================  ==================================================================================
-    fiff_write_evoked           Write an evoked-response data file.
-    fiff_finish_writing_raw     Write the closing tags to a raw data file.
-    fiff_start_writing_raw      Start writing raw data file, *i.e.*, write the measurement information.
-    fiff_write_dig_file         Write a fif file containing digitization data.
-    fiff_write_raw_buffer       Write one raw data buffer. This is used after a call to fiff_start_writing_raw.
-    ==========================  ==================================================================================
 
 .. table:: Coil definition utilities.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_add_coil_defs              | Add coil definitions to an array of channel information      |
+    |                                | structures.                                                  |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_load_coil_def              | Load a coil definition file.                                 |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    ====================  ======================================================================
-    Function              Purpose
-    ====================  ======================================================================
-    mne_add_coil_defs     Add coil definitions to an array of channel information structures.
-    mne_load_coil_def     Load a coil definition file.
-    ====================  ======================================================================
 
 .. table:: Routines for software gradient compensation and signal-space projection.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_compensate_to              | Apply or remove CTF software gradient compensation from      |
+    |                                | evoked-response data.                                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_get_current_comp           | Get the state of software gradient compensation from         |
+    |                                | measurement info.                                            |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_make_compensator           | Make a compensation matrix which switches the status of      |
+    |                                |CTF software gradient compensation from one state to another. |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_make_projector_info        | Create a signal-space projection operator with the           |
+    |                                | projection item definitions and cell arrays of channel names |
+    |                                | and bad channel names as input.                              |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_make_projector_info        | Like mne_make_projector but uses the measurement info        |
+    |                                | structure as input.                                          |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_set_current_comp           | Change the information about the compensation status in      |
+    |                                | measurement info.                                            |
+    +--------------------------------+--------------------------------------------------------------+        
 
-    ==========================  ==================================================================================================================================================
-    Function                    Purpose
-    ==========================  ==================================================================================================================================================
-    mne_compensate_to           Apply or remove CTF software gradient compensation from evoked-response data.
-    mne_get_current_comp        Get the state of software gradient compensation from measurement info.
-    mne_make_compensator        Make a compensation matrix which switches the status of CTF software gradient compensation from one state to another.
-    mne_make_projector          Create a signal-space projection operator with the projection item definitions and cell arrays of channel names and bad channel names as input.
-    mne_make_projector_info     Like mne_make_projector but uses the measurement info structure as input.
-    mne_set_current_comp        Change the information about the compensation status in measurement info.
-    ==========================  ==================================================================================================================================================
 
 .. table:: High-level routines for reading MNE data files.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_pick_channels_cov          | Pick desired channels from a sensor covariance matrix.       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_pick_channels_forward      | Pick desired channels (rows) from a forward solution.        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_bem_surfaces          | Read triangular tessellations of surfaces for                |
+    |                                | boundary-element models.                                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_cov                   | Read a covariance matrix.                                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_epoch                 | Read an epoch of data from the output file of mne_epochs2mat.|
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_events                | Read an event list from a fif file produced by               |
+    |                                | mne_browse_raw or mne_process_raw.                           |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_forward_solution      | Read a forward solution from a fif file.                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_inverse_operator      | Read an inverse operator from a fif file.                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_morph_map             | Read an morphing map produced with mne_make_morph_maps, see  |
+    |                                | :ref:`CHDBBHDH`.                                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_noise_cov             | Read a noise-covariance matrix from a fif file.              |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_source_spaces         | Read source space information from a fif file.               |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    ============================  =====================================================================================
-    Function                      Purpose
-    ============================  =====================================================================================
-    mne_pick_channels_cov         Pick desired channels from a sensor covariance matrix.
-    mne_pick_channels_forward     Pick desired channels (rows) from a forward solution.
-    mne_read_bem_surfaces         Read triangular tessellations of surfaces for boundary-element models
-    mne_read_cov                  Read a covariance matrix.
-    mne_read_epoch                Read an epoch of data from the output file of mne_epochs2mat .
-    mne_read_events               Read an event list from a fif file produced by mne_browse_raw or mne_process_raw .
-    mne_read_forward_solution     Read a forward solution from a fif file.
-    mne_read_inverse_operator     Read an inverse operator from a fif file.
-    mne_read_morph_map            Read an morphing map produced with mne_make_morph_maps , see :ref:`CHDBBHDH`.
-    mne_read_noise_cov            Read a noise-covariance matrix from a fif file.
-    mne_read_source_spaces        Read source space information from a fif file.
-    ============================  =====================================================================================
 
 .. table:: High-level routines for writing MNE data files.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_write_cov                  | Write a covariance matrix to an open file.                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_cov_file             | Write a complete file containing just a covariance matrix.   |
+    +--------------------------------+--------------------------------------------------------------+        
+    | mne_write_events               | Write a fif format event file compatible with mne_browse_raw |
+    |                                | and mne_process_raw.                                         |
+    +--------------------------------+--------------------------------------------------------------+        
+    | mne_write_inverse_sol_stc      | Write stc files containing an inverse solution or other      |
+    |                                | dynamic data on the cortical surface.                        |
+    +--------------------------------+--------------------------------------------------------------+        
+    | mne_write_inverse_sol_w        | Write w files containing an inverse solution or other static |
+    |                                | data on the cortical surface.                                |
+    +--------------------------------+--------------------------------------------------------------+        
 
-    ============================  ================================================================================================
-    Function                      Purpose
-    ============================  ================================================================================================
-    mne_write_cov                 Write a covariance matrix to an open file.
-    mne_write_cov_file            Write a complete file containing just a covariance matrix.
-    mne_write_events              Write a fif format event file compatible with mne_browse_raw and mne_process_raw .
-    mne_write_inverse_sol_stc     Write stc files containing an inverse solution or other dynamic data on the cortical surface.
-    mne_write_inverse_sol_w       Write w files containing an inverse solution or other static data on the cortical surface
-    ============================  ================================================================================================
 
 .. _BABBDDAI:
 
 .. table:: Routines related to stc, w, and label files.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_read_stc_file              | Read data from one stc file. The vertex numbering in the     |
+    |                                | returned structure will start from 0.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_stc_file1             | Read data from one stc file. The vertex numbering in the     |
+    |                                | returned structure will start from 1.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_w_file                | Read data from one w file. The vertex numbering in the       |
+    |                                | returned structure will start from 0.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_w_file1               | Read data from one w file. The vertex numbering in the       |
+    |                                | returned structure will start from 1.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_stc_file             | Write a new stc file. It is assumed the the vertex numbering |
+    |                                | in the input data structure containing the stc information   |
+    |                                | starts from 0.                                               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_stc_file1            | Write a new stc file. It is assumed the the vertex numbering |
+    |                                | in the input data structure containing the stc information   |
+    |                                | starts from 1.                                               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_w_file               | Write a new w file. It is assumed the the vertex numbering   |
+    |                                | in the input data structure containing the w file            |
+    |                                | information starts from 0.                                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_w_file1              | Write a new w file. It is assumed the the vertex numbering   |
+    |                                | in the input data structure containing the w file            |
+    |                                | information starts from 1.                                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_label_file            | Read a label file (ROI).                                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_label_file           | Write a label file (ROI).                                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_label_time_courses         | Extract time courses corresponding to a label from an        |
+    |                                | stc file.                                                    |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    =========================  ==========================================================================================================================================
-    Function                   Purpose
-    =========================  ==========================================================================================================================================
-    mne_read_stc_file          Read data from one stc file. The vertex numbering in the returned structure will start from 0.
-    mne_read_stc_file1         Read data from one stc file. The vertex numbering in the returned structure will start from 1.
-    mne_read_w_file            Read data from one w file. The vertex numbering in the returned structure will start from 0.
-    mne_read_w_file1           Read data from one w file. The vertex numbering in the returned structure will start from 1.
-    mne_write_stc_file         Write a new stc file. It is assumed the the vertex numbering in the input data structure containing the stc information starts from 0.
-    mne_write_stc_file1        Write a new stc file. It is assumed the the vertex numbering in the input data structure containing the stc information starts from 1.
-    mne_write_w_file           Write a new w file. It is assumed the the vertex numbering in the input data structure containing the w file information starts from 0.
-    mne_write_w_file1          Write a new w file. It is assumed the the vertex numbering in the input data structure containing the w file information starts from 1.
-    mne_read_label_file        Read a label file (ROI)
-    mne_write_label_file       Write a label file (ROI)
-    mne_label_time_courses     Extract time courses corresponding to a label from an stc file.
-    =========================  ==========================================================================================================================================
 
 .. table:: Routines for reading FreeSurfer surfaces.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_read_curvature             | Read a curvature file.                                       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_surface               | Read one surface, return the vertex locations and            | 
+    |                                | triangulation info.                                          |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_read_surfaces              | Read surfaces corresponding to one or both hemispheres.      |
+    |				       Optionally read curvature information and add derived        |
+    |				       surface data.                                                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_reduce_surface             | Reduce the number of triangles on a surface using the        |
+    |                                | reducepatch Matlab function.                                 |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_write_surface              | Write a FreeSurfer surface file.                             |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    =====================  ==============================================================================================================================
-    Function               Purpose
-    =====================  ==============================================================================================================================
-    mne_read_curvature     Read a curvature file.
-    mne_read_surface       Read one surface, return the vertex locations and triangulation info.
-    mne_read_surfaces      Read surfaces corresponding to one or both hemispheres. Optionally read curvature information and add derived surface data.
-    mne_reduce_surface     Reduce the number of triangles on a surface using the reducepatch Matlab function.
-    mne_write_surface      Write a FreeSurfer surface file.
-    =====================  ==============================================================================================================================
 
 .. _BGBEGFBD:
 
 .. table:: Utility functions.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_block_diag                 | Create a sparse block-diagonal matrix out of a vector.       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_combine_xyz                | Calculate the square sum of the three Cartesian components   |
+    |				     | of several vectors listed in one row or column vector.       |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_file_name                  | Compose a file name relative to $MNE_ROOT.                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_find_channel               | Find a channel by name from measurement info.                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_find_source_space_hemi     | Determine whether a given source space belongs to the left   |
+    |				     | or right hemisphere.                                         |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_fread3                     | Read a three-byte integer.                                   |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_fwrite3                    | Write a three-byte integer.                                  |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_make_combined_event_file   | Combine data from several trigger channels into one event    |
+    |				     | file.                                                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_omit_first_line            | Omit first line from a multi-line message. This routine is   |
+    |				     | useful for formatting error messages.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_prepare_inverse_operator   | Prepare inverse operator data for calculating L2             |
+    |				     | minimum-norm solutions and dSPM.                             |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_setup_toolbox              | Set up the MNE Matlab toolbox.                               |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_transform_coordinates      | Transform locations between different coordinate systems.    |
+    |				     | This function uses the output file from                      |
+    |				     | mne_collect_transforms described in :ref:`BABBIFIJ` as input.|
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_transpose_named_matrix     | Create a transpose of a named matrix.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_transform_source_space_to  | Transform source space data to another coordinate frame.     |
+    +--------------------------------+--------------------------------------------------------------+    
 
-    ================================  ==============================================================================================================================================================
-    Function                          Purpose
-    ================================  ==============================================================================================================================================================
-    mne_block_diag                    Create a sparse block-diagonal matrix out of a vector.
-    mne_combine_xyz                   Calculate the square sum of the three Cartesian components of several vectors listed in one row or column vector.
-    mne_file_name                     Compose a file name relative to $MNE_ROOT
-    mne_find_channel                  Find a channel by name from measurement info.
-    mne_find_source_space_hemi        Determine whether a given source space belongs to the left or right hemisphere.
-    mne_fread3                        Read a three-byte integer.
-    mne_fwrite3                       Write a three-byte integer.
-    mne_make_combined_event_file      Combine data from several trigger channels into one event file.
-    mne_omit_first_line               Omit first line from a multi-line message. This routine is useful for formatting error messages.
-    mne_prepare_inverse_operator      Prepare inverse operator data for calculating L2 minimum-norm solutions and dSPM.
-    mne_setup_toolbox                 Set up the MNE Matlab toolbox.
-    mne_transform_coordinates         Transform locations between different coordinate systems. This function uses the output file from mne_collect_transforms described in :ref:`BABBIFIJ` as input.
-    mne_transpose_named_matrix        Create a transpose of a named matrix.
-    mne_transform_source_space_to     Transform source space data to another coordinate frame.
-    ================================  ==============================================================================================================================================================
 
 .. _BGBEFADJ:
 
 .. table:: Examples demostrating the use of the toolbox.
-
-    =========================  =================================================================================
-    Function                   Purpose
-    =========================  =================================================================================
-    mne_ex_average_epochs      Example of averaging epoch data produced by mne_epochs2mat , see :ref:`BEHFIDCB`.
-    mne_ex_cancel_noise        Example of noise cancellation procedures.
-    mne_ex_compute_inverse     Example of computing a L2 minimum-norm estimate or a dSPM solution
-    mne_ex_data_sets           Example of listing evoked-response data sets.
-    mne_ex_evoked_grad_amp     Compute tangential gradient amplitudes from planar gradiometer data.
-    mne_ex_read_epochs         Read epoch data from a raw data file.
-    mne_ex_read_evoked         Example of reading evoked-response data.
-    mne_ex_read_raw            Example of reading raw data.
-    mne_ex_read_write_raw      Example of processing raw data (read and write).
-    =========================  =================================================================================
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | mne_ex_average_epochs          | Example of averaging epoch data produced by mne_epochs2mat,  |
+    |                                | see :ref:`BEHFIDCB`.                                         |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_cancel_noise            | Example of noise cancellation procedures.                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_compute_inverse         | Example of computing a L2 minimum-norm estimate or a dSPM    |
+    |                                | solution.                                                    |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_data_sets               | Example of listing evoked-response data sets.                |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_evoked_grad_amp         | Compute tangential gradient amplitudes from planar           |
+    |                                | gradiometer data.                                            |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_read_epochs             | Read epoch data from a raw data file.                        |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_read_evoked             | Example of reading evoked-response data.                     |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_read_raw                | Example of reading raw data.                                 |
+    +--------------------------------+--------------------------------------------------------------+    
+    | mne_ex_read_write_raw          | Example of processing raw data (read and write).             |
+    +--------------------------------+--------------------------------------------------------------+    
+  
 
 .. note:: In order for the inverse operator calculation    to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software,    the so-called *processing history* block must    be included in data files. Previous versions of the MNE Matlab functions    did not copy processing history to files saved. As of March 30,    2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have    been enchanced to include these data to the output file as appropriate.    If you have older raw data files created in Matlab from input which    has been processed Maxfilter, it is necessary to copy the *processing    history* block from the original to modified raw data    file using the mne_copy_processing_history utility described    in :ref:`CJACECAH`. The raw data processing programs mne_browse_raw and mne_process_raw have    handled copying of the processing history since revision 2.5 of    the MNE software.
 
@@ -369,7 +521,11 @@ The documented structures are:
 .. _BGBJHCGD:
 
 .. table:: FIFF constants.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ================================  =======  ======================================================================================================
     Name                              Value    Description
     ================================  =======  ======================================================================================================
@@ -513,7 +669,11 @@ The documented structures are:
 .. _BGBDHBIF:
 
 .. table:: The trans structure.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ========  ==============  =====================================================================================================================================================================
     Field     Data type       Description
     ========  ==============  =====================================================================================================================================================================
@@ -525,7 +685,11 @@ The documented structures are:
 .. _BGBHDEDG:
 
 .. table:: The dig structure.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ========  ============  ==========================================================================================================================
     Field     Data type     Description
     ========  ============  ==========================================================================================================================
@@ -537,7 +701,11 @@ The documented structures are:
 .. _BGBGBEBH:
 
 .. table:: The coildef structure. For more detailed information, see :ref:`BJEIAEIE`.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ==============  =======================  ========================================================================================
     Field           Data type                Description
     ==============  =======================  ========================================================================================
@@ -555,7 +723,11 @@ The documented structures are:
 .. _BGBIABGD:
 
 .. table:: The ch structure.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ==============  ==============  =======================================================================================================================================================================================================================================================================================================================================================
     Field           Data type       Description
     ==============  ==============  =======================================================================================================================================================================================================================================================================================================================================================
@@ -577,7 +749,11 @@ The documented structures are:
 .. _BGBCJHJB:
 
 .. table:: The proj structure.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     =========  ===============  =========================================================================================================================================================
     Field      Data type        Description
     =========  ===============  =========================================================================================================================================================
@@ -589,7 +765,11 @@ The documented structures are:
 .. _BGBJDIFD:
 
 .. table:: The comp structure.
-
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ==================  ===============  ===========================================================================================================================================================================================================
     Field               Data type        Description
     ==================  ===============  ===========================================================================================================================================================================================================
@@ -604,8 +784,13 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBFHDIJ:
-.. table:: The meas info structure.
 
+.. table:: The meas info structure.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     =============  ==============  =====================================================================================================================
     Field          Data type       Description
     =============  ==============  =====================================================================================================================
@@ -629,8 +814,13 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBEFJCB:
-.. table:: The surf structure.
 
+.. table:: The surf structure.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ===============  ==================  ============================================================================================================================================================================================================================================================================
     Field            Data type           Description
     ===============  ==================  ============================================================================================================================================================================================================================================================================
@@ -660,8 +850,13 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBJJIED:
-.. table:: The cov structure.
 
+.. table:: The cov structure.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     =========  ==================  ======================================================================================================
     Field      Data type           Description
     =========  ==================  ======================================================================================================
@@ -680,8 +875,13 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBFJIBJ:
-.. table:: The fwd structure.
 
+.. table:: The fwd structure.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ==============  ====================  =============================================================================================================================================================================================================================
     Field           Data type             Description
     ==============  ====================  =============================================================================================================================================================================================================================
@@ -700,8 +900,13 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBIEIJE:
-.. table:: The inv structure. Note: The fields proj , whitener , reginv , and noisenorm are filled in by the routine mne_prepare_inverse_operator.
 
+.. table:: The inv structure. Note: The fields proj , whitener , reginv , and noisenorm are filled in by the routine mne_prepare_inverse_operator.
+    +--------------------------------+--------------------------------------------------------------+
+    | Function                       | Purpose                                                      |
+    +================================+==============================================================+
+    | fiff_invert_transform          | Invert a coordinate transformation structure.                |
+    +--------------------------------+--------------------------------------------------------------+    
     ===============  ======================  ==============================================================================================================================================================
     Field            Data type               Description
     ===============  ======================  ==============================================================================================================================================================
