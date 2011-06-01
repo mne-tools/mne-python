@@ -7,13 +7,12 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import ndimage
-from scipy import stats
+from scipy import stats, sparse, ndimage
 
 from .parametric import f_oneway
 
 
-def _find_clusters(x, threshold, tail=0):
+def _find_clusters(x, threshold, tail=0, connectivity=None):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
@@ -49,18 +48,39 @@ def _find_clusters(x, threshold, tail=0):
 
     labels, n_labels = ndimage.label(x_in)
 
-    if x.ndim == 1:
-        clusters = ndimage.find_objects(labels, n_labels)
-        sums = ndimage.measurements.sum(x, labels,
-                                        index=range(1, n_labels + 1))
+    if connectivity is None:
+        if x.ndim == 1:
+            clusters = ndimage.find_objects(labels, n_labels)
+            sums = ndimage.measurements.sum(x, labels,
+                                            index=range(1, n_labels + 1))
+        else:
+            clusters = list()
+            sums = np.empty(n_labels)
+            for l in range(1, n_labels + 1):
+                c = labels == l
+                clusters.append(c)
+                sums[l - 1] = np.sum(x[c])
     else:
+        if x.ndim > 1:
+            raise Exception("Data should be 1D when using a connectivity "
+                            "to define clusters.")
+        from scikits.learn.utils._csgraph import cs_graph_components
+        mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
+        if np.sum(mask) == 0:
+            return [], np.empty(0)
+        connectivity = sparse.coo_matrix((connectivity.data[mask],
+                                         (connectivity.row[mask],
+                                          connectivity.col[mask])))
+        _, components = cs_graph_components(connectivity)
+        labels = np.unique(components)
         clusters = list()
-        sums = np.empty(n_labels)
-        for l in range(1, n_labels + 1):
-            c = labels == l
-            clusters.append(c)
-            sums[l - 1] = np.sum(x[c])
-
+        sums = list()
+        for l in labels:
+            c = (components == l)
+            if np.any(x_in[c]):
+                clusters.append(c)
+                sums.append(np.sum(x[c]))
+        sums = np.array(sums)
     return clusters, sums
 
 
@@ -86,7 +106,8 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
-                             n_permutations=1000, tail=0):
+                             n_permutations=1000, tail=0,
+                             connectivity=None):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -111,6 +132,10 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         If tail is -1, the statistic is thresholded below threshold.
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
+    connectivity : sparse matrix.
+        Defines connectivity between features. The matrix is assumed to
+        be symmetric and only the upper triangular half is used.
+        Defaut is None, i.e, no connectivity.
 
     Returns
     -------
@@ -139,7 +164,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
 
-    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail)
+    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
+                                             connectivity)
 
     # make list of indices for random data split
     splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
@@ -154,7 +180,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
             np.random.shuffle(X_full)
             X_shuffle_list = [X_full[s] for s in slices]
             T_obs_surr = stat_fun(*X_shuffle_list)
-            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail)
+            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                                   connectivity)
 
             if len(perm_clusters_sums) > 0:
                 H0[i_s] = np.max(perm_clusters_sums)
@@ -178,7 +205,8 @@ def ttest_1samp(X):
 
 
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
-                                   tail=0, stat_fun=ttest_1samp):
+                                   tail=0, stat_fun=ttest_1samp,
+                                   connectivity=None):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -230,7 +258,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
 
-    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail)
+    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
+                                             connectivity)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -243,7 +272,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
 
             # Recompute statistic on randomized data
             T_obs_surr = stat_fun(X_copy)
-            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail)
+            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                                   connectivity)
 
             if len(perm_clusters_sums) > 0:
                 idx_max = np.argmax(np.abs(perm_clusters_sums))
