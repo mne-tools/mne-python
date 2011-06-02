@@ -851,7 +851,7 @@ The columns of the tables contain the following data:
     |      | gradiometer measuring   |    | (+/-8.6, +/-8.6, 78.6)mm         | -1/4                 |
     |      | diagonal gradients      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
-  
+
 .. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
 .. _CHDBDFJE:
 .. table:: Accurate coil descriptions

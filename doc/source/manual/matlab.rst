@@ -237,7 +237,7 @@ they are listed in :ref:`BGBEFADJ`.
     |                                | measurement info.                                            |
     +--------------------------------+--------------------------------------------------------------+
     | mne_make_compensator           | Make a compensation matrix which switches the status of      |
-    |                                |CTF software gradient compensation from one state to another. |
+    |                                | CTF software gradient compensation from one state to another.|
     +--------------------------------+--------------------------------------------------------------+
     | mne_make_projector_info        | Create a signal-space projection operator with the           |
     |                                | projection item definitions and cell arrays of channel names |
@@ -771,7 +771,7 @@ The documented structures are:
     |                           |           | operates from augmented position column vectors given in |
     |                           |           | *from* coordinates to give results in *to* coordinates.  |
     +---------------------------+-----------+----------------------------------------------------------+
- 
+
 
 .. _BGBHDEDG:
 
@@ -788,36 +788,35 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
     | r                         | single(3) | The location of this point.                              |
     +---------------------------+-----------+----------------------------------------------------------+
- 
+
 
 .. _BGBGBEBH:
 
 .. table:: The coildef structure. For more detailed information, see :ref:`BJEIAEIE`.
 
-    +---------------------------+-----------+----------------------------------------------------------+
-    | Field                     | Data Type | Description                                              |
-    +===========================+===========+==========================================================+
-    | class                     | double    | The coil (or electrode) class.                           |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | id                        | double    | The coil (or electrode) id.                              |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | accuracy                  | double    | Representation accuracy.                                 |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | num_points                | double    | Number of integration points.                            |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | size                      | double    | Coil size.                                               |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | baseline                  | double    | Coil baseline.                                           |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | description               | char(*)   | Coil description.                                        |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | coildefs                  | double    | Each row contains the integration point weight, followed |
-    |                           |(num_points| by location [m] and normal.                              |
-    |                           |,7)        |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | FV                        | struct    | Contains the faces and vertices which can be used to     |
-    |                           |           | draw the coil for visualization.                         |
-    +---------------------------+-----------+----------------------------------------------------------+
+    +-------------------+-------------------+----------------------------------------------------------+
+    | Field             | Data Type         | Description                                              |
+    +===================+===================+==========================================================+
+    | class             | double            | The coil (or electrode) class.                           |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | id                | double            | The coil (or electrode) id.                              |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | accuracy          | double            | Representation accuracy.                                 |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | num_points        | double            | Number of integration points.                            |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | size              | double            | Coil size.                                               |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | baseline          | double            | Coil baseline.                                           |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | description       | char(*)           | Coil description.                                        |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | coildefs          | double            | Each row contains the integration point weight, followed |
+    |                   | (num_points,7)    | by location [m] and normal.                              |
+    +-------------------+-------------------+----------------------------------------------------------+
+    | FV                | struct            | Contains the faces and vertices which can be used to     |
+    |                   |                   | draw the coil for visualization.                         |
+    +-------------------+-------------------+----------------------------------------------------------+
 
 
 .. _BGBIABGD:
@@ -833,13 +832,13 @@ The documented structures are:
     |                           |           | number vary.                                             |
     +---------------------------+-----------+----------------------------------------------------------+
     | kind                      | int32     | The channel type (FIFFV_MEG_CH, FIFF_EEG_CH, etc., see   |
-    |                           |           | :ref:`BGBJHCGD` ).                                       | 
+    |                           |           | :ref:`BGBJHCGD` ).                                       |
     +---------------------------+-----------+----------------------------------------------------------+
     | range                     | double    | The hardware-oriented part of the calibration factor.    |
     |                           |           | This should be only applied to the continuous raw data.  |
     +---------------------------+-----------+----------------------------------------------------------+
     | cal                       | double    | The calibration factor to bring the channels to physical |
-    |                           |           | units.                                                   |  
+    |                           |           | units.                                                   |
     +---------------------------+-----------+----------------------------------------------------------+
     | loc                       | double(12)| The channel location. The first three numbers indicate   |
     |                           |           | the location [m], followed by the three unit vectors of  |
@@ -861,12 +860,12 @@ The documented structures are:
     |                           |           | electrode for this channel.                              |
     +---------------------------+-----------+----------------------------------------------------------+
     | coord_frame               | int32     | Initially, the coordinate frame is FIFFV_COORD_DEVICE    |
-    |                           |           |for MEG channels and FIFFV_COORD_HEAD for EEG channels.   |
+    |                           |           | for MEG channels and FIFFV_COORD_HEAD for EEG channels.  |
     +---------------------------+-----------+----------------------------------------------------------+
     | unit                      | int32     | Unit of measurement. Relevant values are: 201 = T/m,     |
     |                           |           | 112 = T, 107 = V, and 202 = Am.                          |
     +---------------------------+-----------+----------------------------------------------------------+
-    | unit_mul                  | int32     | The data are given in unit s multiplied by 10unit_mul.   | 
+    | unit_mul                  | int32     | The data are given in unit s multiplied by 10unit_mul.   |
     |                           |           | Presently, unit_mul is always zero.                      |
     +---------------------------+-----------+----------------------------------------------------------+
     | ch_name                   | char(*)   | Name of the channel.                                     |
@@ -909,7 +908,7 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
     | save_calibrated           | logical   | Were the compensation data saved in calibrated form. If  |
     |                           |           | this field is false, the matrix will be decalibrated     |
-    |                           |           | using the fields row_cals and col_cals when the          | 
+    |                           |           | using the fields row_cals and col_cals when the          |
     |                           |           | compensation data are saved by the toolbox.              |
     +---------------------------+-----------+----------------------------------------------------------+
     | row_cals                  | double(*) | Calibration factors applied to the rows of the           |
@@ -955,7 +954,7 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
     | ctf_head_t                | trans     | The transformation from 4D/CTF head coordinates to       |
     |                           |           | Neuromag head coordinates. This is only present in       |
-    |                           |           | 4D/CTF data.                                             | 
+    |                           |           | 4D/CTF data.                                             |
     +---------------------------+-----------+----------------------------------------------------------+
     | dev_ctf_t                 | trans     | The transformation from device coordinates to 4D/CTF     |
     |                           |           | head coordinates. This is only present in 4D/CTF data.   |
@@ -1005,7 +1004,7 @@ The documented structures are:
     | inuse                     | int32(np) | Which vertices are in use.                               |
     +---------------------------+-----------+----------------------------------------------------------+
     | vertno                    |int32(nuse)| Indices of the vertices in use.                          |
-    +---------------------------+-----------+----------------------------------------------------------+   
+    +---------------------------+-----------+----------------------------------------------------------+
     | curv                      | double(np)| Curvature values at the vertices. If curvature           |
     |                           |           | information was not requested, this field is empty or    |
     |                           |           | absent.                                                  |
@@ -1019,8 +1018,6 @@ The documented structures are:
     | tri_nn                    | double    | The triangle normals. If derived surface data was not    |
     |                           | (ntri,3)  | requested, this field will be missing.                   |
     +---------------------------+-----------+----------------------------------------------------------+
- 
-
     | nuse_tri                  | int32     | Number of triangles in use. This is present only if the  |
     |                           |           | surface corresponds to a source space created with the   |
     |                           |           | ``--ico`` option.                                        |
@@ -1049,7 +1046,7 @@ The documented structures are:
     |                           |           | option, see :ref:`CJAGCDCC`. This value is presently     |
     |                           |           | always negative, indicating that only distances between  |
     |                           |           | active source space vertices, as indicated by the vertno |
-    |                           |           | field of this structure, have been calculated.           | 
+    |                           |           | field of this structure, have been calculated.           |
     +---------------------------+-----------+----------------------------------------------------------+
 
 
@@ -1068,7 +1065,7 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
     | dim                       | int32     | Dimension of the covariance matrix.                      |
     +---------------------------+-----------+----------------------------------------------------------+
-    | names                     | cell(*)   | Names of the channels associated with the entries        | 
+    | names                     | cell(*)   | Names of the channels associated with the entries        |
     |                           |           | (may be empty).                                          |
     +---------------------------+-----------+----------------------------------------------------------+
     | data                      | double    | The covariance matrix. This a double(dim) vector for a   |
@@ -1093,40 +1090,40 @@ The documented structures are:
 
 .. table:: The fwd structure.
 
-    +---------------------------+-----------+----------------------------------------------------------+
-    | Field                     | Data Type | Description                                              |
-    +===========================+===========+==========================================================+
-    | source_ori                | int32     | Has the solution been computed for the current component |
-    |                           |           | normal to the cortex only (1) or all three source        |
-    |                           |           | orientations (2).                                        |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | coord_frame               | int32     | Coordinate frame in which the locations and orientations |
-    |                           |           | are expressed.                                           |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | nsource                   | int32     | Total number of source space points.                     |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | nchan                     | int32     | Number of channels.                                      |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | sol                       | named     | The forward solution matrix.                             |
-    |                           | matrix    |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | sol_grad                  | named     | The derivatives of the forward solution with respect to  |
-    |                           | matrix    | the dipole location coordinates, see :ref:`BJEFEJJG`.    |
-    |                           |           | This field is present only if the forward solution was   |
-    |                           |           | computed with the ``--grad`` option, see :ref:`BJEIGFAE`.|                                                       |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | mri_head_t                | trans     | Transformation from the MRI coordinate frame to the      | 
-    |                           |           | (Neuromag) head coordinate frame.                        |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | src                       | surf(*)   | he description of the source spaces.                     |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | source_rr                 | double    | The source locations.                                    |
-    |                           |(nsource,3)|                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | source_nn                 |double(*,3)| The source orientations. Number of rows is either        |
-    |                           |           | nsource (fixed source orientations) or 3*nsource         |
-    |                           |           | (all source orientations).                               |
-    +---------------------------+-----------+----------------------------------------------------------+
+    +-------------------------+-------------+----------------------------------------------------------+
+    | Field                   | Data Type   | Description                                              |
+    +=========================+=============+==========================================================+
+    | source_ori              | int32       | Has the solution been computed for the current component |
+    |                         |             | normal to the cortex only (1) or all three source        |
+    |                         |             | orientations (2).                                        |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | coord_frame             | int32       | Coordinate frame in which the locations and orientations |
+    |                         |             | are expressed.                                           |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | nsource                 | int32       | Total number of source space points.                     |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | nchan                   | int32       | Number of channels.                                      |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | sol                     | named       | The forward solution matrix.                             |
+    |                         | matrix      |                                                          |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | sol_grad                | named       | The derivatives of the forward solution with respect to  |
+    |                         | matrix      | the dipole location coordinates, see :ref:`BJEFEJJG`.    |
+    |                         |             | This field is present only if the forward solution was   |
+    |                         |             | computed with the ``--grad`` option, see :ref:`BJEIGFAE`.|
+    +-------------------------+-------------+----------------------------------------------------------+
+    | mri_head_t              | trans       | Transformation from the MRI coordinate frame to the      |
+    |                         |             | (Neuromag) head coordinate frame.                        |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | src                     | surf(*)     | he description of the source spaces.                     |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | source_rr               | double      | The source locations.                                    |
+    |                         | (nsource,3) |                                                          |
+    +-------------------------+-------------+----------------------------------------------------------+
+    | source_nn               | double(*,3) | The source orientations. Number of rows is either        |
+    |                         |             | nsource (fixed source orientations) or 3*nsource         |
+    |                         |             | (all source orientations).                               |
+    +-------------------------+-------------+----------------------------------------------------------+
 
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
@@ -1142,7 +1139,7 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
     | source_ori                | int32     | Has the solution been computed for the current component |
     |                           |           | normal to the cortex only (1) or all three source        |
-    |                           |           | orientations (2).                                        | 
+    |                           |           | orientations (2).                                        |
     +---------------------------+-----------+----------------------------------------------------------+
     | nsource                   | int32     | Total number of source space points.                     |
     +---------------------------+-----------+----------------------------------------------------------+
@@ -1152,7 +1149,7 @@ The documented structures are:
     |                           |           | are expressed.                                           |
     +---------------------------+-----------+----------------------------------------------------------+
     | source_nn                 |double(*,3)| The source orientations. Number of rows is either        |
-    |                           |           | nsource (fixed source orientations) or 3*nsource (all    | 
+    |                           |           | nsource (fixed source orientations) or 3*nsource (all    |
     |                           |           | source orientations).                                    |
     +---------------------------+-----------+----------------------------------------------------------+
     | sing                      | double    | The singular values, *i.e.*, the diagonal values of      |
