@@ -68,9 +68,16 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
         mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
         if np.sum(mask) == 0:
             return [], np.empty(0)
+        mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
         connectivity = sparse.coo_matrix((connectivity.data[mask],
                                          (connectivity.row[mask],
-                                          connectivity.col[mask])))
+                                          connectivity.col[mask])),
+                                          shape=connectivity.shape)
+        idx = np.where(x_in)[0]
+        data = np.ones(len(idx), dtype=connectivity.data.dtype)
+        connectivity.row = np.concatenate((connectivity.row, idx))
+        connectivity.col = np.concatenate((connectivity.col, idx))
+        connectivity.data = np.concatenate((connectivity.data, data))
         _, components = cs_graph_components(connectivity)
         labels = np.unique(components)
         clusters = list()
@@ -95,13 +102,14 @@ def _pval_from_histogram(T, H0, tail):
 
     # from pct to fraction
     if tail == -1:  # up tail
-        pval = np.array([np.mean(H0 <= t) for t in T])
+        pval = np.array([np.sum(H0 <= t) for t in T])
     elif tail == 1:  # low tail
-        pval = np.array([np.mean(H0 >= t) for t in T])
+        pval = np.array([np.sum(H0 >= t) for t in T])
     elif tail == 0:  # both tails
-        pval = np.array([np.mean(H0 >= abs(t)) for t in T])
-        pval += np.array([np.mean(H0 <= -abs(t)) for t in T])
+        pval = np.array([np.sum(H0 >= abs(t)) for t in T])
+        pval += np.array([np.sum(H0 <= -abs(t)) for t in T])
 
+    pval = (pval + 1.0) / (H0.size + 1.0)  # the init data is one resampling
     return pval
 
 
