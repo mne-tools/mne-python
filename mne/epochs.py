@@ -8,6 +8,7 @@ import numpy as np
 import fiff
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
+from .baseline import rescale
 
 
 class Epochs(object):
@@ -222,24 +223,8 @@ class Epochs(object):
             epoch = np.dot(self.proj, epoch)
 
         # Run baseline correction
-        times = self.times
-        baseline = self.baseline
-        if baseline is not None:
-            print "Applying baseline correction ..."
-            bmin = baseline[0]
-            bmax = baseline[1]
-            if bmin is None:
-                imin = 0
-            else:
-                imin = int(np.where(times >= bmin)[0][0])
-            if bmax is None:
-                imax = len(times)
-            else:
-                imax = int(np.where(times <= bmax)[0][-1]) + 1
-            epoch -= np.mean(epoch[:, imin:imax], axis=1)[:, None]
-        else:
-            print "No baseline correction applied..."
-
+        epoch = rescale(epoch, self.times, self.baseline, 'mean', verbose=True,
+                        copy=False)
         return epoch
 
     def _get_data_from_disk(self):

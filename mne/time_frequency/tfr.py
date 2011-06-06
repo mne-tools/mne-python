@@ -11,6 +11,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
+from ..baseline import rescale
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None):
@@ -299,29 +300,8 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
             power[k] = np.abs(tfr) ** 2
 
     # Run baseline correction
-    if baseline is not None:
-        if times is None:
-            raise ValueError('times parameter is required to define baseline')
-        print "Applying baseline correction ..."
-        bmin = baseline[0]
-        bmax = baseline[1]
-        if bmin is None:
-            imin = 0
-        else:
-            imin = int(np.where(times >= bmin)[0][0])
-        if bmax is None:
-            imax = len(times)
-        else:
-            imax = int(np.where(times <= bmax)[0][-1]) + 1
-        mean_baseline_power = np.mean(power[:, :, :, imin:imax], axis=3)
-        if baseline_mode is 'ratio':
-            power /= mean_baseline_power[:, :, :, None]
-        elif baseline_mode is 'zscore':
-            power -= mean_baseline_power[:, :, :, None]
-            power /= np.std(power[:, :, :, imin:imax], axis=3)[:, :, :, None]
-    else:
-        print "No baseline correction applied..."
-
+    power = rescale(power, times, baseline, baseline_mode,
+                    verbose=True, copy=False)
     return power
 
 

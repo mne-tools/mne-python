@@ -8,6 +8,7 @@ from scipy import linalg
 from ..fiff.constants import FIFF
 from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
+from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator
 
 
@@ -137,7 +138,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
 
     if pca:
         U, s, Vh = linalg.svd(K)
-        rank = np.sum(s > 1e-8*s[0])
+        rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
         print 'Reducing data rank to %d' % rank
@@ -186,27 +187,8 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         power /= len(epochs_data) * len(freqs)
 
         # Run baseline correction
-        if baseline is not None:
-            print "Applying baseline correction ..."
-            times = epochs.times
-            bmin, bmax = baseline
-            if bmin is None:
-                imin = 0
-            else:
-                imin = int(np.where(times >= bmin)[0][0])
-            if bmax is None:
-                imax = len(times)
-            else:
-                imax = int(np.where(times <= bmax)[0][-1]) + 1
-            mean_baseline_power = np.mean(power[:, imin:imax], axis=1)
-            if baseline_mode is 'logratio':
-                power /= mean_baseline_power[:, None]
-                power = np.log(power)
-            elif baseline_mode is 'zscore':
-                power -= mean_baseline_power[:, None]
-                power /= np.std(power[:, imin:imax], axis=1)[:, None]
-        else:
-            print "No baseline correction applied..."
+        power = rescale(power, epochs.times, baseline, baseline_mode,
+                        verbose=True, copy=False)
 
         stc = SourceEstimate(None)
         stc.data = power

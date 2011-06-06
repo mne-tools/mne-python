@@ -11,6 +11,7 @@ from .tag import read_tag
 from .tree import dir_tree_find
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info
+from ..baseline import rescale
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
@@ -237,21 +238,8 @@ class Evoked(object):
             all_data = np.dot(self.proj, all_data)
 
         # Run baseline correction
-        if baseline is not None:
-            print "Applying baseline correction ..."
-            bmin = baseline[0]
-            bmax = baseline[1]
-            if bmin is None:
-                imin = 0
-            else:
-                imin = int(np.where(times >= bmin)[0][0])
-            if bmax is None:
-                imax = len(times)
-            else:
-                imax = int(np.where(times <= bmax)[0][-1]) + 1
-            all_data -= np.mean(all_data[:, imin:imax], axis=1)[:, None]
-        else:
-            print "No baseline correction applied..."
+        all_data = rescale(all_data, times, baseline, 'mean', verbose=True,
+                        copy=False)
 
         # Put it all together
         self.info = info
