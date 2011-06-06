@@ -24,6 +24,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
         Where to threshold the statistic
     tail : -1 | 0 | 1
         Type of comparison
+    connectivity : sparse matrix in COO format
+        Defines connectivity between features. The matrix is assumed to
+        be symmetric and only the upper triangular half is used.
+        Defaut is None, i.e, no connectivity.
 
     Returns
     -------
@@ -69,15 +73,15 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
         if np.sum(mask) == 0:
             return [], np.empty(0)
         mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
-        connectivity = sparse.coo_matrix((connectivity.data[mask],
-                                         (connectivity.row[mask],
-                                          connectivity.col[mask])),
-                                          shape=connectivity.shape)
+        data = connectivity.data[mask]
+        row = connectivity.row[mask]
+        col = connectivity.col[mask]
+        shape = connectivity.shape
         idx = np.where(x_in)[0]
-        data = np.ones(len(idx), dtype=connectivity.data.dtype)
-        connectivity.row = np.concatenate((connectivity.row, idx))
-        connectivity.col = np.concatenate((connectivity.col, idx))
-        connectivity.data = np.concatenate((connectivity.data, data))
+        row = np.concatenate((row, idx))
+        col = np.concatenate((col, idx))
+        data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
+        connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
         _, components = cs_graph_components(connectivity)
         labels = np.unique(components)
         clusters = list()
@@ -168,6 +172,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     X_full = np.concatenate(X, axis=0)
     n_samples_per_condition = [x.shape[0] for x in X]
 
+    if connectivity is not None:
+        connectivity = connectivity.tocoo()
+
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
@@ -238,6 +245,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         If tail is -1, the statistic is thresholded below threshold.
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
+    connectivity : sparse matrix.
+        Defines connectivity between features. The matrix is assumed to
+        be symmetric and only the upper triangular half is used.
+        Defaut is None, i.e, no connectivity.
 
     Returns
     -------
@@ -262,6 +273,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     X_copy = X.copy()
     n_samples = X.shape[0]
     shape_ones = tuple([1] * X[0].ndim)
+
+    if connectivity is not None:
+        connectivity = connectivity.tocoo()
+
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
@@ -297,82 +312,3 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
 
 
 permutation_cluster_1samp_test.__test__ = False
-
-# if __name__ == "__main__":
-#     noiselevel = 30
-#     np.random.seed(0)
-#
-#     # 1D
-#     normfactor = np.hanning(20).sum()
-#     condition1 = np.random.randn(50, 300) * noiselevel
-#     for i in range(50):
-#         condition1[i] = np.convolve(condition1[i], np.hanning(20),
-#                                       mode="same") / normfactor
-#     condition2 = np.random.randn(43, 300) * noiselevel
-#     for i in range(43):
-#         condition2[i] = np.convolve(condition2[i], np.hanning(20),
-#                                       mode="same") / normfactor
-#     pseudoekp = 5 * np.hanning(150)[None,:]
-#     condition1[:, 100:250] += pseudoekp
-#     condition2[:, 100:250] -= pseudoekp
-#
-#     # Make it 2D
-#     condition1 = np.tile(condition1[:,100:275,None], (1, 1, 15))
-#     condition2 = np.tile(condition2[:,100:275,None], (1, 1, 15))
-#     shape1 = condition1[..., :3].shape
-#     shape2 = condition2[..., :3].shape
-#     condition1[..., :3] = np.random.randn(*shape1) * noiselevel
-#     condition2[..., :3] = np.random.randn(*shape2) * noiselevel
-#     condition1[..., -3:] = np.random.randn(*shape1) * noiselevel
-#     condition2[..., -3:] = np.random.randn(*shape2) * noiselevel
-#
-#     # X, threshold, tail = condition1, 1.67, 1
-#     # X, threshold, tail = -condition1, -1.67, -1
-#     # # X, threshold, tail = condition1, 1.67, 0
-#     # fs, clusters, cluster_p_values, histogram = permutation_cluster_1samp_test(
-#     #                                     condition1, n_permutations=500, tail=tail,
-#     #                                     threshold=threshold)
-#
-#     # import pylab as pl
-#     # pl.close('all')
-#     # pl.hist(histogram)
-#     # pl.show()
-#
-#     fs, clusters, cluster_p_values, histogram = permutation_cluster_test(
-#                                 [condition1, condition2], n_permutations=1000)
-#
-#     # Plotting for a better understanding
-#     import pylab as pl
-#     pl.close('all')
-#
-#     if condition1.ndim == 2:
-#         pl.subplot(211)
-#         pl.plot(condition1.mean(axis=0), label="Condition 1")
-#         pl.plot(condition2.mean(axis=0), label="Condition 2")
-#         pl.ylabel("signal [a.u.]")
-#         pl.subplot(212)
-#         for i_c, c in enumerate(clusters):
-#             c = c[0]
-#             if cluster_p_values[i_c] <= 0.05:
-#                 h = pl.axvspan(c.start, c.stop-1, color='r', alpha=0.3)
-#             else:
-#                 pl.axvspan(c.start, c.stop-1, color=(0.3, 0.3, 0.3), alpha=0.3)
-#         hf = pl.plot(fs, 'g')
-#         pl.legend((h, ), ('cluster p-value < 0.05', ))
-#         pl.xlabel("time (ms)")
-#         pl.ylabel("f-values")
-#     else:
-#         fs_plot = np.nan * np.ones_like(fs)
-#         for c, p_val in zip(clusters, cluster_p_values):
-#             if p_val <= 0.05:
-#                 fs_plot[c] = fs[c]
-#
-#         pl.imshow(fs.T, cmap=pl.cm.gray)
-#         pl.imshow(fs_plot.T, cmap=pl.cm.jet)
-#         # pl.imshow(fs.T, cmap=pl.cm.gray, alpha=0.6)
-#         # pl.imshow(fs_plot.T, cmap=pl.cm.jet, alpha=0.6)
-#         pl.xlabel('time')
-#         pl.ylabel('Freq')
-#         pl.colorbar()
-#
-#     pl.show()
