@@ -34,7 +34,8 @@ def test_morph_data():
     subject_to = 'morph'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc_from = mne.SourceEstimate(fname)
-    stc_to = mne.morph_data(subject_from, subject_to, stc_from, 3)
+    stc_to = mne.morph_data(subject_from, subject_to, stc_from,
+                            grade=3, smooth=12)
 
     stc_to.save('%s_audvis-meg' % subject_to)
 

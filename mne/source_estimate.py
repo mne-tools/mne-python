@@ -274,7 +274,7 @@ def mesh_edges(tris):
     return edges
 
 
-def morph_data(subject_from, subject_to, stc_from, grade=5,
+def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None):
     """Morph a source estimate from one subject to another
 
@@ -290,6 +290,10 @@ def morph_data(subject_from, subject_to, stc_from, grade=5,
         Source estimates for subject "from" to morph
     grade : int
         Resolution of the icosahedral mesh (typically 5)
+    smooth : int or None
+        Number of iterations for the smoothing of the surface data.
+        If None, smooth is automatically defined to fill the surface
+        with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
 
@@ -336,13 +340,17 @@ def morph_data(subject_from, subject_to, stc_from, grade=5,
             data1 = e_use * np.ones(len(idx_use))
             data[hemi] = e_use * data[hemi]
             idx_use = np.where(data1)[0]
-            if (k == (n_iter - 1)) or (len(idx_use) >= n_vertices):
-                data[hemi][idx_use, :] /= data1[idx_use][:, None]
+            if smooth is None:
+                if ((k == (n_iter - 1)) or (len(idx_use) >= n_vertices)):
+                    # stop when source space in filled with non-zeros
+                    break
+            elif k == (smooth - 1):
                 break
-            else:
-                data[hemi] = data[hemi][idx_use, :] / data1[idx_use][:, None]
+            data[hemi] = data[hemi][idx_use, :] / data1[idx_use][:, None]
 
-        print '\t%d smooth iterations done.' % k
+        data[hemi][idx_use, :] /= data1[idx_use][:, None]
+
+        print '\t%d smooth iterations done.' % (k + 1)
         dmap[hemi] = maps[hemi] * data[hemi]
 
     ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
