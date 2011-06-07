@@ -6,6 +6,7 @@
 import os
 import copy
 import numpy as np
+from scipy import sparse
 
 
 def read_stc(filename):
@@ -259,7 +260,6 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix
     """
-    from scipy import sparse
     npoints = np.max(tris) + 1
     ntris = len(tris)
     a, b, c = tris.T
@@ -384,3 +384,74 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     print '[done]'
 
     return stc_to
+
+
+def spatio_temporal_src_connectivity(src, n_times):
+    """Compute connectivity for a source space activation over time
+
+    Parameters
+    ----------
+    src : source space
+        The source space.
+
+    n_times : int
+        Number of time instants
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatio-temporal
+        graph structure. If N is the number of vertices in the
+        source space, the N first nodes in the graph are the
+        vertices are time 1, the nodes from 2 to 2N are the vertices
+        during time 2, etc.
+
+    """
+    if src[0]['use_tris'] is None:
+        raise Exception("The source space does not appear to be an ico "
+                        "surface. Connectivity cannot be extracted from "
+                        "non-ico source spaces.")
+    lh_tris = np.searchsorted(np.unique(src[0]['use_tris']),
+                              src[0]['use_tris'])
+    rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
+                              src[1]['use_tris'])
+    tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
+    return spatio_temporal_tris_connectivity(tris, n_times)
+
+
+def spatio_temporal_tris_connectivity(tris, n_times):
+    """Compute connectivity from triangles and time instants"""
+    edges = mesh_edges(tris).tocoo()
+    n_vertices = edges.shape[0]
+    print "-- number of connected vertices : %d" % n_vertices
+    nnz = edges.col.size
+    aux = n_vertices * np.arange(n_times)[:, None] * np.ones((1, nnz), np.int)
+    col = (edges.col[None, :] + aux).ravel()
+    row = (edges.row[None, :] + aux).ravel()
+    if n_times > 1:  # add temporal edges
+        o = (n_vertices * np.arange(n_times - 1)[:, None]
+                                  + np.arange(n_vertices)[None, :]).ravel()
+        d = (n_vertices * np.arange(1, n_times)[:, None]
+                                  + np.arange(n_vertices)[None, :]).ravel()
+        row = np.concatenate((row, o, d))
+        col = np.concatenate((col, d, o))
+    data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
+                   dtype=np.int)
+    connectivity = sparse.coo_matrix((data, (row, col)),
+                                     shape=(n_times * n_vertices, ) * 2)
+    return connectivity
+
+
+def _get_ico_tris(grade):
+    """Get triangles for ico surface."""
+    mne_root = os.environ.get('MNE_ROOT')
+    if mne_root is None:
+        raise Exception('Please set MNE_ROOT environment variable.')
+    ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
+    surfaces = read_bem_surfaces(ico_file_name)
+    for s in surfaces:
+        if s['id'] == (9000 + grade):
+            ico = s
+            break
+    return ico['tris']
+    

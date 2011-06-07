@@ -12,6 +12,24 @@ from scipy import stats, sparse, ndimage
 from .parametric import f_oneway
 
 
+def _get_components(x_in, connectivity):
+    """get connected components from a mask and a connectivity matrix"""
+    from scikits.learn.utils._csgraph import cs_graph_components
+    mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
+    data = connectivity.data[mask]
+    row = connectivity.row[mask]
+    col = connectivity.col[mask]
+    shape = connectivity.shape
+    idx = np.where(x_in)[0]
+    row = np.concatenate((row, idx))
+    col = np.concatenate((col, idx))
+    data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
+    connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
+    _, components = cs_graph_components(connectivity)
+    # print "-- number of components : %d" % np.unique(components).size
+    return components
+
+
 def _find_clusters(x, threshold, tail=0, connectivity=None):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
@@ -68,21 +86,9 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
                             "to define clusters.")
-        from scikits.learn.utils._csgraph import cs_graph_components
-        mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
-        if np.sum(mask) == 0:
+        if np.sum(x_in) == 0:
             return [], np.empty(0)
-        mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
-        data = connectivity.data[mask]
-        row = connectivity.row[mask]
-        col = connectivity.col[mask]
-        shape = connectivity.shape
-        idx = np.where(x_in)[0]
-        row = np.concatenate((row, idx))
-        col = np.concatenate((col, idx))
-        data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
-        connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
-        _, components = cs_graph_components(connectivity)
+        components = _get_components(x_in, connectivity)
         labels = np.unique(components)
         clusters = list()
         sums = list()
