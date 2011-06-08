@@ -125,7 +125,7 @@ def _pval_from_histogram(T, H0, tail):
 
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
-                             connectivity=None):
+                             connectivity=None, verbose=True):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -154,6 +154,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Defaut is None, i.e, no connectivity.
+    verbose: boolean
+        If True print some text.
 
     Returns
     -------
@@ -198,6 +200,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     if len(clusters) > 0:
         H0 = np.zeros(n_permutations)  # histogram
         for i_s in range(n_permutations):
+            if verbose:
+                print "Permutation %d / %d" % (i_s + 1, n_permutations) 
             np.random.shuffle(X_full)
             X_shuffle_list = [X_full[s] for s in slices]
             T_obs_surr = stat_fun(*X_shuffle_list)
