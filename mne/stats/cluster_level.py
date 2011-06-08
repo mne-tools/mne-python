@@ -10,6 +10,7 @@ import numpy as np
 from scipy import stats, sparse, ndimage
 
 from .parametric import f_oneway
+from ..parallel import parallel_func
 
 
 def _get_components(x_in, connectivity):
@@ -123,9 +124,23 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
+def _one_permutation(X_full, slices, stat_fun, tail, threshold, connectivity):
+    np.random.shuffle(X_full)
+    X_shuffle_list = [X_full[s] for s in slices]
+    T_obs_surr = stat_fun(*X_shuffle_list)
+    _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                           connectivity)
+
+    if len(perm_clusters_sums) > 0:
+        return np.max(perm_clusters_sums)
+    else:
+        return 0
+
+
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
-                             connectivity=None, verbose=True):
+                             connectivity=None, n_jobs=1,
+                             verbose=5):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -154,8 +169,10 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Defaut is None, i.e, no connectivity.
-    verbose: boolean
-        If True print some text.
+    verbose : int
+        If > 0, print some text during computation.
+    n_jobs : int
+        Number of permutations to run in parallel (requires joblib package.)
 
     Returns
     -------
@@ -195,24 +212,16 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                 for k in range(len(X))]
 
+    parallel, my_one_permutation, _ = parallel_func(_one_permutation, n_jobs,
+                                                 verbose)
+
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        H0 = np.zeros(n_permutations)  # histogram
-        for i_s in range(n_permutations):
-            if verbose:
-                print "Permutation %d / %d" % (i_s + 1, n_permutations) 
-            np.random.shuffle(X_full)
-            X_shuffle_list = [X_full[s] for s in slices]
-            T_obs_surr = stat_fun(*X_shuffle_list)
-            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                                   connectivity)
-
-            if len(perm_clusters_sums) > 0:
-                H0[i_s] = np.max(perm_clusters_sums)
-            else:
-                H0[i_s] = 0
-
+        H0 = parallel(my_one_permutation(X_full, slices, stat_fun, tail,
+                                threshold, connectivity)
+                                for _ in range(n_permutations))
+        H0 = np.array(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
         return T_obs, clusters, cluster_pv, H0
     else:
@@ -229,9 +238,28 @@ def ttest_1samp(X):
     return T
 
 
+def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
+                           connectivity, stat_fun):
+    # new surrogate data with random sign flip
+    signs = np.sign(0.5 - np.random.rand(n_samples, *shape_ones))
+    X_copy *= signs
+
+    # Recompute statistic on randomized data
+    T_obs_surr = stat_fun(X_copy)
+    _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                           connectivity)
+
+    if len(perm_clusters_sums) > 0:
+        idx_max = np.argmax(np.abs(perm_clusters_sums))
+        return perm_clusters_sums[idx_max]  # get max with sign info
+    else:
+        return 0.0
+
+
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
                                    tail=0, stat_fun=ttest_1samp,
-                                   connectivity=None):
+                                   connectivity=None, n_jobs=1,
+                                   verbose=5):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -259,6 +287,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Defaut is None, i.e, no connectivity.
+    verbose : int
+        If > 0, print some text during computation.
+    n_jobs : int
+        Number of permutations to run in parallel (requires joblib package.)
+
 
     Returns
     -------
@@ -294,26 +327,16 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
 
+    parallel, my_one_1samp_permutation, _ = parallel_func(_one_1samp_permutation,
+                                                       n_jobs, verbose)
+
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        H0 = np.empty(n_permutations)  # histogram
-        for i_s in range(n_permutations):
-            # new surrogate data with random sign flip
-            signs = np.sign(0.5 - np.random.rand(n_samples, *shape_ones))
-            X_copy *= signs
-
-            # Recompute statistic on randomized data
-            T_obs_surr = stat_fun(X_copy)
-            _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                                   connectivity)
-
-            if len(perm_clusters_sums) > 0:
-                idx_max = np.argmax(np.abs(perm_clusters_sums))
-                H0[i_s] = perm_clusters_sums[idx_max]  # get max with sign info
-            else:
-                H0[i_s] = 0
-
+        H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones, X_copy,
+                                    threshold, tail, connectivity, stat_fun)
+                                    for _ in range(n_permutations))
+        H0 = np.array(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
         return T_obs, clusters, cluster_pv, H0

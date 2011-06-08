@@ -9,6 +9,8 @@
 from math import sqrt
 import numpy as np
 
+from ..parallel import parallel_func
+
 
 def bin_perm_rep(ndim, a=0, b=1):
     """bin_perm_rep(ndim) -> ndim permutations with repetitions of (a,b).
@@ -128,23 +130,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
     else:
         perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
-    try:
-        from scikits.learn.externals.joblib import Parallel, delayed
-        parallel = Parallel(n_jobs)
-        my_max_stat = delayed(_max_stat)
-    except ImportError:
-        print "joblib not installed. Cannot run in parallel."
-        n_jobs = 1
-        my_max_stat = _max_stat
-        parallel = list
-
-    if n_jobs == -1:
-        try:
-            import multiprocessing
-            n_jobs = multiprocessing.cpu_count()
-        except ImportError:
-            print "multiprocessing not installed. Cannot run in parallel."
-            n_jobs = 1
+    parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
 
     max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
                                       for p in np.array_split(perms, n_jobs)))

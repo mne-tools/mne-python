@@ -12,6 +12,7 @@ import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 from ..baseline import rescale
+from ..parallel import parallel_func
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None):
@@ -276,15 +277,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
 
-    try:
-        from scikits.learn.externals.joblib import Parallel, delayed
-        parallel = Parallel(n_jobs)
-        my_cwt = delayed(cwt)
-    except ImportError:
-        print "joblib not installed. Cannot run in parallel."
-        n_jobs = 1
-        my_cwt = cwt
-        parallel = list
+    parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
     print "Computing time-frequency power on single epochs..."
 
@@ -347,13 +340,9 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
 
-    try:
-        import joblib
-    except ImportError:
-        print "joblib not installed. Cannot run in parallel."
-        n_jobs = 1
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
 
-    if n_jobs == 1:
+    if my_time_frequency is _time_frequency:  # not parallel
         psd = np.empty((n_channels, n_frequencies, n_times))
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
@@ -362,11 +351,9 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
             psd[c], plf[c] = _time_frequency(X, Ws, use_fft)
 
     else:
-        from joblib import Parallel, delayed
-        psd_plf = Parallel(n_jobs=n_jobs)(
-                    delayed(_time_frequency)(
-                            np.squeeze(epochs[:, c, :]), Ws, use_fft)
-                    for c in range(n_channels))
+        psd_plf = parallel(my_time_frequency(np.squeeze(epochs[:, c, :]),
+                                             Ws, use_fft)
+                           for c in range(n_channels))
 
         psd = np.zeros((n_channels, n_frequencies, n_times))
         plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)

@@ -10,6 +10,7 @@ from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator
+from ..parallel import parallel_func
 
 
 def _compute_power(data, K, sel, Ws, source_ori, use_fft, Vh):
@@ -89,23 +90,7 @@ def source_induced_power(epochs, inverse_operator, bands, lambda2=1.0 / 9.0,
         Number of jobs to run in parallel
     """
 
-    if n_jobs == -1:
-        try:
-            import multiprocessing
-            n_jobs = multiprocessing.cpu_count()
-        except ImportError:
-            print "multiprocessing not installed. Cannot run in parallel."
-            n_jobs = 1
-
-    try:
-        from scikits.learn.externals.joblib import Parallel, delayed
-        parallel = Parallel(n_jobs)
-        my_compute_power = delayed(_compute_power)
-    except ImportError:
-        print "joblib not installed. Cannot run in parallel."
-        n_jobs = 1
-        my_compute_power = _compute_power
-        parallel = list
+    parallel, my_compute_power, n_jobs = parallel_func(_compute_power, n_jobs)
 
     #
     #   Set up the inverse according to the parameters
