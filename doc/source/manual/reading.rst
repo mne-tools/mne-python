@@ -2,9 +2,9 @@
 
 .. _ch_reading:
 
-==============
-Useful reading
-==============
+====================
+Related publications
+====================
 
 General MEG reviews
 ###################

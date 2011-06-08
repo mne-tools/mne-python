@@ -414,7 +414,7 @@ they are listed in :ref:`BGBEFADJ`.
 
 .. _BGBEFADJ:
 
-.. table:: Examples demostrating the use of the toolbox.
+.. table:: Examples demonstrating the use of the toolbox.
 
     +--------------------------------+--------------------------------------------------------------+
     | Function                       | Purpose                                                      |

@@ -69,9 +69,9 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
     else:
         x_in = np.abs(x) > threshold
 
-    labels, n_labels = ndimage.label(x_in)
-
     if connectivity is None:
+        labels, n_labels = ndimage.label(x_in)
+
         if x.ndim == 1:
             clusters = ndimage.find_objects(labels, n_labels)
             sums = ndimage.measurements.sum(x, labels,

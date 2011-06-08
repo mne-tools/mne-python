@@ -12,6 +12,8 @@ converted from other file formats.
   * Get started with :ref:`mne_python`
   * :ref:`example_command_line`
   * Join the MNE `mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+  * `Help/Feature Request/Bug Report <mailto:mne_support@nmr.mgh.harvard.edu>`_
+  * :ref:`ch_reading`
 
 Manual
 ======
