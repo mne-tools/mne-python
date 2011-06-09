@@ -183,16 +183,16 @@ class Evoked(object):
         print '\t\tnave = %d - aspect type = %d' % (nave, aspect_kind)
 
         nepoch = len(epoch)
-        if nepoch != 1 and nepoch != info.nchan:
+        if nepoch != 1 and nepoch != info['nchan']:
             fid.close()
             raise ValueError('Number of epoch tags is unreasonable '
-                             '(nepoch = %d nchan = %d)' % (nepoch, info.nchan))
+                             '(nepoch = %d nchan = %d)' % (nepoch, info['nchan']))
 
         if nepoch == 1:
             # Only one epoch
             all_data = epoch[0].data
             # May need a transpose if the number of channels is one
-            if all_data.shape[1] == 1 and info.nchan == 1:
+            if all_data.shape[1] == 1 and info['nchan'] == 1:
                 all_data = all_data.T
 
         else:
