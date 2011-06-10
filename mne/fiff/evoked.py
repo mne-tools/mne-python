@@ -320,8 +320,8 @@ class Evoked(object):
         if tmax is not None:
             mask = mask & (times <= tmax)
         self.times = times[mask]
-        self.first = - int(np.sum(self.times < 0))
-        self.last = int(np.sum(self.times > 0))
+        self.first = int(self.times[0] * self.info['sfreq'])
+        self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
 
