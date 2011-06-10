@@ -123,10 +123,10 @@ class Evoked(object):
                 last = int(tag.data)
             elif kind == FIFF.FIFF_NCHAN:
                 tag = read_tag(fid, pos)
-                nchan = tag.data
+                nchan = int(tag.data)
             elif kind == FIFF.FIFF_SFREQ:
                 tag = read_tag(fid, pos)
-                sfreq = tag.data
+                sfreq = float(tag.data)
             elif kind == FIFF.FIFF_CH_INFO:
                 tag = read_tag(fid, pos)
                 chs.append(tag.data)
