@@ -186,7 +186,7 @@ class Evoked(object):
         if nepoch != 1 and nepoch != info['nchan']:
             fid.close()
             raise ValueError('Number of epoch tags is unreasonable '
-                             '(nepoch = %d nchan = %d)' % (nepoch, info['nchan']))
+                         '(nepoch = %d nchan = %d)' % (nepoch, info['nchan']))
 
         if nepoch == 1:
             # Only one epoch
@@ -194,12 +194,9 @@ class Evoked(object):
             # May need a transpose if the number of channels is one
             if all_data.shape[1] == 1 and info['nchan'] == 1:
                 all_data = all_data.T
-
         else:
             # Put the old style epochs together
-            all_data = epoch[0].data.T
-            for k in range(1, nepoch):
-                all_data = np.r_[all_data, epoch[k].data.T]
+            all_data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
 
         if all_data.shape[1] != nsamp:
             fid.close()
