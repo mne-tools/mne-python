@@ -63,9 +63,9 @@ def read_meas_info(fid, tree):
     sfreq = None
     chs = []
     p = 0
-    for k in range(meas_info.nent):
-        kind = meas_info.directory[k].kind
-        pos = meas_info.directory[k].pos
+    for k in range(meas_info['nent']):
+        kind = meas_info['directory'][k].kind
+        pos = meas_info['directory'][k].pos
         if kind == FIFF.FIFF_NCHAN:
             tag = read_tag(fid, pos)
             nchan = int(tag.data)
@@ -112,9 +112,9 @@ def read_meas_info(fid, tree):
         hpi_result = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
         if len(hpi_result) == 1:
             hpi_result = hpi_result[0]
-            for k in range(hpi_result.nent):
-                kind = hpi_result.directory[k].kind
-                pos = hpi_result.directory[k].pos
+            for k in range(hpi_result['nent']):
+                kind = hpi_result['directory'][k].kind
+                pos = hpi_result['directory'][k].pos
                 if kind == FIFF.FIFF_COORD_TRANS:
                     tag = read_tag(fid, pos)
                     cand = tag.data
@@ -137,9 +137,9 @@ def read_meas_info(fid, tree):
 
     dig = []
     if len(isotrak) == 1:
-        for k in range(isotrak.nent):
-            kind = isotrak.directory[k].kind
-            pos = isotrak.directory[k].pos
+        for k in range(isotrak['nent']):
+            kind = isotrak['directory'][k].kind
+            pos = isotrak['directory'][k].pos
             if kind == FIFF.FIFF_DIG_POINT:
                 tag = read_tag(fid, pos)
                 dig.append(tag.data)
@@ -151,9 +151,9 @@ def read_meas_info(fid, tree):
     acq_stim = None
     if len(acqpars) == 1:
         acqpars = acqpars[0]
-        for k in range(acqpars.nent):
-            kind = acqpars.directory[k].kind
-            pos = acqpars.directory[k].pos
+        for k in range(acqpars['nent']):
+            kind = acqpars['directory'][k].kind
+            pos = acqpars['directory'][k].pos
             if kind == FIFF.FIFF_DACQ_PARS:
                 tag = read_tag(fid, pos)
                 acq_pars = tag.data
@@ -173,25 +173,25 @@ def read_meas_info(fid, tree):
     #
     #   Put the data together
     #
-    if tree.id is not None:
-        info = dict(file_id=tree.id)
+    if tree['id'] is not None:
+        info = dict(file_id=tree['id'])
     else:
         info = dict(file_id=None)
 
     #  Make the most appropriate selection for the measurement id
-    if meas_info.parent_id is None:
-        if meas_info.id is None:
-            if meas.id is None:
-                if meas.parent_id is None:
-                    info['meas_id'] = info.file_id
+    if meas_info['parent_id'] is None:
+        if meas_info['id'] is None:
+            if meas['id'] is None:
+                if meas['parent_id'] is None:
+                    info['meas_id'] = info['file_id']
                 else:
-                    info['meas_id'] = meas.parent_id
+                    info['meas_id'] = meas['parent_id']
             else:
-                info['meas_id'] = meas.id
+                info['meas_id'] = meas['id']
         else:
-            info['meas_id'] = meas_info.id
+            info['meas_id'] = meas_info['id']
     else:
-        info['meas_id'] = meas_info.parent_id
+        info['meas_id'] = meas_info['parent_id']
 
     if meas_date is None:
         info['meas_date'] = [info['meas_id']['secs'], info['meas_id']['usecs']]
@@ -206,7 +206,7 @@ def read_meas_info(fid, tree):
     #   Add the channel information and make a list of channel names
     #   for convenience
     info['chs'] = chs
-    info['ch_names'] = [ch.ch_name for ch in chs]
+    info['ch_names'] = [ch['ch_name'] for ch in chs]
 
     #
     #  Add the coordinate transformations

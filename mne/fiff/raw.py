@@ -515,7 +515,7 @@ def start_writing_raw(name, info, sel=None):
         fid2, tree, _ = fiff_open(info['filename'])
         for b in blocks:
             nodes = dir_tree_find(tree, b)
-            copy_tree(fid2, tree.id, nodes, fid)
+            copy_tree(fid2, tree['id'], nodes, fid)
             if b == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
                 have_hpi_result = True
             if b == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
@@ -584,8 +584,8 @@ def start_writing_raw(name, info, sel=None):
         #
         #   Scan numbers may have been messed up
         #
-        chs[k].scanno = k + 1  # scanno starts at 1 in FIF format
-        chs[k].range = 1.0
+        chs[k]['scanno'] = k + 1  # scanno starts at 1 in FIF format
+        chs[k]['range'] = 1.0
         cals.append(chs[k]['cal'])
         write_ch_info(fid, chs[k])
 

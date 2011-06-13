@@ -24,11 +24,11 @@ def _read_named_matrix(fid, node, matkind):
     """
 
     #   Descend one level if necessary
-    if node.block != FIFF.FIFFB_MNE_NAMED_MATRIX:
-        for k in range(node.nchild):
-            if node.children[k].block == FIFF.FIFFB_MNE_NAMED_MATRIX:
-                if has_tag(node.children[k], matkind):
-                    node = node.children[k]
+    if node['block'] != FIFF.FIFFB_MNE_NAMED_MATRIX:
+        for k in range(node['nchild']):
+            if node['children'][k]['block'] == FIFF.FIFFB_MNE_NAMED_MATRIX:
+                if has_tag(node['children'][k], matkind):
+                    node = node['children'][k]
                     break
         else:
             raise ValueError('Desired named matrix (kind = %d) not available'

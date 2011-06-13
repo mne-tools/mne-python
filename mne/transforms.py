@@ -8,7 +8,7 @@ from scipy import linalg
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
     """
-    itrans = copy.copy(trans)
+    itrans = copy.deepcopy(trans)
     aux = itrans['from']
     itrans['from'] = itrans['to']
     itrans['to'] = aux
@@ -69,7 +69,7 @@ def transform_source_space_to(src, dest, trans):
 #     XXX
 #     """
 #
-#     res = copy.copy(chs)
+#     res = copy.deepcopy(chs)
 #
 #     count = 0
 #     t = trans['trans']
@@ -102,7 +102,7 @@ def transform_source_space_to(src, dest, trans):
 #
 #     XXX
 #     """
-#     res = copy.copy(chs)
+#     res = copy.deepcopy(chs)
 #
 #     count = 0
 #     #

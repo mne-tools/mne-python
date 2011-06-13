@@ -9,7 +9,7 @@ def get_current_comp(info):
     comp = 0
     first_comp = -1
     for k, chan in enumerate(info['chs']):
-        if chan.kind == FIFF.FIFFV_MEG_CH:
+        if chan['kind'] == FIFF.FIFFV_MEG_CH:
             comp = int(chan['coil_type']) >> 16
             if first_comp < 0:
                 first_comp = comp
@@ -171,7 +171,7 @@ def get_current_comp(info):
 #
 #     lower_half = int('FFFF', 16) # hex2dec('FFFF')
 #     for k in range(len(chs)):
-#         if chs[k].kind == FIFF.FIFFV_MEG_CH:
+#         if chs[k]['kind'] == FIFF.FIFFV_MEG_CH:
 #             coil_type = float(chs[k]['coil_type']) & lower_half
 #             new_chs[k]['coil_type'] = int(coil_type | (value << 16))
 #

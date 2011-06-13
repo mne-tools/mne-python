@@ -24,11 +24,11 @@ def _read_named_matrix(fid, node, matkind):
     """
 
     #   Descend one level if necessary
-    if node.block != FIFF.FIFFB_MNE_NAMED_MATRIX:
-        for k in range(node.nchild):
-            if node.children(k).block == FIFF.FIFFB_MNE_NAMED_MATRIX:
-                if has_tag(node.children(k), matkind):
-                    node = node.children(k)
+    if node['block'] != FIFF.FIFFB_MNE_NAMED_MATRIX:
+        for k in range(node['nchild']):
+            if node['children'][k]['block'] == FIFF.FIFFB_MNE_NAMED_MATRIX:
+                if has_tag(node['children'][k], matkind):
+                    node = node['children'][k]
                     break
         else:
             raise ValueError('Desired named matrix (kind = %d) not'
@@ -116,9 +116,9 @@ def read_ctf_comp(fid, node, chs):
         #
         # #   Read the data we need
         # mat = _read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
-        # for p in range(node.nent):
-        #     kind = node.dir[p].kind
-        #     pos = node.dir[p].pos
+        # for p in range(node['nent']):
+        #     kind = node['dir'][p].kind
+        #     pos = node['dir'][p].pos
         #     if kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
         #         tag = read_tag(fid, pos)
         #         break
@@ -138,9 +138,9 @@ def read_ctf_comp(fid, node, chs):
         # else:
         #     one.kind = one.ctfkind
         #
-        # for p in range(node.nent):
-        #     kind = node.dir[p].kind
-        #     pos = node.dir[p].pos
+        # for p in range(node['nent']):
+        #     kind = node['dir'][p].kind
+        #     pos = node['dir'][p].pos
         #     if kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
         #         tag = read_tag(fid, pos)
         #         calibrated = tag.data
@@ -159,7 +159,7 @@ def read_ctf_comp(fid, node, chs):
         #     #
         #     ch_names = []
         #     for p in range(len(chs)):
-        #         ch_names.append(chs[p].ch_name)
+        #         ch_names.append(chs[p]['ch_name'])
         #
         #     col_cals = np.zeros(mat.data.shape[1])
         #     for col in range(mat.data.shape[1]):
@@ -171,7 +171,7 @@ def read_ctf_comp(fid, node, chs):
         #             raise ValueError, 'Ambiguous channel %s' % \
         #                                                 mat.col_names[col]
         #
-        #         col_cals[col] = 1.0 / (chs[p].range * chs[p].cal)
+        #         col_cals[col] = 1.0 / (chs[p]['range'] * chs[p]['cal'])
         #
         #     #    Then the rows
         #     row_cals = np.zeros(mat.data.shape[0])
@@ -184,7 +184,7 @@ def read_ctf_comp(fid, node, chs):
         #             raise ValueError, 'Ambiguous channel %s' % \
         #                                         mat.row_names[row]
         #
-        #         row_cals[row] = chs[p].range * chs[p].cal
+        #         row_cals[row] = chs[p]['range'] * chs[p]['cal']
         #
         #     mat.data = np.dot(np.diag(row_cals), np.dot(mat.data,
         #                                                 np.diag(col_cals)))

@@ -10,7 +10,6 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
-from .bunch import Bunch
 
 
 def read_proj(fid, node):
@@ -104,8 +103,8 @@ def read_proj(fid, node):
                              'size of data matrix')
 
         #   Use exactly the same fields in data as in a named matrix
-        one = Bunch(kind=kind, active=active, desc=desc,
-                    data=Bunch(nrow=nvec, ncol=nchan, row_names=None,
+        one = dict(kind=kind, active=active, desc=desc,
+                    data=dict(nrow=nvec, ncol=nchan, row_names=None,
                               col_names=names, data=data))
 
         projdata.append(one)
@@ -113,13 +112,13 @@ def read_proj(fid, node):
     if len(projdata) > 0:
         print '\tRead a total of %d projection items:' % len(projdata)
         for k in range(len(projdata)):
-            if projdata[k].active:
+            if projdata[k]['active']:
                 misc = 'active'
             else:
                 misc = ' idle'
-            print '\t\t%s (%d x %d) %s' % (projdata[k].desc,
-                                        projdata[k].data.nrow,
-                                        projdata[k].data.ncol,
+            print '\t\t%s (%d x %d) %s' % (projdata[k]['desc'],
+                                        projdata[k]['data']['nrow'],
+                                        projdata[k]['data']['ncol'],
                                         misc)
 
     return projdata
@@ -203,7 +202,7 @@ def make_projector(projs, ch_names, bads=[]):
     nactive = 0
     nvec = 0
     for p in projs:
-        if p.active:
+        if p['active']:
             nactive += 1
             nvec += p['data']['nrow']
 
@@ -215,7 +214,7 @@ def make_projector(projs, ch_names, bads=[]):
     nvec = 0
     nonzero = 0
     for k, p in enumerate(projs):
-        if p.active:
+        if p['active']:
             if len(p['data']['col_names']) != \
                         len(np.unique(p['data']['col_names'])):
                 raise ValueError('Channel name list in projection item %d'

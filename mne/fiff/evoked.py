@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 import numpy as np
 
 from .constants import FIFF
@@ -109,9 +110,9 @@ class Evoked(object):
         sfreq = -1
         chs = []
         comment = None
-        for k in range(my_evoked.nent):
-            kind = my_evoked.directory[k].kind
-            pos = my_evoked.directory[k].pos
+        for k in range(my_evoked['nent']):
+            kind = my_evoked['directory'][k].kind
+            pos = my_evoked['directory'][k].pos
             if kind == FIFF.FIFF_COMMENT:
                 tag = read_tag(fid, pos)
                 comment = tag.data
@@ -164,9 +165,9 @@ class Evoked(object):
         # Read the data in the aspect block
         nave = 1
         epoch = []
-        for k in range(my_aspect.nent):
-            kind = my_aspect.directory[k].kind
-            pos = my_aspect.directory[k].pos
+        for k in range(my_aspect['nent']):
+            kind = my_aspect['directory'][k].kind
+            pos = my_aspect['directory'][k].pos
             if kind == FIFF.FIFF_COMMENT:
                 tag = read_tag(fid, pos)
                 comment = tag.data
@@ -204,7 +205,7 @@ class Evoked(object):
                               % (all_data.shape[1], nsamp))
 
         # Calibrate
-        cals = np.array([info['chs'][k].cal for k in range(info['nchan'])])
+        cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
         all_data = cals[:, None] * all_data
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']

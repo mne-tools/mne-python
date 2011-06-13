@@ -47,7 +47,7 @@ def read_inverse_operator(fname):
     invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     if invs is None:
         fid.close()
-        raise ValueError('No inverse solutions in %s' % fname)
+        raise Exception('No inverse solutions in %s' % fname)
 
     invs = invs[0]
     #
@@ -56,7 +56,7 @@ def read_inverse_operator(fname):
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
     if len(parent_mri) == 0:
         fid.close()
-        raise ValueError('No parent MRI information in %s' % fname)
+        raise Exception('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
 
     print '\tReading inverse operator info...',
@@ -66,7 +66,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
     if tag is None:
         fid.close()
-        raise ValueError('Modalities not found')
+        raise Exception('Modalities not found')
 
     inv = dict()
     inv['methods'] = tag.data
@@ -74,14 +74,14 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
         fid.close()
-        raise ValueError('Source orientation constraints not found')
+        raise Exception('Source orientation constraints not found')
 
     inv['source_ori'] = int(tag.data)
 
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         fid.close()
-        raise ValueError('Number of sources not found')
+        raise Exception('Number of sources not found')
 
     inv['nsource'] = tag.data
     inv['nchan'] = 0
@@ -91,7 +91,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
         fid.close()
-        raise ValueError('Coordinate frame tag not found')
+        raise Exception('Coordinate frame tag not found')
 
     inv['coord_frame'] = tag.data
     #
@@ -100,7 +100,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
     if tag is None:
         fid.close()
-        raise ValueError('Source orientation information not found')
+        raise Exception('Source orientation information not found')
 
     inv['source_nn'] = tag.data
     print '[done]'
@@ -111,7 +111,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
-        raise ValueError('Singular values not found')
+        raise Exception('Singular values not found')
 
     inv['sing'] = tag.data
     inv['nchan'] = len(inv['sing'])
@@ -124,60 +124,40 @@ def read_inverse_operator(fname):
                                                FIFF.FIFF_MNE_INVERSE_LEADS)
     except:
         inv['eigen_leads_weighted'] = True
-        try:
-            inv['eigen_leads'] = _read_named_matrix(fid, invs,
-                                        FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
-        except Exception as inst:
-            raise ValueError('%s' % inst)
+        inv['eigen_leads'] = _read_named_matrix(fid, invs,
+                                    FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
     #
     #   Having the eigenleads as columns is better for the inverse calculations
     #
     inv['eigen_leads'] = _transpose_named_matrix(inv['eigen_leads'])
-    try:
-        inv['eigen_fields'] = _read_named_matrix(fid, invs,
-                                                FIFF.FIFF_MNE_INVERSE_FIELDS)
-    except Exception as inst:
-        raise ValueError('%s' % inst)
+    inv['eigen_fields'] = _read_named_matrix(fid, invs,
+                                            FIFF.FIFF_MNE_INVERSE_FIELDS)
 
     print '[done]'
     #
     #   Read the covariance matrices
     #
-    try:
-        inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-        print '\tNoise covariance matrix read.'
-    except Exception as inst:
-        fid.close()
-        raise ValueError('%s' % inst)
+    inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+    print '\tNoise covariance matrix read.'
 
-    try:
-        inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-        print '\tSource covariance matrix read.'
-    except Exception as inst:
-        fid.close()
-        raise ValueError('%s' % inst)
+    inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+    print '\tSource covariance matrix read.'
     #
     #   Read the various priors
     #
-    try:
-        inv['orient_prior'] = read_cov(fid, invs,
-                                       FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+    inv['orient_prior'] = read_cov(fid, invs,
+                                   FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+    if inv['orient_prior'] is not None:
         print '\tOrientation priors read.'
-    except Exception as inst:
-        inv['orient_prior'] = []
 
-    try:
-        inv['depth_prior'] = read_cov(fid, invs,
-                                          FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+    inv['depth_prior'] = read_cov(fid, invs,
+                                      FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+    if inv['depth_prior'] is not None:
         print '\tDepth priors read.'
-    except:
-        inv['depth_prior'] = []
 
-    try:
-        inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+    inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+    if inv['fmri_prior'] is not None:
         print '\tfMRI priors read.'
-    except:
-        inv['fmri_prior'] = []
 
     #
     #   Read the source spaces
@@ -186,7 +166,7 @@ def read_inverse_operator(fname):
         inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
     except Exception as inst:
         fid.close()
-        raise ValueError('Could not read the source spaces (%s)' % inst)
+        raise Exception('Could not read the source spaces (%s)' % inst)
 
     for s in inv['src']:
         s['id'] = find_source_space_hemi(s)
@@ -197,7 +177,7 @@ def read_inverse_operator(fname):
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
     if tag is None:
         fid.close()
-        raise ValueError('MRI/head coordinate transformation not found')
+        raise Exception('MRI/head coordinate transformation not found')
     else:
         mri_head_t = tag.data
         if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
@@ -206,7 +186,7 @@ def read_inverse_operator(fname):
             if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
-                raise ValueError('MRI/head coordinate transformation '
+                raise Exception('MRI/head coordinate transformation '
                                  'not found')
 
     inv['mri_head_t'] = mri_head_t
@@ -217,7 +197,7 @@ def read_inverse_operator(fname):
     if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
             inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
         fid.close()
-        raise ValueError('Only inverse solutions computed in MRI or '
+        raise Exception('Only inverse solutions computed in MRI or '
                          'head coordinates are acceptable')
 
     #
@@ -244,7 +224,7 @@ def read_inverse_operator(fname):
                                                 inv['coord_frame'], mri_head_t)
         except Exception as inst:
             fid.close()
-            raise ValueError('Could not transform source space (%s)' % inst)
+            raise Exception('Could not transform source space (%s)' % inst)
 
         nuse += inv['src'][k]['nuse']
 
@@ -276,9 +256,9 @@ def combine_xyz(vec, square=False):
         Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
     if vec.ndim != 2:
-        raise ValueError('Input must be 2D')
+        raise Exception('Input must be 2D')
     if (vec.shape[0] % 3) != 0:
-        raise ValueError('Input must have 3N rows')
+        raise Exception('Input must have 3N rows')
 
     n, p = vec.shape
     if np.iscomplexobj(vec):

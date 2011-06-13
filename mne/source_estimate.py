@@ -376,7 +376,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         dots = np.dot(rr[k:k + dr], rhs.T)
         nearest[1, k:k + dr] = np.argmax(dots, axis=1)
 
-    stc_to = copy.copy(stc_from)
+    stc_to = copy.deepcopy(stc_from)
     stc_to.lh_vertno = nearest[0]
     stc_to.rh_vertno = nearest[1]
     stc_to.data = np.r_[dmap[0][nearest[0], :], dmap[1][nearest[1], :]]

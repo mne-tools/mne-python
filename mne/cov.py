@@ -332,7 +332,7 @@ def read_cov(fid, node, cov_kind):
                        eigvec=eigvec)
             return cov
 
-    raise ValueError('Did not find the desired covariance matrix')
+    print 'Did not find the desired covariance matrix'
 
     return None
 

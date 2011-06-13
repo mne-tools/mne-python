@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-from .bunch import Bunch
 from .tag import read_tag
 
 
@@ -21,11 +20,11 @@ def dir_tree_find(tree, kind):
             nodes += dir_tree_find(t, kind)
     else:
         #   Am I desirable myself?
-        if tree.block == kind:
+        if tree['block'] == kind:
             nodes.append(tree)
 
         #   Search the subtrees
-        for child in tree.children:
+        for child in tree['children']:
             nodes += dir_tree_find(child, kind)
     return nodes
 
@@ -50,7 +49,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
 
     this = start
 
-    tree = Bunch()
+    tree = dict()
     tree['block'] = block
     tree['id'] = None
     tree['parent_id'] = None
@@ -64,40 +63,40 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
             if this != start:
                 child, this = make_dir_tree(fid, directory, this,
                                                         indent + 1, verbose)
-                tree.nchild += 1
-                tree.children.append(child)
+                tree['nchild'] += 1
+                tree['children'].append(child)
         elif directory[this].kind == FIFF_BLOCK_END:
             tag = read_tag(fid, directory[start].pos)
             if tag.data == block:
                 break
         else:
-            tree.nent += 1
-            if tree.nent == 1:
-                tree.directory = list()
-            tree.directory.append(directory[this])
+            tree['nent'] += 1
+            if tree['nent'] == 1:
+                tree['directory'] = list()
+            tree['directory'].append(directory[this])
 
             #  Add the id information if available
             if block == 0:
                 if directory[this].kind == FIFF_FILE_ID:
                     tag = read_tag(fid, directory[this].pos)
-                    tree.id = tag.data
+                    tree['id'] = tag.data
             else:
                 if directory[this].kind == FIFF_BLOCK_ID:
                     tag = read_tag(fid, directory[this].pos)
-                    tree.id = tag.data
+                    tree['id'] = tag.data
                 elif directory[this].kind == FIFF_PARENT_BLOCK_ID:
                     tag = read_tag(fid, directory[this].pos)
-                    tree.parent_id = tag.data
+                    tree['parent_id'] = tag.data
 
         this += 1
 
     # Eliminate the empty directory
-    if tree.nent == 0:
-        tree.directory = None
+    if tree['nent'] == 0:
+        tree['directory'] = None
 
     if verbose:
         print '\t' * (indent + 1) + 'block = %d nent = %d nchild = %d' % (
-                                tree.block, tree.nent, tree.nchild)
+                                tree['block'], tree['nent'], tree['nchild'])
         print '\t' * indent, 'end } %d' % block
 
     last = this
@@ -123,7 +122,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
         nodes = [nodes]
 
     for node in nodes:
-        start_block(fidout, node.block)
+        start_block(fidout, node['block'])
         if node['id'] is not None:
             if in_id is not None:
                 write_id(fidout, FIFF.FIFF_PARENT_FILE_ID, in_id)
@@ -131,8 +130,8 @@ def copy_tree(fidin, in_id, nodes, fidout):
             write_id(fidout, FIFF.FIFF_BLOCK_ID)
             write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node['id'])
 
-        if node.directory is not None:
-            for d in node.directory:
+        if node['directory'] is not None:
+            for d in node['directory']:
                 #   Do not copy these tags
                 if d.kind == FIFF.FIFF_BLOCK_ID or \
                         d.kind == FIFF.FIFF_PARENT_BLOCK_ID or \
@@ -151,4 +150,4 @@ def copy_tree(fidin, in_id, nodes, fidout):
         for child in node['children']:
             copy_tree(fidin, in_id, child, fidout)
 
-        end_block(fidout, node.block)
+        end_block(fidout, node['block'])

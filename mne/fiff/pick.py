@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from copy import copy
+from copy import deepcopy
 
 import numpy as np
 from .constants import FIFF
@@ -25,7 +25,7 @@ def channel_type(info, idx):
         Type of channel
     """
 
-    kind = info['chs'][idx].kind
+    kind = info['chs'][idx]['kind']
     if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
         if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
             return 'grad'
@@ -110,7 +110,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     pick = np.zeros(nchan, dtype=np.bool)
 
     for k in range(nchan):
-        kind = info['chs'][k].kind
+        kind = info['chs'][k]['kind']
         if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
             if meg == True:
                 pick[k] = True
@@ -158,7 +158,7 @@ def pick_info(info, sel=[]):
         Info structure restricted to a selection of channels
     """
 
-    res = copy(info)
+    res = deepcopy(info)
     if len(sel) == 0:
         raise ValueError('Warning : No channels match the selection.')
 
@@ -198,7 +198,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     if len(sel) == 0:
         raise ValueError('Warning : No channels match the selection.')
 
-    res = copy(orig)
+    res = deepcopy(orig)
     #
     #   Modify the measurement info
     #
@@ -238,7 +238,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     sel = pick_channels(orig['sol']['row_names'], include=include,
                         exclude=exclude)
 
-    fwd = copy(orig)
+    fwd = deepcopy(orig)
 
     #   Do we have something?
     nuse = len(sel)

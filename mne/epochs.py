@@ -101,7 +101,7 @@ class Epochs(object):
         self.flat = flat
 
         # Handle measurement info
-        self.info = copy.copy(raw.info)
+        self.info = copy.deepcopy(raw.info)
         if picks is not None:
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
@@ -311,7 +311,7 @@ class Epochs(object):
             The averaged epochs
         """
         evoked = Evoked(None)
-        evoked.info = copy.copy(self.info)
+        evoked.info = copy.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         n_events = len(self.events)

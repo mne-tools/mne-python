@@ -41,7 +41,7 @@ def read_events(filename):
 
     events = events[0]
 
-    for d in events.directory:
+    for d in events['directory']:
         kind = d.kind
         pos = d.pos
         if kind == FIFF.FIFF_MNE_EVENT_LIST:

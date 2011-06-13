@@ -6,7 +6,6 @@
 import struct
 import numpy as np
 
-from .bunch import Bunch
 from .constants import FIFF
 
 
@@ -124,7 +123,7 @@ def read_tag(fid, pos=None):
                 fid.seek(pos, 0)
 
                 if ndim != 2:
-                    raise ValueError('Only two-dimensional matrices are '
+                    raise Exception('Only two-dimensional matrices are '
                                      'supported at this time')
 
                 matrix_type = data_type & tag.type
@@ -150,7 +149,7 @@ def read_tag(fid, pos=None):
                     # Note: we need the non-conjugate transpose here
                     tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 else:
-                    raise ValueError('Cannot handle matrix of type %d yet' %
+                    raise Exception('Cannot handle matrix of type %d yet' %
                                                                 matrix_type)
 
             elif matrix_coding == matrix_coding_CCS or \
@@ -163,7 +162,7 @@ def read_tag(fid, pos=None):
                 fid.seek(-(ndim + 2) * 4, 1)
                 dims = np.fromfile(fid, dtype='>i', count=ndim + 1)
                 if ndim != 2:
-                    raise ValueError('Only two-dimensional matrices are '
+                    raise Exception('Only two-dimensional matrices are '
                                      'supported at this time')
 
                 # Back to where the data start
@@ -187,7 +186,7 @@ def read_tag(fid, pos=None):
                     tag.data = sparse.csr_matrix((sparse_data, sparse_indices,
                                                  sparse_ptrs), shape=shape)
             else:
-                raise ValueError('Cannot handle other than dense or sparse '
+                raise Exception('Cannot handle other than dense or sparse '
                                  'matrices yet')
         else:
             #   All other data types
@@ -237,7 +236,7 @@ def read_tag(fid, pos=None):
                 tag.data['r'] = np.fromfile(fid, dtype=">i4", count=3)
                 tag.data['coord_frame'] = 0
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
-                tag.data = Bunch()
+                tag.data = dict()
                 tag.data['from'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 tag.data['to'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 rot = np.fromfile(fid, dtype=">f4", count=9).reshape(3, 3)
@@ -250,7 +249,7 @@ def read_tag(fid, pos=None):
                 #
                 fid.seek(12 * 4, 1)
             elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
-                d = Bunch()
+                d = dict()
                 d['scanno'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 d['logno'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 d['kind'] = int(np.fromfile(fid, dtype=">i4", count=1))
@@ -268,19 +267,19 @@ def read_tag(fid, pos=None):
                 #
                 #   Convert loc into a more useful format
                 #
-                loc = tag.data.loc
-                kind = tag.data.kind
+                loc = tag.data['loc']
+                kind = tag.data['kind']
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    tag.data.coil_trans = np.r_[np.c_[loc[3:5], loc[6:8],
+                    tag.data['coil_trans'] = np.r_[np.c_[loc[3:5], loc[6:8],
                                                         loc[9:11], loc[0:2]],
                                         np.array([0, 0, 0, 1]).reshape(1, 4)]
-                    tag.data.coord_frame = FIFF.FIFFV_COORD_DEVICE
-                elif tag.data.kind == FIFF.FIFFV_EEG_CH:
+                    tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+                elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
                     if np.linalg.norm(loc[3:5]) > 0:
-                        tag.data.eeg_loc = np.c_[loc[0:2], loc[3:5]]
+                        tag.data['eeg_loc'] = np.c_[loc[0:2], loc[3:5]]
                     else:
-                        tag.data.eeg_loc = loc[1:3]
-                    tag.data.coord_frame = FIFF.FIFFV_COORD_HEAD
+                        tag.data['eeg_loc'] = loc[1:3]
+                    tag.data['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 #
                 #   Unit and exponent
                 #
@@ -309,7 +308,7 @@ def read_tag(fid, pos=None):
                     s = fid.read(4 * 4)
                     tag.data.append(Tag(*struct.unpack(">iIii", s)))
             else:
-                raise ValueError('Unimplemented tag data type %s' % tag.type)
+                raise Exception('Unimplemented tag data type %s' % tag.type)
 
     if tag.next != FIFF.FIFFV_NEXT_SEQ:
         # f.seek(tag.next,0)
@@ -321,9 +320,9 @@ def read_tag(fid, pos=None):
 def find_tag(fid, node, findkind):
     """Find Tag in an open FIF file descriptor
     """
-    for p in range(node.nent):
-        if node.directory[p].kind == findkind:
-            return read_tag(fid, node.directory[p].pos)
+    for p in range(node['nent']):
+        if node['directory'][p].kind == findkind:
+            return read_tag(fid, node['directory'][p].pos)
     tag = None
     return tag
 
@@ -331,7 +330,7 @@ def find_tag(fid, node, findkind):
 def has_tag(node, kind):
     """Does the node contains a Tag of a given kind?
     """
-    for d in node.directory:
+    for d in node['directory']:
         if d.kind == kind:
             return True
     return False
