@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy import linalg
 
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
@@ -216,7 +217,7 @@ def read_meas_info(fid, tree):
     if dev_head_t is not None and ctf_head_t is not None:
         info['dev_ctf_t'] = info['dev_head_t']
         info['dev_ctf_t']['to'] = info['ctf_head_t']['from']
-        info['dev_ctf_t']['trans'] = np.dot(np.inv(ctf_head_t['trans']),
+        info['dev_ctf_t']['trans'] = np.dot(linalg.inv(ctf_head_t['trans']),
                                         info['dev_ctf_t']['trans'])
     else:
         info['dev_ctf_t'] = []

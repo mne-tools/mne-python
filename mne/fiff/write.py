@@ -290,20 +290,15 @@ def write_dig_point(fid, dig):
 
 def write_named_matrix(fid, kind, mat):
     """Writes a named single-precision floating-point matrix"""
+    start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
+    write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
+    write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
 
-    raise NotImplementedError("CTF data processing is not supported yet")
+    if len(mat['row_names']) > 0:
+        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
 
-    # start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
-    # write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
-    # write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
-    #
-    # if len(mat['row_names']) > 0:
-    #     write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
-    #
-    # if len(mat['col_names']) > 0:
-    #     write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
-    #
-    # write_float_matrix(fid,kind, mat.data)
-    # end_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
-    #
-    # return;
+    if len(mat['col_names']) > 0:
+        write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
+
+    write_float_matrix(fid, kind, mat['data'])
+    end_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)

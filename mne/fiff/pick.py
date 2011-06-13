@@ -26,11 +26,13 @@ def channel_type(info, idx):
     """
 
     kind = info['chs'][idx]['kind']
-    if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+    if kind == FIFF.FIFFV_MEG_CH:
         if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
             return 'grad'
         elif info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T:
             return 'mag'
+    elif kind == FIFF.FIFFV_REF_MEG_CH:
+        return 'ref_meg'
     elif kind == FIFF.FIFFV_EEG_CH:
         return 'eeg'
     elif kind == FIFF.FIFFV_STIM_CH:
@@ -41,6 +43,7 @@ def channel_type(info, idx):
         return 'emg'
     elif kind == FIFF.FIFFV_ECG_CH:
         return 'ecg'
+    raise Exception('Unknown channel type')
 
 
 def pick_channels(ch_names, include, exclude=[]):

@@ -15,12 +15,22 @@ def hex2dec(s):
 
 
 def _read_named_matrix(fid, node, matkind):
-    """
-    %
-    % [mat] = fiff__read_named_matrix(fid,node)
-    %
-    % Read named matrix from the given node
-    %
+    """read_named_matrix(fid,node)
+
+    Read named matrix from the given node
+
+    Parameters
+    ----------
+    fid : file
+        The file descriptor
+    node : dict
+        Node
+    matkind : mat kind
+        XXX
+    Returns
+    -------
+    mat : dict
+        The matrix with row and col names.
     """
 
     #   Descend one level if necessary
@@ -110,91 +120,87 @@ def read_ctf_comp(fid, node, chs):
     comps = dir_tree_find(node, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 
     for node in comps:
-        # XXX
-        raise NotImplementedError("CTF data processing is not supported yet")
+        #   Read the data we need
+        mat = _read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
+        for p in range(node['nent']):
+            kind = node['directory'][p].kind
+            pos = node['directory'][p].pos
+            if kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
+                tag = read_tag(fid, pos)
+                break
+        else:
+            raise Exception('Compensation type not found')
 
-        #
-        # #   Read the data we need
-        # mat = _read_named_matrix(fid, node, FIFF.FIFF_MNE_CTF_COMP_DATA)
-        # for p in range(node['nent']):
-        #     kind = node['dir'][p].kind
-        #     pos = node['dir'][p].pos
-        #     if kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
-        #         tag = read_tag(fid, pos)
-        #         break
-        # else:
-        #     raise ValueError, 'Compensation type not found'
-        #
-        # #   Get the compensation kind and map it to a simple number
-        # one = dict(ctfkind=tag.data, kind=-1)
-        # del tag
-        #
-        # if one.ctfkind == int('47314252', 16): # hex2dec('47314252'):
-        #     one.kind = 1
-        # elif one.ctfkind == int('47324252', 16): # hex2dec('47324252'):
-        #     one.kind = 2
-        # elif one.ctfkind == int('47334252', 16): # hex2dec('47334252'):
-        #     one.kind = 3
-        # else:
-        #     one.kind = one.ctfkind
-        #
-        # for p in range(node['nent']):
-        #     kind = node['dir'][p].kind
-        #     pos = node['dir'][p].pos
-        #     if kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
-        #         tag = read_tag(fid, pos)
-        #         calibrated = tag.data
-        #         break
-        # else:
-        #     calibrated = False
-        #
-        # one['save_calibrated'] = calibrated
-        # one['rowcals'] = np.ones(1, mat.shape[0])
-        # one['colcals'] = np.ones(1, mat.shape[1])
-        # if not calibrated:
-        #     #
-        #     #   Calibrate...
-        #     #
-        #     #   Do the columns first
-        #     #
-        #     ch_names = []
-        #     for p in range(len(chs)):
-        #         ch_names.append(chs[p]['ch_name'])
-        #
-        #     col_cals = np.zeros(mat.data.shape[1])
-        #     for col in range(mat.data.shape[1]):
-        #         p = ch_names.count(mat.col_names[col])
-        #         if p == 0:
-        #             raise ValueError, 'Channel %s is not available in data' \
-        #                                         % mat.col_names[col]
-        #         elif p > 1:
-        #             raise ValueError, 'Ambiguous channel %s' % \
-        #                                                 mat.col_names[col]
-        #
-        #         col_cals[col] = 1.0 / (chs[p]['range'] * chs[p]['cal'])
-        #
-        #     #    Then the rows
-        #     row_cals = np.zeros(mat.data.shape[0])
-        #     for row in range(mat.data.shape[0]):
-        #         p = ch_names.count(mat.row_names[row])
-        #         if p == 0:
-        #             raise ValueError, 'Channel %s is not available in data' \
-        #                                        % mat.row_names[row]
-        #         elif p > 1:
-        #             raise ValueError, 'Ambiguous channel %s' % \
-        #                                         mat.row_names[row]
-        #
-        #         row_cals[row] = chs[p]['range'] * chs[p]['cal']
-        #
-        #     mat.data = np.dot(np.diag(row_cals), np.dot(mat.data,
-        #                                                 np.diag(col_cals)))
-        #     one.rowcals = row_cals
-        #     one.colcals = col_cals
-        #
-        # one.data = mat
-        # compdata.append(one)
-        # del row_cals
-        # del col_cals
+        #   Get the compensation kind and map it to a simple number
+        one = dict(ctfkind=tag.data, kind=-1)
+        del tag
+
+        if one['ctfkind'] == int('47314252', 16):  # hex2dec('47314252'):
+            one['kind'] = 1
+        elif one['ctfkind'] == int('47324252', 16):  # hex2dec('47324252'):
+            one['kind'] = 2
+        elif one['ctfkind'] == int('47334252', 16):  # hex2dec('47334252'):
+            one['kind'] = 3
+        else:
+            one['kind'] = one['ctfkind']
+
+        for p in range(node['nent']):
+            kind = node['directory'][p].kind
+            pos = node['directory'][p].pos
+            if kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
+                tag = read_tag(fid, pos)
+                calibrated = tag.data
+                break
+        else:
+            calibrated = False
+
+        one['save_calibrated'] = calibrated
+        one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
+        one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
+        if not calibrated:
+            #
+            #   Calibrate...
+            #
+            #   Do the columns first
+            #
+            ch_names = []
+            for p in range(len(chs)):
+                ch_names.append(chs[p]['ch_name'])
+
+            col_cals = np.zeros(mat['data'].shape[1], dtype=np.float)
+            for col in range(mat['data'].shape[1]):
+                p = ch_names.count(mat['col_names'][col])
+                if p == 0:
+                    raise Exception('Channel %s is not available in data'
+                                                % mat['col_names'][col])
+                elif p > 1:
+                    raise Exception('Ambiguous channel %s' %
+                                                        mat['col_names'][col])
+
+                col_cals[col] = 1.0 / (chs[p]['range'] * chs[p]['cal'])
+
+            #    Then the rows
+            row_cals = np.zeros(mat['data'].shape[0])
+            for row in range(mat['data'].shape[0]):
+                p = ch_names.count(mat['row_names'][row])
+                if p == 0:
+                    raise Exception('Channel %s is not available in data'
+                                               % mat['row_names'][row])
+                elif p > 1:
+                    raise Exception('Ambiguous channel %s' %
+                                                mat['row_names'][row])
+
+                row_cals[row] = chs[p]['range'] * chs[p]['cal']
+
+            mat['data'] = np.dot(np.diag(row_cals), np.dot(mat['data'],
+                                                        np.diag(col_cals)))
+            one['rowcals'] = row_cals
+            one['colcals'] = col_cals
+
+        one['data'] = mat
+        compdata.append(one)
+        del row_cals
+        del col_cals
 
     if len(compdata) > 0:
         print '\tRead %d compensation matrices' % len(compdata)
@@ -205,7 +211,6 @@ def read_ctf_comp(fid, node, chs):
 ###############################################################################
 # Writing
 
-from scipy import linalg
 from .write import start_block, end_block, write_int, write_named_matrix
 
 
@@ -223,26 +228,19 @@ def write_ctf_comp(fid, comps):
     if len(comps) <= 0:
         return
 
-    # XXX
-    raise NotImplementedError("CTF data processing is not supported yet")
+    #  This is very simple in fact
+    start_block(fid, FIFF.FIFFB_MNE_CTF_COMP)
+    for comp in comps:
+        start_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
+        #    Write the compensation kind
+        write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
+        write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
+                      comp['save_calibrated'])
 
-    # #  This is very simple in fact
-    # start_block(fid, FIFF.FIFFB_MNE_CTF_COMP)
-    # for comp in comps:
-    #     start_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
-    #     #    Write the compensation kind
-    #     write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
-    #     write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
-    #                   comp['save_calibrated'])
-    #
-    #     #    Write an uncalibrated or calibrated matrix
-    #     import pdb; pdb.set_trace()
-    #
-    #     comp['data']['data'] = linalg.inv(
-    #                         np.dot(np.diag(comp['rowcals'].ravel())),
-    #                            np.dot(comp.data.data,
-    #                               linalg.inv(np.diag(comp.colcals.ravel()))))
-    #     write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp['data'])
-    #     end_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
-    #
-    # end_block(fid, FIFF.FIFFB_MNE_CTF_COMP)
+        #    Write an uncalibrated or calibrated matrix
+        comp['data']['data'] = (comp['rowcals'][:, None] * comp['data']['data']
+                                                    * comp['colcals'][None, :])
+        write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp['data'])
+        end_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
+
+    end_block(fid, FIFF.FIFFB_MNE_CTF_COMP)

@@ -65,7 +65,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
         if unit is False:
             scaling = 1.0
             ch_unit = 'NA'  # no unit
-        idx = [picks[i] for i in range(len(picks)) if types[i] is t]
+        idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
             pl.subplot(n_channel_types, 1, counter)
             pl.plot(times, scaling * evoked.data[idx, :].T)
