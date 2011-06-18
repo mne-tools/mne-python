@@ -115,7 +115,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
     n_samples, n_tests = X.shape
 
     do_exact = False
-    if n_permutations is 'all' or (n_permutations >= 2 ** n_samples - 1):
+    if (n_permutations == 'all') or (n_permutations >= 2 ** n_samples - 1):
         do_exact = True
         n_permutations = 2 ** n_samples - 1
 

@@ -326,32 +326,27 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #
     #   Create the whitener
     #
-    inv['whitener'] = np.zeros((inv['noise_cov']['dim'],
-                                inv['noise_cov']['dim']))
     if not inv['noise_cov']['diag']:
+        inv['whitener'] = np.zeros((inv['noise_cov']['dim'],
+                                    inv['noise_cov']['dim']))
         #
         #   Omit the zeroes due to projection
         #
-        nnzero = 0
-        for k in range(ncomp, inv['noise_cov']['dim']):
-            if inv['noise_cov']['eig'][k] > 0:
-                inv['whitener'][k, k] = 1.0 / sqrt(inv['noise_cov']['eig'][k])
-                nnzero += 1
-
+        eig = inv['noise_cov']['eig']
+        nzero = (eig > 0)
+        inv['whitener'][nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
         #
         #   Rows of eigvec are the eigenvectors
         #
         inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
         print ('\tCreated the whitener using a full noise covariance matrix '
               '(%d small eigenvalues omitted)' % (inv['noise_cov']['dim']
-                                                  - nnzero))
+                                                  - np.sum(nzero)))
     else:
         #
         #   No need to omit the zeroes due to projection
         #
-        for k in range(inv['noise_cov']['dim']):
-            inv['whitener'][k, k] = 1.0 / sqrt(inv['noise_cov']['data'][k])
-
+        inv['whitener'] = np.diag(1.0 / np.sqrt(inv['noise_cov']['data'].ravel()))
         print ('\tCreated the whitener using a diagonal noise covariance '
                'matrix (%d small eigenvalues discarded)' % ncomp)
 
@@ -455,7 +450,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
         sol = np.dot(inv['eigen_leads']['data'], trans)
     else:
         #
-        #     R^0.5 has to factored in
+        #     R^0.5 has to be factored in
         #
         print '(eigenleads need to be weighted)...',
         sol = np.sqrt(inv['source_cov']['data'])[:, None] * \
@@ -589,7 +584,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         sol = np.dot(eigen_leads, trans)
     else:
         #
-        #     R^0.5 has to factored in
+        #     R^0.5 has to be factored in
         #
         print '(eigenleads need to be weighted)...',
         sol = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
@@ -743,7 +738,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     # Initializing.
     n_positions = gain.shape[1] / 3
 
-    if orientation is 'fixed':
+    if orientation == 'fixed':
         n_dip_per_pos = 1
     elif orientation in ['free', 'loose']:
         n_dip_per_pos = 3
@@ -759,12 +754,12 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         w = w[:, None] * np.ones((1, n_dip_per_pos))
         w = w.ravel()
 
-    if orientation is 'fixed':
+    if orientation == 'fixed':
         print 'Appying fixed dipole orientations.'
         gain = gain * _block_diag(normals.ravel()[None, :], 3).T
-    elif orientation is 'free':
+    elif orientation == 'free':
         print 'Using free dipole orientations. No constraints.'
-    elif orientation is 'loose':
+    elif orientation == 'loose':
         print 'Transforming lead field matrix to cortical coordinate system.'
         gain = _xyz2lf(gain, normals)
         # Getting indices for tangential dipoles: [1, 2, 4, 5]
