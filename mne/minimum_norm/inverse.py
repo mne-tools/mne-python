@@ -802,7 +802,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         w = w ** weight_exp
 
     # apply loose orientations
-    if orientation is 'loose':
+    if orientation == 'loose':
         print 'Applying loose dipole orientations. Loose value of %s.' % loose
         w[itangential] *= loose
 
@@ -828,7 +828,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     Kernel = source_std[:, None] * np.dot(Vh.T, ss[:, None] * U.T)
 
     # Compute dSPM operator.
-    if method is 'dspm':
+    if method == 'dspm':
         print 'Computing dSPM inverse operator.'
         dspm_diag = np.sum(Kernel ** 2, axis=1)
         if n_dip_per_pos == 1:
@@ -842,7 +842,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         Kernel /= dspm_diag[:, None]
 
     # whitened sLORETA imaging kernel
-    elif method is 'sloreta':
+    elif method == 'sloreta':
         print 'Computing sLORETA inverse operator.'
         if n_dip_per_pos == 1:
             sloreta_diag = np.sqrt(np.sum(Kernel * gain.T, axis=1))
