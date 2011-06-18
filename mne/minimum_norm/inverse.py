@@ -668,8 +668,8 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         Evoked data to invert
     forward : dict
         Forward operator
-    cov : Covariance
-        Noise covariance matrix
+    whitener : Whitener
+        Whitening matrix derived from noise covariance matrix
     method : 'wmne' | 'dspm' | 'sloreta'
         The method to use
     orientation : 'fixed' | 'free' | 'loose'
@@ -685,12 +685,6 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
     weight_limit : float
         Maximal amount depth weighting (default: 10).
-    mag_reg : float
-        Amount of regularization of the magnetometer noise covariance matrix
-    grad_reg : float
-        Amount of regularization of the gradiometer noise covariance matrix.
-    eeg_reg : float
-        Amount of regularization of the EEG noise covariance matrix.
     fmri : array of shape [n_sources]
         Vector of fMRI values are the source points.
     fmri_thresh : float
