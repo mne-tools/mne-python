@@ -655,7 +655,7 @@ def _xyz2lf(Lf_xyz, normals):
 
 def minimum_norm(evoked, forward, whitener, method='dspm',
                  orientation='fixed', snr=3, loose=0.2, depth=True,
-                 weight_exp=0.5, weight_limit=10, fmri=None, fmri_thresh=None,
+                 weight_exp=0.8, weight_limit=10, fmri=None, fmri_thresh=None,
                  fmri_off=0.1):
     """Minimum norm estimate (MNE)
 
@@ -845,7 +845,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         elif n_dip_per_pos in [2, 3]:
             for k in n_positions:
                 start = k * n_dip_per_pos
-                stop = (k + 1) * n_dip_per_pos
+                stop = start + n_dip_per_pos
                 R = np.dot(Kernel[start:stop, :], gain[:, start:stop])
                 SIR = linalg.matfuncs.sqrtm(R, linalg.pinv(R))
                 Kernel[start:stop] = np.dot(SIR, Kernel[start:stop])
