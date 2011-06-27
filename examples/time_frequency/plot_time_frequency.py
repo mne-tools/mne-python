@@ -56,7 +56,7 @@ evoked_data = evoked_data[97:98, :]
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                   n_cycles=2, n_jobs=1, use_fft=False)
+                                  n_cycles=2, n_jobs=1, use_fft=False)
 
 power /= np.mean(power[:, :, times < 0], axis=2)[:, :, None]  # baseline ratio
 
@@ -67,7 +67,7 @@ pl.clf()
 pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
 pl.subplot(3, 1, 1)
 pl.plot(times, evoked_data.T)
-pl.title('Evoked response (%s)' % raw.info['ch_names'][picks[0]])
+pl.title('Evoked response (%s)' % evoked.ch_names[97])
 pl.xlabel('time (ms)')
 pl.ylabel('Magnetic Field (fT/cm)')
 pl.xlim(times[0], times[-1])
@@ -79,7 +79,7 @@ pl.imshow(20 * np.log10(power[0]), extent=[times[0], times[-1],
           aspect='auto', origin='lower')
 pl.xlabel('Time (s)')
 pl.ylabel('Frequency (Hz)')
-pl.title('Induced power (%s)' % raw.info['ch_names'][picks[0]])
+pl.title('Induced power (%s)' % evoked.ch_names[97])
 pl.colorbar()
 
 pl.subplot(3, 1, 3)
@@ -88,6 +88,6 @@ pl.imshow(phase_lock[0], extent=[times[0], times[-1],
           aspect='auto', origin='lower')
 pl.xlabel('Time (s)')
 pl.ylabel('Frequency (Hz)')
-pl.title('Phase-lock (%s)' % raw.info['ch_names'][picks[0]])
+pl.title('Phase-lock (%s)' % evoked.ch_names[97])
 pl.colorbar()
 pl.show()

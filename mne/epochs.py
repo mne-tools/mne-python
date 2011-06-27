@@ -72,9 +72,6 @@ class Epochs(object):
 
     Methods
     -------
-    get_epoch(i) : self
-        Return the ith epoch as a 2D array [n_channels x n_times].
-
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
@@ -194,19 +191,6 @@ class Epochs(object):
         if self.preload:
             self._data = self._data[:, idx, :]
 
-    def get_epoch(self, idx):
-        """Load one epoch
-
-        Returns
-        -------
-        data : array of shape [n_channels, n_times]
-            One epoch data
-        """
-        if self.preload:
-            return self._data[idx]
-        else:
-            return self._get_epoch_from_disk(idx)
-
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
@@ -238,15 +222,25 @@ class Epochs(object):
         n_reject = 0
         for k in range(n_events):
             e = self._get_epoch_from_disk(k)
-            if ((self.reject is not None or self.flat is not None) and
-                not _is_good(e, self.ch_names, self._channel_type_idx,
-                         self.reject, self.flat)) or e.shape[1] < n_times:
-                n_reject += 1
-            else:
+            if self._is_good_epoch(e):
                 data[cnt] = self._get_epoch_from_disk(k)
                 cnt += 1
+            else:
+                n_reject += 1
         print "Rejecting %d epochs." % n_reject
         return data[:cnt]
+
+    def _is_good_epoch(self, data):
+        """Determine is epoch is good
+        """
+        n_times = len(self.times)
+        if self.reject is None and self.flat is None:
+            return True
+        elif data.shape[1] < n_times:
+            return False  # epoch is too short ie at the end of the data
+        else:
+            return _is_good(data, self.ch_names, self._channel_type_idx,
+                            self.reject, self.flat)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -285,14 +279,21 @@ class Epochs(object):
         return self
 
     def next(self):
-        """To iteration over epochs easy.
+        """To make iteration over epochs easy.
         """
-        if self._current >= len(self.events):
-            raise StopIteration
+        if self.preload:
+            if self._current >= len(self._data):
+                raise StopIteration
+            epoch = self._data[self._current]
+            self._current += 1
+        else:
+            if self._current >= len(self.events):
+                raise StopIteration
+            epoch = self._get_epoch_from_disk(self._current)
+            self._current += 1
+            if not self._is_good_epoch(epoch):
+                return self.next()
 
-        epoch = self.get_epoch(self._current)
-
-        self._current += 1
         return epoch
 
     def __repr__(self):
