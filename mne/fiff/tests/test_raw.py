@@ -2,46 +2,48 @@ import os.path as op
 
 from numpy.testing import assert_array_almost_equal
 
-from .. import Raw, pick_types
+from .. import Raw, pick_types, pick_channels
 
-fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
+fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
+ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
 
 
 def test_io_raw():
-    """Test IO for raw data
+    """Test IO for raw data (Neuromag + CTF)
     """
-    raw = Raw(fname)
+    for fname in [fif_fname, ctf_fname]:
+        raw = Raw(fname)
 
-    nchan = raw.info['nchan']
-    ch_names = raw.info['ch_names']
-    meg_channels_idx = [k for k in range(nchan) if ch_names[k][:3] == 'MEG']
-    meg_channels_idx = meg_channels_idx[:5]
+        nchan = raw.info['nchan']
+        ch_names = raw.info['ch_names']
+        meg_channels_idx = [k for k in range(nchan)
+                                            if ch_names[k][0] == 'M']
+        n_channels = 100
+        meg_channels_idx = meg_channels_idx[:n_channels]
+        start, stop = raw.time_to_index(0, 5)
+        data, times = raw[meg_channels_idx, start:(stop + 1)]
+        meg_ch_names = [ch_names[k] for k in meg_channels_idx]
 
-    start, stop = raw.time_to_index(0, 5)
-    data, times = raw[meg_channels_idx, start:(stop+1)]
+        # Set up pick list: MEG + STI 014 - bad channels
+        include = ['STI 014']
+        include += meg_ch_names
+        picks = pick_types(raw.info, meg=True, eeg=False,
+                                stim=True, misc=True, include=include,
+                                exclude=raw.info['bads'])
+        print "Number of picked channels : %d" % len(picks)
 
-    # Set up pick list: MEG + STI 014 - bad channels
-    want_meg = True
-    want_eeg = False
-    want_stim = False
-    include = ['STI 014']
+        # Writing
+        raw.save('raw.fif', picks, tmin=0, tmax=5)
 
-    picks = pick_types(raw.info, meg=want_meg, eeg=want_eeg,
-                            stim=want_stim, include=include,
-                            exclude=raw.info['bads'])
-    picks = picks[:5] # take 5 first
+        raw2 = Raw('raw.fif')
 
-    print "Number of picked channels : %d" % len(picks)
+        sel = pick_channels(raw2.ch_names, meg_ch_names)
+        data2, times2 = raw2[sel, :]
 
-    # Writing
-    raw.save('raw.fif', picks, tmin=0, tmax=5)
+        assert_array_almost_equal(data, data2)
+        assert_array_almost_equal(times, times2)
+        assert_array_almost_equal(raw.info['dev_head_t']['trans'],
+                                  raw2.info['dev_head_t']['trans'])
+        assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
 
-    raw2 = Raw('raw.fif')
-
-    data2, times2 = raw2[:,:]
-
-    assert_array_almost_equal(data, data2)
-    assert_array_almost_equal(times, times2)
-    assert_array_almost_equal(raw.info['dev_head_t']['trans'],
-                              raw2.info['dev_head_t']['trans'])
-    assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+        fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')

@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from math import floor, ceil
+import copy
 import numpy as np
 
 from .constants import FIFF
@@ -176,6 +177,10 @@ class Raw(dict):
                 start = 0
             if step is not None:
                 raise ValueError('step needs to be 1 : %d given' % step)
+
+            if len(sel) == 0:
+                raise Exception("Empty channel list")
+
             return read_raw_segment(self, start=start, stop=stop, sel=sel)
         else:
             return super(Raw, self).__getitem__(item)
@@ -224,7 +229,10 @@ class Raw(dict):
             if last >= stop:
                 last = stop + 1
 
-            data, times = self[picks, first:last]
+            if picks is None:
+                data, times = self[:, first:last]
+            else:
+                data, times = self[picks, first:last]
 
             print 'Writing ... ',
             write_raw_buffer(outfid, data, cals)
@@ -488,10 +496,12 @@ def start_writing_raw(name, info, sel=None):
     #   We will always write floats
     #
     if sel is None:
-        sel = np.arange(info['nchan'])
+        chs = info['chs']
+        nchan = len(chs)
+    else:
+        chs = [info['chs'][k] for k in sel]
+        nchan = len(sel)
     data_type = 4
-    chs = [info['chs'][k] for k in sel]
-    nchan = len(chs)
     #
     #  Create the file and save the essentials
     #
@@ -558,7 +568,20 @@ def start_writing_raw(name, info, sel=None):
     #
     #    CTF compensation info
     #
-    write_ctf_comp(fid, info['comps'])
+    comps = info['comps']
+    if sel is not None:
+        ch_names = [c['ch_name'] for c in chs]  # name of good channels
+        comps = copy.deepcopy(comps)
+        for c in comps:
+            row_idx = [k for k, n in enumerate(c['data']['row_names'])
+                                                            if n in ch_names]
+            row_names = [c['data']['row_names'][i] for i in row_idx]
+            rowcals = c['rowcals'][row_idx]
+            c['rowcals'] = rowcals
+            c['data']['nrow'] = len(row_names)
+            c['data']['row_names'] = row_names
+            c['data']['data'] = c['data']['data'][row_idx]
+    write_ctf_comp(fid, comps)
     #
     #    Bad channels
     #
