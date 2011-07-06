@@ -10,6 +10,7 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
+from .pick import pick_types
 
 
 def read_proj(fid, node):
@@ -280,3 +281,59 @@ def make_projector_info(info):
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
                                     info['bads'])
     return proj, nproj
+
+
+def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
+    """Compute SSP (spatial space projection) vectors
+
+    Parameters
+    ----------
+    epochs: instance of Epochs
+        The epochs containing the artifact
+    n_grad: int
+        Number of vectors for gradiometers
+    n_mag: int
+        Number of vectors for gradiometers
+    n_eeg: int
+        Number of vectors for gradiometers
+
+    Returns
+    -------
+    projs: list
+        List of projection vectors
+    """
+    data = epochs.get_data()
+    data = data.swapaxes(0, 1).reshape(data.shape[1], -1)
+
+    mag_ind = pick_types(epochs.info, meg='mag')
+    grad_ind = pick_types(epochs.info, meg='grad')
+    eeg_ind = pick_types(epochs.info, meg=False, eeg=True)
+
+    if (n_grad > 0) and len(grad_ind) == 0:
+        print "No gradiometers found. Forcing n_grad to 0"
+        n_grad = 0
+    if (n_mag > 0) and len(mag_ind) == 0:
+        print "No magnetometers found. Forcing n_mag to 0"
+        n_mag = 0
+    if (n_eeg > 0) and len(eeg_ind) == 0:
+        print "No EEG channels found. Forcing n_eeg to 0"
+        n_eeg = 0
+
+    grad_names, mag_names, eeg_names = ([epochs.ch_names[k] for k in ind]
+                                     for ind in [grad_ind, mag_ind, eeg_ind])
+
+    projs = []
+    for n, ind, names in zip([n_grad, n_mag, n_eeg],
+                      [grad_ind, mag_ind, eeg_ind],
+                      [grad_names, mag_names, eeg_names]):
+        if n == 0:
+            continue
+        U = linalg.svd(data[ind], full_matrices=False,
+                                         overwrite_a=True)[0][:, :n]
+        for k, u in enumerate(U.T):
+            proj_data = dict(col_names=names, row_names=None,
+                             data=u[np.newaxis, :], nrow=1, ncol=u.size)
+            proj = dict(active=True, data=proj_data, desc='MEG %s' % k, kind=1)
+            projs.append(proj)
+
+    return projs

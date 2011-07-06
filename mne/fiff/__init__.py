@@ -12,3 +12,4 @@ from .raw import Raw, read_raw_segment, read_raw_segment_times, \
                  start_writing_raw, write_raw_buffer, finish_writing_raw
 from .pick import pick_types, pick_channels
 from .compensator import get_current_comp
+from .proj import compute_spatial_vectors

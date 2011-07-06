@@ -178,7 +178,7 @@ class Raw(dict):
             if step is not None:
                 raise ValueError('step needs to be 1 : %d given' % step)
 
-            if len(sel) == 0:
+            if sel is not None and len(sel) == 0:
                 raise Exception("Empty channel list")
 
             return read_raw_segment(self, start=start, stop=stop, sel=sel)

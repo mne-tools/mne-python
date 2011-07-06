@@ -124,6 +124,19 @@ class Epochs(object):
 
             print '%d projection items activated' % len(self.info['projs'])
 
+            # Add EEG ref reference proj
+            print "Adding average EEG reference projection."
+            eeg_sel = pick_types(self.info, meg=False, eeg=True)
+            eeg_names = [self.ch_names[k] for k in eeg_sel]
+            n_eeg = len(eeg_sel)
+            if n_eeg > 0:
+                vec = np.ones((1, n_eeg)) / n_eeg
+                eeg_proj_data = dict(col_names=eeg_names, row_names=None,
+                                     data=vec, nrow=1, ncol=n_eeg)
+                eeg_proj = dict(active=True, data=eeg_proj_data,
+                                desc='Average EEG reference', kind=1)
+                self.info['projs'].append(eeg_proj)
+
             #   Create the projector
             proj, nproj = fiff.proj.make_projector_info(self.info)
             if nproj == 0:
@@ -159,9 +172,11 @@ class Epochs(object):
             raise ValueError('No desired events found.')
 
         # Handle times
+        assert tmin < tmax
         sfreq = raw.info['sfreq']
-        self.times = np.arange(int(round(tmin * sfreq)),
-                               int(round(tmax * sfreq)),
+        n_times_min = int(round(tmin * float(sfreq)))
+        n_times_max = int(round(tmax * float(sfreq)))
+        self.times = np.arange(n_times_min, n_times_max + 1,
                                dtype=np.float) / sfreq
 
         # setup epoch rejection

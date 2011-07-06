@@ -11,10 +11,10 @@ average {
 #
 #	Rejection values
 #
-	gradReject	4000e-13
-	magReject	4e-12
-	eegReject	40e-6
-	eogReject	150e-6
+    gradReject    4000e-13
+    magReject 4e-12
+    eegReject 40e-6
+    eogReject 150e-6
 #
 #	Category specifications
 #
