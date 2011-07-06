@@ -4,7 +4,7 @@
 mne_process_raw --raw test_raw.fif --eventsout test-eve.fif
 
 # Averaging no filter
-mne_process_raw --raw test_raw.fif --projon  --filteroff \
+mne_process_raw --raw test_raw.fif --projon --filteroff \
         --saveavetag -nf-ave --ave test-no-reject.ave
 
 # Averaging 40Hz
@@ -12,7 +12,7 @@ mne_process_raw --raw test_raw.fif --lowpass 40 --projoff \
         --saveavetag -ave --ave test.ave
 
 # Compute the noise covariance matrix
-mne_process_raw --raw test_raw.fif --lowpass 40 --projon \
+mne_process_raw --raw test_raw.fif --filteroff --projon \
         --savecovtag -cov --cov test.cov
 
 # Compute projection

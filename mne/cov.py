@@ -340,40 +340,40 @@ def read_cov(fid, node, cov_kind):
 # Estimate from data
 
 
-def _estimate_compute_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
-                                           keep_sample_mean):
-    """Estimate noise covariance matrix from epochs
-    """
-    picks_no_eog = pick_types(epochs.info, meg=True, eeg=True, eog=False)
-    n_channels = len(picks_no_eog)
-    ch_names = [epochs.ch_names[k] for k in picks_no_eog]
-    data = np.zeros((n_channels, n_channels))
-    n_samples = 0
-    if bmin is None:
-        bmin = epochs.times[0]
-    if bmax is None:
-        bmax = epochs.times[-1]
-    bmask = (epochs.times >= bmin) & (epochs.times <= bmax)
-
-    idx_by_type = channel_indices_by_type(epochs.info)
-
-    for e in epochs:
-
-        if not _is_good(e, epochs.ch_names, idx_by_type, reject, flat):
-            print "Artefact detected in epoch"
-            continue
-
-        e = e[picks_no_eog]
-        mu = e[:, bmask].mean(axis=1)
-        e -= mu[:, None]
-        if not keep_sample_mean:
-            e -= np.mean(e, axis=0)
-        data += np.dot(e, e.T)
-        n_samples += e.shape[1]
-
-    print "Number of samples used : %d" % n_samples
-    print '[done]'
-    return data, n_samples, ch_names
+# def _estimate_compute_covariance_from_epochs(epochs, bmin, bmax, reject, flat,
+#                                            keep_sample_mean):
+#     """Estimate noise covariance matrix from epochs
+#     """
+#     picks_no_eog = pick_types(epochs.info, meg=True, eeg=True, eog=False)
+#     n_channels = len(picks_no_eog)
+#     ch_names = [epochs.ch_names[k] for k in picks_no_eog]
+#     data = np.zeros((n_channels, n_channels))
+#     n_samples = 0
+#     if bmin is None:
+#         bmin = epochs.times[0]
+#     if bmax is None:
+#         bmax = epochs.times[-1]
+#     bmask = (epochs.times >= bmin) & (epochs.times <= bmax)
+# 
+#     idx_by_type = channel_indices_by_type(epochs.info)
+# 
+#     for e in epochs:
+# 
+#         if not _is_good(e, epochs.ch_names, idx_by_type, reject, flat):
+#             print "Artefact detected in epoch"
+#             continue
+# 
+#         e = e[picks_no_eog]
+#         mu = e[:, bmask].mean(axis=1)
+#         e -= mu[:, None]
+#         if not keep_sample_mean:
+#             e -= np.mean(e, axis=0)
+#         data += np.dot(e, e.T)
+#         n_samples += e.shape[1]
+# 
+#     print "Number of samples used : %d" % n_samples
+#     print '[done]'
+#     return data, n_samples, ch_names
 
 
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
@@ -467,8 +467,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
 
 def compute_covariance(raw, events, event_ids, tmin, tmax,
-                     bmin=None, bmax=None, reject=None, flat=None,
-                     keep_sample_mean=True):
+                       baseline=(None, None), reject=None, flat=None,
+                       keep_sample_mean=True, proj=True):
     """Estimate noise covariance matrix from raw file and events.
 
     The noise covariance is typically estimated on pre-stim periods
@@ -488,11 +488,15 @@ def compute_covariance(raw, events, event_ids, tmin, tmax,
     tmax : float
         Final time in (s) around trigger. Ex: if tmax=0.5
         then the end is 500ms after trigger onset.
-    bmin : float
-        Used to specify a specific baseline for the offset.
-        bmin is the init of baseline.
-    bmax : float
-        bmax is the end of baseline.
+    baseline: tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
+        Default is (None, None).
     reject : dict
         Rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -519,18 +523,23 @@ def compute_covariance(raw, events, event_ids, tmin, tmax,
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
     if isinstance(event_ids, int):
         event_ids = list(event_ids)
+    events = events.copy()
+    events_numbers = events[:, 2]
+    for i in event_ids[1:]:
+        events_numbers[events_numbers == i] = event_ids[0]
+
     data = 0.0
     n_samples = 0
-
-    for event_id in event_ids:
-        print "Processing event : %d" % event_id
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                            baseline=(None, 0))
-        d, n, ch_names = _estimate_compute_covariance_from_epochs(epochs,
-                      bmin=bmin, bmax=bmax, reject=reject, flat=flat,
-                      keep_sample_mean=keep_sample_mean)
-        data += d
-        n_samples += n
+    epochs = Epochs(raw, events, event_ids[0], tmin, tmax, picks=picks,
+                    baseline=baseline, proj=proj, reject=reject, flat=flat)
+    picks_meeg = pick_types(epochs.info, meg=True, eeg=True, eog=False)
+    ch_names = [epochs.ch_names[k] for k in picks_meeg]
+    for e in epochs:
+        e = e[picks_meeg]
+        if not keep_sample_mean:
+            e -= np.mean(e, axis=0)
+        data += np.dot(e, e.T)
+        n_samples += e.shape[1]
 
     if n_samples == 0:
         raise ValueError('Not enough samples to compute the noise covariance'
@@ -540,6 +549,10 @@ def compute_covariance(raw, events, event_ids, tmin, tmax,
     cov = Covariance(None)
     cov.data = data
     cov.ch_names = ch_names
+
+    print "Number of samples used : %d" % n_samples
+    print '[done]'
+
     return cov
 
 

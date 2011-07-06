@@ -54,11 +54,11 @@ def test_cov_estimation_with_triggers():
     cov = mne.compute_covariance(raw, events, event_ids, tmin=-0.2, tmax=0,
                                reject=dict(grad=10000e-13, mag=4e-12,
                                            eeg=80e-6, eog=150e-6),
-                               keep_sample_mean=True)
+                               keep_sample_mean=True, proj=True)
     cov_mne = mne.Covariance(cov_fname)
     assert cov_mne.ch_names == cov.ch_names
     assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.05
+            / linalg.norm(cov.data, ord='fro')) < 0.06
 
 
 def test_whitening_cov():
