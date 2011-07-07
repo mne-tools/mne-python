@@ -14,6 +14,7 @@ cov {
     magReject 4e-12
     eegReject 80e-6
     eogReject 150e-6
+    keepsamplemean
 #
 #	What to include in the covariance matrix?
 #

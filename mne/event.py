@@ -106,3 +106,27 @@ def find_events(raw, stim_channel='STI 014'):
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
     return events
+
+
+def merge_events(events, ids, new_id):
+    """Merge a set of events
+
+    Parameters
+    ----------
+    events : array
+        Events
+    ids : array of int
+        The ids of events to merge
+    new_id : int
+        The new id
+
+    Returns
+    -------
+    new_events: array
+        The new events
+    """
+    events = events.copy()
+    events_numbers = events[:, 2]
+    for i in ids:
+        events_numbers[events_numbers == i] = new_id
+    return events
