@@ -2,10 +2,9 @@ import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
 
-import mne
-from mne import fiff
-from mne.time_frequency import induced_power, single_trial_power
-from mne.time_frequency.tfr import cwt_morlet
+from ... import fiff, Epochs, read_events
+from ...time_frequency import induced_power, single_trial_power
+from ...time_frequency.tfr import cwt_morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
@@ -22,7 +21,7 @@ def test_time_frequency():
 
     # Setup for reading the raw data
     raw = fiff.Raw(raw_fname)
-    events = mne.read_events(event_fname)
+    events = read_events(event_fname)
 
     include = []
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
@@ -32,7 +31,7 @@ def test_time_frequency():
                                     stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
