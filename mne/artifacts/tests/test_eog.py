@@ -1,9 +1,7 @@
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal
-
 from ...fiff import Raw
-from ..ecg import find_ecg_events
+from ..eog import find_eog_events
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
@@ -11,11 +9,9 @@ event_fname = op.join(data_path, 'test-eve.fif')
 proj_fname = op.join(data_path, 'test_proj.fif')
 
 
-def test_find_ecg():
-    """Test find ECG peaks"""
+def test_find_eog():
+    """Test find EOG peaks"""
     raw = Raw(raw_fname)
-    events = find_ecg_events(raw, event_id=999)
+    events = find_eog_events(raw)
     n_events = len(events)
-    _, times = raw[0, :]
-    average_pulse = 60.0 * (times[-1] - times[0]) / n_events
-    assert 60 < average_pulse < 65
+    assert n_events == 4
