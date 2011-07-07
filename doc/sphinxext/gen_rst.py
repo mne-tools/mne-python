@@ -165,6 +165,12 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
             import matplotlib.pyplot as plt
             plt.close('all')
             try:
+                from enthought.mayavi import mlab
+                mlab.close(all=True)
+            except:
+                pass
+
+            try:
                 execfile(example_file, {'pl' : plt})
                 facecolor = plt.gcf().get_facecolor() # hack to keep black bg
                 if facecolor == (0.0, 0.0, 0.0, 1.0):
@@ -174,8 +180,10 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 
                 try:
                     from enthought.mayavi import mlab
-                    mlab.savefig(image_file)
-                except Exception, e:
+                    e = mlab.get_engine()
+                    if len(e.scenes) > 0:
+                        mlab.savefig(image_file)
+                except:
                     pass
 
             except:
