@@ -23,4 +23,4 @@ mne_process_raw --raw test_raw.fif --filteroff --projon \
 mne_process_raw --raw test_raw.fif --events test-eve.fif --makeproj \
            --projtmin -0.2 --projtmax 0.3 --saveprojtag _proj \
            --projnmag 1 --projngrad 1 --projevent 1 \
-           --projmagrej 6000 --projgradrej 5000
+           --projmagrej 600000 --projgradrej 500000  --filteroff

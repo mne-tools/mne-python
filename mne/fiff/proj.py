@@ -302,8 +302,7 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
     projs: list
         List of projection vectors
     """
-    data = epochs.get_data()
-    data = data.swapaxes(0, 1).reshape(data.shape[1], -1)
+    data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
 
     mag_ind = pick_types(epochs.info, meg='mag')
     grad_ind = pick_types(epochs.info, meg='grad')
@@ -322,18 +321,24 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
     grad_names, mag_names, eeg_names = ([epochs.ch_names[k] for k in ind]
                                      for ind in [grad_ind, mag_ind, eeg_ind])
 
+    event_id = epochs.event_id
     projs = []
-    for n, ind, names in zip([n_grad, n_mag, n_eeg],
+    for n, ind, names, desc in zip([n_grad, n_mag, n_eeg],
                       [grad_ind, mag_ind, eeg_ind],
-                      [grad_names, mag_names, eeg_names]):
+                      [grad_names, mag_names, eeg_names],
+                      ['planar', 'axial', 'eeg']):
         if n == 0:
             continue
-        U = linalg.svd(data[ind], full_matrices=False,
+        data_ind = data[ind][:,ind]
+        U = linalg.svd(data_ind, full_matrices=False,
                                          overwrite_a=True)[0][:, :n]
         for k, u in enumerate(U.T):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
-            proj = dict(active=True, data=proj_data, desc='MEG %s' % k, kind=1)
+            this_desc = "%s-%-d-%-.3f-%-.3f-PCA-%02d" % (desc, event_id,
+                                             epochs.tmin, epochs.tmax, k + 1)
+            print "Adding projection: %s" % this_desc
+            proj = dict(active=True, data=proj_data, desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs
