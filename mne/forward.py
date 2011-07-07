@@ -34,9 +34,16 @@ def _block_diag(A, n):
     row matrix, where each set of n columns corresponds to a block element
     from the block diagonal.
 
-    Routine uses NO for-loops for speed considerations.
-
-    XXX : format doc
+    Parameters
+    ----------
+    A: array
+        The matrix
+    n: int
+        The block size
+    Returns
+    -------
+    bd: sparse matrix
+        The block diagonal matrix
     """
     from scipy import sparse
 
