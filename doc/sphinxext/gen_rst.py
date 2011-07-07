@@ -171,6 +171,13 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                     plt.savefig(image_file, facecolor='black')
                 else:
                     plt.savefig(image_file)
+
+                try:
+                    from enthought.mayavi import mlab
+                    mlab.savefig(image_file)
+                except Exception, e:
+                    pass
+
             except:
                 print 80*'_'
                 print '%s is not compiling:' % fname
