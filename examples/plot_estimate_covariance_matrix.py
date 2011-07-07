@@ -19,7 +19,7 @@ fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
 raw = fiff.Raw(fname)
 
-# Set up pick list: MEG + STI 014 - bad channels
+# Compute the covariance from the raw data
 cov = mne.compute_raw_data_covariance(raw, reject=dict(eeg=80e-6, eog=150e-6))
 print cov
 
