@@ -19,10 +19,20 @@ def _transpose_named_matrix(mat):
 def _read_named_matrix(fid, node, matkind):
     """Read named matrix from the given node
 
-    XXX
+    Parameters
+    ----------
+    fid: file
+        The opened file descriptor
+    node: dict
+        The node in the tree
+    matkind: int
+        The type of matrix
 
+    Returns
+    -------
+    mat: dict
+        The matrix data
     """
-
     #   Descend one level if necessary
     if node['block'] != FIFF.FIFFB_MNE_NAMED_MATRIX:
         for k in range(node['nchild']):
