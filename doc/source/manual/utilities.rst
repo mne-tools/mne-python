@@ -1281,52 +1281,94 @@ expressions.
 
 .. _CHDJIBHA:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.6\linewidth}|
 .. table:: Mathematical functions available for source waveform expressions
 
-    ================  ===============================================================================================================================================================================================================================
-    Function          Description
-    ================  ===============================================================================================================================================================================================================================
-    abs(x)            absolute value
-    acos(x)           :math:`\cos^{-1}x`
-    asin(x)           :math:`\sin^{-1}x`
-    atan(x)           :math:`\tan^{-1}x`
-    atan2(x,y)        :math:`\tan^{-1}(^y/_x)`
-    ceil(x)           nearest integer larger than :math:`x`
-    cos(x)            :math:`\cos x`
-    cosw(x,a,b,c)     :math:`\cos^2` -shaped window centered at :math:`b` with a rising slope of length :math:`a` and a trailing slope of length :math:`b`.
-    deg(x)            The value of :math:`x` converted to from radians to degrees
-    erf(x)            :math:`\frac{1}{2\pi} \int_0^x{\text{exp}(-t^2)dt}`
-    erfc(x)           :math:`1 - \text{erf}(x)`
-    exp(x)            :math:`e^x`
-    floor(x)          Largest integer value not larger than :math:`x`
-    hypot(x,y)        :math:`\sqrt{x^2 + y^2}`
-    ln(x)             :math:`\ln x`
-    log(x)            :math:`\log_{10} x`
-    maxp(x,y)         Takes the maximum between :math:`x` and :math:`y`
-    minp(x,y)         Takes the minimum between :math:`x` and :math:`y`
-    mod(x,y)          Gives the remainder of  :math:`x` divided by :math:`y`
-    pi                Ratio of the circumference of a circle and its diameter.
-    rand              Gives a vector of uniformly distributed random numbers from 0 to 1.
-    rnorm(x,y)        Gives a vector of Gaussian random numbers distributed as :math:`N(x,y)`. Note that if :math:`x` and :math:`y` are vectors, each number generated will a different mean and variance according to the arguments.
-    shift(x,s)        Shifts the values in the input vector :math:`x` by the number of positions given by :math:`s`. Note that :math:`s` must be a scalar.
-    sin(x)            :math:`\sin x`
-    sqr(x)            :math:`x^2`
-    sqrt(x)           :math:`\sqrt{x}`
-    tan(x)            :math:`\tan x`
-    ================  ===============================================================================================================================================================================================================================
+    +-----------------------+---------------------------------------------------------------+
+    | Function              | Description                                                   |
+    +-----------------------+---------------------------------------------------------------+
+    | abs(x)                | absolute value                                                |
+    +-----------------------+---------------------------------------------------------------+
+    | acos(x)               | :math:`\cos^{-1}x`                                            |
+    +-----------------------+---------------------------------------------------------------+
+    | asin(x)               | :math:`\sin^{-1}x`                                            |
+    +-----------------------+---------------------------------------------------------------+
+    | atan(x)               | :math:`\tan^{-1}x`                                            |
+    +-----------------------+---------------------------------------------------------------+
+    | atan2(x,y)            | :math:`\tan^{-1}(^y/_x)`                                      |
+    +-----------------------+---------------------------------------------------------------+
+    | ceil(x)               | nearest integer larger than :math:`x`                         |
+    +-----------------------+---------------------------------------------------------------+
+    | cos(x)                | :math:`\cos x`                                                |
+    +-----------------------+---------------------------------------------------------------+
+    | cosw(x,a,b,c)         | :math:`\cos^2` -shaped window centered at :math:`b` with a    |
+    |                       | rising slope of length :math:`a` and a trailing slope of      |
+    |                       | length :math:`b`.                                             |
+    +-----------------------+---------------------------------------------------------------+
+    | deg(x)                | The value of :math:`x` converted to from radians to degrees   |
+    +-----------------------+---------------------------------------------------------------+
+    | erf(x)                | :math:`\frac{1}{2\pi} \int_0^x{\text{exp}(-t^2)dt}`           |
+    +-----------------------+---------------------------------------------------------------+
+    | erfc(x)               | :math:`1 - \text{erf}(x)`                                     |
+    +-----------------------+---------------------------------------------------------------+
+    | exp(x)                | :math:`e^x`                                                   |
+    +-----------------------+---------------------------------------------------------------+
+    | floor(x)              | Largest integer value not larger than :math:`x`               |
+    +-----------------------+---------------------------------------------------------------+
+    | hypot(x,y)            | :math:`\sqrt{x^2 + y^2}`                                      |
+    +-----------------------+---------------------------------------------------------------+
+    | ln(x)                 | :math:`\ln x`                                                 |
+    +-----------------------+---------------------------------------------------------------+
+    | log(x)                | :math:`\log_{10} x`                                           |
+    +-----------------------+---------------------------------------------------------------+
+    | maxp(x,y)             | Takes the maximum between :math:`x` and :math:`y`             |
+    +-----------------------+---------------------------------------------------------------+
+    | minp(x,y)             | Takes the minimum between :math:`x` and :math:`y`             |
+    +-----------------------+---------------------------------------------------------------+
+    | mod(x,y)              | Gives the remainder of  :math:`x` divided by :math:`y`        |
+    +-----------------------+---------------------------------------------------------------+
+    | pi                    | Ratio of the circumference of a circle and its diameter.      |
+    +-----------------------+---------------------------------------------------------------+
+    | rand                  | Gives a vector of uniformly distributed random numbers        |
+    |                       | from 0 to 1.                                                  |
+    +-----------------------+---------------------------------------------------------------+
+    | rnorm(x,y)            | Gives a vector of Gaussian random numbers distributed as      |
+    |                       | :math:`N(x,y)`. Note that if :math:`x` and :math:`y` are      |
+    |                       | vectors, each number generated will a different mean and      |
+    |                       | variance according to the arguments.                          |
+    +-----------------------+---------------------------------------------------------------+
+    | shift(x,s)            | Shifts the values in the input vector :math:`x` by the number |
+    |                       | of positions given by :math:`s`. Note that :math:`s` must be  |
+    |                       | a scalar.                                                     |
+    +-----------------------+---------------------------------------------------------------+
+    | sin(x)                | :math:`\sin x`                                                |
+    +-----------------------+---------------------------------------------------------------+
+    | sqr(x)                | :math:`x^2`                                                   |
+    +-----------------------+---------------------------------------------------------------+
+    | sqrt(x)               | :math:`\sqrt{x}`                                              |
+    +-----------------------+---------------------------------------------------------------+
+    | tan(x)                | :math:`\tan x`                                                |
+    +-----------------------+---------------------------------------------------------------+
 
+
+.. tabularcolumns:: |p{0.4\linewidth}|p{0.4\linewidth}|
 .. _CHDDJEHH:
-
 .. table:: Examples of source waveform expressions.
 
-    =============================================  =======================================================================================================================
-    Expression                                     Meaning
-    =============================================  =======================================================================================================================
-    q = 20e-9*sin(2*pi*10*x)                       A 10-Hz sine wave with 20 nAm amplitude
-    q = 20e-9*sin(2*pi*2*x)*sin(2*pi*10*x)         A 10-Hz 20-nAm sine wave, amplitude modulated sinusoidally at 2 Hz.
-    q = 20e-9*cosw(t,100,100,100)                  :math:`\cos^2`-shaped pulse, centered at :math:`t` = 100 ms with 100 ms leading and trailing slopes, 20 nAm amplitude.
-    q = 30e-9*(t > 0)*(t  <* 300)*sin(2*pi*20*x)     20-Hz sine wave, 30 nAm amplitude, cropped in time to 0...300 ms.
-    =============================================  =======================================================================================================================
+    +---------------------------------------------+-------------------------------------------------------------+
+    | Expression                                  | Meaning                                                     |
+    +---------------------------------------------+-------------------------------------------------------------+
+    | q = 20e-9*sin(2*pi*10*x)                    | A 10-Hz sine wave with 20 nAm amplitude                     |
+    +---------------------------------------------+-------------------------------------------------------------+
+    | q = 20e-9*sin(2*pi*2*x)*sin(2*pi*10*x)      | A 10-Hz 20-nAm sine wave, amplitude modulated               |
+    |                                             | sinusoidally at 2 Hz.                                       |
+    +---------------------------------------------+-------------------------------------------------------------+
+    | q = 20e-9*cosw(t,100,100,100)               | :math:`\cos^2`-shaped pulse, centered at :math:`t` = 100 ms |
+    |                                             | with 100 ms leading and trailing slopes, 20 nAm amplitude   |
+    +---------------------------------------------+-------------------------------------------------------------+
+    | q = 30e-9*(t > 0)*(t  <* 300)*sin(2*pi*20*x)| 20-Hz sine wave, 30 nAm amplitude, cropped in time to       |
+    |                                             | 0...300 ms.                                                 |
+    +---------------------------------------------+-------------------------------------------------------------+
 
 .. _CHDEDHCG:
 

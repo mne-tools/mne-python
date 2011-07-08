@@ -36,6 +36,7 @@ they are listed in :ref:`BGBEFADJ`.
 
 .. note:: The matlab function fiff_setup_read_raw has    a significant change. The sample numbers now take into account possible    initial skip in the file, *i.e.*, the time between    the start of the data acquisition and the start of saving the data    to disk. The first_samp member    of the returned structure indicates the initial skip in samples.    If you want your own routines, which assume that initial skip has    been removed, perform identically with the previous version, subtract first_samp from    the sample numbers you specify to fiff_read_raw_segment .    Furthermore, fiff_setup_read_raw has an    optional argument to allow reading of unprocessed MaxShield data acquired    with the Elekta MEG systems.
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. _BGBCGHAG:
 .. table:: High-level reading routines.
 
@@ -69,6 +70,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Channel selection utilities.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -92,6 +94,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Coordinate transformation utilities.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -110,6 +113,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Basic reading routines.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -137,6 +141,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Writing routines.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -194,6 +199,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: High-level data writing routines.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -213,6 +219,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Coil definition utilities.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -224,7 +231,7 @@ they are listed in :ref:`BGBEFADJ`.
     | mne_load_coil_def              | Load a coil definition file.                                 |
     +--------------------------------+--------------------------------------------------------------+
 
-
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Routines for software gradient compensation and signal-space projection.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -251,6 +258,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: High-level routines for reading MNE data files.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -283,6 +291,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: High-level routines for writing MNE data files.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -303,8 +312,8 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. _BABBDDAI:
-
 .. table:: Routines related to stc, w, and label files.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -347,6 +356,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. table:: Routines for reading FreeSurfer surfaces.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -368,8 +378,8 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. _BGBEGFBD:
-
 .. table:: Utility functions.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -412,8 +422,8 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.3\linewidth}|p{0.6\linewidth}|
 .. _BGBEFADJ:
-
 .. table:: Examples demonstrating the use of the toolbox.
 
     +--------------------------------+--------------------------------------------------------------+
@@ -531,13 +541,14 @@ The documented structures are:
 
 .. note:: The MNE Matlab toolbox tries it best to employ vertex numbering starting from 1 as opposed to 0 as recorded in the data files. There are, however, two exceptions where explicit attention to the vertex numbering convention is needed. First, the standard stc and w file reading and writing routines return and    assume zero-based vertex numbering. There are now versions with names ending with '1', which return and assume one-based vertex numbering, see :ref:`BABBDDAI`. Second, the logno field of the channel information in the data files produced by mne_compute_raw_inverse is the zero-based number of the vertex whose source space signal is contained on this channel.
 
-.. _BGBJHCGD:
 
+.. tabularcolumns:: |p{0.38\linewidth}|p{0.06\linewidth}|p{0.46\linewidth}|
+.. _BGBJHCGD:
 .. table:: FIFF constants.
 
     +-------------------------------+-------+----------------------------------------------------------+
     | Name                          | Value | Purpose                                                  |
-    +===============================+=======+==========================================================+
+    +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_MEG_CH                  | 1     | This is a MEG channel.                                   |
     +-------------------------------+-------+----------------------------------------------------------+
     | FIFFV_REF_MEG_CH              | 301   | This a reference MEG channel, located far away from the  |
@@ -755,8 +766,9 @@ The documented structures are:
     data          various      The matrix data, usually of type single or double.
     ============  ===========  ======================================================================
 
-.. _BGBDHBIF:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBDHBIF:
 .. table:: The trans structure.
 
     +---------------------------+-----------+----------------------------------------------------------+
@@ -773,8 +785,8 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBHDEDG:
-
 .. table:: The dig structure.
 
     +---------------------------+-----------+----------------------------------------------------------+
@@ -790,8 +802,8 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBGBEBH:
-
 .. table:: The coildef structure. For more detailed information, see :ref:`BJEIAEIE`.
 
     +-------------------+-------------------+----------------------------------------------------------+
@@ -819,8 +831,8 @@ The documented structures are:
     +-------------------+-------------------+----------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBIABGD:
-
 .. table:: The ch structure.
 
     +---------------------------+-----------+----------------------------------------------------------+
@@ -875,8 +887,8 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
 
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBCJHJB:
-
 .. table:: The proj structure.
 
     +---------------------------+-----------+----------------------------------------------------------+
@@ -895,8 +907,9 @@ The documented structures are:
     +---------------------------+-----------+----------------------------------------------------------+
 
 
-.. _BGBJDIFD:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
+.. _BGBJDIFD:
 .. table:: The comp structure.
 
     +---------------------------+-----------+----------------------------------------------------------+
@@ -926,7 +939,6 @@ The documented structures are:
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBFHDIJ:
-
 .. table:: The meas info structure.
 
     +---------------------------+-----------+----------------------------------------------------------+

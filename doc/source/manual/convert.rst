@@ -1669,54 +1669,55 @@ Guide to combining options
 The combination of options is quite complicated. The :ref:`BEHDCIII` should be
 helpful to determine the combination of options appropriate for your needs.
 
-.. _BEHDCIII:
 
+.. tabularcolumns:: |p{0.38\linewidth}|p{0.1\linewidth}|p{0.2\linewidth}|p{0.3\linewidth}|
+.. _BEHDCIII:
 .. table:: Guide to combining mne_convert_mne_data options.
 
     +-------------------------------------+---------+--------------------------+-----------------------+
     | Desired output                      | Format  | Required options         | Optional options      |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | forward model                       | fif     | | \---fwd <*name*>       | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       | \---surfsrc           |
-    |                                     |         | | \---meg and/or \---eeg |                       |
-    |                                     |         | | \---fif                |                       |
+    | forward model                       | fif     |   \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       | \---surfsrc           |
+    |                                     |         |   \---meg and/or \---eeg |                       |
+    |                                     |         |   \---fif                |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | forward model                       | mat     | | \---fwd <*name*>       | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       | \---surfsrc           |
-    |                                     |         | | \---meg and/or --eeg   |                       |
+    | forward model                       | mat     |   \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       | \---surfsrc           |
+    |                                     |         |   \---meg and/or --eeg   |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | forward model and sensor covariance | mat     | | \---fwd <*name*>       | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       | \---surfsrc           |
-    |                                     |         | | \---senscov <*name*>   |                       |
-    |                                     |         | | \---meg and/or --eeg   |                       |
+    | forward model and sensor covariance | mat     |   \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       | \---surfsrc           |
+    |                                     |         |   \---senscov <*name*>   |                       |
+    |                                     |         |   \---meg and/or --eeg   |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | sensor covariance                   | fif     | | \---fwd <*name*>       | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       |                       |
-    |                                     |         | | \---senscov <*name*>   |                       |
-    |                                     |         | | \---noiseonly          |                       |
-    |                                     |         | | \---fif                |                       |
-    |                                     |         | | \---meg and/or --eeg   |                       |
+    | sensor covariance                   | fif     |   \---fwd <*name*>       | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       |                       |
+    |                                     |         |   \---senscov <*name*>   |                       |
+    |                                     |         |   \---noiseonly          |                       |
+    |                                     |         |   \---fif                |                       |
+    |                                     |         |   \---meg and/or --eeg   |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | sensor covariance                   | mat     | | \---senscov <*name*>   | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       |                       |
+    | sensor covariance                   | mat     |   \---senscov <*name*>   | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | sensor covariance eigenvalues       | text    | | \---senscov <*name*>   | \---bad <*name*>      |
-    |                                     |         | | \---out <*name*>       |                       |
-    |                                     |         | | \---eig                |                       |
+    | sensor covariance eigenvalues       | text    |   \---senscov <*name*>   | \---bad <*name*>      |
+    |                                     |         |   \---out <*name*>       |                       |
+    |                                     |         |   \---eig                |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | evoked MEG/EEG data                 | mat     | | \---meas <*name*>      | \---sel <*name*>      |
-    |                                     |         | | \---out <*name*>       | \---set <*number*>    |
+    | evoked MEG/EEG data                 | mat     |   \---meas <*name*>      | \---sel <*name*>      |
+    |                                     |         |   \---out <*name*>       | \---set <*number*>    |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | evoked MEG/EEG data forward model   | mat     | | \---meas <*name*>      | \---bad <*name*>      |
-    |                                     |         | | \---fwd <*name*>       | \---set <*number*>    |
-    |                                     |         | | \---out <*name*>       |                       |
+    | evoked MEG/EEG data forward model   | mat     |   \---meas <*name*>      | \---bad <*name*>      |
+    |                                     |         |   \---fwd <*name*>       | \---set <*number*>    |
+    |                                     |         |   \---out <*name*>       |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | inverse operator data               | mat     | | \---inv <*name*>       |                       |
-    |                                     |         | | \---out <*name*>       |                       |
+    | inverse operator data               | mat     |   \---inv <*name*>       |                       |
+    |                                     |         |   \---out <*name*>       |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
-    | inverse operator data evoked        | mat     | | \–--inv <*name*>       |                       |
-    | MEG/EEG data                        |         | | \–--meas <*name*>      |                       |
-    |                                     |         | | \–--out <*name*>       |                       |
+    | inverse operator data evoked        | mat     |   \–--inv <*name*>       |                       |
+    | MEG/EEG data                        |         |   \–--meas <*name*>      |                       |
+    |                                     |         |   \–--out <*name*>       |                       |
     +-------------------------------------+---------+--------------------------+-----------------------+
 
 Matlab data structures
@@ -1750,7 +1751,6 @@ The symbols employed in variable size descriptions are:
     of time points in the measurement data.
 
 .. _BEHCICCA:
-
 .. table:: Matlab structures produced by mne_convert_mne_data.
 
     ===============  =======================================
@@ -1764,41 +1764,110 @@ The symbols employed in variable size descriptions are:
 
 The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHCICCF`. Its default value is MNE.
 
-.. _BABCBIGF:
 
+.. tabularcolumns:: |p{0.14\linewidth}|p{0.13\linewidth}|p{0.73\linewidth}|
+.. _BABCBIGF:
 .. table:: The fields of Matlab structures.
 
-    ===================  ==================  =================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    Variable             Size                Description
-    ===================  ==================  =================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    fwd                  nsource x nchan     The forward solution, one source on each row. For free orientation sources, the fields of the three orthogonal dipoles for each location are listed consecutively.
-    names ch_names       nchan (string)      String array containing the names of the channels included
-    ch_types             nchan x 2           The column lists the types of the channels (1 = MEG, 2 = EEG). The second column lists the coil types, see Tables 5.2 and 5.3. For EEG electrodes, this value equals one.
-    ch_pos               nchan x 3           The location information for each channel. The first three values specify the origin of the sensor coordinate system or the location of the electrode. For MEG channels, the following nine number specify the *x*, *y*, and *z*-direction unit vectors of the sensor coordinate system. For EEG electrodes the first unit vector specifies the location of the reference electrode. If the reference is not specified this value is all zeroes. The remaining unit vectors are irrelevant for EEG electrodes.
-    ch_lognos            nchan x 1           Logical channel numbers as listed in the fiff file
-    ch_units             nchan x 2           Units and unit multipliers as listed in the fif file. The unit of the data is listed in the first column (T = 112, T/m = 201, V = 107). At present, the second column will be always zero, *i.e.*, no unit multiplier.
-    ch_cals              nchan x 2           Even if the data comes from the conversion already calibrated, the original calibration factors are included. The first column is the range member of the fif data structures and while the second is the cal member. To get calibrated values in the units given in ch_units from the raw data, the data must be multiplied with the product of range and cal .
-    sfreq                1                   The sampling frequency in Hz.
-    lowpass              1                   Lowpass filter frequency (Hz)
-    highpass             1                   Highpass filter frequency (Hz)
-    source_loc           nloc x 3            The source locations given in the coordinate frame indicated by the coord_frame member.
-    source_ori           nsource x 3         The source orientations
-    source_selection     nsource x 2         Indication of the sources selected from the complete source spaces. Each row contains the number of the source in the complete source space (starting with 0) and the source space number (1 or 2). These numbers refer to the order the two hemispheres where listed when mne_make_source_space was invoked. mne_setup_source_space lists the left hemisphere first.
-    coord_frame          string              Name of the coordinate frame employed in the forward calculations. Possible values are 'head' and 'mri'.
-    mri_head_trans       4 x 4               The coordinate frame transformation from mri the MEG 'head' coordinates.
-    meg_head_trans       4 x 4               The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates
-    noise_cov            nchan x nchan       The noise covariance matrix
-    source_cov           nsource             The elements of the diagonal source covariance matrix.
-    sing                 nchan               The singular values of :math:`A = C_0^{-^1/_2} G R^C = U \Lambda V^T` with :math:`R` selected so that :math:`\text{trace}(AA^T) / \text{trace}(I) = 1` as discussed in :ref:`CHDDHAGE`
-    eigen_fields         nchan x nchan       The rows of this matrix are the left singular vectors of :math:`A`, i.e., the columns of :math:`U`, see above.
-    eigen_leads          nchan x nsource     The rows of this matrix are the right singular vectors of :math:`A`, i.e., the columns of :math:`V`, see above.
-    noise_eigenval       nchan               In terms of :ref:`CHDDHAGE`, eigenvalues of :math:`C_0`, i.e., not scaled with number of averages.
-    noise_eigenvec       nchan               Eigenvectors of the noise covariance matrix. In terms of :ref:`CHDDHAGE`, :math:`U_C^T`.
-    data                 nchan x ntime       The measured data. One row contains the data at one time point.
-    times                ntime               The time points in the above matrix in seconds
-    nave                 1                   Number of averages as listed in the data file.
-    meas_times           ntime               The time points in seconds.
-    ===================  ==================  =================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | Variable              | Size            | Description                                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | fwd                   | nsource x nchan | The forward solution, one source on each row. For free     |
+    |                       |                 | orientation sources, the fields of the three orthogonal    |
+    |                       |                 | dipoles for each location are listed consecutively.        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | names ch_names        | nchan (string)  | String array containing the names of the channels included |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_types              | nchan x 2       | The column lists the types of the channels (1 = MEG,       |
+    |                       |                 | 2 = EEG). The second column lists the coil types, see      |
+    |                       |                 | :ref:`BGBBHGEC` and :ref:`CHDBDFJE`. For EEG electrodes,   |
+    |                       |                 | this value equals one.                                     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_pos                | nchan x 3       | The location information for each channel. The first three |
+    |                       |                 | values specify the origin of the sensor coordinate system  |
+    |                       |                 | or the location of the electrode. For MEG channels, the    |
+    |                       |                 | following nine number specify the *x*, *y*, and            |
+    |                       |                 | *z*-direction unit vectors of the sensor coordinate system.|
+    |                       |                 | For EEG electrodes the first unit vector specifies the     |
+    |                       |                 | location of the reference electrode. If the reference is   |
+    |                       |                 | not specified this value is all zeroes. The remaining unit |
+    |                       |                 | vectors are irrelevant for EEG electrodes.                 |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_lognos             | nchan x 1       | Logical channel numbers as listed in the fiff file         |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_units              | nchan x 2       | Units and unit multipliers as listed in the fif file. The  |
+    |                       |                 | unit of the data is listed in the first column (T = 112,   |
+    |                       |                 | T/m = 201, V = 107). At present, the second column will be |
+    |                       |                 | always zero, *i.e.*, no unit multiplier.                   |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_cals               | nchan x 2       | Even if the data comes from the conversion already         |
+    |                       |                 | calibrated, the original calibration factors are included. |
+    |                       |                 | The first column is the range member of the fif data       |
+    |                       |                 | structures and while the second is the cal member. To get  |
+    |                       |                 | calibrated values in the units given in ch_units from the  |
+    |                       |                 | raw data, the data must be multiplied with the product of  |
+    |                       |                 | range and cal.                                             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | sfreq                 | 1               | The sampling frequency in Hz.                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | lowpass               | 1               | Lowpass filter frequency (Hz)                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | highpass              | 1               | Highpass filter frequency (Hz)                             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | source_loc            | nloc x 3        | The source locations given in the coordinate frame         |
+    |                       |                 | indicated by the coord_frame member.                       |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | source_ori            | nsource x 3     | The source orientations                                    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | source_selection      | nsource x 2     | Indication of the sources selected from the complete source|
+    |                       |                 | spaces. Each row contains the number of the source in the  |
+    |                       |                 | complete source space (starting with 0) and the source     |
+    |                       |                 | space number (1 or 2). These numbers refer to the order the|
+    |                       |                 | two hemispheres where listed when mne_make_source_space was|
+    |                       |                 | invoked. mne_setup_source_space lists the left hemisphere  |
+    |                       |                 | first.                                                     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | coord_frame           | string          | Name of the coordinate frame employed in the forward       |
+    |                       |                 | calculations. Possible values are 'head' and 'mri'.        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | mri_head_trans        | 4 x 4           | The coordinate frame transformation from mri the MEG 'head'|
+    |                       |                 | coordinates.                                               |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | meg_head_trans        | 4 x 4           | The coordinate frame transformation from the MEG device    |
+    |                       |                 | coordinates to the MEG head coordinates                    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | noise_cov             | nchan x nchan   | The noise covariance matrix                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | source_cov            | nsource         | The elements of the diagonal source covariance matrix.     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | sing                  | nchan           | The singular values of                                     |
+    |                       |                 | :math:`A = C_0^{-^1/_2} G R^C = U \Lambda V^T`             |
+    |                       |                 | with :math:`R` selected so that                            |
+    |                       |                 | :math:`\text{trace}(AA^T) / \text{trace}(I) = 1`           |
+    |                       |                 | as discussed in :ref:`CHDDHAGE`                            |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | eigen_fields          | nchan x nchan   | The rows of this matrix are the left singular vectors of   |
+    |                       |                 | :math:`A`, i.e., the columns of :math:`U`, see above.      |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | eigen_leads           | nchan x nsource | The rows of this matrix are the right singular vectors of  |
+    |                       |                 | :math:`A`, i.e., the columns of :math:`V`, see above.      |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | noise_eigenval        | nchan           | In terms of :ref:`CHDDHAGE`, eigenvalues of :math:`C_0`,   |
+    |                       |                 | i.e., not scaled with number of averages.                  |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | noise_eigenvec        | nchan           | Eigenvectors of the noise covariance matrix. In terms of   |
+    |                       |                 | :ref:`CHDDHAGE`, :math:`U_C^T`.                            |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | data                  | nchan x ntime   | The measured data. One row contains the data at one time   |
+    |                       |                 | point.                                                     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | times                 | ntime           | The time points in the above matrix in seconds             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | nave                  | 1               | Number of averages as listed in the data file.             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | meas_times            | ntime           | The time points in seconds.                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
 
 .. _convert_to_matlab:
 
@@ -1870,41 +1939,87 @@ The fields of the <*tag*>_raw_info structure
 are listed in :ref:`BEHFDCIH`. Further explanation of the bufs field
 is provided in :ref:`BEHJEIHJ`.
 
-.. _BEHFDCIH:
 
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.15\linewidth}|p{0.6\linewidth}|
+.. _BEHFDCIH:
 .. table:: The fields of the raw data info structure.
 
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    Variable           Size               Description
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    orig_file          string             The name of the original fif file specified with the ``--raw`` option.
-    nchan              1                  Number of channels.
-    nsamp              1                  Total number of samples
-    bufs               nbuf x 4           This field is present if ``--info`` option was specified on the command line. For details, see :ref:`BEHJEIHJ`.
-    sfreq              1                  The sampling frequency in Hz.
-    lowpass            1                  Lowpass filter frequency (Hz)
-    highpass           1                  Highpass filter frequency (Hz)
-    ch_names           nchan (string)     String array containing the names of the channels included
-    ch_types           nchan x 2          The column lists the types of the channesl (1 = MEG, 2 = EEG). The second column lists the coil types, see Tables 5.2 and 5.3. For EEG electrodes, this value equals one.
-    ch_lognos          nchan x 1          Logical channel numbers as listed in the fiff file
-    ch_units           nchan x 2          Units and unit multipliers as listed in the fif file.  The unit of the data is listed in the first column (T = 112, T/m = 201, V = 107). At present, the second column will be always zero, *i.e.*, no unit multiplier.
-    ch_pos             nchan x 12         The location information for each channel. The first three values specify the origin of the sensor coordinate system or the location of the electrode. For MEG channels, the following nine number specify the *x*, *y*, and *z*-direction unit vectors of the sensor coordinate system. For EEG electrodes the first vector after the electrode location specifies the location of the reference electrode. If the reference is not specified this value is all zeroes. The remaining unit vectors are irrelevant for EEG electrodes.
-    ch_cals            nchan x 2          The raw data output by mne_raw2mat is uncalibrated. The first column is the range member of the fiff data structures and while the second is the cal member. To get calibrared data values in the units given in ch_units from the raw data, the data must be multiplied with the product of range and cal .
-    meg_head_trans     4 x 4              The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates.
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | Variable              | Size            | Description                                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | orig_file             | string          | The name of the original fif file specified with the       |
+    |                       |                 | ``--raw`` option.                                          |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | nchan                 | 1               | Number of channels.                                        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | nsamp                 | 1               | Total number of samples                                    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | bufs                  | nbuf x 4        | This field is present if ``--info`` option was specified on|
+    |                       |                 | the command line. For details, see :ref:`BEHJEIHJ`.        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | sfreq                 | 1               | The sampling frequency in Hz.                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | lowpass               | 1               | Lowpass filter frequency (Hz)                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | highpass              | 1               | Highpass filter frequency (Hz)                             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_names              | nchan (string)  | String array containing the names of the channels included |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_types              | nchan x 2       | The column lists the types of the channesl (1 = MEG, 2 =   |
+    |                       |                 | EEG). The second column lists the coil types, see          |
+    |                       |                 | :ref:`BGBBHGEC` and :ref:`CHDBDFJE`. For EEG electrodes,   |
+    |                       |                 | this value equals one.                                     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_lognos             | nchan x 1       | Logical channel numbers as listed in the fiff file         |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_units              | nchan x 2       | Units and unit multipliers as listed in the fif file.      |
+    |                       |                 | The unit of the data is listed in the first column         |
+    |                       |                 | (T = 112, T/m = 201, V = 107). At present, the second      |
+    |                       |                 | column will be always zero, *i.e.*, no unit multiplier.    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_pos                | nchan x 12      | The location information for each channel. The first three |
+    |                       |                 | values specify the origin of the sensor coordinate system  |
+    |                       |                 | or the location of the electrode. For MEG channels, the    |
+    |                       |                 | following nine number specify the *x*, *y*, and            |
+    |                       |                 | *z*-direction unit vectors of the sensor coordinate system.|
+    |                       |                 | For EEG electrodes the first vector after the electrode    |
+    |                       |                 | location specifies the location of the reference electrode.|
+    |                       |                 | If the reference is not specified this value is all zeroes.|
+    |                       |                 | The remaining unit vectors are irrelevant for EEG          |
+    |                       |                 | electrodes.                                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_cals               | nchan x 2       | The raw data output by mne_raw2mat is uncalibrated.        |
+    |                       |                 | The first column is the range member of the fiff data      |
+    |                       |                 | structures and while the second is the cal member. To get  |
+    |                       |                 | calibrared data values in the units given in ch_units from |
+    |                       |                 | the raw data, the data must be multiplied with the product |
+    |                       |                 | of range and cal .                                         |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | meg_head_trans        | 4 x 4           | The coordinate frame transformation from the MEG device    |
+    |                       |                 | coordinates to the MEG head coordinates.                   |
+    +-----------------------+-----------------+------------------------------------------------------------+
 
+
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.6\linewidth}|
 .. _BEHJEIHJ:
-
 .. table:: The bufs member of the raw data info structure.
 
-    ========  ===========================================================================================================================================================================================================================
-    Column    Contents
-    ========  ===========================================================================================================================================================================================================================
-    1         The raw data type (2 or 16 = 2-byte signed integer, 3 = 4-byte signed integer, 4 = single-precision float). All data in the fif file are written in the big-endian byte order. The raw data are stored sample by sample.
-    2         Byte location of this buffer in the original fif file.
-    3         First sample of this buffer. Since raw data storing can be switched on and off during the acquisition, there might be gaps between the end of one buffer and the beginning of the next.
-    4         Number of samples in the buffer.
-    ========  ===========================================================================================================================================================================================================================
+    +-----------------------+-------------------------------------------------------------------------+
+    | Column                | Contents                                                                |
+    +-----------------------+-------------------------------------------------------------------------+
+    | 1                     | The raw data type (2 or 16 = 2-byte signed integer, 3 = 4-byte signed   |
+    |                       | integer, 4 = single-precision float). All data in the fif file are      |
+    |                       | written in the big-endian byte order. The raw data are stored sample by |
+    |                       | sample.                                                                 |
+    +-----------------------+-------------------------------------------------------------------------+
+    | 2                     | Byte location of this buffer in the original fif file.                  |
+    +-----------------------+-------------------------------------------------------------------------+
+    | 3                     | First sample of this buffer. Since raw data storing can be switched on  |
+    |                       | and off during the acquisition, there might be gaps between the end of  |
+    |                       | one buffer and the beginning of the next.                               |
+    +-----------------------+-------------------------------------------------------------------------+
+    | 4                     | Number of samples in the buffer.                                        |
+    +-----------------------+-------------------------------------------------------------------------+
 
 .. _BEHFIDCB:
 
@@ -2087,7 +2202,7 @@ The data are not calibrated, i.e., the calibration factors present
 in the Matlab description file have to be applied to get to physical
 units as described below.
 
-.. note:: The maximum size of an epoch data file is 2    Gbytes, *i.e.*, 0.5 Gsamples.
+.. note:: The maximum size of an epoch data file is 2 Gbytes, *i.e.*, 0.5 Gsamples.
 
 Matlab data structures
 ======================
@@ -2098,42 +2213,88 @@ The fields of the this structure are listed in :ref:`BEHFDCIH`.
 Further explanation of the epochs member
 is provided in :ref:`BEHHAGHE`.
 
-.. _BEHIFJIJ:
 
+.. tabularcolumns:: |p{0.15\linewidth}|p{0.15\linewidth}|p{0.6\linewidth}|
+.. _BEHIFJIJ:
 .. table:: The fields of the raw data info structure.
 
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    Variable           Size               Description
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
-    orig_file          string             The name of the original fif file specified with the ``--raw`` option.
-    epoch_file         string             The name of the epoch data file produced by mne_epocs2mat .
-    nchan              1                  Number of channels.
-    nepoch             1                  Total number of epochs.
-    epochs             nepoch x 5         Description of the content of the epoch data file, see :ref:`BEHHAGHE`.
-    sfreq              1                  The sampling frequency in Hz.
-    lowpass            1                  Lowpass filter frequency (Hz)
-    highpass           1                  Highpass filter frequency (Hz)
-    ch_names           nchan (string)     String array containing the names of the channels included
-    ch_types           nchan x 2          The column lists the types of the channels (1 = MEG, 2 = EEG). The second column lists the coil types, see Tables 5.2 and 5.3. For EEG electrodes, this value equals one.
-    ch_lognos          nchan x 1          Logical channel numbers as listed in the fiff file
-    ch_units           nchan x 2          Units and unit multipliers as listed in the fif file. The unit of the data is listed in the first column (T = 112, T/m = 201, V = 107). At present, the second column will be always zero, *i.e.*, no unit multiplier.
-    ch_pos             nchan x 12         The location information for each channel. The first three values specify the origin of the sensor coordinate system or the location of the electrode. For MEG channels, the following nine number specify the *x*, *y*, and *z*-direction unit vectors of the sensor coordinate system. For EEG electrodes the first vector after the electrode location specifies the location of the reference electrode. If the reference is not specified this value is all zeroes. The remaining unit vectors are irrelevant for EEG electrodes.
-    ch_cals            nchan x 2          The raw data output by mne_raw2mat are not calibrated. The first column is the range member of the fiff data structures and while the second is the cal member. To get calibrated data values in the units given in ch_units from the raw data, the data must be multiplied with the product of range and cal .
-    meg_head_trans     4 x 4              The coordinate frame transformation from the MEG device coordinates to the MEG head coordinates.
-    =================  =================  =========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | Variable              | Size            | Description                                                |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | orig_file             | string          | The name of the original fif file specified with the       |
+    |                       |                 | ``--raw`` option.                                          |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | epoch_file            | string          | The name of the epoch data file produced by mne_epocs2mat. |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | nchan                 | 1               | Number of channels.                                        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | nepoch                | 1               | Total number of epochs.                                    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | epochs                | nepoch x 5      | Description of the content of the epoch data file,         |
+    |                       |                 | see :ref:`BEHHAGHE`.                                       |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | sfreq                 | 1               | The sampling frequency in Hz.                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | lowpass               | 1               | Lowpass filter frequency (Hz)                              |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | highpass              | 1               | Highpass filter frequency (Hz)                             |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_names              | nchan (string)  | String array containing the names of the channels included |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_types              | nchan x 2       | The column lists the types of the channels (1 = MEG, 2 =   |
+    |                       |                 | EEG). The second column lists the coil types, see          |
+    |                       |                 | :ref:`BGBBHGEC` and :ref:`CHDBDFJE`. For EEG electrodes,   |
+    |                       |                 | this value equals one.                                     |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_lognos             | nchan x 1       | Logical channel numbers as listed in the fiff file         |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_units              | nchan x 2       | Units and unit multipliers as listed in the fif file.      |
+    |                       |                 | The unit of the data is listed in the first column         |
+    |                       |                 | (T = 112, T/m = 201, V = 107). At present, the second      |
+    |                       |                 | column will be always zero, *i.e.*, no unit multiplier.    |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_pos                | nchan x 12      | The location information for each channel. The first three |
+    |                       |                 | values specify the origin of the sensor coordinate system  |
+    |                       |                 | or the location of the electrode. For MEG channels, the    |
+    |                       |                 | following nine number specify the *x*, *y*, and            |
+    |                       |                 | *z*-direction unit vectors of the sensor coordinate        |
+    |                       |                 | system. For EEG electrodes the first vector after the      |
+    |                       |                 | electrode location specifies the location of the reference |
+    |                       |                 | electrode. If the reference is not specified this value is |
+    |                       |                 | all zeroes. The remaining unit vectors are irrelevant for  |
+    |                       |                 | EEG electrodes.                                            |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | ch_cals               | nchan x 2       | The raw data output by mne_raw2mat are not calibrated.     |
+    |                       |                 | The first column is the range member of the fiff data      |
+    |                       |                 | structures and while the second is the cal member. To      |
+    |                       |                 | get calibrated data values in the units given in           |
+    |                       |                 | ch_units from the raw data, the data must be multiplied    |
+    |                       |                 | with the product of range and cal .                        |
+    +-----------------------+-----------------+------------------------------------------------------------+
+    | meg_head_trans        | 4 x 4           | The coordinate frame transformation from the MEG device    |
+    |                       |                 | coordinates to the MEG head coordinates.                   |
+    +-----------------------+-----------------+------------------------------------------------------------+
 
+
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.6\linewidth}|
 .. _BEHHAGHE:
-
 .. table:: The epochs member of the raw data info structure.
 
-    ========  ================================================================================================================================================================================================================
-    Column    Contents
-    ========  ================================================================================================================================================================================================================
-    1         The raw data type (2 or 16 = 2-byte signed integer, 3 = 4-byte signed integer, 4 = single-precision float). The epoch data are written using the big-endian byte order. The data are stored sample by sample.
-    2         Byte location of this epoch in the binary epoch file.
-    3         First sample of this epoch in the original raw data file.
-    4         First sample of the epoch with respect to the event.
-    5         Number of samples in the epoch.
-    ========  ================================================================================================================================================================================================================
+    +---------------+------------------------------------------------------------------+
+    | Column        | Contents                                                         |
+    +---------------+------------------------------------------------------------------+
+    | 1             | The raw data type (2 or 16 = 2-byte signed integer, 3 = 4-byte   |
+    |               | signed integer, 4 = single-precision float). The epoch data are  |
+    |               | written using the big-endian byte order. The data are stored     |
+    |               | sample by sample.                                                |
+    +---------------+------------------------------------------------------------------+
+    | 2             | Byte location of this epoch in the binary epoch file.            |
+    +---------------+------------------------------------------------------------------+
+    | 3             | First sample of this epoch in the original raw data file.        |
+    +---------------+------------------------------------------------------------------+
+    | 4             | First sample of the epoch with respect to the event.             |
+    +---------------+------------------------------------------------------------------+
+    | 5             | Number of samples in the epoch.                                  |
+    +---------------+------------------------------------------------------------------+
 
 .. note:: For source modelling purposes, it is recommended    that the MNE Matlab toolbox, see :ref:`ch_matlab` is employed    to read the measurement info instead of using the channel information    in the raw data info structure described in :ref:`BEHIFJIJ`.
