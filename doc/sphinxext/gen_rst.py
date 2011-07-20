@@ -1,5 +1,5 @@
 """
-Example generation for the scikit learn
+Example generation
 
 Generate the rst files for the examples by iterating over the python
 example files.
@@ -154,13 +154,11 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
         # generate the plot as png image if file name
         # starts with plot and if it is more recent than an
         # existing image.
-        if not os.path.exists(
-                            os.path.join(target_dir, 'images')):
+        if not os.path.exists(os.path.join(target_dir, 'images')):
             os.makedirs(os.path.join(target_dir, 'images'))
         image_file = os.path.join(target_dir, 'images', image_name)
         if (not os.path.exists(image_file) or
-                os.stat(image_file).st_mtime <=
-                    os.stat(src_file).st_mtime):
+                os.stat(image_file).st_mtime <= os.stat(src_file).st_mtime):
             print 'plotting %s' % fname
             import matplotlib.pyplot as plt
             plt.close('all')
@@ -195,8 +193,8 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 
     docstring, short_desc, end_row = extract_docstring(example_file)
 
-    f = open(os.path.join(target_dir, fname[:-2] + 'rst'),'w')
-    f.write( this_template % locals())
+    f = open(os.path.join(target_dir, fname[:-2] + 'rst'), 'w')
+    f.write(this_template % locals())
     f.flush()
 
 
