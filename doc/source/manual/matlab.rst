@@ -1127,12 +1127,12 @@ The documented structures are:
     | mri_head_t              | trans       | Transformation from the MRI coordinate frame to the      |
     |                         |             | (Neuromag) head coordinate frame.                        |
     +-------------------------+-------------+----------------------------------------------------------+
-    | src                     | surf(*)     | he description of the source spaces.                     |
+    | src                     | surf(:)     | The description of the source spaces.                    |
     +-------------------------+-------------+----------------------------------------------------------+
     | source_rr               | double      | The source locations.                                    |
     |                         | (nsource,3) |                                                          |
     +-------------------------+-------------+----------------------------------------------------------+
-    | source_nn               | double(*,3) | The source orientations. Number of rows is either        |
+    | source_nn               | double(:,3) | The source orientations. Number of rows is either        |
     |                         |             | nsource (fixed source orientations) or 3*nsource         |
     |                         |             | (all source orientations).                               |
     +-------------------------+-------------+----------------------------------------------------------+
@@ -1141,67 +1141,67 @@ The documented structures are:
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.2\linewidth}|p{0.55\linewidth}|
 .. _BGBIEIJE:
 
-.. table:: The inv structure. Note: The fields proj , whitener , reginv , and noisenorm are filled in by the routine mne_prepare_inverse_operator.
+.. table:: The inv structure. Note: The fields proj, whitener, reginv, and noisenorm are filled in by the routine mne_prepare_inverse_operator.
 
-    +---------------------------+-----------+----------------------------------------------------------+
-    | Field                     | Data Type | Description                                              |
-    +===========================+===========+==========================================================+
-    | methods                   | int32     | Has the solution been computed using MEG data (1), EEG   |
-    |                           |           | data (2), or both (3).                                   |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | source_ori                | int32     | Has the solution been computed for the current component |
-    |                           |           | normal to the cortex only (1) or all three source        |
-    |                           |           | orientations (2).                                        |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | nsource                   | int32     | Total number of source space points.                     |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | nchan                     | int32     | Number of channels.                                      |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | coord_frame               | int32     | Coordinate frame in which the locations and orientations |
-    |                           |           | are expressed.                                           |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | source_nn                 |double(*,3)| The source orientations. Number of rows is either        |
-    |                           |           | nsource (fixed source orientations) or 3*nsource (all    |
-    |                           |           | source orientations).                                    |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | sing                      | double    | The singular values, *i.e.*, the diagonal values of      |
-    |                           | (nchan)   | :math:`\Lambda`, see :ref:`CHDBEHBC`.                    |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | eigen_leads               | double    | The matrix :math:`V`, see :ref:`CHDBEHBC`.               |
-    |                           | (*,nchan) |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | eigen_fields              | double    | The matrix :math:`U^T`, see :ref:`CHDBEHBC`.             |
-    |                           | (nchan,   |                                                          |
-    |                           | nchan)    |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | noise_cov                 | cov       | The noise covariance matrix :math:`C`.                   |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | source_cov                | cov       | The source covariance matrix :math:`R`.                  |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | src                       | surf(*)   | The description of the source spaces.                    |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | mri_head_t                | trans     | Transformation from the MRI coordinate frame to the      |
-    |                           |           | (Neuromag) head coordinate frame.                        |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | nave                      | double    | The number of averages.                                  |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | projs                     | proj(*)   | The SSP vectors which were active when the decomposition |
-    |                           |           | was computed.                                            |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | proj                      | double    | The projection operator computed using projs.            |
-    |                           | (nchan)   |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | whitener                  |           | A sparse matrix containing the noise normalization       |
-    |                           |           | factors. Dimension is either nsource (fixed source       |
-    |                           |           | orientations) or 3*nsource (all source orientations).    |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | reginv                    | double    | The diagonal matrix :math:`\Gamma`, see :ref:`CHDBEHBC`. |
-    |                           | (nchan)   |                                                          |
-    +---------------------------+-----------+----------------------------------------------------------+
-    | noisenorm                 | double(*) | A sparse matrix containing the noise normalization       |
-    |                           |           | factors. Dimension is either nsource (fixed source       |
-    |                           |           | orientations) or 3*nsource (all source orientations).    |
-    +---------------------------+-----------+----------------------------------------------------------+
+    +---------------------+-------------+----------------------------------------------------------+
+    | Field               | Data Type   | Description                                              |
+    +=====================+=============+==========================================================+
+    | methods             | int32       | Has the solution been computed using MEG data (1), EEG   |
+    |                     |             | data (2), or both (3).                                   |
+    +---------------------+-------------+----------------------------------------------------------+
+    | source_ori          | int32       | Has the solution been computed for the current component |
+    |                     |             | normal to the cortex only (1) or all three source        |
+    |                     |             | orientations (2).                                        |
+    +---------------------+-------------+----------------------------------------------------------+
+    | nsource             | int32       | Total number of source space points.                     |
+    +---------------------+-------------+----------------------------------------------------------+
+    | nchan               | int32       | Number of channels.                                      |
+    +---------------------+-------------+----------------------------------------------------------+
+    | coord_frame         | int32       | Coordinate frame in which the locations and orientations |
+    |                     |             | are expressed.                                           |
+    +---------------------+-------------+----------------------------------------------------------+
+    | source_nn           | double(:,3) | The source orientations. Number of rows is either        |
+    |                     |             | nsource (fixed source orientations) or 3*nsource (all    |
+    |                     |             | source orientations).                                    |
+    +---------------------+-------------+----------------------------------------------------------+
+    | sing                | double      | The singular values, *i.e.*, the diagonal values of      |
+    |                     | (nchan)     | :math:`\Lambda`, see :ref:`CHDBEHBC`.                    |
+    +---------------------+-------------+----------------------------------------------------------+
+    | eigen_leads         | double      | The matrix :math:`V`, see :ref:`CHDBEHBC`.               |
+    |                     | (:,nchan)   |                                                          |
+    +---------------------+-------------+----------------------------------------------------------+
+    | eigen_fields        | double      | The matrix :math:`U^T`, see :ref:`CHDBEHBC`.             |
+    |                     | (nchan,     |                                                          |
+    |                     | nchan)      |                                                          |
+    +---------------------+-------------+----------------------------------------------------------+
+    | noise_cov           | cov         | The noise covariance matrix :math:`C`.                   |
+    +---------------------+-------------+----------------------------------------------------------+
+    | source_cov          | cov         | The source covariance matrix :math:`R`.                  |
+    +---------------------+-------------+----------------------------------------------------------+
+    | src                 | surf(:)     | The description of the source spaces.                    |
+    +---------------------+-------------+----------------------------------------------------------+
+    | mri_head_t          | trans       | Transformation from the MRI coordinate frame to the      |
+    |                     |             | (Neuromag) head coordinate frame.                        |
+    +---------------------+-------------+----------------------------------------------------------+
+    | nave                | double      | The number of averages.                                  |
+    +---------------------+-------------+----------------------------------------------------------+
+    | projs               | proj(:)     | The SSP vectors which were active when the decomposition |
+    |                     |             | was computed.                                            |
+    +---------------------+-------------+----------------------------------------------------------+
+    | proj                | double      | The projection operator computed using projs.            |
+    |                     | (nchan)     |                                                          |
+    +---------------------+-------------+----------------------------------------------------------+
+    | whitener            |             | A sparse matrix containing the noise normalization       |
+    |                     |             | factors. Dimension is either nsource (fixed source       |
+    |                     |             | orientations) or 3*nsource (all source orientations).    |
+    +---------------------+-------------+----------------------------------------------------------+
+    | reginv              | double      | The diagonal matrix :math:`\Gamma`, see :ref:`CHDBEHBC`. |
+    |                     | (nchan)     |                                                          |
+    +---------------------+-------------+----------------------------------------------------------+
+    | noisenorm           | double(:)   | A sparse matrix containing the noise normalization       |
+    |                     |             | factors. Dimension is either nsource (fixed source       |
+    |                     |             | orientations) or 3*nsource (all source orientations).    |
+    +---------------------+-------------+----------------------------------------------------------+
 
 
 On-line documentation for individual routines

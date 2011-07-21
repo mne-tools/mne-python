@@ -173,7 +173,7 @@ and
 .. note:: This section does not discuss the transformation    between the MRI voxel indices and the different MRI coordinates.    However, it is important to note that in FreeSurfer, MNE, as well    as in Neuromag software an integer voxel coordinate corresponds    to the location of the center of a voxel. Detailed information on    the FreeSurfer MRI systems can be found at  https://surfer.nmr.mgh.harvard.edu/fswiki/CoordinateSystems.
 
 
-.. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}||p{0.5\linewidth}|
+.. tabularcolumns:: |p{0.2\linewidth}|p{0.3\linewidth}|p{0.5\linewidth}|
 .. _CHDJDEDJ:
 .. table:: Coordinate transformations in FreeSurfer and MNE software packages. The symbols :math:`T_x` are defined in :ref:`CHDFFJIJ`. Note: mne_make_cor_set /mne_setup_mri prior to release 2.6 did not include transformations :math:`T_3`, :math:`T_4`, :math:`T_-`, and :math:`T_+` in the fif files produced.
 
@@ -719,9 +719,8 @@ geometry.
 The output of each SQUID sensor is a weighted sum of the
 magnetic fluxes threading the loops comprising the detection coil.
 Since the flux threading a coil loop is an integral of the magnetic
-field component normal to the coil plane, the output of the *k*th
-MEG channel, :math:`b_k`, can be approximated
-by:
+field component normal to the coil plane, the output of the k :sup:`th`
+MEG channel, :math:`b_k` can be approximated by:
 
 .. math::    b_k = \sum_{p = 1}^{N_k} {w_{kp} B(r_{kp}) \cdot n_{kp}}
 
@@ -852,7 +851,7 @@ The columns of the tables contain the following data:
     |      | diagonal gradients      |    |                                  |                      |
     +------+-------------------------+----+----------------------------------+----------------------+
 
-.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.3\linewidth}|p{0.05\linewidth}|p{0.25\linewidth}|p{0.15\linewidth}|
 .. _CHDBDFJE:
 .. table:: Accurate coil descriptions
 
@@ -1227,8 +1226,9 @@ is then consulted to scale the model to the correct dimensions.
 Even if the model setup file is not present, a model called Default is
 always provided. This model has the structure given in :ref:`BABEBGDA`
 
-.. _BABEBGDA:
 
+.. tabularcolumns:: |p{0.1\linewidth}|p{0.25\linewidth}|p{0.2\linewidth}|
+.. _BABEBGDA:
 .. table:: Structure of the default EEG model
 
     ========  =======================  =======================

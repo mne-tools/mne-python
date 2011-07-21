@@ -1,15 +1,16 @@
 {% extends "!layout.html" %}
 
+{% block relbar2 %}{% endblock %}
 
 {% block rootrellink %}
         <li><a href="{{ pathto('index') }}">Home</a>&nbsp;|&nbsp;</li>
-        <li><a href="{{ pathto('contents') }}">Documentation</a>&nbsp;|&nbsp;</li>
-        <li><a href="{{ pathto('search') }}">Search</a></li>
+        <li><a href="{{ pathto('manual') }}">Manual</a>&nbsp;|&nbsp;</li>
+        <li><a href="{{ pathto('mne-python') }}">Python</a>&nbsp;|&nbsp;</li>
+        <!-- <li><a href="{{ pathto('search') }}">Search</a></li> -->
 {% endblock %}
 
 
 {% block relbar1 %}
-
 <div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
 <a href="{{ pathto('index') }}"><img src="{{
 pathto("_static/logo.png", 1) }}" border="0" alt="py4sci"/></a>

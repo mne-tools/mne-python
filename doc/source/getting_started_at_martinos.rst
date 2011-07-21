@@ -27,5 +27,5 @@ recommended. Then type::
     >>> import mne
 
 If you get a new prompt with no error messages, you should be good to go.
-Start with the `examples <auto_examples/index.html>`_
+Start with the :ref:`examples-index`.
 

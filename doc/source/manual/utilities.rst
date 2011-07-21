@@ -1276,12 +1276,11 @@ The arithmetic expressions can use usual arithmetic operations
 as well as  mathematical functions listed in :ref:`CHDJIBHA`.
 The arguments can be vectors or scalar numbers. In addition, standard
 relational operators ( <, >, ==, <=, >=) and their textual
-equivalents (lt, gt, eq, le, ge) are available. Table :ref:`CHDDJEHH` gives some useful examples of source waveform
-expressions.
-
-.. _CHDJIBHA:
+equivalents (lt, gt, eq, le, ge) are available. Table :ref:`CHDDJEHH` gives some
+useful examples of source waveform expressions.
 
 .. tabularcolumns:: |p{0.2\linewidth}|p{0.6\linewidth}|
+.. _CHDJIBHA:
 .. table:: Mathematical functions available for source waveform expressions
 
     +-----------------------+---------------------------------------------------------------+
