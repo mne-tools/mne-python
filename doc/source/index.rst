@@ -1,6 +1,6 @@
-###########
+========
 MNE Home
-###########
+========
 
 MNE is a software package for processing magnetoencephalography data
 (MEG) and electroencephalography (EEG). It includes python code
