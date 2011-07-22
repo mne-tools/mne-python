@@ -21,7 +21,7 @@ from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
 from ..forward import _block_diag
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
-
+from ..label import source_space_vertices
 
 def read_inverse_operator(fname):
     """Read the inverse operator decomposition from a FIF file
@@ -551,17 +551,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     noise_norm = inv['noisenorm'][:, None]
 
     if label is not None:
-        if label['hemi'] == 'lh':
-            vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
-            src_sel = np.searchsorted(lh_vertno, vertno_sel)
-            lh_vertno = vertno_sel
-            rh_vertno = np.array([])
-        elif label['hemi'] == 'rh':
-            vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
-            src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
-            lh_vertno = np.array([])
-            rh_vertno = vertno_sel
-
+        src_sel, lh_vertno, rh_vertno = source_space_vertices(label, src)
         noise_norm = noise_norm[src_sel]
 
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:

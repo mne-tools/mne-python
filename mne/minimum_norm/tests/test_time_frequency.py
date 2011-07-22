@@ -1,12 +1,13 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_array_almost_equal
 
 from ...datasets import sample
 from ... import fiff, find_events, Epochs
+from ...label import read_label
 from ..inverse import read_inverse_operator
-from ..time_frequency import source_induced_power
+from ..time_frequency import source_band_induced_power
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
@@ -15,6 +16,7 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
                                         'sample_audvis_raw.fif')
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
 def test_tfr_with_inverse_operator():
@@ -43,16 +45,17 @@ def test_tfr_with_inverse_operator():
 
     # Compute a source estimate per frequency band
     bands = dict(alpha=[10, 10])
+    label = read_label(fname_label)
 
-    stcs = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                                use_fft=False, pca=True)
+    stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+                                use_fft=False, pca=True, label=label)
 
     stc = stcs['alpha']
     assert len(stcs) == len(bands.keys())
     assert np.all(stc.data > 0)
     assert_array_almost_equal(stc.times, epochs.times)
 
-    stcs_no_pca = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                                use_fft=False, pca=False)
+    stcs_no_pca = source_band_induced_power(epochs, inverse_operator, bands,
+                            n_cycles=2, use_fft=False, pca=False, label=label)
 
     assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
