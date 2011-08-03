@@ -128,16 +128,14 @@ def read_meas_info(fid, tree):
 
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
-    if len(isotrak):
-        isotrak = isotrak[0]
+    dig = None
+    if len(isotrak) == 0:
+        raise ValueError('Isotrak not found')
+    if len(isotrak) > 1:
+        raise ValueError('Multiple Isotrak found')
     else:
-        if len(isotrak) == 0:
-            raise ValueError('Isotrak not found')
-        if len(isotrak) > 1:
-            raise ValueError('Multiple Isotrak found')
-
-    dig = []
-    if len(isotrak) == 1:
+        isotrak = isotrak[0]
+        dig = []
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
             pos = isotrak['directory'][k].pos

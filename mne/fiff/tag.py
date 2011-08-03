@@ -233,7 +233,7 @@ def read_tag(fid, pos=None):
                 tag.data = dict()
                 tag.data['kind'] = int(np.fromfile(fid, dtype=">i4", count=1))
                 tag.data['ident'] = int(np.fromfile(fid, dtype=">i4", count=1))
-                tag.data['r'] = np.fromfile(fid, dtype=">i4", count=3)
+                tag.data['r'] = np.fromfile(fid, dtype=">f4", count=3)
                 tag.data['coord_frame'] = 0
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                 tag.data = dict()

@@ -35,6 +35,9 @@ def test_io_raw():
         # Writing
         raw.save('raw.fif', picks, tmin=0, tmax=5)
 
+        if fname == fif_fname:
+            assert len(raw.info['dig']) == 146
+
         raw2 = Raw('raw.fif')
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
@@ -45,5 +48,8 @@ def test_io_raw():
         assert_array_almost_equal(raw.info['dev_head_t']['trans'],
                                   raw2.info['dev_head_t']['trans'])
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+
+        if fname == fif_fname:
+            assert_array_almost_equal(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
         fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
