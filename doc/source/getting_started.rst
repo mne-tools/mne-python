@@ -5,13 +5,26 @@ Getting Started
 
 Inside the Martinos Center
 --------------------------
-People within the MGH/MIT/HMS Martinos Center should follow
+For people within the MGH/MIT/HMS Martinos Center mne is available on the network.
 
-.. toctree::
+In a terminal do::
 
-    ./getting_started_at_martinos
+    setenv PATH /usr/pubsw/packages/python/epd/bin:${PATH}
 
-MNE is *already installed* on your system.
+If you use Bash replace the previous instruction with::
+
+    export PATH=/usr/pubsw/packages/python/epd/bin:${PATH}
+
+Then start the python interpreter with:
+
+    ipython
+
+Then type::
+
+    >>> import mne
+
+If you get a new prompt with no error messages, you should be good to go.
+Start with the :ref:`examples-index`.
 
 Outside the Martinos Center
 ---------------------------
