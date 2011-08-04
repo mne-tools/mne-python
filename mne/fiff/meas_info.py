@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from warnings import warn
 import numpy as np
 from scipy import linalg
 
@@ -130,9 +131,9 @@ def read_meas_info(fid, tree):
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
-        raise ValueError('Isotrak not found')
+        print 'Isotrak not found'
     if len(isotrak) > 1:
-        raise ValueError('Multiple Isotrak found')
+        warn('Multiple Isotrak found')
     else:
         isotrak = isotrak[0]
         dig = []
