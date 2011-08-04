@@ -132,7 +132,7 @@ def read_meas_info(fid, tree):
     dig = None
     if len(isotrak) == 0:
         print 'Isotrak not found'
-    if len(isotrak) > 1:
+    elif len(isotrak) > 1:
         warn('Multiple Isotrak found')
     else:
         isotrak = isotrak[0]
