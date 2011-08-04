@@ -36,3 +36,29 @@ recommended.  Then type::
 
 If you get a new prompt with no error messages, you should be good to go.
 
+Learning Python
+---------------
+
+If you are new to Python here are some online courses:
+
+    * http://docs.python.org/
+
+    * http://learnpythonthehardway.org/book/
+
+    * http://code.google.com/intl/fr/edu/languages/google-python-class/
+
+    * http://homepage.mac.com/s_lott/books/python.html
+
+More specific tutorials on scientific computing with Python using Numpy and Scipy see:
+
+    * http://showmedo.com/videotutorials/numpy (video)
+
+    * http://www.scipy.org/NumPy_for_Matlab_Users
+
+    * http://mathesaurus.sourceforge.net/matlab-numpy.html
+
+Some discussions online are:
+
+    * http://stackoverflow.com/questions/111857/what-did-you-use-to-teach-yourself-python
+
+    * http://stackoverflow.com/questions/17988/how-to-learn-python
