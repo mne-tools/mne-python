@@ -246,13 +246,13 @@ def combine_xyz(vec, square=False):
 
     Parameters
     ----------
-    vec : 2d array of shape [3 n x p]
+    vec: 2d array of shape [3 n x p]
         Input [ x1 y1 z1 ... x_n y_n z_n ] where x1 ... z_n
         can be vectors
 
     Returns
     -------
-    comb : array
+    comb: array
         Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
     if vec.ndim != 2:
@@ -276,18 +276,18 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
 
     Parameters
     ----------
-    orig : dict
+    orig: dict
         The inverse operator structure read from a file
-    nave : int
+    nave: int
         Number of averages (scales the noise covariance)
-    lambda2 : float
+    lambda2: float
         The regularization factor. Recommended to be 1 / SNR**2
-    dSPM : bool
+    dSPM: bool
         If True, compute the noise-normalization factors for dSPM.
 
     Returns
     -------
-    inv : dict
+    inv: dict
         Prepared inverse operator
     """
 
@@ -389,7 +389,8 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     return inv
 
 
-def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
+def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
+                  pick_normal=False):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -406,6 +407,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
         The regularization parameter
     dSPM: bool
         do dSPM ?
+    pick_normal: bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
 
     Returns
     -------
@@ -433,10 +438,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
     #   eigenleads
     #
     trans = inv['reginv'][:, None] * reduce(np.dot,
-                                           [inv['eigen_fields']['data'],
-                                           inv['whitener'],
-                                           inv['proj'],
-                                           evoked.data])
+                                            [inv['eigen_fields']['data'],
+                                            inv['whitener'],
+                                            inv['proj'],
+                                            evoked.data])
 
     #
     #   Transformation into current distributions by weighting the eigenleads
@@ -458,7 +463,14 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
 
     if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
         print 'combining the current components...',
-        sol = combine_xyz(sol)
+        if pick_normal:
+            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
+            if not is_loose:
+                raise ValueError('The pick_normal parameter is only valid '
+                                 'when working with loose orientations.')
+            sol = sol[2::3]  # take one every 3 sources ie. only the normal
+        else:
+            sol = combine_xyz(sol)
 
     if dSPM:
         print '(dSPM)...',
@@ -479,7 +491,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True):
 
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None):
+                      time_func=None, pick_normal=False):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -507,6 +519,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         Set to 1 on raw data.
     time_func: callable
         Linear function applied to sensor space time series.
+    pick_normal: bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
+
     Returns
     -------
     stc: SourceEstimate
@@ -590,8 +607,16 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         sol = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
     if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        print 'combining the current components...',
-        sol = combine_xyz(sol)
+        if pick_normal:
+            print 'Picking only the normal components...',
+            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
+            if not is_loose:
+                raise ValueError('The pick_normal parameter is only valid '
+                                 'when working with loose orientations.')
+            sol = sol[2::3]  # take one every 3 sources ie. only the normal
+        else:
+            print 'Combining the current components...',
+            sol = combine_xyz(sol)
 
     if dSPM:
         print '(dSPM)...',
@@ -621,14 +646,14 @@ def _xyz2lf(Lf_xyz, normals):
 
     Parameters
     ----------
-    Lf_xyz : array of shape [n_sensors, n_positions x 3]
+    Lf_xyz: array of shape [n_sensors, n_positions x 3]
         Leadfield
-    normals : array of shape [n_positions, 3]
+    normals: array of shape [n_positions, 3]
         Normals to the cortex
 
     Returns
     -------
-    Lf_cortex : array of shape [n_sensors, n_positions x 3]
+    Lf_cortex: array of shape [n_sensors, n_positions x 3]
         Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
         that the first column is the gain vector for the cortical normal dipole
         and the following two column vectors are the gain vectors for the
@@ -656,7 +681,7 @@ def _xyz2lf(Lf_xyz, normals):
 def minimum_norm(evoked, forward, whitener, method='dspm',
                  orientation='fixed', snr=3, loose=0.2, depth=True,
                  weight_exp=0.8, weight_limit=10, fmri=None, fmri_thresh=None,
-                 fmri_off=0.1):
+                 fmri_off=0.1, pick_normal=False):
     """Minimum norm estimate (MNE)
 
     Compute MNE, dSPM and sLORETA on evoked data starting from
@@ -664,39 +689,43 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
 
     Parameters
     ----------
-    evoked : Evoked
+    evoked: Evoked
         Evoked data to invert
-    forward : dict
+    forward: dict
         Forward operator
-    whitener : Whitener
+    whitener: Whitener
         Whitening matrix derived from noise covariance matrix
-    method : 'wmne' | 'dspm' | 'sloreta'
+    method: 'wmne' | 'dspm' | 'sloreta'
         The method to use
-    orientation : 'fixed' | 'free' | 'loose'
+    orientation: 'fixed' | 'free' | 'loose'
         Type of orientation constraints 'fixed'.
-    snr : float
+    snr: float
         Signal-to noise ratio defined as in MNE (default: 3).
-    loose : float in [0, 1]
+    loose: float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces.
-    depth : bool
+    depth: bool
         Flag to do depth weighting (default: True).
-    weight_exp : float
+    weight_exp: float
         Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
-    weight_limit : float
+    weight_limit: float
         Maximal amount depth weighting (default: 10).
-    fmri : array of shape [n_sources]
+    fmri: array of shape [n_sources]
         Vector of fMRI values are the source points.
-    fmri_thresh : float
+    fmri_thresh: float
         fMRI threshold. The source variances of source points with fmri smaller
         than fmri_thresh will be multiplied by fmri_off.
-    fmri_off : float
+    fmri_off: float
         Weight assigned to non-active source points according to fmri
         and fmri_thresh.
+    pick_normal: bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
 
     Returns
     -------
-    stc : dict
+    stc: dict
         Source time courses
     """
     assert method in ['wmne', 'dspm', 'sloreta']
@@ -850,8 +879,16 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     sol = np.dot(Kernel, evoked.data[sel])
 
     if n_dip_per_pos > 1:
-        print 'combining the current components...',
-        sol = combine_xyz(sol)
+        if pick_normal:
+            print 'Picking only the normal components...',
+            if orientation != 'loose':
+                raise ValueError('The pick_normal parameter is only valid '
+                                 'when working with loose orientations.')
+            sol = sol[2::3]  # take one every 3 sources ie. only the normal
+        else:
+            print 'Combining the current components...',
+            sol = combine_xyz(sol)
+
 
     src = forward['src']
     stc = SourceEstimate(None)

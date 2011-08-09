@@ -34,7 +34,7 @@ evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
-stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM, pick_normal=False)
 
 # Save result in stc files
 stc.save('mne_dSPM_inverse')
