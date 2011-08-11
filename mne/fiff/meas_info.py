@@ -232,7 +232,7 @@ def read_meas_info(fid, tree):
     return info, meas
 
 
-def write_meas_info(fid, info):
+def write_meas_info(fid, info, data_type=None):
     """Write measurement info in fif file."""
 
     # Measurement info
@@ -262,6 +262,8 @@ def write_meas_info(fid, info):
     write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
+    if data_type is not None:
+        write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
     if info['meas_date'] is not None:
         write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
 
