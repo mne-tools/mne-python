@@ -240,7 +240,8 @@ def write_meas_info(fid, info, data_type=None):
 
     # Blocks from the original
     blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
-              FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
+              FIFF.FIFFB_PROCESSING_HISTORY]
+              # FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
 
     have_hpi_result = False
     have_isotrak = False
