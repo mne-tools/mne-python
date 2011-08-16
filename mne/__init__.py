@@ -12,6 +12,7 @@ from .source_space import read_source_spaces
 from .epochs import Epochs
 from .label import label_time_courses, read_label
 from .misc import parse_config, read_reject_parameters
+from .transforms import transform_coordinates
 import fiff
 import artifacts
 import stats
