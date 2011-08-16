@@ -464,17 +464,14 @@ def read_raw_segment_times(raw, start, stop, sel=None):
 ###############################################################################
 # Writing
 
-from .write import start_file, start_block, write_id, write_string, \
-                   write_ch_info, end_block, write_coord_trans, \
-                   write_float, write_int, write_dig_point, \
-                   write_name_list, end_file
-from .ctf import write_ctf_comp
-from .proj import write_proj
-from .tree import copy_tree
+from .write import start_file, end_file, start_block, end_block, \
+                   write_float, write_int, write_id
 
 
 def start_writing_raw(name, info, sel=None):
     """Start write raw data in file
+
+    Data will be written in float
 
     Parameters
     ----------
@@ -495,16 +492,6 @@ def start_writing_raw(name, info, sel=None):
     cals : list
         calibration factors
     """
-    #
-    #   We will always write floats
-    #
-    # if sel is None:
-    #     chs = info['chs']
-    #     nchan = len(chs)
-    # else:
-    #     chs = [info['chs'][k] for k in sel]
-    #     nchan = len(sel)
-    # data_type = 4
     #
     #  Create the file and save the essentials
     #
@@ -545,18 +532,6 @@ def start_writing_raw(name, info, sel=None):
 
     write_meas_info(fid, info, data_type=4)
 
-    # #
-    # #    megacq parameters
-    # #
-    # if info['acq_pars'] is not None or info['acq_stim'] is not None:
-    #     start_block(fid, FIFF.FIFFB_DACQ_PARS)
-    #     if info['acq_pars'] is not None:
-    #         write_string(fid, FIFF.FIFF_DACQ_PARS, info['acq_pars'])
-    #
-    #     if info['acq_stim'] is not None:
-    #         write_string(fid, FIFF.FIFF_DACQ_STIM, info['acq_stim'])
-    #
-    #     end_block(fid, FIFF.FIFFB_DACQ_PARS)
     #
     # Start the raw data
     #
