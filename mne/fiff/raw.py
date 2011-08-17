@@ -188,7 +188,8 @@ class Raw(dict):
         else:
             return super(Raw, self).__getitem__(item)
 
-    def save(self, fname, picks=None, tmin=0, tmax=None, quantum_sec=10):
+    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
+             drop_small_buffer=False):
         """Save raw data to file
 
         Parameters
@@ -205,8 +206,12 @@ class Raw(dict):
         tmax : int
             Time in seconds of last sample to save
 
-        quantum_sec : float
+        buffer_size_sec : float
             Size of data chuncks in seconds.
+
+        drop_small_buffer: bool
+            Drop or not the last buffer. It is required by maxfilter (SSS)
+            that only accepts raw files with buffers of the same size.
 
         """
         outfid, cals = start_writing_raw(fname, self.info, picks)
@@ -222,13 +227,13 @@ class Raw(dict):
         else:
             stop = int(floor(tmax * self.info['sfreq']))
 
-        quantum = int(ceil(quantum_sec * self.info['sfreq']))
+        buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
         #
         #   Read and write all the data
         #
         write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, start)
-        for first in range(start, stop, quantum):
-            last = first + quantum
+        for first in range(start, stop, buffer_size):
+            last = first + buffer_size
             if last >= stop:
                 last = stop + 1
 
@@ -236,6 +241,11 @@ class Raw(dict):
                 data, times = self[:, first:last]
             else:
                 data, times = self[picks, first:last]
+
+            if (drop_small_buffer and (first > start)
+                                            and (len(times) < buffer_size)):
+                print 'Skipping data chunk due to small buffer ... [done]\n'
+                break
 
             print 'Writing ... ',
             write_raw_buffer(outfid, data, cals)

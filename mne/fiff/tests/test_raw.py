@@ -32,6 +32,15 @@ def test_io_raw():
                                 exclude=raw.info['bads'])
         print "Number of picked channels : %d" % len(picks)
 
+        # Writing with drop_small_buffer True
+        raw.save('raw.fif', picks, tmin=0, tmax=4, buffer_size_sec=3,
+                 drop_small_buffer=True)
+        raw2 = Raw('raw.fif')
+
+        sel = pick_channels(raw2.ch_names, meg_ch_names)
+        data2, times2 = raw2[sel, :]
+        assert times2.max() <= 3
+
         # Writing
         raw.save('raw.fif', picks, tmin=0, tmax=5)
 
