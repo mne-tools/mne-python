@@ -529,7 +529,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
-
     #
     #   Set up the inverse according to the parameters
     #
@@ -679,9 +678,8 @@ def _xyz2lf(Lf_xyz, normals):
 
 
 def minimum_norm(evoked, forward, whitener, method='dspm',
-                 orientation='fixed', snr=3, loose=0.2, depth=True,
-                 weight_exp=0.8, weight_limit=10, fmri=None, fmri_thresh=None,
-                 fmri_off=0.1, pick_normal=False):
+                 orientation='fixed', snr=3, loose=0.2, depth=0.8,
+                 depth_weight_limit=10, pick_normal=False):
     """Minimum norm estimate (MNE)
 
     Compute MNE, dSPM and sLORETA on evoked data starting from
@@ -704,20 +702,12 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     loose: float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces.
-    depth: bool
-        Flag to do depth weighting (default: True).
+    depth: None | float in [0, 1]
+        Depth weighting coefficients. If None, no depth weighting is performed.
     weight_exp: float
         Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
-    weight_limit: float
+    depth_weight_limit: float
         Maximal amount depth weighting (default: 10).
-    fmri: array of shape [n_sources]
-        Vector of fMRI values are the source points.
-    fmri_thresh: float
-        fMRI threshold. The source variances of source points with fmri smaller
-        than fmri_thresh will be multiplied by fmri_off.
-    fmri_off: float
-        Weight assigned to non-active source points according to fmri
-        and fmri_thresh.
     pick_normal: bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
@@ -734,8 +724,8 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     if not 0 <= loose <= 1:
         raise ValueError('loose value should be smaller than 1 and bigger than'
                          ' 0, or empty for no loose orientations.')
-    if not 0 <= weight_exp <= 1:
-        raise ValueError('weight_exp should be a scalar between 0 and 1')
+    if depth is not None and not 0 < depth <= 1:
+        raise ValueError('depth should be a scalar between 0 and 1')
 
     # Set regularization parameter based on SNR
     lambda2 = 1.0 / snr ** 2
@@ -771,10 +761,11 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     w = np.ones(n_dipoles)
 
     # compute power
-    if depth:
+    if depth is not None:
         w = np.sum(gain ** 2, axis=0)
-        w = w.reshape(-1, 3).sum(axis=1)
-        w = w[:, None] * np.ones((1, n_dip_per_pos))
+        w = w[0::3] + w[1::3] + w[2::3]
+        if n_dip_per_pos != 1:
+            w = w[:, None] * np.ones((1, n_dip_per_pos))
         w = w.ravel()
 
     if orientation == 'fixed':
@@ -786,7 +777,7 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         print 'Transforming lead field matrix to cortical coordinate system.'
         gain = _xyz2lf(gain, normals)
         # Getting indices for tangential dipoles: [1, 2, 4, 5]
-        itangential = [k for k in range(n_dipoles) if n_dipoles % 3 != 0]
+        itangential = [k for k in xrange(n_dipoles) if (n_dipoles % 3) != 0]
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
@@ -795,39 +786,24 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
     # Computing reciprocal of power.
     w = 1.0 / w
 
-    # apply areas
-    # if ~isempty(areas)
-    #     display('wMNE> Applying areas to compute current source density.')
-    #     areas = areas.^2;
-    #     w = w .* areas;
-    # end
-    # clear areas
-
     # apply depth weighthing
-    if depth:
-        # apply weight limit
-        # Applying weight limit.
+    if depth is not None:
+        # Apply weight limit.
         print 'Applying weight limit.'
-        weight_limit2 = weight_limit ** 2
+        depth_weight_limit2 = depth_weight_limit ** 2
         # limit = min(w(w>min(w) * weight_limit2));  % This is the Matti way.
         # we do the Rey way (robust to possible weight discontinuity).
-        limit = np.min(w) * weight_limit2
+        limit = np.min(w) * depth_weight_limit2
         w[w > limit] = limit
 
-        # apply weight exponent
         # Applying weight exponent.
-        print 'Applying weight exponent.'
-        w = w ** weight_exp
+        print 'Applying weight exponent (%f).' % depth
+        w = w ** depth
 
     # apply loose orientations
     if orientation == 'loose':
         print 'Applying loose dipole orientations. Loose value of %s.' % loose
         w[itangential] *= loose
-
-    # Apply fMRI Priors
-    if fmri is not None:
-        print 'Applying fMRI priors.'
-        w[fmri < fmri_thresh] *= fmri_off
 
     # Adjusting Source Covariance matrix to make trace of L*C_J*L' equal
     # to number of sensors.
