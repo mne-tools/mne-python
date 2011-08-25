@@ -14,7 +14,7 @@ from ..fiff.tag import find_tag
 from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from ..fiff.proj import read_proj, make_projector
 from ..fiff.tree import dir_tree_find
-from ..fiff.pick import pick_channels_evoked, pick_channels
+from ..fiff.pick import pick_channels
 
 from ..cov import read_cov
 from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
@@ -131,8 +131,7 @@ def read_inverse_operator(fname):
     #
     inv['eigen_leads'] = _transpose_named_matrix(inv['eigen_leads'])
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
-                                            FIFF.FIFF_MNE_INVERSE_FIELDS)
-
+                                             FIFF.FIFF_MNE_INVERSE_FIELDS)
     print '[done]'
     #
     #   Read the covariance matrices
@@ -271,6 +270,20 @@ def combine_xyz(vec, square=False):
     return comb
 
 
+def _combine_ori(sol, inverse_operator, pick_normal):
+    if inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+        print 'combining the current components...',
+        if pick_normal:
+            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
+            if not is_loose:
+                raise ValueError('The pick_normal parameter is only valid '
+                                 'when working with loose orientations.')
+            sol = sol[2::3]  # take one every 3 sources ie. only the normal
+        else:
+            sol = combine_xyz(sol)
+    return sol
+
+
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     """Prepare an inverse operator for actually computing the inverse
 
@@ -346,7 +359,8 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         #
         #   No need to omit the zeroes due to projection
         #
-        inv['whitener'] = np.diag(1.0 / np.sqrt(inv['noise_cov']['data'].ravel()))
+        inv['whitener'] = np.diag(1.0 /
+                                  np.sqrt(inv['noise_cov']['data'].ravel()))
         print ('\tCreated the whitener using a diagonal noise covariance '
                'matrix (%d small eigenvalues discarded)' % ncomp)
 
@@ -389,6 +403,94 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     return inv
 
 
+def _assemble_kernel(inv, label, dSPM):
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+    eigen_leads = inv['eigen_leads']['data']
+    source_cov = inv['source_cov']['data'][:, None]
+    noise_norm = inv['noisenorm'][:, None]
+
+    src = inv['src']
+    lh_vertno = src[0]['vertno']
+    rh_vertno = src[1]['vertno']
+
+    if label is not None:
+        lh_vertno, rh_vertno, src_sel = _get_label_sel(label, inv)
+
+        noise_norm = noise_norm[src_sel]
+
+        if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+            src_sel = 3 * src_sel
+            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
+            src_sel = src_sel.ravel()
+
+        eigen_leads = eigen_leads[src_sel]
+        source_cov = source_cov[src_sel]
+
+    trans = inv['reginv'][:, None] * reduce(np.dot,
+                                            [inv['eigen_fields']['data'],
+                                            inv['whitener'],
+                                            inv['proj']])
+    #
+    #   Transformation into current distributions by weighting the eigenleads
+    #   with the weights computed above
+    #
+    if inv['eigen_leads_weighted']:
+        #
+        #     R^0.5 has been already factored in
+        #
+        print '(eigenleads already weighted)...',
+        K = np.dot(eigen_leads, trans)
+    else:
+        #
+        #     R^0.5 has to be factored in
+        #
+        print '(eigenleads need to be weighted)...',
+        K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
+
+    if not dSPM:
+        noise_norm = None
+
+    return K, noise_norm, lh_vertno, rh_vertno
+
+
+def _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno):
+    stc = SourceEstimate(None)
+    stc.data = sol
+    stc.tmin = tmin
+    stc.tstep = tstep
+    stc.lh_vertno = lh_vertno
+    stc.rh_vertno = rh_vertno
+    stc._init_times()
+    return stc
+
+
+def _get_label_sel(label, inv):
+    src = inv['src']
+    lh_vertno = src[0]['vertno']
+    rh_vertno = src[1]['vertno']
+
+    if label['hemi'] == 'lh':
+        vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
+        src_sel = np.searchsorted(lh_vertno, vertno_sel)
+        lh_vertno = vertno_sel
+        rh_vertno = np.array([])
+    elif label['hemi'] == 'rh':
+        vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
+        src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
+        lh_vertno = np.array([])
+        rh_vertno = vertno_sel
+    else:
+        raise Exception("Unknown hemisphere type")
+
+    return lh_vertno, rh_vertno, src_sel
+
+
 def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
                   pick_normal=False):
     """Apply inverse operator to evoked data
@@ -417,7 +519,6 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
-
     #
     #   Set up the inverse according to the parameters
     #
@@ -427,63 +528,22 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     #
     #   Pick the correct channels from the data
     #
-    evoked = pick_channels_evoked(evoked, inv['noise_cov']['names'])
-    print 'Picked %d channels from the data' % evoked.info['nchan']
+    sel = pick_channels(evoked.ch_names, include=inv['noise_cov']['names'])
+    print 'Picked %d channels from the data' % len(sel)
+
     print 'Computing inverse...',
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
-    trans = inv['reginv'][:, None] * reduce(np.dot,
-                                            [inv['eigen_fields']['data'],
-                                            inv['whitener'],
-                                            inv['proj'],
-                                            evoked.data])
+    K, noise_norm, _, _ = _assemble_kernel(inv, None, dSPM)
+    sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
+    sol = _combine_ori(sol, inv, pick_normal)
 
-    #
-    #   Transformation into current distributions by weighting the eigenleads
-    #   with the weights computed above
-    #
-    if inv['eigen_leads_weighted']:
-        #
-        #     R^0.5 has been already factored in
-        #
-        print '(eigenleads already weighted)...',
-        sol = np.dot(inv['eigen_leads']['data'], trans)
-    else:
-        #
-        #     R^0.5 has to be factored in
-        #
-        print '(eigenleads need to be weighted)...',
-        sol = np.sqrt(inv['source_cov']['data'])[:, None] * \
-                             np.dot(inv['eigen_leads']['data'], trans)
-
-    if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        print 'combining the current components...',
-        if pick_normal:
-            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
-            if not is_loose:
-                raise ValueError('The pick_normal parameter is only valid '
-                                 'when working with loose orientations.')
-            sol = sol[2::3]  # take one every 3 sources ie. only the normal
-        else:
-            sol = combine_xyz(sol)
-
-    if dSPM:
+    if noise_norm is not None:
         print '(dSPM)...',
-        sol *= inv['noisenorm'][:, None]
+        sol *= noise_norm
 
+    tstep = 1.0 / evoked.info['sfreq']
+    tmin = float(evoked.first) / evoked.info['sfreq']
     src = inv['src']
-    stc = SourceEstimate(None)
-    stc.data = sol
-    stc.tmin = float(evoked.first) / evoked.info['sfreq']
-    stc.tstep = 1.0 / evoked.info['sfreq']
-    stc.lh_vertno = src[0]['vertno']
-    stc.rh_vertno = src[1]['vertno']
-    stc._init_times()
+    stc = _make_stc(sol, tmin, tstep, src[0]['vertno'], src[1]['vertno'])
     print '[done]'
 
     return stc
@@ -501,7 +561,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     Parameters
     ----------
     raw: Raw object
-        Evoked data
+        Raw data
     inverse_operator: dict
         Inverse operator read with mne.read_inverse_operator
     lambda2: float
@@ -529,7 +589,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
-
     #
     #   Set up the inverse according to the parameters
     #
@@ -540,13 +599,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     sel = pick_channels(raw.ch_names, include=inv['noise_cov']['names'])
     print 'Picked %d channels from the data' % len(sel)
     print 'Computing inverse...',
-    #
-    #   Simple matrix multiplication followed by combination of the
-    #   three current components
-    #
-    #   This does all the data transformations to compute the weights for the
-    #   eigenleads
-    #
 
     src = inv['src']
     lh_vertno = src[0]['vertno']
@@ -557,81 +609,83 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     if time_func is not None:
         data = time_func(data)
 
-    trans = inv['reginv'][:, None] * reduce(np.dot,
-                                            [inv['eigen_fields']['data'],
-                                            inv['whitener'],
-                                            inv['proj'],
-                                            data])
+    K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
+    sol = np.dot(K, data)
+    sol = _combine_ori(sol, inv, pick_normal)
 
-    eigen_leads = inv['eigen_leads']['data']
-    source_cov = inv['source_cov']['data'][:, None]
-    noise_norm = inv['noisenorm'][:, None]
-
-    if label is not None:
-        if label['hemi'] == 'lh':
-            vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
-            src_sel = np.searchsorted(lh_vertno, vertno_sel)
-            lh_vertno = vertno_sel
-            rh_vertno = np.array([])
-        elif label['hemi'] == 'rh':
-            vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
-            src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
-            lh_vertno = np.array([])
-            rh_vertno = vertno_sel
-
-        noise_norm = noise_norm[src_sel]
-
-        if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            src_sel = 3 * src_sel
-            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
-            src_sel = src_sel.ravel()
-
-        eigen_leads = eigen_leads[src_sel]
-        source_cov = source_cov[src_sel]
-
-    #
-    #   Transformation into current distributions by weighting the eigenleads
-    #   with the weights computed above
-    #
-    if inv['eigen_leads_weighted']:
-        #
-        #     R^0.5 has been already factored in
-        #
-        print '(eigenleads already weighted)...',
-        sol = np.dot(eigen_leads, trans)
-    else:
-        #
-        #     R^0.5 has to be factored in
-        #
-        print '(eigenleads need to be weighted)...',
-        sol = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
-
-    if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        if pick_normal:
-            print 'Picking only the normal components...',
-            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
-            if not is_loose:
-                raise ValueError('The pick_normal parameter is only valid '
-                                 'when working with loose orientations.')
-            sol = sol[2::3]  # take one every 3 sources ie. only the normal
-        else:
-            print 'Combining the current components...',
-            sol = combine_xyz(sol)
-
-    if dSPM:
-        print '(dSPM)...',
+    if noise_norm is not None:
         sol *= noise_norm
 
-    stc = SourceEstimate(None)
-    stc.data = sol
-    stc.tmin = float(times[0]) / raw.info['sfreq']
-    stc.tstep = 1.0 / raw.info['sfreq']
-    stc.lh_vertno = lh_vertno
-    stc.rh_vertno = rh_vertno
-    stc._init_times()
+    tmin = float(times[0]) / raw.info['sfreq']
+    tstep = 1.0 / raw.info['sfreq']
+    stc = _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno)
     print '[done]'
 
     return stc
+
+
+def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
+                         label=None, nave=1, pick_normal=False):
+    """Apply inverse operator to Epochs
+
+    Computes a L2-norm inverse solution on each epochs and returns
+    single trial source estimates.
+
+    Parameters
+    ----------
+    epochs: Epochs object
+        Single trial epochs
+    inverse_operator: dict
+        Inverse operator read with mne.read_inverse_operator
+    lambda2: float
+        The regularization parameter
+    dSPM: bool
+        do dSPM ?
+    label: Label
+        Restricts the source estimates to a given label
+    nave: int
+        Number of averages used to regularize the solution.
+        Set to 1 on single Epoch by default.
+    pick_normal: bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
+
+    Returns
+    -------
+    stc: list of SourceEstimate
+        The source estimates for all epochs
+    """
+    #
+    #   Set up the inverse according to the parameters
+    #
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = pick_channels(epochs.ch_names, include=inv['noise_cov']['names'])
+    print 'Picked %d channels from the data' % len(sel)
+
+    print 'Computing inverse...',
+    K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
+
+    stcs = list()
+    tstep = 1.0 / epochs.info['sfreq']
+    tmin = epochs.times[0]
+
+    for k, e in enumerate(epochs):
+        print "Processing epoch : %d" % (k + 1)
+        sol = np.dot(K, e[sel])  # apply imaging kernel
+        sol = _combine_ori(sol, inv, pick_normal)
+
+        if noise_norm is not None:
+            sol *= noise_norm
+
+        stcs.append(_make_stc(sol, tmin, tstep, lh_vertno, rh_vertno))
+
+    print '[done]'
+
+    return stcs
 
 
 def _xyz2lf(Lf_xyz, normals):
@@ -888,7 +942,6 @@ def minimum_norm(evoked, forward, whitener, method='dspm',
         else:
             print 'Combining the current components...',
             sol = combine_xyz(sol)
-
 
     src = forward['src']
     stc = SourceEstimate(None)
