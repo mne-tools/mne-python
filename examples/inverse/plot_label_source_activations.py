@@ -23,11 +23,9 @@ values, times, vertices = mne.label_time_courses(label_fname, stc_fname)
 
 print "Number of vertices : %d" % len(vertices)
 
-times=times*1000
-
 # View source activations
 import pylab as pl
-pl.plot(times, values.T)
+pl.plot(1e3 * times, values.T)
 pl.xlabel('time (ms)')
 pl.ylabel('Source amplitude')
 pl.title('Activations in Label : %s' % label)
