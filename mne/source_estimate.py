@@ -454,4 +454,3 @@ def _get_ico_tris(grade):
             ico = s
             break
     return ico['tris']
-    
