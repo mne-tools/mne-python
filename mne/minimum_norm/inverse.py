@@ -1,9 +1,10 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Rey Rene Ramirez, Ph.D. <rrramirez at mcw.edu>
 #
 # License: BSD (3-clause)
 
+import warnings
+from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
@@ -16,9 +17,9 @@ from ..fiff.proj import read_proj, make_projector
 from ..fiff.tree import dir_tree_find
 from ..fiff.pick import pick_channels
 
-from ..cov import read_cov
+from ..cov import read_cov, prepare_noise_cov
+from ..forward import compute_depth_prior
 from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
-from ..forward import _block_diag
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
 
@@ -332,7 +333,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #   Create the projection operator
     #
     inv['proj'], ncomp, _ = make_projector(inv['projs'],
-                                        inv['noise_cov']['names'])
+                                           inv['noise_cov']['names'])
     if ncomp > 0:
         print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
 
@@ -353,7 +354,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         #
         inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
         print ('\tCreated the whitener using a full noise covariance matrix '
-              '(%d small eigenvalues omitted)' % (inv['noise_cov']['dim']
+               '(%d small eigenvalues omitted)' % (inv['noise_cov']['dim']
                                                   - np.sum(nzero)))
     else:
         #
@@ -732,225 +733,134 @@ def _xyz2lf(Lf_xyz, normals):
     return Lf_cortex
 
 
-def minimum_norm(evoked, forward, whitener, method='dspm',
-                 orientation='fixed', snr=3, loose=0.2, depth=True,
-                 weight_exp=0.8, weight_limit=10, fmri=None, fmri_thresh=None,
-                 fmri_off=0.1, pick_normal=False):
-    """Minimum norm estimate (MNE)
+###############################################################################
+# Assemble the inverse operator
 
-    Compute MNE, dSPM and sLORETA on evoked data starting from
-    a forward operator.
+def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
+    """Assemble inverse operator
 
     Parameters
     ----------
-    evoked: Evoked
-        Evoked data to invert
+    info: dict
+        The measurement info to specify the channels to include.
+        Bad channels in info['bads'] are ignored.
     forward: dict
         Forward operator
-    whitener: Whitener
-        Whitening matrix derived from noise covariance matrix
-    method: 'wmne' | 'dspm' | 'sloreta'
-        The method to use
-    orientation: 'fixed' | 'free' | 'loose'
-        Type of orientation constraints 'fixed'.
-    snr: float
-        Signal-to noise ratio defined as in MNE (default: 3).
+    noise_cov: Covariance
+        The noise covariance matrix
     loose: float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces.
-    depth: bool
-        Flag to do depth weighting (default: True).
-    weight_exp: float
-        Order of the depth weighting. {0=no, 1=full normalization, default=0.8}
-    weight_limit: float
-        Maximal amount depth weighting (default: 10).
-    fmri: array of shape [n_sources]
-        Vector of fMRI values are the source points.
-    fmri_thresh: float
-        fMRI threshold. The source variances of source points with fmri smaller
-        than fmri_thresh will be multiplied by fmri_off.
-    fmri_off: float
-        Weight assigned to non-active source points according to fmri
-        and fmri_thresh.
-    pick_normal: bool
-        If True, rather than pooling the orientations by taking the norm,
-        only the radial component is kept. This is only implemented
-        when working with loose orientations.
+    depth: None | float in [0, 1]
+        Depth weighting coefficients. If None, no depth weighting is performed.
+
+    # XXX : add support for megreg=0.0, eegreg=0.0
 
     Returns
     -------
     stc: dict
         Source time courses
     """
-    assert method in ['wmne', 'dspm', 'sloreta']
-    assert orientation in ['fixed', 'free', 'loose']
+    is_fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
+    if is_fixed_ori and loose is not None:
+        warnings.warn('Ignoring loose parameter with forward operator with '
+                      'fixed orientation.')
+    if not forward['surf_ori'] and loose is not None:
+        raise ValueError('Forward operator is not oriented in surface '
+                         'coordinates. loose parameter should be None '
+                         'not %s.' % loose)
 
-    if not 0 <= loose <= 1:
+    if loose is not None and not (0 <= loose <= 1):
         raise ValueError('loose value should be smaller than 1 and bigger than'
-                         ' 0, or empty for no loose orientations.')
-    if not 0 <= weight_exp <= 1:
-        raise ValueError('weight_exp should be a scalar between 0 and 1')
+                         ' 0, or None for not loose orientations.')
+    if depth is not None and not (0 < depth <= 1):
+        raise ValueError('depth should be a scalar between 0 and 1')
 
-    # Set regularization parameter based on SNR
-    lambda2 = 1.0 / snr ** 2
+    fwd_ch_names = [c['ch_name'] for c in forward['chs']]
+    ch_names = [c['ch_name'] for c in info['chs']
+                                    if (c['ch_name'] not in info['bads'])
+                                        and (c['ch_name'] in fwd_ch_names)]
+    n_chan = len(ch_names)
 
-    normals = []
-    for s in forward['src']:
-        normals.append(s['nn'][s['inuse'] != 0])
-    normals = np.concatenate(normals)
+    print "Computing inverse operator with %d channels." % n_chan
 
-    W, ch_names = whitener.W, whitener.ch_names
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
+
+    W = np.zeros((n_chan, n_chan), dtype=np.float)
+    #
+    #   Omit the zeroes due to projection
+    #
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+    n_nzero = sum(nzero)
+    #
+    #   Rows of eigvec are the eigenvectors
+    #
+    W = np.dot(W, noise_cov['eigvec'])
 
     gain = forward['sol']['data']
-    fwd_ch_names = [forward['chs'][k]['ch_name'] for k in range(gain.shape[0])]
+
+    n_positions = gain.shape[1] / 3
+
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
 
-    print "Computing inverse solution with %d channels." % len(ch_names)
+    # Handle depth prior scaling
+    depth_prior = np.ones(gain.shape[1])
+    if depth is not None:
+        depth_prior = compute_depth_prior(gain, exp=depth)
 
-    rank_noise = len(W)
-    print 'Total rank is %d' % rank_noise
+    print "Computing inverse operator with %d channels." % len(ch_names)
 
-    # processing lead field matrices, weights, areas & orientations
-    # Initializing.
-    n_positions = gain.shape[1] / 3
-
-    if orientation == 'fixed':
+    if is_fixed_ori:
         n_dip_per_pos = 1
-    elif orientation in ['free', 'loose']:
+    else:
         n_dip_per_pos = 3
 
     n_dipoles = n_positions * n_dip_per_pos
-
-    w = np.ones(n_dipoles)
-
-    # compute power
-    if depth:
-        w = np.sum(gain ** 2, axis=0)
-        w = w.reshape(-1, 3).sum(axis=1)
-        w = w[:, None] * np.ones((1, n_dip_per_pos))
-        w = w.ravel()
-
-    if orientation == 'fixed':
-        print 'Appying fixed dipole orientations.'
-        gain = gain * _block_diag(normals.ravel()[None, :], 3).T
-    elif orientation == 'free':
-        print 'Using free dipole orientations. No constraints.'
-    elif orientation == 'loose':
-        print 'Transforming lead field matrix to cortical coordinate system.'
-        gain = _xyz2lf(gain, normals)
-        # Getting indices for tangential dipoles: [1, 2, 4, 5]
-        itangential = [k for k in range(n_dipoles) if n_dipoles % 3 != 0]
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
     gain = np.dot(W, gain)
 
-    # Computing reciprocal of power.
-    w = 1.0 / w
-
-    # apply areas
-    # if ~isempty(areas)
-    #     display('wMNE> Applying areas to compute current source density.')
-    #     areas = areas.^2;
-    #     w = w .* areas;
-    # end
-    # clear areas
-
-    # apply depth weighthing
-    if depth:
-        # apply weight limit
-        # Applying weight limit.
-        print 'Applying weight limit.'
-        weight_limit2 = weight_limit ** 2
-        # limit = min(w(w>min(w) * weight_limit2));  % This is the Matti way.
-        # we do the Rey way (robust to possible weight discontinuity).
-        limit = np.min(w) * weight_limit2
-        w[w > limit] = limit
-
-        # apply weight exponent
-        # Applying weight exponent.
-        print 'Applying weight exponent.'
-        w = w ** weight_exp
-
     # apply loose orientations
-    if orientation == 'loose':
+    orient_prior = np.ones(n_dipoles, dtype=np.float)
+    if loose is not None:
         print 'Applying loose dipole orientations. Loose value of %s.' % loose
-        w[itangential] *= loose
+        orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
 
-    # Apply fMRI Priors
-    if fmri is not None:
-        print 'Applying fMRI priors.'
-        w[fmri < fmri_thresh] *= fmri_off
+    source_cov = orient_prior * depth_prior
 
-    # Adjusting Source Covariance matrix to make trace of L*C_J*L' equal
+    # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
     print 'Adjusting source covariance matrix.'
-    source_std = np.sqrt(w)  # sqrt(C_J)
-    trclcl = linalg.norm(gain * source_std[None, :], ord='fro')
-    source_std *= sqrt(rank_noise) / trclcl  # correct C_J
+    source_std = np.sqrt(source_cov)
     gain *= source_std[None, :]
+    trace_GRGT = linalg.norm(gain, ord='fro') ** 2
+    scaling_source_cov = n_nzero / trace_GRGT
+    source_cov *= scaling_source_cov
+    gain *= sqrt(scaling_source_cov)
 
-    # Compute SVD.
+    # now np.trace(np.dot(gain, gain.T)) == n_nzero
+    # print np.trace(np.dot(gain, gain.T)), n_nzero
+
     print 'Computing SVD of whitened and weighted lead field matrix.'
-    U, s, Vh = linalg.svd(gain, full_matrices=False)
-    ss = s / (s ** 2 + lambda2)
+    eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
 
-    # Compute whitened MNE operator.
-    Kernel = source_std[:, None] * np.dot(Vh.T, ss[:, None] * U.T)
+    eigen_fields = dict(data=eigen_fields.T)
+    eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1])
+    depth_prior = dict(data=depth_prior)
+    orient_prior = dict(data=orient_prior)
+    source_cov = dict(data=source_cov)
+    nave = 1.0
 
-    # Compute dSPM operator.
-    if method == 'dspm':
-        print 'Computing dSPM inverse operator.'
-        dspm_diag = np.sum(Kernel ** 2, axis=1)
-        if n_dip_per_pos == 1:
-            dspm_diag = np.sqrt(dspm_diag)
-        elif n_dip_per_pos in [2, 3]:
-            dspm_diag = dspm_diag.reshape(-1, n_dip_per_pos)
-            dspm_diag = np.sqrt(np.sum(dspm_diag, axis=1))
-            dspm_diag = (np.ones((1, n_dip_per_pos)) *
-                         dspm_diag[:, None]).ravel()
+    inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
+                  sing=sing, nave=nave, depth_prior=depth_prior,
+                  source_cov=source_cov, noise_cov=noise_cov,
+                  orient_prior=orient_prior, projs=deepcopy(info['projs']),
+                  eigen_leads_weighted=False, source_ori=forward['source_ori'],
+                  mri_head_t=deepcopy(forward['mri_head_t']),
+                  src=deepcopy(forward['src']))
 
-        Kernel /= dspm_diag[:, None]
-
-    # whitened sLORETA imaging kernel
-    elif method == 'sloreta':
-        print 'Computing sLORETA inverse operator.'
-        if n_dip_per_pos == 1:
-            sloreta_diag = np.sqrt(np.sum(Kernel * gain.T, axis=1))
-            Kernel /= sloreta_diag[:, None]
-        elif n_dip_per_pos in [2, 3]:
-            for k in n_positions:
-                start = k * n_dip_per_pos
-                stop = start + n_dip_per_pos
-                R = np.dot(Kernel[start:stop, :], gain[:, start:stop])
-                SIR = linalg.matfuncs.sqrtm(R, linalg.pinv(R))
-                Kernel[start:stop] = np.dot(SIR, Kernel[start:stop])
-
-    # Multiply inverse operator by whitening matrix, so no need to whiten data
-    Kernel = np.dot(Kernel, W)
-    sel = [evoked.ch_names.index(name) for name in ch_names]
-    sol = np.dot(Kernel, evoked.data[sel])
-
-    if n_dip_per_pos > 1:
-        if pick_normal:
-            print 'Picking only the normal components...',
-            if orientation != 'loose':
-                raise ValueError('The pick_normal parameter is only valid '
-                                 'when working with loose orientations.')
-            sol = sol[2::3]  # take one every 3 sources ie. only the normal
-        else:
-            print 'Combining the current components...',
-            sol = combine_xyz(sol)
-
-    src = forward['src']
-    stc = SourceEstimate(None)
-    stc.data = sol
-    stc.tmin = float(evoked.first) / evoked.info['sfreq']
-    stc.tstep = 1.0 / evoked.info['sfreq']
-    stc.lh_vertno = src[0]['vertno']
-    stc.rh_vertno = src[1]['vertno']
-    stc._init_times()
-    print '[done]'
-
-    return stc
+    return inv_op

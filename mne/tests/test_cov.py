@@ -6,8 +6,7 @@ from scipy import linalg
 from .. import Covariance, read_cov, Epochs, merge_events, \
                find_events, write_cov_file, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import fiff_open, read_evoked, Raw
-from ..datasets import sample
+from ..fiff import fiff_open, Raw
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -73,21 +72,3 @@ def test_cov_estimation_with_triggers():
     assert cov_mne.ch_names == cov.ch_names
     assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 0.06
-
-
-def test_whitening_cov():
-    """Whitening of evoked data and leadfields
-    """
-    data_path = sample.data_path('.')
-    ave_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-ave.fif')
-    cov_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-cov.fif')
-
-    # Reading
-    evoked = read_evoked(ave_fname, setno=0, baseline=(None, 0))
-
-    cov = Covariance(cov_fname)
-    cov.get_whitener(evoked.info)
-
-    # XXX : test something

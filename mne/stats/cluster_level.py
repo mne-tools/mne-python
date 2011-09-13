@@ -15,7 +15,11 @@ from ..parallel import parallel_func
 
 def _get_components(x_in, connectivity):
     """get connected components from a mask and a connectivity matrix"""
-    from scikits.learn.utils._csgraph import cs_graph_components
+    try:
+        from sklearn.utils._csgraph import cs_graph_components
+    except:
+        from scikits.learn.utils._csgraph import cs_graph_components
+
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
     row = connectivity.row[mask]
