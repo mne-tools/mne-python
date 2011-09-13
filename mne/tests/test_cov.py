@@ -1,5 +1,6 @@
 import os.path as op
 
+from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 
@@ -41,10 +42,10 @@ def test_cov_estimation_on_raw_segment():
     raw = Raw(raw_fname)
     cov = compute_raw_data_covariance(raw)
     cov_mne = Covariance(erm_cov_fname)
-    assert cov_mne.ch_names == cov.ch_names
+    assert_true(cov_mne.ch_names == cov.ch_names)
     print (linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro'))
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
+    assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-6
 
 
@@ -63,12 +64,12 @@ def test_cov_estimation_with_triggers():
 
     cov = compute_covariance(epochs, keep_sample_mean=True)
     cov_mne = Covariance(cov_km_fname)
-    assert cov_mne.ch_names == cov.ch_names
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.005
+    assert_true(cov_mne.ch_names == cov.ch_names)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     cov = compute_covariance(epochs, keep_sample_mean=False)
     cov_mne = Covariance(cov_fname)
-    assert cov_mne.ch_names == cov.ch_names
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.06
+    assert_true(cov_mne.ch_names == cov.ch_names)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.06)

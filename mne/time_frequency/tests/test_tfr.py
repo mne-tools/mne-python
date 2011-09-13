@@ -1,6 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_true
 
 from ... import fiff, Epochs, read_events
 from ...time_frequency import induced_power, single_trial_power
@@ -41,21 +42,21 @@ def test_time_frequency():
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=True)
 
-    assert power.shape == (len(picks), len(frequencies), len(times))
-    assert power.shape == phase_lock.shape
-    assert np.sum(phase_lock >= 1) == 0
-    assert np.sum(phase_lock <= 0) == 0
+    assert_true(power.shape == (len(picks), len(frequencies), len(times)))
+    assert_true(power.shape == phase_lock.shape)
+    assert_true(np.sum(phase_lock >= 1) == 0)
+    assert_true(np.sum(phase_lock <= 0) == 0)
 
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                        n_cycles=2, use_fft=False)
 
-    assert power.shape == (len(picks), len(frequencies), len(times))
-    assert power.shape == phase_lock.shape
-    assert np.sum(phase_lock >= 1) == 0
-    assert np.sum(phase_lock <= 0) == 0
+    assert_true(power.shape == (len(picks), len(frequencies), len(times)))
+    assert_true(power.shape == phase_lock.shape)
+    assert_true(np.sum(phase_lock >= 1) == 0)
+    assert_true(np.sum(phase_lock <= 0) == 0)
 
     tfr = cwt_morlet(data[0], Fs, frequencies, use_fft=True, n_cycles=2)
-    assert tfr.shape == (len(picks), len(frequencies), len(times))
+    assert_true(tfr.shape == (len(picks), len(frequencies), len(times)))
 
     single_power = single_trial_power(data, Fs, frequencies, use_fft=False,
                                       n_cycles=2)

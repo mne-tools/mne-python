@@ -1,5 +1,6 @@
 import os.path as op
 
+from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
 from .. import Raw, pick_types, pick_channels
@@ -39,13 +40,13 @@ def test_io_raw():
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
-        assert times2.max() <= 3
+        assert_true(times2.max() <= 3)
 
         # Writing
         raw.save('raw.fif', picks, tmin=0, tmax=5)
 
         if fname == fif_fname:
-            assert len(raw.info['dig']) == 146
+            assert_true(len(raw.info['dig']) == 146)
 
         raw2 = Raw('raw.fif')
 

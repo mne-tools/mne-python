@@ -1,6 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_true
 
 from ... import fiff, Epochs, read_events
 from ...time_frequency import compute_raw_psd
@@ -28,6 +29,6 @@ def test_psd():
     psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                   fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1)
 
-    assert psds.shape == (len(picks), len(freqs))
-    assert np.sum(freqs < 0) == 0
-    assert np.sum(psds < 0) == 0
+    assert_true(psds.shape == (len(picks), len(freqs)))
+    assert_true(np.sum(freqs < 0) == 0)
+    assert_true(np.sum(psds < 0) == 0)

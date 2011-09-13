@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
@@ -32,8 +33,8 @@ def test_compute_spatial_vectors():
     projs2 = read_proj(fid, tree)
 
     for k, (p1, p2) in enumerate(zip(projs, projs2)):
-        assert p1['desc'] == p2['desc']
-        assert p1['data']['col_names'] == p2['data']['col_names']
+        assert_true(p1['desc'] == p2['desc'])
+        assert_true(p1['data']['col_names'] == p2['data']['col_names'])
         # compare with sign invariance
         p1_data = p1['data']['data'] * np.sign(p1['data']['data'][0, 0])
         p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
@@ -48,8 +49,8 @@ def test_compute_spatial_vectors():
 
     # test that you can compute the projection matrix
     proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
-    assert nproj == 2
-    assert U.shape[1] == 2
+    assert_true(nproj == 2)
+    assert_true(U.shape[1] == 2)
 
     # test that you can save them
     epochs.info['projs'] += projs

@@ -1,5 +1,6 @@
 import os.path as op
 
+from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
 from ...fiff import Raw
@@ -18,4 +19,4 @@ def test_find_ecg():
     n_events = len(events)
     _, times = raw[0, :]
     average_pulse = 60.0 * (times[-1] - times[0]) / n_events
-    assert 60 < average_pulse < 65
+    assert_true(60 < average_pulse < 65)

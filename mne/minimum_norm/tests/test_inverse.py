@@ -1,7 +1,7 @@
 import os.path as op
-
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
+from nose.tools import assert_true
 
 from ...datasets import sample
 from ...label import read_label
@@ -46,8 +46,8 @@ def test_inverse_operator():
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
 
-    assert np.all(stc.data > 0)
-    assert np.all(stc.data < 35)
+    assert_true(np.all(stc.data > 0))
+    assert_true(np.all(stc.data < 35))
 
     # Test MNE inverse computation starting from forward operator
     noise_cov = Covariance(fname_cov)
@@ -68,7 +68,7 @@ def test_apply_mne_inverse_raw():
     stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                             label=label, start=0, stop=10, nave=1,
                             pick_normal=False)
-    assert np.all(stc.data > 0)
+    assert_true(np.all(stc.data > 0))
 
 
 def test_apply_mne_inverse_epochs():
@@ -87,7 +87,7 @@ def test_apply_mne_inverse_epochs():
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM,
                                 label=label)
 
-    assert len(stcs) == 1
-    assert np.all(stcs[0].data > 0)
-    assert np.all(stcs[0].data < 42)
+    assert_true(len(stcs) == 1)
+    assert_true(np.all(stcs[0].data > 0))
+    assert_true(np.all(stcs[0].data < 42))
 

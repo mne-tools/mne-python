@@ -2,6 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
+from nose.tools import assert_true
 
 from ...datasets import sample
 from ... import fiff, find_events, Epochs
@@ -48,8 +49,8 @@ def test_tfr_with_inverse_operator():
                                 use_fft=False, pca=True)
 
     stc = stcs['alpha']
-    assert len(stcs) == len(bands.keys())
-    assert np.all(stc.data > 0)
+    assert_true(len(stcs) == len(bands.keys()))
+    assert_true(np.all(stc.data > 0))
     assert_array_almost_equal(stc.times, epochs.times)
 
     stcs_no_pca = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
