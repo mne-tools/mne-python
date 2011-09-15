@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 from ..misc import parse_config
 
@@ -9,4 +10,4 @@ def test_parse_ave():
     """Test parsing of .ave file
     """
     conditions = parse_config(ave_fname)
-    assert len(conditions) == 4
+    assert_true(len(conditions) == 4)

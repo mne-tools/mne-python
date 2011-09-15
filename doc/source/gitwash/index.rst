@@ -1,7 +1,7 @@
 .. _using-git:
 
-Working with *mne-python* source code
-======================================
+Contributing to *mne-python* source code
+========================================
 
 Contents:
 
@@ -14,5 +14,3 @@ Contents:
    patching
    git_development
    git_resources
-
-

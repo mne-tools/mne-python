@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 from ...fiff import Raw
 from ..eog import find_eog_events
@@ -14,4 +15,4 @@ def test_find_eog():
     raw = Raw(raw_fname)
     events = find_eog_events(raw)
     n_events = len(events)
-    assert n_events == 4
+    assert_true(n_events == 4)

@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -44,7 +45,7 @@ def test_morph_data():
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to.data.mean(axis=0)
-    assert np.corrcoef(mean_to, mean_from).min() > 0.99
+    assert_true(np.corrcoef(mean_to, mean_from).min() > 0.99)
 
 
 def test_spatio_temporal_tris_connectivity():

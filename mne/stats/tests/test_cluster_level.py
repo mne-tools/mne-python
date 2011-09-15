@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
+from nose.tools import assert_true
 
 from ..cluster_level import permutation_cluster_test, \
                             permutation_cluster_1samp_test
@@ -66,5 +67,5 @@ def test_cluster_permutation_t_test_with_connectivity():
                                  n_permutations=500, connectivity=connectivity)
         assert_array_equal(out[0], out_connectivity[0])
         for a, b in zip(out_connectivity[1], out[1]):
-            assert np.sum(out[0][a]) == np.sum(out[0][b])
-            assert np.all(a[b])
+            assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
+            assert_true(np.all(a[b]))

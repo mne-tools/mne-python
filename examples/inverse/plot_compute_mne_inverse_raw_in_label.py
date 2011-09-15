@@ -41,7 +41,7 @@ start, stop = raw.time_to_index(0, 15)  # read the first 15s of data
 
 # Compute inverse solution
 stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM, label,
-                        start, stop)
+                        start, stop, pick_normal=False)
 
 # Save result in stc files
 stc.save('mne_dSPM_raw_inverse_%s' % label_name)

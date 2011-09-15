@@ -9,7 +9,7 @@ import numpy as np
 
 from .constants import FIFF
 from .open import fiff_open
-from .evoked import read_meas_info
+from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 
@@ -188,7 +188,8 @@ class Raw(dict):
         else:
             return super(Raw, self).__getitem__(item)
 
-    def save(self, fname, picks=None, tmin=0, tmax=None, quantum_sec=10):
+    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
+             drop_small_buffer=False):
         """Save raw data to file
 
         Parameters
@@ -205,8 +206,12 @@ class Raw(dict):
         tmax : int
             Time in seconds of last sample to save
 
-        quantum_sec : float
+        buffer_size_sec : float
             Size of data chuncks in seconds.
+
+        drop_small_buffer: bool
+            Drop or not the last buffer. It is required by maxfilter (SSS)
+            that only accepts raw files with buffers of the same size.
 
         """
         outfid, cals = start_writing_raw(fname, self.info, picks)
@@ -222,13 +227,13 @@ class Raw(dict):
         else:
             stop = int(floor(tmax * self.info['sfreq']))
 
-        quantum = int(ceil(quantum_sec * self.info['sfreq']))
+        buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
         #
         #   Read and write all the data
         #
         write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, start)
-        for first in range(start, stop, quantum):
-            last = first + quantum
+        for first in range(start, stop, buffer_size):
+            last = first + buffer_size
             if last >= stop:
                 last = stop + 1
 
@@ -236,6 +241,11 @@ class Raw(dict):
                 data, times = self[:, first:last]
             else:
                 data, times = self[picks, first:last]
+
+            if (drop_small_buffer and (first > start)
+                                            and (len(times) < buffer_size)):
+                print 'Skipping data chunk due to small buffer ... [done]\n'
+                break
 
             print 'Writing ... ',
             write_raw_buffer(outfid, data, cals)
@@ -464,17 +474,14 @@ def read_raw_segment_times(raw, start, stop, sel=None):
 ###############################################################################
 # Writing
 
-from .write import start_file, start_block, write_id, write_string, \
-                   write_ch_info, end_block, write_coord_trans, \
-                   write_float, write_int, write_dig_point, \
-                   write_name_list, end_file
-from .ctf import write_ctf_comp
-from .proj import write_proj
-from .tree import copy_tree
+from .write import start_file, end_file, start_block, end_block, \
+                   write_float, write_int, write_id
 
 
 def start_writing_raw(name, info, sel=None):
     """Start write raw data in file
+
+    Data will be written in float
 
     Parameters
     ----------
@@ -496,16 +503,6 @@ def start_writing_raw(name, info, sel=None):
         calibration factors
     """
     #
-    #   We will always write floats
-    #
-    if sel is None:
-        chs = info['chs']
-        nchan = len(chs)
-    else:
-        chs = [info['chs'][k] for k in sel]
-        nchan = len(sel)
-    data_type = 4
-    #
     #  Create the file and save the essentials
     #
     fid = start_file(name)
@@ -516,65 +513,13 @@ def start_writing_raw(name, info, sel=None):
     #
     #    Measurement info
     #
-    start_block(fid, FIFF.FIFFB_MEAS_INFO)
-    #
-    #    Blocks from the original
-    #
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
-              FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
-    have_hpi_result = False
-    have_isotrak = False
-    if len(blocks) > 0 and 'filename' in info and info['filename'] is not None:
-        fid2, tree, _ = fiff_open(info['filename'])
-        for b in blocks:
-            nodes = dir_tree_find(tree, b)
-            copy_tree(fid2, tree['id'], nodes, fid)
-            if b == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
-                have_hpi_result = True
-            if b == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
-                have_isotrak = True
-        fid2.close()
-
-    #
-    #    megacq parameters
-    #
-    if info['acq_pars'] is not None or info['acq_stim'] is not None:
-        start_block(fid, FIFF.FIFFB_DACQ_PARS)
-        if info['acq_pars'] is not None:
-            write_string(fid, FIFF.FIFF_DACQ_PARS, info['acq_pars'])
-
-        if info['acq_stim'] is not None:
-            write_string(fid, FIFF.FIFF_DACQ_STIM, info['acq_stim'])
-
-        end_block(fid, FIFF.FIFFB_DACQ_PARS)
-    #
-    #    Coordinate transformations if the HPI result block was not there
-    #
-    if not have_hpi_result:
-        if info['dev_head_t'] is not None:
-            write_coord_trans(fid, info['dev_head_t'])
-
-        if info['ctf_head_t'] is not None:
-            write_coord_trans(fid, info['ctf_head_t'])
-    #
-    #    Polhemus data
-    #
-    if info['dig'] is not None and not have_isotrak:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-        for dig_point in info['dig']:
-            write_dig_point(fid, dig_point)
-            end_block(fid, FIFF.FIFFB_ISOTRAK)
-    #
-    #    Projectors
-    #
-    write_proj(fid, info['projs'])
-    #
-    #    CTF compensation info
-    #
-    comps = info['comps']
     if sel is not None:
-        ch_names = [c['ch_name'] for c in chs]  # name of good channels
-        comps = copy.deepcopy(comps)
+        info = copy.deepcopy(info)
+        info['chs'] = [info['chs'][k] for k in sel]
+        info['nchan'] = len(sel)
+
+        ch_names = [c['ch_name'] for c in info['chs']]  # name of good channels
+        comps = copy.deepcopy(info['comps'])
         for c in comps:
             row_idx = [k for k, n in enumerate(c['data']['row_names'])
                                                             if n in ch_names]
@@ -584,38 +529,19 @@ def start_writing_raw(name, info, sel=None):
             c['data']['nrow'] = len(row_names)
             c['data']['row_names'] = row_names
             c['data']['data'] = c['data']['data'][row_idx]
-    write_ctf_comp(fid, comps)
-    #
-    #    Bad channels
-    #
-    if len(info['bads']) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-    #
-    #    General
-    #
-    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
-    write_int(fid, FIFF.FIFF_NCHAN, nchan)
-    write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
-    if info['meas_date'] is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
-    #
-    #    Channel info
-    #
+        info['comps'] = comps
+
     cals = []
-    for k in range(nchan):
+    for k in range(info['nchan']):
         #
         #   Scan numbers may have been messed up
         #
-        chs[k]['scanno'] = k + 1  # scanno starts at 1 in FIF format
-        chs[k]['range'] = 1.0
-        cals.append(chs[k]['cal'])
-        write_ch_info(fid, chs[k])
+        info['chs'][k]['scanno'] = k + 1  # scanno starts at 1 in FIF format
+        info['chs'][k]['range'] = 1.0
+        cals.append(info['chs'][k]['cal'])
 
-    end_block(fid, FIFF.FIFFB_MEAS_INFO)
+    write_meas_info(fid, info, data_type=4)
+
     #
     # Start the raw data
     #

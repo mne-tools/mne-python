@@ -2,6 +2,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_true
 
 from ...datasets import sample
 from ... import fiff, find_events, Epochs
@@ -34,25 +35,25 @@ def test_tfr_with_inverse_operator():
 
     # picks MEG gradiometers
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                                    stim=False, include=include, exclude=exclude)
+                                stim=False, include=include, exclude=exclude)
 
     # Load condition 1
     event_id = 1
     events = events[:3]  # take 3 events to keep the computation time low
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
-                        preload=True)
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
 
     # Compute a source estimate per frequency band
     bands = dict(alpha=[10, 10])
     label = read_label(fname_label)
 
-    stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                                use_fft=False, pca=True, label=label)
+    stcs = source_band_induced_power(epochs, inverse_operator, bands,
+                            n_cycles=2, use_fft=False, pca=True, label=label)
 
     stc = stcs['alpha']
-    assert len(stcs) == len(bands.keys())
-    assert np.all(stc.data > 0)
+    assert_true(len(stcs) == len(bands.keys()))
+    assert_true(np.all(stc.data > 0))
     assert_array_almost_equal(stc.times, epochs.times)
 
     stcs_no_pca = source_band_induced_power(epochs, inverse_operator, bands,

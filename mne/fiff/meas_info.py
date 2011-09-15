@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from warnings import warn
 import numpy as np
 from scipy import linalg
 
@@ -14,9 +15,9 @@ from .proj import read_proj, write_proj
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import _read_bad_channels
 
-from .write import start_block, end_block, \
+from .write import start_block, end_block, write_string, write_dig_point, \
                    write_float, write_int, write_coord_trans, write_ch_info, \
-                   write_dig_point, write_name_list
+                   write_name_list
 
 
 def read_meas_info(fid, tree):
@@ -128,16 +129,14 @@ def read_meas_info(fid, tree):
 
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
-    if len(isotrak):
-        isotrak = isotrak[0]
+    dig = None
+    if len(isotrak) == 0:
+        print 'Isotrak not found'
+    elif len(isotrak) > 1:
+        warn('Multiple Isotrak found')
     else:
-        if len(isotrak) == 0:
-            raise ValueError('Isotrak not found')
-        if len(isotrak) > 1:
-            raise ValueError('Multiple Isotrak found')
-
-    dig = []
-    if len(isotrak) == 1:
+        isotrak = isotrak[0]
+        dig = []
         for k in range(isotrak['nent']):
             kind = isotrak['directory'][k].kind
             pos = isotrak['directory'][k].pos
@@ -233,15 +232,30 @@ def read_meas_info(fid, tree):
     return info, meas
 
 
-def write_meas_info(fid, info):
-    """Write measurement info in fif file."""
+def write_meas_info(fid, info, data_type=None):
+    """Write measurement info in fif file.
+
+    Parameters
+    ----------
+    fid: file
+        Open file descriptor
+    info: dict
+        The measurement info structure
+    data_type: int
+        The data_type is case it is necessary. Should be 4 for raw data.
+
+    Note
+    ----
+    Tags are written in a particular order for compatibility with maxfilter
+    """
 
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     # Blocks from the original
     blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
-              FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
+              FIFF.FIFFB_PROCESSING_HISTORY]
+              # FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
 
     have_hpi_result = False
     have_isotrak = False
@@ -258,13 +272,18 @@ def write_meas_info(fid, info):
                 have_isotrak = True
         fid2.close()
 
-    #   General
-    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
-    write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
-    if info['meas_date'] is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+    #
+    #    megacq parameters
+    #
+    if info['acq_pars'] is not None or info['acq_stim'] is not None:
+        start_block(fid, FIFF.FIFFB_DACQ_PARS)
+        if info['acq_pars'] is not None:
+            write_string(fid, FIFF.FIFF_DACQ_PARS, info['acq_pars'])
+
+        if info['acq_stim'] is not None:
+            write_string(fid, FIFF.FIFF_DACQ_STIM, info['acq_stim'])
+
+        end_block(fid, FIFF.FIFFB_DACQ_PARS)
 
     #   Coordinate transformations if the HPI result block was not there
     if not have_hpi_result:
@@ -273,12 +292,6 @@ def write_meas_info(fid, info):
 
         if info['ctf_head_t'] is not None:
             write_coord_trans(fid, info['ctf_head_t'])
-
-    #  Channel information
-    for k in range(info['nchan']):
-        #   Scan numbers may have been messed up
-        info['chs'][k]['scanno'] = k + 1
-        write_ch_info(fid, info['chs'][k])
 
     #   Polhemus data
     if info['dig'] is not None and not have_isotrak:
@@ -299,5 +312,22 @@ def write_meas_info(fid, info):
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
         write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    #   General
+    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
+    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
+    if data_type is not None:
+        write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
+    if info['meas_date'] is not None:
+        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
+
+    #  Channel information
+    for k, c in enumerate(info['chs']):
+        #   Scan numbers may have been messed up
+        c['scanno'] = k + 1
+        c['range'] = 1.0
+        write_ch_info(fid, c)
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)

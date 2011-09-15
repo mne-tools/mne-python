@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 from ..datasets import sample
 from .. import read_source_spaces
@@ -21,11 +22,11 @@ def test_read_source_spaces():
     rh_points = src[1]['rr']
     rh_faces = src[1]['tris']
     rh_use_faces = src[1]['use_tris']
-    assert lh_faces.min() == 0
-    assert lh_faces.max() == lh_points.shape[0] - 1
-    assert lh_use_faces.min() >= 0
-    assert lh_use_faces.max() <= lh_points.shape[0] - 1
-    assert rh_faces.min() == 0
-    assert rh_faces.max() == rh_points.shape[0] - 1
-    assert rh_use_faces.min() >= 0
-    assert rh_use_faces.max() <= lh_points.shape[0] - 1
+    assert_true(lh_faces.min() == 0)
+    assert_true(lh_faces.max() == lh_points.shape[0] - 1)
+    assert_true(lh_use_faces.min() >= 0)
+    assert_true(lh_use_faces.max() <= lh_points.shape[0] - 1)
+    assert_true(rh_faces.min() == 0)
+    assert_true(rh_faces.max() == rh_points.shape[0] - 1)
+    assert_true(rh_use_faces.min() >= 0)
+    assert_true(rh_use_faces.max() <= lh_points.shape[0] - 1)

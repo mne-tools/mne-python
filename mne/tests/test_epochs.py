@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from nose.tools import assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from .. import fiff, Epochs, read_events
@@ -36,7 +37,7 @@ def test_read_epochs():
                                 eog=True)
     epochs.drop_picks(eog_picks)
     data_no_eog = epochs.get_data()
-    assert data.shape[1] == (data_no_eog.shape[1] + len(eog_picks))
+    assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
 
 
 def test_reject_epochs():
@@ -51,8 +52,8 @@ def test_reject_epochs():
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
-    assert n_events > n_clean_epochs
-    assert n_clean_epochs == 3
+    assert_true(n_events > n_clean_epochs)
+    assert_true(n_clean_epochs == 3)
 
 
 def test_preload_epochs():
@@ -82,6 +83,6 @@ def test_comparision_with_c():
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
 
-    assert evoked.nave == c_evoked.nave
+    assert_true(evoked.nave == c_evoked.nave)
     assert_array_almost_equal(evoked_data, c_evoked_data, 10)
     assert_array_almost_equal(evoked.times, c_evoked.times, 12)

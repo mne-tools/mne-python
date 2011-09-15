@@ -1,4 +1,5 @@
 import os.path as op
+from nose.tools import assert_true
 
 from ..datasets import sample
 from .. import label_time_courses
@@ -16,5 +17,5 @@ def test_label_io_and_time_course_estimates():
 
     values, times, vertices = label_time_courses(label_fname, stc_fname)
 
-    assert len(times) == values.shape[1]
-    assert len(vertices) == values.shape[0]
+    assert_true(len(times) == values.shape[1])
+    assert_true(len(vertices) == values.shape[0])

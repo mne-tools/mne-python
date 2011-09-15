@@ -33,11 +33,10 @@ test-doc:
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
 test-coverage:
-	$(NOSETESTS) --with-coverage --cover-package=mne
-
+	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
 trailing-spaces:
-	find -name "*.py" |xargs sed -i 's/[ \t]*$$//'
+	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
 
 ctags:
 	# make tags for symbol based navigation in emacs and vim

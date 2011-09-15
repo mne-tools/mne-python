@@ -341,7 +341,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd['src'] = src
 
     #   Handle the source locations and orientations
-    if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI or force_fixed == True:
+    if (fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or force_fixed:
         nuse = 0
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         fwd['source_nn'] = np.zeros((fwd['nsource'], 3))
@@ -366,50 +366,49 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
 
             print '[done]'
+    elif surf_ori:
+        #   Rotate the local source coordinate systems
+        print '\tConverting to surface-based source orientations...'
+        nuse = 0
+        pp = 0
+        nuse_total = sum([s['nuse'] for s in src])
+        fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
+        fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
+        for s in src:
+            rr = s['rr'][s['vertno'], :]
+            fwd['source_rr'][nuse:nuse + s['nuse'], :] = rr
+            for p in range(s['nuse']):
+                #  Project out the surface normal and compute SVD
+                nn = s['nn'][s['vertno'][p], :][:, None]
+                U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
+                #  Make sure that ez is in the direction of nn
+                if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:
+                    U *= -1.0
+                fwd['source_nn'][pp:pp + 3, :] = U.T
+                pp += 3
+
+            nuse += s['nuse']
+
+        surf_rot = _block_diag(fwd['source_nn'].T, 3)
+        fwd['sol']['data'] = fwd['sol']['data'] * surf_rot
+        if fwd['sol_grad'] is not None:
+            fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
+                                             np.kron(surf_rot, np.eye(3)))
+
+        print '[done]'
     else:
-        if surf_ori:
-            #   Rotate the local source coordinate systems
-            print '\tConverting to surface-based source orientations...'
-            nuse = 0
-            pp = 0
-            nuse_total = sum([s['nuse'] for s in src])
-            fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
-            fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
-            for s in src:
-                fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
-                                                    s['rr'][s['vertno'], :]
-                for p in range(s['nuse']):
-                    #  Project out the surface normal and compute SVD
-                    nn = s['nn'][s['vertno'][p], :].T
-                    nn = nn[:, None]
-                    U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
-                    #  Make sure that ez is in the direction of nn
-                    if np.sum(nn * U[:, 2]) < 0:
-                        U *= -1
+        print '\tCartesian source orientations...'
+        nuse = 0
+        fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
+        for s in src:
+            rr = s['rr'][s['vertno'], :]
+            fwd['source_rr'][nuse:nuse + s['nuse'], :] = rr
+            nuse += s['nuse']
 
-                    fwd['source_nn'][pp:pp + 3, :] = U.T
-                    pp += 3
+        fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
+        print '[done]'
 
-                nuse += s['nuse']
-
-            surf_rot = _block_diag(fwd['source_nn'].T, 3)
-            fwd['sol']['data'] = fwd['sol']['data'] * surf_rot
-            if fwd['sol_grad'] is not None:
-                fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
-                                                 np.kron(surf_rot, np.eye(3)))
-
-            print '[done]'
-        else:
-            print '\tCartesian source orientations...'
-            nuse = 0
-            fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
-            for s in src:
-                fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
-                                                s['rr'][s['vertno'], :]
-                nuse += s['nuse']
-
-            fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
-            print '[done]'
+    fwd['surf_ori'] = surf_ori
 
     # Add channel information
     fwd['chs'] = chs
@@ -417,3 +416,19 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return fwd
+
+
+def compute_depth_prior(G, exp=0.8, limit=10.0):
+    """Compute weighting for depth prior
+    """
+    n_pos = G.shape[1] // 3
+    d = np.zeros(n_pos)
+    for k in xrange(n_pos):
+        Gk = G[:, 3 * k:3 * (k + 1)]
+        d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
+    w = 1.0 / d
+    wmax = np.min(w) * (limit ** 2)
+    wp = np.minimum(w, wmax)
+    wpp = (wp / wmax) ** exp
+    depth_prior = np.ravel(wpp[:, None] * np.ones((1, 3)))
+    return depth_prior

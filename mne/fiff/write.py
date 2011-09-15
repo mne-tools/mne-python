@@ -194,7 +194,7 @@ def write_coord_trans(fid, trans):
     fid.write(np.array(move, dtype='>f4').tostring())
 
     #   ...and its inverse
-    trans_inv = linalg.inv(trans.trans)
+    trans_inv = linalg.inv(trans['trans'])
     rot = trans_inv[:3, :3]
     move = trans_inv[:3, 3]
     fid.write(np.array(rot, dtype='>f4').tostring())

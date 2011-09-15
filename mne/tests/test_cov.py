@@ -1,13 +1,13 @@
 import os.path as op
 
+from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 
 from .. import Covariance, read_cov, Epochs, merge_events, \
                find_events, write_cov_file, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import fiff_open, read_evoked, Raw
-from ..datasets import sample
+from ..fiff import fiff_open, Raw
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -42,10 +42,10 @@ def test_cov_estimation_on_raw_segment():
     raw = Raw(raw_fname)
     cov = compute_raw_data_covariance(raw)
     cov_mne = Covariance(erm_cov_fname)
-    assert cov_mne.ch_names == cov.ch_names
+    assert_true(cov_mne.ch_names == cov.ch_names)
     print (linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro'))
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
+    assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-6
 
 
@@ -64,30 +64,12 @@ def test_cov_estimation_with_triggers():
 
     cov = compute_covariance(epochs, keep_sample_mean=True)
     cov_mne = Covariance(cov_km_fname)
-    assert cov_mne.ch_names == cov.ch_names
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.005
+    assert_true(cov_mne.ch_names == cov.ch_names)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     cov = compute_covariance(epochs, keep_sample_mean=False)
     cov_mne = Covariance(cov_fname)
-    assert cov_mne.ch_names == cov.ch_names
-    assert (linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.06
-
-
-def test_whitening_cov():
-    """Whitening of evoked data and leadfields
-    """
-    data_path = sample.data_path('.')
-    ave_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-ave.fif')
-    cov_fname = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-cov.fif')
-
-    # Reading
-    evoked = read_evoked(ave_fname, setno=0, baseline=(None, 0))
-
-    cov = Covariance(cov_fname)
-    cov.get_whitener(evoked.info)
-
-    # XXX : test something
+    assert_true(cov_mne.ch_names == cov.ch_names)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 0.06)
