@@ -29,4 +29,4 @@ def test_read_source_spaces():
     assert_true(rh_faces.min() == 0)
     assert_true(rh_faces.max() == rh_points.shape[0] - 1)
     assert_true(rh_use_faces.min() >= 0)
-    assert_true(rh_use_faces.max() <= lh_points.shape[0] - 1)
+    assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)

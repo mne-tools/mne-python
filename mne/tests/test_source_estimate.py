@@ -35,7 +35,7 @@ def test_morph_data():
     """Test morphing of data
     """
     subject_from = 'sample'
-    subject_to = 'morph'
+    subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc_from = SourceEstimate(fname)
     stc_to = morph_data(subject_from, subject_to, stc_from,
@@ -67,4 +67,3 @@ def test_spatio_temporal_src_connectivity():
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
-
