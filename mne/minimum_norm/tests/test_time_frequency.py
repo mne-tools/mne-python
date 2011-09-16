@@ -8,7 +8,7 @@ from ...datasets import sample
 from ... import fiff, find_events, Epochs
 from ...label import read_label
 from ..inverse import read_inverse_operator
-from ..time_frequency import source_band_induced_power
+from ..time_frequency import source_band_induced_power, source_induced_power
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
@@ -39,8 +39,8 @@ def test_tfr_with_inverse_operator():
 
     # Load condition 1
     event_id = 1
-    events = events[:3]  # take 3 events to keep the computation time low
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    events3 = events[:3]  # take 3 events to keep the computation time low
+    epochs = Epochs(raw, events3, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
 
@@ -60,3 +60,17 @@ def test_tfr_with_inverse_operator():
                             n_cycles=2, use_fft=False, pca=False, label=label)
 
     assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
+
+    # Compute a source estimate per frequency band
+    events = find_events(raw)
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
+
+    frequencies = np.arange(7, 30, 2)  # define frequencies of interest
+    power, phase_lock = source_induced_power(epochs, inverse_operator,
+                            frequencies, label, baseline=(-0.1, 0),
+                            baseline_mode='percent', n_cycles=2, n_jobs=1)
+    assert_true(np.all(phase_lock > 0))
+    assert_true(np.all(phase_lock < 1))
+    assert_true(np.max(power) > 10)

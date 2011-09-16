@@ -49,10 +49,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True)
 
 # Compute a source estimate per frequency band
-frequencies = np.arange(7, 30, 3)  # define frequencies of interest
+frequencies = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)
 power, phase_lock = source_induced_power(epochs, inverse_operator, frequencies,
-                            label, baseline=(None, 0), baseline_mode='logratio',
+                            label, baseline=(-0.1, 0), baseline_mode='percent',
                             n_cycles=2, n_jobs=1)
 
 power = np.mean(power, axis=0)  # average over sources
