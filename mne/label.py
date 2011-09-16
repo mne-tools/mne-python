@@ -80,23 +80,3 @@ def label_time_courses(labelfile, stcfile):
     times = stc['tmin'] + stc['tstep'] * np.arange(stc['data'].shape[1])
 
     return values, times, vertices
-
-
-def source_space_vertices(label, src):
-    """XXX
-    """
-    lh_vertno = src[0]['vertno']
-    rh_vertno = src[1]['vertno']
-
-    if label['hemi'] == 'lh':
-        vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
-        src_sel = np.searchsorted(lh_vertno, vertno_sel)
-        lh_vertno = vertno_sel
-        rh_vertno = np.array([])
-    elif label['hemi'] == 'rh':
-        vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
-        src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
-        lh_vertno = np.array([])
-        rh_vertno = vertno_sel
-
-    return src_sel, lh_vertno, rh_vertno

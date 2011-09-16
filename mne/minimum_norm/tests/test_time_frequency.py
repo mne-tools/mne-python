@@ -21,7 +21,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
 def test_tfr_with_inverse_operator():
-    """Test MNE inverse computation"""
+    """Test time freq with MNE inverse computation"""
 
     tmin, tmax, event_id = -0.2, 0.5, 1
 
