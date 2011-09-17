@@ -190,7 +190,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
 
     if pca:
-        U, s, Vh = linalg.svd(K)
+        U, s, Vh = linalg.svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]

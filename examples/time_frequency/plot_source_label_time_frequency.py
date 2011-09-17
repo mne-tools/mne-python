@@ -4,7 +4,8 @@ Compute power and phase lock in label of the source space
 =========================================================
 
 Returns time-frequency maps of induced power and phase lock
-in the source space. The inverse method is linear based on dSPM inverse operator.
+in the source space. The inverse method is linear based on dSPM inverse
+operator.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
