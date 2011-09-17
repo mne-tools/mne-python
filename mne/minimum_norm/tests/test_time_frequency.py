@@ -62,7 +62,6 @@ def test_tfr_with_inverse_operator():
     assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
 
     # Compute a source estimate per frequency band
-    events = find_events(raw)
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
