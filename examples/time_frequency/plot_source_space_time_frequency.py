@@ -17,7 +17,7 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.minimum_norm import read_inverse_operator, source_induced_power
+from mne.minimum_norm import read_inverse_operator, source_band_induced_power
 
 ###############################################################################
 # Set parameters
@@ -48,8 +48,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # Compute a source estimate per frequency band
 bands = dict(alpha=[9, 11], beta=[18, 22])
 
-stcs = source_induced_power(epochs, inverse_operator, bands, n_cycles=2,
-                            use_fft=False, n_jobs=-1)
+stcs = source_band_induced_power(epochs, inverse_operator, bands, n_cycles=2,
+                                 use_fft=False, n_jobs=1)
 
 for b, stc in stcs.iteritems():
     stc.save('induced_power_%s' % b)
