@@ -33,7 +33,7 @@ tmax = 0.5
 raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-channel = 'MEG 1332'
+channel = 'MEG 1332'  # include only this channel in analysis
 include = [channel]
 
 ###############################################################################
