@@ -8,7 +8,7 @@ Introduction
 
 This document describes a set of programs for preprocessing
 and averaging of MEG and EEG data and for constructing cortically-constrained minimum-norm
-estimates. This software package will in the sequel referred to
+estimates. This software package will in the sequel be referred to
 as *MNE software*. The software is based on anatomical
 MRI processing, forward modelling, and source estimation methods published in
 Dale, Fischl, Hämäläinen, and others.
