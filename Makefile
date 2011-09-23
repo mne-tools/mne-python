@@ -42,3 +42,6 @@ ctags:
 	# make tags for symbol based navigation in emacs and vim
 	# Install with: sudo apt-get install exuberant-ctags
 	$(CTAGS) -R *
+
+upload-pipy:
+	python setup.py sdist bdist_egg register upload

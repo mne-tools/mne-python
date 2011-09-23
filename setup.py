@@ -14,7 +14,7 @@ DESCRIPTION         = 'MNE python project for MEG and EEG data analysis'
 LONG_DESCRIPTION    = descr
 MAINTAINER          = 'Alexandre Gramfort'
 MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
-URL                 = 'http://github.com/mne-tools/mne-python'
+URL                 = 'http://martinos.org/mne'
 LICENSE             = 'BSD (3-clause)'
 DOWNLOAD_URL        = 'http://github.com/mne-tools/mne-python'
 VERSION             = mne.__version__
@@ -22,32 +22,10 @@ VERSION             = mne.__version__
 import setuptools # we are using a setuptools namespace
 from numpy.distutils.core import setup
 
-# For some commands, use setuptools
-if len(set(('develop', 'sdist', 'release', 'bdist_egg', 'bdist_rpm',
-           'bdist', 'bdist_dumb', 'bdist_wininst', 'install_egg_info',
-           'build_sphinx', 'egg_info', 'easy_install', 'upload',
-            )).intersection(sys.argv)) > 0:
-    from setupegg import extra_setuptools_args
-
-# extra_setuptools_args is injected by the setupegg.py script, for
-# running the setup with setuptools.
-if not 'extra_setuptools_args' in globals():
-    extra_setuptools_args = dict()
-
-
-# if nose available, provide test command
-try:
-    from nose.commands import nosetests
-    cmdclass = extra_setuptools_args.pop('cmdclass', {})
-    cmdclass['test'] = nosetests
-    cmdclass['nosetests'] = nosetests
-    extra_setuptools_args['cmdclass'] = cmdclass
-except ImportError:
-    pass
-
 
 if __name__ == "__main__":
-    if os.path.exists('MANIFEST'): os.remove('MANIFEST')
+    if os.path.exists('MANIFEST'):
+        os.remove('MANIFEST')
 
     setup(name = DISTNAME,
         maintainer  = MAINTAINER,
@@ -81,5 +59,4 @@ if __name__ == "__main__":
                    'mne.minimum_norm', 'mne.minimum_norm.tests',
                    'mne.layouts',
                    'mne.time_frequency', 'mne.time_frequency.tests'],
-         scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py'],
-         **extra_setuptools_args)
+         scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py'])

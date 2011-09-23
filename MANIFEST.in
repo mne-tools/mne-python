@@ -1,5 +1,7 @@
 include *.rst
 include mne/__init__.py
-recursive-include doc *
-recursive-include examples *
+# recursive-include doc *
+recursive-include examples *.py
+recursive-include examples *.txt
 recursive-include mne *.py
+recursive-include mne/fiff/tests/data *
