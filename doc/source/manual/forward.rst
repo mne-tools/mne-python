@@ -1327,9 +1327,9 @@ the following command-line options:
 **\---fwd <*name*> :[ <*weight*> ]**
 
     Specifies a forward solution to include. If no weight is specified,
-    1.0 is asssumed. In the averaging process the weights are divided
+    1.0 is assumed. In the averaging process the weights are divided
     by their sum. For example, if two forward solutions are averaged
-    and their spefied weights are 2 and 3, the average is formed with
+    and their specified weights are 2 and 3, the average is formed with
     a weight of 2/5 for the first solution and 3/5 for the second one.
 
 **\---out <*name*>**

@@ -28,8 +28,8 @@ takes place:
   setup lines are there, nothing happens.
 
 A summary of the available routines is provided in Tables :ref:`BGBCGHAG` - :ref:`BGBEFADJ`. The toolbox
-also contains a set of examples which may be usedful starting points
-for your own development. The names of these functions startwith mne_ex and
+also contains a set of examples which may be useful starting points
+for your own development. The names of these functions start with mne_ex and
 they are listed in :ref:`BGBEFADJ`.
 
 .. note:: The MNE Matlab Toolbox is compatible with    Matlab versions 7.0 or later.
@@ -452,7 +452,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
-.. note:: In order for the inverse operator calculation to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software, the so-called *processing history* block must be included in data files. Previous versions of the MNE Matlab functions did not copy processing history to files saved. As of March 30, 2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have been enchanced to include these data to the output file as appropriate. If you have older raw data files created in Matlab from input which has been processed Maxfilter, it is necessary to copy the *processing history* block from the original to modified raw data file using the mne_copy_processing_history utility described in :ref:`CJACECAH`. The raw data processing programs mne_browse_raw and mne_process_raw have handled copying of the processing history since revision 2.5 of the MNE software.
+.. note:: In order for the inverse operator calculation to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software, the so-called *processing history* block must be included in data files. Previous versions of the MNE Matlab functions did not copy processing history to files saved. As of March 30, 2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have been enhanced to include these data to the output file as appropriate. If you have older raw data files created in Matlab from input which has been processed Maxfilter, it is necessary to copy the *processing history* block from the original to modified raw data file using the mne_copy_processing_history utility described in :ref:`CJACECAH`. The raw data processing programs mne_browse_raw and mne_process_raw have handled copying of the processing history since revision 2.5 of the MNE software.
 
 Some data structures
 ####################

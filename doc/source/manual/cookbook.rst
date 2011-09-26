@@ -64,7 +64,7 @@ MRI viewer, MRIlab, can be used to access the MRI slice data created
 by FreeSurfer . In addition, the
 Neuromag MRI directories can be used for storing the MEG/MRI coordinate
 transformations created with mne_analyze ,
-see :ref:`CACEHGCD`. Doring the computation of the forward
+see :ref:`CACEHGCD`.  During the computation of the forward
 solution, mne_do_forwand_solution searches
 for the MEG/MRI coordinate in the Neuromag MRI directories, see :ref:`BABCHEJD`. The fif files created by mne_setup_mrit can
 be loaded into Matlab with the fiff_read_mri function,
@@ -78,7 +78,7 @@ by default they are T1 and brain. This default can be changed by
 specifying the sets by one or more ``--mri`` options.
 
 The script creates the directories ``mri/`` <*name*> ``-neuromag/slices`` and ``mri/`` <*name*> ``-neuromag/sets`` .
-If the the input data set is in COR format, mne_setup_mri makes
+If the input data set is in COR format, mne_setup_mri makes
 symbolic links from the COR files in the directory ``mri/`` <*name*> into ``mri/`` <*name*> ``-neuromag/slices`` ,
 and creates a corresponding fif file COR.fif in ``mri/`` <*name*> ``-neuromag/sets`` ..
 This "description file" contains references to
@@ -324,7 +324,7 @@ the forward solutions:
 
 This step assigns the conductivity values to the BEM compartments.
 For the scalp and the brain compartments, the default is 0.3 S/m.
-The defalt skull conductivity is 50 times smaller, *i.e.*,
+The default skull conductivity is 50 times smaller, *i.e.*,
 0.006 S/m. Recent publications, see :ref:`CEGEGDEI`, report
 a range of skull conductivity ratios ranging from 1:15 (Oostendorp *et
 al.*, 2000) to 1:25 - 1:50 (Slew *et al.*,
