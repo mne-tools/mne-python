@@ -165,7 +165,7 @@ be adjusted with the regularization options ``--magreg`` , ``--gradreg`` ,
 and ``--eegreg`` specified at the time of the inverse operator
 decomposition, see :ref:`CBBDDBGF`. The convenience script mne_do_inverse_solution has
 the ``--magreg`` and ``--gradreg`` combined to
-a sigle option, ``--megreg`` , see :ref:`CIHCFJEI`.
+a single option, ``--megreg`` , see :ref:`CIHCFJEI`.
 Suggested range of values for :math:`\varepsilon_k` is :math:`0.05 \dotso 0.2`.
 
 .. _CHDBEHBC:

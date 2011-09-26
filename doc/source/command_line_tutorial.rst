@@ -21,7 +21,7 @@ Build your source space::
 
 Prepare for forward computation::
 
-    # For homegenious volume conductor
+    # For homogeneous volume conductor
     mne_setup_forward_model --homog --surf --ico 4
 
     # or for XXX

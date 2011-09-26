@@ -89,7 +89,7 @@ need to install the netpbm package. The recommended way to do this
 is to use the MacPorts Project tools, see http://www.macports.org/:
 
 - If you have not installed the MacPorts
-  sofware, goto http://www.macports.org/install.php and follow the
+  software, goto http://www.macports.org/install.php and follow the
   instructions to install MacPorts.
 
 - Install the netpbm package by saying: ``sudo port install netpbm``
