@@ -6,6 +6,7 @@
 import copy
 import numpy as np
 import fiff
+import warnings
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
 from .baseline import rescale
@@ -196,7 +197,7 @@ class Epochs(object):
 
         if self.preload:
             self._data, good_events = self._get_data_from_disk()
-            self.events = self.events[good_events,:]
+            self.events = self.events[good_events, :]
             self.bad_dropped = True
 
     def drop_picks(self, bad_picks):
@@ -230,17 +231,17 @@ class Epochs(object):
         if self.bad_dropped:
             return
 
-        good = []
+        good_events = []
         n_events = len(self.events)
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             if self._is_good_epoch(epoch):
-                good.append(idx)
+                good_events.append(idx)
 
-        self.events = self.events[good,:]
+        self.events = self.events[good_events, :]
         self.bad_dropped = True
 
-        print "%d bad epochs dropped" % (n_events - len(good))
+        print "%d bad epochs dropped" % (n_events - len(good_events))
 
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
@@ -364,8 +365,8 @@ class Epochs(object):
         """Return an Epoch object with a subset of epochs.
         """
         if not self.bad_dropped:
-            print "Warning: bad epochs have not been dropped, indexing will " \
-                  "be inccurate. Use drop_bad_epochs() or preload=True"
+            warnings.warn("Bad epochs have not been dropped, indexing will " \
+                          "be inccurate. Use drop_bad_epochs() or preload=True")
 
         epoch_slice = copy.copy(self)
         epoch_slice.events = self.events[start:end]
@@ -387,9 +388,9 @@ class Epochs(object):
             epoch = self._get_epoch_from_disk(index)
 
             if not self._is_good_epoch(epoch):
-                print "Warning: Bad epoch with index %d returned. Use " \
-                      "drop_bad_epochs() or preload=True to prevent this." \
-                      % (index)
+                warnings.warn("Bad epoch with index %d returned."\
+                              "Use drop_bad_epochs() or preload=True "\
+                              "to prevent this." % (index))
 
         return epoch
 
