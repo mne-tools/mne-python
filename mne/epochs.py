@@ -288,7 +288,7 @@ class Epochs(object):
         self._channel_type_idx = idx
 
     def __iter__(self):
-        """To iteration over epochs easy.
+        """To make iteration over epochs easy.
         """
         self._current = 0
         return self
