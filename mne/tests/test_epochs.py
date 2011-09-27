@@ -70,6 +70,46 @@ def test_preload_epochs():
     data_no_preload = epochs.get_data()
     assert_array_equal(data_preload, data_no_preload)
 
+def test_indexing_slicing():
+    """Test of indexing and slicing operations
+    """
+    epochs = Epochs(raw, events[:20], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
+
+    data_normal = epochs.get_data()
+
+    n_good_events = data_normal.shape[0]
+
+    # indices for slicing
+    start_index = 1
+    end_index   = n_good_events - 1
+
+    assert((end_index - start_index) > 0)
+
+    for preload in [True, False]:
+        epochs2 = Epochs(raw, events[:20], event_id, tmin, tmax,
+                         picks=picks, baseline=(None, 0), preload=preload,
+                         reject=reject, flat=flat)
+
+        if not preload:
+            epochs2.drop_bad_epochs()
+
+        # get slice
+        epochs2_sliced = epochs2[start_index:end_index]
+
+        # using get_data()
+        data_epochs2_sliced = epochs2_sliced.get_data()
+        assert_array_equal(data_epochs2_sliced, \
+                           data_normal[start_index:end_index])
+
+        # using indexing
+        pos = 0
+        for idx in range(start_index, end_index):
+            assert_array_equal(epochs2_sliced[pos], data_normal[idx])
+            pos += 1
+
+
 
 def test_comparision_with_c():
     """Test of average obtained vs C code
