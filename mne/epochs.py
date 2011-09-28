@@ -238,7 +238,7 @@ class Epochs(object):
             if self._is_good_epoch(epoch):
                 good_events.append(idx)
 
-        self.events = self.events[good_events, :]
+        self.events = np.atleast_2d(self.events[good_events])
         self.bad_dropped = True
 
         print "%d bad epochs dropped" % (n_events - len(good_events))
