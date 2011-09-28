@@ -273,21 +273,19 @@ class Epochs(object):
         """
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        n_events = len(self)
-        data = np.empty((n_events, n_channels, n_times))
-        cnt = 0
+        n_events = len(self.events)
+        data = list()
         n_reject = 0
-        event_idx = []
+        event_idx = list()
         for k in range(n_events):
             epoch = self._get_epoch_from_disk(k)
             if self._is_good_epoch(epoch):
-                data[cnt] = epoch
+                data.append(epoch)
                 event_idx.append(k)
-                cnt += 1
             else:
                 n_reject += 1
         print "Rejecting %d epochs." % n_reject
-        return data[:cnt], event_idx
+        return np.array(data), event_idx
 
     def _is_good_epoch(self, data):
         """Determine if epoch is good
