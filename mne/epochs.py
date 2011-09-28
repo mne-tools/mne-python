@@ -378,11 +378,7 @@ class Epochs(object):
             else:
                 #make sure data remains a 3D array
                 #Note: np.atleast_3d() doesn't do what we want
-                n_channels = len(self.ch_names)
-                n_times = len(self.times)
-                data = np.empty((1, n_channels, n_times))
-                data[0, :, :] = self._data[key]
-                epochs._data = data
+                epochs._data = np.array([self._data[key]])
 
         return epochs
 
