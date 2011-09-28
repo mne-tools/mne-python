@@ -84,8 +84,10 @@ class Epochs(object):
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations.
 
-    Indexing and Slicing:
-    -------
+    Notes
+    -----
+    For indexing and slicing:
+
     epochs = Epochs(...)
 
     epochs[idx] : Epochs
@@ -197,7 +199,7 @@ class Epochs(object):
 
         if self.preload:
             self._data, good_events = self._get_data_from_disk()
-            self.events = self.events[good_events, :]
+            self.events = np.atleast_2d(self.events[good_events, :])
             self.bad_dropped = True
 
     def drop_picks(self, bad_picks):
@@ -367,9 +369,9 @@ class Epochs(object):
         """
         if not self.bad_dropped:
             warnings.warn("Bad epochs have not been dropped, indexing will be "
-                          "inccurate. Use drop_bad_epochs() or preload=True")
+                          "inaccurate. Use drop_bad_epochs() or preload=True")
 
-        epochs = copy.copy(self)
+        epochs = copy.copy(self)  # XXX : should use deepcopy but breaks ...
         epochs.events = np.atleast_2d(self.events[key])
 
         if self.preload:

@@ -84,7 +84,7 @@ def test_indexing_slicing():
 
     # indices for slicing
     start_index = 1
-    end_index   = n_good_events - 1
+    end_index = n_good_events - 1
 
     assert((end_index - start_index) > 0)
 
