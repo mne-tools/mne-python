@@ -88,9 +88,9 @@ class Epochs(object):
     -------
     epochs = Epochs(...)
 
-    epochs[idx] : Return epoch with index idx (2D array, [n_channels, n_times])
-
-    epochs[start:stop] : Return Epochs object with a subset of epochs
+    epochs[idx] : Epochs
+        Return Epochs object with a subset of epochs (supports single
+        index and python style slicing)
     """
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
@@ -177,7 +177,7 @@ class Epochs(object):
         #    Select the desired events
         selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
         self.events = events[selected]
-        n_events = len(self.events)
+        n_events = len(self)
 
         if n_events > 0:
             print '%d matching events found' % n_events
@@ -232,7 +232,7 @@ class Epochs(object):
             return
 
         good_events = []
-        n_events = len(self.events)
+        n_events = len(self)
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             if self._is_good_epoch(epoch):
@@ -246,7 +246,12 @@ class Epochs(object):
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
-        event_samp = self.events[idx, 0]
+
+        if self.events.ndim == 1:
+            #single event
+            event_samp = self.events[0]
+        else:
+            event_samp = self.events[idx, 0]
 
         # Read a data segment
         first_samp = self.raw.first_samp
@@ -268,15 +273,15 @@ class Epochs(object):
         """
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        n_events = len(self.events)
+        n_events = len(self)
         data = np.empty((n_events, n_channels, n_times))
         cnt = 0
         n_reject = 0
         event_idx = []
         for k in range(n_events):
-            e = self._get_epoch_from_disk(k)
-            if self._is_good_epoch(e):
-                data[cnt] = self._get_epoch_from_disk(k)
+            epoch = self._get_epoch_from_disk(k)
+            if self._is_good_epoch(epoch):
+                data[cnt] = epoch
                 event_idx.append(k)
                 cnt += 1
             else:
@@ -342,7 +347,7 @@ class Epochs(object):
             epoch = self._data[self._current]
             self._current += 1
         else:
-            if self._current >= len(self.events):
+            if self._current >= len(self):
                 raise StopIteration
             epoch = self._get_epoch_from_disk(self._current)
             self._current += 1
@@ -353,9 +358,9 @@ class Epochs(object):
 
     def __repr__(self):
         if not self.bad_dropped:
-            s = "n_events : %s (good & bad)" % len(self.events)
+            s = "n_events : %s (good & bad)" % len(self)
         else:
-            s = "n_events : %s (all good)" % len(self.events)
+            s = "n_events : %s (all good)" % len(self)
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)
@@ -364,38 +369,35 @@ class Epochs(object):
     def __len__(self):
         """Return length (number of events)
         """
-        return len(self.events)
-
-    def __getitem__(self, index):
-        """Return epoch at index or an Epochs object with a slice of epochs
-        """
-        if isinstance(index, slice):
-            # return Epochs object with slice of epochs
-            if not self.bad_dropped:
-                    warnings.warn("Bad epochs have not been dropped, indexing "
-                                  "will be inccurate. Use drop_bad_epochs() "
-                                  "or preload=True")
-
-            epoch_slice = copy.copy(self)
-            epoch_slice.events = self.events[index]
-
-            if self.preload:
-                epoch_slice._data = self._data[index]
-
-            return epoch_slice
-
-        # return single epoch as 2D array
-        if self.preload:
-            epoch = epoch = self._data[index]
+        if self.events.ndim == 1:
+            return 1
         else:
-            epoch = self._get_epoch_from_disk(index)
+            return len(self.events)
 
-            if not self._is_good_epoch(epoch):
-                warnings.warn("Bad epoch with index %d returned. "
-                              "Use drop_bad_epochs() or preload=True "
-                              "to prevent this." % (index))
+    def __getitem__(self, key):
+        """Return an Epochs object with a subset of epochs
+        """
+        print key
+        if not self.bad_dropped:
+                warnings.warn("Bad epochs have not been dropped, indexing "
+                              "will be inccurate. Use drop_bad_epochs() "
+                              "or preload=True")
 
-        return epoch
+        epochs = copy.copy(self)
+        epochs.events = self.events[key]
+
+        if self.preload:
+            if isinstance(key, slice):
+                epochs._data = self._data[key]
+            else:
+                #make sure data remains a 3D array
+                n_channels = len(self.ch_names)
+                n_times = len(self.times)
+                data = np.empty((1, n_channels, n_times))
+                data[0, :, :] = self._data[key]
+                epochs._data = data
+
+        return epochs
 
     def average(self):
         """Compute average of epochs
@@ -409,7 +411,7 @@ class Epochs(object):
         evoked.info = copy.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        n_events = len(self.events)
+        n_events = len(self)
         if self.preload:
             data = np.mean(self._data, axis=0)
         else:

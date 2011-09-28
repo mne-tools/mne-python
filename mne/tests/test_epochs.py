@@ -96,10 +96,9 @@ def test_indexing_slicing():
         if not preload:
             epochs2.drop_bad_epochs()
 
-        # get slice
+        # using slicing
         epochs2_sliced = epochs2[start_index:end_index]
 
-        # using get_data()
         data_epochs2_sliced = epochs2_sliced.get_data()
         assert_array_equal(data_epochs2_sliced, \
                            data_normal[start_index:end_index])
@@ -107,7 +106,8 @@ def test_indexing_slicing():
         # using indexing
         pos = 0
         for idx in range(start_index, end_index):
-            assert_array_equal(epochs2_sliced[pos], data_normal[idx])
+            data = epochs2_sliced[pos].get_data()
+            assert_array_equal(data[0], data_normal[idx])
             pos += 1
 
 
