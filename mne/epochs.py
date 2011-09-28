@@ -378,9 +378,8 @@ class Epochs(object):
         """Return an Epochs object with a subset of epochs
         """
         if not self.bad_dropped:
-                warnings.warn("Bad epochs have not been dropped, indexing "
-                              "will be inccurate. Use drop_bad_epochs() "
-                              "or preload=True")
+            warnings.warn("Bad epochs have not been dropped, indexing will be "
+                          "inccurate. Use drop_bad_epochs() or preload=True")
 
         epochs = copy.copy(self)
         epochs.events = self.events[key]
