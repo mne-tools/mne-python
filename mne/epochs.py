@@ -6,6 +6,7 @@
 import copy
 import numpy as np
 import fiff
+import warnings
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
 from .baseline import rescale
@@ -79,6 +80,17 @@ class Epochs(object):
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
 
+    drop_bad_epochs() : None
+        Drop all epochs marked as bad. Should be used before indexing and
+        slicing operations.
+
+    Indexing and Slicing:
+    -------
+    epochs = Epochs(...)
+
+    epochs[idx] : Epochs
+        Return Epochs object with a subset of epochs (supports single
+        index and python style slicing)
     """
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
@@ -96,6 +108,7 @@ class Epochs(object):
         self.preload = preload
         self.reject = reject
         self.flat = flat
+        self.bad_dropped = False
 
         # Handle measurement info
         self.info = copy.deepcopy(raw.info)
@@ -183,7 +196,9 @@ class Epochs(object):
         self._reject_setup()
 
         if self.preload:
-            self._data = self._get_data_from_disk()
+            self._data, good_events = self._get_data_from_disk()
+            self.events = self.events[good_events, :]
+            self.bad_dropped = True
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -206,10 +221,37 @@ class Epochs(object):
         if self.preload:
             self._data = self._data[:, idx, :]
 
+    def drop_bad_epochs(self):
+        """Drop bad epochs.
+
+        Should be used before slicing operations.
+
+        Warning: Operation is slow since all epochs have to be read from disk
+        """
+        if self.bad_dropped:
+            return
+
+        good_events = []
+        n_events = len(self.events)
+        for idx in range(n_events):
+            epoch = self._get_epoch_from_disk(idx)
+            if self._is_good_epoch(epoch):
+                good_events.append(idx)
+
+        self.events = np.atleast_2d(self.events[good_events])
+        self.bad_dropped = True
+
+        print "%d bad epochs dropped" % (n_events - len(good_events))
+
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
-        event_samp = self.events[idx, 0]
+
+        if self.events.ndim == 1:
+            #single event
+            event_samp = self.events[0]
+        else:
+            event_samp = self.events[idx, 0]
 
         # Read a data segment
         first_samp = self.raw.first_samp
@@ -229,22 +271,22 @@ class Epochs(object):
     def _get_data_from_disk(self):
         """Load all data from disk
         """
-        n_channels = len(self.ch_names)
-        n_times = len(self.times)
         n_events = len(self.events)
         data = list()
         n_reject = 0
+        event_idx = list()
         for k in range(n_events):
-            e = self._get_epoch_from_disk(k)
-            if self._is_good_epoch(e):
-                data.append(self._get_epoch_from_disk(k))
+            epoch = self._get_epoch_from_disk(k)
+            if self._is_good_epoch(epoch):
+                data.append(epoch)
+                event_idx.append(k)
             else:
                 n_reject += 1
         print "Rejecting %d epochs." % n_reject
-        return np.array(data)
+        return np.array(data), event_idx
 
     def _is_good_epoch(self, data):
-        """Determine is epoch is good
+        """Determine if epoch is good
         """
         n_times = len(self.times)
         if self.reject is None and self.flat is None:
@@ -266,7 +308,8 @@ class Epochs(object):
         if self.preload:
             return self._data
         else:
-            return self._get_data_from_disk()
+            data, _ = self._get_data_from_disk()
+            return data
 
     def _reject_setup(self):
         """Setup reject process
@@ -310,11 +353,34 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
-        s = "n_events : %s" % len(self.events)
+        if not self.bad_dropped:
+            s = "n_events : %s (good & bad)" % len(self.events)
+        else:
+            s = "n_events : %s (all good)" % len(self.events)
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
+
+    def __getitem__(self, key):
+        """Return an Epochs object with a subset of epochs
+        """
+        if not self.bad_dropped:
+            warnings.warn("Bad epochs have not been dropped, indexing will be "
+                          "inccurate. Use drop_bad_epochs() or preload=True")
+
+        epochs = copy.copy(self)
+        epochs.events = np.atleast_2d(self.events[key])
+
+        if self.preload:
+            if isinstance(key, slice):
+                epochs._data = self._data[key]
+            else:
+                #make sure data remains a 3D array
+                #Note: np.atleast_3d() doesn't do what we want
+                epochs._data = np.array([self._data[key]])
+
+        return epochs
 
     def average(self):
         """Compute average of epochs
