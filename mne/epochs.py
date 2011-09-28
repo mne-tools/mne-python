@@ -271,8 +271,6 @@ class Epochs(object):
     def _get_data_from_disk(self):
         """Load all data from disk
         """
-        n_channels = len(self.ch_names)
-        n_times = len(self.times)
         n_events = len(self.events)
         data = list()
         n_reject = 0
