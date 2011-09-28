@@ -15,7 +15,7 @@ from ..parallel import parallel_func
 
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, df=1,
-                              use_fft=False, baseline=None,
+                              use_fft=False, decim=1, baseline=None,
                               baseline_mode='logratio', pca=True,
                               n_jobs=1):
     """Compute source space induced power in given frequency bands
@@ -38,6 +38,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Number of cycles
     df: float
         delta frequency within bands
+    decim: int
+        Temporal decimation factor
     use_fft: bool
         Do convolutions in time or frequency domain with FFT
     baseline: None (default) or tuple of length 2
@@ -67,7 +69,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                                       inverse_operator, frequencies,
                                       label=label,
                                       lambda2=lambda2, dSPM=dSPM,
-                                      n_cycles=n_cycles,
+                                      n_cycles=n_cycles, decim=decim,
                                       use_fft=use_fft, pca=pca, n_jobs=n_jobs,
                                       with_plv=False)
 
@@ -81,10 +83,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         power = np.mean(powers[:, idx, :], axis=1)
 
         # Run baseline correction
-        power = rescale(power, epochs.times, baseline, baseline_mode,
+        power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
                         verbose=True, copy=False)
 
-        stc = _make_stc(power, epochs.times[0], 1.0 / Fs, lh_vertno, rh_vertno)
+        tstep = float(decim) / Fs
+        stc = _make_stc(power, epochs.times[0], tstep, lh_vertno, rh_vertno)
         stcs[name] = stc
 
         print '[done]'
@@ -93,9 +96,9 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
 
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal):
+                     pick_normal, decim):
     """Aux function for source_induced_power"""
-    n_times = data.shape[2]
+    n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
@@ -118,7 +121,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
             e = np.dot(Vh, e)  # reducing data rank
 
         for f, w in enumerate(Ws):
-            tfr = cwt(e, [w], use_fft=use_fft)
+            tfr = cwt(e, [w], use_fft=use_fft)[:, :, ::decim]
             tfr = np.asfortranarray(tfr.reshape(len(e), -1))
 
             # phase lock and power at freq f
@@ -159,7 +162,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
 
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                          lambda2=1.0 / 9.0, dSPM=True, n_cycles=5,
+                          lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, decim=1,
                           use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True):
     """Aux function for source_induced_power
@@ -207,7 +210,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_pow_plv(data, K, sel, Ws,
                                       inv['source_ori'], use_fft, Vh,
-                                      with_plv, pick_normal)
+                                      with_plv, pick_normal, decim)
                         for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
@@ -226,7 +229,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
 
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                         lambda2=1.0 / 9.0, dSPM=True, n_cycles=5,
+                         lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, decim=1,
                          use_fft=False, pick_normal=False, baseline=None,
                          baseline_mode='logratio', pca=True, n_jobs=1):
     """Compute induced power and phase lock
@@ -249,6 +252,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         Do dSPM or not?
     n_cycles: int
         Number of cycles
+    decim: int
+        Temporal decimation factor
     use_fft: bool
         Do convolutions in time or frequency domain with FFT
     pick_normal: bool
@@ -277,13 +282,13 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     """
     power, plv, lh_vertno, rh_vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
-                            label, lambda2, dSPM, n_cycles,
+                            label, lambda2, dSPM, n_cycles, decim,
                             use_fft, pick_normal=pick_normal, pca=pca,
                             n_jobs=n_jobs)
 
     # Run baseline correction
     if baseline is not None:
-        power = rescale(power, epochs.times, baseline, baseline_mode,
+        power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
                         verbose=True, copy=False)
 
     return power, plv
