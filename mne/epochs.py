@@ -377,7 +377,6 @@ class Epochs(object):
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
-        print key
         if not self.bad_dropped:
                 warnings.warn("Bad epochs have not been dropped, indexing "
                               "will be inccurate. Use drop_bad_epochs() "
