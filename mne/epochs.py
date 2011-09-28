@@ -177,7 +177,7 @@ class Epochs(object):
         #    Select the desired events
         selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
         self.events = events[selected]
-        n_events = len(self)
+        n_events = len(self.events)
 
         if n_events > 0:
             print '%d matching events found' % n_events
@@ -232,7 +232,7 @@ class Epochs(object):
             return
 
         good_events = []
-        n_events = len(self)
+        n_events = len(self.events)
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             if self._is_good_epoch(epoch):
@@ -345,7 +345,7 @@ class Epochs(object):
             epoch = self._data[self._current]
             self._current += 1
         else:
-            if self._current >= len(self):
+            if self._current >= len(self.events):
                 raise StopIteration
             epoch = self._get_epoch_from_disk(self._current)
             self._current += 1
@@ -356,21 +356,13 @@ class Epochs(object):
 
     def __repr__(self):
         if not self.bad_dropped:
-            s = "n_events : %s (good & bad)" % len(self)
+            s = "n_events : %s (good & bad)" % len(self.events)
         else:
-            s = "n_events : %s (all good)" % len(self)
+            s = "n_events : %s (all good)" % len(self.events)
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
-
-    def __len__(self):
-        """Return length (number of events)
-        """
-        if self.events.ndim == 1:
-            return 1
-        else:
-            return len(self.events)
 
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
@@ -380,13 +372,14 @@ class Epochs(object):
                           "inccurate. Use drop_bad_epochs() or preload=True")
 
         epochs = copy.copy(self)
-        epochs.events = self.events[key]
+        epochs.events = np.atleast_2d(self.events[key])
 
         if self.preload:
             if isinstance(key, slice):
                 epochs._data = self._data[key]
             else:
                 #make sure data remains a 3D array
+                #Note: np.atleast_3d() doesn't do what we want
                 n_channels = len(self.ch_names)
                 n_times = len(self.times)
                 data = np.empty((1, n_channels, n_times))
@@ -407,7 +400,7 @@ class Epochs(object):
         evoked.info = copy.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        n_events = len(self)
+        n_events = len(self.events)
         if self.preload:
             data = np.mean(self._data, axis=0)
         else:
