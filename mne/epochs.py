@@ -361,35 +361,38 @@ class Epochs(object):
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
 
-    def __getslice__(self, start, end):
-        """Return an Epoch object with a subset of epochs.
+    def __len__(self):
+        """Return length (number of events)
         """
-        if not self.bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will " \
-                          "be inccurate. Use drop_bad_epochs() or preload=True")
-
-        epoch_slice = copy.copy(self)
-        epoch_slice.events = self.events[start:end]
-
-        if self.preload:
-            epoch_slice._data = self._data[start:end]
-
-        return epoch_slice
+        return len(self.events)
 
     def __getitem__(self, index):
-        """Return epoch at index
+        """Return epoch at index or an Epochs object with a slice of epochs
         """
-        if index < 0 or index >= len(self.events):
-            raise IndexError("Epoch index out of bounds")
+        if isinstance(index, slice):
+            # return Epochs object with slice of epochs
+            if not self.bad_dropped:
+                    warnings.warn("Bad epochs have not been dropped, indexing "
+                                  "will be inccurate. Use drop_bad_epochs() "
+                                  "or preload=True")
 
+            epoch_slice = copy.copy(self)
+            epoch_slice.events = self.events[index]
+
+            if self.preload:
+                epoch_slice._data = self._data[index]
+
+            return epoch_slice
+
+        # return single epoch as 2D array
         if self.preload:
             epoch = epoch = self._data[index]
         else:
             epoch = self._get_epoch_from_disk(index)
 
             if not self._is_good_epoch(epoch):
-                warnings.warn("Bad epoch with index %d returned."\
-                              "Use drop_bad_epochs() or preload=True "\
+                warnings.warn("Bad epoch with index %d returned. "
+                              "Use drop_bad_epochs() or preload=True "
                               "to prevent this." % (index))
 
         return epoch

@@ -70,6 +70,7 @@ def test_preload_epochs():
     data_no_preload = epochs.get_data()
     assert_array_equal(data_preload, data_no_preload)
 
+
 def test_indexing_slicing():
     """Test of indexing and slicing operations
     """
@@ -108,7 +109,6 @@ def test_indexing_slicing():
         for idx in range(start_index, end_index):
             assert_array_equal(epochs2_sliced[pos], data_normal[idx])
             pos += 1
-
 
 
 def test_comparision_with_c():
