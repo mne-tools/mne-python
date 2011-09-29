@@ -26,9 +26,7 @@ from mne.datasets import sample
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
-event_id = 1
-tmin = -0.2
-tmax = 0.5
+event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
@@ -55,10 +53,13 @@ evoked_data = evoked_data[97:98, :]
 
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
+decim = 3
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                  n_cycles=2, n_jobs=1, use_fft=False)
+                                  n_cycles=2, n_jobs=1, use_fft=False,
+                                  decim=decim)
 
-power /= np.mean(power[:, :, times < 0], axis=2)[:, :, None]  # baseline ratio
+# baseline corrections with ratio
+power /= np.mean(power[:, :, times[::decim] < 0], axis=2)[:, :, None]
 
 ###############################################################################
 # View time-frequency plots

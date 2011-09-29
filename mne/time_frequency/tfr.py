@@ -299,7 +299,7 @@ def single_trial_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
 
 
 def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
-                   n_jobs=1):
+                  decim=1, n_jobs=1):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -308,20 +308,17 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
     ----------
     epochs : array
         3D array of shape [n_epochs, n_channels, n_times]
-
     Fs : float
         sampling Frequency
-
     frequencies : array
         Array of frequencies of interest
-
     use_fft : bool
         Compute transform with fft based convolutions or temporal
         convolutions.
-
     n_cycles : int
         The number of cycles in the wavelet
-
+    decim: int
+        Temporal decimation factor
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package.
@@ -335,7 +332,7 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = epochs.shape
+    n_epochs, n_channels, n_times = epochs[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
@@ -348,7 +345,8 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
 
         for c in range(n_channels):
             X = np.squeeze(epochs[:, c, :])
-            psd[c], plf[c] = _time_frequency(X, Ws, use_fft)
+            this_psd, this_plf = _time_frequency(X, Ws, use_fft)
+            psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
 
     else:
         psd_plf = parallel(my_time_frequency(np.squeeze(epochs[:, c, :]),
@@ -358,7 +356,7 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
         psd = np.zeros((n_channels, n_frequencies, n_times))
         plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)
         for c, (psd_c, plf_c) in enumerate(psd_plf):
-            psd[c, :, :], plf[c, :, :] = psd_c, plf_c
+            psd[c, :, :], plf[c, :, :] = psd_c[:, ::decim], plf_c[:, ::decim]
 
     psd /= n_epochs
     plf = np.abs(plf) / n_epochs
