@@ -31,6 +31,33 @@ def test_io_stc():
     assert_array_almost_equal(stc['tstep'], stc2['tstep'])
 
 
+def test_stc_arithmetic():
+    """Test arithmetic for STC files
+    """
+    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
+    stc = SourceEstimate(fname)
+    data = stc.data.copy()
+
+    out = list()
+    for a in [data, stc]:
+        a = a + a * 3 + 3 * a - a ** 2 / 2
+
+        a += a
+        a -= a
+        a /=  2 * a
+        a *= -a
+
+        a += 2
+        a -= 1
+        a *= -1
+        a /= 2
+        a **= 3
+        out.append(a)
+
+    assert_array_equal(out[0], out[1].data)
+    assert_array_equal(stc.sqrt().data, np.sqrt(stc.data))
+
+
 def test_morph_data():
     """Test morphing of data
     """
