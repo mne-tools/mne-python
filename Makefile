@@ -35,6 +35,10 @@ test-doc:
 test-coverage:
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
+test-profile:
+	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
+	hotshot2dot stats.pf | dot -Tpng -o profile.png
+
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
 
