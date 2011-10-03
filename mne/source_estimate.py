@@ -166,6 +166,85 @@ class SourceEstimate(object):
         self.data = self.data[:, mask]
         self.tmin = self.times[0]
 
+    def __add__(self, a):
+        stc = copy.deepcopy(self)
+        stc += a
+        return stc
+
+    def __iadd__(self, a):
+        if isinstance(a, SourceEstimate):
+            self.data += a.data
+        else:
+            self.data += a
+        return self
+
+    def __sub__(self, a):
+        stc = copy.deepcopy(self)
+        stc -= a
+        return stc
+
+    def __isub__(self, a):
+        if isinstance(a, SourceEstimate):
+            self.data -= a.data
+        else:
+            self.data -= a
+        return self
+
+    def __div__(self, a):
+        stc = copy.deepcopy(self)
+        stc /= a
+        return stc
+
+    def __idiv__(self, a):
+        if isinstance(a, SourceEstimate):
+            self.data /= a.data
+        else:
+            self.data /= a
+        return self
+
+    def __mul__(self, a):
+        stc = copy.deepcopy(self)
+        stc *= a
+        return stc
+
+    def __imul__(self, a):
+        if isinstance(a, SourceEstimate):
+            self.data *= a.data
+        else:
+            self.data *= a
+        return self
+
+    def __pow__(self, a):
+        stc = copy.deepcopy(self)
+        stc **= a
+        return stc
+
+    def __ipow__(self, a):
+        self.data **= a
+        return self
+
+    def __radd__(self, a):
+        return self + a
+
+    def __rsub__(self, a):
+        return self - a
+
+    def __rmul__(self, a):
+        return self * a
+
+    def __rdiv__(self, a):
+        return self / a
+
+    def __neg__(self):
+        stc = copy.deepcopy(self)
+        stc.data *= -1
+        return stc
+
+    def __pos__(self):
+        return self
+
+    def sqrt(self):
+        return self ** (0.5)
 
 ###############################################################################
 # Morphing
