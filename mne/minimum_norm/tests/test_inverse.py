@@ -38,6 +38,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 dSPM = True
 
+
 def test_inverse_operator():
     """Test MNE inverse computation
 
@@ -65,10 +66,14 @@ def test_inverse_operator():
 def test_apply_mne_inverse_raw():
     """Test MNE with precomputed inverse operator on Raw
     """
+    start = 3
+    stop = 10
+    _, times = raw[0, start:stop]
     stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
-                            label=label, start=0, stop=10, nave=1,
+                            label=label, start=start, stop=stop, nave=1,
                             pick_normal=False)
     assert_true(np.all(stc.data > 0))
+    assert_array_almost_equal(stc.times, times)
 
 
 def test_apply_mne_inverse_epochs():
@@ -90,4 +95,3 @@ def test_apply_mne_inverse_epochs():
     assert_true(len(stcs) == 1)
     assert_true(np.all(stcs[0].data > 0))
     assert_true(np.all(stcs[0].data < 42))
-

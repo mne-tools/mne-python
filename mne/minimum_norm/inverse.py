@@ -617,7 +617,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     if noise_norm is not None:
         sol *= noise_norm
 
-    tmin = float(times[0]) / raw.info['sfreq']
+    tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     stc = _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno)
     print '[done]'
