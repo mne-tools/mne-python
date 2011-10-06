@@ -418,7 +418,10 @@ def _assemble_kernel(inv, label, dSPM):
 
     src = inv['src']
     lh_vertno = src[0]['vertno']
-    rh_vertno = src[1]['vertno']
+    if len(src) > 1:
+        rh_vertno = src[1]['vertno']
+    else:
+        rh_vertno = np.array([])
 
     if label is not None:
         lh_vertno, rh_vertno, src_sel = _get_label_sel(label, inv)
@@ -474,7 +477,10 @@ def _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno):
 def _get_label_sel(label, inv):
     src = inv['src']
     lh_vertno = src[0]['vertno']
-    rh_vertno = src[1]['vertno']
+    if len(src) > 1:
+        rh_vertno = src[1]['vertno']
+    else:
+        rh_vertno = np.array([])
 
     if label['hemi'] == 'lh':
         vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
@@ -544,7 +550,13 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
     src = inv['src']
-    stc = _make_stc(sol, tmin, tstep, src[0]['vertno'], src[1]['vertno'])
+    lh_vertno = src[0]['vertno']
+    if len(src) > 1:
+        rh_vertno = src[1]['vertno']
+    else:
+        rh_vertno = np.array([])
+
+    stc = _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno)
     print '[done]'
 
     return stc
