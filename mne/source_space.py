@@ -120,6 +120,18 @@ def _read_one_source_space(fid, this):
     else:
         res['id'] = int(tag.data)
 
+    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE)
+    if tag is None:
+        raise ValueError('Unknown source space type')
+    else:
+        src_type = int(tag.data)
+        if src_type == 1:
+            res['type'] = 'surf'
+        elif src_type == 2:
+            res['type'] = 'vol'
+        else:
+            raise ValueError('Unknown source space type (%d)' % src_type)
+
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         raise ValueError('Number of vertices not found')
@@ -273,3 +285,10 @@ def find_source_space_hemi(src):
         hemi = int(FIFF.FIFFV_MNE_SURF_RIGHT_HEMI)
 
     return hemi
+
+
+def _get_vertno(src):
+    vertno = list()
+    for s in src:
+        vertno.append(s['vertno'])
+    return vertno

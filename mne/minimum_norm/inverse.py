@@ -19,7 +19,8 @@ from ..fiff.pick import pick_channels
 
 from ..cov import read_cov, prepare_noise_cov
 from ..forward import compute_depth_prior
-from ..source_space import read_source_spaces_from_tree, find_source_space_hemi
+from ..source_space import read_source_spaces_from_tree, \
+                           find_source_space_hemi, _get_vertno
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
 
@@ -417,14 +418,10 @@ def _assemble_kernel(inv, label, dSPM):
     noise_norm = inv['noisenorm'][:, None]
 
     src = inv['src']
-    lh_vertno = src[0]['vertno']
-    if len(src) > 1:
-        rh_vertno = src[1]['vertno']
-    else:
-        rh_vertno = np.array([])
+    vertno = _get_vertno(src)
 
     if label is not None:
-        lh_vertno, rh_vertno, src_sel = _get_label_sel(label, inv)
+        vertno, src_sel = _get_label_sel(label, inv)
 
         noise_norm = noise_norm[src_sel]
 
@@ -460,42 +457,41 @@ def _assemble_kernel(inv, label, dSPM):
     if not dSPM:
         noise_norm = None
 
-    return K, noise_norm, lh_vertno, rh_vertno
+    return K, noise_norm, vertno
 
 
-def _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno):
+def _make_stc(sol, tmin, tstep, vertno):
     stc = SourceEstimate(None)
     stc.data = sol
     stc.tmin = tmin
     stc.tstep = tstep
-    stc.lh_vertno = lh_vertno
-    stc.rh_vertno = rh_vertno
+    stc.vertno = vertno
     stc._init_times()
     return stc
 
 
 def _get_label_sel(label, inv):
     src = inv['src']
-    lh_vertno = src[0]['vertno']
-    if len(src) > 1:
-        rh_vertno = src[1]['vertno']
-    else:
-        rh_vertno = np.array([])
+
+    if src[0]['type'] != 'surf':
+        return Exception('Label are only supported with surface source spaces')
+
+    vertno = [src[0]['vertno'], src[1]['vertno']]
 
     if label['hemi'] == 'lh':
-        vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
-        src_sel = np.searchsorted(lh_vertno, vertno_sel)
-        lh_vertno = vertno_sel
-        rh_vertno = np.array([])
+        vertno_sel = np.intersect1d(vertno[0], label['vertices'])
+        src_sel = np.searchsorted(vertno[0], vertno_sel)
+        vertno[0] = vertno_sel
+        vertno[1] = np.array([])
     elif label['hemi'] == 'rh':
-        vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
-        src_sel = np.searchsorted(rh_vertno, vertno_sel) + len(lh_vertno)
-        lh_vertno = np.array([])
-        rh_vertno = vertno_sel
+        vertno_sel = np.intersect1d(vertno[1], label['vertices'])
+        src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
+        vertno[0] = np.array([])
+        vertno[1] = vertno_sel
     else:
         raise Exception("Unknown hemisphere type")
 
-    return lh_vertno, rh_vertno, src_sel
+    return vertno, src_sel
 
 
 def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
@@ -539,7 +535,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, _, _ = _assemble_kernel(inv, None, dSPM)
+    K, noise_norm, _ = _assemble_kernel(inv, None, dSPM)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
     sol = _combine_ori(sol, inv, pick_normal)
 
@@ -549,14 +545,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
-    src = inv['src']
-    lh_vertno = src[0]['vertno']
-    if len(src) > 1:
-        rh_vertno = src[1]['vertno']
-    else:
-        rh_vertno = np.array([])
-
-    stc = _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno)
+    vertno = _get_vertno(inv['src'])
+    stc = _make_stc(sol, tmin, tstep, vertno)
     print '[done]'
 
     return stc
@@ -613,16 +603,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
     print 'Computing inverse...',
 
-    src = inv['src']
-    lh_vertno = src[0]['vertno']
-    rh_vertno = src[1]['vertno']
-
     data, times = raw[sel, start:stop]
 
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
     sol = np.dot(K, data)
     sol = _combine_ori(sol, inv, pick_normal)
 
@@ -631,7 +617,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
 
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
-    stc = _make_stc(sol, tmin, tstep, lh_vertno, rh_vertno)
+    stc = _make_stc(sol, tmin, tstep, vertno)
     print '[done]'
 
     return stc
@@ -680,7 +666,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
 
     stcs = list()
     tstep = 1.0 / epochs.info['sfreq']
@@ -694,7 +680,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
         if noise_norm is not None:
             sol *= noise_norm
 
-        stcs.append(_make_stc(sol, tmin, tstep, lh_vertno, rh_vertno))
+        stcs.append(_make_stc(sol, tmin, tstep, vertno))
 
     print '[done]'
 
