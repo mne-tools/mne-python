@@ -13,8 +13,20 @@ from .tag import find_tag
 from .pick import pick_types
 
 
+class Projection(dict):
+    """Projection vector
+
+    A basic class to proj a meaningful print for projection vectors.
+    """
+    def __repr__(self):
+        s = "%s" % self['desc']
+        s += ", active : %s " % self['active']
+        s += ", nb of channels : %s " % self['data']['ncol']
+        return "Projection (%s)" % s
+
+
 def read_proj(fid, node):
-    """Read a projection operator from a FIF file.
+    """Read spatial projections from a FIF file.
 
     Parameters
     ----------
@@ -26,16 +38,15 @@ def read_proj(fid, node):
 
     Returns
     -------
-    projdata: dict
-        The projection operator
+    projs: dict
+        The list of projections
     """
-
-    projdata = []
+    projs = list()
 
     #   Locate the projection data
     nodes = dir_tree_find(node, FIFF.FIFFB_PROJ)
     if len(nodes) == 0:
-        return projdata
+        return projs
 
     tag = find_tag(fid, nodes[0], FIFF.FIFF_NCHAN)
     if tag is not None:
@@ -104,25 +115,25 @@ def read_proj(fid, node):
                              'size of data matrix')
 
         #   Use exactly the same fields in data as in a named matrix
-        one = dict(kind=kind, active=active, desc=desc,
+        one = Projection(kind=kind, active=active, desc=desc,
                     data=dict(nrow=nvec, ncol=nchan, row_names=None,
                               col_names=names, data=data))
 
-        projdata.append(one)
+        projs.append(one)
 
-    if len(projdata) > 0:
-        print '\tRead a total of %d projection items:' % len(projdata)
-        for k in range(len(projdata)):
-            if projdata[k]['active']:
+    if len(projs) > 0:
+        print '\tRead a total of %d projection items:' % len(projs)
+        for k in range(len(projs)):
+            if projs[k]['active']:
                 misc = 'active'
             else:
                 misc = ' idle'
-            print '\t\t%s (%d x %d) %s' % (projdata[k]['desc'],
-                                        projdata[k]['data']['nrow'],
-                                        projdata[k]['data']['ncol'],
+            print '\t\t%s (%d x %d) %s' % (projs[k]['desc'],
+                                        projs[k]['data']['nrow'],
+                                        projs[k]['data']['ncol'],
                                         misc)
 
-    return projdata
+    return projs
 
 ###############################################################################
 # Write

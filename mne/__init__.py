@@ -13,6 +13,7 @@ from .epochs import Epochs
 from .label import label_time_courses, read_label
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
+from .proj import read_proj
 import fiff
 import artifacts
 import stats
