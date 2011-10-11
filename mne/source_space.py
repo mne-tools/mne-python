@@ -132,6 +132,25 @@ def _read_one_source_space(fid, this):
         else:
             raise ValueError('Unknown source space type (%d)' % src_type)
 
+    if res['type'] == 'vol':
+
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS)
+        if tag is not None:
+            res['shape'] = tuple(tag.data)
+
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
+        if tag is not None:
+            res['interpolator'] = tag.data
+
+        tag = find_tag(fid, this, FIFF.FIFF_COORD_TRANS)
+        if tag is not None:
+            res['mri_head_t'] = tag.data
+
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
+        if tag is not None:
+            res['mri_file'] = tag.data
+
+
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         raise ValueError('Number of vertices not found')

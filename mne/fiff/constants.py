@@ -242,6 +242,10 @@ FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST  = 3516  # Distance to the Nearest sourc
 FIFF.FIFF_MNE_SOURCE_SPACE_ID            = 3517  # Identifier
 FIFF.FIFF_MNE_SOURCE_SPACE_TYPE          = 3518  # Surface or volume
 
+FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS    = 3596  # Voxel space dimensions in a volume source space
+FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR  = 3597  # Matrix to interpolate a volume source space into a mri volume
+FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE      = 3598  # MRI file used in the interpolation
+
 FIFF.FIFF_MNE_SOURCE_SPACE_NTRI          = 3590  # Number of triangles
 FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES     = 3591  # The triangulation
 FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI      = 3592  # Number of triangles corresponding to the number of vertices in use
