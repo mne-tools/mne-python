@@ -6,7 +6,8 @@ from .event import read_events, write_events, find_events, merge_events
 from .forward import read_forward_solution
 from .source_estimate import read_stc, write_stc, SourceEstimate, morph_data, \
                              spatio_temporal_src_connectivity, \
-                             spatio_temporal_tris_connectivity
+                             spatio_temporal_tris_connectivity, \
+                             save_stc_as_volume
 from .surface import read_bem_surfaces, read_surface
 from .source_space import read_source_spaces
 from .epochs import Epochs

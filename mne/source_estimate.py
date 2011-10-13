@@ -565,3 +565,56 @@ def _get_ico_tris(grade):
             ico = s
             break
     return ico['tris']
+
+
+def save_stc_as_volume(fname, stc, src, dest='mri'):
+    """Save a volume source estimate in a nifti file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the generated nifti file.
+    stc: instance of SourceEstimate
+        The source estimate
+    src: list
+        The list of source spaces (should actually be of length 1)
+    dest: 'mri' | 'surf'
+        If 'mri' the volume is defined in the coordinate system of
+        the original T1 image. If 'surf' the coordinate system
+        of the FreeSurfer surface is used (Surface RAS).
+
+    Returns
+    -------
+    img : instance Nifti1Image
+        The image object.
+    """
+    if stc.is_surface():
+        raise Exception('Only volume source estimates can be saved as '
+                        'volumes')
+
+    shape = src[0]['shape']
+    n_times = stc.data.shape[1]
+    shape3d = (shape[2], shape[1], shape[0])
+    shape = (n_times, shape[2], shape[1], shape[0])
+    vol = np.zeros(shape)
+    mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
+
+    for k, v in enumerate(vol):
+        v[mask3d] = stc.data[:, k]
+    vol = vol.T
+    affine = src[0]['vox_mri_t']['trans'].copy()
+    if dest == 'mri':
+        affine = np.dot(src[0]['mri_ras_t']['trans'], affine)
+    affine[:3] *= 1e3
+
+    try:
+        import nibabel as nib  # lazy import to avoid dependency
+    except ImportError:
+        raise ImportError("nibabel is required to save volume images.")
+
+    header = nib.nifti1.Nifti1Header()
+    header.set_xyzt_units('mm', 'msec')
+    header['pixdim'][4] = 1e3 * stc.tstep
+    img = nib.Nifti1Image(vol, affine, header=header)
+    nib.save(img, fname)
+    return img

@@ -7,7 +7,7 @@ import numpy as np
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag
+from .fiff.tag import find_tag, read_tag
 from .fiff.open import fiff_open
 
 
@@ -145,6 +145,15 @@ def _read_one_source_space(fid, this):
         tag = find_tag(fid, this, FIFF.FIFF_COORD_TRANS)
         if tag is not None:
             res['mri_head_t'] = tag.data
+
+        for d in this['directory']:
+            if d.kind == FIFF.FIFF_COORD_TRANS:
+                tag = read_tag(fid, d.pos)
+                trans = tag.data
+                if trans['from'] == FIFF.FIFFV_MNE_COORD_MRI_VOXEL:
+                    res['vox_mri_t'] = tag.data
+                if trans['to'] == FIFF.FIFFV_MNE_COORD_RAS:
+                    res['mri_ras_t'] = tag.data
 
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
         if tag is not None:
