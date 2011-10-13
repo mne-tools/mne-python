@@ -3,7 +3,70 @@ from scipy import signal
 from scipy.fftpack import fft, ifft
 
 
-def band_pass_filter(x, Fs, Fp1, Fp2):
+def overlap_add_filter(x, h, N_fft=None):
+    """ Calculate linear convolution using overlap-add FFTs
+
+    Implements the linear convolution between x and h using overlap-add FFTs.
+
+    Parameters
+    ----------
+    x : 1d array
+        Signal to filter
+    h : 1d array
+        Filter impule response (FIR filter coefficients)
+    N_fft : int
+        Length of the FFT. If None, the best size is determined automatically.
+    """
+    
+    # https://ccrma.stanford.edu/~jos/fp/Forward_Backward_Filtering.html
+    # http://www.mathworks.com/matlabcentral/fileexchange/17061-filtfilthd/content/filtfilthd.m
+    N_h = len(h)
+    N_x = len(x)
+    
+    if N_fft == None:
+        if N_x > N_h:
+            N = 2**np.arange(np.ceil(np.log2(N_h)), 
+                             np.floor(np.log2(N_x)))
+            cost = np.ceil(N_x / (N - N_h + 1)) * N  * (np.log2(N) + 1)                
+            N_fft = N[np.argmin(cost)]
+        else:
+            # Use only a single block
+            N_fft = 2**np.ceil(np.log2(N_x + N_h - 1))
+            
+    print 'FFT length: %d' % (N_fft)        
+    
+    N_seg = N_fft - N_h + 1
+
+    if N_fft <= 0:
+        raise ValueError('N_fft is too short, has to be at least len(h)')
+
+    # Filter in frequency domain    
+    # FIXME: abs?
+    h_fft = np.abs(fft(np.concatenate((h, np.zeros(N_fft - N_h)))))   
+
+    x_filtered = np.zeros_like(x)
+
+    # Go through segments
+    num_segments = int(np.ceil(N_x / float(N_seg)))
+
+    for seg_ind in range(num_segments):
+        seg = x[seg_ind*N_seg:(seg_ind+1)*N_seg]
+        seg_fft = fft(np.concatenate((seg, np.zeros(N_fft - len(seg)))))
+
+
+        if seg_ind*N_seg+N_fft < N_x:                               
+            x_filtered[seg_ind*N_seg:seg_ind*N_seg+N_fft] \
+                += np.real(ifft(h_fft * seg_fft))            
+        else:
+            # Last segment
+            x_filtered[seg_ind*N_seg:] \
+                += np.real(ifft(h_fft * seg_fft))[:N_x-seg_ind*N_seg]
+ 
+    return x_filtered           
+        
+    
+
+def band_pass_filter(x, Fs, Fp1, Fp2, ov_add):
     """Bandpass filter for the signal x.
 
     An acausal fft algorithm is applied (i.e. no phase shift). The filter
@@ -64,14 +127,28 @@ def band_pass_filter(x, Fs, Fp1, Fp2):
     Np2 = Fp2 / (Fs / 2)
 
     # Construct the filter function H(f)
-    N = len(x)
+#    N = len(x)
+#    B = signal.firwin2(N, [0, Ns1, Np1, Np2, Ns2, 1], [0, 0, 1, 1, 0, 0])
+#
+#    # Make zero-phase filter function
+#    H = np.abs(fft(B))
+#    xf = np.real(ifft(fft(x) * H))
+#        
+    
+    if ov_add:
+        N = int(2 * Fs)
+        B = signal.firwin2(N, [0, Ns1, Np1, Np2, Ns2, 1], [0, 0, 1, 1, 0, 0])
 
-    B = signal.firwin2(N, [0, Ns1, Np1, Np2, Ns2, 1], [0, 0, 1, 1, 0, 0])
+        xf = overlap_add_filter(x, B)    
+    else:
+        N = int(2 * Fs)
+        B = signal.firwin2(N, [0, Ns1, Np1, Np2, Ns2, 1], [0, 0, 1, 1, 0, 0])
 
-    # Make zero-phase filter function
-    H = np.abs(fft(B))
-
-    xf = np.real(ifft(fft(x) * H))
+        B = ifft(np.abs(fft(B)))
+        # Make zero-phase filter function
+        
+        xf = (signal.convolve(x, B, 'full'))
+        
     xf = xf[:Norig]
     x = x[:Norig]
 
