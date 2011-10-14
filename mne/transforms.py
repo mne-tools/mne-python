@@ -81,8 +81,8 @@ def transform_coordinates(filename, pos, orig, dest):
 
     Example
     -------
-    >>> transform_coordinates('all-trans.fif', np.eye(3), 'meg', 'fs_tal')
-    >>> transform_coordinates('all-trans.fif', np.eye(3), 'mri', 'mni_tal')
+    transform_coordinates('all-trans.fif', np.eye(3), 'meg', 'fs_tal')
+    transform_coordinates('all-trans.fif', np.eye(3), 'mri', 'mni_tal')
     """
     #   Read the fif file containing all necessary transformations
     fid, tree, directory = fiff_open(filename)

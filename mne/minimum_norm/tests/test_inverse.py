@@ -7,6 +7,7 @@ from ...datasets import sample
 from ...label import read_label
 from ...event import read_events
 from ...epochs import Epochs
+from ...source_estimate import SourceEstimate
 from ... import fiff, Covariance, read_forward_solution
 from ..inverse import apply_inverse, read_inverse_operator, \
                       apply_inverse_raw, apply_inverse_epochs, \
@@ -17,6 +18,8 @@ data_path = sample.data_path(examples_folder)
 fname_inv = op.join(data_path, 'MEG', 'sample',
                             # 'sample_audvis-meg-eeg-oct-6-meg-eeg-inv.fif')
                             'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_vol_inv = op.join(data_path, 'MEG', 'sample',
+                            'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample',
@@ -63,9 +66,21 @@ def test_inverse_operator():
     assert_array_almost_equal(stc.data, my_stc.data, 2)
 
 
+def test_inverse_operator_volume():
+    """Test MNE inverse computation on volume source space"""
+    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    inverse_operator = read_inverse_operator(fname_vol_inv)
+    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+    stc.save('tmp-vl.stc')
+    stc2 = SourceEstimate('tmp-vl.stc')
+    assert_true(np.all(stc.data > 0))
+    assert_true(np.all(stc.data < 35))
+    assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.times, stc2.times)
+
+
 def test_apply_mne_inverse_raw():
-    """Test MNE with precomputed inverse operator on Raw
-    """
+    """Test MNE with precomputed inverse operator on Raw"""
     start = 3
     stop = 10
     _, times = raw[0, start:stop]

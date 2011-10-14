@@ -187,6 +187,8 @@ FIFF.FIFF_MRI_WIDTH             = 2010
 FIFF.FIFF_MRI_WIDTH_M           = 2011
 FIFF.FIFF_MRI_HEIGHT            = 2012
 FIFF.FIFF_MRI_HEIGHT_M          = 2013
+FIFF.FIFF_MRI_DEPTH             = 2014
+FIFF.FIFF_MRI_DEPTH_M           = 2015
 #
 FIFF.FIFFV_MRI_PIXEL_BYTE       = 1
 FIFF.FIFFV_MRI_PIXEL_WORD       = 2
@@ -241,6 +243,10 @@ FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST       = 3515  # Nearest source space vertex f
 FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST  = 3516  # Distance to the Nearest source space vertex for all vertices
 FIFF.FIFF_MNE_SOURCE_SPACE_ID            = 3517  # Identifier
 FIFF.FIFF_MNE_SOURCE_SPACE_TYPE          = 3518  # Surface or volume
+
+FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS    = 3596  # Voxel space dimensions in a volume source space
+FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR  = 3597  # Matrix to interpolate a volume source space into a mri volume
+FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE      = 3598  # MRI file used in the interpolation
 
 FIFF.FIFF_MNE_SOURCE_SPACE_NTRI          = 3590  # Number of triangles
 FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES     = 3591  # The triangulation
