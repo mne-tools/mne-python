@@ -567,7 +567,7 @@ def _get_ico_tris(grade):
     return ico['tris']
 
 
-def save_stc_as_volume(fname, stc, src, dest='mri'):
+def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     """Save a volume source estimate in a nifti file
 
     Parameters
@@ -582,6 +582,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri'):
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).
+    mri_resolution: bool
+        It True the image is saved in MRI resolution.
+        WARNING: if you have many time points the file produced can be
+        huge.
 
     Returns
     -------
@@ -592,17 +596,35 @@ def save_stc_as_volume(fname, stc, src, dest='mri'):
         raise Exception('Only volume source estimates can be saved as '
                         'volumes')
 
-    shape = src[0]['shape']
     n_times = stc.data.shape[1]
+    shape = src[0]['shape']
     shape3d = (shape[2], shape[1], shape[0])
     shape = (n_times, shape[2], shape[1], shape[0])
     vol = np.zeros(shape)
     mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
 
+    if mri_resolution:
+        mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
+                       src[0]['mri_width'])
+        mri_shape = (n_times, src[0]['mri_height'], src[0]['mri_depth'],
+                     src[0]['mri_width'])
+        mri_vol = np.zeros(mri_shape)
+        interpolator = src[0]['interpolator']
+
     for k, v in enumerate(vol):
         v[mask3d] = stc.data[:, k]
+        if mri_resolution:
+            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+
+    if mri_resolution:
+        vol = mri_vol
+
     vol = vol.T
-    affine = src[0]['vox_mri_t']['trans'].copy()
+
+    if mri_resolution:
+        affine = src[0]['vox_mri_t']['trans'].copy()
+    else:
+        affine = src[0]['src_mri_t']['trans'].copy()
     if dest == 'mri':
         affine = np.dot(src[0]['mri_ras_t']['trans'], affine)
     affine[:3] *= 1e3

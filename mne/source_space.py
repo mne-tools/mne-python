@@ -138,15 +138,12 @@ def _read_one_source_space(fid, this):
         if tag is not None:
             res['shape'] = tuple(tag.data)
 
-        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
-        if tag is not None:
-            res['interpolator'] = tag.data
-
         tag = find_tag(fid, this, FIFF.FIFF_COORD_TRANS)
         if tag is not None:
-            res['mri_head_t'] = tag.data
+            res['src_mri_t'] = tag.data
 
-        for d in this['directory']:
+        mri = dir_tree_find(this, FIFF.FIFFB_MNE_PARENT_MRI_FILE)[0]
+        for d in mri['directory']:
             if d.kind == FIFF.FIFF_COORD_TRANS:
                 tag = read_tag(fid, d.pos)
                 trans = tag.data
@@ -155,9 +152,27 @@ def _read_one_source_space(fid, this):
                 if trans['to'] == FIFF.FIFFV_MNE_COORD_RAS:
                     res['mri_ras_t'] = tag.data
 
-        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
+        tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
+        if tag is not None:
+            res['interpolator'] = tag.data
+        else:
+            print "Interpolation matrix for MRI not found."
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
         if tag is not None:
             res['mri_file'] = tag.data
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_WIDTH)
+        if tag is not None:
+            res['mri_width'] = int(tag.data)
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_HEIGHT)
+        if tag is not None:
+            res['mri_height'] = int(tag.data)
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_DEPTH)
+        if tag is not None:
+            res['mri_depth'] = int(tag.data)
 
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
