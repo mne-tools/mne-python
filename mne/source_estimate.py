@@ -114,23 +114,30 @@ class SourceEstimate(object):
         The data in source space
     times : array of shape [n_times]
         The time vector
-    lh_vertno : array of shape [n_dipoles in left hemisphere]
-        The indices of the dipoles in the left hemisphere
-    rh_vertno : array of shape [n_dipoles in right hemisphere]
-        The indices of the dipoles in the right hemisphere
+    vertno : list of array of shape [n_dipoles in each source space]
+        The indices of the dipoles in the different source spaces
     """
     def __init__(self, fname):
         if fname is not None:
-            lh = read_stc(fname + '-lh.stc')
-            rh = read_stc(fname + '-rh.stc')
-            self.data = np.r_[lh['data'], rh['data']]
-            assert lh['tmin'] == rh['tmin']
-            assert lh['tstep'] == rh['tstep']
-            self.tmin = lh['tmin']
-            self.tstep = lh['tstep']
-            self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
-            self.lh_vertno = lh['vertices']
-            self.rh_vertno = rh['vertices']
+            if fname.endswith('-vl.stc'):  # volumne source space
+                vl = read_stc(fname)
+                self.data = vl['data']
+                self.tmin = vl['tmin']
+                self.tstep = vl['tstep']
+                self.times = self.tmin + (self.tstep *
+                                          np.arange(self.data.shape[1]))
+                self.vertno = [vl['vertices']]
+            else:  # surface source spaces
+                lh = read_stc(fname + '-lh.stc')
+                rh = read_stc(fname + '-rh.stc')
+                self.data = np.r_[lh['data'], rh['data']]
+                assert lh['tmin'] == rh['tmin']
+                assert lh['tstep'] == rh['tstep']
+                self.tmin = lh['tmin']
+                self.tstep = lh['tstep']
+                self.times = self.tmin + (self.tstep *
+                                          np.arange(self.data.shape[1]))
+                self.vertno = [lh['vertices'], rh['vertices']]
 
     def _init_times(self):
         """create self.times"""
@@ -138,18 +145,25 @@ class SourceEstimate(object):
 
     def save(self, fname):
         """save to source estimates to file"""
-        lh_data = self.data[:len(self.lh_vertno)]
-        rh_data = self.data[-len(self.rh_vertno):]
+        if self.is_surface():
+            lh_data = self.data[:len(self.lh_vertno)]
+            rh_data = self.data[-len(self.rh_vertno):]
 
-        print 'Writing STC to disk...',
-        write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.lh_vertno, data=lh_data)
-        write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.rh_vertno, data=rh_data)
+            print 'Writing STC to disk...',
+            write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.lh_vertno, data=lh_data)
+            write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.rh_vertno, data=rh_data)
+        else:
+            print 'Writing STC to disk...',
+            if not fname.endswith('-vl.stc'):
+                fname += '-vl.stc'
+            write_stc(fname, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.vertno[0], data=self.data)
         print '[done]'
 
     def __repr__(self):
-        s = "%d vertices" % (len(self.lh_vertno) + len(self.rh_vertno))
+        s = "%d vertices" % sum([len(v) for v in self.vertno])
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
@@ -165,6 +179,22 @@ class SourceEstimate(object):
         self.times = self.times[mask]
         self.data = self.data[:, mask]
         self.tmin = self.times[0]
+
+    @property
+    def lh_vertno(self):
+        return self.vertno[0]
+
+    @property
+    def rh_vertno(self):
+        return self.vertno[1]
+
+    def is_surface(self):
+        """Returns True if source estimate is defined over surfaces
+        """
+        if len(self.vertno) == 1:
+            return False
+        else:
+            return True
 
     def __add__(self, a):
         stc = copy.deepcopy(self)
@@ -383,6 +413,10 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     """
     from scipy import sparse
 
+    if not stc_from.is_surface():
+        raise ValueError('Morphing is only possible with surface source '
+                         'estimates')
+
     if subjects_dir is None:
         if 'SUBJECTS_DIR' in os.environ:
             subjects_dir = os.environ['SUBJECTS_DIR']
@@ -393,7 +427,6 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     surf_path_from = os.path.join(subjects_dir, subject_from, 'surf')
     tris.append(read_surface(os.path.join(surf_path_from, 'lh.sphere.reg'))[1])
     tris.append(read_surface(os.path.join(surf_path_from, 'rh.sphere.reg'))[1])
-    vertices = [stc_from.lh_vertno, stc_from.rh_vertno]
 
     sphere = os.path.join(subjects_dir, subject_to, 'surf', 'lh.sphere.reg')
     lhs = read_surface(sphere)[0]
@@ -412,7 +445,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = vertices[hemi]
+        idx_use = stc_from.vertno[hemi]
         n_iter = 100  # max nb of smoothing iterations
         for k in range(n_iter):
             e_use = e[:, idx_use]
@@ -456,8 +489,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         nearest[1, k:k + dr] = np.argmax(dots, axis=1)
 
     stc_to = copy.deepcopy(stc_from)
-    stc_to.lh_vertno = nearest[0]
-    stc_to.rh_vertno = nearest[1]
+    stc_to.vertno = [nearest[0], nearest[1]]
     stc_to.data = np.r_[dmap[0][nearest[0], :], dmap[1][nearest[1], :]]
 
     print '[done]'
@@ -533,3 +565,78 @@ def _get_ico_tris(grade):
             ico = s
             break
     return ico['tris']
+
+
+def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
+    """Save a volume source estimate in a nifti file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the generated nifti file.
+    stc: instance of SourceEstimate
+        The source estimate
+    src: list
+        The list of source spaces (should actually be of length 1)
+    dest: 'mri' | 'surf'
+        If 'mri' the volume is defined in the coordinate system of
+        the original T1 image. If 'surf' the coordinate system
+        of the FreeSurfer surface is used (Surface RAS).
+    mri_resolution: bool
+        It True the image is saved in MRI resolution.
+        WARNING: if you have many time points the file produced can be
+        huge.
+
+    Returns
+    -------
+    img : instance Nifti1Image
+        The image object.
+    """
+    if stc.is_surface():
+        raise Exception('Only volume source estimates can be saved as '
+                        'volumes')
+
+    n_times = stc.data.shape[1]
+    shape = src[0]['shape']
+    shape3d = (shape[2], shape[1], shape[0])
+    shape = (n_times, shape[2], shape[1], shape[0])
+    vol = np.zeros(shape)
+    mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
+
+    if mri_resolution:
+        mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
+                       src[0]['mri_width'])
+        mri_shape = (n_times, src[0]['mri_height'], src[0]['mri_depth'],
+                     src[0]['mri_width'])
+        mri_vol = np.zeros(mri_shape)
+        interpolator = src[0]['interpolator']
+
+    for k, v in enumerate(vol):
+        v[mask3d] = stc.data[:, k]
+        if mri_resolution:
+            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+
+    if mri_resolution:
+        vol = mri_vol
+
+    vol = vol.T
+
+    if mri_resolution:
+        affine = src[0]['vox_mri_t']['trans'].copy()
+    else:
+        affine = src[0]['src_mri_t']['trans'].copy()
+    if dest == 'mri':
+        affine = np.dot(src[0]['mri_ras_t']['trans'], affine)
+    affine[:3] *= 1e3
+
+    try:
+        import nibabel as nib  # lazy import to avoid dependency
+    except ImportError:
+        raise ImportError("nibabel is required to save volume images.")
+
+    header = nib.nifti1.Nifti1Header()
+    header.set_xyzt_units('mm', 'msec')
+    header['pixdim'][4] = 1e3 * stc.tstep
+    img = nib.Nifti1Image(vol, affine, header=header)
+    nib.save(img, fname)
+    return img

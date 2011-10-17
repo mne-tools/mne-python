@@ -65,7 +65,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in bands.iteritems()])
 
-    powers, _, lh_vertno, rh_vertno = _source_induced_power(epochs,
+    powers, _, vertno = _source_induced_power(epochs,
                                       inverse_operator, frequencies,
                                       label=label,
                                       lambda2=lambda2, dSPM=dSPM,
@@ -87,7 +87,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                         verbose=True, copy=False)
 
         tstep = float(decim) / Fs
-        stc = _make_stc(power, epochs.times[0], tstep, lh_vertno, rh_vertno)
+        stc = _make_stc(power, epochs.times[0], tstep, vertno)
         stcs[name] = stc
 
         print '[done]'
@@ -190,7 +190,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, lh_vertno, rh_vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -225,7 +225,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     if dSPM:
         power *= noise_norm.ravel()[:, None, None] ** 2
 
-    return power, plv, lh_vertno, rh_vertno
+    return power, plv, vertno
 
 
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
@@ -280,7 +280,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     n_jobs: int
         Number of jobs to run in parallel
     """
-    power, plv, lh_vertno, rh_vertno = _source_induced_power(epochs,
+    power, plv, vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
                             label, lambda2, dSPM, n_cycles, decim,
                             use_fft, pick_normal=pick_normal, pca=pca,

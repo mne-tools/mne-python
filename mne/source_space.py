@@ -7,7 +7,7 @@ import numpy as np
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag
+from .fiff.tag import find_tag, read_tag
 from .fiff.open import fiff_open
 
 
@@ -119,6 +119,61 @@ def _read_one_source_space(fid, this):
         res['id'] = int(FIFF.FIFFV_MNE_SURF_UNKNOWN)
     else:
         res['id'] = int(tag.data)
+
+    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE)
+    if tag is None:
+        raise ValueError('Unknown source space type')
+    else:
+        src_type = int(tag.data)
+        if src_type == 1:
+            res['type'] = 'surf'
+        elif src_type == 2:
+            res['type'] = 'vol'
+        else:
+            raise ValueError('Unknown source space type (%d)' % src_type)
+
+    if res['type'] == 'vol':
+
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS)
+        if tag is not None:
+            res['shape'] = tuple(tag.data)
+
+        tag = find_tag(fid, this, FIFF.FIFF_COORD_TRANS)
+        if tag is not None:
+            res['src_mri_t'] = tag.data
+
+        mri = dir_tree_find(this, FIFF.FIFFB_MNE_PARENT_MRI_FILE)[0]
+        for d in mri['directory']:
+            if d.kind == FIFF.FIFF_COORD_TRANS:
+                tag = read_tag(fid, d.pos)
+                trans = tag.data
+                if trans['from'] == FIFF.FIFFV_MNE_COORD_MRI_VOXEL:
+                    res['vox_mri_t'] = tag.data
+                if trans['to'] == FIFF.FIFFV_MNE_COORD_RAS:
+                    res['mri_ras_t'] = tag.data
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
+        if tag is not None:
+            res['interpolator'] = tag.data
+        else:
+            print "Interpolation matrix for MRI not found."
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
+        if tag is not None:
+            res['mri_file'] = tag.data
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_WIDTH)
+        if tag is not None:
+            res['mri_width'] = int(tag.data)
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_HEIGHT)
+        if tag is not None:
+            res['mri_height'] = int(tag.data)
+
+        tag = find_tag(fid, mri, FIFF.FIFF_MRI_DEPTH)
+        if tag is not None:
+            res['mri_depth'] = int(tag.data)
+
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
@@ -273,3 +328,10 @@ def find_source_space_hemi(src):
         hemi = int(FIFF.FIFFV_MNE_SURF_RIGHT_HEMI)
 
     return hemi
+
+
+def _get_vertno(src):
+    vertno = list()
+    for s in src:
+        vertno.append(s['vertno'])
+    return vertno
