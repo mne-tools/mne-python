@@ -194,7 +194,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
     Returns
     -------
-    res : dict
+    res : instance of Evoked
         Evoked data restricted to selected channels. If include and
         exclude are None it returns orig without copy.
     """
@@ -219,6 +219,50 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     res.data = res.data[sel, :]
 
     return res
+
+
+def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
+                      ecg=False, emg=False, misc=False, include=[],
+                      exclude=[]):
+    """Pick by channel type and names from evoked data
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info
+    meg : bool or string
+        If True include all MEG channels. If False include None
+        If string it can be 'mag' or 'grad' to select only gradiometers
+        or magnetometers. It can also be 'ref_meg' to get CTF
+        reference channels.
+    eeg : bool
+        If True include EEG channels
+    eog : bool
+        If True include EOG channels
+    ecg : bool
+        If True include ECG channels
+    emg : bool
+        If True include EMG channels
+    stim : bool
+        If True include stimulus channels
+    misc : bool
+        If True include miscellaneous analog channels
+    include : list of string
+        List of additional channels to include. If empty do not include any.
+
+    exclude : list of string
+        List of channels to exclude. If empty do not include any.
+
+    Returns
+    -------
+    res : instance of Evoked
+        Evoked data restricted to selected channels. If include and
+        exclude are None it returns orig without copy.
+    """
+    sel = pick_types(orig.info, meg, eeg, stim, eog, ecg, emg, misc, include,
+                     exclude)
+    include_ch_names = [orig.ch_names[k] for k in sel]
+    return pick_channels_evoked(orig, include_ch_names)
 
 
 def pick_channels_forward(orig, include=[], exclude=[]):
