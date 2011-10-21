@@ -415,7 +415,8 @@ def _assemble_kernel(inv, label, dSPM):
     #
     eigen_leads = inv['eigen_leads']['data']
     source_cov = inv['source_cov']['data'][:, None]
-    noise_norm = inv['noisenorm'][:, None]
+    if dSPM:
+        noise_norm = inv['noisenorm'][:, None]
 
     src = inv['src']
     vertno = _get_vertno(src)
@@ -423,7 +424,8 @@ def _assemble_kernel(inv, label, dSPM):
     if label is not None:
         vertno, src_sel = _get_label_sel(label, inv)
 
-        noise_norm = noise_norm[src_sel]
+        if dSPM:
+            noise_norm = noise_norm[src_sel]
 
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
             src_sel = 3 * src_sel
