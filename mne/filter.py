@@ -4,9 +4,12 @@ from scipy.fftpack import fft, ifft
 
 
 def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
-    """ Calculate linear convolution using overlap-add FFTs
+    """ Filter using overlap-add FFTs.
 
-    Implements the linear convolution between x and h using overlap-add FFTs.
+    Filters the signal x using a filter with the impulse response h.
+    If zero_phase==True, the amplitude response is scaled and the filter is 
+    applied in forward and backward direction, resulting in a zero-phase
+    filter. 
 
     Parameters
     ----------
@@ -16,21 +19,27 @@ def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
         Filter impule response (FIR filter coefficients)
     N_fft : int
         Length of the FFT. If None, the best size is determined automatically.
+    zero_phase : boolean
+        If True: the filter is applied in forward and backward direction,
+        resulting in a zero-phase filter
+
+    Returns
+    -------
+    xf : 1d array
+        x filtered
     """
 
     N_h = len(h)
+ 
+    # Extend the signal by mirroring the edges to reduce transient filter
+    # response
+    N_edge = min(N_h, len(x))
 
-    # Extend the signal at the edges (see scipy.signal.filtfitlt)
-    #if N_h < 3 * len(x):
+    x_ext = np.r_[2*x[0]-x[N_edge-1:0:-1], x, 2*x[-1]-x[-2:-N_edge-1:-1]]
     
-    edge = 3 * N_h
-
-    x_ext = np.r_[2*x[0]-x[edge-1:0:-1], x, 2*x[-1]-x[-2:-edge-1:-1]]
-
-    print 'length x_ext: %d edge: %d' % (len(x_ext), edge)
-
     N_x = len(x_ext)
 
+    # Determine FFT length to use
     if N_fft == None:
         if N_x > N_h:
             N_tot = 2*N_x if zero_phase else N_x
@@ -42,10 +51,6 @@ def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
         else:
             # Use only a single block
             N_fft = 2**np.ceil(np.log2(N_x + N_h - 1))
-
-    print 'FFT length: %d' % (N_fft)        
-
-    N_seg = N_fft - N_h + 1
 
     if N_fft <= 0:
         raise ValueError('N_fft is too short, has to be at least len(h)')
@@ -64,8 +69,11 @@ def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
 
     x_filtered = np.zeros_like(x_ext)
 
+    # Segment length for signal x
+    N_seg = N_fft - N_h + 1
+
     # Number of segements (including fractional segments)
-    num_segments = int(np.ceil(N_x / float(N_seg)))
+    num_segments = np.ceil(N_x / float(N_seg))
 
     filter_input = x_ext
 
@@ -88,8 +96,8 @@ def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
                 x_filtered[seg_ind*N_seg:] \
                     += np.real(ifft(h_fft * seg_fft))[:N_x-seg_ind*N_seg]
 
-    # Remove edges that we added
-    x_filtered = x_filtered[edge-1:-edge+1]
+    # Remove mirrored edges that we added
+    x_filtered = x_filtered[N_edge-1:-N_edge+1]
 
     if zero_phase:
         # flip signal back
@@ -99,16 +107,39 @@ def _overlap_add_filter(x, h, N_fft=None, zero_phase=True):
 
     
 def _filter(x, Fs, freq, gain):
+    """ Filter signal using gain control points in the frequency domain.
 
+    The filter impulse response is constructed from a Hamming window (window 
+    used in "firwin2" function) to avoid ripples in the frequency reponse 
+    (windowing is a smoothing in frequency domain). 
+
+    If the signal is shorter than 10 seconds, it is filtered directly using
+    FFTs (zero-phase). If the signal is longer, zero-phase overlap-add 
+    filtering is used.
+
+    Parameters
+    ----------
+    x : 1d array
+        Signal to filter
+    Fs : float
+        Sampling rate in Hz
+    freq : 1d array
+        Frequency sampling points in Hz
+    gain : 1d array
+        Filter gain at frequency sampling points
+
+    Returns
+    -------
+    xf : 1d array
+        x filtered
+    """
     assert x.ndim == 1
 
     # normalize frequencies
     freq = [f / (Fs / 2) for f in freq]
 
     if len(x) < 10*Fs:
-        # TODO: how to decide which filter to use
-
-        # Short signal: use direct FFT filter
+        # Use direct FFT filtering for short signals
 
         # Make x EVEN
         Norig = len(x)
@@ -133,14 +164,11 @@ def _filter(x, Fs, freq, gain):
     return xf
 
 
-def new_band_pass_filter(x, Fs, Fp1, Fp2):
+def band_pass_filter(x, Fs, Fp1, Fp2):
     """Bandpass filter for the signal x.
 
-    An acausal fft algorithm is applied (i.e. no phase shift). The filter
-    functions is constructed from a Hamming window (window used in "firwin2"
-    function) to avoid ripples in the frequency reponse (windowing is a
-    smoothing in frequency domain)
-
+    Applies a zero-phase bandpass filter to the signal x.    
+    
     Parameters
     ----------
     x : 1d array
@@ -186,88 +214,10 @@ def new_band_pass_filter(x, Fs, Fp1, Fp2):
     return xf
 
 
-def band_pass_filter(x, Fs, Fp1, Fp2):
-    """Bandpass filter for the signal x.
-
-    An acausal fft algorithm is applied (i.e. no phase shift). The filter
-    functions is constructed from a Hamming window (window used in "firwin2"
-    function) to avoid ripples in the frequency reponse (windowing is a
-    smoothing in frequency domain)
-
-    Parameters
-    ----------
-    x : 1d array
-        Signal to filter
-    Fs : float
-        sampling rate
-    Fp1 : float
-        low cut-off frequency
-    Fp2 : float
-        high cut-off frequency
-
-    Returns
-    -------
-    xf : array
-        x filtered
-
-    Notes
-    -----
-    The passbands (Fp1 Fp2) frequencies are defined in Hz as
-                     ----------
-                   /|         | \
-                  / |         |  \
-                 /  |         |   \
-                /   |         |    \
-      ----------    |         |     -----------------
-                    |         |
-              Fs1  Fp1       Fp2   Fs2
-
-    DEFAULTS values
-    Fs1 = Fp1 - 0.5 in Hz
-    Fs2 = Fp2 + 0.5 in Hz
-    """
-    Fp1 = float(Fp1)
-    Fp2 = float(Fp2)
-
-    # Default values in Hz
-    Fs1 = Fp1 - 0.5
-    Fs2 = Fp2 + 0.5
-
-    assert x.ndim == 1
-
-    # Make x EVEN
-    Norig = len(x)
-    if Norig % 2 == 1:
-        x = np.r_[x, 1]
-
-    # Normalize frequencies
-    Ns1 = Fs1 / (Fs / 2)
-    Ns2 = Fs2 / (Fs / 2)
-    Np1 = Fp1 / (Fs / 2)
-    Np2 = Fp2 / (Fs / 2)
-
-    # Construct the filter function H(f)
-    N = len(x)
-
-    B = signal.firwin2(N, [0, Ns1, Np1, Np2, Ns2, 1], [0, 0, 1, 1, 0, 0])
-
-    # Make zero-phase filter function
-    H = np.abs(fft(B))
-
-    xf = np.real(ifft(fft(x) * H))
-    xf = xf[:Norig]
-    x = x[:Norig]
-
-    return xf
-
-
 def low_pass_filter(x, Fs, Fp):
     """Lowpass filter for the signal x.
 
-    An acausal fft algorithm is applied (i.e. no phase shift). The filter
-    functions is constructed from a Hamming window (window used in "firwin2"
-    function) to avoid ripples in the frequency reponse (windowing is a
-    smoothing in frequency domain)
+    Applies a zero-phase lowpass filter to the signal x.    
 
     Parameters
     ----------
@@ -296,41 +246,20 @@ def low_pass_filter(x, Fs, Fp):
                               Fp  Fp+0.5
 
     """
+    Fs = float(Fs)
     Fp = float(Fp)
-
-    assert x.ndim == 1
-
-    # Make x EVEN
-    Norig = len(x)
-    if Norig % 2 == 1:
-        x = np.r_[x, 1]
-
-    # Normalize frequencies
-    Ns = (Fp + 0.5) / (Fs / 2)
-    Np = Fp / (Fs / 2)
-
-    # Construct the filter function H(f)
-    N = len(x)
-
-    B = signal.firwin2(N, [0, Np, Ns, 1], [1, 1, 0, 0])
-
-    # Make zero-phase filter function
-    H = np.abs(fft(B))
-
-    xf = np.real(ifft(fft(x) * H))
-    xf = xf[:Norig]
-    x = x[:Norig]
-
+    
+    Fstop = Fp + 0.5
+    
+    xf = _filter(x, Fs, [0, Fp, Fstop, Fs/2], [1, 1, 0, 0])
+    
     return xf
 
 
 def high_pass_filter(x, Fs, Fp):
     """Highpass filter for the signal x.
 
-    An acausal fft algorithm is applied (i.e. no phase shift). The filter
-    functions is constructed from a Hamming window (window used in "firwin2"
-    function) to avoid ripples in the frequency reponse (windowing is a
-    smoothing in frequency domain)
+    Applies a zero-phase highpass filter to the signal x.
 
     Parameters
     ----------
@@ -359,29 +288,12 @@ def high_pass_filter(x, Fs, Fp):
           Fp-0.5  Fp
 
     """
+    
+    Fs = float(Fs)
     Fp = float(Fp)
+    
+    Fstop = Fp - 0.5
 
-    assert x.ndim == 1
-
-    # Make x ODD
-    Norig = len(x)
-    if Norig % 2 == 0:
-        x = np.r_[x, 1]
-
-    # Normalize frequencies
-    Ns = (Fp - 0.5) / (Fs / 2)
-    Np = Fp / (Fs / 2)
-
-    # Construct the filter function H(f)
-    N = len(x)
-
-    B = signal.firwin2(N, [0, Ns, Np, 1], [0, 0, 1, 1])
-
-    # Make zero-phase filter function
-    H = np.abs(fft(B))
-
-    xf = np.real(ifft(fft(x) * H))
-    xf = xf[:Norig]
-    x = x[:Norig]
+    xf = _filter(x, Fs, [0, Fstop, Fp, Fs/2], [0, 0, 1, 1])
 
     return xf
