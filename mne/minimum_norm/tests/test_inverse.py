@@ -48,10 +48,22 @@ def test_inverse_operator():
     With and without precomputed inverse operator.
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
-    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+    from copy import deepcopy
+
+    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM=False)
+
+    assert_true(stc.data.min() > 0)
+    assert_true(stc.data.max() < 10e-10)
+    assert_true(stc.data.mean() > 1e-11)
+
+    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM=True)
 
     assert_true(np.all(stc.data > 0))
     assert_true(np.all(stc.data < 35))
+
+    assert_true(stc.data.min() > 0)
+    assert_true(stc.data.max() < 35)
+    assert_true(stc.data.mean() > 0.1)
 
     # Test MNE inverse computation starting from forward operator
     noise_cov = Covariance(fname_cov)

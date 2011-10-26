@@ -310,7 +310,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         raise ValueError('The number of averages should be positive')
 
     print 'Preparing the inverse operator for use...'
-    inv = orig.copy()
+    inv = deepcopy(orig)
     #
     #   Scale some of the stuff
     #
