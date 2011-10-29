@@ -286,6 +286,26 @@ def _combine_ori(sol, inverse_operator, pick_normal):
     return sol
 
 
+def _chech_ch_names(inv, info):
+    """Check that channels in inverse operator are measurements"""
+
+    inv_ch_names = inv['eigen_fields']['col_names']
+
+    if inv['noise_cov']['names'] != inv_ch_names:
+        raise ValueError('Channels in inverse operator eigen fields do not '
+                         'match noise covariance channels.')
+    data_ch_names = info['ch_names']
+
+    missing_ch_names = list()
+    for ch_name in inv_ch_names:
+        if ch_name not in data_ch_names:
+            missing_ch_names.append(ch_name)
+    n_missing = len(missing_ch_names)
+    if n_missing > 0:
+        raise ValueError('%d channels in inverse operator ' % n_missing +
+                         'are not present in the data (%s)' % missing_ch_names)
+
+
 def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     """Prepare an inverse operator for actually computing the inverse
 
@@ -529,6 +549,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     #
     nave = evoked.nave
 
+    _chech_ch_names(inverse_operator, evoked.info)
+
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
     #
     #   Pick the correct channels from the data
@@ -594,6 +616,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
+    _chech_ch_names(inverse_operator, raw.info)
+
     #
     #   Set up the inverse according to the parameters
     #
@@ -657,6 +681,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     stc: list of SourceEstimate
         The source estimates for all epochs
     """
+    _chech_ch_names(inverse_operator, epochs.info)
+
     #
     #   Set up the inverse according to the parameters
     #
@@ -848,7 +874,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     print 'Computing SVD of whitened and weighted lead field matrix.'
     eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
 
-    eigen_fields = dict(data=eigen_fields.T)
+    eigen_fields = dict(data=eigen_fields.T, col_names=ch_names)
     eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1])
     depth_prior = dict(data=depth_prior)
     orient_prior = dict(data=orient_prior)
