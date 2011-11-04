@@ -29,7 +29,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
     """
     win_size = round((60.0 * sfreq) / 120.0)
 
-    filtecg = band_pass_filter(ecg, sfreq, 5, 35)
+    filtecg = band_pass_filter(ecg, sfreq, 10, 35)
     n_points = len(filtecg)
 
     absecg = np.abs(filtecg)
@@ -53,7 +53,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
         if window[0] > thresh1:
             maxTime = np.argmax(window)
             time.append(i + maxTime)
-            numcross.append(np.sum(np.diff(window > thresh1) == 1))
+            numcross.append(np.sum(np.diff(1*(window > thresh1)) == 1))
             rms.append(np.sqrt(np.mean(window ** 2)))
             i += win_size
         else:
@@ -92,8 +92,14 @@ def find_ecg_events(raw, event_id=999):
                                  eog=False, ecg=True, emg=False)
 
     if len(ch_ECG) == 0:
-        # closest to the heart normally, In future we can search for it.
-        ch_ECG = fiff.pick_channels(raw.ch_names, include='MEG 1531')
+        ch_ECG = fiff.pick_types(info, meg=False, eeg=True, stim=False,
+                                 eog=False, ecg=False, emg=False)
+        if len(ch_ECG) != 0:
+            ch_ECG = ch_ECG[2:3]
+        else:
+            # closest to the heart normally, In future we can search for it.
+            ch_ECG = fiff.pick_channels(raw.ch_names, include='MEG 1511')
+
         print 'Using channel index %d to identify heart beats' % ch_ECG
     else:
         print 'ECG channel index for this subject is: %s' % ch_ECG
@@ -104,10 +110,10 @@ def find_ecg_events(raw, event_id=999):
     # detecting QRS and generating event file
     ecg_events = qrs_detector(info['sfreq'], ecg.ravel())
     n_events = len(ecg_events)
-    average_pulse = 60.0 * (times[-1] - times[0]) / n_events
+    average_pulse = n_events * 60.0 / (times[-1] - times[0])
     print ("Number of ECG events detected : %d (average pulse %d / min.)"
                                            % (n_events, average_pulse))
 
     ecg_events = np.c_[ecg_events + raw.first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]
-    return ecg_events
+    return ecg_events, ch_ECG, average_pulse

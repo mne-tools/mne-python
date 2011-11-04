@@ -259,6 +259,8 @@ class Epochs(object):
         first_samp = self.raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
+        if start < 0:
+            return np.zeros((len(self.picks),len(self.times)))
         epoch, _ = self.raw[self.picks, start:stop]
 
         if self.proj is not None:
@@ -384,7 +386,7 @@ class Epochs(object):
 
         return epochs
 
-    def average(self):
+    def average(self, dropCh=True):
         """Compute average of epochs
 
         Returns
@@ -413,17 +415,18 @@ class Epochs(object):
         evoked.last = int(np.sum(self.times > 0))
 
         # dropping EOG, ECG and STIM channels. Keeping only data
-        data_picks = pick_types(evoked.info, meg=True, eeg=True,
-                                stim=False, eog=False, ecg=False,
-                                emg=False)
-        if len(data_picks) == 0:
-            raise ValueError('No data channel found when averaging.')
+        if(dropCh):
+            data_picks = pick_types(evoked.info, meg=True, eeg=True,
+                                          stim=False, eog=False, ecg=False,
+                                          emg=False)
+            if len(data_picks) == 0:
+                raise ValueError('No data channel found when averaging.')
 
-        evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
-        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
+            evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
+            evoked.info['ch_names'] = [evoked.info['ch_names'][k]
                                     for k in data_picks]
-        evoked.info['nchan'] = len(data_picks)
-        evoked.data = evoked.data[data_picks]
+            evoked.info['nchan'] = len(data_picks)
+            evoked.data = evoked.data[data_picks]
         return evoked
 
 
