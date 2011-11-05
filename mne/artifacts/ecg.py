@@ -4,7 +4,8 @@ from .. import fiff
 from ..filter import band_pass_filter
 
 
-def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
+def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
+                 low_pass=5, high_pass=35):
     """Detect QRS component in ECG channels.
 
     QRS is the main wave on the heart beat.
@@ -21,6 +22,10 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
         number of std from mean to include for detection
     n_thresh: int
         max number of crossings
+    low_pass: float
+        Low pass frequency
+    high_pass: float
+        High pass frequency
 
     Returns
     -------
@@ -29,7 +34,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
     """
     win_size = round((60.0 * sfreq) / 120.0)
 
-    filtecg = band_pass_filter(ecg, sfreq, 10, 35)
+    filtecg = band_pass_filter(ecg, sfreq, low_pass, high_pass)
     n_points = len(filtecg)
 
     absecg = np.abs(filtecg)
@@ -53,7 +58,8 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
         if window[0] > thresh1:
             maxTime = np.argmax(window)
             time.append(i + maxTime)
-            numcross.append(np.sum(np.diff(1*(window > thresh1)) == 1))
+            numcross.append(np.sum(np.diff((window > thresh1).astype(np.int)
+                                            == 1)))
             rms.append(np.sqrt(np.mean(window ** 2)))
             i += win_size
         else:
@@ -70,7 +76,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3):
     return clean_events
 
 
-def find_ecg_events(raw, event_id=999):
+def find_ecg_events(raw, event_id=999, ch_name=None):
     """Find ECG peaks
 
     Parameters
@@ -79,32 +85,37 @@ def find_ecg_events(raw, event_id=999):
         The raw data
     event_id : int
         The index to assign to found events
+    ch_name : str
+        The name of the channel to use for ECG peak detection.
+        The argument is mandatory if the dataset contains no ECG
+        channels.
 
     Returns
     -------
     ecg_events : array
         Events
+    ch_ECG : string
+        Name of channel used
+    average_pulse : float
+        Estimated average pulse
     """
     info = raw.info
 
     # Geting ECG Channel
-    ch_ECG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
+    if ch_name is None:
+        ch_ECG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
                                  eog=False, ecg=True, emg=False)
-
-    if len(ch_ECG) == 0:
-        ch_ECG = fiff.pick_types(info, meg=False, eeg=True, stim=False,
-                                 eog=False, ecg=False, emg=False)
-        if len(ch_ECG) != 0:
-            ch_ECG = ch_ECG[2:3]
-        else:
-            # closest to the heart normally, In future we can search for it.
-            ch_ECG = fiff.pick_channels(raw.ch_names, include='MEG 1511')
-
-        print 'Using channel index %d to identify heart beats' % ch_ECG
     else:
-        print 'ECG channel index for this subject is: %s' % ch_ECG
+        ch_ECG = fiff.pick_channels(raw.ch_names, include=[ch_name])
+
+    if len(ch_ECG) == 0 and ch_name is None:
+        raise Exception('No ECG channel found. Please specify ch_name '
+                        'parameter e.g. MEG 1531')
 
     assert len(ch_ECG) == 1
+
+    print 'Using channel %s to identify heart beats' % raw.ch_names[ch_ECG[0]]
+
     ecg, times = raw[ch_ECG, :]
 
     # detecting QRS and generating event file
