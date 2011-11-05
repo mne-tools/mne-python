@@ -446,7 +446,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
         idx_use = stc_from.vertno[hemi]
-        if len(idx_use)==0: continue
+        if len(idx_use) == 0:
+            continue
         n_iter = 100  # max nb of smoothing iterations
         for k in range(n_iter):
             e_use = e[:, idx_use]
