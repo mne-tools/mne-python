@@ -15,8 +15,8 @@ proj_fname = op.join(data_path, 'test_proj.fif')
 def test_find_ecg():
     """Test find ECG peaks"""
     raw = Raw(raw_fname)
-    events = find_ecg_events(raw, event_id=999)
+    events, ch_ECG, average_pulse = find_ecg_events(raw, event_id=999,
+                                                    ch_name='MEG 1531')
     n_events = len(events)
     _, times = raw[0, :]
-    average_pulse = 60.0 * (times[-1] - times[0]) / n_events
-    assert_true(60 < average_pulse < 65)
+    assert_true(55 < average_pulse < 60)

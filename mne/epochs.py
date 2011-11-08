@@ -259,6 +259,8 @@ class Epochs(object):
         first_samp = self.raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
+        if start < 0:
+            return None
         epoch, _ = self.raw[self.picks, start:stop]
 
         if self.proj is not None:
@@ -290,6 +292,8 @@ class Epochs(object):
     def _is_good_epoch(self, data):
         """Determine if epoch is good
         """
+        if data is None:
+            return False
         n_times = len(self.times)
         if self.reject is None and self.flat is None:
             return True
@@ -384,8 +388,14 @@ class Epochs(object):
 
         return epochs
 
-    def average(self):
+    def average(self, keep_only_data_channels=True):
         """Compute average of epochs
+
+        Parameters
+        ----------
+        keep_only_data_channels: bool
+            If False, all channels with be kept. Otherwise
+            only MEG and EEG channels are kept.
 
         Returns
         -------
@@ -413,17 +423,18 @@ class Epochs(object):
         evoked.last = int(np.sum(self.times > 0))
 
         # dropping EOG, ECG and STIM channels. Keeping only data
-        data_picks = pick_types(evoked.info, meg=True, eeg=True,
-                                stim=False, eog=False, ecg=False,
-                                emg=False)
-        if len(data_picks) == 0:
-            raise ValueError('No data channel found when averaging.')
+        if keep_only_data_channels:
+            data_picks = pick_types(evoked.info, meg=True, eeg=True,
+                                          stim=False, eog=False, ecg=False,
+                                          emg=False)
+            if len(data_picks) == 0:
+                raise ValueError('No data channel found when averaging.')
 
-        evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
-        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
+            evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
+            evoked.info['ch_names'] = [evoked.info['ch_names'][k]
                                     for k in data_picks]
-        evoked.info['nchan'] = len(data_picks)
-        evoked.data = evoked.data[data_picks]
+            evoked.info['nchan'] = len(data_picks)
+            evoked.data = evoked.data[data_picks]
         return evoked
 
 
