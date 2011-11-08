@@ -48,6 +48,8 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     discovery rate. Neuroimage. 2002 Apr;15(4):870-8.
     """
     pvals = np.asarray(pvals)
+    shape_init = pvals.shape
+    pvals = pvals.ravel()
 
     pvals_sortind = np.argsort(pvals)
     pvals_sorted = pvals[pvals_sortind]
@@ -61,7 +63,7 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     else:
         raise ValueError("Method should be 'indep' and 'negcorr'")
 
-    reject = pvals_sorted < ecdffactor * alpha
+    reject = pvals_sorted < (ecdffactor * alpha)
     if reject.any():
         rejectmax = max(np.nonzero(reject)[0])
     else:
@@ -71,7 +73,9 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
     pvals_corrected_raw = pvals_sorted / ecdffactor
     pvals_corrected = np.minimum.accumulate(pvals_corrected_raw[::-1])[::-1]
     pvals_corrected[pvals_corrected > 1.0] = 1.0
-    return reject[sortrevind], pvals_corrected[sortrevind]
+    pvals_corrected = pvals_corrected[sortrevind].reshape(shape_init)
+    reject = reject[sortrevind].reshape(shape_init)
+    return reject, pvals_corrected
 
 
 def bonferroni_correction(pval, alpha=0.05):

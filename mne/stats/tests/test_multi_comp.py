@@ -10,22 +10,27 @@ def test_multi_pval_correction():
     """Test pval correction for multi comparison (FDR and Bonferroni)
     """
     rng = np.random.RandomState(0)
-    X = rng.randn(10, 10000)
-    X[:, :50] += 4.0  # 50 significant tests
+    X = rng.randn(10, 1000, 10)
+    X[:, :50, 0] += 4.0  # 50 significant tests
     alpha = 0.05
 
     T, pval = stats.ttest_1samp(X, 0)
 
-    n_samples, n_tests = X.shape
+    n_samples = X.shape[0]
+    n_tests = X.size / n_samples
     thresh_uncorrected = stats.t.ppf(1.0 - alpha, n_samples - 1)
 
     reject_bonferroni, pval_bonferroni = bonferroni_correction(pval, alpha)
     thresh_bonferroni = stats.t.ppf(1.0 - alpha / n_tests, n_samples - 1)
+    assert_true(pval_bonferroni.ndim == 2)
+    assert_true(reject_bonferroni.ndim == 2)
 
     fwer = np.mean(reject_bonferroni)
     assert_almost_equal(fwer, alpha, 1)
 
     reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='indep')
+    assert_true(pval_fdr.ndim == 2)
+    assert_true(reject_fdr.ndim == 2)
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert_true(0 <= (reject_fdr.sum() - 50) <= 50 * 1.05)
     assert_true(thresh_uncorrected <= thresh_fdr <= thresh_bonferroni)
