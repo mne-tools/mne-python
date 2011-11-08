@@ -1,10 +1,13 @@
+What's new
+==========
+
 .. _changes_0_2:
 
-0.2
-====
+Version 0.2
+-----------
 
 Changelog
----------
+~~~~~~~~~
 
    - New stats functions for FDR correction and Bonferroni by `Alex Gramfort`_.
 
@@ -21,7 +24,7 @@ Changelog
    - SourceEstimate now supports algebra by `Alex Gramfort`_.
 
 API changes summary
--------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here are the code migration instructions when upgrading from mne-python
 version 0.1:
@@ -29,7 +32,7 @@ version 0.1:
   - New return values for the function find_ecg_events
 
 Authors
--------
+~~~~~~~~~
 
 The committer list for this release is the following (preceded by number
 of commits):
