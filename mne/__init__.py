@@ -1,4 +1,4 @@
-__version__ = '0.1.git'
+__version__ = '0.2'
 
 from .cov import read_cov, write_cov, write_cov_file, Covariance, \
                  compute_raw_data_covariance, compute_covariance
