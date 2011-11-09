@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import linalg
 
 from .source_estimate import read_stc
 
@@ -80,3 +81,41 @@ def label_time_courses(labelfile, stcfile):
     times = stc['tmin'] + stc['tstep'] * np.arange(stc['data'].shape[1])
 
     return values, times, vertices
+
+
+def label_sign_flip(label, src):
+    """Compute sign for label averaging
+
+    Parameters
+    ----------
+    label : dict
+        A label read with the read_label function
+    src : list of dict
+        The source space over which is defined the label
+
+    Returns
+    -------
+    flip : array
+        Sign flip vector (contains 1 or -1)
+    """
+    if len(src) != 2:
+        raise ValueError('Only source spaces with 2 hemisphers are accepted')
+
+    lh_vertno = src[0]['vertno']
+    rh_vertno = src[1]['vertno']
+
+    # get source orientations
+    if label['hemi'] == 'lh':
+        vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
+        ori = src[0]['nn'][vertno_sel]
+    elif label['hemi'] == 'rh':
+        vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
+        ori = src[1]['nn'][vertno_sel]
+    else:
+        raise Exception("Unknown hemisphere type")
+
+    _, _, Vh = linalg.svd(ori, full_matrices=False)
+
+    # Comparing to the direction of the first right singular vector
+    flip = np.sign(np.dot(ori, Vh[:, 0]))
+    return flip

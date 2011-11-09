@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 
 from ...datasets import sample
-from ...label import read_label
+from ...label import read_label, label_sign_flip
 from ...event import read_events
 from ...epochs import Epochs
 from ...source_estimate import SourceEstimate
@@ -48,7 +48,6 @@ def test_inverse_operator():
     With and without precomputed inverse operator.
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
-    from copy import deepcopy
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM=False)
 
@@ -113,12 +112,20 @@ def test_apply_mne_inverse_epochs():
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
     flat = dict(grad=1e-15, mag=1e-15)
 
-    events = read_events(fname_event)[:3]
+    events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM,
-                                label=label)
+                                label=label, pick_normal=True)
 
-    assert_true(len(stcs) == 1)
-    assert_true(np.all(stcs[0].data > 0))
-    assert_true(np.all(stcs[0].data < 42))
+    assert_true(len(stcs) == 4)
+    assert_true(3 < stcs[0].data.max() < 10)
+
+
+    data = sum(stc.data for stc in stcs) / len(stcs)
+    flip = label_sign_flip(label, inverse_operator['src'])
+
+    label_mean = np.mean(data, axis=0)
+    label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
+
+    assert_true(label_mean.max() < label_mean_flip.max())

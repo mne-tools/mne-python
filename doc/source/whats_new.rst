@@ -3,6 +3,14 @@ What's new
 
 .. _changes_0_2:
 
+Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+   - Sign flip computation for robust label average of signed values by `Alex Gramfort`_.
+
 Version 0.2
 -----------
 
