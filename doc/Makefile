@@ -28,6 +28,7 @@ help:
 
 clean:
 	-rm -rf build/*
+	-rm -rf sources/auto_examples
 
 html:
 	-rm -rf build/html/_downloads/*1.py
