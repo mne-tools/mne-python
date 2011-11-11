@@ -206,6 +206,8 @@ def stc_to_label(stc, src, smooth=5):
         cnt += len(this_vertno)
         e = e + sparse.eye(n_vertices, n_vertices)
         idx_use = this_vertno[np.any(this_data, axis=1)]
+        if len(idx_use) == 0:
+            continue
         for k in range(smooth):
             e_use = e[:, idx_use]
             data1 = e_use * np.ones(len(idx_use))
