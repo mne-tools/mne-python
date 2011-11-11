@@ -1,7 +1,9 @@
+import os
 import numpy as np
 from scipy import linalg
 
-from .source_estimate import read_stc
+from .source_estimate import read_stc, mesh_edges
+from .surface import read_surface
 
 
 def read_label(filename):
@@ -43,6 +45,36 @@ def read_label(filename):
                          ' with lh.label or rh.label')
     fid.close()
 
+    return label
+
+
+def write_label(filename, label):
+    """Write a FreeSurfer label
+
+    Parameters
+    ----------
+    filename : string
+        Path to label file to produce.
+    label : dict
+        The label structure.
+    """
+    if not filename.endswith('lh.label') or not filename.endswith('rh.label'):
+        filename += '-' + label['hemi'] + '.label'
+
+    print 'Saving label to : %s' % filename
+
+    fid = open(filename, 'wb')
+    n_vertices = len(label['vertices'])
+    data = np.zeros((n_vertices, 5), dtype=np.float)
+    data[:, 0] = label['vertices']
+    data[:, 1:4] = 1e3 * label['pos']
+    data[:, 4] = label['values']
+    fid.write("#%s\n" % label['comment'])
+    fid.write("%d\n" % n_vertices)
+    for d in data:
+        fid.write("%d %f %f %f %f\n" % tuple(d))
+
+    print '[done]'
     return label
 
 
@@ -119,3 +151,72 @@ def label_sign_flip(label, src):
     # Comparing to the direction of the first right singular vector
     flip = np.sign(np.dot(ori, Vh[:, 0]))
     return flip
+
+
+def stc_to_label(stc, src, smooth=5):
+    """Compute a label from the non-zero sources in an stc object.
+
+    Parameters
+    ----------
+    stc : SourceEstimate
+        The source estimates
+    src : list of dict or string
+        The source space over which are defined the source estimates.
+        If it's a string it should the subject name (e.g. fsaverage).
+
+    Returns
+    -------
+    labels : list of dict
+        The generated labels. One per hemisphere containing sources.
+    """
+    from scipy import sparse
+
+    if not stc.is_surface():
+        raise ValueError('SourceEstimate should be surface source '
+                         'estimates')
+
+    if isinstance(src, str):
+        if 'SUBJECTS_DIR' in os.environ:
+            subjects_dir = os.environ['SUBJECTS_DIR']
+        else:
+            raise ValueError('SUBJECTS_DIR environment variable not set')
+        surf_path_from = os.path.join(subjects_dir, src, 'surf')
+        rr_lh, tris_lh = read_surface(os.path.join(surf_path_from,
+                                      'lh.white'))
+        rr_rh, tris_rh = read_surface(os.path.join(surf_path_from,
+                                      'rh.white'))
+        rr = [rr_lh, rr_rh]
+        tris = [tris_lh, tris_rh]
+    else:
+        if len(src) != 2:
+            raise ValueError('source space should contain the 2 hemispheres')
+        tris = [src[0]['tris'], src[1]['tris']]
+        rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
+
+    labels = []
+    cnt = 0
+    for hemi, this_vertno, this_tris, this_rr in \
+                                    zip(['lh', 'rh'], stc.vertno, tris, rr):
+        if len(this_vertno) == 0:
+            continue
+        e = mesh_edges(this_tris)
+        e.data[e.data == 2] = 1
+        n_vertices = e.shape[0]
+        this_data = stc.data[cnt:cnt + len(this_vertno)]
+        cnt += len(this_vertno)
+        e = e + sparse.eye(n_vertices, n_vertices)
+        idx_use = this_vertno[np.any(this_data, axis=1)]
+        for k in range(smooth):
+            e_use = e[:, idx_use]
+            data1 = e_use * np.ones(len(idx_use))
+            idx_use = np.where(data1)[0]
+
+        label = dict()
+        label['comment'] = 'Label from stc'
+        label['vertices'] = idx_use
+        label['pos'] = this_rr[idx_use]
+        label['values'] = np.ones(len(idx_use))
+        label['hemi'] = hemi
+        labels.append(label)
+
+    return labels

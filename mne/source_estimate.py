@@ -128,6 +128,8 @@ class SourceEstimate(object):
                                           np.arange(self.data.shape[1]))
                 self.vertno = [vl['vertices']]
             else:  # surface source spaces
+                if fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
+                    fname = fname[:-7]
                 lh = read_stc(fname + '-lh.stc')
                 rh = read_stc(fname + '-rh.stc')
                 self.data = np.r_[lh['data'], rh['data']]
