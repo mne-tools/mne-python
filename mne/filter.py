@@ -1,6 +1,31 @@
+import warnings
 import numpy as np
 from scipy import signal
 from scipy.fftpack import fft, ifft
+
+
+def is_power2(num):
+    """Test if number is a power of 2
+
+    Parameters
+    ----------
+    num : int
+        Number
+
+    Returns
+    -------
+    b : bool
+        True if is power of 2
+
+    Example
+    -------
+    >>> is_power2(2 ** 3)
+    True
+    >>> is_power2(5)
+    False
+    """
+    num = int(num)
+    return num != 0 and ((num & (num - 1)) == 0)
 
 
 def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
@@ -54,6 +79,9 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
 
     if n_fft <= 0:
         raise ValueError('n_fft is too short, has to be at least len(h)')
+
+    if not is_power2(n_fft):
+        warnings.warn("FFT length is not a power of 2. Can be slower.")
 
     # Filter in frequency domain
     h_fft = fft(np.r_[h, np.zeros(n_fft - n_h, dtype=h.dtype)])
