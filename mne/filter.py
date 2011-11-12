@@ -16,7 +16,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     x : 1d array
         Signal to filter
     h : 1d array
-        Filter impule response (FIR filter coefficients)
+        Filter impulse response (FIR filter coefficients)
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     zero_phase : bool
@@ -40,7 +40,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     n_x = len(x_ext)
 
     # Determine FFT length to use
-    if n_fft == None:
+    if n_fft is None:
         if n_x > n_h:
             n_tot = 2 * n_x if zero_phase else n_x
 
@@ -53,10 +53,10 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
             n_fft = 2 ** np.ceil(np.log2(n_x + n_h - 1))
 
     if n_fft <= 0:
-        raise ValueError('N_fft is too short, has to be at least len(h)')
+        raise ValueError('n_fft is too short, has to be at least len(h)')
 
     # Filter in frequency domain
-    h_fft = fft(np.r_[h, np.zeros(n_fft - n_h)])
+    h_fft = fft(np.r_[h, np.zeros(n_fft - n_h, dtype=h.dtype)])
 
     if zero_phase:
         # We will apply the filter in forward and backward direction: Scale
@@ -72,7 +72,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     # Segment length for signal x
     n_seg = n_fft - n_h + 1
 
-    # Number of segements (including fractional segments)
+    # Number of segments (including fractional segments)
     n_segments = int(np.ceil(n_x / float(n_seg)))
 
     filter_input = x_ext
@@ -107,7 +107,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
 
 
 def _filter(x, Fs, freq, gain, filter_length=None):
-    """ Filter signal using gain control points in the frequency domain.
+    """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hamming window (window
     used in "firwin2" function) to avoid ripples in the frequency reponse
@@ -138,13 +138,13 @@ def _filter(x, Fs, freq, gain, filter_length=None):
     # normalize frequencies
     freq = [f / (Fs / 2) for f in freq]
 
-    if filter_length == None or len(x) <= filter_length:
+    if filter_length is None or len(x) <= filter_length:
         # Use direct FFT filtering for short signals
 
         Norig = len(x)
 
         if (gain[-1] == 0.0 and Norig % 2 == 1) \
-            or (gain[-1] == 1.0 and Norig % 2 != 1):
+                or (gain[-1] == 1.0 and Norig % 2 != 1):
             # Gain at Nyquist freq: 1: make x EVEN, 0: make x ODD
             x = np.r_[x, x[-1]]
 
@@ -163,7 +163,7 @@ def _filter(x, Fs, freq, gain, filter_length=None):
         N = filter_length
 
         if (gain[-1] == 0.0 and N % 2 == 1) \
-            or (gain[-1] == 1.0 and N % 2 != 1):
+                or (gain[-1] == 1.0 and N % 2 != 1):
             # Gain at Nyquist freq: 1: make N EVEN, 0: make N ODD
             N += 1
 
@@ -183,11 +183,11 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
     x : 1d array
         Signal to filter
     Fs : float
-        sampling rate
+        Sampling rate in Hz
     Fp1 : float
-        low cut-off frequency
+        Low cut-off frequency in Hz
     Fp2 : float
-        high cut-off frequency
+        High cut-off frequency in Hz
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -238,9 +238,9 @@ def low_pass_filter(x, Fs, Fp, filter_length=None):
     x : 1d array
         Signal to filter
     Fs : float
-        sampling rate
+        Sampling rate in Hz
     Fp : float
-        cut-off frequency
+        Cut-off frequency in Hz
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -284,9 +284,9 @@ def high_pass_filter(x, Fs, Fp, filter_length=None):
     x : 1d array
         Signal to filter
     Fs : float
-        sampling rate
+        Sampling rate in Hz
     Fp : float
-        cut-off frequency
+        Cut-off frequency in Hz
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
