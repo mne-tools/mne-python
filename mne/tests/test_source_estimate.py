@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from ..datasets import sample
 from .. import stats
-from .. import read_stc, write_stc, SourceEstimate, morph_data
+from .. import read_stc, write_stc, read_w, write_w, SourceEstimate, morph_data
 from ..source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity
 
@@ -29,6 +29,23 @@ def test_io_stc():
     assert_array_almost_equal(stc['tmin'], stc2['tmin'])
     assert_array_almost_equal(stc['vertices'], stc2['vertices'])
     assert_array_almost_equal(stc['tstep'], stc2['tstep'])
+
+
+def test_io_w():
+    """Test IO for w files
+    """
+    w_fname = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis-meg-oct-6-fwd-sensmap')
+
+    src = SourceEstimate(w_fname)
+
+    src.save('tmp', ftype='w')
+
+    src2 = SourceEstimate('tmp-lh.w')
+
+    assert_array_almost_equal(src.data, src2.data)
+    assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
+    assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
 
 
 def test_stc_arithmetic():
