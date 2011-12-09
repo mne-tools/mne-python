@@ -271,7 +271,22 @@ class SourceEstimate(object):
         self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
 
     def save(self, fname, ftype='stc'):
-        """save to source estimates to file"""
+        """Save the source estimates to a file
+
+        Parameters
+        ----------
+        fname : string
+            The stem of the file name. The file names used for surface source
+            spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
+            and "-rh.w") to the stem provided, for the left and the right
+            hemisphere, respectively. For volume source spaces, the stem is
+            extended with "-vl.stc".
+        ftype : string
+            File format to use. Allowed values are "stc" (default) and "w".
+            The "stc" format can be for surface and volume source spaces,
+            while the "w" format only supports surface source spaces with a
+            single time point.
+        """
         if self.is_surface():
             lh_data = self.data[:len(self.lh_vertno)]
             rh_data = self.data[-len(self.rh_vertno):]
