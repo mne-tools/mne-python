@@ -123,7 +123,7 @@ def label_sign_flip(label, src):
     label : dict
         A label read with the read_label function
     src : list of dict
-        The source space over which is defined the label
+        The source space over which the label is defined
 
     Returns
     -------
