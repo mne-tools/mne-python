@@ -193,7 +193,7 @@ With the above SVD it is easy to show that
 
 where the elements of the diagonal matrix :math:`\Gamma` are
 
-.. math::    \gamma_k = \frac{1}{\lambda_k} \frac{\lambda_k^2}{\lambda_k^2 \lambda^2}\ .
+.. math::    \gamma_k = \frac{1}{\lambda_k} \frac{\lambda_k^2}{\lambda_k^2 + \lambda^2}\ .
 
 With :math:`w(t) = U^T C^{-^1/_2} x(t)` the expression for
 the expected current is
