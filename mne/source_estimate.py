@@ -103,10 +103,115 @@ def write_stc(filename, tmin, tstep, vertices, data):
     fid.close()
 
 
+def _read_3(fid):
+    """ Read 3 byte integer from file
+    """
+    data = np.fromfile(fid, dtype=np.uint8, count=3).astype(np.int32)
+
+    out = np.left_shift(data[0], 16) + np.left_shift(data[1], 8) + data[2]
+
+    return out
+
+
+def read_w(filename):
+    """Read a w file
+
+    w files contain activations or source reconstructions for a single time
+    point
+
+    Parameters
+    ----------
+    filename: string
+        The name of the w file
+
+    Returns
+    -------
+    data: dict
+        The w structure. It has the following keys:
+           vertices       vertex indices (0 based)
+           data           The data matrix (nvert long)
+    """
+
+    fid = open(filename, 'rb')
+
+    # skip first 2 bytes
+    fid.read(2)
+
+    # read number of vertices/sources (3 byte integer)
+    vertices_n = int(_read_3(fid))
+
+    vertices = np.zeros((vertices_n), dtype=np.int32)
+    data = np.zeros((vertices_n), dtype=np.float32)
+
+    # read the vertices and data
+    for i in range(vertices_n):
+        vertices[i] = _read_3(fid)
+        data[i] = np.fromfile(fid, dtype='>f4', count=1)
+
+    w = dict()
+    w['vertices'] = vertices
+    w['data'] = data
+
+    # close the file
+    fid.close()
+    return w
+
+
+def _write_3(fid, val):
+    """ Write 3 byte integer to file
+    """
+
+    f_bytes = np.zeros((3), dtype=np.uint8)
+
+    f_bytes[0] = (val >> 16) & 255
+    f_bytes[1] = (val >> 8) & 255
+    f_bytes[2] = val & 255
+
+    fid.write(f_bytes.tostring())
+
+
+def write_w(filename, vertices, data):
+    """Read a w file
+
+    w files contain activations or source reconstructions for a single time
+    point
+
+    Parameters
+    ----------
+    filename: string
+        The name of the w file
+    vertices: array of integers
+        Vertex indices (0 based)
+    data: 1D array
+        The data array (nvert)
+    """
+
+    assert(len(vertices) == len(data))
+
+    fid = open(filename, 'wb')
+
+    # write 2 zero bytes
+    fid.write(np.zeros((2), dtype=np.uint8).tostring())
+
+    # write number of vertices/sources (3 byte integer)
+    vertices_n = len(vertices)
+    _write_3(fid, vertices_n)
+
+    # write the vertices and data
+    for i in range(vertices_n):
+        _write_3(fid, vertices[i])
+        #XXX: without float() endianness is wrong, not sure why
+        fid.write(np.array(float(data[i]), dtype='>f4').tostring())
+
+    # close the file
+    fid.close()
+
+
 class SourceEstimate(object):
     """SourceEstimate container
 
-    Can be saved and loaded from .stc files
+    Can be saved and loaded from .stc files. Loading of .w files is supported
+    as well.
 
     Attributes
     ----------
@@ -127,7 +232,10 @@ class SourceEstimate(object):
                 self.times = self.tmin + (self.tstep *
                                           np.arange(self.data.shape[1]))
                 self.vertno = [vl['vertices']]
-            else:  # surface source spaces
+            elif (fname.endswith('.stc') or os.path.exists(fname + '-lh.stc')
+                  or os.path.exists(fname + '-rh.stc')):
+                # stc file with surface source spaces
+
                 if fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
                     fname = fname[:-7]
                 lh = read_stc(fname + '-lh.stc')
@@ -140,23 +248,70 @@ class SourceEstimate(object):
                 self.times = self.tmin + (self.tstep *
                                           np.arange(self.data.shape[1]))
                 self.vertno = [lh['vertices'], rh['vertices']]
+            elif (fname.endswith('.w') or os.path.exists(fname + '-lh.w')
+                  or os.path.exists(fname + '-rh.w')):
+                # w file with surface source spaces
+
+                if fname.endswith('-lh.w') or fname.endswith('-rh.w'):
+                    fname = fname[:-5]
+                lh = read_w(fname + '-lh.w')
+                rh = read_w(fname + '-rh.w')
+                self.data = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
+
+                # w files only have a single time point
+                self.tmin = 0.0
+                self.tstep = 1.0
+                self.times = np.array([0.0])
+                self.vertno = [lh['vertices'], rh['vertices']]
+            else:
+                raise ValueError('file type not supported')
 
     def _init_times(self):
         """create self.times"""
         self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
 
-    def save(self, fname):
-        """save to source estimates to file"""
+    def save(self, fname, ftype='stc'):
+        """Save the source estimates to a file
+
+        Parameters
+        ----------
+        fname : string
+            The stem of the file name. The file names used for surface source
+            spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
+            and "-rh.w") to the stem provided, for the left and the right
+            hemisphere, respectively. For volume source spaces, the stem is
+            extended with "-vl.stc".
+        ftype : string
+            File format to use. Allowed values are "stc" (default) and "w".
+            The "stc" format can be for surface and volume source spaces,
+            while the "w" format only supports surface source spaces with a
+            single time point.
+        """
         if self.is_surface():
             lh_data = self.data[:len(self.lh_vertno)]
             rh_data = self.data[-len(self.rh_vertno):]
 
-            print 'Writing STC to disk...',
-            write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
-                           vertices=self.lh_vertno, data=lh_data)
-            write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
+            if ftype == 'stc':
+                print 'Writing STC to disk...',
+                write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
+                          vertices=self.lh_vertno, data=lh_data)
+                write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
                            vertices=self.rh_vertno, data=rh_data)
+            elif ftype == 'w':
+                if self.data.shape[1] != 1:
+                    raise ValueError('w files can only contain a single time '
+                                     'point')
+                print 'Writing STC to disk (w format)...',
+                write_w(fname + '-lh.w', vertices=self.lh_vertno,
+                        data=lh_data[:, 0])
+                write_w(fname + '-rh.w', vertices=self.rh_vertno,
+                        data=rh_data[:, 0])
+            else:
+                raise ValueError('invalid file type')
         else:
+            if ftype != 'stc':
+                raise ValueError('ftype has to be \"stc\" volume source '
+                                 'spaces')
             print 'Writing STC to disk...',
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
