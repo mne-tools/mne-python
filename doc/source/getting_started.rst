@@ -30,7 +30,7 @@ Outside the Martinos Center
 ---------------------------
 
 MNE is written in pure Python making it easy to setup of
-any machine with Python >=2.5, Numpy >= 1.4 and Scipy >= 0.6.
+any machine with Python >=2.6, Numpy >= 1.3 and Scipy >= 0.7.2
 
 For a free, fast and up to date scientific Python environment you
 can install EPD Free available at:
