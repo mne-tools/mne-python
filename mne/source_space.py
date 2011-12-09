@@ -142,7 +142,11 @@ def _read_one_source_space(fid, this):
         if tag is not None:
             res['src_mri_t'] = tag.data
 
-        mri = dir_tree_find(this, FIFF.FIFFB_MNE_PARENT_MRI_FILE)[0]
+        parent_mri = dir_tree_find(this, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        if len(parent_mri) == 0:
+            raise ValueError('Can not find parent MRI location')
+
+        mri = parent_mri[0]
         for d in mri['directory']:
             if d.kind == FIFF.FIFF_COORD_TRANS:
                 tag = read_tag(fid, d.pos)
