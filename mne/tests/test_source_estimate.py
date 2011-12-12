@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from ..datasets import sample
 from .. import stats
-from .. import read_stc, write_stc, read_w, write_w, SourceEstimate, morph_data
+from .. import read_stc, write_stc, SourceEstimate, morph_data
 from ..source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity
 
@@ -61,7 +61,7 @@ def test_stc_arithmetic():
 
         a += a
         a -= a
-        a /=  2 * a
+        a /= 2 * a
         a *= -a
 
         a += 2
@@ -93,7 +93,7 @@ def test_morph_data():
 
 
 def test_spatio_temporal_tris_connectivity():
-    """Test spatio-temporal connectivity"""
+    """Test spatio-temporal connectivity from triangles"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -103,7 +103,7 @@ def test_spatio_temporal_tris_connectivity():
 
 
 def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity"""
+    """Test spatio-temporal connectivity from source spaaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
