@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -210,8 +211,7 @@ def write_w(filename, vertices, data):
 class SourceEstimate(object):
     """SourceEstimate container
 
-    Can be saved and loaded from .stc files. Loading of .w files is supported
-    as well.
+    Can be saved and loaded from .stc or .w files.
 
     Attributes
     ----------
