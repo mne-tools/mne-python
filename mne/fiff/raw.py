@@ -200,7 +200,7 @@ class Raw(dict):
             self.times = times
             self._preloaded = True
 
-    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
+    def save(self, fname, picks=None, tmin=None, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
         """Save raw data to file
 
@@ -232,7 +232,12 @@ class Raw(dict):
         #
 
         #   Convert to samples
-        start = int(floor(tmin * self.info['sfreq']))
+        if tmin is None:
+            start = 0
+            first_samp = self.first_samp
+        else:
+            start = int(floor(tmin * self.info['sfreq']))
+            first_samp = start
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
@@ -243,7 +248,7 @@ class Raw(dict):
         #
         #   Read and write all the data
         #
-        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, start)
+        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
             if last >= stop:
