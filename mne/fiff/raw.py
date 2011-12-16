@@ -154,6 +154,7 @@ class Raw(dict):
 
         self.fid = fid
         self.info = info
+        self._preloaded = False
 
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
@@ -184,9 +185,20 @@ class Raw(dict):
             if sel is not None and len(sel) == 0:
                 raise Exception("Empty channel list")
 
+            if self._preloaded:
+                return (self.data[sel, start:stop], self.times[start:stop])
             return read_raw_segment(self, start=start, stop=stop, sel=sel)
         else:
             return super(Raw, self).__getitem__(item)
+
+    def preload(self):
+        """preload the raw data into memory for faster indexing
+        """
+        if not self._preloaded:
+            data, times = self[:, :]
+            self.data = data
+            self.times = times
+            self._preloaded = True
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
