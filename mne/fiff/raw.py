@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -154,7 +155,8 @@ class Raw(dict):
 
         self.fid = fid
         self.info = info
-        self._preloaded = False
+        self._data = None
+        self._times = None
 
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
@@ -185,20 +187,60 @@ class Raw(dict):
             if sel is not None and len(sel) == 0:
                 raise Exception("Empty channel list")
 
-            if self._preloaded:
-                return (self.data[sel, start:stop], self.times[start:stop])
-            return read_raw_segment(self, start=start, stop=stop, sel=sel)
+            if self._data is not None:
+                return (self._data[sel, start:stop], self._times[start:stop])
+            else:
+                return read_raw_segment(self, start=start, stop=stop, sel=sel)
         else:
             return super(Raw, self).__getitem__(item)
 
+    def __setitem__(self, item, value):
+        """setting raw data content with python slicing"""
+        if isinstance(item, tuple):  # slicing required
+            if len(item) == 2:  # channels and time instants
+                time_slice = item[1]
+                if isinstance(item[0], slice):
+                    start = item[0].start if item[0].start is not None else 0
+                    nchan = self.info['nchan']
+                    stop = item[0].stop if item[0].stop is not None else nchan
+                    step = item[0].step if item[0].step is not None else 1
+                    sel = range(start, stop, step)
+                else:
+                    sel = item[0]
+            else:
+                time_slice = item[0]
+                sel = None
+            start, stop, step = time_slice.start, time_slice.stop, \
+                                time_slice.step
+            if start is None:
+                start = 0
+            if step is not None:
+                raise ValueError('step needs to be 1 : %d given' % step)
+
+            if isinstance(sel, int):
+                sel = np.array([sel])
+
+            if sel is not None and len(sel) == 0:
+                raise Exception("Empty channel list")
+
+            if self._data is None:
+                # data needs to be loaded into memory
+                self.preload()
+
+            # set the data
+            self._data[sel, start:stop] = value
+
+        else:
+            super(Raw, self).__setitem__(item, value)
+
     def preload(self):
-        """preload the raw data into memory for faster indexing
+        """preload the raw data into memory in order to modify the data and
+           for faster indexing
         """
-        if not self._preloaded:
+        if self._data is None:
             data, times = self[:, :]
-            self.data = data
-            self.times = times
-            self._preloaded = True
+            self._data = data
+            self._times = times
 
     def save(self, fname, picks=None, tmin=None, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
