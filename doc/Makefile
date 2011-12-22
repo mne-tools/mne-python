@@ -31,10 +31,6 @@ clean:
 	-rm -rf sources/auto_examples
 
 html:
-	-rm -rf build/html/_downloads/*1.py
-	-rm -rf build/html/_downloads/*2.py
-	-rm -rf build/html/_downloads/*3.py
-	-rm -rf build/html/_downloads/*4.py
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."

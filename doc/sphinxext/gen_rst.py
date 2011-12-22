@@ -201,3 +201,24 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 def setup(app):
     app.connect('builder-inited', generate_example_rst)
     app.add_config_value('plot_gallery', True, 'html')
+
+    # Sphinx hack: sphinx copies generated images to the build directory
+    #  each time the docs are made.  If the desired image name already
+    #  exists, it appends a digit to prevent overwrites.  The problem is,
+    #  the directory is never cleared.  This means that each time you build
+    #  the docs, the number of images in the directory grows.
+    #
+    # This question has been asked on the sphinx development list, but there
+    #  was no response: http://osdir.com/ml/sphinx-dev/2011-02/msg00123.html
+    #
+    # The following is a hack that prevents this behavior by clearing the
+    #  image build directory each time the docs are built.  If sphinx
+    #  changes their layout between versions, this will not work (though
+    #  it should probably not cause a crash).  Tested successfully
+    #  on Sphinx 1.0.7
+    build_image_dir = 'build/html/_images'
+    if os.path.exists(build_image_dir):
+        shutil.rmtree(build_image_dir)
+    build_download_dir = 'build/html/_downloads'
+    if os.path.exists(build_download_dir):
+        shutil.rmtree(build_download_dir)
