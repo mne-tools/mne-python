@@ -31,7 +31,7 @@ class Raw(dict):
 
     """
 
-    def __init__(self, fname, allow_maxshield=False):
+    def __init__(self, fname, allow_maxshield=False, preload=False):
         """
         Parameters
         ----------
@@ -41,6 +41,12 @@ class Raw(dict):
         allow_maxshield: bool, (default False)
             allow_maxshield if True XXX ???
 
+        preload: bool or str (default False)
+            Preload data into memory for data manipulation and faster indexing.
+            If True, the data will be preloaded into memory (fast, requires
+            large amount of memory). If preload is a string, preload is the
+            file name of a memory-mapped file which is used to store the data
+            (slower, requires less memory).
         """
 
         #   Open the file
@@ -155,8 +161,22 @@ class Raw(dict):
 
         self.fid = fid
         self.info = info
-        self._data = None
-        self._times = None
+
+        if preload:
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            if isinstance(preload, str):
+                # preload data using a memmap file
+                self._data = np.memmap(preload, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                self._data = np.empty((nchan, nsamp))
+
+            self._data, self._times = read_raw_segment(self,
+                                                       data_buffer=self._data)
+            self._preloaded = True
+        else:
+            self._preloaded = False
 
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
@@ -187,7 +207,7 @@ class Raw(dict):
             if sel is not None and len(sel) == 0:
                 raise Exception("Empty channel list")
 
-            if self._data is not None:
+            if self._preloaded:
                 return (self._data[sel, start:stop], self._times[start:stop])
             else:
                 return read_raw_segment(self, start=start, stop=stop, sel=sel)
@@ -197,6 +217,10 @@ class Raw(dict):
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
         if isinstance(item, tuple):  # slicing required
+            if not self._preloaded:
+                raise RuntimeError('Modifying data of Raw is only supported '
+                                   'when preloading is used. Use preload=True '
+                                   '(or string) in the constructor.')
             if len(item) == 2:  # channels and time instants
                 time_slice = item[1]
                 if isinstance(item[0], slice):
@@ -223,24 +247,11 @@ class Raw(dict):
             if sel is not None and len(sel) == 0:
                 raise Exception("Empty channel list")
 
-            if self._data is None:
-                # data needs to be loaded into memory
-                self.preload()
-
             # set the data
             self._data[sel, start:stop] = value
 
         else:
             super(Raw, self).__setitem__(item, value)
-
-    def preload(self):
-        """preload the raw data into memory in order to modify the data and
-           for faster indexing
-        """
-        if self._data is None:
-            data, times = self[:, :]
-            self._data = data
-            self._times = times
 
     def save(self, fname, picks=None, tmin=None, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
@@ -332,7 +343,7 @@ class Raw(dict):
         return self.info['ch_names']
 
 
-def read_raw_segment(raw, start=0, stop=None, sel=None):
+def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
     """Read a chunck of raw data
 
     Parameters
@@ -351,8 +362,8 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
     sel: array, optional
         Indices of channels to select
 
-    node: tree node
-        The node of the tree where to look
+    data_buffer: array, optional
+        numpy array to fill with data read, must have the correct shape
 
     Returns
     -------
@@ -387,7 +398,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
     cal = np.diag(raw.cals.ravel())
 
     if sel is None:
-        data = np.empty((nchan, stop - start))
+        data_shape = (nchan, stop - start)
+        if data_buffer is not None:
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        else:
+            data = np.empty(data_shape)
         if raw.proj is None and raw.comp is None:
             mult = None
         else:
@@ -399,7 +416,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
                 mult = raw.proj * raw.comp * cal
 
     else:
-        data = np.empty((len(sel), stop - start))
+        data_shape = (len(sel), stop - start)
+        if data_buffer is not None:
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        else:
+            data = np.empty(data_shape)
         if raw.proj is None and raw.comp is None:
             mult = None
             cal = np.diag(raw.cals[sel].ravel())
