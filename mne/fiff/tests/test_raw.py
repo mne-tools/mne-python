@@ -1,5 +1,6 @@
 import os.path as op
 
+import numpy as np
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
@@ -63,3 +64,32 @@ def test_io_raw():
             assert_array_almost_equal(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
         fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
+
+
+def test_preload_modify():
+    """ Test preloading and modifying data
+    """
+    for preload in [False, True, 'memmap.dat']:
+        raw = Raw(fif_fname, preload=preload)
+
+        nsamp = raw.last_samp - raw.first_samp + 1
+        picks = pick_types(raw.info, meg='grad')
+
+        data = np.random.randn(len(picks), nsamp / 2)
+
+        try:
+            raw[picks, :nsamp / 2] = data
+        except RuntimeError as err:
+            if not preload:
+                continue
+            else:
+                raise err
+
+        tmp_fname = 'raw.fif'
+        raw.save(tmp_fname)
+
+        raw_new = Raw(tmp_fname)
+        data_new, _ = raw_new[picks, :nsamp / 2]
+
+        assert_array_almost_equal(data, data_new)
+
