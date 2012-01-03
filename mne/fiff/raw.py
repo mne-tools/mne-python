@@ -285,12 +285,8 @@ class Raw(dict):
         #
 
         #   Convert to samples
-        if tmin is None:
-            start = 0
-            first_samp = self.first_samp
-        else:
-            start = int(floor(tmin * self.info['sfreq']))
-            first_samp = self.first_samp + start
+        start = int(floor(tmin * self.info['sfreq']))
+        first_samp = self.first_samp + start
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
