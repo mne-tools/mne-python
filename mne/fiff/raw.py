@@ -253,7 +253,7 @@ class Raw(dict):
         else:
             super(Raw, self).__setitem__(item, value)
 
-    def save(self, fname, picks=None, tmin=None, tmax=None, buffer_size_sec=10,
+    def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
         """Save raw data to file
 
