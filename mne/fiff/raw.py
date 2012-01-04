@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -14,7 +15,7 @@ from .tree import dir_tree_find
 from .tag import read_tag
 
 
-class Raw(dict):
+class Raw(object):
     """Raw data set
 
     Parameters
@@ -30,7 +31,7 @@ class Raw(dict):
 
     """
 
-    def __init__(self, fname, allow_maxshield=False):
+    def __init__(self, fname, allow_maxshield=False, preload=False):
         """
         Parameters
         ----------
@@ -40,6 +41,12 @@ class Raw(dict):
         allow_maxshield: bool, (default False)
             allow_maxshield if True XXX ???
 
+        preload: bool or str (default False)
+            Preload data into memory for data manipulation and faster indexing.
+            If True, the data will be preloaded into memory (fast, requires
+            large amount of memory). If preload is a string, preload is the
+            file name of a memory-mapped file which is used to store the data
+            on the hard drive (slower, requires less memory).
         """
 
         #   Open the file
@@ -155,38 +162,73 @@ class Raw(dict):
         self.fid = fid
         self.info = info
 
+        if preload:
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            if isinstance(preload, str):
+                # preload data using a memmap file
+                self._data = np.memmap(preload, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                self._data = np.empty((nchan, nsamp), dtype='float32')
+
+            self._data, self._times = read_raw_segment(self,
+                                                       data_buffer=self._data)
+            self._preloaded = True
+        else:
+            self._preloaded = False
+
+    def _parse_get_set_params(self, item):
+        # make sure item is a tuple
+        if not isinstance(item, tuple):  # only channel selection passed
+            item = (item, slice(None, None, None))
+
+        if len(item) != 2:  # should be channels and time instants
+            raise RuntimeError("Unable to access raw data (need both channels "
+                               "and time)")
+
+        time_slice = item[1]
+        if isinstance(item[0], slice):
+            start = item[0].start if item[0].start is not None else 0
+            nchan = self.info['nchan']
+            stop = item[0].stop if item[0].stop is not None else nchan
+            step = item[0].step if item[0].step is not None else 1
+            sel = range(start, stop, step)
+        else:
+            sel = item[0]
+
+        start, stop, step = time_slice.start, time_slice.stop, \
+                            time_slice.step
+        if start is None:
+            start = 0
+        if step is not None:
+            raise ValueError('step needs to be 1 : %d given' % step)
+
+        if isinstance(sel, int):
+            sel = np.array([sel])
+
+        if sel is not None and len(sel) == 0:
+            raise ValueError("Empty channel list")
+
+        return sel, start, stop
+
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
-        if isinstance(item, tuple):  # slicing required
-            if len(item) == 2:  # channels and time instants
-                time_slice = item[1]
-                if isinstance(item[0], slice):
-                    start = item[0].start if item[0].start is not None else 0
-                    nchan = self.info['nchan']
-                    stop = item[0].stop if item[0].stop is not None else nchan
-                    step = item[0].step if item[0].step is not None else 1
-                    sel = range(start, stop, step)
-                else:
-                    sel = item[0]
-            else:
-                time_slice = item[0]
-                sel = None
-            start, stop, step = time_slice.start, time_slice.stop, \
-                                time_slice.step
-            if start is None:
-                start = 0
-            if step is not None:
-                raise ValueError('step needs to be 1 : %d given' % step)
-
-            if isinstance(sel, int):
-                sel = np.array([sel])
-
-            if sel is not None and len(sel) == 0:
-                raise Exception("Empty channel list")
-
-            return read_raw_segment(self, start=start, stop=stop, sel=sel)
+        sel, start, stop = self._parse_get_set_params(item)
+        if self._preloaded:
+            return self._data[sel, start:stop], self._times[start:stop]
         else:
-            return super(Raw, self).__getitem__(item)
+            return read_raw_segment(self, start=start, stop=stop, sel=sel)
+
+    def __setitem__(self, item, value):
+        """setting raw data content with python slicing"""
+        if not self._preloaded:
+            raise RuntimeError('Modifying data of Raw is only supported '
+                               'when preloading is used. Use preload=True '
+                               '(or string) in the constructor.')
+        sel, start, stop = self._parse_get_set_params(item)
+        # set the data
+        self._data[sel, start:stop] = value
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
@@ -221,6 +263,7 @@ class Raw(dict):
 
         #   Convert to samples
         start = int(floor(tmin * self.info['sfreq']))
+        first_samp = self.first_samp + start
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
@@ -231,7 +274,7 @@ class Raw(dict):
         #
         #   Read and write all the data
         #
-        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, start)
+        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
             if last >= stop:
@@ -273,7 +316,7 @@ class Raw(dict):
         return self.info['ch_names']
 
 
-def read_raw_segment(raw, start=0, stop=None, sel=None):
+def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
     """Read a chunck of raw data
 
     Parameters
@@ -292,8 +335,8 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
     sel: array, optional
         Indices of channels to select
 
-    node: tree node
-        The node of the tree where to look
+    data_buffer: array, optional
+        numpy array to fill with data read, must have the correct shape
 
     Returns
     -------
@@ -328,7 +371,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
     cal = np.diag(raw.cals.ravel())
 
     if sel is None:
-        data = np.empty((nchan, stop - start))
+        data_shape = (nchan, stop - start)
+        if data_buffer is not None:
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        else:
+            data = np.empty(data_shape, dtype='float32')
         if raw.proj is None and raw.comp is None:
             mult = None
         else:
@@ -340,7 +389,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None):
                 mult = raw.proj * raw.comp * cal
 
     else:
-        data = np.empty((len(sel), stop - start))
+        data_shape = (len(sel), stop - start)
+        if data_buffer is not None:
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        else:
+            data = np.empty(data_shape, dtype='float32')
         if raw.proj is None and raw.comp is None:
             mult = None
             cal = np.diag(raw.cals[sel].ravel())
