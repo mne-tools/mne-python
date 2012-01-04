@@ -9,11 +9,12 @@ noiselevel = 20
 
 normfactor = np.hanning(20).sum()
 
-condition1 = np.random.randn(40, 350) * noiselevel
+rng = np.random.RandomState(42)
+condition1 = rng.randn(40, 350) * noiselevel
 for c in condition1:
     c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-condition2 = np.random.randn(33, 350) * noiselevel
+condition2 = rng.randn(33, 350) * noiselevel
 for c in condition2:
     c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
@@ -57,15 +58,18 @@ def test_cluster_permutation_t_test():
 def test_cluster_permutation_t_test_with_connectivity():
     """Test cluster level permutations T-test with connectivity matrix."""
     try:
-        from scikits.learn.feature_extraction.image import grid_to_graph
+        try:
+            from sklearn.feature_extraction.image import grid_to_graph
+        except ImportError:
+            from scikits.learn.feature_extraction.image import grid_to_graph
     except ImportError:
-        pass
-    else:
-        out = permutation_cluster_1samp_test(condition1, n_permutations=500)
-        connectivity = grid_to_graph(1, condition1.shape[1])
-        out_connectivity = permutation_cluster_1samp_test(condition1,
-                                 n_permutations=500, connectivity=connectivity)
-        assert_array_equal(out[0], out_connectivity[0])
-        for a, b in zip(out_connectivity[1], out[1]):
-            assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
-            assert_true(np.all(a[b]))
+        return
+
+    out = permutation_cluster_1samp_test(condition1, n_permutations=500)
+    connectivity = grid_to_graph(1, condition1.shape[1])
+    out_connectivity = permutation_cluster_1samp_test(condition1,
+                             n_permutations=500, connectivity=connectivity)
+    assert_array_equal(out[0], out_connectivity[0])
+    for a, b in zip(out_connectivity[1], out[1]):
+        assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
+        assert_true(np.all(a[b]))
