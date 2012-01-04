@@ -15,7 +15,7 @@ from .tree import dir_tree_find
 from .tag import read_tag
 
 
-class Raw(dict):
+class Raw(object):
     """Raw data set
 
     Parameters
@@ -46,7 +46,7 @@ class Raw(dict):
             If True, the data will be preloaded into memory (fast, requires
             large amount of memory). If preload is a string, preload is the
             file name of a memory-mapped file which is used to store the data
-            (slower, requires less memory).
+            on the hard drive (slower, requires less memory).
         """
 
         #   Open the file
@@ -170,7 +170,7 @@ class Raw(dict):
                 self._data = np.memmap(preload, mode='w+', dtype='float32',
                                        shape=(nchan, nsamp))
             else:
-                self._data = np.empty((nchan, nsamp))
+                self._data = np.empty((nchan, nsamp), dtype='float32')
 
             self._data, self._times = read_raw_segment(self,
                                                        data_buffer=self._data)
@@ -178,80 +178,57 @@ class Raw(dict):
         else:
             self._preloaded = False
 
+    def _parse_get_set_params(self, item):
+        # make sure item is a tuple
+        if not isinstance(item, tuple):  # only channel selection passed
+            item = (item, slice(None, None, None))
+
+        if len(item) != 2:  # should be channels and time instants
+            raise RuntimeError("Unable to access raw data (need both channels "
+                               "and time)")
+
+        time_slice = item[1]
+        if isinstance(item[0], slice):
+            start = item[0].start if item[0].start is not None else 0
+            nchan = self.info['nchan']
+            stop = item[0].stop if item[0].stop is not None else nchan
+            step = item[0].step if item[0].step is not None else 1
+            sel = range(start, stop, step)
+        else:
+            sel = item[0]
+
+        start, stop, step = time_slice.start, time_slice.stop, \
+                            time_slice.step
+        if start is None:
+            start = 0
+        if step is not None:
+            raise ValueError('step needs to be 1 : %d given' % step)
+
+        if isinstance(sel, int):
+            sel = np.array([sel])
+
+        if sel is not None and len(sel) == 0:
+            raise ValueError("Empty channel list")
+
+        return sel, start, stop
+
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
-        if isinstance(item, tuple):  # slicing required
-            if len(item) == 2:  # channels and time instants
-                time_slice = item[1]
-                if isinstance(item[0], slice):
-                    start = item[0].start if item[0].start is not None else 0
-                    nchan = self.info['nchan']
-                    stop = item[0].stop if item[0].stop is not None else nchan
-                    step = item[0].step if item[0].step is not None else 1
-                    sel = range(start, stop, step)
-                else:
-                    sel = item[0]
-            else:
-                time_slice = item[0]
-                sel = None
-            start, stop, step = time_slice.start, time_slice.stop, \
-                                time_slice.step
-            if start is None:
-                start = 0
-            if step is not None:
-                raise ValueError('step needs to be 1 : %d given' % step)
-
-            if isinstance(sel, int):
-                sel = np.array([sel])
-
-            if sel is not None and len(sel) == 0:
-                raise Exception("Empty channel list")
-
-            if self._preloaded:
-                return (self._data[sel, start:stop], self._times[start:stop])
-            else:
-                return read_raw_segment(self, start=start, stop=stop, sel=sel)
+        sel, start, stop = self._parse_get_set_params(item)
+        if self._preloaded:
+            return self._data[sel, start:stop], self._times[start:stop]
         else:
-            return super(Raw, self).__getitem__(item)
+            return read_raw_segment(self, start=start, stop=stop, sel=sel)
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
-        if isinstance(item, tuple):  # slicing required
-            if not self._preloaded:
-                raise RuntimeError('Modifying data of Raw is only supported '
-                                   'when preloading is used. Use preload=True '
-                                   '(or string) in the constructor.')
-            if len(item) == 2:  # channels and time instants
-                time_slice = item[1]
-                if isinstance(item[0], slice):
-                    start = item[0].start if item[0].start is not None else 0
-                    nchan = self.info['nchan']
-                    stop = item[0].stop if item[0].stop is not None else nchan
-                    step = item[0].step if item[0].step is not None else 1
-                    sel = range(start, stop, step)
-                else:
-                    sel = item[0]
-            else:
-                time_slice = item[0]
-                sel = None
-            start, stop, step = time_slice.start, time_slice.stop, \
-                                time_slice.step
-            if start is None:
-                start = 0
-            if step is not None:
-                raise ValueError('step needs to be 1 : %d given' % step)
-
-            if isinstance(sel, int):
-                sel = np.array([sel])
-
-            if sel is not None and len(sel) == 0:
-                raise Exception("Empty channel list")
-
-            # set the data
-            self._data[sel, start:stop] = value
-
-        else:
-            super(Raw, self).__setitem__(item, value)
+        if not self._preloaded:
+            raise RuntimeError('Modifying data of Raw is only supported '
+                               'when preloading is used. Use preload=True '
+                               '(or string) in the constructor.')
+        sel, start, stop = self._parse_get_set_params(item)
+        # set the data
+        self._data[sel, start:stop] = value
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
@@ -400,7 +377,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
                 raise ValueError('data_buffer has incorrect shape')
             data = data_buffer
         else:
-            data = np.empty(data_shape)
+            data = np.empty(data_shape, dtype='float32')
         if raw.proj is None and raw.comp is None:
             mult = None
         else:
@@ -418,7 +395,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
                 raise ValueError('data_buffer has incorrect shape')
             data = data_buffer
         else:
-            data = np.empty(data_shape)
+            data = np.empty(data_shape, dtype='float32')
         if raw.proj is None and raw.comp is None:
             mult = None
             cal = np.diag(raw.cals[sel].ravel())

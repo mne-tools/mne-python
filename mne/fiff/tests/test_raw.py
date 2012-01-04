@@ -2,7 +2,7 @@ import os.path as op
 
 import numpy as np
 from nose.tools import assert_true
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from .. import Raw, pick_types, pick_channels
 
@@ -61,9 +61,28 @@ def test_io_raw():
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
 
         if fname == fif_fname:
-            assert_array_almost_equal(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
+            assert_array_almost_equal(raw.info['dig'][0]['r'],
+                                      raw2.info['dig'][0]['r'])
 
         fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
+
+
+def test_getitem():
+    """Test getitem/indexing of Raw
+    """
+    for preload in [False, True, 'memmap.dat']:
+        raw = Raw(fif_fname, preload=False)
+        data, times = raw[0, :]
+        data1, times1 = raw[0]
+        assert_array_equal(data, data1)
+        assert_array_equal(times, times1)
+        data, times = raw[0:2, :]
+        data1, times1 = raw[0:2]
+        assert_array_equal(data, data1)
+        assert_array_equal(times, times1)
+        data1, times1 = raw[[0, 1]]
+        assert_array_equal(data, data1)
+        assert_array_equal(times, times1)
 
 
 def test_preload_modify():
@@ -92,4 +111,3 @@ def test_preload_modify():
         data_new, _ = raw_new[picks, :nsamp / 2]
 
         assert_array_almost_equal(data, data_new)
-
