@@ -95,7 +95,7 @@ def find_events(raw, stim_channel='STI 014'):
         The array of event onsets in time samples.
     """
 
-    pick = pick_channels(raw.info['ch_names'], include=['STI 014'],
+    pick = pick_channels(raw.info['ch_names'], include=[stim_channel],
                          exclude=[])
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
