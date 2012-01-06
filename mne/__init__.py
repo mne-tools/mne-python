@@ -2,7 +2,8 @@ __version__ = '0.2.git'
 
 from .cov import read_cov, write_cov, write_cov_file, Covariance, \
                  compute_raw_data_covariance, compute_covariance
-from .event import read_events, write_events, find_events, merge_events
+from .event import read_events, write_events, find_events, merge_events, \
+                   pick_events
 from .forward import read_forward_solution
 from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              SourceEstimate, morph_data, \

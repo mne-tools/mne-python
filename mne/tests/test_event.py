@@ -1,6 +1,6 @@
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from .. import read_events, write_events, find_events
 from .. import fiff
@@ -20,6 +20,14 @@ def test_io_events():
     write_events('events.fif', events)
     events2 = read_events('events.fif')
     assert_array_almost_equal(events, events2)
+
+    a = read_events('events.fif', include=1)
+    b = read_events('events.fif', include=[1])
+    c = read_events('events.fif', exclude=[2, 3, 4, 5, 32])
+    d = read_events('events.fif', include=1, exclude=[2, 3])
+    assert_array_equal(a, b)
+    assert_array_equal(a, c)
+    assert_array_equal(a, d)
 
 
 def test_find_events():
