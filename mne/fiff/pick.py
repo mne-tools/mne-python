@@ -43,6 +43,8 @@ def channel_type(info, idx):
         return 'emg'
     elif kind == FIFF.FIFFV_ECG_CH:
         return 'ecg'
+    elif kind == FIFF.FIFFV_MISC_CH:
+        return 'misc'
     raise Exception('Unknown channel type')
 
 

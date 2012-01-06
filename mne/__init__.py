@@ -20,3 +20,4 @@ from .proj import read_proj
 import fiff
 import artifacts
 import stats
+import viz
