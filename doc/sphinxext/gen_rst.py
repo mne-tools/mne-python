@@ -218,7 +218,10 @@ def setup(app):
     #  on Sphinx 1.0.7
     build_image_dir = 'build/html/_images'
     if os.path.exists(build_image_dir):
-        shutil.rmtree(build_image_dir)
+        filelist = os.listdir(build_image_dir)
+        for filename in filelist:
+            if filename.endswith('png'):
+                os.remove(os.path.join(build_image_dir, filename))
     build_download_dir = 'build/html/_downloads'
     if os.path.exists(build_download_dir):
         shutil.rmtree(build_download_dir)
