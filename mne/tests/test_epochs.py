@@ -6,7 +6,7 @@ import os.path as op
 from nose.tools import assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from .. import fiff, Epochs, read_events
+from .. import fiff, Epochs, read_events, pick_events
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test_raw.fif')
@@ -32,6 +32,11 @@ def test_read_epochs():
                         baseline=(None, 0))
     epochs.average()
     data = epochs.get_data()
+
+    epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
+                          None, tmin, tmax, picks=picks,
+                          baseline=(None, 0))
+    assert_array_equal(data, epochs_no_id.get_data())
 
     eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
                                 eog=True)

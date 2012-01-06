@@ -23,8 +23,8 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int
-        The id of the event to consider
+    event_id : int | None
+        The id of the event to consider. If None all events are used.
 
     tmin : float
         Start time before event
@@ -110,7 +110,7 @@ class Epochs(object):
         self.preload = preload
         self.reject = reject
         self.flat = flat
-        self.bad_dropped = False
+        self._bad_dropped = False
 
         # Handle measurement info
         self.info = copy.deepcopy(raw.info)
@@ -177,8 +177,10 @@ class Epochs(object):
                                                                     dest_comp)
 
         #    Select the desired events
-        selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
-        self.events = events[selected]
+        self.events = events
+        if event_id is not None:
+            selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
+            self.events = self.events[selected]
         n_events = len(self.events)
 
         if n_events > 0:
@@ -200,7 +202,7 @@ class Epochs(object):
         if self.preload:
             self._data, good_events = self._get_data_from_disk()
             self.events = np.atleast_2d(self.events[good_events, :])
-            self.bad_dropped = True
+            self._bad_dropped = True
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -230,7 +232,7 @@ class Epochs(object):
 
         Warning: Operation is slow since all epochs have to be read from disk
         """
-        if self.bad_dropped:
+        if self._bad_dropped:
             return
 
         good_events = []
@@ -241,7 +243,7 @@ class Epochs(object):
                 good_events.append(idx)
 
         self.events = np.atleast_2d(self.events[good_events])
-        self.bad_dropped = True
+        self._bad_dropped = True
 
         print "%d bad epochs dropped" % (n_events - len(good_events))
 
@@ -359,7 +361,7 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
-        if not self.bad_dropped:
+        if not self._bad_dropped:
             s = "n_events : %s (good & bad)" % len(self.events)
         else:
             s = "n_events : %s (all good)" % len(self.events)
@@ -371,7 +373,7 @@ class Epochs(object):
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
-        if not self.bad_dropped:
+        if not self._bad_dropped:
             warnings.warn("Bad epochs have not been dropped, indexing will be "
                           "inaccurate. Use drop_bad_epochs() or preload=True")
 
