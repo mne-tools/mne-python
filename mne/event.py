@@ -86,23 +86,25 @@ def find_events(raw, stim_channel='STI 014'):
     raw : Raw object
         The raw data
 
-    stim_channel : string
-        Name of the stim channel
+    stim_channel : string or list of string
+        Name of the stim channel or all the stim channels
+        affected by the trigger.
 
     Returns
     -------
     events : array
         The array of event onsets in time samples.
     """
+    if not isinstance(stim_channel, list):
+        stim_channel = [stim_channel]
 
-    pick = pick_channels(raw.info['ch_names'], include=[stim_channel],
+    pick = pick_channels(raw.info['ch_names'], include=stim_channel,
                          exclude=[])
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, times = raw[pick, :]
-    data = data.ravel()
-    idx = np.where(np.diff(data.ravel()) > 0)[0]
-    events_id = data[idx + 1].astype(np.int)
+    idx = np.where(np.all(np.diff(data, axis=1) > 0, axis=0))[0]
+    events_id = data[0, idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
     return events
