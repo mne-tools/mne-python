@@ -16,7 +16,10 @@ data_path = sample.data_path('.')
 fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Reading events
-events = mne.read_events(fname)
+# events = mne.read_events(fname)  # all
+events = mne.read_events(fname, include=1)  # restricted to event 1
+events = mne.read_events(fname, include=[1, 2])  # restricted to event 1 or 2
+events = mne.read_events(fname, exclude=[4, 32])  # keep all but 4 and 32
 
 # Writing events
 mne.write_events('events.fif', events)
