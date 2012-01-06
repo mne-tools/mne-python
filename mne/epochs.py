@@ -23,8 +23,8 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int
-        The id of the event to consider
+    event_id : int | None
+        The id of the event to consider. If None all events are used.
 
     tmin : float
         Start time before event
@@ -177,8 +177,10 @@ class Epochs(object):
                                                                     dest_comp)
 
         #    Select the desired events
-        selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
-        self.events = events[selected]
+        self.events = events
+        if event_id is not None:
+            selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
+            self.events = self.events[selected]
         n_events = len(self.events)
 
         if n_events > 0:
