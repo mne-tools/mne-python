@@ -15,7 +15,6 @@ from ..fiff.tag import find_tag
 from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from ..fiff.proj import read_proj, make_projector
 from ..fiff.tree import dir_tree_find
-from ..fiff.pick import pick_channels
 
 from ..cov import read_cov, prepare_noise_cov
 from ..forward import compute_depth_prior
@@ -23,6 +22,23 @@ from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
+
+
+def _pick_channels_inverse_operator(ch_names, inv):
+    """Gives the indices of the data channel to be used knowing
+    an inverse operator
+    """
+    sel = []
+    for name in inv['noise_cov']['names']:
+        if name in ch_names:
+            sel.append(ch_names.index(name))
+        else:
+            raise ValueError('The inverse operator was computed with '
+                             'channel %s which is not present in '
+                             'the data. You should compute a new inverse '
+                             'operator restricted to the good data '
+                             'channels.' % name)
+    return sel
 
 
 def read_inverse_operator(fname):
@@ -555,7 +571,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     #
     #   Pick the correct channels from the data
     #
-    sel = pick_channels(evoked.ch_names, include=inv['noise_cov']['names'])
+    sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
@@ -625,7 +641,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     #
     #   Pick the correct channels from the data
     #
-    sel = pick_channels(raw.ch_names, include=inv['noise_cov']['names'])
+    sel = _pick_channels_inverse_operator(raw.ch_names, inv)
     print 'Picked %d channels from the data' % len(sel)
     print 'Computing inverse...',
 
@@ -690,7 +706,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     #
     #   Pick the correct channels from the data
     #
-    sel = pick_channels(epochs.ch_names, include=inv['noise_cov']['names'])
+    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',

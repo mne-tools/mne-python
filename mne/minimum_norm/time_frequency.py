@@ -9,7 +9,7 @@ from ..fiff.constants import FIFF
 from ..time_frequency.tfr import cwt, morlet
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
-                     _make_stc
+                     _make_stc, _pick_channels_inverse_operator
 from ..parallel import parallel_func
 
 
@@ -180,7 +180,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #
     #   Pick the correct channels from the data
     #
-    sel = [epochs.ch_names.index(name) for name in inv['noise_cov']['names']]
+    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     print 'Picked %d channels from the data' % len(sel)
     print 'Computing inverse...',
     #
