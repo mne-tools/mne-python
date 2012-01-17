@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import re
 
 import numpy as np
 from .constants import FIFF
@@ -76,6 +77,36 @@ def pick_channels(ch_names, include, exclude=[]):
     sel = np.unique(sel)
     np.sort(sel)
     return sel
+
+
+def pick_channels_regexp(ch_names, regexp):
+    """Pick channels using regular expression
+
+    Returns the indices of the good channels in ch_names.
+
+    Parameters
+    ----------
+    ch_names : list of string
+        List of channels
+
+    regexp : string
+        The regular expression. See python standard module for regular
+        expressions.
+
+    Returns
+    -------
+    sel : array of int
+        Indices of good channels.
+
+    Example
+    -------
+    >>> pick_channels_regexp(['MEG 2331', 'MEG 2332', 'MEG 2333'], 'MEG ...1')
+    [0]
+    >>> pick_channels_regexp(['MEG 2331', 'MEG 2332', 'MEG 2333'], 'MEG *')
+    [0, 1, 2]
+    """
+    r = re.compile(regexp)
+    return [k for k, name in enumerate(ch_names) if r.match(name)]
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
