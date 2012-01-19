@@ -97,9 +97,17 @@ def test_apply_mne_inverse_raw():
     _, times = raw[0, start:stop]
     stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                             label=label, start=start, stop=stop, nave=1,
-                            pick_normal=False)
+                            pick_normal=False, conserve_memory=False)
     assert_true(np.all(stc.data > 0))
     assert_array_almost_equal(stc.times, times)
+
+    stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                             label=label, start=start, stop=stop, nave=1,
+                             pick_normal=False, conserve_memory=True)
+    assert_true(np.all(stc2.data > 0))
+    assert_array_almost_equal(stc2.times, times)
+
+    assert_array_almost_equal(stc.data, stc2.data)
 
 
 def test_apply_mne_inverse_epochs():

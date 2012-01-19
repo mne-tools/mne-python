@@ -274,7 +274,6 @@ def combine_xyz(vec, square=False):
 
 def _combine_ori(sol, inverse_operator, pick_normal):
     if inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        print 'combining the current components...',
         if pick_normal:
             is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
             if not is_loose:
@@ -561,6 +560,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Computing inverse...',
     K, noise_norm, _ = _assemble_kernel(inv, None, dSPM)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
+    print 'combining the current components...',
     sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
@@ -578,7 +578,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_normal=False):
+                      time_func=None, pick_normal=False,
+                      conserve_memory=False):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -610,7 +611,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-
+    conserve_memory: bool
+        If True, the computation of the inverse and the combination of the
+        current components is performed in segments, which is slightly slower
+        but reduces the memory requirements by approximately a factor of 3.
     Returns
     -------
     stc: SourceEstimate
@@ -635,8 +639,29 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         data = time_func(data)
 
     K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
-    sol = np.dot(K, data)
-    sol = _combine_ori(sol, inv, pick_normal)
+    if conserve_memory:
+        # Process the data in segments to conserve memory
+        for nseg in [20, 10, 5, 2, 1]:
+            seglen = data.shape[1] / nseg
+            if seglen != 0:
+                break
+
+        print 'computing inverse and combining the current components'\
+              ' (using %d segments)...' % (nseg)
+        sol = np.empty((K.shape[0] / 3, data.shape[1]),
+                       dtype=(K[0, 0] * data[0, 0]).dtype)
+
+        for pos in xrange(0, data.shape[1], seglen):
+            sol[:, pos:pos + seglen] =\
+                _combine_ori(np.dot(K, data[:, pos:pos + seglen]),
+                             inv, pick_normal)
+            progress = 100 * (pos + seglen) / (seglen * nseg)
+            if progress % 10 == 0:
+                print '%d%% done..' % (progress)
+    else:
+        sol = np.dot(K, data)
+        print 'combining the current components...',
+        sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
         sol *= noise_norm
@@ -703,6 +728,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     for k, e in enumerate(epochs):
         print "Processing epoch : %d" % (k + 1)
         sol = np.dot(K, e[sel])  # apply imaging kernel
+        print 'combining the current components...',
         sol = _combine_ori(sol, inv, pick_normal)
 
         if noise_norm is not None:
