@@ -1,10 +1,8 @@
 import os.path as op
-from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 
-from ...fiff.constants import FIFF
 from ...datasets import sample
 from ...label import read_label, label_sign_flip
 from ...event import read_events
@@ -116,22 +114,17 @@ def test_apply_mne_inverse_raw():
         assert_array_almost_equal(stc.data, stc2.data)
 
 
-def test_apply_mne_inverse_raw_fixed():
-    """Test MNE with precomputed fixed-orientation inverse operator on Raw"""
+def test_apply_mne_inverse_fixed_raw():
+    """Test MNE with fixed-orientation inverse operator on Raw"""
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
 
     # create a fixed-orientation inverse operator
-    inv_op = deepcopy(inverse_operator)
-    inv_op['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
-    inv_op['eigen_leads']['data'] = inv_op['eigen_leads']['data'][2::3, :]
-    inv_op['eigen_leads']['nrow'] = inv_op['eigen_leads']['nrow'] / 3
-    inv_op['source_cov']['data'] = inv_op['source_cov']['data'][2::3]
-    inv_op['source_cov']['dim'] = inv_op['source_cov']['dim'] / 3
-
-    inv_op['noisenorm'] = inv_op['noisenorm'][2::3]
-    inv_op['reginv'] = inv_op['reginv'][2::3]
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    noise_cov = Covariance(fname_cov)
+    inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
+                                   loose=None, depth=0.8)
 
     stc = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
                             label=label, start=start, stop=stop, nave=1,
