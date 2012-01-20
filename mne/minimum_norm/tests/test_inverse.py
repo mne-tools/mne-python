@@ -1,8 +1,10 @@
 import os.path as op
+from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 
+from ...fiff.constants import FIFF
 from ...datasets import sample
 from ...label import read_label, label_sign_flip
 from ...event import read_events
@@ -95,16 +97,51 @@ def test_apply_mne_inverse_raw():
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
-    stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+    for pick_normal in [False, True]:
+        stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                                label=label, start=start, stop=stop, nave=1,
+                                pick_normal=pick_normal, buffer_size=None)
+
+        stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                                 label=label, start=start, stop=stop, nave=1,
+                                 pick_normal=pick_normal, buffer_size=3)
+
+        if not pick_normal:
+            assert_true(np.all(stc.data > 0))
+            assert_true(np.all(stc2.data > 0))
+
+        assert_array_almost_equal(stc.times, times)
+        assert_array_almost_equal(stc2.times, times)
+
+        assert_array_almost_equal(stc.data, stc2.data)
+
+
+def test_apply_mne_inverse_raw_fixed():
+    """Test MNE with precomputed fixed-orientation inverse operator on Raw"""
+    start = 3
+    stop = 10
+    _, times = raw[0, start:stop]
+
+    # create a fixed-orientation inverse operator
+    inv_op = deepcopy(inverse_operator)
+    inv_op['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+    inv_op['eigen_leads']['data'] = inv_op['eigen_leads']['data'][2::3, :]
+    inv_op['eigen_leads']['nrow'] = inv_op['eigen_leads']['nrow'] / 3
+    inv_op['source_cov']['data'] = inv_op['source_cov']['data'][2::3]
+    inv_op['source_cov']['dim'] = inv_op['source_cov']['dim'] / 3
+
+    inv_op['noisenorm'] = inv_op['noisenorm'][2::3]
+    inv_op['reginv'] = inv_op['reginv'][2::3]
+
+    stc = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
                             label=label, start=start, stop=stop, nave=1,
                             pick_normal=False, buffer_size=None)
-    assert_true(np.all(stc.data > 0))
-    assert_array_almost_equal(stc.times, times)
 
-    stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+    stc2 = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
                              label=label, start=start, stop=stop, nave=1,
                              pick_normal=False, buffer_size=3)
-    assert_true(np.all(stc2.data > 0))
+
+    assert_array_almost_equal(stc.times, times)
     assert_array_almost_equal(stc2.times, times)
 
     assert_array_almost_equal(stc.data, stc2.data)
