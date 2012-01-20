@@ -290,7 +290,6 @@ def combine_xyz(vec, square=False):
 
 def _combine_ori(sol, inverse_operator, pick_normal):
     if inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        print 'combining the current components...',
         if pick_normal:
             is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
             if not is_loose:
@@ -577,6 +576,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Computing inverse...',
     K, noise_norm, _ = _assemble_kernel(inv, None, dSPM)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
+    print 'combining the current components...',
     sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
@@ -594,7 +594,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_normal=False):
+                      time_func=None, pick_normal=False,
+                      buffer_size=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -616,7 +617,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     start: int
         Index of first time sample (index not time is seconds)
     stop: int
-        Index of last time sample (index not time is seconds)
+        Index of first time sample not to include (index not time is seconds)
     nave: int
         Number of averages used to regularize the solution.
         Set to 1 on raw data.
@@ -626,7 +627,14 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-
+    buffer_size: int (or None)
+        If not None, the computation of the inverse and the combination of the
+        current components is performed in segments of length buffer_size
+        samples. While slightly slower, this is useful for long datasets as it
+        reduces the memory requirements by approx. a factor of 3 (assuming
+        buffer_size << data length).
+        Note that this setting has no effect for fixed-orientation inverse
+        operators.
     Returns
     -------
     stc: SourceEstimate
@@ -651,8 +659,28 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         data = time_func(data)
 
     K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
-    sol = np.dot(K, data)
-    sol = _combine_ori(sol, inv, pick_normal)
+
+    inv_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    if buffer_size is not None and inv_free_ori:
+        # Process the data in segments to conserve memory
+        nseg = int(np.ceil(data.shape[1] / float(buffer_size)))
+        print 'computing inverse and combining the current components'\
+              ' (using %d segments)...' % (nseg)
+
+        # Allocate space for inverse solution
+        sol = np.empty((K.shape[0] / 3, data.shape[1]),
+                        dtype=(K[0, 0] * data[0, 0]).dtype)
+
+        for pos in xrange(0, data.shape[1], buffer_size):
+            sol[:, pos:pos + buffer_size] =\
+                _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
+                             inv, pick_normal)
+            print 'segment %d / %d done..' % (pos / buffer_size + 1, nseg)
+    else:
+        sol = np.dot(K, data)
+        print 'combining the current components...',
+        sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
         sol *= noise_norm
@@ -719,6 +747,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     for k, e in enumerate(epochs):
         print "Processing epoch : %d" % (k + 1)
         sol = np.dot(K, e[sel])  # apply imaging kernel
+        print 'combining the current components...',
         sol = _combine_ori(sol, inv, pick_normal)
 
         if noise_norm is not None:

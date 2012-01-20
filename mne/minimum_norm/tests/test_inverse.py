@@ -95,11 +95,49 @@ def test_apply_mne_inverse_raw():
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
-    stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+    for pick_normal in [False, True]:
+        stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                                label=label, start=start, stop=stop, nave=1,
+                                pick_normal=pick_normal, buffer_size=None)
+
+        stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+                                 label=label, start=start, stop=stop, nave=1,
+                                 pick_normal=pick_normal, buffer_size=3)
+
+        if not pick_normal:
+            assert_true(np.all(stc.data > 0))
+            assert_true(np.all(stc2.data > 0))
+
+        assert_array_almost_equal(stc.times, times)
+        assert_array_almost_equal(stc2.times, times)
+
+        assert_array_almost_equal(stc.data, stc2.data)
+
+
+def test_apply_mne_inverse_fixed_raw():
+    """Test MNE with fixed-orientation inverse operator on Raw"""
+    start = 3
+    stop = 10
+    _, times = raw[0, start:stop]
+
+    # create a fixed-orientation inverse operator
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    noise_cov = Covariance(fname_cov)
+    inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
+                                   loose=None, depth=0.8)
+
+    stc = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
                             label=label, start=start, stop=stop, nave=1,
-                            pick_normal=False)
-    assert_true(np.all(stc.data > 0))
+                            pick_normal=False, buffer_size=None)
+
+    stc2 = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
+                             label=label, start=start, stop=stop, nave=1,
+                             pick_normal=False, buffer_size=3)
+
     assert_array_almost_equal(stc.times, times)
+    assert_array_almost_equal(stc2.times, times)
+
+    assert_array_almost_equal(stc.data, stc2.data)
 
 
 def test_apply_mne_inverse_epochs():
