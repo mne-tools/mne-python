@@ -579,7 +579,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_normal=False,
-                      conserve_memory=False):
+                      buffer_size=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -601,7 +601,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     start: int
         Index of first time sample (index not time is seconds)
     stop: int
-        Index of last time sample (index not time is seconds)
+        Index of first time sample not to include (index not time is seconds)
     nave: int
         Number of averages used to regularize the solution.
         Set to 1 on raw data.
@@ -611,10 +611,14 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    conserve_memory: bool
-        If True, the computation of the inverse and the combination of the
-        current components is performed in segments, which is slightly slower
-        but reduces the memory requirements by approximately a factor of 3.
+    buffer_size: int (or None)
+        If not None, the computation of the inverse and the combination of the
+        current components is performed in segments of length buffer_size
+        samples. While slightly slower, this is useful for long datasets as it
+        reduces the memory requirements by approx. a factor of 3 (assuming
+        buffer_size << data length).
+        Note that this setting has no effect for fixed-orientation inverse
+        operators.
     Returns
     -------
     stc: SourceEstimate
@@ -639,25 +643,24 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         data = time_func(data)
 
     K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
-    if conserve_memory:
-        # Process the data in segments to conserve memory
-        for nseg in [20, 10, 5, 2, 1]:
-            seglen = data.shape[1] / nseg
-            if seglen != 0:
-                break
 
+    inv_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    if buffer_size is not None and inv_free_ori:
+        # Process the data in segments to conserve memory
+        nseg = int(np.ceil(data.shape[1] / float(buffer_size)))
         print 'computing inverse and combining the current components'\
               ' (using %d segments)...' % (nseg)
-        sol = np.empty((K.shape[0] / 3, data.shape[1]),
-                       dtype=(K[0, 0] * data[0, 0]).dtype)
 
-        for pos in xrange(0, data.shape[1], seglen):
-            sol[:, pos:pos + seglen] =\
-                _combine_ori(np.dot(K, data[:, pos:pos + seglen]),
+        # Allocate space for inverse solution
+        sol = np.empty((K.shape[0] / 3, data.shape[1]),
+                        dtype=(K[0, 0] * data[0, 0]).dtype)
+
+        for pos in xrange(0, data.shape[1], buffer_size):
+            sol[:, pos:pos + buffer_size] =\
+                _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
                              inv, pick_normal)
-            progress = 100 * (pos + seglen) / (seglen * nseg)
-            if progress % 10 == 0:
-                print '%d%% done..' % (progress)
+            print 'segment %d / %d done..' % (pos / buffer_size + 1, nseg)
     else:
         sol = np.dot(K, data)
         print 'combining the current components...',
