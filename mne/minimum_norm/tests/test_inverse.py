@@ -136,7 +136,6 @@ def test_apply_mne_inverse_fixed_raw():
 
     assert_array_almost_equal(stc.times, times)
     assert_array_almost_equal(stc2.times, times)
-
     assert_array_almost_equal(stc.data, stc2.data)
 
 
@@ -158,7 +157,6 @@ def test_apply_mne_inverse_epochs():
 
     assert_true(len(stcs) == 4)
     assert_true(3 < stcs[0].data.max() < 10)
-
 
     data = sum(stc.data for stc in stcs) / len(stcs)
     flip = label_sign_flip(label, inverse_operator['src'])

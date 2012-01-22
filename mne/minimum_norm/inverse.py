@@ -648,9 +648,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
 
     if buffer_size is not None and inv_free_ori:
         # Process the data in segments to conserve memory
-        nseg = int(np.ceil(data.shape[1] / float(buffer_size)))
+        n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
         print 'computing inverse and combining the current components'\
-              ' (using %d segments)...' % (nseg)
+              ' (using %d segments)...' % (n_seg)
 
         # Allocate space for inverse solution
         sol = np.empty((K.shape[0] / 3, data.shape[1]),
@@ -660,7 +660,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
             sol[:, pos:pos + buffer_size] =\
                 _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
                              inv, pick_normal)
-            print 'segment %d / %d done..' % (pos / buffer_size + 1, nseg)
+            print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
         print 'combining the current components...',
@@ -856,31 +856,29 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     gain = forward['sol']['data']
 
-    n_positions = gain.shape[1] / 3
-
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
 
+    n_dipoles = gain.shape[1]
+
     # Handle depth prior scaling
-    depth_prior = np.ones(gain.shape[1])
+    depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
     if depth is not None:
-        depth_prior = compute_depth_prior(gain, exp=depth)
+        if not is_fixed_ori:
+            depth_prior = compute_depth_prior(gain, exp=depth)
+        else:
+            # XXX : how to handle depth_prior with fixed orientation?
+            warnings.warn('depth_prior is not supported for fixed orientation'
+                          ' forward solutions.')
 
     print "Computing inverse operator with %d channels." % len(ch_names)
-
-    if is_fixed_ori:
-        n_dip_per_pos = 1
-    else:
-        n_dip_per_pos = 3
-
-    n_dipoles = n_positions * n_dip_per_pos
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
     gain = np.dot(W, gain)
 
     # apply loose orientations
-    orient_prior = np.ones(n_dipoles, dtype=np.float)
+    orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
     if loose is not None:
         print 'Applying loose dipole orientations. Loose value of %s.' % loose
         orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
