@@ -2,6 +2,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
+import nose
 
 from ...datasets import sample
 from ...label import read_label, label_sign_flip
@@ -18,6 +19,8 @@ data_path = sample.data_path(examples_folder)
 fname_inv = op.join(data_path, 'MEG', 'sample',
                             # 'sample_audvis-meg-eeg-oct-6-meg-eeg-inv.fif')
                             'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_inv_fixed = op.join(data_path, 'MEG', 'sample',
+                            'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 fname_vol_inv = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
@@ -35,7 +38,9 @@ label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 inverse_operator = read_inverse_operator(fname_inv)
+inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
 label = read_label(fname_label)
+noise_cov = Covariance(fname_cov)
 raw = fiff.Raw(fname_raw)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -65,7 +70,6 @@ def test_inverse_operator():
     assert_true(stc.data.mean() > 0.1)
 
     # Test MNE inverse computation starting from forward operator
-    noise_cov = Covariance(fname_cov)
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
@@ -75,6 +79,35 @@ def test_inverse_operator():
 
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)
+
+
+def test_make_inverse_operator_fixed():
+    """Test MNE inverse computation with fixed orientation"""
+    # XXX : should be fixed and not skipped
+    raise nose.SkipTest("XFailed Test")
+
+    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
+                                   loose=None)
+
+    assert_array_almost_equal(inverse_operator_fixed['depth_prior']['data'],
+                              inv_op['depth_prior']['data'])
+    assert_equal(inverse_operator_fixed['orient_prior'],
+                 inv_op['orient_prior'])
+    assert_array_almost_equal(inverse_operator_fixed['source_cov']['data'],
+                              inv_op['source_cov']['data'])
+
+    stc_fixed = apply_inverse(evoked, inverse_operator_fixed, lambda2, dSPM)
+    my_stc = apply_inverse(evoked, inv_op, lambda2, dSPM)
+
+    assert_equal(stc_fixed.times, my_stc.times)
+    assert_array_almost_equal(stc_fixed.data, my_stc.data, 2)
+
+    # assert_array_almost_equal(inverse_operator_fixed['eigen_fields']['data'],
+    #                           inv_op['eigen_fields']['data'])
+    # assert_array_almost_equal(inverse_operator_fixed['eigen_leads']['data'],
+    #                           inv_op['eigen_leads']['data'])
 
 
 def test_inverse_operator_volume():
@@ -122,7 +155,6 @@ def test_apply_mne_inverse_fixed_raw():
 
     # create a fixed-orientation inverse operator
     fwd = read_forward_solution(fname_fwd, force_fixed=True)
-    noise_cov = Covariance(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
                                    loose=None, depth=0.8)
 

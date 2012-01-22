@@ -18,7 +18,7 @@ from ..fiff.tree import dir_tree_find
 from ..fiff.pick import pick_channels
 
 from ..cov import read_cov, prepare_noise_cov
-from ..forward import compute_depth_prior
+from ..forward import compute_depth_prior, compute_depth_prior_fixed
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno
 from ..transforms import invert_transform, transform_source_space_to
@@ -865,12 +865,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     # Handle depth prior scaling
     depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
     if depth is not None:
-        if not is_fixed_ori:
-            depth_prior = compute_depth_prior(gain, exp=depth)
+        if is_fixed_ori:
+            depth_prior = compute_depth_prior_fixed(gain, exp=depth)
         else:
-            # XXX : how to handle depth_prior with fixed orientation?
-            warnings.warn('depth_prior is not supported for fixed orientation'
-                          ' forward solutions.')
+            depth_prior = compute_depth_prior(gain, exp=depth)
 
     print "Computing inverse operator with %d channels." % len(ch_names)
 
@@ -878,13 +876,19 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     print 'Whitening lead field matrix.'
     gain = np.dot(W, gain)
 
-    # apply loose orientations
-    orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
-    if loose is not None:
-        print 'Applying loose dipole orientations. Loose value of %s.' % loose
-        orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
+    source_cov = depth_prior.copy()
+    depth_prior = dict(data=depth_prior)
 
-    source_cov = orient_prior * depth_prior
+    # apply loose orientations
+    if not is_fixed_ori:
+        orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
+        if loose is not None:
+            print 'Applying loose dipole orientations. Loose value of %s.' % loose
+            orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
+            source_cov *= orient_prior
+        orient_prior = dict(data=orient_prior)
+    else:
+        orient_prior = None
 
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
@@ -896,6 +900,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     source_cov *= scaling_source_cov
     gain *= sqrt(scaling_source_cov)
 
+    source_cov = dict(data=source_cov)
+
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # print np.trace(np.dot(gain, gain.T)), n_nzero
 
@@ -904,9 +910,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     eigen_fields = dict(data=eigen_fields.T, col_names=ch_names)
     eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1])
-    depth_prior = dict(data=depth_prior)
-    orient_prior = dict(data=orient_prior)
-    source_cov = dict(data=source_cov)
     nave = 1.0
 
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,

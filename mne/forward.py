@@ -432,3 +432,14 @@ def compute_depth_prior(G, exp=0.8, limit=10.0):
     wpp = (wp / wmax) ** exp
     depth_prior = np.ravel(wpp[:, None] * np.ones((1, 3)))
     return depth_prior
+
+
+def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
+    """Compute weighting for depth prior for fixed orientation lead field
+    """
+    d = np.sum(G ** 2, axis=0)
+    w = 1.0 / d
+    wmax = np.min(w) * (limit ** 2)
+    wp = np.minimum(w, wmax)
+    depth_prior = (wp / wmax) ** exp
+    return depth_prior
