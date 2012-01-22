@@ -653,11 +653,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
               ' (using %d segments)...' % (n_seg)
 
         # Allocate space for inverse solution
-        sol = np.empty((K.shape[0] / 3, data.shape[1]),
+        n_times = data.shape[1]
+        sol = np.empty((K.shape[0] / 3, n_times),
                         dtype=(K[0, 0] * data[0, 0]).dtype)
 
-        for pos in xrange(0, data.shape[1], buffer_size):
-            sol[:, pos:pos + buffer_size] =\
+        for pos in xrange(0, n_times, buffer_size):
+            sol[:, pos:pos + buffer_size] = \
                 _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
                              inv, pick_normal)
             print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
