@@ -17,7 +17,7 @@ from ..fiff.proj import read_proj, make_projector
 from ..fiff.tree import dir_tree_find
 
 from ..cov import read_cov, prepare_noise_cov
-from ..forward import compute_depth_prior
+from ..forward import compute_depth_prior, compute_depth_prior_fixed
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno
 from ..transforms import invert_transform, transform_source_space_to
@@ -290,7 +290,6 @@ def combine_xyz(vec, square=False):
 
 def _combine_ori(sol, inverse_operator, pick_normal):
     if inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        print 'combining the current components...',
         if pick_normal:
             is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
             if not is_loose:
@@ -577,6 +576,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Computing inverse...',
     K, noise_norm, _ = _assemble_kernel(inv, None, dSPM)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
+    print 'combining the current components...',
     sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
@@ -594,7 +594,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 
 def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_normal=False):
+                      time_func=None, pick_normal=False,
+                      buffer_size=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -616,7 +617,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     start: int
         Index of first time sample (index not time is seconds)
     stop: int
-        Index of last time sample (index not time is seconds)
+        Index of first time sample not to include (index not time is seconds)
     nave: int
         Number of averages used to regularize the solution.
         Set to 1 on raw data.
@@ -626,7 +627,14 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-
+    buffer_size: int (or None)
+        If not None, the computation of the inverse and the combination of the
+        current components is performed in segments of length buffer_size
+        samples. While slightly slower, this is useful for long datasets as it
+        reduces the memory requirements by approx. a factor of 3 (assuming
+        buffer_size << data length).
+        Note that this setting has no effect for fixed-orientation inverse
+        operators.
     Returns
     -------
     stc: SourceEstimate
@@ -651,8 +659,29 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         data = time_func(data)
 
     K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
-    sol = np.dot(K, data)
-    sol = _combine_ori(sol, inv, pick_normal)
+
+    inv_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    if buffer_size is not None and inv_free_ori:
+        # Process the data in segments to conserve memory
+        n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
+        print 'computing inverse and combining the current components'\
+              ' (using %d segments)...' % (n_seg)
+
+        # Allocate space for inverse solution
+        n_times = data.shape[1]
+        sol = np.empty((K.shape[0] / 3, n_times),
+                        dtype=(K[0, 0] * data[0, 0]).dtype)
+
+        for pos in xrange(0, n_times, buffer_size):
+            sol[:, pos:pos + buffer_size] = \
+                _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
+                             inv, pick_normal)
+            print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
+    else:
+        sol = np.dot(K, data)
+        print 'combining the current components...',
+        sol = _combine_ori(sol, inv, pick_normal)
 
     if noise_norm is not None:
         sol *= noise_norm
@@ -719,6 +748,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     for k, e in enumerate(epochs):
         print "Processing epoch : %d" % (k + 1)
         sol = np.dot(K, e[sel])  # apply imaging kernel
+        print 'combining the current components...',
         sol = _combine_ori(sol, inv, pick_normal)
 
         if noise_norm is not None:
@@ -843,36 +873,38 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     gain = forward['sol']['data']
 
-    n_positions = gain.shape[1] / 3
-
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
 
+    n_dipoles = gain.shape[1]
+
     # Handle depth prior scaling
-    depth_prior = np.ones(gain.shape[1])
+    depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
     if depth is not None:
-        depth_prior = compute_depth_prior(gain, exp=depth)
+        if is_fixed_ori:
+            depth_prior = compute_depth_prior_fixed(gain, exp=depth)
+        else:
+            depth_prior = compute_depth_prior(gain, exp=depth)
 
     print "Computing inverse operator with %d channels." % len(ch_names)
-
-    if is_fixed_ori:
-        n_dip_per_pos = 1
-    else:
-        n_dip_per_pos = 3
-
-    n_dipoles = n_positions * n_dip_per_pos
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
     gain = np.dot(W, gain)
 
-    # apply loose orientations
-    orient_prior = np.ones(n_dipoles, dtype=np.float)
-    if loose is not None:
-        print 'Applying loose dipole orientations. Loose value of %s.' % loose
-        orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
+    source_cov = depth_prior.copy()
+    depth_prior = dict(data=depth_prior)
 
-    source_cov = orient_prior * depth_prior
+    # apply loose orientations
+    if not is_fixed_ori:
+        orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
+        if loose is not None:
+            print 'Applying loose dipole orientations. Loose value of %s.' % loose
+            orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
+            source_cov *= orient_prior
+        orient_prior = dict(data=orient_prior)
+    else:
+        orient_prior = None
 
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
@@ -884,6 +916,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     source_cov *= scaling_source_cov
     gain *= sqrt(scaling_source_cov)
 
+    source_cov = dict(data=source_cov)
+
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # print np.trace(np.dot(gain, gain.T)), n_nzero
 
@@ -892,9 +926,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     eigen_fields = dict(data=eigen_fields.T, col_names=ch_names)
     eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1])
-    depth_prior = dict(data=depth_prior)
-    orient_prior = dict(data=orient_prior)
-    source_cov = dict(data=source_cov)
     nave = 1.0
 
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
