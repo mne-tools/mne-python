@@ -7,6 +7,7 @@ from nose.tools import assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from .. import fiff, Epochs, read_events, pick_events
+from ..fiff.evoked import merge_evoked
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test_raw.fif')
@@ -43,6 +44,22 @@ def test_read_epochs():
     epochs.drop_picks(eog_picks)
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
+
+
+def test_merge_evoked():
+    """Merge evoked data"""
+    epochs1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked1 = epochs1.average()
+    epochs2 = Epochs(raw, events[4:8], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked2 = epochs2.average()
+    epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked = epochs.average()
+    evoked_sum = merge_evoked([evoked1, evoked2])
+    assert_array_equal(evoked.data, evoked_sum.data)
+    assert_array_equal(evoked.times, evoked_sum.times)
 
 
 def test_reject_epochs():
