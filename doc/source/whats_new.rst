@@ -10,9 +10,12 @@ Changelog
 ~~~~~~~~~
 
    - Sign flip computation for robust label average of signed values by `Alex Gramfort`_.
+
    - Reading and writing of .w files by `Martin Luessi`_.
 
    - Support for modifying Raw object and allow raw data preloading with memory mapping by `Martin Luessi`_ and `Alex Gramfort`_.
+
+   - Support of arithmetic of Evoked data (useful to concatenate between runs and compute contrasts) by `Alex Gramfort`_.
 
 Version 0.2
 -----------
