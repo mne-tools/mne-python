@@ -325,6 +325,50 @@ class Evoked(object):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
+    def __add__(self, evoked):
+        """Add evoked taking into account number of epochs"""
+        out = merge_evoked([self, evoked])
+        out.comment = self.comment + " + " + evoked.comment
+        return out
+
+    def __sub__(self, evoked):
+        """Add evoked taking into account number of epochs"""
+        this_evoked = deepcopy(evoked)
+        this_evoked.data *= -1.
+        out = merge_evoked([self, this_evoked])
+        out.comment = self.comment + " - " + this_evoked.comment
+        return out
+
+
+def merge_evoked(all_evoked):
+    """Merge/concat evoked data
+
+    Data should have the same channels and the time instants.
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked
+        The evoked datasets
+
+    Returns
+    -------
+    evoked : Evoked
+        The merged evoked data
+    """
+    evoked = deepcopy(all_evoked[0])
+
+    ch_names = evoked.ch_names
+    for e in all_evoked[1:]:
+        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
+                        "the same channels" % (evoked, e))
+        assert np.all(e.times == evoked.times), ValueError("%s and %s do not "
+                        "contain the same time instants" % (evoked, e))
+
+    all_nave = sum(e.nave for e in all_evoked)
+    evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
+    evoked.nave = all_nave
+    return evoked
+
 
 def read_evoked(fname, setno=0, baseline=None):
     """Read an evoked dataset
