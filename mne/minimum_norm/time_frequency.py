@@ -102,7 +102,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
-    if source_ori == FIFF.FIFFV_MNE_FREE_ORI:
+    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and not pick_normal):
         is_free_ori = True
         n_sources /= 3
 
@@ -190,7 +190,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
