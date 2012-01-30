@@ -288,19 +288,6 @@ def combine_xyz(vec, square=False):
     return comb
 
 
-def _combine_ori(sol, inverse_operator, pick_normal):
-    if inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-        if pick_normal:
-            is_loose = 0 < inverse_operator['orient_prior']['data'][0] < 1
-            if not is_loose:
-                raise ValueError('The pick_normal parameter is only valid '
-                                 'when working with loose orientations.')
-            sol = sol[2::3]  # take one every 3 sources ie. only the normal
-        else:
-            sol = combine_xyz(sol)
-    return sol
-
-
 def _chech_ch_names(inv, info):
     """Check that channels in inverse operator are measurements"""
 
@@ -440,10 +427,10 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     return inv
 
 
-def _assemble_kernel(inv, label, dSPM):
+def _assemble_kernel(inv, label, dSPM, pick_normal):
     #
     #   Simple matrix multiplication followed by combination of the
-    #   three current components
+    #   current components
     #
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
@@ -469,6 +456,20 @@ def _assemble_kernel(inv, label, dSPM):
 
         eigen_leads = eigen_leads[src_sel]
         source_cov = source_cov[src_sel]
+
+    if pick_normal:
+        if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+            raise ValueError('Pick normal can only be used with a free '
+                             'orientation inverse operator.')
+
+        is_loose = 0 < inv['orient_prior']['data'][0] < 1
+        if not is_loose:
+            raise ValueError('The pick_normal parameter is only valid '
+                             'when working with loose orientations.')
+
+        # keep only the normal components
+        eigen_leads = eigen_leads[2::3]
+        source_cov = source_cov[2::3]
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
@@ -574,10 +575,15 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, _ = _assemble_kernel(inv, None, dSPM)
+    K, noise_norm, _ = _assemble_kernel(inv, None, dSPM, pick_normal)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-    print 'combining the current components...',
-    sol = _combine_ori(sol, inv, pick_normal)
+
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+                   and not pick_normal)
+
+    if is_free_ori:
+        print 'combining the current components...',
+        sol = combine_xyz(sol)
 
     if noise_norm is not None:
         print '(dSPM)...',
@@ -658,11 +664,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
 
-    inv_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+                   and not pick_normal)
 
-    if buffer_size is not None and inv_free_ori:
+    if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
         print 'computing inverse and combining the current components'\
@@ -675,13 +682,14 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
 
         for pos in xrange(0, n_times, buffer_size):
             sol[:, pos:pos + buffer_size] = \
-                _combine_ori(np.dot(K, data[:, pos:pos + buffer_size]),
-                             inv, pick_normal)
+                combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
+
             print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
-        print 'combining the current components...',
-        sol = _combine_ori(sol, inv, pick_normal)
+        if is_free_ori:
+            print 'combining the current components...',
+            sol = combine_xyz(sol)
 
     if noise_norm is not None:
         sol *= noise_norm
@@ -739,17 +747,22 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
 
     stcs = list()
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+                   and not pick_normal)
+
     for k, e in enumerate(epochs):
         print "Processing epoch : %d" % (k + 1)
         sol = np.dot(K, e[sel])  # apply imaging kernel
-        print 'combining the current components...',
-        sol = _combine_ori(sol, inv, pick_normal)
+
+        if is_free_ori:
+            print 'combining the current components...',
+            sol = combine_xyz(sol)
 
         if noise_norm is not None:
             sol *= noise_norm
