@@ -5,6 +5,7 @@
 
 import numpy as np
 from scipy import linalg
+import warnings
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -443,3 +444,42 @@ def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
     wp = np.minimum(w, wmax)
     depth_prior = (wp / wmax) ** exp
     return depth_prior
+
+
+def _stc_src_sel(src, stc):
+    """Select the vertex indices of a forward solution using a source estimate
+    """
+    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
+    src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
+
+    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertno[1])
+    src_sel_rh = np.searchsorted(src[1]['vertno'], src_sel_rh)\
+                 + len(src[0]['vertno'])
+
+    src_sel = np.r_[src_sel_lh, src_sel_rh]
+
+    return src_sel
+
+
+def apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
+
+    if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
+        raise ValueError('Only fixed-orientation forward operators are '
+                         'supported')
+
+    if np.all(stc.data > 0):
+        warnings.warn('Source estimate only contains currents with positive '
+                      'values. Use pick_normal=True when computing the '
+                      'inverse to compute currents not current magnitudes.')
+
+    fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
+
+    src_sel = _stc_src_sel(fwd['src'], stc)
+
+    gain = fwd['sol']['data'][:, src_sel]
+
+    print 'Projecting source estimate to sensor space...',
+    sens_data = np.dot(gain, stc.data[:, start:stop])
+    print '[done]'
+
+    return sens_data
