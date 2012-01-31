@@ -77,7 +77,7 @@ def read_inverse_operator(fname):
         raise Exception('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
 
-    print '\tReading inverse operator info...',
+    print '    Reading inverse operator info...',
     #
     #   Methods and source orientations
     #
@@ -125,7 +125,7 @@ def read_inverse_operator(fname):
     #
     #   The SVD decomposition...
     #
-    print '\tReading inverse operator decomposition...',
+    print '    Reading inverse operator decomposition...',
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
@@ -155,26 +155,26 @@ def read_inverse_operator(fname):
     #   Read the covariance matrices
     #
     inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-    print '\tNoise covariance matrix read.'
+    print '    Noise covariance matrix read.'
 
     inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-    print '\tSource covariance matrix read.'
+    print '    Source covariance matrix read.'
     #
     #   Read the various priors
     #
     inv['orient_prior'] = read_cov(fid, invs,
                                    FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
     if inv['orient_prior'] is not None:
-        print '\tOrientation priors read.'
+        print '    Orientation priors read.'
 
     inv['depth_prior'] = read_cov(fid, invs,
                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
     if inv['depth_prior'] is not None:
-        print '\tDepth priors read.'
+        print '    Depth priors read.'
 
     inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
     if inv['fmri_prior'] is not None:
-        print '\tfMRI priors read.'
+        print '    fMRI priors read.'
 
     #
     #   Read the source spaces
@@ -245,7 +245,7 @@ def read_inverse_operator(fname):
 
         nuse += inv['src'][k]['nuse']
 
-    print ('\tSource spaces transformed to the inverse solution '
+    print ('    Source spaces transformed to the inverse solution '
            'coordinate frame')
     #
     #   Done!
@@ -344,21 +344,21 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     if inv['eigen_leads_weighted']:
         inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
 
-    print ('\tScaled noise and source covariance from nave = %d to '
+    print ('    Scaled noise and source covariance from nave = %d to '
           'nave = %d' % (inv['nave'], nave))
     inv['nave'] = nave
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
     inv['reginv'] = inv['sing'] / (inv['sing'] ** 2 + lambda2)
-    print '\tCreated the regularized inverter'
+    print '    Created the regularized inverter'
     #
     #   Create the projection operator
     #
     inv['proj'], ncomp, _ = make_projector(inv['projs'],
                                            inv['noise_cov']['names'])
     if ncomp > 0:
-        print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
+        print '    Created an SSP operator (subspace dimension = %d)' % ncomp
 
     #
     #   Create the whitener
@@ -376,7 +376,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         #   Rows of eigvec are the eigenvectors
         #
         inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
-        print ('\tCreated the whitener using a full noise covariance matrix '
+        print ('    Created the whitener using a full noise covariance matrix '
                '(%d small eigenvalues omitted)' % (inv['noise_cov']['dim']
                                                   - np.sum(nzero)))
     else:
@@ -385,14 +385,14 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         #
         inv['whitener'] = np.diag(1.0 /
                                   np.sqrt(inv['noise_cov']['data'].ravel()))
-        print ('\tCreated the whitener using a diagonal noise covariance '
+        print ('    Created the whitener using a diagonal noise covariance '
                'matrix (%d small eigenvalues discarded)' % ncomp)
 
     #
     #   Finally, compute the noise-normalization factors
     #
     if dSPM:
-        print '\tComputing noise-normalization factors...',
+        print '    Computing noise-normalization factors...',
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
         nrm2, = linalg.get_blas_funcs(('nrm2',), (noise_norm,))
         if inv['eigen_leads_weighted']:

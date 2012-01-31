@@ -203,7 +203,7 @@ def read_ctf_comp(fid, node, chs):
         del col_cals
 
     if len(compdata) > 0:
-        print '\tRead %d compensation matrices' % len(compdata)
+        print '    Read %d compensation matrices' % len(compdata)
 
     return compdata
 

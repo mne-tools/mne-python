@@ -125,7 +125,7 @@ def read_cov(fid, node, cov_kind):
                     #   Diagonal is stored
                     data = tag.data
                     diagmat = True
-                    print '\t%d x %d diagonal covariance (kind = %d) found.' \
+                    print '    %d x %d diagonal covariance (kind = %d) found.' \
                                                         % (dim, dim, cov_kind)
 
             else:
@@ -138,12 +138,12 @@ def read_cov(fid, node, cov_kind):
                     data = data + data.T
                     data.flat[::dim + 1] /= 2.0
                     diagmat = False
-                    print '\t%d x %d full covariance (kind = %d) found.' \
+                    print '    %d x %d full covariance (kind = %d) found.' \
                                                         % (dim, dim, cov_kind)
                 else:
                     diagmat = False
                     data = tag.data
-                    print '\t%d x %d sparse covariance (kind = %d) found.' \
+                    print '    %d x %d sparse covariance (kind = %d) found.' \
                                                         % (dim, dim, cov_kind)
 
             #   Read the possibly precomputed decomposition
@@ -425,7 +425,7 @@ def prepare_noise_cov(noise_cov, info, ch_names):
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if ncomp > 0:
-        print '\tCreated an SSP operator (subspace dimension = %d)' % ncomp
+        print '    Created an SSP operator (subspace dimension = %d)' % ncomp
         C = np.dot(proj, np.dot(C, proj.T))
 
     pick_meg = pick_types(info, meg=True, eeg=False, exclude=info['bads'])

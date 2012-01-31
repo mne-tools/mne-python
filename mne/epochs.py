@@ -181,6 +181,7 @@ class Epochs(object):
         if event_id is not None:
             selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
             self.events = self.events[selected]
+
         n_events = len(self.events)
 
         if n_events > 0:
@@ -455,7 +456,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_max_delta]
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
-                    print '\tRejecting epoch based on %s : %s (%s > %s).' \
+                    print '    Rejecting epoch based on %s : %s (%s > %s).' \
                                 % (name, ch_name, delta, thresh)
                     return False
     if flat is not None:
@@ -469,7 +470,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    print ('\tRejecting flat epoch based on %s : %s (%s < %s).'
+                    print ('    Rejecting flat epoch based on %s : %s (%s < %s).'
                                 % (name, ch_name, delta, thresh))
                     return False
 

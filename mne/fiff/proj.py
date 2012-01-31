@@ -122,13 +122,13 @@ def read_proj(fid, node):
         projs.append(one)
 
     if len(projs) > 0:
-        print '\tRead a total of %d projection items:' % len(projs)
+        print '    Read a total of %d projection items:' % len(projs)
         for k in range(len(projs)):
             if projs[k]['active']:
                 misc = 'active'
             else:
                 misc = ' idle'
-            print '\t\t%s (%d x %d) %s' % (projs[k]['desc'],
+            print '        %s (%d x %d) %s' % (projs[k]['desc'],
                                         projs[k]['data']['nrow'],
                                         projs[k]['data']['ncol'],
                                         misc)

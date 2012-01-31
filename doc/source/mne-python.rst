@@ -5,9 +5,10 @@ MNE with Python
 ======================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    getting_started.rst
+   python_tutorial.rst
    auto_examples/index.rst
    whats_new.rst
    gitwash/index.rst
