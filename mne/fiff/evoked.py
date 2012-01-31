@@ -149,17 +149,17 @@ class Evoked(object):
 
             info['chs'] = chs
             info['nchan'] = nchan
-            print ('\tFound channel information in evoked data. nchan = %d'
+            print ('    Found channel information in evoked data. nchan = %d'
                                                                     % nchan)
             if sfreq > 0:
                 info['sfreq'] = sfreq
 
         nsamp = last - first + 1
-        print '\tFound the data of interest:'
-        print '\t\tt = %10.2f ... %10.2f ms (%s)' % (
+        print '    Found the data of interest:'
+        print '        t = %10.2f ... %10.2f ms (%s)' % (
             1000 * first / info['sfreq'], 1000 * last / info['sfreq'], comment)
         if info['comps'] is not None:
-            print ('\t\t%d CTF compensation matrices available'
+            print ('        %d CTF compensation matrices available'
                                                           % len(info['comps']))
 
         # Read the data in the aspect block
@@ -181,7 +181,7 @@ class Evoked(object):
                 tag = read_tag(fid, pos)
                 epoch.append(tag)
 
-        print '\t\tnave = %d - aspect type = %d' % (nave, aspect_kind)
+        print '        nave = %d - aspect type = %d' % (nave, aspect_kind)
 
         nepoch = len(epoch)
         if nepoch != 1 and nepoch != info['nchan']:

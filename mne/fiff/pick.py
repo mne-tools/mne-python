@@ -332,7 +332,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    print '\t%d out of %d channels remain after picking' % (nuse,
+    print '    %d out of %d channels remain after picking' % (nuse,
                                                             fwd['nchan'])
 
     #   Pick the correct rows of the forward operator

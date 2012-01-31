@@ -53,7 +53,7 @@ def fiff_open(fname, verbose=False):
 
     #   Read or create the directory tree
     if verbose:
-        print '\tCreating tag directory for %s...' % fname
+        print '    Creating tag directory for %s...' % fname
 
     dirpos = int(tag.data)
     if dirpos > 0:

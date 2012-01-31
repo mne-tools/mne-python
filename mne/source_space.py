@@ -73,7 +73,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
 
     src = list()
     for s in spaces:
-        print '\tReading a source space...',
+        print '    Reading a source space...',
         this = _read_one_source_space(fid, s)
         print '[done]'
         if add_geom:
@@ -81,7 +81,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
 
         src.append(this)
 
-    print '\t%d source spaces read' % len(spaces)
+    print '    %d source spaces read' % len(spaces)
 
     return src
 
@@ -285,7 +285,7 @@ def complete_source_space_info(this):
     """Add more info on surface
     """
     #   Main triangulation
-    print '\tCompleting triangulation info...',
+    print '    Completing triangulation info...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -298,7 +298,7 @@ def complete_source_space_info(this):
     print '[done]'
 
     #   Selected triangles
-    print '\tCompleting selection triangulation info...',
+    print '    Completing selection triangulation info...',
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0], :]
         r2 = this['rr'][this['use_tris'][:, 1], :]
