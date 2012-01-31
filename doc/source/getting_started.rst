@@ -32,8 +32,15 @@ Outside the Martinos Center
 MNE is written in pure Python making it easy to setup of
 any machine with Python >=2.6, Numpy >= 1.3 and Scipy >= 0.7.2
 
-For a free, fast and up to date scientific Python environment you
-can install EPD Free available at:
+For a fast and up to date scientific Python environment you
+can install EPD available at:
+
+http://www.enthought.com/products/epd.php
+
+EPD is free for academic purposes. If you cannot benefit from the
+an academic license and you don't want to pay for it, you can
+use EPD free which is a lightweight version (no 3D visualization
+support for example):
 
 http://www.enthought.com/products/epd_free.php
 

@@ -45,7 +45,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         block = 0
 
     if verbose:
-        print '\t' * indent + 'start { %d' % block
+        print '    ' * indent + 'start { %d' % block
 
     this = start
 
@@ -95,9 +95,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         tree['directory'] = None
 
     if verbose:
-        print '\t' * (indent + 1) + 'block = %d nent = %d nchild = %d' % (
+        print '    ' * (indent + 1) + 'block = %d nent = %d nchild = %d' % (
                                 tree['block'], tree['nent'], tree['nchild'])
-        print '\t' * indent, 'end } %d' % block
+        print '    ' * indent, 'end } %d' % block
 
     last = this
     return tree, last

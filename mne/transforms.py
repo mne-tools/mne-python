@@ -190,7 +190,7 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 count += 1
 #
 #     if count > 0:
-#         print '\t%d MEG channel locations transformed' % count
+#         print '    %d MEG channel locations transformed' % count
 #
 #     return res, count
 
@@ -230,6 +230,6 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 ch['coord_frame'] = trans['to']
 #
 #     if count > 0:
-#         print '\t%d EEG electrode locations transformed\n' % count
+#         print '    %d EEG electrode locations transformed\n' % count
 #
 #     return res, count

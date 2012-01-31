@@ -250,7 +250,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         else:
             ori = 'free'
 
-        print '\tRead MEG forward solution (%d sources, %d channels, ' \
+        print '    Read MEG forward solution (%d sources, %d channels, ' \
               '%s orientations)' % (megfwd['nsource'], megfwd['nchan'], ori)
 
     eegfwd = _read_one(fid, eegnode)
@@ -260,7 +260,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         else:
             ori = 'free'
 
-        print '\tRead EEG forward solution (%d sources, %d channels, ' \
+        print '    Read EEG forward solution (%d sources, %d channels, ' \
                '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'], ori)
 
     #   Merge the MEG and EEG solutions together
@@ -287,7 +287,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                                            eegfwd['sol_grad']['row_names']
 
         fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        print '\tMEG and EEG forward solutions combined'
+        print '    MEG and EEG forward solutions combined'
     elif megfwd is not None:
         fwd = megfwd
     else:
@@ -336,7 +336,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     if nuse != fwd['nsource']:
         raise ValueError('Source spaces do not match the forward solution.')
 
-    print '\tSource spaces transformed to the forward solution ' \
+    print '    Source spaces transformed to the forward solution ' \
           'coordinate frame'
     fwd['src'] = src
 
@@ -354,7 +354,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         #   Modify the forward solution for fixed source orientations
         if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
-            print '\tChanging to fixed-orientation forward solution...'
+            print '    Changing to fixed-orientation forward solution...'
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             fwd['sol']['data'] *= fix_rot
             fwd['sol']['ncol'] = fwd['nsource']
@@ -368,7 +368,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             print '[done]'
     elif surf_ori:
         #   Rotate the local source coordinate systems
-        print '\tConverting to surface-based source orientations...'
+        print '    Converting to surface-based source orientations...'
         nuse = 0
         pp = 0
         nuse_total = sum([s['nuse'] for s in src])
@@ -397,7 +397,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         print '[done]'
     else:
-        print '\tCartesian source orientations...'
+        print '    Cartesian source orientations...'
         nuse = 0
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         for s in src:

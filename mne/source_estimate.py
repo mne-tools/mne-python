@@ -497,11 +497,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None):
                 if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     left_map = tag.data
-                    print '\tLeft-hemisphere map read.'
+                    print '    Left-hemisphere map read.'
                 elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     right_map = tag.data
-                    print '\tRight-hemisphere map read.'
+                    print '    Right-hemisphere map read.'
 
     fid.close()
     if left_map is None:
@@ -621,7 +621,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
         data[hemi][idx_use, :] /= data1[idx_use][:, None]
 
-        print '\t%d smooth iterations done.' % (k + 1)
+        print '    %d smooth iterations done.' % (k + 1)
         dmap[hemi] = maps[hemi] * data[hemi]
 
     ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',

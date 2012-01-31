@@ -67,7 +67,7 @@ def read_bem_surfaces(fname, add_geom=False):
         fid.close()
         raise ValueError('BEM surface data not found')
 
-    print '\t%d BEM surfaces found' % len(bemsurf)
+    print '    %d BEM surfaces found' % len(bemsurf)
     #
     #   Coordinate frame possibly at the top level
     #
@@ -79,14 +79,14 @@ def read_bem_surfaces(fname, add_geom=False):
     #
     surf = []
     for bsurf in bemsurf:
-        print '\tReading a surface...',
+        print '    Reading a surface...',
         this = _read_bem_surface(fid, bsurf, coord_frame)
         print '[done]'
         if add_geom:
             _complete_surface_info(this)
         surf.append(this)
 
-    print '\t%d BEM surfaces read' % len(surf)
+    print '    %d BEM surfaces read' % len(surf)
 
     fid.close()
 
@@ -176,7 +176,7 @@ def _complete_surface_info(this):
     #
     #   Main triangulation
     #
-    print '\tCompleting triangulation info...',
+    print '    Completing triangulation info...',
     print 'triangle normals...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]

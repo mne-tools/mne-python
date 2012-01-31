@@ -153,7 +153,7 @@ class Raw(object):
         self.rawdir = rawdir
         self.proj = None
         self.comp = None
-        print '\tRange : %d ... %d =  %9.3f ... %9.3f secs' % (
+        print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                    self.first_samp, self.last_samp,
                    float(self.first_samp) / info['sfreq'],
                    float(self.last_samp) / info['sfreq'])
