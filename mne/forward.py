@@ -1,11 +1,15 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
+from time import time
+import warnings
+from copy import deepcopy
+
 import numpy as np
 from scipy import linalg
-import warnings
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -447,7 +451,7 @@ def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
 
 
 def _stc_src_sel(src, stc):
-    """Select the vertex indices of a forward solution using a source estimate
+    """Select the vertex indices of a source space using a source estimate
     """
     src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
     src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
@@ -462,7 +466,38 @@ def _stc_src_sel(src, stc):
 
 
 def apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
+    """
+    Project source space currents to sensor space using a forward operator.
 
+    Parameters
+    ----------
+    forward: dict
+        Forward operator to use. Has to be fixed-orientation.
+    stc: SourceEstimate
+        The source estimate from which the sensor space data is computed.
+    start: int, optional
+        Index of first time sample (index not time is seconds).
+    stop: int, optional
+        Index of first time sample not to include (index not time is seconds).
+    include: list, optional
+        List of names of channels to include in output. If empty all channels
+        are included.
+    exclude: list, optional
+        List of names of channels to exclude. If empty include all channels.
+
+    Returns
+    -------
+    data: ndarray (n_channels x n_times)
+        Sensor space data.
+    times: ndarray (n_times)
+        Time points in seconds.
+    ch_names: list
+        List with channel names.
+
+    See Also
+    --------
+    apply_forward_raw: Compute sensor space data and return a Raw object.
+    """
     if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
         raise ValueError('Only fixed-orientation forward operators are '
                          'supported')
@@ -479,7 +514,84 @@ def apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
     gain = fwd['sol']['data'][:, src_sel]
 
     print 'Projecting source estimate to sensor space...',
-    sens_data = np.dot(gain, stc.data[:, start:stop])
+    data = np.dot(gain, stc.data[:, start:stop])
     print '[done]'
 
-    return sens_data
+    times = deepcopy(stc.times[start:stop])
+    ch_names = deepcopy(fwd['sol']['row_names'])
+
+    return data, times, ch_names
+
+
+def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
+                      include=[], exclude=[]):
+    """
+    Project source space currents to sensor space using a forward operator.
+
+    The function returns a Raw object, which is constructed from raw_template.
+    The raw_template should be from the same MEG system on which the original
+    data was acquired.
+
+    Parameters
+    ----------
+    forward: dict
+        Forward operator to use. Has to be fixed-orientation.
+    stc: SourceEstimate
+        The source estimate from which the sensor space data is computed.
+    raw_template: Raw object
+        Raw object used as template to generate the output argument.
+    start: int, optional
+        Index of first time sample (index not time is seconds).
+    stop: int, optional
+        Index of first time sample not to include (index not time is seconds).
+    include: list, optional
+        List of names of channels to include in output. If empty all channels
+        are included.
+    exclude: list, optional
+        List of names of channels to exclude. If empty include all channels.
+
+    Returns
+    -------
+    raw: Raw object
+        Raw object with computed sensor space data.
+
+    See Also
+    --------
+    apply_forward: Compute sensor space data and return result as ndarray.
+    """
+
+    # project the source estimate to the sensor space
+    data, times, ch_names = apply_forward(fwd, stc, start, stop, include,
+                                          exclude)
+
+    # store sensor data in Raw object using a template
+    raw = deepcopy(raw_template)
+
+    sfreq = float(1.0 / stc.tstep)
+    now = time()
+    sec = np.floor(now)
+    usec = 1e6 * (now - sec)
+
+    raw.info['bads'] = []
+    raw.info['ch_names'] = ch_names
+    raw.info['chs'] = [deepcopy(ch) for ch in fwd['chs'] if ch['ch_name'] in
+                       ch_names]
+    raw.info['nchan'] = len(raw.info['chs'])
+
+    raw.info['filename'] = None
+    raw.info['meas_id'] = None  #XXX is this the right thing to do?
+    raw.info['file_id'] = None  #XXX is this the right thing to do?
+    raw.info['meas_date'] = np.array([sec, usec], dtype=np.int32)
+    raw.info['highpass'] = np.array(0.0, dtype=np.float32)
+    raw.info['lowpass'] = np.array(sfreq / 2.0, dtype=np.float32)
+    raw.info['sfreq'] = np.array(sfreq, dtype=np.float32)
+    raw.info['projs'] = []
+
+    raw._preloaded = True
+    raw._data = data
+    raw._times = times
+
+    raw.first_samp = int(np.round(raw._times[0] * sfreq))
+    raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
+
+    return raw
