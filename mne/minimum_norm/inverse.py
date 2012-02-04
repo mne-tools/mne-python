@@ -850,6 +850,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     if is_fixed_ori and loose is not None:
         warnings.warn('Ignoring loose parameter with forward operator with '
                       'fixed orientation.')
+        loose = None
+
     if not forward['surf_ori'] and loose is not None:
         raise ValueError('Forward operator is not oriented in surface '
                          'coordinates. loose parameter should be None '
