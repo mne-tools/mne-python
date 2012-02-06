@@ -4,9 +4,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 
 from ..datasets import sample
-from ..fiff import Raw, pick_channels
+from ..fiff import Raw, Evoked, pick_channels
 from ..minimum_norm.inverse import _make_stc
-from .. import read_forward_solution, apply_forward_raw, SourceEstimate
+from .. import read_forward_solution, apply_forward, apply_forward_raw,\
+               SourceEstimate
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -15,6 +16,9 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
+
+fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                       'test-ave.fif')
 
 
 def test_io_forward():
@@ -42,11 +46,45 @@ def test_apply_forward():
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
     stc = _make_stc(stc_data, t_start, 1.0 / sfreq, vertno)
 
+    evoked = Evoked(fname_evoked, setno=0)
+
+    evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+
+    data = evoked.data
+    times = evoked.times
+
+    sel = pick_channels(fwd['sol']['row_names'],
+                        include=evoked.info['ch_names'])
+
+    gain_sum = np.sum(fwd['sol']['data'][sel, :], axis=1)
+
+    # do some tests
+    assert_array_almost_equal(evoked.info['sfreq'], sfreq)
+    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+    assert_array_almost_equal(times[0], t_start)
+    assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+
+
+def test_apply_forward_raw():
+    """Test projection of source space data to sensor space (Raw)
+    """
+    start = 0
+    stop = 5
+    n_times = stop - start - 1
+    sfreq = 10.0
+    t_start = 0.123
+
+    fwd = read_forward_solution(fname, force_fixed=True)
+
+    vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
+    stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
+    stc = _make_stc(stc_data, t_start, 1.0 / sfreq, vertno)
+
     raw = Raw(fname_raw)
 
     raw_proj = apply_forward_raw(fwd, stc, raw, start=start, stop=stop)
 
-    proj_data, proj_times = raw_proj[:, :]
+    data, times = raw_proj[:, :]
 
     sel = pick_channels(fwd['sol']['row_names'],
                         include=raw_proj.info['ch_names'])
@@ -54,7 +92,7 @@ def test_apply_forward():
     gain_sum = np.sum(fwd['sol']['data'][sel, :], axis=1)
 
     # do some tests
-    assert_array_almost_equal(np.sum(proj_data, axis=1), n_times * gain_sum)
     assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
-    assert_array_almost_equal(proj_times[0], t_start)
-    assert_array_almost_equal(proj_times[-1], t_start + (n_times - 1) / sfreq)
+    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+    assert_array_almost_equal(times[0], t_start)
+    assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)

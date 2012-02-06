@@ -451,7 +451,7 @@ def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
 
 
 def _stc_src_sel(src, stc):
-    """Select the vertex indices of a source space using a source estimate
+    """ Select the vertex indices of a source space using a source estimate
     """
     src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
     src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
@@ -465,38 +465,32 @@ def _stc_src_sel(src, stc):
     return src_sel
 
 
-def apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
+def _fill_measurement_info(info, fwd, ch_names, sfreq):
+    """ Fill the measurement info of a Raw or Evoked object
     """
-    Project source space currents to sensor space using a forward operator.
+    info['bads'] = []
+    info['ch_names'] = ch_names
+    info['chs'] = [deepcopy(ch) for ch in fwd['chs'] if ch['ch_name'] in
+                   ch_names]
+    info['nchan'] = len(info['chs'])
 
-    Parameters
-    ----------
-    forward: dict
-        Forward operator to use. Has to be fixed-orientation.
-    stc: SourceEstimate
-        The source estimate from which the sensor space data is computed.
-    start: int, optional
-        Index of first time sample (index not time is seconds).
-    stop: int, optional
-        Index of first time sample not to include (index not time is seconds).
-    include: list, optional
-        List of names of channels to include in output. If empty all channels
-        are included.
-    exclude: list, optional
-        List of names of channels to exclude. If empty include all channels.
+    info['filename'] = None
+    info['meas_id'] = None  #XXX is this the right thing to do?
+    info['file_id'] = None  #XXX is this the right thing to do?
 
-    Returns
-    -------
-    data: ndarray (n_channels x n_times)
-        Sensor space data.
-    times: ndarray (n_times)
-        Time points in seconds.
-    ch_names: list
-        List with channel names.
+    now = time()
+    sec = np.floor(now)
+    usec = 1e6 * (now - sec)
 
-    See Also
-    --------
-    apply_forward_raw: Compute sensor space data and return a Raw object.
+    info['meas_date'] = np.array([sec, usec], dtype=np.int32)
+    info['highpass'] = np.array(0.0, dtype=np.float32)
+    info['lowpass'] = np.array(sfreq / 2.0, dtype=np.float32)
+    info['sfreq'] = np.array(sfreq, dtype=np.float32)
+    info['projs'] = []
+
+
+def _apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
+    """ Apply forward model and return data, times, ch_names
     """
     if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
         raise ValueError('Only fixed-orientation forward operators are '
@@ -521,6 +515,64 @@ def apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
     ch_names = deepcopy(fwd['sol']['row_names'])
 
     return data, times, ch_names
+
+
+def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
+                  include=[], exclude=[]):
+    """
+    Project source space currents to sensor space using a forward operator.
+
+    The function returns an Evoked object, which is constructed from
+    evoked_template. The evoked_template should be from the same MEG system on
+    which the original data was acquired.
+
+    Parameters
+    ----------
+    forward: dict
+        Forward operator to use. Has to be fixed-orientation.
+    stc: SourceEstimate
+        The source estimate from which the sensor space data is computed.
+    evoked_template: Evoked object
+        Evoked object used as template to generate the output argument.
+    start: int, optional
+        Index of first time sample (index not time is seconds).
+    stop: int, optional
+        Index of first time sample not to include (index not time is seconds).
+    include: list, optional
+        List of names of channels to include in output. If empty all channels
+        are included.
+    exclude: list, optional
+        List of names of channels to exclude. If empty include all channels.
+
+    Returns
+    -------
+    evoked: Evoked
+        Evoked object with computed sensor space data.
+
+    See Also
+    --------
+    apply_forward_raw: Compute sensor space data and return a Raw object.
+    """
+
+    # project the source estimate to the sensor space
+    data, times, ch_names = _apply_forward(fwd, stc, start, stop,
+                                           include, exclude)
+
+    # store sensor data in an Evoked object using the template
+    evoked = deepcopy(evoked_template)
+
+    evoked.nave = 1
+    evoked.data = data
+    evoked.times = times
+
+    sfreq = float(1.0 / stc.tstep)
+    evoked.first = int(np.round(evoked.times[0] * sfreq))
+    evoked.last = evoked.first + evoked.data.shape[1] - 1
+
+    # fill the measurement info
+    _fill_measurement_info(evoked.info, fwd, ch_names, sfreq)
+
+    return evoked
 
 
 def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
@@ -557,41 +609,25 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
 
     See Also
     --------
-    apply_forward: Compute sensor space data and return result as ndarray.
+    apply_forward: Compute sensor space data and return an Evoked object.
     """
 
     # project the source estimate to the sensor space
-    data, times, ch_names = apply_forward(fwd, stc, start, stop, include,
-                                          exclude)
+    data, times, ch_names = _apply_forward(fwd, stc, start, stop,
+                                           include, exclude)
 
-    # store sensor data in Raw object using a template
+    # store sensor data in Raw object using the template
     raw = deepcopy(raw_template)
-
-    sfreq = float(1.0 / stc.tstep)
-    now = time()
-    sec = np.floor(now)
-    usec = 1e6 * (now - sec)
-
-    raw.info['bads'] = []
-    raw.info['ch_names'] = ch_names
-    raw.info['chs'] = [deepcopy(ch) for ch in fwd['chs'] if ch['ch_name'] in
-                       ch_names]
-    raw.info['nchan'] = len(raw.info['chs'])
-
-    raw.info['filename'] = None
-    raw.info['meas_id'] = None  #XXX is this the right thing to do?
-    raw.info['file_id'] = None  #XXX is this the right thing to do?
-    raw.info['meas_date'] = np.array([sec, usec], dtype=np.int32)
-    raw.info['highpass'] = np.array(0.0, dtype=np.float32)
-    raw.info['lowpass'] = np.array(sfreq / 2.0, dtype=np.float32)
-    raw.info['sfreq'] = np.array(sfreq, dtype=np.float32)
-    raw.info['projs'] = []
 
     raw._preloaded = True
     raw._data = data
     raw._times = times
 
+    sfreq = float(1.0 / stc.tstep)
     raw.first_samp = int(np.round(raw._times[0] * sfreq))
     raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
+
+    # fill the measurement info
+    _fill_measurement_info(raw.info, fwd, ch_names, sfreq)
 
     return raw
