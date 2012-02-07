@@ -16,7 +16,7 @@ from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from .fiff.pick import pick_channels_forward
+from .fiff.pick import pick_channels_forward, pick_info, pick_channels
 
 from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
@@ -465,14 +465,12 @@ def _stc_src_sel(src, stc):
     return src_sel
 
 
-def _fill_measurement_info(info, fwd, ch_names, sfreq):
+def _fill_measurement_info(info, fwd, sfreq):
     """ Fill the measurement info of a Raw or Evoked object
     """
+    sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
+    info = pick_info(info, sel)
     info['bads'] = []
-    info['ch_names'] = ch_names
-    info['chs'] = [deepcopy(ch) for ch in fwd['chs'] if ch['ch_name'] in
-                   ch_names]
-    info['nchan'] = len(info['chs'])
 
     info['filename'] = None
     info['meas_id'] = None  #XXX is this the right thing to do?
@@ -488,20 +486,20 @@ def _fill_measurement_info(info, fwd, ch_names, sfreq):
     info['sfreq'] = np.array(sfreq, dtype=np.float32)
     info['projs'] = []
 
+    return info
 
-def _apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
+
+def _apply_forward(fwd, stc, start=None, stop=None):
     """ Apply forward model and return data, times, ch_names
     """
     if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
         raise ValueError('Only fixed-orientation forward operators are '
-                         'supported')
+                         'supported.')
 
     if np.all(stc.data > 0):
         warnings.warn('Source estimate only contains currents with positive '
                       'values. Use pick_normal=True when computing the '
                       'inverse to compute currents not current magnitudes.')
-
-    fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     src_sel = _stc_src_sel(fwd['src'], stc)
 
@@ -512,19 +510,23 @@ def _apply_forward(fwd, stc, start=None, stop=None, include=[], exclude=[]):
     print '[done]'
 
     times = deepcopy(stc.times[start:stop])
-    ch_names = deepcopy(fwd['sol']['row_names'])
 
-    return data, times, ch_names
+    return data, times
 
 
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
-                  include=[], exclude=[]):
+def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
     """
     Project source space currents to sensor space using a forward operator.
 
+    The sensor space data is computed for all channels present in fwd. Use
+    pick_channels_forward or pick_types_forward to restrict the solution to a
+    subset of channels.
+
     The function returns an Evoked object, which is constructed from
     evoked_template. The evoked_template should be from the same MEG system on
-    which the original data was acquired.
+    which the original data was acquired. An exception will be raised if the
+    forward operator contains channels that are not present in the template.
+
 
     Parameters
     ----------
@@ -538,11 +540,6 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop: int, optional
         Index of first time sample not to include (index not time is seconds).
-    include: list, optional
-        List of names of channels to include in output. If empty all channels
-        are included.
-    exclude: list, optional
-        List of names of channels to exclude. If empty include all channels.
 
     Returns
     -------
@@ -554,9 +551,14 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
 
+    # make sure evoked_template contains all channels in fwd
+    for ch_name in fwd['sol']['row_names']:
+        if ch_name not in evoked_template.ch_names:
+            raise ValueError('Channel %s of forward operator not present in '
+                             'evoked_template.' % ch_name)
+
     # project the source estimate to the sensor space
-    data, times, ch_names = _apply_forward(fwd, stc, start, stop,
-                                           include, exclude)
+    data, times = _apply_forward(fwd, stc, start, stop)
 
     # store sensor data in an Evoked object using the template
     evoked = deepcopy(evoked_template)
@@ -570,19 +572,23 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     evoked.last = evoked.first + evoked.data.shape[1] - 1
 
     # fill the measurement info
-    _fill_measurement_info(evoked.info, fwd, ch_names, sfreq)
+    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
 
     return evoked
 
 
-def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
-                      include=[], exclude=[]):
+def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
     """
     Project source space currents to sensor space using a forward operator.
 
+    The sensor space data is computed for all channels present in fwd. Use
+    pick_channels_forward or pick_types_forward to restrict the solution to a
+    subset of channels.
+
     The function returns a Raw object, which is constructed from raw_template.
     The raw_template should be from the same MEG system on which the original
-    data was acquired.
+    data was acquired. An exception will be raised if the forward operator
+    contains channels that are not present in the template.
 
     Parameters
     ----------
@@ -596,11 +602,6 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
         Index of first time sample (index not time is seconds).
     stop: int, optional
         Index of first time sample not to include (index not time is seconds).
-    include: list, optional
-        List of names of channels to include in output. If empty all channels
-        are included.
-    exclude: list, optional
-        List of names of channels to exclude. If empty include all channels.
 
     Returns
     -------
@@ -612,9 +613,14 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     apply_forward: Compute sensor space data and return an Evoked object.
     """
 
+    # make sure raw_template contains all channels in fwd
+    for ch_name in fwd['sol']['row_names']:
+        if ch_name not in raw_template.ch_names:
+            raise ValueError('Channel %s of forward operator not present in '
+                             'raw_template.' % ch_name)
+
     # project the source estimate to the sensor space
-    data, times, ch_names = _apply_forward(fwd, stc, start, stop,
-                                           include, exclude)
+    data, times = _apply_forward(fwd, stc, start, stop)
 
     # store sensor data in Raw object using the template
     raw = deepcopy(raw_template)
@@ -628,6 +634,6 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
 
     # fill the measurement info
-    _fill_measurement_info(raw.info, fwd, ch_names, sfreq)
+    raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
 
     return raw

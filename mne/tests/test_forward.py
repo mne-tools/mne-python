@@ -4,7 +4,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 
 from ..datasets import sample
-from ..fiff import Raw, Evoked, pick_channels
+from ..fiff import Raw, Evoked, pick_types, pick_types_forward, \
+                   pick_channels_forward
 from ..minimum_norm.inverse import _make_stc
 from .. import read_forward_solution, apply_forward, apply_forward_raw,\
                SourceEstimate
@@ -41,6 +42,7 @@ def test_apply_forward():
     t_start = 0.123
 
     fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = pick_types_forward(fwd, meg=True)
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
@@ -53,10 +55,7 @@ def test_apply_forward():
     data = evoked.data
     times = evoked.times
 
-    sel = pick_channels(fwd['sol']['row_names'],
-                        include=evoked.info['ch_names'])
-
-    gain_sum = np.sum(fwd['sol']['data'][sel, :], axis=1)
+    gain_sum = np.sum(fwd['sol']['data'], axis=1)
 
     # do some tests
     assert_array_almost_equal(evoked.info['sfreq'], sfreq)
@@ -75,6 +74,7 @@ def test_apply_forward_raw():
     t_start = 0.123
 
     fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = pick_types_forward(fwd, meg=True)
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
@@ -86,10 +86,7 @@ def test_apply_forward_raw():
 
     data, times = raw_proj[:, :]
 
-    sel = pick_channels(fwd['sol']['row_names'],
-                        include=raw_proj.info['ch_names'])
-
-    gain_sum = np.sum(fwd['sol']['data'][sel, :], axis=1)
+    gain_sum = np.sum(fwd['sol']['data'], axis=1)
 
     # do some tests
     assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)

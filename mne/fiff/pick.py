@@ -315,7 +315,7 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     Returns
     -------
     res : dict
-        Evoked data restricted to selected channels. If include and
+        Forward solution restricted to selected channels. If include and
         exclude are None it returns orig without copy.
     """
 
@@ -349,6 +349,39 @@ def pick_channels_forward(orig, include=[], exclude=[]):
                                         for k in sel]
 
     return fwd
+
+
+def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
+    """Pick by channel type and names from a forward operator
+
+    Parameters
+    ----------
+    orig : dict
+        A forward solution
+    meg : bool or string
+        If True include all MEG channels. If False include None
+        If string it can be 'mag' or 'grad' to select only gradiometers
+        or magnetometers. It can also be 'ref_meg' to get CTF
+        reference channels.
+    eeg : bool
+        If True include EEG channels
+    include : list of string
+        List of additional channels to include. If empty do not include any.
+
+    exclude : list of string
+        List of channels to exclude. If empty do not include any.
+
+    Returns
+    -------
+    res : dict
+        Forward solution restricted to selected channel types.
+    """
+    info = {'ch_names': orig['sol']['row_names'], 'chs': orig['chs'],
+            'nchan': orig['nchan']}
+    sel = pick_types(info, meg, eeg, include=include, exclude=exclude)
+    include_ch_names = [info['ch_names'][k] for k in sel]
+
+    return pick_channels_forward(orig, include_ch_names)
 
 
 def channel_indices_by_type(info):
