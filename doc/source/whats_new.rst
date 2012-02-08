@@ -17,6 +17,8 @@ Changelog
 
    - Support of arithmetic of Evoked data (useful to concatenate between runs and compute contrasts) by `Alex Gramfort`_.
 
+   - Support for computing sensor space data from a source estimate using an MNE forward solution by `Martin Luessi`_.
+
 Version 0.2
 -----------
 

@@ -1,7 +1,12 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+
+from time import time
+import warnings
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
@@ -11,7 +16,7 @@ from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from .fiff.pick import pick_channels_forward
+from .fiff.pick import pick_channels_forward, pick_info, pick_channels
 
 from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
@@ -443,3 +448,192 @@ def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
     wp = np.minimum(w, wmax)
     depth_prior = (wp / wmax) ** exp
     return depth_prior
+
+
+def _stc_src_sel(src, stc):
+    """ Select the vertex indices of a source space using a source estimate
+    """
+    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
+    src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
+
+    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertno[1])
+    src_sel_rh = np.searchsorted(src[1]['vertno'], src_sel_rh)\
+                 + len(src[0]['vertno'])
+
+    src_sel = np.r_[src_sel_lh, src_sel_rh]
+
+    return src_sel
+
+
+def _fill_measurement_info(info, fwd, sfreq):
+    """ Fill the measurement info of a Raw or Evoked object
+    """
+    sel = pick_channels(info['ch_names'], fwd['sol']['row_names'])
+    info = pick_info(info, sel)
+    info['bads'] = []
+
+    info['filename'] = None
+    info['meas_id'] = None  #XXX is this the right thing to do?
+    info['file_id'] = None  #XXX is this the right thing to do?
+
+    now = time()
+    sec = np.floor(now)
+    usec = 1e6 * (now - sec)
+
+    info['meas_date'] = np.array([sec, usec], dtype=np.int32)
+    info['highpass'] = np.array(0.0, dtype=np.float32)
+    info['lowpass'] = np.array(sfreq / 2.0, dtype=np.float32)
+    info['sfreq'] = np.array(sfreq, dtype=np.float32)
+    info['projs'] = []
+
+    return info
+
+
+def _apply_forward(fwd, stc, start=None, stop=None):
+    """ Apply forward model and return data, times, ch_names
+    """
+    if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
+        raise ValueError('Only fixed-orientation forward operators are '
+                         'supported.')
+
+    if np.all(stc.data > 0):
+        warnings.warn('Source estimate only contains currents with positive '
+                      'values. Use pick_normal=True when computing the '
+                      'inverse to compute currents not current magnitudes.')
+
+    src_sel = _stc_src_sel(fwd['src'], stc)
+
+    gain = fwd['sol']['data'][:, src_sel]
+
+    print 'Projecting source estimate to sensor space...',
+    data = np.dot(gain, stc.data[:, start:stop])
+    print '[done]'
+
+    times = deepcopy(stc.times[start:stop])
+
+    return data, times
+
+
+def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
+    """
+    Project source space currents to sensor space using a forward operator.
+
+    The sensor space data is computed for all channels present in fwd. Use
+    pick_channels_forward or pick_types_forward to restrict the solution to a
+    subset of channels.
+
+    The function returns an Evoked object, which is constructed from
+    evoked_template. The evoked_template should be from the same MEG system on
+    which the original data was acquired. An exception will be raised if the
+    forward operator contains channels that are not present in the template.
+
+
+    Parameters
+    ----------
+    forward: dict
+        Forward operator to use. Has to be fixed-orientation.
+    stc: SourceEstimate
+        The source estimate from which the sensor space data is computed.
+    evoked_template: Evoked object
+        Evoked object used as template to generate the output argument.
+    start: int, optional
+        Index of first time sample (index not time is seconds).
+    stop: int, optional
+        Index of first time sample not to include (index not time is seconds).
+
+    Returns
+    -------
+    evoked: Evoked
+        Evoked object with computed sensor space data.
+
+    See Also
+    --------
+    apply_forward_raw: Compute sensor space data and return a Raw object.
+    """
+
+    # make sure evoked_template contains all channels in fwd
+    for ch_name in fwd['sol']['row_names']:
+        if ch_name not in evoked_template.ch_names:
+            raise ValueError('Channel %s of forward operator not present in '
+                             'evoked_template.' % ch_name)
+
+    # project the source estimate to the sensor space
+    data, times = _apply_forward(fwd, stc, start, stop)
+
+    # store sensor data in an Evoked object using the template
+    evoked = deepcopy(evoked_template)
+
+    evoked.nave = 1
+    evoked.data = data
+    evoked.times = times
+
+    sfreq = float(1.0 / stc.tstep)
+    evoked.first = int(np.round(evoked.times[0] * sfreq))
+    evoked.last = evoked.first + evoked.data.shape[1] - 1
+
+    # fill the measurement info
+    evoked.info = _fill_measurement_info(evoked.info, fwd, sfreq)
+
+    return evoked
+
+
+def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
+    """
+    Project source space currents to sensor space using a forward operator.
+
+    The sensor space data is computed for all channels present in fwd. Use
+    pick_channels_forward or pick_types_forward to restrict the solution to a
+    subset of channels.
+
+    The function returns a Raw object, which is constructed from raw_template.
+    The raw_template should be from the same MEG system on which the original
+    data was acquired. An exception will be raised if the forward operator
+    contains channels that are not present in the template.
+
+    Parameters
+    ----------
+    forward: dict
+        Forward operator to use. Has to be fixed-orientation.
+    stc: SourceEstimate
+        The source estimate from which the sensor space data is computed.
+    raw_template: Raw object
+        Raw object used as template to generate the output argument.
+    start: int, optional
+        Index of first time sample (index not time is seconds).
+    stop: int, optional
+        Index of first time sample not to include (index not time is seconds).
+
+    Returns
+    -------
+    raw: Raw object
+        Raw object with computed sensor space data.
+
+    See Also
+    --------
+    apply_forward: Compute sensor space data and return an Evoked object.
+    """
+
+    # make sure raw_template contains all channels in fwd
+    for ch_name in fwd['sol']['row_names']:
+        if ch_name not in raw_template.ch_names:
+            raise ValueError('Channel %s of forward operator not present in '
+                             'raw_template.' % ch_name)
+
+    # project the source estimate to the sensor space
+    data, times = _apply_forward(fwd, stc, start, stop)
+
+    # store sensor data in Raw object using the template
+    raw = deepcopy(raw_template)
+
+    raw._preloaded = True
+    raw._data = data
+    raw._times = times
+
+    sfreq = float(1.0 / stc.tstep)
+    raw.first_samp = int(np.round(raw._times[0] * sfreq))
+    raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
+
+    # fill the measurement info
+    raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
+
+    return raw
