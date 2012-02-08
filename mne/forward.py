@@ -473,8 +473,8 @@ def _fill_measurement_info(info, fwd, sfreq):
     info['bads'] = []
 
     info['filename'] = None
-    info['meas_id'] = None  #XXX is this the right thing to do?
-    info['file_id'] = None  #XXX is this the right thing to do?
+    info['meas_id'] = None  # XXX is this the right thing to do?
+    info['file_id'] = None  # XXX is this the right thing to do?
 
     now = time()
     sec = np.floor(now)
