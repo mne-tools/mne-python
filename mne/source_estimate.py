@@ -590,7 +590,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
     rhs = read_surface(sphere)[0]
 
-    maps = read_morph_map(subject_from, subject_to)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
     rh_data = stc_from.data[-len(stc_from.rh_vertno):]
