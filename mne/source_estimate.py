@@ -590,12 +590,37 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
     rhs = read_surface(sphere)[0]
 
+    # find which vertices to use in "to mesh"
+    ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
+                                 'icos.fif')
+
+    surfaces = read_bem_surfaces(ico_file_name)
+
+    for s in surfaces:
+        if s['id'] == (9000 + grade):
+            ico = s
+            break
+
+    nearest = np.zeros((2, ico['np']), dtype=np.int)
+
+    lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
+    rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
+
+    rr = ico['rr']
+    dr = 16
+    for k in range(0, len(rr), dr):
+        dots = np.dot(rr[k:k + dr], lhs.T)
+        nearest[0, k:k + dr] = np.argmax(dots, axis=1)
+        dots = np.dot(rr[k:k + dr], rhs.T)
+        nearest[1, k:k + dr] = np.argmax(dots, axis=1)
+
+    # morph the data
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
     rh_data = stc_from.data[-len(stc_from.rh_vertno):]
     data = [lh_data, rh_data]
-    dmap = [None, None]
+    data_morphed = [None, None]
 
     for hemi in [0, 1]:
         e = mesh_edges(tris[hemi])
@@ -622,34 +647,11 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         data[hemi][idx_use, :] /= data1[idx_use][:, None]
 
         print '    %d smooth iterations done.' % (k + 1)
-        dmap[hemi] = maps[hemi] * data[hemi]
-
-    ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
-                                 'icos.fif')
-
-    surfaces = read_bem_surfaces(ico_file_name)
-
-    for s in surfaces:
-        if s['id'] == (9000 + grade):
-            ico = s
-            break
-
-    nearest = np.zeros((2, ico['np']), dtype=np.int)
-
-    lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
-    rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
-
-    rr = ico['rr']
-    dr = 16
-    for k in range(0, len(rr), dr):
-        dots = np.dot(rr[k:k + dr], lhs.T)
-        nearest[0, k:k + dr] = np.argmax(dots, axis=1)
-        dots = np.dot(rr[k:k + dr], rhs.T)
-        nearest[1, k:k + dr] = np.argmax(dots, axis=1)
+        data_morphed[hemi] = maps[hemi][nearest[hemi], :] * data[hemi]
 
     stc_to = copy.deepcopy(stc_from)
     stc_to.vertno = [nearest[0], nearest[1]]
-    stc_to.data = np.r_[dmap[0][nearest[0], :], dmap[1][nearest[1], :]]
+    stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
 
     print '[done]'
 
