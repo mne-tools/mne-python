@@ -16,7 +16,7 @@ from .tag import read_tag
 
 
 class Raw(object):
-    """Raw data set
+    """Raw data
 
     Parameters
     ----------
@@ -26,29 +26,23 @@ class Raw(object):
     allow_maxshield: bool, (default False)
         allow_maxshield if True XXX ???
 
-    info: dict
-        Infos about raw data
+    preload: bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
 
+    Attributes
+    ----------
+    info: dict
+        Measurement info
+
+    ch_names: list of string
+        List of channels' names
     """
 
     def __init__(self, fname, allow_maxshield=False, preload=False):
-        """
-        Parameters
-        ----------
-        fname: string
-            The name of the raw file
-
-        allow_maxshield: bool, (default False)
-            allow_maxshield if True XXX ???
-
-        preload: bool or str (default False)
-            Preload data into memory for data manipulation and faster indexing.
-            If True, the data will be preloaded into memory (fast, requires
-            large amount of memory). If preload is a string, preload is the
-            file name of a memory-mapped file which is used to store the data
-            on the hard drive (slower, requires less memory).
-        """
-
         #   Open the file
         print 'Opening raw data file %s...' % fname
         fid, tree, _ = fiff_open(fname)

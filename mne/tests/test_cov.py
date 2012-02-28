@@ -29,11 +29,8 @@ def test_io_cov():
 
     write_cov_file('cov.fif', cov)
 
-    fid, tree, _ = fiff_open('cov.fif')
-    cov2 = read_cov(fid, tree, cov_type)
-    fid.close()
-
-    assert_array_almost_equal(cov['data'], cov2['data'])
+    cov2 = Covariance('cov.fif')
+    assert_array_almost_equal(cov['data'], cov2.data)
 
 
 def test_cov_estimation_on_raw_segment():
@@ -47,6 +44,14 @@ def test_cov_estimation_on_raw_segment():
             / linalg.norm(cov.data, ord='fro'))
     assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-6
+
+    # test IO when computation done in Python
+    cov.save('test-cov.fif')  # test saving
+    cov_read = Covariance('test-cov.fif')
+    assert_true(cov_read.ch_names == cov.ch_names)
+    assert_true(cov_read.nfree == cov.nfree)
+    assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 1e-5)
 
 
 def test_cov_estimation_with_triggers():
@@ -73,3 +78,26 @@ def test_cov_estimation_with_triggers():
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 0.06)
+
+    # test IO when computation done in Python
+    cov.save('test-cov.fif')  # test saving
+    cov_read = Covariance('test-cov.fif')
+    assert_true(cov_read.ch_names == cov.ch_names)
+    assert_true(cov_read.nfree == cov.nfree)
+    assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
+            / linalg.norm(cov.data, ord='fro')) < 1e-5)
+
+
+def test_arithmetic_cov():
+    """Test arithmetic with noise covariance matrices
+    """
+    cov = Covariance(cov_fname)
+    cov_sum = cov + cov
+    assert_array_almost_equal(2 * cov.nfree, cov_sum.nfree)
+    assert_array_almost_equal(2 * cov.data, cov_sum.data)
+    assert_true(cov.ch_names == cov_sum.ch_names)
+
+    cov += cov
+    assert_array_almost_equal(cov_sum.nfree, cov.nfree)
+    assert_array_almost_equal(cov_sum.data, cov.data)
+    assert_true(cov_sum.ch_names == cov.ch_names)

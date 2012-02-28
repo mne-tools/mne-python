@@ -22,8 +22,27 @@ from .write import start_file, start_block, end_file, end_block, \
 class Evoked(object):
     """Evoked data
 
+    Parameters
+    ----------
+    fname : string
+        Name of evoked/average FIF file to load.
+        If None no data is loaded.
+
+    setno : int
+        Dataset ID number. Optional if there is only one data set
+        in file.
+
+    proj : bool, optional
+        Apply SSP projection vectors
+
     Attributes
     ----------
+    info: dict
+        Measurement info
+
+    ch_names: list of string
+        List of channels' names
+
     nave : int
         Number of averaged epochs
 
@@ -47,22 +66,6 @@ class Evoked(object):
     """
 
     def __init__(self, fname, setno=None, baseline=None, proj=True):
-        """
-        Parameters
-        ----------
-        fname : string
-            Name of evoked/average FIF file to load.
-            If None no data is loaded.
-
-        setno : int
-            Dataset ID number. Optional if there is only one data set
-            in file.
-
-        proj : bool, optional
-            Apply SSP projection vectors
-
-        """
-
         if fname is None:
             return
 

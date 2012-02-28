@@ -71,6 +71,14 @@ class Epochs(object):
     proj : bool, optional
         Apply SSP projection vectors
 
+    Attributes
+    ----------
+    info: dict
+        Measurement info
+
+    ch_names: list of string
+        List of channels' names
+
     Methods
     -------
     get_data() : self

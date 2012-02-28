@@ -23,8 +23,40 @@ from .fiff.pick import pick_types, channel_indices_by_type
 from .epochs import _is_good
 
 
+def _check_covs_algebra(cov1, cov2):
+    if cov1.ch_names != cov2.ch_names:
+        raise ValueError('Both Covariance do not have the same list of '
+                         'channels.')
+    if map(str, cov1._cov['projs']) != map(str, cov2._cov['projs']):
+        raise ValueError('Both Covariance do not have the same list of '
+                         'SSP projections.')
+    if cov1._cov['bads'] != cov2._cov['bads']:
+        raise ValueError('Both Covariance do not have the same list of '
+                         'bad channels.')
+
+
 class Covariance(object):
-    """Noise covariance matrix"""
+    """Noise covariance matrix
+
+    Parameters
+    ----------
+    fname: string
+        The name of the raw file
+
+    kind: 'full' | 'diagonal'
+        The type of covariance.
+
+    Attributes
+    ----------
+    data : 2D array of shape [n_channels x n_channels]
+        The covariance
+
+    ch_names: list of string
+        List of channels' names
+
+    nfree : int
+        Number of degrees of freedom i.e. number of time points used
+    """
 
     _kind_to_id = dict(full=1, sparse=2, diagonal=3)  # XXX : check
     _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'}  # XXX : check
@@ -49,6 +81,7 @@ class Covariance(object):
         self._cov = cov
         self.data = cov['data']
         self.ch_names = cov['names']
+        self.nfree = cov['nfree']
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
@@ -59,6 +92,27 @@ class Covariance(object):
         s += ", size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
         return "Covariance (%s)" % s
+
+    def __add__(self, cov):
+        """Add Covariance taking into account number of degrees of freedom"""
+        _check_covs_algebra(self, cov)
+        this_cov = copy.deepcopy(cov)
+        this_cov.data[:] = ((this_cov.data * this_cov.nfree) + \
+                            (self.data * self.nfree)) / \
+                                (self.nfree + this_cov.nfree)
+        this_cov._cov['nfree'] += self._cov['nfree']
+        this_cov.nfree = this_cov._cov['nfree']
+        return this_cov
+
+    def __iadd__(self, cov):
+        """Add Covariance taking into account number of degrees of freedom"""
+        _check_covs_algebra(self, cov)
+        self.data[:] = ((self.data * self.nfree) + \
+                            (cov.data * cov.nfree)) / \
+                                (self.nfree + cov.nfree)
+        self._cov['nfree'] += cov._cov['nfree']
+        self.nfree = cov._cov['nfree']
+        return self
 
 
 ###############################################################################
@@ -125,8 +179,8 @@ def read_cov(fid, node, cov_kind):
                     #   Diagonal is stored
                     data = tag.data
                     diagmat = True
-                    print '    %d x %d diagonal covariance (kind = %d) found.' \
-                                                        % (dim, dim, cov_kind)
+                    print ('    %d x %d diagonal covariance (kind = %d) found.'
+                                                        % (dim, dim, cov_kind))
 
             else:
                 from scipy import sparse
@@ -263,6 +317,18 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     cov = Covariance(None)
     cov.data = data
     cov.ch_names = [raw.info['ch_names'][k] for k in picks_data]
+    cov.nfree = n_samples
+
+    # XXX : do not compute eig and eigvec now (think it's better...)
+    eig = None
+    eigvec = None
+
+    #   Store structure for fif
+    cov._cov = dict(kind=1, diag=False, dim=len(data), names=cov.ch_names,
+                    data=data, projs=copy.deepcopy(raw.info['projs']),
+                    bads=raw.info['bads'], nfree=n_samples, eig=eig,
+                    eigvec=eigvec)
+
     return cov
 
 
@@ -310,6 +376,17 @@ def compute_covariance(epochs, keep_sample_mean=True):
     cov = Covariance(None)
     cov.data = data
     cov.ch_names = ch_names
+    cov.nfree = n_samples
+
+    # XXX : do not compute eig and eigvec now (think it's better...)
+    eig = None
+    eigvec = None
+
+    #   Store structure for fif
+    cov._cov = dict(kind=1, diag=False, dim=len(data), names=ch_names,
+                    data=data, projs=copy.deepcopy(epochs.info['projs']),
+                    bads=epochs.info['bads'], nfree=n_samples, eig=eig,
+                    eigvec=eigvec)
 
     print "Number of samples used : %d" % n_samples
     print '[done]'
