@@ -97,7 +97,9 @@ class Covariance(object):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         this_cov = copy.deepcopy(cov)
-        this_cov.data[:] += self.data
+        this_cov.data[:] = ((this_cov.data * this_cov.nfree) + \
+                            (self.data * self.nfree)) / \
+                                (self.nfree + this_cov.nfree)
         this_cov._cov['nfree'] += self._cov['nfree']
         this_cov.nfree = this_cov._cov['nfree']
         return this_cov
@@ -105,7 +107,9 @@ class Covariance(object):
     def __iadd__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
-        self.data[:] += cov.data
+        self.data[:] = ((self.data * self.nfree) + \
+                            (cov.data * cov.nfree)) / \
+                                (self.nfree + cov.nfree)
         self._cov['nfree'] += cov._cov['nfree']
         self.nfree = cov._cov['nfree']
         return self
