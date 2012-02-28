@@ -364,8 +364,9 @@ def merge_evoked(all_evoked):
     for e in all_evoked[1:]:
         assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
                         "the same channels" % (evoked, e))
-        assert np.all(e.times == evoked.times), ValueError("%s and %s do not "
-                        "contain the same time instants" % (evoked, e))
+        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
+                ValueError("%s and %s do not "
+                           "contain the same time instants" % (evoked, e))
 
     all_nave = sum(e.nave for e in all_evoked)
     evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
