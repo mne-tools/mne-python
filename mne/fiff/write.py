@@ -88,7 +88,7 @@ def write_float_matrix(fid, kind, mat):
 
 
 def write_int_matrix(fid, kind, mat):
-    """Writes a single-precision floating-point matrix tag"""
+    """Writes integer 32 matrix tag"""
     FIFFT_INT = 3
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_INT = FIFFT_INT | FIFFT_MATRIX
