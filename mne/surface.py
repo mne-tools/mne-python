@@ -9,6 +9,9 @@ from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag
+from .fiff.write import write_int, write_float, write_float_matrix, \
+                        write_int_matrix, start_file, end_block, \
+                        start_block, end_file
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -105,27 +108,27 @@ def _read_bem_surface(fid, this, def_coord_frame):
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
     else:
-        res['id'] = tag.data
+        res['id'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SIGMA)
     if tag is None:
         res['sigma'] = 1.0
     else:
-        res['sigma'] = tag.data
+        res['sigma'] = float(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NNODE)
     if tag is None:
         fid.close()
         raise ValueError('Number of vertices not found')
 
-    res['np'] = tag.data
+    res['np'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
     if tag is None:
         fid.close()
         raise ValueError('Number of triangles not found')
     else:
-        res['ntri'] = tag.data
+        res['ntri'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
@@ -218,7 +221,8 @@ def _fread3(fobj):
 
 def _fread3_many(fobj, n):
     """Read 3-byte ints from an open binary file object."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3*n).reshape(-1, 3).astype(np.int).T
+    b1, b2, b3 = np.fromfile(fobj, ">u1",
+                             3 * n).reshape(-1, 3).astype(np.int).T
     return (b1 << 16) + (b2 << 8) + b3
 
 
@@ -244,14 +248,14 @@ def read_surface(filepath):
         if magic == 16777215:  # Quad file
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
-            coords = np.fromfile(fobj, ">i2", nvert*3).astype(np.float)
+            coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float)
             coords = coords.reshape(-1, 3) / 100.0
-            quads = _fread3_many(fobj, nquad*4)
+            quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
             #   Face splitting follows
             #
-            faces = np.zeros((2*nquad, 3), dtype=np.int)
+            faces = np.zeros((2 * nquad, 3), dtype=np.int)
             nface = 0
             for quad in quads:
                 if (quad[0] % 2) == 0:
@@ -277,3 +281,44 @@ def read_surface(filepath):
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
     return coords, faces
+
+
+###############################################################################
+# Write
+
+def write_bem_surface(fname, surf):
+    """Read one bem surface
+
+    Parameters
+    ----------
+    fname : string
+        File to write
+
+    surf : dict
+        A surface structued as obtained with read_bem_surfaces
+    """
+
+    # Create the file and save the essentials
+    fid = start_file(fname)
+
+    start_block(fid, FIFFB_BEM)
+    start_block(fid, FIFFB_BEM_SURF)
+
+    write_int(fid, FIFF_BEM_SURF_ID, surf['id'])
+    write_float(fid, FIFF_BEM_SIGMA, surf['sigma'])
+    write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
+    write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
+    write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
+    # write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
+    write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
+
+    if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
+        write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, surf['nn'])
+
+    # index start at 0 in Python
+    write_int_matrix(fid, FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
+
+    end_block(fid, FIFFB_BEM_SURF)
+    end_block(fid, FIFFB_BEM)
+
+    end_file(fid)
