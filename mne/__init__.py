@@ -10,7 +10,7 @@ from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              spatio_temporal_src_connectivity, \
                              spatio_temporal_tris_connectivity, \
                              save_stc_as_volume
-from .surface import read_bem_surfaces, read_surface
+from .surface import read_bem_surfaces, read_surface, write_bem_surface
 from .source_space import read_source_spaces
 from .epochs import Epochs
 from .label import label_time_courses, read_label, label_sign_flip, \

@@ -19,6 +19,11 @@ Changelog
 
    - Support for computing sensor space data from a source estimate using an MNE forward solution by `Martin Luessi`_.
 
+   - Support of arithmetic of Covariance by `Alex Gramfort`_.
+
+   - Write BEM surfaces in Python  by `Alex Gramfort`_.
+
+
 Version 0.2
 -----------
 

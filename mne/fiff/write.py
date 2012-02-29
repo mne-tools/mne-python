@@ -87,6 +87,28 @@ def write_float_matrix(fid, kind, mat):
     fid.write(np.array(dims, dtype='>i4').tostring())
 
 
+def write_int_matrix(fid, kind, mat):
+    """Writes integer 32 matrix tag"""
+    FIFFT_INT = 3
+    FIFFT_MATRIX = 1 << 30
+    FIFFT_MATRIX_INT = FIFFT_INT | FIFFT_MATRIX
+    FIFFV_NEXT_SEQ = 0
+
+    data_size = 4 * mat.size + 4 * 3
+
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_INT, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(mat, dtype='>i4').tostring())
+
+    dims = np.empty(3, dtype=np.int32)
+    dims[0] = mat.shape[1]
+    dims[1] = mat.shape[0]
+    dims[2] = 2
+    fid.write(np.array(dims, dtype='>i4').tostring())
+
+
 def write_id(fid, kind, id_=None):
     """Writes fiff id"""
 
