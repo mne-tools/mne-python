@@ -59,4 +59,5 @@ if __name__ == "__main__":
                    'mne.minimum_norm', 'mne.minimum_norm.tests',
                    'mne.layouts',
                    'mne.time_frequency', 'mne.time_frequency.tests'],
-         scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py'])
+         scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
+                  'bin/mne_surf2bem.py'])

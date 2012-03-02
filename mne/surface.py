@@ -245,7 +245,7 @@ def read_surface(filepath):
     """Load in a Freesurfer surface mesh in triangular format."""
     with open(filepath, "rb") as fobj:
         magic = _fread3(fobj)
-        if magic == 16777215:  # Quad file
+        if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
             coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float)
@@ -277,7 +277,8 @@ def read_surface(filepath):
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
-            raise ValueError("File does not appear to be a Freesurfer surface")
+            raise ValueError("%s does not appear to be a Freesurfer surface"
+                             % filepath)
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
     return coords, faces
