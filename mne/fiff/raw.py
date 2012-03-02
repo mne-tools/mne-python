@@ -6,6 +6,8 @@
 
 from math import floor, ceil
 import copy
+import types
+
 import numpy as np
 
 from .constants import FIFF
@@ -13,6 +15,9 @@ from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
+
+from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
+from ..parallel import parallel_func
 
 
 class Raw(object):
@@ -223,6 +228,162 @@ class Raw(object):
         sel, start, stop = self._parse_get_set_params(item)
         # set the data
         self._data[sel, start:stop] = value
+
+    def apply_function(self, fun, picks, n_jobs, verbose, *args, **kwargs):
+        """ Apply a function to a subset of channels.
+
+        The function "fun" is applied to the channels defined in "picks". The
+        data of the Raw object is modified in-place.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        fun : function
+            A function to be applied to the channels. The first argument of
+            fun has to be a timeseries (numpy.ndarray). The function must
+            return an numpy.ndarray with the same size as the input.
+
+        picks : list of int
+            Indices of channels to apply the function to.
+
+        n_jobs: int
+            Number of jobs to run in parallel.
+
+        verbose: int
+            Verbosity level.
+
+        *args:
+            Additional positional arguments to pass to fun (first pos. argument
+            of fun is the timeseries of a channel).
+
+        **kwargs:
+            Keyword arguments to pass to fun.
+        """
+
+        if not isinstance(fun, types.FunctionType):
+            raise ValueError('fun needs to be a function')
+
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded. Use '
+                               'preload=True (or string) in the constructor.')
+
+        # create parallel function
+        parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
+
+        # apply function to channels
+        data_picks = self._data[picks, :]
+        data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
+                                  for x in data_picks))
+
+        if np.any(data_picks_new.shape != data_picks.shape):
+            raise ValueError('fun must return array with the same size as '
+                              'input')
+
+        self._data[picks, :] = data_picks_new
+
+    def band_pass_filter(self, picks, Fp1, Fp2, filter_length=None, n_jobs=1,
+                         verbose=5):
+        """Band-pass filter a subset of channels.
+
+        Applies a zero-phase band-pass filter to the channels selected by
+        "picks". The data of the Raw object is modified in-place.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        picks : list of int
+            Indices of channels to filter.
+
+        Fp1 : float
+            Low cut-off frequency in Hz.
+
+        Fp2 : float
+            High cut-off frequency in Hz.
+
+        filter_length : int (default: None)
+            Length of the filter to use. If None or "ntimes < filter_length",
+            (ntimes: number of timepoints in Raw object) the filter length
+            used is ntimes. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+
+        n_jobs: int (default: 1)
+            Number of jobs to run in parallel.
+
+        verbose: int (default: 5)
+            Verbosity level.
+        """
+        Fs = float(self.info['sfreq'])
+        self.apply_function(band_pass_filter, picks, n_jobs, verbose, Fs, Fp1,
+                            Fp2, filter_length=filter_length)
+
+    def high_pass_filter(self, picks, Fp, filter_length=None, n_jobs=1,
+                         verbose=5):
+        """High-pass filter a subset of channels.
+
+        Applies a zero-phase high-pass filter to the channels selected by
+        "picks". The data of the Raw object is modified in-place.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        picks : list of int
+            Indices of channels to filter.
+
+        Fp : float
+            Cut-off frequency in Hz.
+
+        filter_length : int (default: None)
+            Length of the filter to use. If None or "ntimes < filter_length",
+            (ntimes: number of timepoints in Raw object) the filter length
+            used is ntimes. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+
+        n_jobs: int (default: 1)
+            Number of jobs to run in parallel.
+
+        verbose: int (default: 5)
+            Verbosity level.
+        """
+
+        Fs = float(self.info['sfreq'])
+        self.apply_function(high_pass_filter, picks, n_jobs, verbose, Fs, Fp,
+                            filter_length=filter_length)
+
+    def low_pass_filter(self, picks, Fp, filter_length=None, n_jobs=1,
+                        verbose=5):
+        """Low-pass filter a subset of channels.
+
+        Applies a zero-phase low-pass filter to the channels selected by
+        "picks". The data of the Raw object is modified in-place.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        picks : list of int
+            Indices of channels to filter.
+
+        Fp : float
+            Cut-off frequency in Hz.
+
+        filter_length : int (default: None)
+            Length of the filter to use. If None or "ntimes < filter_length",
+            (ntimes: number of timepoints in Raw object) the filter length
+            used is ntimes. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+
+        n_jobs: int (default: 1)
+            Number of jobs to run in parallel.
+
+        verbose: int (default: 5)
+            Verbosity level.
+        """
+        Fs = float(self.info['sfreq'])
+        self.apply_function(low_pass_filter, picks, n_jobs, verbose, Fs, Fp,
+                            filter_length=filter_length)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):

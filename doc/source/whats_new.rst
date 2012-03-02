@@ -23,6 +23,7 @@ Changelog
 
    - Write BEM surfaces in Python  by `Alex Gramfort`_.
 
+   - Filtering operations and apply_function interface for Raw object by `Martin Luessi`_.
 
 Version 0.2
 -----------

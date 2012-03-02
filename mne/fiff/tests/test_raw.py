@@ -1,4 +1,5 @@
 import os.path as op
+from copy import deepcopy
 
 import numpy as np
 from nose.tools import assert_true
@@ -111,3 +112,34 @@ def test_preload_modify():
         data_new, _ = raw_new[picks, :nsamp / 2]
 
         assert_array_almost_equal(data, data_new)
+
+
+def test_filter():
+    """ Test filtering and Raw.apply_function interface """
+
+    raw = Raw(fif_fname, preload=True)
+    picks_meg = pick_types(raw.info, meg=True)
+    picks = picks_meg[:4]
+
+    raw_lp = deepcopy(raw)
+    raw_lp.low_pass_filter(picks, 4.0)
+
+    raw_hp = deepcopy(raw)
+    raw_hp.high_pass_filter(picks, 8.0)
+
+    raw_bp = deepcopy(raw)
+    raw_bp.band_pass_filter(picks, 4.0, 8.0)
+
+    data, _ = raw[picks, :]
+
+    lp_data, _ = raw_lp[picks, :]
+    hp_data, _ = raw_hp[picks, :]
+    bp_data, _ = raw_bp[picks, :]
+
+    assert_array_almost_equal(data, lp_data + hp_data + bp_data)
+
+    # make sure we didn't touch other channels
+    data, _ = raw[picks_meg[4:], :]
+    bp_data, _ = raw_bp[picks_meg[4:], :]
+
+    assert_array_equal(data, bp_data)
