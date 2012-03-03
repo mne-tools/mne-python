@@ -25,6 +25,8 @@ Changelog
 
    - Filtering operations and apply_function interface for Raw object by `Martin Luessi`_.
 
+   - Support for complex valued raw fiff files and computation of analytic signal for Raw object by `Martin Luessi`_.
+
 Version 0.2
 -----------
 

@@ -6,9 +6,10 @@
 
 from math import floor, ceil
 import copy
-import types
+import warnings
 
 import numpy as np
+from scipy.signal import hilbert
 
 from .constants import FIFF
 from .open import fiff_open
@@ -114,6 +115,8 @@ class Raw(object):
                     nsamp = ent.size / (4 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
                     nsamp = ent.size / (4 * nchan)
+                elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
+                    nsamp = ent.size / (8 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
@@ -229,11 +232,48 @@ class Raw(object):
         # set the data
         self._data[sel, start:stop] = value
 
+    def analytic_signal(self, picks, n_jobs=1, verbose=5):
+        """ Compute analytic signal for a subset of channels.
+
+        Compute analytic signal for the channels defined in "picks". The
+        data of the Raw object is modified inplace and converted to a
+        complex representation (the analytic signal is complex valued).
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        picks : list of int
+            Indices of channels to apply the function to.
+
+        n_jobs: int
+            Number of jobs to run in parallel.
+
+        verbose: int
+            Verbosity level.
+
+        Notes
+        -----
+        The analytic signal "x_a(t)" of "x(t)" is::
+
+            x_a = F^{-1}(F(x) 2U) = x + i y
+
+        where "F" is the Fourier transform, "U" the unit step function,
+        and "y" the Hilbert transform of "x". One usage of the analytic
+        signal is the computation of the enevelope signal, which is given by
+        "e(t) = abs(x_a(t))". Due to the linearity of Hilbert transform and the
+        MNE inverse solution, the enevlope in source space can be obtained
+        by computing the analytic signal in sensor space, applying the MNE
+        inverse, and computing the envelope in source space.
+        """
+        self.apply_function(hilbert, picks, n_jobs, verbose)
+
+
     def apply_function(self, fun, picks, n_jobs, verbose, *args, **kwargs):
         """ Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
-        data of the Raw object is modified in-place.
+        data of the Raw object is modified inplace.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -260,13 +300,12 @@ class Raw(object):
         **kwargs:
             Keyword arguments to pass to fun.
         """
-
-        if not isinstance(fun, types.FunctionType):
-            raise ValueError('fun needs to be a function')
-
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
 
         # create parallel function
         parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
@@ -280,14 +319,19 @@ class Raw(object):
             raise ValueError('fun must return array with the same size as '
                               'input')
 
+        # convert the type of _data if necessary
+        if data_picks_new.dtype != self._data.dtype:
+            print 'Converting raw data to %s' % data_picks_new.dtype
+            self._data = np.array(self._data, dtype=data_picks_new.dtype)
+
         self._data[picks, :] = data_picks_new
 
-    def band_pass_filter(self, picks, Fp1, Fp2, filter_length=None, n_jobs=1,
-                         verbose=5):
+    def band_pass_filter(self, picks, f_low, f_high, filter_length=None,
+                         n_jobs=1, verbose=5):
         """Band-pass filter a subset of channels.
 
         Applies a zero-phase band-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified in-place.
+        "picks". The data of the Raw object is modified inplace.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -296,16 +340,16 @@ class Raw(object):
         picks : list of int
             Indices of channels to filter.
 
-        Fp1 : float
+        f_low : float
             Low cut-off frequency in Hz.
 
-        Fp2 : float
+        f_high : float
             High cut-off frequency in Hz.
 
         filter_length : int (default: None)
-            Length of the filter to use. If None or "ntimes < filter_length",
-            (ntimes: number of timepoints in Raw object) the filter length
-            used is ntimes. Otherwise, overlap-add filtering with a
+            Length of the filter to use. If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
 
         n_jobs: int (default: 1)
@@ -314,16 +358,16 @@ class Raw(object):
         verbose: int (default: 5)
             Verbosity level.
         """
-        Fs = float(self.info['sfreq'])
-        self.apply_function(band_pass_filter, picks, n_jobs, verbose, Fs, Fp1,
-                            Fp2, filter_length=filter_length)
+        fs = float(self.info['sfreq'])
+        self.apply_function(band_pass_filter, picks, n_jobs, verbose, fs,
+                            f_low, f_high, filter_length=filter_length)
 
-    def high_pass_filter(self, picks, Fp, filter_length=None, n_jobs=1,
+    def high_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
                          verbose=5):
         """High-pass filter a subset of channels.
 
         Applies a zero-phase high-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified in-place.
+        "picks". The data of the Raw object is modified inplace.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -332,13 +376,13 @@ class Raw(object):
         picks : list of int
             Indices of channels to filter.
 
-        Fp : float
+        fp : float
             Cut-off frequency in Hz.
 
         filter_length : int (default: None)
-            Length of the filter to use. If None or "ntimes < filter_length",
-            (ntimes: number of timepoints in Raw object) the filter length
-            used is ntimes. Otherwise, overlap-add filtering with a
+            Length of the filter to use. If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
 
         n_jobs: int (default: 1)
@@ -348,11 +392,11 @@ class Raw(object):
             Verbosity level.
         """
 
-        Fs = float(self.info['sfreq'])
-        self.apply_function(high_pass_filter, picks, n_jobs, verbose, Fs, Fp,
+        fs = float(self.info['sfreq'])
+        self.apply_function(high_pass_filter, picks, n_jobs, verbose, fs, fp,
                             filter_length=filter_length)
 
-    def low_pass_filter(self, picks, Fp, filter_length=None, n_jobs=1,
+    def low_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
                         verbose=5):
         """Low-pass filter a subset of channels.
 
@@ -366,13 +410,13 @@ class Raw(object):
         picks : list of int
             Indices of channels to filter.
 
-        Fp : float
+        fp : float
             Cut-off frequency in Hz.
 
         filter_length : int (default: None)
-            Length of the filter to use. If None or "ntimes < filter_length",
-            (ntimes: number of timepoints in Raw object) the filter length
-            used is ntimes. Otherwise, overlap-add filtering with a
+            Length of the filter to use. If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
 
         n_jobs: int (default: 1)
@@ -381,8 +425,8 @@ class Raw(object):
         verbose: int (default: 5)
             Verbosity level.
         """
-        Fs = float(self.info['sfreq'])
-        self.apply_function(low_pass_filter, picks, n_jobs, verbose, Fs, Fp,
+        fs = float(self.info['sfreq'])
+        self.apply_function(low_pass_filter, picks, n_jobs, verbose, fs, fp,
                             filter_length=filter_length)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
@@ -411,6 +455,11 @@ class Raw(object):
             that only accepts raw files with buffers of the same size.
 
         """
+        if self._preloaded:
+            if np.iscomplexobj(self._data):
+                warnings.warn('Saving raw file with complex data. Loading '
+                              'with command-line MNE tools will not work.')
+
         outfid, cals = start_writing_raw(fname, self.info, picks)
         #
         #   Set up the reading parameters
@@ -532,7 +581,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
                 raise ValueError('data_buffer has incorrect shape')
             data = data_buffer
         else:
-            data = np.empty(data_shape, dtype='float32')
+            data = None  # we will allocate it later, once we know the type
         if raw.proj is None and raw.comp is None:
             mult = None
         else:
@@ -550,7 +599,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
                 raise ValueError('data_buffer has incorrect shape')
             data = data_buffer
         else:
-            data = np.empty(data_shape, dtype='float32')
+            data = None  # we will allocate it later, once we know the type
         if raw.proj is None and raw.comp is None:
             mult = None
             cal = np.diag(raw.cals[sel].ravel())
@@ -587,19 +636,25 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
             else:
                 tag = read_tag(raw.fid, this['ent'].pos)
 
+                # decide what datatype to use
+                if np.isrealobj(tag.data):
+                    dtype = np.float
+                else:
+                    dtype = np.complex64
+
                 #   Depending on the state of the projection and selection
                 #   we proceed a little bit differently
                 if mult is None:
                     if sel is None:
                         one = cal * tag.data.reshape(this['nsamp'],
-                                                     nchan).astype(np.float).T
+                                                     nchan).astype(dtype).T
                     else:
                         one = tag.data.reshape(this['nsamp'],
-                                               nchan).astype(np.float).T
+                                               nchan).astype(dtype).T
                         one = cal * one[sel, :]
                 else:
                     one = mult * tag.data.reshape(this['nsamp'],
-                                                  nchan).astype(np.float).T
+                                                  nchan).astype(dtype).T
 
             #  The picking logic is a bit complicated
             if stop - 1 > this['last'] and start < this['first']:
@@ -631,6 +686,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
             #   Now we are ready to pick
             picksamp = last_pick - first_pick
             if picksamp > 0:
+                if data is None:
+                    # if not already done, allocate array with right type
+                    data = np.empty(data_shape, dtype=dtype)
                 data[:, dest:(dest + picksamp)] = one[:, first_pick:last_pick]
                 dest += picksamp
 
@@ -685,7 +743,7 @@ def read_raw_segment_times(raw, start, stop, sel=None):
 # Writing
 
 from .write import start_file, end_file, start_block, end_block, \
-                   write_float, write_int, write_id
+                   write_float, write_complex64, write_int, write_id
 
 
 def start_writing_raw(name, info, sel=None):
@@ -777,7 +835,11 @@ def write_raw_buffer(fid, buf, cals):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+    if np.isrealobj(buf):
+        write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+    else:
+        write_complex64(fid, FIFF.FIFF_DATA_BUFFER,
+                        buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):

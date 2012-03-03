@@ -184,7 +184,7 @@ def _filter(x, Fs, freq, gain, filter_length=None):
         B = np.abs(fft(H))
 
         xf = np.real(ifft(fft(x) * B))
-        xf = xf[:Norig]
+        xf = np.array(xf[:Norig], dtype=x.dtype)
         x = x[:Norig]
     else:
         # Use overlap-add filter with a fixed length
