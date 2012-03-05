@@ -48,6 +48,13 @@ def write_float(fid, kind, data):
     _write(fid, data, kind, data_size, FIFFT_FLOAT, '>f4')
 
 
+def write_complex64(fid, kind, data):
+    """Writes a 64 bit complex floating point tag to a fif file"""
+    data_size = 8
+    data = np.array(data, dtype='>c8').T
+    _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, '>c8')
+
+
 def write_string(fid, kind, data):
     """Writes a string tag"""
     FIFFT_STRING = 10
