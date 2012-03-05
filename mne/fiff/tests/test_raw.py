@@ -177,6 +177,9 @@ def test_hilbert():
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
+    raw2 = deepcopy(raw)
     raw.apply_hilbert(picks, verbose=0)
+    raw2.apply_hilbert(picks, envelope=True, n_jobs=2, verbose=0)
 
-    #XXX what to test?
+    env = np.abs(raw._data[picks, :])
+    assert_array_almost_equal(env, raw2._data[picks, :])

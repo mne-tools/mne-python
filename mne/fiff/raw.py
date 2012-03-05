@@ -244,6 +244,13 @@ class Raw(object):
 
         The Raw object has to be constructed using preload=True (or string).
 
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+        Note: If the data type changes (dtype != None), more memory is required
+              since the original and the converted data needs to be stored in
+              memory.
+
         Parameters
         ----------
         fun : function
@@ -296,19 +303,37 @@ class Raw(object):
 
             self._data[picks, :] = data_picks_new
 
-    def apply_hilbert(self, picks, n_jobs=1, verbose=5):
-        """ Compute analytic signal for a subset of channels.
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=5):
+        """ Compute analytic signal or envelope for a subset of channels.
 
-        Compute analytic signal for the channels defined in "picks". The
-        data of the Raw object is modified inplace and converted to a
-        complex representation (the analytic signal is complex valued).
+        If envelope=False, the analytic signal for the channels defined in
+        "picks" is computed and the data of the Raw object is converted to
+        a complex representation (the analytic signal is complex valued).
 
-        The Raw object has to be constructed using preload=True (or string).
+        If envelope=True, the absolute value of the analytic signal for the
+        channels defined in "picks" is computed, resulting in the envelope
+        signal.
+
+        Note: DO NOT use envelope=True if you intend to compute an inverse
+              solution from the raw data. If you want to compute the
+              envelope in source space, use envelope=False and compute the
+              envelope after the inverse solution has been obtained.
+
+        Note: If envelope=False, more memory is required since the original
+              raw data as well as the analytic signal have temporarily to
+              be stored in memory.
+
+        Note: If n_jobs > 1 and envelope=True, more memory is required as
+              "len(picks) * n_times" addtional time points need to be
+              temporaily stored in memory.
 
         Parameters
         ----------
         picks : list of int
             Indices of channels to apply the function to.
+
+        envelope : bool (default: False)
+            Compute the envelope signal of each channel.
 
         n_jobs: int
             Number of jobs to run in parallel.
@@ -324,15 +349,18 @@ class Raw(object):
 
         where "F" is the Fourier transform, "U" the unit step function,
         and "y" the Hilbert transform of "x". One usage of the analytic
-        signal is the computation of the enevelope signal, which is given by
+        signal is the computation of the envelope signal, which is given by
         "e(t) = abs(x_a(t))". Due to the linearity of Hilbert transform and the
         MNE inverse solution, the enevlope in source space can be obtained
         by computing the analytic signal in sensor space, applying the MNE
         inverse, and computing the envelope in source space.
         """
-        self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
+        if envelope:
+            self.apply_function(_envelope, picks, None, n_jobs, verbose)
+        else:
+            self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
 
-    def band_pass_filter(self, picks, f_low, f_high, filter_length=None,
+    def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
                          n_jobs=1, verbose=5):
         """Band-pass filter a subset of channels.
 
@@ -341,15 +369,19 @@ class Raw(object):
 
         The Raw object has to be constructed using preload=True (or string).
 
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+
         Parameters
         ----------
         picks : list of int
             Indices of channels to filter.
 
-        f_low : float
+        l_freq : float
             Low cut-off frequency in Hz.
 
-        f_high : float
+        h_freq : float
             High cut-off frequency in Hz.
 
         filter_length : int (default: None)
@@ -366,14 +398,17 @@ class Raw(object):
         """
         fs = float(self.info['sfreq'])
         self.apply_function(band_pass_filter, picks, None, n_jobs, verbose, fs,
-                            f_low, f_high, filter_length=filter_length)
+                            l_freq, h_freq, filter_length=filter_length)
 
-    def high_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
+    def high_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
                          verbose=5):
         """High-pass filter a subset of channels.
 
         Applies a zero-phase high-pass filter to the channels selected by
         "picks". The data of the Raw object is modified inplace.
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -382,7 +417,7 @@ class Raw(object):
         picks : list of int
             Indices of channels to filter.
 
-        fp : float
+        freq : float
             Cut-off frequency in Hz.
 
         filter_length : int (default: None)
@@ -400,14 +435,17 @@ class Raw(object):
 
         fs = float(self.info['sfreq'])
         self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
-                            fs, fp, filter_length=filter_length)
+                            fs, freq, filter_length=filter_length)
 
-    def low_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
+    def low_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
                         verbose=5):
         """Low-pass filter a subset of channels.
 
         Applies a zero-phase low-pass filter to the channels selected by
         "picks". The data of the Raw object is modified in-place.
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
 
         The Raw object has to be constructed using preload=True (or string).
 
@@ -416,7 +454,7 @@ class Raw(object):
         picks : list of int
             Indices of channels to filter.
 
-        fp : float
+        freq : float
             Cut-off frequency in Hz.
 
         filter_length : int (default: None)
@@ -433,7 +471,7 @@ class Raw(object):
         """
         fs = float(self.info['sfreq'])
         self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
-                            fs, fp, filter_length=filter_length)
+                            fs, freq, filter_length=filter_length)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
@@ -859,3 +897,8 @@ def finish_writing_raw(fid):
     end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def _envelope(x):
+    """ Compute envelope signal """
+    return np.abs(hilbert(x))
