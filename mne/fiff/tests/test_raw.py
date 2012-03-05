@@ -148,7 +148,7 @@ def test_filter():
     picks = picks_meg[:4]
 
     raw_lp = deepcopy(raw)
-    raw_lp.low_pass_filter(picks, 4.0, verbose=0)
+    raw_lp.low_pass_filter(picks, 4.0, verbose=0, n_jobs=2)
 
     raw_hp = deepcopy(raw)
     raw_hp.high_pass_filter(picks, 8.0, verbose=0)
@@ -170,12 +170,13 @@ def test_filter():
 
     assert_array_equal(data, bp_data)
 
-def test_analytic():
-    """ Test computation of analytic signal """
+
+def test_hilbert():
+    """ Test computation of analytic signal using hilbert """
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
-    raw.analytic_signal(picks, verbose=0)
+    raw.apply_hilbert(picks, verbose=0)
 
     #XXX what to test?

@@ -232,7 +232,71 @@ class Raw(object):
         # set the data
         self._data[sel, start:stop] = value
 
-    def analytic_signal(self, picks, n_jobs=1, verbose=5):
+    def apply_function(self, fun, picks, dtype, n_jobs, verbose, *args,
+                       **kwargs):
+        """ Apply a function to a subset of channels.
+
+        The function "fun" is applied to the channels defined in "picks". The
+        data of the Raw object is modified inplace. If the function returns
+        a different data type (e.g. numpy.complex) it must be specified using
+        the dtype parameter, which causes the data type used for representing
+        the raw data to change.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Parameters
+        ----------
+        fun : function
+            A function to be applied to the channels. The first argument of
+            fun has to be a timeseries (numpy.ndarray). The function must
+            return an numpy.ndarray with the same size as the input.
+
+        picks : list of int
+            Indices of channels to apply the function to.
+
+        dtype : numpy.dtype
+            Data type to use for raw data after applying the function. If None
+            the data type is not modified.
+
+        n_jobs: int
+            Number of jobs to run in parallel.
+
+        verbose: int
+            Verbosity level.
+
+        *args:
+            Additional positional arguments to pass to fun (first pos. argument
+            of fun is the timeseries of a channel).
+
+        **kwargs:
+            Keyword arguments to pass to fun.
+        """
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded. Use '
+                               'preload=True (or string) in the constructor.')
+
+        if not callable(fun):
+            raise ValueError('fun needs to be a function')
+
+        data_in = self._data
+        if dtype is not None and dtype != self._data.dtype:
+            self._data = self._data.astype(dtype)
+
+        if n_jobs == 1:
+            # modify data inplace to save memory
+            for idx in picks:
+                self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
+        else:
+            # use parallel function
+            parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
+
+            data_picks = data_in[picks, :]
+            data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
+                                      for x in data_picks))
+
+            self._data[picks, :] = data_picks_new
+
+    def apply_hilbert(self, picks, n_jobs=1, verbose=5):
         """ Compute analytic signal for a subset of channels.
 
         Compute analytic signal for the channels defined in "picks". The
@@ -266,65 +330,7 @@ class Raw(object):
         by computing the analytic signal in sensor space, applying the MNE
         inverse, and computing the envelope in source space.
         """
-        self.apply_function(hilbert, picks, n_jobs, verbose)
-
-
-    def apply_function(self, fun, picks, n_jobs, verbose, *args, **kwargs):
-        """ Apply a function to a subset of channels.
-
-        The function "fun" is applied to the channels defined in "picks". The
-        data of the Raw object is modified inplace.
-
-        The Raw object has to be constructed using preload=True (or string).
-
-        Parameters
-        ----------
-        fun : function
-            A function to be applied to the channels. The first argument of
-            fun has to be a timeseries (numpy.ndarray). The function must
-            return an numpy.ndarray with the same size as the input.
-
-        picks : list of int
-            Indices of channels to apply the function to.
-
-        n_jobs: int
-            Number of jobs to run in parallel.
-
-        verbose: int
-            Verbosity level.
-
-        *args:
-            Additional positional arguments to pass to fun (first pos. argument
-            of fun is the timeseries of a channel).
-
-        **kwargs:
-            Keyword arguments to pass to fun.
-        """
-        if not self._preloaded:
-            raise RuntimeError('Raw data needs to be preloaded. Use '
-                               'preload=True (or string) in the constructor.')
-
-        if not callable(fun):
-            raise ValueError('fun needs to be a function')
-
-        # create parallel function
-        parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
-
-        # apply function to channels
-        data_picks = self._data[picks, :]
-        data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
-                                  for x in data_picks))
-
-        if np.any(data_picks_new.shape != data_picks.shape):
-            raise ValueError('fun must return array with the same size as '
-                              'input')
-
-        # convert the type of _data if necessary
-        if data_picks_new.dtype != self._data.dtype:
-            print 'Converting raw data to %s' % data_picks_new.dtype
-            self._data = np.array(self._data, dtype=data_picks_new.dtype)
-
-        self._data[picks, :] = data_picks_new
+        self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
 
     def band_pass_filter(self, picks, f_low, f_high, filter_length=None,
                          n_jobs=1, verbose=5):
@@ -359,7 +365,7 @@ class Raw(object):
             Verbosity level.
         """
         fs = float(self.info['sfreq'])
-        self.apply_function(band_pass_filter, picks, n_jobs, verbose, fs,
+        self.apply_function(band_pass_filter, picks, None, n_jobs, verbose, fs,
                             f_low, f_high, filter_length=filter_length)
 
     def high_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
@@ -393,8 +399,8 @@ class Raw(object):
         """
 
         fs = float(self.info['sfreq'])
-        self.apply_function(high_pass_filter, picks, n_jobs, verbose, fs, fp,
-                            filter_length=filter_length)
+        self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
+                            fs, fp, filter_length=filter_length)
 
     def low_pass_filter(self, picks, fp, filter_length=None, n_jobs=1,
                         verbose=5):
@@ -426,8 +432,8 @@ class Raw(object):
             Verbosity level.
         """
         fs = float(self.info['sfreq'])
-        self.apply_function(low_pass_filter, picks, n_jobs, verbose, fs, fp,
-                            filter_length=filter_length)
+        self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
+                            fs, fp, filter_length=filter_length)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
