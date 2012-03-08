@@ -310,7 +310,6 @@ def write_bem_surface(fname, surf):
     write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
     write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
     write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
-    # write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
     write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
 
     if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:

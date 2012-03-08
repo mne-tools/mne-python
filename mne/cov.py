@@ -417,7 +417,7 @@ def write_cov(fid, cov):
         write_int(fid, FIFF.FIFF_MNE_COV_NFREE, cov['nfree'])
 
     #   Channel names
-    if cov['names'] is not None:
+    if cov['names'] is not None and len(cov['names']) > 0:
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'])
 
     #   Data

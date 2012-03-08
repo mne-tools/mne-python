@@ -71,5 +71,5 @@ def test_tfr_with_inverse_operator():
                             frequencies, label, baseline=(-0.1, 0),
                             baseline_mode='percent', n_cycles=2, n_jobs=1)
     assert_true(np.all(phase_lock > 0))
-    assert_true(np.all(phase_lock < 1))
+    assert_true(np.all(phase_lock <= 1))
     assert_true(np.max(power) > 10)

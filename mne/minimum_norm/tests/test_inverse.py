@@ -1,8 +1,10 @@
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
+from scipy import sparse
 from nose.tools import assert_true
 import nose
+import copy
 
 from ...datasets import sample
 from ...label import read_label, label_sign_flip
@@ -12,7 +14,7 @@ from ...source_estimate import SourceEstimate
 from ... import fiff, Covariance, read_forward_solution
 from ..inverse import apply_inverse, read_inverse_operator, \
                       apply_inverse_raw, apply_inverse_epochs, \
-                      make_inverse_operator
+                      make_inverse_operator, write_inverse_operator
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
@@ -39,6 +41,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 inverse_operator = read_inverse_operator(fname_inv)
 inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
+inverse_operator_vol = read_inverse_operator(fname_vol_inv)
 label = read_label(fname_label)
 noise_cov = Covariance(fname_cov)
 raw = fiff.Raw(fname_raw)
@@ -47,7 +50,40 @@ lambda2 = 1.0 / snr ** 2
 dSPM = True
 
 
-def test_inverse_operator():
+def _compare(a, b):
+    if isinstance(a, dict):
+        assert_true(isinstance(b, dict))
+        for k, v in a.iteritems():
+            if not k in b:
+                raise ValueError('%s not in %s' % (k, b))
+            _compare(v, b[k])
+    elif isinstance(a, list):
+        assert_true(len(a) == len(b))
+        for i, j in zip(a, b):
+            _compare(i, j)
+    elif isinstance(a, sparse.csr.csr_matrix):
+        assert_array_almost_equal(a.data, b.data)
+        assert_equal(a.indices, b.indices)
+        assert_equal(a.indptr, b.indptr)
+    elif isinstance(a, np.ndarray):
+        assert_array_almost_equal(a, b)
+    else:
+        assert_true(a == b)
+
+
+def test_io_inverse_operator():
+    """Test IO of inverse_operator
+    """
+    for inv in [inverse_operator, inverse_operator_vol]:
+        inv_init = copy.deepcopy(inv)
+        write_inverse_operator('test-inv.fif', inv)
+        this_inv = read_inverse_operator('test-inv.fif')
+
+        _compare(inv, inv_init)
+        _compare(inv, this_inv)
+
+
+def test_apply_inverse_operator():
     """Test MNE inverse computation
 
     With and without precomputed inverse operator.
@@ -113,8 +149,8 @@ def test_make_inverse_operator_fixed():
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space"""
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
-    inverse_operator = read_inverse_operator(fname_vol_inv)
-    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
+    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, dSPM)
     stc.save('tmp-vl.stc')
     stc2 = SourceEstimate('tmp-vl.stc')
     assert_true(np.all(stc.data > 0))
