@@ -12,7 +12,6 @@ from .constants import FIFF
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
-    FIFFV_NEXT_SEQ = 0
     if isinstance(data, np.ndarray):
         data_size *= data.size
     if isinstance(data, str):
@@ -20,32 +19,29 @@ def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_TYPE, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(data, dtype=dtype).tostring())
 
 
 def write_int(fid, kind, data):
     """Writes a 32-bit integer tag to a fif file"""
-    FIFFT_INT = 3
     data_size = 4
     data = np.array(data, dtype='>i4').T
-    _write(fid, data, kind, data_size, FIFFT_INT, '>i4')
+    _write(fid, data, kind, data_size, FIFF.FIFFT_INT, '>i4')
 
 
 def write_double(fid, kind, data):
     """Writes a double-precision floating point tag to a fif file"""
-    FIFFT_DOUBLE = 5
     data_size = 8
     data = np.array(data, dtype='>f8').T
-    _write(fid, data, kind, data_size, FIFFT_DOUBLE, '>f8')
+    _write(fid, data, kind, data_size, FIFF.FIFFT_DOUBLE, '>f8')
 
 
 def write_float(fid, kind, data):
     """Writes a single-precision floating point tag to a fif file"""
-    FIFFT_FLOAT = 4
     data_size = 4
     data = np.array(data, dtype='>f4').T
-    _write(fid, data, kind, data_size, FIFFT_FLOAT, '>f4')
+    _write(fid, data, kind, data_size, FIFF.FIFFT_FLOAT, '>f4')
 
 
 def write_complex64(fid, kind, data):
@@ -57,9 +53,8 @@ def write_complex64(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Writes a string tag"""
-    FIFFT_STRING = 10
     data_size = 1
-    _write(fid, str(data), kind, data_size, FIFFT_STRING, '>c')
+    _write(fid, str(data), kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 
 def write_name_list(fid, kind, data):
@@ -74,17 +69,15 @@ def write_name_list(fid, kind, data):
 
 def write_float_matrix(fid, kind, mat):
     """Writes a single-precision floating-point matrix tag"""
-    FIFFT_FLOAT = 4
     FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_FLOAT = FIFFT_FLOAT | FIFFT_MATRIX
-    FIFFV_NEXT_SEQ = 0
+    FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
     data_size = 4 * mat.size + 4 * 3
 
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(mat, dtype='>f4').tostring())
 
     dims = np.empty(3, dtype=np.int32)
@@ -96,17 +89,15 @@ def write_float_matrix(fid, kind, mat):
 
 def write_int_matrix(fid, kind, mat):
     """Writes integer 32 matrix tag"""
-    FIFFT_INT = 3
     FIFFT_MATRIX = 1 << 30
-    FIFFT_MATRIX_INT = FIFFT_INT | FIFFT_MATRIX
-    FIFFV_NEXT_SEQ = 0
+    FIFFT_MATRIX_INT = FIFF.FIFFT_INT | FIFFT_MATRIX
 
     data_size = 4 * mat.size + 4 * 3
 
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_MATRIX_INT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(mat, dtype='>i4').tostring())
 
     dims = np.empty(3, dtype=np.int32)
@@ -147,16 +138,12 @@ def write_id(fid, kind, id_=None):
 
 def start_block(fid, kind):
     """Writes a FIFF_BLOCK_START tag"""
-
-    FIFF_BLOCK_START = 104
-    write_int(fid, FIFF_BLOCK_START, kind)
+    write_int(fid, FIFF.FIFF_BLOCK_START, kind)
 
 
 def end_block(fid, kind):
     """Writes a FIFF_BLOCK_END tag"""
-
-    FIFF_BLOCK_END = 105
-    write_int(fid, FIFF_BLOCK_END, kind)
+    write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
 def start_file(name):
@@ -169,16 +156,10 @@ def start_file(name):
         that the name ends with .fif
     """
     fid = open(name, 'wb')
-
     #   Write the compulsory items
-    FIFF_FILE_ID = 100
-    FIFF_DIR_POINTER = 101
-    FIFF_FREE_LIST = 106
-
-    write_id(fid, FIFF_FILE_ID)
-    write_int(fid, FIFF_DIR_POINTER, -1)
-    write_int(fid, FIFF_FREE_LIST, -1)
-
+    write_id(fid, FIFF.FIFF_FILE_ID)
+    write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
+    write_int(fid, FIFF.FIFF_FREE_LIST, -1)
     return fid
 
 
@@ -195,10 +176,6 @@ def end_file(fid):
 def write_coord_trans(fid, trans):
     """Writes a coordinate transformation structure"""
 
-    FIFF_COORD_TRANS = 222
-    FIFFT_COORD_TRANS_STRUCT = 35
-    FIFFV_NEXT_SEQ = 0
-
     #?typedef struct _fiffCoordTransRec {
     #  fiff_int_t   from;                          /*!< Source coordinate system. */
     #  fiff_int_t   to;                        /*!< Destination coordinate system. */
@@ -209,10 +186,10 @@ def write_coord_trans(fid, trans):
     #} *fiffCoordTrans, fiffCoordTransRec; /*!< Coordinate transformation descriptor */
 
     data_size = 4 * 2 * 12 + 4 * 2
-    fid.write(np.array(FIFF_COORD_TRANS, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(trans['from'], dtype='>i4').tostring())
     fid.write(np.array(trans['to'], dtype='>i4').tostring())
 
@@ -232,10 +209,6 @@ def write_coord_trans(fid, trans):
 
 def write_ch_info(fid, ch):
     """Writes a channel information record to a fif file"""
-
-    FIFF_CH_INFO = 203
-    FIFFT_CH_INFO_STRUCT = 30
-    FIFFV_NEXT_SEQ = 0
 
     #typedef struct _fiffChPosRec {
     #  fiff_int_t   coil_type;      /*!< What kind of coil. */
@@ -259,10 +232,10 @@ def write_ch_info(fid, ch):
 
     data_size = 4 * 13 + 4 * 7 + 16
 
-    fid.write(np.array(FIFF_CH_INFO, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_CH_INFO_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_CH_INFO, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_CH_INFO_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
 
     #   Start writing fiffChInfoRec
     fid.write(np.array(ch['scanno'], dtype='>i4').tostring())
@@ -291,11 +264,6 @@ def write_ch_info(fid, ch):
 
 def write_dig_point(fid, dig):
     """Writes a digitizer data point into a fif file"""
-
-    FIFF_DIG_POINT = 213
-    FIFFT_DIG_POINT_STRUCT = 33
-    FIFFV_NEXT_SEQ = 0
-
     #?typedef struct _fiffDigPointRec {
     #  fiff_int_t kind;               /*!< FIFF_POINT_CARDINAL,
     #                                  *   FIFF_POINT_HPI, or
@@ -306,10 +274,10 @@ def write_dig_point(fid, dig):
 
     data_size = 5 * 4
 
-    fid.write(np.array(FIFF_DIG_POINT, dtype='>i4').tostring())
-    fid.write(np.array(FIFFT_DIG_POINT_STRUCT, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFF_DIG_POINT, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFT_DIG_POINT_STRUCT, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
-    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
 
     #   Start writing fiffDigPointRec
     fid.write(np.array(dig['kind'], dtype='>i4').tostring())
@@ -317,17 +285,23 @@ def write_dig_point(fid, dig):
     fid.write(np.array(dig['r'][:3], dtype='>f4').tostring())
 
 
-def write_named_matrix(fid, kind, mat):
-    """Writes a named single-precision floating-point matrix"""
-    start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
-    write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
-    write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
+def write_float_sparse_rcs(fid, kind, mat):
+    """Writes a single-precision floating-point matrix tag"""
+    FIFFT_MATRIX = 16416 << 16
+    FIFFT_MATRIX_FLOAT_RCS = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
-    if len(mat['row_names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
+    nnzm = mat.nnz
+    nrow = mat.shape[0]
+    data_size = 4 * nnzm + 4 * nnzm + 4 * (nrow + 1) + 4 * 4
 
-    if len(mat['col_names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_FLOAT_RCS, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
 
-    write_float_matrix(fid, kind, mat['data'])
-    end_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
+    fid.write(np.array(mat.data, dtype='>f4').tostring())
+    fid.write(np.array(mat.indices, dtype='>i4').tostring())
+    fid.write(np.array(mat.indptr, dtype='>i4').tostring())
+
+    dims = [nnzm, mat.shape[0], mat.shape[1], 2]
+    fid.write(np.array(dims, dtype='>i4').tostring())
