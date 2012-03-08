@@ -27,6 +27,8 @@ Changelog
 
    - Support for complex valued raw fiff files and computation of analytic signal for Raw object by `Martin Luessi`_.
 
+   - Write inverse operators (surface and volume) by `Alex Gramfort`_.
+
 Version 0.2
 -----------
 
