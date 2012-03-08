@@ -360,6 +360,8 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
                                            inv['noise_cov']['names'])
     if ncomp > 0:
         print '    Created an SSP operator (subspace dimension = %d)' % ncomp
+    else:
+        print '    The projection vectors do not apply to these channels.'
 
     #
     #   Create the whitener
