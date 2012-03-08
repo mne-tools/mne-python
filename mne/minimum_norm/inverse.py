@@ -259,7 +259,7 @@ def read_inverse_operator(fname):
 
 
 def write_inverse_operator(fname, inv):
-    """Write an inverse operator from a FIF file
+    """Write an inverse operator to a FIF file
 
     Parameters
     ----------
@@ -329,7 +329,7 @@ def write_inverse_operator(fname, inv):
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
     #
-    #   Read the source spaces
+    #   Write the source spaces
     #
     if 'src' in inv:
         write_source_spaces(fid, inv['src'])

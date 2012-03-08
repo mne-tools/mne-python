@@ -369,9 +369,7 @@ def write_source_spaces(fid, src):
 
 
 def _write_one_source_space(fid, this):
-    """Read one source space
-    """
-
+    """Write one source space"""
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
     if this['type'] == 'surf':
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 1)
