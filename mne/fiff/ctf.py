@@ -211,7 +211,8 @@ def read_ctf_comp(fid, node, chs):
 ###############################################################################
 # Writing
 
-from .write import start_block, end_block, write_int, write_named_matrix
+from .write import start_block, end_block, write_int
+from .matrix import write_named_matrix
 
 
 def write_ctf_comp(fid, comps):

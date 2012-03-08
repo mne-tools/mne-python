@@ -12,14 +12,19 @@ from scipy import linalg
 from ..fiff.constants import FIFF
 from ..fiff.open import fiff_open
 from ..fiff.tag import find_tag
-from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from ..fiff.proj import read_proj, make_projector
+from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
+                          write_named_matrix
+from ..fiff.proj import read_proj, make_projector, write_proj
 from ..fiff.tree import dir_tree_find
+from ..fiff.write import write_int, write_float_matrix, start_file, \
+                         start_block, end_block, end_file, write_float, \
+                         write_coord_trans
 
-from ..cov import read_cov, prepare_noise_cov
+from ..cov import read_cov, prepare_noise_cov, write_cov
 from ..forward import compute_depth_prior, compute_depth_prior_fixed
 from ..source_space import read_source_spaces_from_tree, \
-                           find_source_space_hemi, _get_vertno
+                           find_source_space_hemi, _get_vertno, \
+                           write_source_spaces
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
 
@@ -75,7 +80,7 @@ def read_inverse_operator(fname):
     if len(parent_mri) == 0:
         fid.close()
         raise Exception('No parent MRI information in %s' % fname)
-    parent_mri = parent_mri[0]
+    parent_mri = parent_mri[0]  # take only first one
 
     print '    Reading inverse operator info...',
     #
@@ -137,17 +142,17 @@ def read_inverse_operator(fname):
     #   The eigenleads and eigenfields
     #
     inv['eigen_leads_weighted'] = False
-    try:
-        inv['eigen_leads'] = _read_named_matrix(fid, invs,
-                                               FIFF.FIFF_MNE_INVERSE_LEADS)
-    except:
+    eigen_leads = _read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
+    if eigen_leads is None:
         inv['eigen_leads_weighted'] = True
-        inv['eigen_leads'] = _read_named_matrix(fid, invs,
-                                    FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
+        eigen_leads = _read_named_matrix(fid, invs,
+                                          FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
+    if eigen_leads is None:
+        raise ValueError('Eigen leads not found in inverse operator.')
     #
     #   Having the eigenleads as columns is better for the inverse calculations
     #
-    inv['eigen_leads'] = _transpose_named_matrix(inv['eigen_leads'])
+    inv['eigen_leads'] = _transpose_named_matrix(eigen_leads)
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                              FIFF.FIFF_MNE_INVERSE_FIELDS)
     print '[done]'
@@ -179,11 +184,8 @@ def read_inverse_operator(fname):
     #
     #   Read the source spaces
     #
-    try:
-        inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
-    except Exception as inst:
-        fid.close()
-        raise Exception('Could not read the source spaces (%s)' % inst)
+
+    inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
 
     for s in inv['src']:
         s['id'] = find_source_space_hemi(s)
@@ -207,6 +209,7 @@ def read_inverse_operator(fname):
                                  'not found')
 
     inv['mri_head_t'] = mri_head_t
+
     #
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
@@ -253,6 +256,97 @@ def read_inverse_operator(fname):
     fid.close()
 
     return inv
+
+
+def write_inverse_operator(fname, inv):
+    """Write an inverse operator from a FIF file
+
+    Parameters
+    ----------
+    fname: string
+        The name of the FIF file.
+
+    inv: dict
+        The inverse operator
+    """
+    #
+    #   Open the file, create directory
+    #
+    print 'Write inverse operator decomposition in %s...' % fname
+
+    # Create the file and save the essentials
+    fid = start_file(fname)
+
+    start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+
+    print '    Writing inverse operator info...',
+
+    write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+    write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
+                       inv['source_nn'])
+    write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
+
+    #
+    #   The eigenleads and eigenfields
+    #
+    if inv['eigen_leads_weighted']:
+        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
+                           _transpose_named_matrix(inv['eigen_leads']))
+    else:
+        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
+                           _transpose_named_matrix(inv['eigen_leads']))
+
+    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
+    print '[done]'
+    #
+    #   write the covariance matrices
+    #
+    print '    Writing noise covariance matrix.'
+    write_cov(fid, inv['noise_cov'])
+
+    print '    Writing source covariance matrix.'
+    write_cov(fid, inv['source_cov'])
+    #
+    #   write the various priors
+    #
+    print '    Writing orientation priors.'
+    if inv['orient_prior'] is not None:
+        write_cov(fid, inv['orient_prior'])
+    write_cov(fid, inv['depth_prior'])
+
+    if inv['fmri_prior'] is not None:
+        write_cov(fid, inv['fmri_prior'])
+
+    #
+    #   Parent MRI data
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    #   write the MRI <-> head coordinate transformation
+    write_coord_trans(fid, inv['mri_head_t'])
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    #
+    #   Read the source spaces
+    #
+    if 'src' in inv:
+        write_source_spaces(fid, inv['src'])
+
+    #
+    #  We also need the SSP operator
+    #
+    write_proj(fid, inv['projs'])
+    #
+    #   Done!
+    #
+
+    end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+    end_file(fid)
+
+    fid.close()
+
 
 ###############################################################################
 # Compute inverse solution
@@ -915,7 +1009,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     if not is_fixed_ori:
         orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
         if loose is not None:
-            print 'Applying loose dipole orientations. Loose value of %s.' % loose
+            print ('Applying loose dipole orientations. Loose value of %s.'
+                                                                    % loose)
             orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
             source_cov *= orient_prior
         orient_prior = dict(data=orient_prior)

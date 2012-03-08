@@ -317,17 +317,25 @@ def write_dig_point(fid, dig):
     fid.write(np.array(dig['r'][:3], dtype='>f4').tostring())
 
 
-def write_named_matrix(fid, kind, mat):
-    """Writes a named single-precision floating-point matrix"""
-    start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
-    write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
-    write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
+def write_float_sparse_rcs(fid, kind, mat):
+    """Writes a single-precision floating-point matrix tag"""
+    FIFFT_FLOAT = 4
+    FIFFT_MATRIX = 16416 << 16
+    FIFFT_MATRIX_FLOAT_RCS = FIFFT_FLOAT | FIFFT_MATRIX
+    FIFFV_NEXT_SEQ = 0
 
-    if len(mat['row_names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
+    nnzm = mat.nnz
+    nrow = mat.shape[0]
+    data_size = 4 * nnzm + 4 * nnzm + 4 * (nrow + 1) + 4 * 4
 
-    if len(mat['col_names']) > 0:
-        write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
+    fid.write(np.array(kind, dtype='>i4').tostring())
+    fid.write(np.array(FIFFT_MATRIX_FLOAT_RCS, dtype='>i4').tostring())
+    fid.write(np.array(data_size, dtype='>i4').tostring())
+    fid.write(np.array(FIFFV_NEXT_SEQ, dtype='>i4').tostring())
 
-    write_float_matrix(fid, kind, mat['data'])
-    end_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
+    fid.write(np.array(mat.data, dtype='>f4').tostring())
+    fid.write(np.array(mat.indices, dtype='>i4').tostring())
+    fid.write(np.array(mat.indptr, dtype='>i4').tostring())
+
+    dims = [nnzm, mat.shape[0], mat.shape[1], 2]
+    fid.write(np.array(dims, dtype='>i4').tostring())

@@ -9,6 +9,10 @@ from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
 from .fiff.open import fiff_open
+from .fiff.write import start_block, end_block, write_int, \
+                        write_float_sparse_rcs, write_string, \
+                        write_float_matrix, write_int_matrix, \
+                        write_coord_trans
 
 
 def patch_info(nearest):
@@ -183,7 +187,7 @@ def _read_one_source_space(fid, this):
     if tag is None:
         raise ValueError('Number of vertices not found')
 
-    res['np'] = tag.data
+    res['np'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
     if tag is None:
@@ -241,7 +245,7 @@ def _read_one_source_space(fid, this):
         res['inuse'] = np.zeros(res['nuse'], dtype=np.int)
         res['vertno'] = None
     else:
-        res['nuse'] = tag.data
+        res['nuse'] = int(tag.data)
         tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION)
         if tag is None:
             raise ValueError('Source selection information missing')
@@ -339,3 +343,96 @@ def _get_vertno(src):
     for s in src:
         vertno.append(s['vertno'])
     return vertno
+
+###############################################################################
+# Write routines
+
+def write_source_spaces(fid, src):
+    """Write the source spaces to a FIF file
+
+    Parameters
+    ----------
+    fid: file descriptor
+        An open file descriptor
+
+    src: list
+        The list of source spaces
+
+    """
+    for s in src:
+        print '    Write a source space...',
+        start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
+        _write_one_source_space(fid, s)
+        end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
+        print '[done]'
+    print '    %d source spaces written' % len(src)
+
+
+def _write_one_source_space(fid, this):
+    """Read one source space
+    """
+
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
+    if this['type'] == 'surf':
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 1)
+    elif this['type'] == 'vol':
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 2)
+    else:
+        raise ValueError('Unknown source space type (%d)' % this['type'])
+
+    if this['type'] == 'vol':
+
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_VOXEL_DIMS, this['shape'])
+        write_coord_trans(fid, this['src_mri_t'])
+
+        start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        write_coord_trans(fid, this['vox_mri_t'])
+
+        write_coord_trans(fid, this['mri_ras_t'])
+
+        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR,
+                            this['interpolator'])
+
+        if 'mri_file' in this and this['mri_file'] is not None:
+            write_string(fid, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE,
+                         this['mri_file'])
+
+        write_int(fid, FIFF.FIFF_MRI_WIDTH, this['mri_width'])
+        write_int(fid, FIFF.FIFF_MRI_HEIGHT, this['mri_height'])
+        write_int(fid, FIFF.FIFF_MRI_DEPTH, this['mri_depth'])
+
+        end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, this['np'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, this['coord_frame'])
+    write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS, this['rr'])
+    write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, this['nn'])
+
+    if this['ntri'] > 0:
+        write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES, this['tris'] + 1)
+
+    #   Which vertices are active
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
+
+    if this['type'] != 'vol':
+        #   Use triangulation
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI, this['nuse_tri'])
+        write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES,
+                         this['use_tris'] + 1)
+
+    # #   Patch-related information
+    # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST)
+    # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST)
+
+    # if tag1 is None or tag2 is None:
+    #     res['nearest'] = None
+    #     res['nearest_dist'] = None
+    # else:
+    #     res['nearest'] = tag1.data
+    #     res['nearest_dist'] = tag2.data.T
+    #
+    # res['pinfo'] = patch_info(res['nearest'])
+    # if res['pinfo'] is not None:
+    #     print 'Patch information added...',
