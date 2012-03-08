@@ -87,7 +87,7 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
     Parameters
     ----------
     cov : instance of Covariance
-        The evoked data
+        The covariance matrix
     info: dict
         Measurement info
     exclude : list of string
