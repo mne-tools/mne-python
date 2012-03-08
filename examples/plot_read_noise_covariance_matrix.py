@@ -20,6 +20,9 @@ print cov
 
 ###############################################################################
 # Show covariance
+
+# Note: if you have the measurement info you can use mne.viz.plot_cov
+
 import pylab as pl
 pl.matshow(cov.data)
 pl.title('Noise covariance matrix (%d channels)' % cov.data.shape[0])

@@ -5,10 +5,12 @@
 #
 # License: Simplified BSD
 
+import copy
 import numpy as np
 import pylab as pl
 
-from .fiff.pick import channel_type
+from .fiff.pick import channel_type, pick_types
+from .fiff.proj import make_projector
 
 
 def plot_topo(evoked, layout):
@@ -75,6 +77,66 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
             pl.ylabel('data (%s)' % ch_unit)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+    if show:
+        pl.show()
+
+
+def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
+    """Plot Covariance data
+
+    Parameters
+    ----------
+    cov : instance of Covariance
+        The covariance matrix
+    info: dict
+        Measurement info
+    exclude : list of string
+        List of channels to exclude. If empty do not exclude any channel.
+    colorbar : bool
+        Show colorbar or not
+    proj : bool
+        Apply projections or not
+    show : bool
+        Call pylab.show() as the end or not.
+    """
+    ch_names = [n for n in cov.ch_names if not n in exclude]
+    ch_idx = [cov.ch_names.index(n) for n in ch_names]
+    info_ch_names = info['ch_names']
+    sel_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
+    sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
+    sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
+    idx_eeg = [ch_names.index(info_ch_names[c]) for c in sel_eeg]
+    idx_mag = [ch_names.index(info_ch_names[c]) for c in sel_mag]
+    idx_grad = [ch_names.index(info_ch_names[c]) for c in sel_grad]
+
+    idx_names = [(idx_eeg, 'EEG covariance'),
+                 (idx_grad, 'Gradiometers'),
+                 (idx_mag, 'Magnetometers')]
+    idx_names = [(idx, name) for idx, name in idx_names if len(idx) > 0]
+
+    C = cov.data[ch_idx][:, ch_idx]
+
+    if proj:
+        projs = copy.deepcopy(info['projs'])
+
+        #   Activate the projection items
+        for p in projs:
+            p['active'] = True
+
+        P, ncomp, _ = make_projector(projs, ch_names)
+        if ncomp > 0:
+            print '    Created an SSP operator (subspace dimension = %d)' % \
+                                                                        ncomp
+            C = np.dot(P, np.dot(C, P.T))
+        else:
+            print '    The projection vectors do not apply to these channels.'
+
+    pl.figure(figsize=(2.5 * len(idx_names), 2.7))
+    for k, (idx, name) in enumerate(idx_names):
+        pl.subplot(1, len(idx_names), k + 1)
+        pl.imshow(C[idx][:, idx], interpolation="nearest")
+        pl.title(name)
+    pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     if show:
         pl.show()
 
