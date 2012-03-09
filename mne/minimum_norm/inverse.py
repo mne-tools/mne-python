@@ -20,7 +20,8 @@ from ..fiff.write import write_int, write_float_matrix, start_file, \
                          start_block, end_block, end_file, write_float, \
                          write_coord_trans
 
-from ..cov import read_cov, prepare_noise_cov, write_cov
+from ..fiff.cov import read_cov, write_cov
+from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, compute_depth_prior_fixed
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
