@@ -14,6 +14,7 @@ from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector
 from .fiff import fiff_open
 from .fiff.pick import pick_types, channel_indices_by_type
+from .fiff.constants import FIFF
 from .epochs import _is_good
 
 
@@ -37,9 +38,6 @@ class Covariance(object):
     fname: string
         The name of the raw file
 
-    kind: 'full' | 'diagonal'
-        The type of covariance.
-
     Attributes
     ----------
     data : 2D array of shape [n_channels x n_channels]
@@ -52,24 +50,13 @@ class Covariance(object):
         Number of degrees of freedom i.e. number of time points used
     """
 
-    _kind_to_id = dict(full=1, sparse=2, diagonal=3)  # XXX : check
-    _id_to_kind = {1: 'full', 2: 'sparse', 3: 'diagonal'}  # XXX : check
-
-    def __init__(self, fname, kind='full'):
-        self.kind = kind
-
+    def __init__(self, fname):
         if fname is None:
             return
 
-        if self.kind in Covariance._kind_to_id:
-            cov_kind = Covariance._kind_to_id[self.kind]
-        else:
-            raise ValueError('Unknown type of covariance. '
-                             'Choose between full, sparse or diagonal.')
-
         # Reading
         fid, tree, _ = fiff_open(fname)
-        cov = fiff.read_cov(fid, tree, cov_kind)
+        cov = fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV)
         fid.close()
 
         self._cov = cov
@@ -90,8 +77,7 @@ class Covariance(object):
         end_file(fid)
 
     def __repr__(self):
-        s = "kind : %s" % self.kind
-        s += ", size : %s x %s" % self.data.shape
+        s = "size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
         return "Covariance (%s)" % s
 
@@ -121,7 +107,7 @@ class Covariance(object):
 # IO
 
 def read_cov(fname):
-    """Read covariance from a FIF file.
+    """Read a noise covariance from a FIF file.
 
     Parameters
     ----------
@@ -130,10 +116,11 @@ def read_cov(fname):
 
     Returns
     -------
-    projs: list
-        The list of projection vectors.
+    cov: Covariance
+        The noise covariance matrix.
     """
     return Covariance(fname)
+
 
 ###############################################################################
 # Estimate from data
@@ -232,8 +219,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     eigvec = None
 
     #   Store structure for fif
-    cov._cov = dict(kind=1, diag=False, dim=len(data), names=cov.ch_names,
-                    data=data, projs=copy.deepcopy(raw.info['projs']),
+    cov._cov = dict(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
+                    names=cov.ch_names, data=data,
+                    projs=copy.deepcopy(raw.info['projs']),
                     bads=raw.info['bads'], nfree=n_samples, eig=eig,
                     eigvec=eigvec)
 
@@ -314,7 +302,7 @@ def write_cov(fname, cov):
         The name of the file
 
     cov: Covariance
-        The noise covariance
+        The noise covariance matrix
     """
     cov.save(fname)
 

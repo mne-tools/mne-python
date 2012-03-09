@@ -326,7 +326,7 @@ FIFF.FIFFV_MNE_SOURCE_COV           = 2
 FIFF.FIFFV_MNE_FMRI_PRIOR_COV       = 3
 FIFF.FIFFV_MNE_SIGNAL_COV           = 4         # This will be potentially employed in beamformers
 FIFF.FIFFV_MNE_DEPTH_PRIOR_COV      = 5         # The depth weighting prior
-FIFF.FIFFV_MNE_ORIENT_PRIOR_COV     = 6     # The orientation prior
+FIFF.FIFFV_MNE_ORIENT_PRIOR_COV     = 6         # The orientation prior
 #
 # Source space types (values of FIFF_MNE_SOURCE_SPACE_TYPE)
 #
