@@ -4,10 +4,10 @@ from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 from scipy import linalg
 
-from .. import Covariance, read_cov, Epochs, merge_events, \
-               find_events, write_cov_file, compute_raw_data_covariance, \
+from .. import Covariance, Epochs, merge_events, \
+               find_events, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import fiff_open, Raw
+from ..fiff import Raw
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -22,15 +22,10 @@ erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
 def test_io_cov():
     """Test IO for noise covariance matrices
     """
-    fid, tree, _ = fiff_open(cov_fname)
-    cov_type = 1
-    cov = read_cov(fid, tree, cov_type)
-    fid.close()
-
-    write_cov_file('cov.fif', cov)
-
+    cov = Covariance(cov_fname)
+    cov.save('cov.fif')
     cov2 = Covariance('cov.fif')
-    assert_array_almost_equal(cov['data'], cov2.data)
+    assert_array_almost_equal(cov.data, cov2.data)
 
 
 def test_cov_estimation_on_raw_segment():
