@@ -252,7 +252,7 @@ def compute_covariance(epochs, keep_sample_mean=True):
     for e in epochs:
         e = e[picks_meeg]
         if not keep_sample_mean:
-            data_mean += np.sum(e, axis=0)
+            data_mean += np.sum(e, axis=1)
         data += np.dot(e, e.T)
         n_samples += e.shape[1]
         n_epochs += 1
