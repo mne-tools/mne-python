@@ -252,7 +252,7 @@ def compute_covariance(epochs, keep_sample_mean=True):
     for e in epochs:
         e = e[picks_meeg]
         if not keep_sample_mean:
-            data_mean += np.sum(e, axis=1)[:, np.newaxis]
+            data_mean += e
         data += np.dot(e, e.T)
         n_samples += e.shape[1]
         n_epochs += 1
@@ -262,14 +262,17 @@ def compute_covariance(epochs, keep_sample_mean=True):
                          ' matrix : %d samples' % n_samples)
 
     if keep_sample_mean:
-        data /= n_samples
+        nfree = n_samples
+        data /= nfree
     else:
-        data /= n_samples - 1
-        data -= n_samples / (1.0 - n_samples) * np.dot(data_mean, data_mean.T)
+        n_samples_epoch = n_samples / n_epochs
+        nfree = n_samples_epoch * (n_epochs - 1)
+        data /= nfree
+        data -= 1.0 / nfree * np.dot(data_mean, data_mean.T)
     cov = Covariance(None)
     cov.data = data
     cov.ch_names = ch_names
-    cov.nfree = n_samples
+    cov.nfree = nfree
 
     # XXX : do not compute eig and eigvec now (think it's better...)
     eig = None
