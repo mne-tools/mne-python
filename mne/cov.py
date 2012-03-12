@@ -126,7 +126,7 @@ def read_cov(fname):
 # Estimate from data
 
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                             reject=None, flat=None, keep_sample_mean=True):
+                                reject=None, flat=None):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
     It is typically useful to estimate a noise covariance
@@ -157,9 +157,6 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-    keep_sample_mean : bool
-        If False data are centered at each instant before computing
-        the covariance.
 
     Returns
     -------
