@@ -25,6 +25,21 @@ class Projection(dict):
         return "Projection (%s)" % s
 
 
+def proj_equal(a, b):
+    """ Test if two projectors are equal """
+
+    equal = a['active'] == b['active']\
+            and a['kind'] == b['kind']\
+            and a['desc'] == b['desc']\
+            and a['data']['col_names'] == b['data']['col_names']\
+            and a['data']['row_names'] == b['data']['row_names']\
+            and a['data']['ncol'] == b['data']['ncol']\
+            and a['data']['nrow'] == b['data']['nrow']\
+            and np.all(a['data']['data'] == b['data']['data'])
+
+    return equal
+
+
 def read_proj(fid, node):
     """Read spatial projections from a FIF file.
 
@@ -340,7 +355,7 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
                       ['planar', 'axial', 'eeg']):
         if n == 0:
             continue
-        data_ind = data[ind][:,ind]
+        data_ind = data[ind][:, ind]
         U = linalg.svd(data_ind, full_matrices=False,
                                          overwrite_a=True)[0][:, :n]
         for k, u in enumerate(U.T):

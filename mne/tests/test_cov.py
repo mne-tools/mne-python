@@ -57,8 +57,9 @@ def test_cov_estimation_with_triggers():
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
 
-    events = merge_events(events, event_ids, 1234)
-    epochs = Epochs(raw, events, 1234, tmin=-0.2, tmax=0,
+    # cov with merged events and keep_sample_mean=True
+    events_merged = merge_events(events, event_ids, 1234)
+    epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
                         baseline=(-0.2, -0.1), proj=True,
                         reject=reject)
 
@@ -68,11 +69,21 @@ def test_cov_estimation_with_triggers():
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 0.005)
 
+    # cov using a list of epochs and keep_sample_mean=True
+    epochs = [Epochs(raw, events, ev_id, tmin=-0.2, tmax=0,
+              baseline=(-0.2, -0.1), proj=True, reject=reject)
+              for ev_id in event_ids]
+
+    cov2 = compute_covariance(epochs, keep_sample_mean=True)
+    assert_array_almost_equal(cov.data, cov2.data)
+    assert_true(cov.ch_names == cov2.ch_names)
+
+    # cov with keep_sample_mean=False using a list of epochs
     cov = compute_covariance(epochs, keep_sample_mean=False)
     cov_mne = Covariance(cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.06)
+            / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # test IO when computation done in Python
     cov.save('test-cov.fif')  # test saving
