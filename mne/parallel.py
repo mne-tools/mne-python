@@ -1,4 +1,4 @@
-"""Parralle util function
+"""Parallel util function
 """
 
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
