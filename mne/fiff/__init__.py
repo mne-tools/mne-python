@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-__version__ = '0.1.git'
-
 from .constants import FIFF
 from .open import fiff_open
 from .evoked import Evoked, read_evoked, write_evoked
