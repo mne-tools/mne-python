@@ -9,6 +9,7 @@ MNE with Python
 
    getting_started.rst
    python_tutorial.rst
+   python_reference.rst
    auto_examples/index.rst
    whats_new.rst
    gitwash/index.rst
