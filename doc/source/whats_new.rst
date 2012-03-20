@@ -29,6 +29,8 @@ Changelog
 
    - Write inverse operators (surface and volume) by `Alex Gramfort`_.
 
+   - Covariance matrix computation with multiple event types by `Martin Luessi`_.
+
 Version 0.2
 -----------
 

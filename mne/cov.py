@@ -6,12 +6,14 @@
 import copy
 import os
 from math import floor, ceil
+import warnings
+
 import numpy as np
 from scipy import linalg
 
 from . import fiff
 from .fiff.write import start_file, end_file
-from .fiff.proj import make_projector
+from .fiff.proj import make_projector, proj_equal
 from .fiff import fiff_open
 from .fiff.pick import pick_types, channel_indices_by_type
 from .fiff.constants import FIFF
@@ -126,7 +128,7 @@ def read_cov(fname):
 # Estimate from data
 
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                             reject=None, flat=None, keep_sample_mean=True):
+                                reject=None, flat=None):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
     It is typically useful to estimate a noise covariance
@@ -157,9 +159,6 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-    keep_sample_mean : bool
-        If False data are centered at each instant before computing
-        the covariance.
 
     Returns
     -------
@@ -234,45 +233,92 @@ def compute_covariance(epochs, keep_sample_mean=True):
     The noise covariance is typically estimated on pre-stim periods
     when the stim onset if defined from events.
 
+    If the covariance is computed for multiple event types (events
+    with different IDs), an Epochs object for each event type has to
+    be created and a list of Epochs has to be passed to this function.
+
+    Note: Baseline correction should be used when creating the Epochs.
+          Otherwise the computed covariance matrix will be inaccurate.
+
+    Note: For multiple event types, it is also possible to create a
+          single Epochs object with events obtained using
+          merge_events(). However, the resulting covariance matrix
+          will only be correct if keep_sample_mean is True.
+
     Parameters
     ----------
-    epochs : instance of Epochs
+    epochs : instance of Epochs, or a list of Epochs objects
         The epochs
     keep_sample_mean : bool
-        If False data are centered at each instant before computing
-        the covariance.
+        If False, the average response over epochs is computed for
+        each event type and subtracted during the covariance
+        computation. This is useful if the evoked response from a
+        previous stimulus extends into the baseline period of the next.
+
     Returns
     -------
     cov : instance of Covariance
         The computed covariance.
     """
-    data = 0.0
-    data_mean = 0.0
-    n_samples = 0
-    n_epochs = 0
-    picks_meeg = pick_types(epochs.info, meg=True, eeg=True, eog=False)
-    ch_names = [epochs.ch_names[k] for k in picks_meeg]
-    for e in epochs:
-        e = e[picks_meeg]
-        if not keep_sample_mean:
-            data_mean += np.sum(e, axis=0)
-        data += np.dot(e, e.T)
-        n_samples += e.shape[1]
-        n_epochs += 1
+    if not isinstance(epochs, list):
+        epochs = [epochs]
 
-    if n_samples == 0:
+    # check for baseline correction
+    for epochs_t in epochs:
+        if epochs_t.baseline is None:
+            warnings.warn('Epochs are not baseline corrected, covariance '
+                          'matrix may be inaccurate')
+
+    bads = epochs[0].info['bads']
+    projs = epochs[0].info['projs']
+    ch_names = epochs[0].ch_names
+
+    # make sure Epochs are compatible
+    for epochs_t in epochs[1:]:
+        if epochs_t.info['bads'] != bads:
+            raise ValueError('Epochs must have same bad channels')
+        if epochs_t.ch_names != ch_names:
+            raise ValueError('Epochs must have same channel names')
+        for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
+            if not proj_equal(proj_a, proj_b):
+                raise ValueError('Epochs must have same projectors')
+
+    n_epoch_types = len(epochs)
+    data = 0.0
+    data_mean = list(np.zeros(n_epoch_types))
+    n_samples = np.zeros(n_epoch_types, dtype=np.int)
+    n_epochs = np.zeros(n_epoch_types, dtype=np.int)
+
+    picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False)
+    ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
+    for i, epochs_t in enumerate(epochs):
+        for e in epochs_t:
+            e = e[picks_meeg]
+            if not keep_sample_mean:
+                data_mean[i] += e
+            data += np.dot(e, e.T)
+            n_samples[i] += e.shape[1]
+            n_epochs[i] += 1
+
+    n_samples_tot = int(np.sum(n_samples))
+
+    if n_samples_tot == 0:
         raise ValueError('Not enough samples to compute the noise covariance'
-                         ' matrix : %d samples' % n_samples)
+                         ' matrix : %d samples' % n_samples_tot)
 
     if keep_sample_mean:
-        data /= n_samples
+        data /= n_samples_tot
     else:
-        data /= n_samples - 1
-        data -= n_samples / (1.0 - n_samples) * np.dot(data_mean, data_mean.T)
+        n_samples_epoch = n_samples / n_epochs
+        norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
+        for i, mean in enumerate(data_mean):
+            data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)
+        data /= norm_const
+
     cov = Covariance(None)
     cov.data = data
     cov.ch_names = ch_names
-    cov.nfree = n_samples
+    cov.nfree = n_samples_tot
 
     # XXX : do not compute eig and eigvec now (think it's better...)
     eig = None
@@ -280,11 +326,11 @@ def compute_covariance(epochs, keep_sample_mean=True):
 
     #   Store structure for fif
     cov._cov = dict(kind=1, diag=False, dim=len(data), names=ch_names,
-                    data=data, projs=copy.deepcopy(epochs.info['projs']),
-                    bads=epochs.info['bads'], nfree=n_samples, eig=eig,
+                    data=data, projs=copy.deepcopy(epochs[0].info['projs']),
+                    bads=epochs[0].info['bads'], nfree=n_samples_tot, eig=eig,
                     eigvec=eigvec)
 
-    print "Number of samples used : %d" % n_samples
+    print "Number of samples used : %d" % n_samples_tot
     print '[done]'
 
     return cov
