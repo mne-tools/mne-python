@@ -78,8 +78,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
 
         if x.ndim == 1:
             clusters = ndimage.find_objects(labels, n_labels)
-            sums = ndimage.measurements.sum(x, labels,
-                                            index=range(1, n_labels + 1))
+            if len(clusters) == 0:
+                sums = []
+            else:
+                sums = ndimage.measurements.sum(x, labels,
+                                                index=range(1, n_labels + 1))
         else:
             clusters = list()
             sums = np.empty(n_labels)
@@ -103,7 +106,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
                 clusters.append(c)
                 sums.append(np.sum(x[c]))
         sums = np.array(sums)
-    return clusters, sums
+    return clusters, np.atleast_1d(sums)
 
 
 def _pval_from_histogram(T, H0, tail):
@@ -340,8 +343,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
 
-    parallel, my_one_1samp_permutation, _ = parallel_func(_one_1samp_permutation,
-                                                       n_jobs, verbose)
+    parallel, my_one_1samp_permutation, _ = parallel_func(
+                                _one_1samp_permutation, n_jobs, verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
