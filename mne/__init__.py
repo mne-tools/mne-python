@@ -1,3 +1,6 @@
+"""MNE for MEG and EEG data analysis
+"""
+
 __version__ = '0.2.git'
 
 from .cov import read_cov, write_cov, Covariance, \
@@ -18,7 +21,7 @@ from .label import label_time_courses, read_label, label_sign_flip, \
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
 from .proj import read_proj
-import fiff
-import artifacts
-import stats
-import viz
+from . import fiff
+from . import artifacts
+from . import stats
+from . import viz

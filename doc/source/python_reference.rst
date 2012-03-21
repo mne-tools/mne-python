@@ -4,7 +4,7 @@ Reference
 
 This is the classes and functions reference of mne-python.
 
-.. _mne_ref:
+.. currentmodule:: mne.fiff
 
 .. automodule:: mne
    :no-members:
@@ -13,17 +13,15 @@ This is the classes and functions reference of mne-python.
 Classes reference
 =================
 
-.. currentmodule:: mne
-
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
-   fiff.Raw
-   fiff.Evoked
-   Epochs
-   Covariance
-   SourceEstimate
+   mne.fiff.Raw
+   mne.fiff.Evoked
+   mne.Epochs
+   mne.Covariance
+   mne.SourceEstimate
 
 Functions reference
 ===================
@@ -34,23 +32,17 @@ Functions reference
 
    read_cov
    write_cov
-
    label_time_courses
    read_label
    label_sign_flip
    write_label
    stc_to_label
-
    read_bem_surfaces
    read_surface
    write_bem_surface
-
    read_source_spaces
-
    save_stc_as_volume
-
    morph_data
-
    read_stc
    write_stc
    read_w
@@ -59,8 +51,8 @@ Functions reference
 .. currentmodule:: mne.fiff
 
 .. autosummary::
-  :toctree: generated/
-  :template: function.rst
+   :toctree: generated/
+   :template: function.rst
 
    pick_types
    pick_channels
@@ -78,8 +70,20 @@ Functions reference
    read_inverse_operator
    apply_inverse
    apply_inverse_raw
-   make_inverse_operator
    apply_inverse_epochs
+   make_inverse_operator
    write_inverse_operator
    source_band_induced_power
    source_induced_power
+
+.. currentmodule:: mne.stats
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   permutation_t_test
+   permutation_cluster_test
+   permutation_cluster_1samp_test
+   fdr_correction
+   bonferroni_correction

@@ -8,9 +8,9 @@ MNE with Python
    :maxdepth: 1
 
    getting_started.rst
+   auto_examples/index.rst
    python_tutorial.rst
    python_reference.rst
-   auto_examples/index.rst
    whats_new.rst
    gitwash/index.rst
 

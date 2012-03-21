@@ -328,6 +328,15 @@ class SourceEstimate(object):
         return "SourceEstimate (%s)" % s
 
     def crop(self, tmin=None, tmax=None):
+        """Restrict SourceEstimate to a time interval
+
+        Parameters
+        ----------
+        tmin : float or None
+            The first time point in seconds. It None the first present is used.
+        tmax : float or None
+            The last time point in seconds. It None the last present is used.
+        """
         mask = np.ones(len(self.times), dtype=np.bool)
         if tmin is not None:
             mask = mask & (self.times >= tmin)

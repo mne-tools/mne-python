@@ -1,3 +1,5 @@
+"""FIF module for IO with .fif files"""
+
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
