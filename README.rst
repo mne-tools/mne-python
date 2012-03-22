@@ -45,8 +45,10 @@ request to the main repository.
 Dependencies
 ============
 
-The required dependencies to build the software are python >= 2.5,
-NumPy >= 1.4, SciPy >= 0.7.
+The required dependencies to build the software are python >= 2.6,
+NumPy >= 1.4, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
+
+Some isolated functions (e.g. filtering with firwin2 require Scipy >= 0.9).
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
