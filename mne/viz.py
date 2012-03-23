@@ -7,7 +7,8 @@
 
 import copy
 import numpy as np
-import pylab as pl
+
+# XXX : don't import pylab here or you will break the doc
 
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector
@@ -20,6 +21,7 @@ def plot_topo(evoked, layout):
     times = evoked.times
     data = evoked.data
 
+    import pylab as pl
     pl.rcParams['axes.edgecolor'] = 'w'
     pl.figure(facecolor='k')
     for name in layout.names:
@@ -47,6 +49,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
     show : bool
         Call pylab.show() as the end or not.
     """
+    import pylab as pl
     pl.clf()
     if picks is None:
         picks = range(evoked.info['nchan'])
@@ -131,6 +134,7 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
         else:
             print '    The projection vectors do not apply to these channels.'
 
+    import pylab as pl
     pl.figure(figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name) in enumerate(idx_names):
         pl.subplot(1, len(idx_names), k + 1)
