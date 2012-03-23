@@ -98,8 +98,8 @@ def pick_channels_regexp(ch_names, regexp):
     sel : array of int
         Indices of good channels.
 
-    Example
-    -------
+    Examples
+    --------
     >>> pick_channels_regexp(['MEG 2331', 'MEG 2332', 'MEG 2333'], 'MEG ...1')
     [0]
     >>> pick_channels_regexp(['MEG 2331', 'MEG 2332', 'MEG 2333'], 'MEG *')

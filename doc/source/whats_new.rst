@@ -31,6 +31,8 @@ Changelog
 
    - Covariance matrix computation with multiple event types by `Martin Luessi`_.
 
+   - New tutorial in the documentation and new classes and functions reference page by `Alex Gramfort`_.
+
 Version 0.2
 -----------
 
