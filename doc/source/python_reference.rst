@@ -4,8 +4,6 @@ Reference
 
 This is the classes and functions reference of mne-python.
 
-.. currentmodule:: mne.fiff
-
 .. automodule:: mne
    :no-members:
    :no-inherited-members:
@@ -25,6 +23,8 @@ Classes reference
 
 Functions reference
 ===================
+
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
@@ -47,19 +47,16 @@ Functions reference
    write_stc
    read_w
    write_w
+   fiff.pick_types
+   fiff.pick_channels
+   fiff.pick_types_evoked
+   fiff.pick_channels_regexp
+   fiff.pick_channels_forward
+   fiff.pick_types_forward
 
-.. currentmodule:: mne.fiff
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   pick_types
-   pick_channels
-   pick_types_evoked
-   pick_channels_regexp
-   pick_channels_forward
-   pick_types_forward
+.. automodule:: mne.minimum_norm
+  :no-members:
+  :no-inherited-members:
 
 .. currentmodule:: mne.minimum_norm
 
@@ -76,6 +73,10 @@ Functions reference
    source_band_induced_power
    source_induced_power
 
+.. automodule:: mne.stats
+ :no-members:
+ :no-inherited-members:
+
 .. currentmodule:: mne.stats
 
 .. autosummary::
@@ -87,3 +88,30 @@ Functions reference
    permutation_cluster_1samp_test
    fdr_correction
    bonferroni_correction
+
+.. automodule:: mne.artifacts
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.artifacts
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   find_eog_events
+   find_ecg_events
+
+.. automodule:: mne.time_frequency
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.time_frequency
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   induced_power
+   single_trial_power
+   compute_raw_psd
