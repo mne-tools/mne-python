@@ -202,8 +202,8 @@ Compute evoked responses by averaging and plot it:
 
   >>> max_in_each_epoch = [e.max() for e in epochs] # doctest:+ELLIPSIS
   Reading ...
-  >>> print max_in_each_epoch[:4]
-  [1.9375167099187067e-05, 1.6405510537151386e-05, 1.8545374666676332e-05, 2.0412814911475336e-05]
+  >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
+  [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
 
 It is also possible to read evoked data stored in a fif file:
 
