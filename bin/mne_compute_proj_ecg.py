@@ -1,14 +1,20 @@
 #!/usr/bin/env python
 """Compute SSP/PCA projections for ECG artifacts
+
+You can do for example:
+
+$mne_compute_proj_ecg.py -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-freq 100
+
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
 
+import os
 import mne
 
 
 def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
-                     h_freq, average, preload, filter_length, n_jobs):
+                     h_freq, average, preload, filter_length, n_jobs, ch_name):
     """Compute SSP/PCA projections for ECG artifacts
 
     Parameters
@@ -30,7 +36,7 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
 
     print 'Running ECG SSP computation'
 
-    ecg_events, _, _ = mne.artifacts.find_ecg_events(raw)
+    ecg_events, _, _ = mne.artifacts.find_ecg_events(raw, ch_name=ch_name)
     print "Writing ECG events in %s" % ecg_event_fname
     mne.write_events(ecg_event_fname, ecg_events)
 
@@ -55,6 +61,9 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
         projs = mne.compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
                                         n_eeg=n_eeg)
 
+    if preload is not None and os.path.exists(preload):
+        os.remove(preload)
+
     print "Writing ECG projections in %s" % ecg_proj_fname
     mne.write_proj(ecg_proj_fname, projs)
     print 'Done.'
@@ -67,10 +76,10 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-i", "--in", dest="raw_in",
                     help="Input raw FIF file", metavar="FILE")
-    parser.add_option("-b", "--tmin", dest="tmin",
+    parser.add_option("-n", "--tmin", dest="tmin",
                     help="time before event in seconds",
                     default=-0.2)
-    parser.add_option("-c", "--tmax", dest="tmax",
+    parser.add_option("-x", "--tmax", dest="tmax",
                     help="time before event in seconds",
                     default=0.4)
     parser.add_option("-g", "--n-grad", dest="n_grad",
@@ -100,6 +109,9 @@ if __name__ == '__main__':
     parser.add_option("-j", "--n-jobs", dest="n_jobs",
                     help="Number of jobs to run in parallel",
                     default=1)
+    parser.add_option("-c", "--channel", dest="ch_name",
+                    help="Channel to use for ECG detection (Required if no ECG found)",
+                    default=None)
 
     options, args = parser.parse_args()
 
@@ -115,6 +127,7 @@ if __name__ == '__main__':
     preload = options.preload
     filter_length = options.filter_length
     n_jobs = options.n_jobs
+    ch_name = options.ch_name
 
     compute_proj_ecg(raw_in, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
-                     average, preload, filter_length, n_jobs)
+                     average, preload, filter_length, n_jobs, ch_name)
