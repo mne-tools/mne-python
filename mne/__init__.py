@@ -20,7 +20,8 @@ from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
-from .proj import read_proj
+from .proj import read_proj, write_proj, compute_proj_epochs, \
+                  compute_proj_evoked
 from . import fiff
 from . import artifacts
 from . import stats
