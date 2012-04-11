@@ -4,17 +4,19 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from .. import Raw, pick_types, compute_spatial_vectors
-from ..proj import make_projector, read_proj
-from ..open import fiff_open
-from ... import read_events, Epochs
+from ..fiff import Raw, pick_types
+from .. import compute_proj_epochs, compute_proj_evoked
+from ..fiff.proj import make_projector
+from ..proj import read_proj
+from .. import read_events, Epochs
 
-raw_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
-event_fname = op.join(op.dirname(__file__), 'data', 'test-eve.fif')
-proj_fname = op.join(op.dirname(__file__), 'data', 'test_proj.fif')
+base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
+proj_fname = op.join(base_dir, 'test_proj.fif')
 
 
-def test_compute_spatial_vectors():
+def test_compute_proj():
     """Test SSP computation"""
     event_id, tmin, tmax = 1, -0.2, 0.3
 
@@ -27,10 +29,10 @@ def test_compute_spatial_vectors():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=None, proj=False)
 
-    projs = compute_spatial_vectors(epochs, n_grad=1, n_mag=1, n_eeg=0)
+    evoked = epochs.average()
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0)
 
-    fid, tree, _ = fiff_open(proj_fname)
-    projs2 = read_proj(fid, tree)
+    projs2 = read_proj(proj_fname)
 
     for k, (p1, p2) in enumerate(zip(projs, projs2)):
         assert_true(p1['desc'] == p2['desc'])
@@ -57,5 +59,7 @@ def test_compute_spatial_vectors():
     evoked = epochs.average()
     evoked.save('foo.fif')
 
-    fid, tree, _ = fiff_open(proj_fname)
-    projs = read_proj(fid, tree)
+    projs = read_proj(proj_fname)
+
+    projs_evoked = compute_proj_evoked(evoked, n_grad=1, n_mag=1, n_eeg=0)
+    # XXX : test something
