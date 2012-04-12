@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
@@ -10,6 +11,7 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
+from .pick import pick_types
 from ..utils import deprecated
 
 
@@ -121,7 +123,7 @@ def read_proj(fid, node):
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE)
         if tag is not None:
-            active = True
+            active = bool(tag.data)
         else:
             active = False
 
@@ -173,16 +175,16 @@ def write_proj(fid, projs):
 
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
+        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
+        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
+                             proj['data']['col_names'])
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
 
-        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj['data']['nrow'])
         write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj['active'])
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                             proj['data']['col_names'])
         write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS,
                            proj['data']['data'])
         end_block(fid, FIFF.FIFFB_PROJ_ITEM)
@@ -331,3 +333,49 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
     """
     import mne  # XXX : ugly due to circular mess in imports
     return mne.compute_proj_epochs(epochs, n_grad, n_mag, n_eeg)
+
+
+def activate_proj(projs, copy=True):
+    """Set all projections to active
+
+    Useful before passing them to make_projector
+    """
+    if copy:
+        projs = deepcopy(projs)
+
+    #   Activate the projection items
+    for proj in projs:
+        proj['active'] = True
+
+    print '%d projection items activated' % len(projs)
+
+    return projs
+
+
+def make_eeg_average_ref_proj(info):
+    """Create an EEG average reference SSP projection vector
+
+    Parameters
+    ----------
+    info: dict
+        Measurement info
+
+    Returns
+    -------
+    eeg_proj: instance of Projection
+        The SSP/PCA projector
+    """
+    print "Adding average EEG reference projection."
+    eeg_sel = pick_types(info, meg=False, eeg=True)
+    ch_names = info['ch_names']
+    eeg_names = [ch_names[k] for k in eeg_sel]
+    n_eeg = len(eeg_sel)
+    if n_eeg == 0:
+        raise ValueError('Cannot create EEG average reference projector '
+                         '(no EEG data found)')
+    vec = np.ones((1, n_eeg)) / n_eeg
+    eeg_proj_data = dict(col_names=eeg_names, row_names=None,
+                         data=vec, nrow=1, ncol=n_eeg)
+    eeg_proj = Projection(active=True, data=eeg_proj_data,
+                    desc='Average EEG reference', kind=1)
+    return eeg_proj

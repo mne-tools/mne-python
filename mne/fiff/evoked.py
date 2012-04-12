@@ -11,7 +11,7 @@ from .open import fiff_open
 from .tag import read_tag
 from .tree import dir_tree_find
 from .meas_info import read_meas_info, write_meas_info
-from .proj import make_projector_info
+from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
 
 from .write import start_file, start_block, end_file, end_block, \
@@ -219,10 +219,7 @@ class Evoked(object):
             self.proj = None
         else:
             #   Activate the projection items
-            for proj in info['projs']:
-                proj['active'] = True
-
-            print '%d projection items activated' % len(info['projs'])
+            info['projs'] = activate_proj(info['projs'], copy=False)
 
             #   Create the projector
             proj, nproj = make_projector_info(info)
