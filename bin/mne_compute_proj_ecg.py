@@ -66,7 +66,9 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
         raw.band_pass_filter(picks, l_freq, h_freq, filter_length, n_jobs)
 
     epochs = mne.Epochs(raw, ecg_events, None, tmin, tmax, baseline=None,
-                        picks=picks, reject=reject)
+                        picks=picks, reject=reject, proj=True)
+
+    projs_init = raw.info['projs']
 
     if average:
         evoked = epochs.average()
@@ -80,7 +82,7 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
         os.remove(preload)
 
     print "Writing ECG projections in %s" % ecg_proj_fname
-    mne.write_proj(ecg_proj_fname, projs)
+    mne.write_proj(ecg_proj_fname, projs + projs_init)
     print 'Done.'
 
 
