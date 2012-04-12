@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 import numpy as np
 from scipy import linalg
 

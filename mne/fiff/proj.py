@@ -331,3 +331,20 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
     """
     import mne  # XXX : ugly due to circular mess in imports
     return mne.compute_proj_epochs(epochs, n_grad, n_mag, n_eeg)
+
+
+def activate_proj(projs, copy=True):
+    """Set all projections to active
+
+    Useful before passing them to make_projector
+    """
+    if copy:
+        projs = deepcopy(projs)
+
+    #   Activate the projection items
+    for proj in projs:
+        proj['active'] = True
+
+    print '%d projection items activated' % len(projs)
+
+    return projs

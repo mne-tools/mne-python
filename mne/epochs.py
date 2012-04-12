@@ -9,6 +9,7 @@ import fiff
 import warnings
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
+from .fiff.proj import activate_proj
 from .baseline import rescale
 
 
@@ -142,10 +143,7 @@ class Epochs(object):
             self.proj = None
         else:
             #   Activate the projection items
-            for proj in self.info['projs']:
-                proj['active'] = True
-
-            print '%d projection items activated' % len(self.info['projs'])
+            self.info['projs'] = activate_proj(self.info['projs'], copy=False)
 
             # Add EEG ref reference proj
             print "Adding average EEG reference projection."
