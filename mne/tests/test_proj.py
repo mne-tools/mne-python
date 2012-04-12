@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 from ..fiff import Raw, pick_types
 from .. import compute_proj_epochs, compute_proj_evoked
-from ..fiff.proj import make_projector
+from ..fiff.proj import make_projector, activate_proj
 from ..proj import read_proj
 from .. import read_events, Epochs
 
@@ -34,9 +34,12 @@ def test_compute_proj():
 
     projs2 = read_proj(proj_fname)
 
-    for k, (p1, p2) in enumerate(zip(projs, projs2)):
+    assert_true(len(projs) == len(projs2))
+
+    for p1, p2 in zip(projs, projs2):
         assert_true(p1['desc'] == p2['desc'])
         assert_true(p1['data']['col_names'] == p2['data']['col_names'])
+        assert_true(p1['active'] == p2['active'])
         # compare with sign invariance
         p1_data = p1['data']['data'] * np.sign(p1['data']['data'][0, 0])
         p2_data = p2['data']['data'] * np.sign(p2['data']['data'][0, 0])
@@ -50,7 +53,9 @@ def test_compute_proj():
         assert_array_almost_equal(corr, 1.0, 7)
 
     # test that you can compute the projection matrix
+    projs = activate_proj(projs)
     proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
+
     assert_true(nproj == 2)
     assert_true(U.shape[1] == 2)
 
