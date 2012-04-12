@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
@@ -79,7 +78,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             print "Adding projection: %s" % this_desc
-            proj = dict(active=True, data=proj_data, desc=this_desc, kind=1)
+            proj = dict(active=False, data=proj_data, desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs

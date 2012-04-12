@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
@@ -121,7 +122,7 @@ def read_proj(fid, node):
 
         tag = find_tag(fid, item, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE)
         if tag is not None:
-            active = True
+            active = bool(tag.data)
         else:
             active = False
 
@@ -173,16 +174,16 @@ def write_proj(fid, projs):
 
     for proj in projs:
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
+        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
+        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
+                             proj['data']['col_names'])
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
             write_float(fid, FIFF.FIFF_PROJ_ITEM_TIME, 0.0)
 
-        write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_NVEC, proj['data']['nrow'])
         write_int(fid, FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE, proj['active'])
-        write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                             proj['data']['col_names'])
         write_float_matrix(fid, FIFF.FIFF_PROJ_ITEM_VECTORS,
                            proj['data']['data'])
         end_block(fid, FIFF.FIFFB_PROJ_ITEM)
