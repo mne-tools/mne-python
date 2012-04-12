@@ -9,7 +9,7 @@ import fiff
 import warnings
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
-from .fiff.proj import activate_proj
+from .fiff.proj import activate_proj, make_eeg_average_ref_proj
 from .baseline import rescale
 
 
@@ -148,14 +148,8 @@ class Epochs(object):
             # Add EEG ref reference proj
             print "Adding average EEG reference projection."
             eeg_sel = pick_types(self.info, meg=False, eeg=True)
-            eeg_names = [self.ch_names[k] for k in eeg_sel]
-            n_eeg = len(eeg_sel)
-            if n_eeg > 0:
-                vec = np.ones((1, n_eeg)) / n_eeg
-                eeg_proj_data = dict(col_names=eeg_names, row_names=None,
-                                     data=vec, nrow=1, ncol=n_eeg)
-                eeg_proj = dict(active=True, data=eeg_proj_data,
-                                desc='Average EEG reference', kind=1)
+            if len(eeg_sel) > 0:
+                eeg_proj = make_eeg_average_ref_proj(self.info)
                 self.info['projs'].append(eeg_proj)
 
             #   Create the projector

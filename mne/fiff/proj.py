@@ -11,6 +11,7 @@ from scipy import linalg
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
+from .pick import pick_types
 from ..utils import deprecated
 
 
@@ -349,3 +350,32 @@ def activate_proj(projs, copy=True):
     print '%d projection items activated' % len(projs)
 
     return projs
+
+
+def make_eeg_average_ref_proj(info):
+    """Create an EEG average reference SSP projection vector
+
+    Parameters
+    ----------
+    info: dict
+        Measurement info
+
+    Returns
+    -------
+    eeg_proj: instance of Projection
+        The SSP/PCA projector
+    """
+    print "Adding average EEG reference projection."
+    eeg_sel = pick_types(info, meg=False, eeg=True)
+    ch_names = info['ch_names']
+    eeg_names = [ch_names[k] for k in eeg_sel]
+    n_eeg = len(eeg_sel)
+    if n_eeg == 0:
+        raise ValueError('Cannot create EEG average reference projector '
+                         '(no EEG data found)')
+    vec = np.ones((1, n_eeg)) / n_eeg
+    eeg_proj_data = dict(col_names=eeg_names, row_names=None,
+                         data=vec, nrow=1, ncol=n_eeg)
+    eeg_proj = Projection(active=True, data=eeg_proj_data,
+                    desc='Average EEG reference', kind=1)
+    return eeg_proj

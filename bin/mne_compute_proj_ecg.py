@@ -15,7 +15,7 @@ import mne
 
 def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
                      h_freq, average, preload, filter_length, n_jobs, ch_name,
-                     reject):
+                     reject, avg_ref, bads):
     """Compute SSP/PCA projections for ECG artifacts
 
     Parameters
@@ -45,8 +45,14 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
     print "Writing ECG events in %s" % ecg_event_fname
     mne.write_events(ecg_event_fname, ecg_events)
 
+    if avg_ref:
+        print "Adding average EEG reference projection."
+        eeg_proj = mne.fiff.proj.make_eeg_average_ref_proj(raw.info)
+        raw.info['projs'].append(eeg_proj)
+
     print 'Computing ECG projector'
 
+    # Handler rejection parameters
     if len(mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
         del reject['grad']
     if len(mne.fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
@@ -57,7 +63,7 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
         del reject['eog']
 
     picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True,
-                                exclude=raw.info['bads'])
+                                exclude=raw.info['bads'] + bads)
     if l_freq is None and h_freq is not None:
         raw.high_pass_filter(picks, h_freq, filter_length, n_jobs)
     if l_freq is not None and h_freq is None:
@@ -141,6 +147,12 @@ if __name__ == '__main__':
     parser.add_option("-o", "--rej-eog", dest="rej_eog",
                     help="EOG rejection parameter in uV (peak to peak amplitude)",
                     default=250)
+    parser.add_option("-v", "--avg-ref", dest="avg_ref", action="store_true",
+                    help="Add EEG average reference proj",
+                    default=False)
+    parser.add_option("-d", "--bad", dest="bad_fname",
+                    help="Text file containing bad channels list (one per line)",
+                    default=None)
 
     options, args = parser.parse_args()
 
@@ -161,6 +173,15 @@ if __name__ == '__main__':
                   mag=1e-15 * float(options.rej_mag),
                   eeg=1e-6 * float(options.rej_eeg),
                   eog=1e-6 * float(options.rej_eog))
+    avg_ref = options.avg_ref
+    bad_fname = options.bad_fname
+
+    if bad_fname is not None:
+        bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
+        print 'Bad channels read : %s' % bads
+    else:
+        bads = []
 
     compute_proj_ecg(raw_in, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
-                     average, preload, filter_length, n_jobs, ch_name, reject)
+                     average, preload, filter_length, n_jobs, ch_name, reject,
+                     avg_ref, bads)
