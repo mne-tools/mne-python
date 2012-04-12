@@ -14,7 +14,8 @@ import mne
 
 
 def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
-                     h_freq, average, preload, filter_length, n_jobs, ch_name):
+                     h_freq, average, preload, filter_length, n_jobs, ch_name,
+                     reject):
     """Compute SSP/PCA projections for ECG artifacts
 
     Parameters
@@ -31,8 +32,12 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
     else:
         prefix = in_fif_fname[:-4]
 
-    ecg_proj_fname = prefix + '_ecg_proj.fif'
     ecg_event_fname = prefix + '_ecg-eve.fif'
+
+    if average:
+        ecg_proj_fname = prefix + '_ecg_avg_proj.fif'
+    else:
+        ecg_proj_fname = prefix + '_ecg_proj.fif'
 
     print 'Running ECG SSP computation'
 
@@ -42,7 +47,17 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
 
     print 'Computing ECG projector'
 
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True)
+    if len(mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+        del reject['grad']
+    if len(mne.fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+        del reject['mag']
+    if len(mne.fiff.pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+        del reject['eeg']
+    if len(mne.fiff.pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+        del reject['eog']
+
+    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True,
+                                exclude=raw.info['bads'])
     if l_freq is None and h_freq is not None:
         raw.high_pass_filter(picks, h_freq, filter_length, n_jobs)
     if l_freq is not None and h_freq is None:
@@ -51,7 +66,7 @@ def compute_proj_ecg(in_fif_fname, tmin, tmax, n_grad, n_mag, n_eeg, l_freq,
         raw.band_pass_filter(picks, l_freq, h_freq, filter_length, n_jobs)
 
     epochs = mne.Epochs(raw, ecg_events, None, tmin, tmax, baseline=None,
-                        picks=picks)
+                        picks=picks, reject=reject)
 
     if average:
         evoked = epochs.average()
@@ -112,6 +127,18 @@ if __name__ == '__main__':
     parser.add_option("-c", "--channel", dest="ch_name",
                     help="Channel to use for ECG detection (Required if no ECG found)",
                     default=None)
+    parser.add_option("-q", "--rej-grad", dest="rej_grad",
+                    help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
+                    default=2000)
+    parser.add_option("-r", "--rej-mag", dest="rej_mag",
+                    help="Magnetometers rejection parameter in fT (peak to peak amplitude)",
+                    default=3000)
+    parser.add_option("-s", "--rej-eeg", dest="rej_eeg",
+                    help="EEG rejection parameter in uV (peak to peak amplitude)",
+                    default=50)
+    parser.add_option("-o", "--rej-eog", dest="rej_eog",
+                    help="EOG rejection parameter in uV (peak to peak amplitude)",
+                    default=250)
 
     options, args = parser.parse_args()
 
@@ -128,6 +155,10 @@ if __name__ == '__main__':
     filter_length = options.filter_length
     n_jobs = options.n_jobs
     ch_name = options.ch_name
+    reject = dict(grad=1e-13 * float(options.rej_grad),
+                  mag=1e-15 * float(options.rej_mag),
+                  eeg=1e-6 * float(options.rej_eeg),
+                  eog=1e-6 * float(options.rej_eog))
 
     compute_proj_ecg(raw_in, tmin, tmax, n_grad, n_mag, n_eeg, l_freq, h_freq,
-                     average, preload, filter_length, n_jobs, ch_name)
+                     average, preload, filter_length, n_jobs, ch_name, reject)
