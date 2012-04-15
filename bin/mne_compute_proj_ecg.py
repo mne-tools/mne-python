@@ -8,6 +8,7 @@ $mne_compute_proj_ecg.py -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-f
 
 # Authors : Alexandre Gramfort, Ph.D.
 
+import sys
 import os
 import mne
 
@@ -98,10 +99,10 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-i", "--in", dest="raw_in",
                     help="Input raw FIF file", metavar="FILE")
-    parser.add_option("-n", "--tmin", dest="tmin",
+    parser.add_option("--tmin", dest="tmin",
                     help="time before event in seconds",
                     default=-0.2)
-    parser.add_option("-x", "--tmax", dest="tmax",
+    parser.add_option("--tmax", dest="tmax",
                     help="time before event in seconds",
                     default=0.4)
     parser.add_option("-g", "--n-grad", dest="n_grad",
@@ -113,10 +114,10 @@ if __name__ == '__main__':
     parser.add_option("-e", "--n-eeg", dest="n_eeg",
                     help="Number of SSP vectors for EEG",
                     default=2)
-    parser.add_option("-l", "--l-freq", dest="l_freq",
+    parser.add_option("--l-freq", dest="l_freq",
                     help="Filter low cut-off frequency in Hz",
                     default=None)  # XXX
-    parser.add_option("-t", "--h-freq", dest="h_freq",
+    parser.add_option("--h-freq", dest="h_freq",
                     help="Filter high cut-off frequency in Hz",
                     default=None)  # XXX
     parser.add_option("-p", "--preload", dest="preload",
@@ -125,7 +126,7 @@ if __name__ == '__main__':
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
                     default=False)
-    parser.add_option("-f", "--filter-length", dest="filter_length",
+    parser.add_option("--filtersize", dest="filter_length",
                     help="Number of SSP vectors for EEG",
                     default=2048)
     parser.add_option("-j", "--n-jobs", dest="n_jobs",
@@ -134,28 +135,33 @@ if __name__ == '__main__':
     parser.add_option("-c", "--channel", dest="ch_name",
                     help="Channel to use for ECG detection (Required if no ECG found)",
                     default=None)
-    parser.add_option("-q", "--rej-grad", dest="rej_grad",
+    parser.add_option("--rej-grad", dest="rej_grad",
                     help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
                     default=2000)
-    parser.add_option("-r", "--rej-mag", dest="rej_mag",
+    parser.add_option("--rej-mag", dest="rej_mag",
                     help="Magnetometers rejection parameter in fT (peak to peak amplitude)",
                     default=3000)
-    parser.add_option("-s", "--rej-eeg", dest="rej_eeg",
+    parser.add_option("--rej-eeg", dest="rej_eeg",
                     help="EEG rejection parameter in uV (peak to peak amplitude)",
                     default=50)
-    parser.add_option("-o", "--rej-eog", dest="rej_eog",
+    parser.add_option("--rej-eog", dest="rej_eog",
                     help="EOG rejection parameter in uV (peak to peak amplitude)",
                     default=250)
-    parser.add_option("-v", "--avg-ref", dest="avg_ref", action="store_true",
+    parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                     help="Add EEG average reference proj",
                     default=False)
-    parser.add_option("-d", "--bad", dest="bad_fname",
+    parser.add_option("--bad", dest="bad_fname",
                     help="Text file containing bad channels list (one per line)",
                     default=None)
 
     options, args = parser.parse_args()
 
     raw_in = options.raw_in
+
+    if raw_in is None:
+        parser.print_help()
+        sys.exit(-1)
+
     tmin = options.tmin
     tmax = options.tmax
     n_grad = options.n_grad
