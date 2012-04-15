@@ -501,6 +501,13 @@ def _apply_forward(fwd, stc, start=None, stop=None):
                       'values. Use pick_normal=True when computing the '
                       'inverse to compute currents not current magnitudes.')
 
+    max_cur = np.max(np.abs(stc.data))
+    if max_cur > 1e-7:  # 100 nAm threshold for warning
+        warnings.warn('The maximum current magnitude is %0.1f nAm, which is '
+                      'very large. Are you trying to apply the forward model '
+                      'to dSPM values? The result will only be correct if '
+                      'currents are used.' % 1e9 * max_cur)
+
     src_sel = _stc_src_sel(fwd['src'], stc)
 
     gain = fwd['sol']['data'][:, src_sel]
