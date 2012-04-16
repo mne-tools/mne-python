@@ -7,6 +7,7 @@
 
 import copy
 import numpy as np
+from scipy import linalg
 
 # XXX : don't import pylab here or you will break the doc
 
@@ -84,7 +85,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
         pl.show()
 
 
-def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
+def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
+             show=True):
     """Plot Covariance data
 
     Parameters
@@ -101,6 +103,9 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
         Apply projections or not
     show : bool
         Call pylab.show() as the end or not.
+    show_svd : bool
+        Plot also singular values of the noise covariance for each sensor type.
+        We show square roots ie. standard deviations.
     """
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
@@ -112,10 +117,11 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
     idx_mag = [ch_names.index(info_ch_names[c]) for c in sel_mag]
     idx_grad = [ch_names.index(info_ch_names[c]) for c in sel_grad]
 
-    idx_names = [(idx_eeg, 'EEG covariance'),
-                 (idx_grad, 'Gradiometers'),
-                 (idx_mag, 'Magnetometers')]
-    idx_names = [(idx, name) for idx, name in idx_names if len(idx) > 0]
+    idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
+                 (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
+                 (idx_mag, 'Magnetometers', 'fT', 1e15)]
+    idx_names = [(idx, name, unit, scaling)
+                 for idx, name, unit, scaling in idx_names if len(idx) > 0]
 
     C = cov.data[ch_idx][:, ch_idx]
 
@@ -135,12 +141,28 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show=True):
             print '    The projection vectors do not apply to these channels.'
 
     import pylab as pl
+
+    if show_svd:
+        pl.figure()
+        for k, (idx, name, unit, scaling) in enumerate(idx_names):
+            _, s, _ = linalg.svd(C[idx][:, idx])
+            pl.subplot(1, len(idx_names), k + 1)
+            pl.ylabel('Noise std (%s)' % unit)
+            pl.xlabel('Eigenvalue index')
+            pl.semilogy(np.sqrt(s) * scaling)
+            pl.title(name)
+        try:
+            pl.tight_layout()  # XXX : recent pylab feature
+        except:
+            pass
+
     pl.figure(figsize=(2.5 * len(idx_names), 2.7))
-    for k, (idx, name) in enumerate(idx_names):
+    for k, (idx, name, _, _) in enumerate(idx_names):
         pl.subplot(1, len(idx_names), k + 1)
         pl.imshow(C[idx][:, idx], interpolation="nearest")
         pl.title(name)
     pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
+
     if show:
         pl.show()
 
