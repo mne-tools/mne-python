@@ -105,6 +105,7 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
         Call pylab.show() as the end or not.
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor type.
+        We show square roots ie. standard deviations.
     """
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
@@ -148,7 +149,7 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
             pl.subplot(1, len(idx_names), k + 1)
             pl.ylabel('Noise std (%s)' % unit)
             pl.xlabel('Eigenvalue index')
-            pl.semilogy(s * (scaling ** 2))
+            pl.semilogy(np.sqrt(s) * scaling)
             pl.title(name)
         try:
             pl.tight_layout()  # XXX : recent pylab feature
