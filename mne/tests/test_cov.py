@@ -7,7 +7,7 @@ from scipy import linalg
 from .. import Covariance, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import Raw
+from ..fiff import Raw, pick_channels_cov
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -26,6 +26,12 @@ def test_io_cov():
     cov.save('cov.fif')
     cov2 = Covariance('cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
+
+    cov['bads'] = ['EEG 039']
+    cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
+    assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
+    assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
+    cov_sel.save('cov.fif')
 
 
 def test_cov_estimation_on_raw_segment():

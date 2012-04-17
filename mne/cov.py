@@ -81,7 +81,7 @@ class Covariance(dict):
             fiff.write_cov(fid, self)
         except Exception as inst:
             os.remove(fname)
-            raise '%s', inst
+            raise inst
 
         end_file(fid)
 
