@@ -394,3 +394,34 @@ def channel_indices_by_type(info):
                 idx[key].append(k)
 
     return idx
+
+
+def pick_channels_cov(orig, include=[], exclude=[]):
+    """Pick channels from covariance matrix
+
+    Parameters
+    ----------
+    orig : Covariance
+        A covariance
+
+    include : list of string, (optional)
+        List of channels to include. (if None, include all available)
+
+    exclude : list of string, (optional)
+        Channels to exclude (if None, do not exclude any)
+
+    Returns
+    -------
+    res : dict
+        Covariance solution restricted to selected channels. If include and
+        exclude are None it returns orig without copy.
+    """
+    sel = pick_channels(orig['names'], include=include, exclude=exclude)
+    res = deepcopy(orig)
+    res['dim'] = len(sel)
+    res['data'] = orig['data'][sel][:, sel]
+    res['names'] = [orig['names'][k] for k in sel]
+    res['bads'] = [name for name in orig['bads'] if name in res['names']]
+    res['eig'] = None
+    res['eigvec'] = None
+    return res
