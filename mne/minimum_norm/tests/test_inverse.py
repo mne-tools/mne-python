@@ -108,6 +108,7 @@ def test_apply_inverse_operator():
     # Test MNE inverse computation starting from forward operator
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
 

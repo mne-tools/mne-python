@@ -2,12 +2,14 @@ import os.path as op
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
+import numpy as np
 from scipy import linalg
 
+from ..cov import regularize
 from .. import Covariance, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import Raw
+from ..fiff import Raw, pick_channels_cov
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -26,6 +28,12 @@ def test_io_cov():
     cov.save('cov.fif')
     cov2 = Covariance('cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
+
+    cov['bads'] = ['EEG 039']
+    cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
+    assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
+    assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
+    cov_sel.save('cov.fif')
 
 
 def test_cov_estimation_on_raw_segment():
@@ -107,3 +115,16 @@ def test_arithmetic_cov():
     assert_array_almost_equal(cov_sum.nfree, cov.nfree)
     assert_array_almost_equal(cov_sum.data, cov.data)
     assert_true(cov_sum.ch_names == cov.ch_names)
+
+
+def test_regularize_cov():
+    """Test cov regularization
+    """
+    noise_cov = Covariance(cov_fname)
+    raw = Raw(raw_fname)
+    # Regularize noise cov
+    reg_noise_cov = regularize(noise_cov, raw.info,
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True)
+    assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
+    assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
+    assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)

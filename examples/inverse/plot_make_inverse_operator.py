@@ -35,6 +35,11 @@ dSPM = True
 evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 noise_cov = mne.Covariance(fname_cov)
+
+# regularize noise covariance
+noise_cov = mne.cov.regularize(noise_cov, evoked.info,
+                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
+
 inverse_operator = make_inverse_operator(evoked.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
