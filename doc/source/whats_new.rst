@@ -9,6 +9,9 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add method to regularize a noise covariance by `Alex Gramfort`_.
+
+   - New mne_compute_proj_ecg.py script to estimate ECG PCA/SSP vectors by `Alex Gramfort`_.
 
 Version 0.3
 -----------
@@ -88,7 +91,7 @@ of commits):
     *  2  Yaroslav Halchenko
     *  1  Manfred Kitzbichler
 
-.. _Alex Gramfort: http://www-sop.inria.fr/members/Alexandre.Gramfort/
+.. _Alex Gramfort: http://alexandre.gramfort.net
 
 .. _Martin Luessi: http://ivpl.eecs.northwestern.edu/people/mluessi
 
