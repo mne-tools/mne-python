@@ -2,8 +2,10 @@ import os.path as op
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
+import numpy as np
 from scipy import linalg
 
+from ..cov import regularize
 from .. import Covariance, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
@@ -113,3 +115,16 @@ def test_arithmetic_cov():
     assert_array_almost_equal(cov_sum.nfree, cov.nfree)
     assert_array_almost_equal(cov_sum.data, cov.data)
     assert_true(cov_sum.ch_names == cov.ch_names)
+
+
+def test_regularize_cov():
+    """Test cov regularization
+    """
+    noise_cov = Covariance(cov_fname)
+    raw = Raw(raw_fname)
+    # Regularize noise cov
+    reg_noise_cov = regularize(noise_cov, raw.info,
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True)
+    assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
+    assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
+    assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)

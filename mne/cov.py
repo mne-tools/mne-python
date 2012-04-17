@@ -13,9 +13,9 @@ from scipy import linalg
 
 from . import fiff
 from .fiff.write import start_file, end_file
-from .fiff.proj import make_projector, proj_equal
+from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type
+from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov
 from .fiff.constants import FIFF
 from .epochs import _is_good
 
@@ -423,3 +423,86 @@ def prepare_noise_cov(noise_cov, info, ch_names):
                      diag=False, names=ch_names)
 
     return noise_cov
+
+
+def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
+               proj=True):
+    """Regularize noise covariance matrix
+
+    This method works by adding a constant to the diagonal for each
+    channel type separatly. Special care is taken to keep the
+    rank of the data constant.
+
+    Parameters
+    ----------
+    cov: Covariance
+        The noise covariance matrix.
+    info: dict
+        The measurement info (used to get channel types and bad channels)
+    mag: float
+        Regularization factor for MEG magnetometers
+    grad: float
+        Regularization factor for MEG gradiometers
+    eeg: float
+        Regularization factor for EEG
+    exclude: list
+        List of channels to mark as bad. If None, bads channels
+        are extracted from info and cov['bads'].
+    proj: bool
+        Apply or not projections to keep rank of data.
+
+    Return
+    ------
+    reg_cov : Covariance
+        The regularized covariance matrix.
+    """
+    if exclude is None:
+        exclude = info['bads'] + cov['bads']
+
+    sel_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
+    sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
+    sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
+
+    info_ch_names = info['ch_names']
+    cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
+    ch_names = cov.ch_names
+    idx_eeg = [ch_names.index(info_ch_names[c]) for c in sel_eeg]
+    idx_mag = [ch_names.index(info_ch_names[c]) for c in sel_mag]
+    idx_grad = [ch_names.index(info_ch_names[c]) for c in sel_grad]
+
+    C = cov['data']
+
+    assert len(C) == (len(idx_eeg) + len(idx_mag) + len(idx_grad))
+
+    if proj:
+        projs = info['projs'] + cov['projs']
+        projs = activate_proj(projs)
+
+    for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
+                           ('GRAD', idx_grad, grad)]:
+        if len(idx) == 0 or reg == 0.0:
+            print "    %s regularization : None" % desc
+            continue
+
+        print "    %s regularization : %s" % (desc, reg)
+
+        this_C = C[idx][:, idx]
+        if proj:
+            this_ch_names = [ch_names[k] for k in idx]
+            P, ncomp, _ = make_projector(projs, this_ch_names)
+            U = linalg.svd(P)[0][:, :-ncomp]
+            if ncomp > 0:
+                print '    Created an SSP operator for %s (dimension = %d)' % \
+                                                                  (desc, ncomp)
+                this_C = np.dot(U.T, np.dot(this_C, U))
+
+        sigma = np.mean(np.diag(this_C))
+        this_C.flat[::len(this_C) + 1] += reg * sigma  # modify diag inplace
+        if proj and ncomp > 0:
+            this_C = np.dot(U, np.dot(this_C, U.T))
+
+        C[np.ix_(idx, idx)] = this_C
+
+    cov['data'] = C
+
+    return cov
