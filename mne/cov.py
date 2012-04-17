@@ -24,15 +24,15 @@ def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
         raise ValueError('Both Covariance do not have the same list of '
                          'channels.')
-    if map(str, cov1._cov['projs']) != map(str, cov2._cov['projs']):
+    if map(str, cov1['projs']) != map(str, cov2['projs']):
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
-    if cov1._cov['bads'] != cov2._cov['bads']:
+    if cov1['bads'] != cov2['bads']:
         raise ValueError('Both Covariance do not have the same list of '
                          'bad channels.')
 
 
-class Covariance(object):
+class Covariance(dict):
     """Noise covariance matrix
 
     Parameters
@@ -58,20 +58,27 @@ class Covariance(object):
 
         # Reading
         fid, tree, _ = fiff_open(fname)
-        cov = fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV)
+        self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
         fid.close()
 
-        self._cov = cov
-        self.data = cov['data']
-        self.ch_names = cov['names']
-        self.nfree = cov['nfree']
+    @property
+    def data(self):
+        return self['data']
+
+    @property
+    def ch_names(self):
+        return self['names']
+
+    @property
+    def nfree(self):
+        return self['nfree']
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
         fid = start_file(fname)
 
         try:
-            fiff.write_cov(fid, self._cov)
+            fiff.write_cov(fid, self)
         except Exception as inst:
             os.remove(fname)
             raise '%s', inst
@@ -87,21 +94,19 @@ class Covariance(object):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         this_cov = copy.deepcopy(cov)
-        this_cov.data[:] = ((this_cov.data * this_cov.nfree) + \
-                            (self.data * self.nfree)) / \
-                                (self.nfree + this_cov.nfree)
-        this_cov._cov['nfree'] += self._cov['nfree']
-        this_cov.nfree = this_cov._cov['nfree']
+        this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) + \
+                            (self['data'] * self['nfree'])) / \
+                                (self['nfree'] + this_cov['nfree'])
+        this_cov['nfree'] += self['nfree']
         return this_cov
 
     def __iadd__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
-        self.data[:] = ((self.data * self.nfree) + \
-                            (cov.data * cov.nfree)) / \
-                                (self.nfree + cov.nfree)
-        self._cov['nfree'] += cov._cov['nfree']
-        self.nfree = cov._cov['nfree']
+        self['data'][:] = ((self['data'] * self['nfree']) + \
+                            (cov['data'] * cov['nfree'])) / \
+                                (self['nfree'] + cov['nfree'])
+        self['nfree'] += cov['nfree']
         return self
 
 
@@ -209,20 +214,18 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     print '[done]'
 
     cov = Covariance(None)
-    cov.data = data
-    cov.ch_names = [raw.info['ch_names'][k] for k in picks_data]
-    cov.nfree = n_samples
 
+    ch_names = [raw.info['ch_names'][k] for k in picks_data]
     # XXX : do not compute eig and eigvec now (think it's better...)
     eig = None
     eigvec = None
 
     #   Store structure for fif
-    cov._cov = dict(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
-                    names=cov.ch_names, data=data,
-                    projs=copy.deepcopy(raw.info['projs']),
-                    bads=raw.info['bads'], nfree=n_samples, eig=eig,
-                    eigvec=eigvec)
+    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
+               names=ch_names, data=data,
+               projs=copy.deepcopy(raw.info['projs']),
+               bads=raw.info['bads'], nfree=n_samples, eig=eig,
+               eigvec=eigvec)
 
     return cov
 
@@ -316,19 +319,15 @@ def compute_covariance(epochs, keep_sample_mean=True):
         data /= norm_const
 
     cov = Covariance(None)
-    cov.data = data
-    cov.ch_names = ch_names
-    cov.nfree = n_samples_tot
 
     # XXX : do not compute eig and eigvec now (think it's better...)
     eig = None
     eigvec = None
 
-    #   Store structure for fif
-    cov._cov = dict(kind=1, diag=False, dim=len(data), names=ch_names,
-                    data=data, projs=copy.deepcopy(epochs[0].info['projs']),
-                    bads=epochs[0].info['bads'], nfree=n_samples_tot, eig=eig,
-                    eigvec=eigvec)
+    cov.update(kind=1, diag=False, dim=len(data), names=ch_names,
+               data=data, projs=copy.deepcopy(epochs[0].info['projs']),
+               bads=epochs[0].info['bads'], nfree=n_samples_tot, eig=eig,
+               eigvec=eigvec)
 
     print "Number of samples used : %d" % n_samples_tot
     print '[done]'
@@ -419,7 +418,8 @@ def prepare_noise_cov(noise_cov, info, ch_names):
 
     assert(len(C_meg_idx) + len(C_eeg_idx) == n_chan)
 
-    noise_cov = dict(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
+    noise_cov = Covariance(None)
+    noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
 
     return noise_cov
