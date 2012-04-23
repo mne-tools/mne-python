@@ -31,6 +31,10 @@ or with pip::
 
     pip install mne --upgrade
 
+or for the latest development version (the most up to date)::
+
+    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+
 Workflow to contribute
 =========================
 

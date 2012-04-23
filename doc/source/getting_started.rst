@@ -53,7 +53,31 @@ To test that everything works properly, open up IPython::
 
 Although all of the examples in this documentation are in the style
 of the standard Python interpreter, the use of IPython is highly
-recommended.  Then type::
+recommended.
+
+Now that you have a working Python environment you can install MNE.
+
+You can manually get the latest version of the code at:
+
+https://github.com/mne-tools/mne-python
+
+Then from the mne-python folder (containing a setup.py file) you can install with::
+
+    python setup.py install
+
+You can also install the latest release with easy_install::
+
+    easy_install -U mne
+
+or with pip::
+
+    pip install mne --upgrade
+
+For the latest development version (the most up to date)::
+
+    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+
+To check that everything went fine, in ipython, type::
 
     >>> import mne
 

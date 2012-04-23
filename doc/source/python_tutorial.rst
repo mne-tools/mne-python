@@ -56,6 +56,11 @@ Get the code
 
       pip install mne --upgrade
 
+  For the latest development version (the most up to date)::
+
+      pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+
+
 From raw data to evoked data
 ----------------------------
 
