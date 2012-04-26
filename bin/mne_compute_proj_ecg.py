@@ -22,10 +22,10 @@ if __name__ == '__main__':
     parser.add_option("-i", "--in", dest="raw_in",
                     help="Input raw FIF file", metavar="FILE")
     parser.add_option("--tmin", dest="tmin",
-                    help="time before event in seconds",
+                    help="Time before event in seconds",
                     default=-0.2)
     parser.add_option("--tmax", dest="tmax",
-                    help="time before event in seconds",
+                    help="Time after event in seconds",
                     default=0.4)
     parser.add_option("-g", "--n-grad", dest="n_grad",
                     help="Number of SSP vectors for gradiometers",
@@ -38,10 +38,10 @@ if __name__ == '__main__':
                     default=2)
     parser.add_option("--l-freq", dest="l_freq",
                     help="Filter low cut-off frequency in Hz",
-                    default=None)  # XXX
+                    default=5)
     parser.add_option("--h-freq", dest="h_freq",
                     help="Filter high cut-off frequency in Hz",
-                    default=None)  # XXX
+                    default=35)
     parser.add_option("-p", "--preload", dest="preload",
                     help="Temporary file used during computaion",
                     default='tmp.mmap')
@@ -49,7 +49,7 @@ if __name__ == '__main__':
                     help="Compute SSP after averaging",
                     default=False)
     parser.add_option("--filtersize", dest="filter_length",
-                    help="Number of SSP vectors for EEG",
+                    help="Number of taps to use for filtering",
                     default=2048)
     parser.add_option("-j", "--n-jobs", dest="n_jobs",
                     help="Number of jobs to run in parallel",
