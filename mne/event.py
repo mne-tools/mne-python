@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import numpy as np
 
 from .fiff.constants import FIFF
@@ -154,10 +155,17 @@ def find_events(raw, stim_channel='STI 014'):
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, times = raw[pick, :]
+    if np.any(data < 0):
+        warnings.warn('Trigger channel contains negative values. '
+                      'Taking absolute value.')
+        data = np.abs(data)  # make sure trig channel is positive
+    data = data.astype(np.int)
     idx = np.where(np.all(np.diff(data, axis=1) > 0, axis=0))[0]
     events_id = data[0, idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
+    print "%s events found" % len(events)
+    print "Events id: %s" % np.unique(events[:, 2])
     return events
 
 
