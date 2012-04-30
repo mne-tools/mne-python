@@ -244,9 +244,89 @@ def compute_proj_ecg(in_fif_fname, tmin=-0.2, tmax=0.4,
                         reject, bads, avg_ref, include_existing,
                         ecg_proj_fname, ecg_event_fname)
 
-
     return projs, ecg_events
 
 
+def compute_proj_eog(in_fif_fname, tmin=-0.15, tmax=0.15,
+                     n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
+                     average=False, preload="tmp.mmap",
+                     filter_length=2048, n_jobs=1,
+                     reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
+                     eog=250e-6), bads=None,
+                     avg_ref=False, include_existing=False,
+                     ecg_proj_fname=None, ecg_event_fname=None):
+    """Compute SSP/PCA projections for EOG artifacts
 
+    Parameters
+    ----------
+    in_fif_fname: string
+        Input Raw FIF file
+
+    tmin: float
+        Time before event in second
+
+    tmax: float
+        Time after event in seconds
+
+    n_grad: int
+        Number of SSP vectors for gradiometers
+
+    n_mag: int
+        Number of SSP vectors for magnetometers
+
+    n_eeg: int
+        Number of SSP vectors for EEG
+
+    l_freq: float
+        Filter low cut-off frequency in Hz
+
+    h_freq: float
+        Filter high cut-off frequency in Hz
+
+    average: bool
+        Compute SSP after averaging
+
+    preload: string (or True)
+        Temporary file used during computaion
+
+    filter_length: int
+        Number of taps to use for filtering
+
+    n_jobs: int
+        Number of jobs to run in parallel
+
+    reject: dict
+        Epoch rejection configuration (see Epochs)
+
+    bads: list
+        List with (additional) bad channels
+
+    avg_ref: bool
+        Add EEG average reference proj
+
+    include_existing: bool
+        Inlucde the SSP projectors currently in the fiff file
+
+    eog_proj_fname: string (or None)
+        Filename to use for projectors (not saved if None)
+
+    eog_event_fname: string (or None)
+        Filename to use for events (not saved if None)
+
+    Returns
+    -------
+    proj : list
+        Computed SSP projectors
+
+    eog_events : ndarray
+        Detected ECG events
+    """
+
+    projs, eog_events = _compute_exg_proj('EOG', in_fif_fname, tmin, tmax,
+                        n_grad, n_mag, n_eeg, l_freq, h_freq,
+                        average, preload, filter_length, n_jobs, None,
+                        reject, bads, avg_ref, include_existing,
+                        ecg_proj_fname, ecg_event_fname)
+
+    return projs, eog_events
 

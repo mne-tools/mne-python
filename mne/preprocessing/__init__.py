@@ -6,4 +6,5 @@
 #
 # License: BSD (3-clause)
 
-from . ssp import compute_proj_ecg
+from . maxfilter import apply_maxfilter
+from . ssp import compute_proj_ecg, compute_proj_eog

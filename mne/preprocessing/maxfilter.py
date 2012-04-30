@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import subprocess
+import os
 from warnings import warn
 
 import numpy as np
@@ -82,14 +82,11 @@ def fit_sphere_to_headshape(info):
 
 
 def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
-                    in_order=None, out_order=None, bad=None, autobad=None,
-                    badlimit=None, skip=None, data_format=None, force=False,
-                    st=False, st_buflen=None, st_corr=None, mv_trans=None,
+                    bad=None, autobad='off', skip=None, force=False,
+                    st=False, st_buflen=16.0, st_corr=0.96, mv_trans=None,
                     mv_comp=False, mv_headpos=False, mv_hp=None,
-                    mv_hpistep=None, mv_hpisubt=None, mv_hpicons=False,
-                    linefreq=None, lpfilt=None, site=None, cal=None,
-                    ctc=None, magbad=False, regularize=None, iterate=None,
-                    ds=None):
+                    mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
+                    linefreq=None, mx_args='', overwrite=True):
 
     """ Apply NeuroMag MaxFilter to raw data.
 
@@ -103,33 +100,21 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     out_fname: string
         Output file name
 
-    origin: ndarray
+    origin: array-like or string
         Head origin in mm. If None it will be estimated from headshape points.
 
     frame: string ('device' or 'head')
         Coordinate frame for head center
 
-    in_order: int (or None)
-        Order of the inside expansion (None: use default)
-
-    out_order: int (or None)
-        Order of the outside expansion (None: use default)
-
     bad: string (or None)
         List of static bad channels (logical chnos, e.g.: 0323 1042 2631)
 
-    autobad: string ('on', 'off', 'n') (or None)
-        Sets automated bad channel detection on or off (None: use default)
-
-    badlimit: float (or None)
-        Threshold for bad channel detection (>ave+x*SD) (None: use default)
+    autobad: string ('on', 'off', 'n')
+        Sets automated bad channel detection on or off
 
     skip: string (or None)
         Skips raw data sequences, time intervals pairs in sec,
         e.g.: 0 30 120 150
-
-    data_format: string ('short', 'long', 'float') (or None)
-        Output data format (None: use default)
 
     force: bool
         Ignore program warnings
@@ -137,11 +122,11 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     st: bool
         Apply the time-domain MaxST extension
 
-    st_buflen: float (or None)
-        MaxSt buffer length in sec (None: use default)
+    st_buflen: float
+        MaxSt buffer length in sec (disabled if st is False)
 
-    st_corr: float (or None)
-        MaxSt subspace correlation limit (None: use default)
+    st_corr: float
+        MaxSt subspace correlation limit (disabled if st is False)
 
     mv_trans: string (filename or 'default') (or None)
         Transforms the data into the coil definitions of in_fname, or into the
@@ -152,51 +137,32 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     mv_headpos: bool
         Estimates and stores head position parameters, but does not compensate
-        movements
+        movements (disabled if mv_comp is False)
 
     mv_hp: string (or None)
         Stores head position data in an ascii file
+        (disabled if mv_comp is False)
 
     mv_hpistep: float (or None)
-        Sets head position update interval in ms (None: use default)
+        Sets head position update interval in ms (disabled if mv_comp is False)
 
     mv_hpisubt: string ('amp', 'base', 'off') (or None)
         Subtracts hpi signals: sine amplitudes, amp + baseline, or switch off
-        (None: use default)
+        (disabled if mv_comp is False)
 
     mv_hpicons: bool
         Check initial consistency isotrak vs hpifit
+        (disabled if mv_comp is False)
 
     linefreq: int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
 
-    lpfilt: float (or None or True)
-        Corner frequency for IIR low-pass filtering
-        (None: don't use option: True: use default frequency)
+    mx_args: string
+        Additional command line arguments to pass to MaxFilter
 
-    site: string (or None)
-        Loads sss_cal_<name>.dat and ct_sparse_<name>.fif
-
-    cal: string (filename or 'off') (or None)
-        Uses the fine-calibration in <filename>, or switch off.
-
-    ctc: string (filename or 'off') (or None)
-        Uses the cross-talk matrix in <filename>, or switch off
-
-    magbad: bool
-        Marks all magnetometers bad
-
-    regularize: bool (or None)
-        Sets the component selection on or off (None: use default)
-
-    iterate: int (or None)
-        Uses iterative pseudo-inverse, n iteration loops default n=10;
-        n=0 forces direct pseudo-inverse. (None: use default)
-
-    ds: int (or None)
-        Applies downsampling with low-pass FIR filtering f is optional
-        downsampling factor (None: don't use option)
+    overwrite: bool
+        Overwrite output file if it already exists
 
     Returns
     -------
@@ -207,21 +173,18 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     # check for possible maxfilter bugs
     def _mxwarn(msg):
         warn('Possible MaxFilter bug: %s, more info: '
-             'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs')
+             'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
 
-    if mv_trans is not None and mv_comp is not None:
+    if mv_trans is not None and mv_comp:
         _mxwarn("Don't use '-trans' with head-movement compensation "
                 "'-movecomp'")
 
-    if autobad is not None and (mv_headpos is not None or mv_comp is not None):
+    if autobad != 'off' and (mv_headpos or mv_comp):
         _mxwarn("Don't use '-autobad' with head-position estimation "
                 "'-headpos' or movement compensation '-movecomp'")
 
-    if st and autobad is not None:
+    if st and autobad != 'off':
         _mxwarn("Don't use '-autobad' with '-st' option")
-
-    if lpfilt is not None:
-        _mxwarn("Don't use '-lpfilt' to low-pass filter data")
 
     # determine the head origin if necessary
     if origin is None:
@@ -237,100 +200,59 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         else:
             RuntimeError('invalid frame for origin')
 
+    if not isinstance(origin, str):
+        origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])
+
     # format command
-    cmd = ('maxfilter -f %s -o %s -frame %s -origin %d %d %d '
-           % (in_fname, out_fname, frame, origin[0], origin[1], origin[2]))
-
-    if in_order is not None:
-        cmd += '-in %d ' % in_order
-
-    if out_order is not None:
-        cmd += '-out %d ' % out_order
+    cmd = ('maxfilter -f %s -o %s -frame %s -origin %s '
+           % (in_fname, out_fname, frame, origin))
 
     if bad is not None:
         cmd += '-bad %s ' % bad
 
-    if autobad is not None:
-        cmd += '-autobad %s ' % autobad
-
-    if badlimit is not None:
-        cmd += '-badlimit %0.4f ' % badlimit
+    cmd += '-autobad %s ' % autobad
 
     if skip is not None:
         cmd += '-skip %s ' % skip
-
-    if data_format is not None:
-        cmd += '-format %s ' % data_format
 
     if force:
         cmd += '-force '
 
     if st:
         cmd += '-st '
-
-    if st_buflen is not None:
-        if not st:
-            raise RuntimeError('st_buflen cannot be used if st == False')
         cmd += ' %d ' % st_buflen
-
-    if st_corr is not None:
-        if not st:
-            raise RuntimeError('st_corr cannot be used if st == False')
         cmd += '-corr %0.4f ' % st_corr
 
     if mv_trans is not None:
         cmd += '-trans %s ' % mv_trans
 
-    if mv_comp is not None:
+    if mv_comp:
         cmd += '-movecomp '
         if mv_comp == 'inter':
             cmd += ' inter '
 
-    if mv_headpos:
-        cmd += '-headpos '
+        if mv_headpos:
+            cmd += '-headpos '
 
-    if mv_hp:
-        cmd += '-hp %s' % mv_hp
+        if mv_hp is not None:
+            cmd += '-hp %s' % mv_hp
 
-    if mv_hpisubt is not None:
-        cmd += 'hpisubt %s ' % mv_hpisubt
+        if mv_hpisubt is not None:
+            cmd += 'hpisubt %s ' % mv_hpisubt
 
-    if mv_hpicons:
-        cmd += '-hpicons '
+        if mv_hpicons:
+            cmd += '-hpicons '
 
     if linefreq is not None:
         cmd += '-linefreq %d ' % linefreq
 
-    if lpfilt is not None:
-        cmd += '-lpfilt '
-        if not isinstance(lpfilt, bool):
-            cmd += '%0.1f ' % lpfilt
+    cmd += mx_args
 
-    if site is not None:
-        cmd += '-site %s ' % site
-
-    if cal is not None:
-        cmd += '-cal %s ' % cal
-
-    if ctc is not None:
-        cmd += '-ctc %s ' % ctc
-
-    if magbad:
-        cmd += '-magbad '
-
-    if regularize is not None:
-        if regularize:
-            cmd += '-regularize on '
-        else:
-            cmd += '-regularize off '
-
-    if iterate is not None:
-        cmd += '-iterate %d' % iterate
-
-    if ds is not None:
-        cmd += '-ds %d ' % ds
+    if overwrite and os.path.exists(out_fname):
+        os.remove(out_fname)
 
     print 'Running MaxFilter: %s ' % cmd
-    out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-    print out
+    st = os.system(cmd)
+    if st != 0:
+        raise RuntimeError('MaxFilter returned non-zero exit status %d' % st)
     print '[done]'
