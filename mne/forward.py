@@ -103,31 +103,32 @@ def _read_one(fid, node):
     if node is None:
         return None
 
+    one = dict()
+
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
         fid.close()
         raise ValueError('Source orientation tag not found')
+    one['source_ori'] = int(tag.data)
 
-    one = dict()
-    one['source_ori'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
         fid.close()
         raise ValueError('Coordinate frame tag not found')
+    one['coord_frame'] = int(tag.data)
 
-    one['coord_frame'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         fid.close()
         raise ValueError('Number of sources not found')
+    one['nsource'] = int(tag.data)
 
-    one['nsource'] = tag.data
     tag = find_tag(fid, node, FIFF.FIFF_NCHAN)
     if tag is None:
         fid.close()
         raise ValueError('Number of channels not found')
+    one['nchan'] = int(tag.data)
 
-    one['nchan'] = tag.data
     try:
         one['sol'] = _read_named_matrix(fid, node,
                                             FIFF.FIFF_MNE_FORWARD_SOLUTION)
