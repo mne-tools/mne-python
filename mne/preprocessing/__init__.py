@@ -6,4 +6,4 @@
 #
 # License: BSD (3-clause)
 
-from .ssp import compute_proj_ecg
+from . ssp import compute_proj_ecg
