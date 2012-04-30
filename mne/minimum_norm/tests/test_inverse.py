@@ -11,7 +11,7 @@ from ...label import read_label, label_sign_flip
 from ...event import read_events
 from ...epochs import Epochs
 from ...source_estimate import SourceEstimate
-from ... import fiff, Covariance, read_forward_solution
+from ... import fiff, read_cov, read_forward_solution
 from ..inverse import apply_inverse, read_inverse_operator, \
                       apply_inverse_raw, apply_inverse_epochs, \
                       make_inverse_operator, write_inverse_operator
@@ -43,7 +43,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
 inverse_operator_vol = read_inverse_operator(fname_vol_inv)
 label = read_label(fname_label)
-noise_cov = Covariance(fname_cov)
+noise_cov = read_cov(fname_cov)
 raw = fiff.Raw(fname_raw)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -111,6 +111,7 @@ def test_apply_inverse_operator():
 
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
+    write_inverse_operator('test-inv.fif', my_inv_op)
 
     my_stc = apply_inverse(evoked, my_inv_op, lambda2, dSPM)
 
