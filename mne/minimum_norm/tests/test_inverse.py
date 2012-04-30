@@ -112,8 +112,13 @@ def test_apply_inverse_operator():
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
     write_inverse_operator('test-inv.fif', my_inv_op)
+    read_my_inv_op = read_inverse_operator('test-inv.fif')
+    _compare(my_inv_op, read_my_inv_op)
 
     my_stc = apply_inverse(evoked, my_inv_op, lambda2, dSPM)
+
+    assert_true('dev_head_t' in my_inv_op['info'])
+    assert_true('mri_head_t' in my_inv_op)
 
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)

@@ -14,9 +14,12 @@ from scipy import linalg
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
+from .fiff.channels import read_bad_channels
 from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
 from .fiff.pick import pick_channels_forward, pick_info, pick_channels
+from .fiff.write import write_int, start_block, end_block, \
+                         write_coord_trans, write_ch_info, write_name_list
 
 from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
@@ -161,6 +164,62 @@ def _read_one(fid, node):
     return one
 
 
+def read_forward_meas_info(tree, fid):
+    """Read light measurement info from forward operator
+
+    Parameters
+    ----------
+    tree: tree
+        FIF tree structure
+    fid: file id
+        The file id
+
+    Returns
+    -------
+    info : dict
+        The measurement info
+    """
+    parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+    if len(parent_meg) == 0:
+        fid.close()
+        raise ValueError('No parent MEG information found in operator')
+    parent_meg = parent_meg[0]
+
+    # Add channel information
+    info = dict()
+    chs = list()
+    for k in range(parent_meg['nent']):
+        kind = parent_meg['directory'][k].kind
+        pos = parent_meg['directory'][k].pos
+        if kind == FIFF.FIFF_CH_INFO:
+            tag = read_tag(fid, pos)
+            chs.append(tag.data)
+    info['chs'] = chs
+
+    info['ch_names'] = [c['ch_name'] for c in chs]
+    info['nchan'] = len(chs)
+
+    #   Get the MEG device <-> head coordinate transformation
+    tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
+    if tag is None:
+        fid.close()
+        raise ValueError('MEG/head coordinate transformation not found')
+    else:
+        cand = tag.data
+        if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
+                            cand['to'] == FIFF.FIFFV_COORD_HEAD:
+            info['dev_head_t'] = cand
+        elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
+                            cand['to'] == FIFF.FIFFV_COORD_HEAD:
+            info['ctf_head_t'] = cand
+        else:
+            raise ValueError('MEG device/head coordinate transformation not '
+                                 'found')
+
+    info['bads'] = read_bad_channels(fid, parent_meg)
+    return info
+
+
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                               include=[], exclude=[]):
     """Read a forward solution a.k.a. lead field
@@ -207,21 +266,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         fid.close()
         raise ValueError('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
-
-    #   Parent MEG data
-    parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
-    if len(parent_meg) == 0:
-        fid.close()
-        raise ValueError('No parent MEG information in %s' % fname)
-    parent_meg = parent_meg[0]
-
-    chs = list()
-    for k in range(parent_meg['nent']):
-        kind = parent_meg['directory'][k].kind
-        pos = parent_meg['directory'][k].pos
-        if kind == FIFF.FIFF_CH_INFO:
-            tag = read_tag(fid, pos)
-            chs.append(tag.data)
 
     try:
         src = read_source_spaces_from_tree(fid, tree, add_geom=False)
@@ -317,10 +361,14 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation not '
                                  'found')
+    fwd['mri_head_t'] = mri_head_t
+
+    #
+    # get parent MEG info
+    #
+    fwd['info'] = read_forward_meas_info(tree, fid)
 
     fid.close()
-
-    fwd['mri_head_t'] = mri_head_t
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
@@ -416,12 +464,43 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     fwd['surf_ori'] = surf_ori
 
-    # Add channel information
-    fwd['chs'] = chs
-
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return fwd
+
+
+def write_forward_meas_info(fid, info):
+    """Write measurement info stored in forward solution
+
+    Parameters
+    ----------
+    fid : file id
+        The file id
+    info : dict
+        The measurement info
+    """
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+    #   write the MRI <-> head coordinate transformation
+    if 'dev_head_t' in info:
+        write_coord_trans(fid, info['dev_head_t'])
+    if 'ctf_head_t' in info:
+        write_coord_trans(fid, info['ctf_head_t'])
+    if 'chs' in info:
+        #  Channel information
+        write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
+        for k, c in enumerate(info['chs']):
+            #   Scan numbers may have been messed up
+            c = deepcopy(c)
+            c['scanno'] = k + 1
+            # c['range'] = 1.0
+            write_ch_info(fid, c)
+    if 'bads' in info:
+        #   Bad channels
+        if len(info['bads']) > 0:
+            start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+            write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+            end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
 def compute_depth_prior(G, exp=0.8, limit=10.0):
