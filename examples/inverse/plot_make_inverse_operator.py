@@ -19,7 +19,8 @@ import pylab as pl
 import mne
 from mne.datasets import sample
 from mne.fiff import Evoked
-from mne.minimum_norm import make_inverse_operator, apply_inverse
+from mne.minimum_norm import make_inverse_operator, apply_inverse, \
+                             write_inverse_operator
 
 data_path = sample.data_path('..')
 fname_fwd = data_path + '/MEG/sample/sample_audvis-eeg-oct-6-fwd.fif'
@@ -34,7 +35,7 @@ dSPM = True
 # Load data
 evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
-noise_cov = mne.Covariance(fname_cov)
+noise_cov = mne.read_cov(fname_cov)
 
 # regularize noise covariance
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
@@ -42,6 +43,9 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 inverse_operator = make_inverse_operator(evoked.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
+
+# Save inverse operator to vizualize with mne_analyze
+write_inverse_operator('sample_audvis-eeg-oct-6-eeg-inv.fif', inverse_operator)
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM, pick_normal=False)

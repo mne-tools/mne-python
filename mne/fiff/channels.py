@@ -8,7 +8,7 @@ from .tag import find_tag
 from .constants import FIFF
 
 
-def _read_bad_channels(fid, node):
+def read_bad_channels(fid, node):
     """Read bad channels
 
     Parameters

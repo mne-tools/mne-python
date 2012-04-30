@@ -1,5 +1,6 @@
 import os.path as op
 
+from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 
@@ -33,6 +34,9 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (306, 22494 / 3))
     assert_equal(len(fwd['sol']['row_names']), 306)
+    assert_equal(len(fwd['info']['chs']), 306)
+    assert_true('dev_head_t' in fwd['info'])
+    assert_true('mri_head_t' in fwd)
 
 
 def test_apply_forward():
