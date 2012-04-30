@@ -21,6 +21,7 @@ from ..fiff.write import write_int, write_float_matrix, start_file, \
                          write_coord_trans
 
 from ..fiff.cov import read_cov, write_cov
+from ..fiff.pick import pick_types
 from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, compute_depth_prior_fixed
 from ..source_space import read_source_spaces_from_tree, \
@@ -93,7 +94,7 @@ def read_inverse_operator(fname):
         raise Exception('Modalities not found')
 
     inv = dict()
-    inv['methods'] = tag.data
+    inv['methods'] = int(tag.data)
 
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
@@ -107,7 +108,7 @@ def read_inverse_operator(fname):
         fid.close()
         raise Exception('Number of sources not found')
 
-    inv['nsource'] = tag.data
+    inv['nsource'] = int(tag.data)
     inv['nchan'] = 0
     #
     #   Coordinate frame
@@ -1006,7 +1007,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     gain = np.dot(W, gain)
 
     source_cov = depth_prior.copy()
-    depth_prior = dict(data=depth_prior)
+    depth_prior = dict(data=depth_prior, kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
+                       bads=None, diag=True, names=None, eig=None,
+                       eigvec=None, dim=depth_prior.size, nfree=1,
+                       projs=[])
 
     # apply loose orientations
     if not is_fixed_ori:
@@ -1016,7 +1020,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
                                                                     % loose)
             orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
             source_cov *= orient_prior
-        orient_prior = dict(data=orient_prior)
+        orient_prior = dict(data=orient_prior,
+                            kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
+                            bads=None, diag=True, names=None, eig=None,
+                            eigvec=None, dim=orient_prior.size, nfree=1,
+                            projs=[])
     else:
         orient_prior = None
 
@@ -1030,7 +1038,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     source_cov *= scaling_source_cov
     gain *= sqrt(scaling_source_cov)
 
-    source_cov = dict(data=source_cov)
+    source_cov = dict(data=source_cov, dim=source_cov.size,
+                      kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
+                      names=None, projs=[], eig=None, eigvec=None,
+                      nfree=1, bads=None)
 
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # print np.trace(np.dot(gain, gain.T)), n_nzero
@@ -1038,9 +1049,24 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     print 'Computing SVD of whitened and weighted lead field matrix.'
     eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
 
-    eigen_fields = dict(data=eigen_fields.T, col_names=ch_names)
-    eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1])
+    eigen_fields = dict(data=eigen_fields.T, col_names=ch_names, row_names=[],
+                        nrow=eigen_fields.shape[1], ncol=eigen_fields.shape[0])
+    eigen_leads = dict(data=eigen_leads.T, nrow=eigen_leads.shape[1],
+                       ncol=eigen_leads.shape[0], row_names=[],
+                       col_names=[])
     nave = 1.0
+
+    # Handle methods
+    n_meg = len(pick_types(info, meg=True, eeg=False, exclude=info['bads']))
+    n_eeg = len(pick_types(info, meg=False, eeg=True, exclude=info['bads']))
+    has_meg = n_meg > 0
+    has_eeg = n_eeg > 0
+    if has_eeg and has_meg:
+        methods = FIFF.FIFFV_MNE_MEG_EEG
+    elif has_meg:
+        methods = FIFF.FIFFV_MNE_MEG
+    else:
+        methods = FIFF.FIFFV_MNE_EEG
 
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,
@@ -1048,6 +1074,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
                   orient_prior=orient_prior, projs=deepcopy(info['projs']),
                   eigen_leads_weighted=False, source_ori=forward['source_ori'],
                   mri_head_t=deepcopy(forward['mri_head_t']),
-                  src=deepcopy(forward['src']))
+                  methods=methods, nsource=forward['nsource'],
+                  coord_frame=forward['coord_frame'],
+                  source_nn=forward['source_nn'].copy(),
+                  src=deepcopy(forward['src']), fmri_prior=None)
 
     return inv_op

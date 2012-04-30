@@ -418,7 +418,7 @@ def prepare_noise_cov(noise_cov, info, ch_names):
 
     assert(len(C_meg_idx) + len(C_eeg_idx) == n_chan)
 
-    noise_cov = Covariance(None)
+    noise_cov = copy.deepcopy(noise_cov)
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
 

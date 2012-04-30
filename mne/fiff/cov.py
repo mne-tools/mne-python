@@ -49,13 +49,13 @@ def read_cov(fid, node, cov_kind):
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIM)
             if tag is None:
                 raise ValueError('Covariance matrix dimension not found')
+            dim = int(tag.data)
 
-            dim = tag.data
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_NFREE)
             if tag is None:
                 nfree = -1
             else:
-                nfree = tag.data
+                nfree = int(tag.data)
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_ROW_NAMES)
             if tag is None:
