@@ -336,11 +336,16 @@ def pick_channels_forward(orig, include=[], exclude=[]):
                                                             fwd['nchan'])
 
     #   Pick the correct rows of the forward operator
-    fwd['nchan'] = nuse
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]
     fwd['sol']['nrow'] = nuse
-    fwd['sol']['row_names'] = [fwd['sol']['row_names'][k] for k in sel]
-    fwd['chs'] = [fwd['chs'][k] for k in sel]
+
+    ch_names = [fwd['sol']['row_names'][k] for k in sel]
+    fwd['nchan'] = nuse
+    fwd['sol']['row_names'] = ch_names
+
+    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel]
+    fwd['info']['nchan'] = nuse
+    fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
     if fwd['sol_grad'] is not None:
         fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel, :]
@@ -376,11 +381,9 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
     res : dict
         Forward solution restricted to selected channel types.
     """
-    info = {'ch_names': orig['sol']['row_names'], 'chs': orig['chs'],
-            'nchan': orig['nchan']}
+    info = orig['info']
     sel = pick_types(info, meg, eeg, include=include, exclude=exclude)
     include_ch_names = [info['ch_names'][k] for k in sel]
-
     return pick_channels_forward(orig, include_ch_names)
 
 

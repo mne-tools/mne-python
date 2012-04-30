@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from warnings import warn
+from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
@@ -13,7 +14,7 @@ from .constants import FIFF
 from .tag import read_tag
 from .proj import read_proj, write_proj
 from .ctf import read_ctf_comp, write_ctf_comp
-from .channels import _read_bad_channels
+from .channels import read_bad_channels
 
 from .write import start_block, end_block, write_string, write_dig_point, \
                    write_float, write_int, write_coord_trans, write_ch_info, \
@@ -168,7 +169,7 @@ def read_meas_info(fid, tree):
     comps = read_ctf_comp(fid, meas_info, chs)
 
     #   Load the bad channel list
-    bads = _read_bad_channels(fid, meas_info)
+    bads = read_bad_channels(fid, meas_info)
 
     #
     #   Put the data together
@@ -326,6 +327,7 @@ def write_meas_info(fid, info, data_type=None):
     #  Channel information
     for k, c in enumerate(info['chs']):
         #   Scan numbers may have been messed up
+        c = deepcopy(c)
         c['scanno'] = k + 1
         c['range'] = 1.0
         write_ch_info(fid, c)

@@ -21,9 +21,10 @@ from ..fiff.write import write_int, write_float_matrix, start_file, \
                          write_coord_trans
 
 from ..fiff.cov import read_cov, write_cov
-from ..fiff.pick import pick_types
+from ..fiff.pick import channel_type
 from ..cov import prepare_noise_cov
-from ..forward import compute_depth_prior, compute_depth_prior_fixed
+from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
+                      read_forward_meas_info, write_forward_meas_info
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces
@@ -186,7 +187,6 @@ def read_inverse_operator(fname):
     #
     #   Read the source spaces
     #
-
     inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
 
     for s in inv['src']:
@@ -211,6 +211,11 @@ def read_inverse_operator(fname):
                                  'not found')
 
     inv['mri_head_t'] = mri_head_t
+
+    #
+    # get parent MEG info
+    #
+    inv['info'] = read_forward_meas_info(tree, fid)
 
     #
     #   Transform the source spaces to the correct coordinate frame
@@ -329,6 +334,11 @@ def write_inverse_operator(fname, inv):
     #   write the MRI <-> head coordinate transformation
     write_coord_trans(fid, inv['mri_head_t'])
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    #
+    #   Parent MEG measurement info
+    #
+    write_forward_meas_info(fid, inv['info'])
 
     #
     #   Write the source spaces
@@ -927,7 +937,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     ----------
     info: dict
         The measurement info to specify the channels to include.
-        Bad channels in info['bads'] are ignored.
+        Bad channels in info['bads'] are not used.
     forward: dict
         Forward operator
     noise_cov: Covariance
@@ -937,8 +947,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
         defining the tangent space of the cortical surfaces.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
-
-    # XXX : add support for megreg=0.0, eegreg=0.0
 
     Returns
     -------
@@ -962,7 +970,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
 
-    fwd_ch_names = [c['ch_name'] for c in forward['chs']]
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
     ch_names = [c['ch_name'] for c in info['chs']
                                     if (c['ch_name'] not in info['bads'])
                                         and (c['ch_name'] in fwd_ch_names)]
@@ -1008,7 +1016,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     source_cov = depth_prior.copy()
     depth_prior = dict(data=depth_prior, kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
-                       bads=None, diag=True, names=None, eig=None,
+                       bads=[], diag=True, names=[], eig=None,
                        eigvec=None, dim=depth_prior.size, nfree=1,
                        projs=[])
 
@@ -1022,7 +1030,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
             source_cov *= orient_prior
         orient_prior = dict(data=orient_prior,
                             kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
-                            bads=None, diag=True, names=None, eig=None,
+                            bads=[], diag=True, names=[], eig=None,
                             eigvec=None, dim=orient_prior.size, nfree=1,
                             projs=[])
     else:
@@ -1040,8 +1048,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     source_cov = dict(data=source_cov, dim=source_cov.size,
                       kind=FIFF.FIFFV_MNE_SOURCE_COV, diag=True,
-                      names=None, projs=[], eig=None, eigvec=None,
-                      nfree=1, bads=None)
+                      names=[], projs=[], eig=None, eigvec=None,
+                      nfree=1, bads=[])
 
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # print np.trace(np.dot(gain, gain.T)), n_nzero
@@ -1057,10 +1065,15 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     nave = 1.0
 
     # Handle methods
-    n_meg = len(pick_types(info, meg=True, eeg=False, exclude=info['bads']))
-    n_eeg = len(pick_types(info, meg=False, eeg=True, exclude=info['bads']))
-    has_meg = n_meg > 0
-    has_eeg = n_eeg > 0
+    has_meg = False
+    has_eeg = False
+    ch_idx = [k for k, c in enumerate(info['chs']) if c['ch_name'] in ch_names]
+    for idx in ch_idx:
+        ch_type = channel_type(info, idx)
+        if ch_type == 'eeg':
+            has_eeg = True
+        if (ch_type == 'mag') or (ch_type == 'grad'):
+            has_meg = True
     if has_eeg and has_meg:
         methods = FIFF.FIFFV_MNE_MEG_EEG
     elif has_meg:
@@ -1078,5 +1091,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
                   coord_frame=forward['coord_frame'],
                   source_nn=forward['source_nn'].copy(),
                   src=deepcopy(forward['src']), fmri_prior=None)
+
+    inv_info = deepcopy(forward['info'])
+    inv_info['bads'] = deepcopy(info['bads'])
+    inv_op['info'] = inv_info
 
     return inv_op

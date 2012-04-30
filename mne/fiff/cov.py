@@ -11,7 +11,7 @@ from .write import start_block, end_block, write_int, write_name_list, \
 from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj, write_proj
-from .channels import _read_bad_channels
+from .channels import read_bad_channels
 
 
 def read_cov(fid, node, cov_kind):
@@ -110,7 +110,7 @@ def read_cov(fid, node, cov_kind):
             projs = read_proj(fid, this)
 
             #   Read the bad channel list
-            bads = _read_bad_channels(fid, this)
+            bads = read_bad_channels(fid, this)
 
             #   Put it together
             cov = dict(kind=cov_kind, diag=diagmat, dim=dim, names=names,
