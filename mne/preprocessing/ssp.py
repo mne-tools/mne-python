@@ -6,26 +6,27 @@
 
 import os
 
-from .. import Epochs, compute_proj_evoked, compute_proj_epochs, \
-               write_events, write_proj
+from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import Raw, pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
 
 
-def _compute_exg_proj(mode, in_fif_fname, tmin, tmax,
+def _compute_exg_proj(mode, raw, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
-                      average, preload, filter_length, n_jobs, ch_name,
-                      reject, bads, avg_ref, include_existing,
-                      proj_fname, event_fname):
+                      average, filter_length, n_jobs, ch_name,
+                      reject, bads, avg_ref, excl_proj, event_id):
     """Compute SSP/PCA projections for ECG or EOG artifacts
+
+    Note: raw has to be constructed with preload=True (or string)
+    Warning: raw will be modified by this function
 
     Parameters
     ----------
     mode: sting ('ECG', or 'EOG')
         What type of events to detect
 
-    in_fif_fname: string
-        Input Raw FIF file
+    raw: mne.fiff.Raw
+        Raw input file
 
     tmin: float
         Time before event in second
@@ -51,9 +52,6 @@ def _compute_exg_proj(mode, in_fif_fname, tmin, tmax,
     average: bool
         Compute SSP after averaging
 
-    preload: string (or True)
-        Temporary file used during computaion
-
     filter_length: int
         Number of taps to use for filtering
 
@@ -72,14 +70,11 @@ def _compute_exg_proj(mode, in_fif_fname, tmin, tmax,
     avg_ref: bool
         Add EEG average reference proj
 
-    include_existing: bool
-        Inlucde the SSP projectors currently in the fiff file
+    excl_proj: bool
+        Exclude the SSP projectors currently in the fiff file
 
-    proj_fname: string (or None)
-        Filename to use for projectors (not saved if None)
-
-    event_fname: string
-        Filename to use for events (not saved if None)
+    event_id: int
+        ID to use for events
 
     Returns
     -------
@@ -89,25 +84,27 @@ def _compute_exg_proj(mode, in_fif_fname, tmin, tmax,
     events : ndarray
         Detected events
     """
-    # Reading fif File
-    raw = Raw(in_fif_fname, preload=preload)
+    if not raw._preloaded:
+        raise ValueError('raw needs to be preloaded, use preload=True in constructor')
 
-    if include_existing:
-        projs = raw.info['projs']
-    else:
+    if excl_proj:
         projs = []
+    else:
+        projs = raw.info['projs']
+        print ('Including %d SSP projectors from %s'
+               % (len(projs), in_fif_fname))
 
     if avg_ref:
-        print "Adding average EEG reference projection."
+        print 'Adding average EEG reference projection.'
         eeg_proj = make_eeg_average_ref_proj(raw.info)
         projs.append(eeg_proj)
 
     if mode == 'ECG':
         print 'Running ECG SSP computation'
-        events, _, _ = find_ecg_events(raw, ch_name=ch_name)
+        events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id)
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
-        events = find_eog_events(raw)
+        events = find_eog_events(raw, event_id=event_id)
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -147,33 +144,26 @@ def _compute_exg_proj(mode, in_fif_fname, tmin, tmax,
     if preload is not None and os.path.exists(preload):
         os.remove(preload)
 
-    if event_fname is not None:
-        print "Writing events in %s" % event_fname
-        write_events(event_fname, events)
-
-    if proj_fname is not None:
-        print "Writing projections in %s" % proj_fname
-        write_proj(proj_fname, projs)
-
     print 'Done.'
 
     return projs, events
 
 
-def compute_proj_ecg(in_fif_fname, tmin=-0.2, tmax=0.4,
+def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, preload="tmp.mmap",
-                     filter_length=2048, n_jobs=1, ch_name=None,
+                     average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), bads=None,
-                     avg_ref=False, include_existing=False,
-                     ecg_proj_fname=None, ecg_event_fname=None):
+                     eog=250e-6), bads=None, avg_ref=False, excl_proj=True,
+                     event_id=999):
     """Compute SSP/PCA projections for ECG artifacts
+
+    Note: raw has to be constructed with preload=True (or string)
+    Warning: raw will be modified by this function
 
     Parameters
     ----------
-    in_fif_fname: string
-        Input Raw FIF file
+    raw: mne.fiff.Raw
+        Raw input file
 
     tmin: float
         Time before event in second
@@ -198,9 +188,6 @@ def compute_proj_ecg(in_fif_fname, tmin=-0.2, tmax=0.4,
 
     average: bool
         Compute SSP after averaging
-
-    preload: string (or True)
-        Temporary file used during computaion
 
     filter_length: int
         Number of taps to use for filtering
@@ -220,14 +207,11 @@ def compute_proj_ecg(in_fif_fname, tmin=-0.2, tmax=0.4,
     avg_ref: bool
         Add EEG average reference proj
 
-    include_existing: bool
-        Inlucde the SSP projectors currently in the fiff file
+    excl_proj: bool
+        Exclude the SSP projectors currently in the fiff file
 
-    ecg_proj_fname: string (or None)
-        Filename to use for projectors (not saved if None)
-
-    ecg_event_fname: string (or None)
-        Filename to use for events (not saved if None)
+    event_id: int
+        ID to use for events
 
     Returns
     -------
@@ -238,29 +222,29 @@ def compute_proj_ecg(in_fif_fname, tmin=-0.2, tmax=0.4,
         Detected ECG events
     """
 
-    projs, ecg_events = _compute_exg_proj('ECG', in_fif_fname, tmin, tmax,
+    projs, ecg_events = _compute_exg_proj('ECG', raw, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
-                        average, preload, filter_length, n_jobs, ch_name,
-                        reject, bads, avg_ref, include_existing,
-                        ecg_proj_fname, ecg_event_fname)
+                        average, filter_length, n_jobs, ch_name,
+                        reject, bads, avg_ref, excl_proj, event_id)
 
     return projs, ecg_events
 
 
-def compute_proj_eog(in_fif_fname, tmin=-0.15, tmax=0.15,
+def compute_proj_eog(raw, tmin=-0.15, tmax=0.15,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, preload="tmp.mmap",
-                     filter_length=2048, n_jobs=1,
+                     average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), bads=None,
-                     avg_ref=False, include_existing=False,
-                     ecg_proj_fname=None, ecg_event_fname=None):
+                     eog=1e9), bads=None, avg_ref=False, excl_proj=True,
+                     event_id=998):
     """Compute SSP/PCA projections for EOG artifacts
+
+    Note: raw has to be constructed with preload=True (or string)
+    Warning: raw will be modified by this function
 
     Parameters
     ----------
-    in_fif_fname: string
-        Input Raw FIF file
+    raw: mne.fiff.Raw
+        Raw input file
 
     tmin: float
         Time before event in second
@@ -304,14 +288,11 @@ def compute_proj_eog(in_fif_fname, tmin=-0.15, tmax=0.15,
     avg_ref: bool
         Add EEG average reference proj
 
-    include_existing: bool
-        Inlucde the SSP projectors currently in the fiff file
+    excl_proj: bool
+        Exclude the SSP projectors currently in the fiff file
 
-    eog_proj_fname: string (or None)
-        Filename to use for projectors (not saved if None)
-
-    eog_event_fname: string (or None)
-        Filename to use for events (not saved if None)
+    event_id: int
+        ID to use for events
 
     Returns
     -------
@@ -322,11 +303,9 @@ def compute_proj_eog(in_fif_fname, tmin=-0.15, tmax=0.15,
         Detected ECG events
     """
 
-    projs, eog_events = _compute_exg_proj('EOG', in_fif_fname, tmin, tmax,
+    projs, eog_events = _compute_exg_proj('EOG', raw, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
-                        average, preload, filter_length, n_jobs, None,
-                        reject, bads, avg_ref, include_existing,
-                        ecg_proj_fname, ecg_event_fname)
+                        average, filter_length, n_jobs, None,
+                        reject, bads, avg_ref, excl_proj, event_id)
 
     return projs, eog_events
-

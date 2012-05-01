@@ -9,8 +9,8 @@ $mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 100 --rej-
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-import sys
 import os
+import sys
 import mne
 
 
@@ -43,8 +43,8 @@ if __name__ == '__main__':
                     help="Filter high cut-off frequency in Hz",
                     default=35)
     parser.add_option("-p", "--preload", dest="preload",
-                    help="Temporary file used during computaion",
-                    default='tmp.mmap')
+                    help="Temporary file used during computaion (to save memory)",
+                    default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
                     default=False)
@@ -65,16 +65,18 @@ if __name__ == '__main__':
                     default=50)
     parser.add_option("--rej-eog", dest="rej_eog",
                     help="EOG rejection parameter in uV (peak to peak amplitude)",
-                    default=250)
+                    default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                     help="Add EEG average reference proj",
                     default=False)
-    parser.add_option("--existing", dest="include_existing", action="store_true",
-                    help="Inlucde the SSP projectors currently in the fiff file",
-                    default=True)
+    parser.add_option("--exclproj", dest="excl_proj", action="store_true",
+                    help="Exclude the SSP projectors currently in the fiff file",
+                    default=False)
     parser.add_option("--bad", dest="bad_fname",
                     help="Text file containing bad channels list (one per line)",
                     default=None)
+    parser.add_option("--event-id", dest="event_id", type="int",
+                    help="ID to use for events", default=999)
 
     options, args = parser.parse_args()
 
@@ -100,8 +102,9 @@ if __name__ == '__main__':
                   eeg=1e-6 * float(options.rej_eeg),
                   eog=1e-6 * float(options.rej_eog))
     avg_ref = options.avg_ref
-    include_existing = options.include_existing
+    excl_proj = options.excl_proj
     bad_fname = options.bad_fname
+    event_id = options.event_id
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -121,8 +124,20 @@ if __name__ == '__main__':
     else:
         eog_proj_fname = prefix + '_eog_proj.fif'
 
-    mne.preprocessing.compute_proj_eog(raw_in, tmin, tmax,
-                            n_grad, n_mag, n_eeg, l_freq, h_freq, average, preload,
-                            filter_length, n_jobs, reject, bads,
-                            avg_ref, include_existing, eog_proj_fname, eog_event_fname)
+    raw = mne.fiff.Raw(raw_in, preload=preload)
 
+    projs, events = mne.preprocessing.compute_proj_eog(raw, tmin, tmax,
+                            n_grad, n_mag, n_eeg, l_freq, h_freq, average,
+                            filter_length, n_jobs, reject, bads,
+                            avg_ref, excl_proj, event_id)
+
+    raw.close()
+
+    if isinstance(preload, str) and os.path.exists(preload):
+        os.remove(preload)
+
+    print "Writing EOG projections in %s" % eog_proj_fname
+    mne.write_proj(eog_proj_fname, projs)
+
+    print "Writing EOG events in %s" % eog_event_fname
+    mne.write_events(eog_event_fname, events)

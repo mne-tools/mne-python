@@ -8,8 +8,7 @@ import os
 from warnings import warn
 
 import numpy as np
-import scipy as sp
-from scipy.optimize import fmin_powell
+from scipy import optimize, linalg
 
 from ..fiff import Raw
 from ..fiff.constants import FIFF
@@ -57,7 +56,7 @@ def fit_sphere_to_headshape(info):
     cost_fun = lambda x, hsp:\
         np.sum((np.sqrt(np.sum((hsp - x[:3]) ** 2, axis=1)) - x[3]) ** 2)
 
-    x_opt = fmin_powell(cost_fun, x0, args=(hsp,))
+    x_opt = optimize.fmin_powell(cost_fun, x0, args=(hsp,))
 
     origin_head = x_opt[:3]
     radius = x_opt[3]
@@ -68,7 +67,7 @@ def fit_sphere_to_headshape(info):
         or trans['to'] != FIFF.FIFFV_COORD_HEAD:
             raise RuntimeError('device to head transform not found')
 
-    head_to_dev = sp.linalg.inv(trans['trans'])
+    head_to_dev = linalg.inv(trans['trans'])
     origin_device = 1e3 * np.dot(head_to_dev,
                                  np.r_[1e-3 * origin_head, 1.0])[:3]
 
@@ -79,6 +78,11 @@ def fit_sphere_to_headshape(info):
            (origin_device[0], origin_device[1], origin_device[2]))
 
     return radius, origin_head, origin_device
+
+
+def _mxwarn(msg):
+    warn('Possible MaxFilter bug: %s, more info: '
+          'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
 
 
 def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
@@ -106,13 +110,14 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     frame: string ('device' or 'head')
         Coordinate frame for head center
 
-    bad: string (or None)
-        List of static bad channels (logical chnos, e.g.: 0323 1042 2631)
+    bad: string, list (or None)
+        List of static bad channels. Can be a list with channel names, or a
+        string with channels (names or logical channel numbers)
 
     autobad: string ('on', 'off', 'n')
         Sets automated bad channel detection on or off
 
-    skip: string (or None)
+    skip: string or a list of float-tuples (or None)
         Skips raw data sequences, time intervals pairs in sec,
         e.g.: 0 30 120 150
 
@@ -171,10 +176,6 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     """
 
     # check for possible maxfilter bugs
-    def _mxwarn(msg):
-        warn('Possible MaxFilter bug: %s, more info: '
-             'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
-
     if mv_trans is not None and mv_comp:
         _mxwarn("Don't use '-trans' with head-movement compensation "
                 "'-movecomp'")
@@ -208,11 +209,20 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
            % (in_fname, out_fname, frame, origin))
 
     if bad is not None:
-        cmd += '-bad %s ' % bad
+        # format the channels
+        if not isinstance(bad, list):
+            bad = bad.split()
+        bad = map(str, bad)
+        bad_logic = [ch[3:] if ch.startswith('MEG') else ch for ch in bad]
+        bad_str = ' '.join(bad_logic)
+
+        cmd += '-bad %s ' % bad_str
 
     cmd += '-autobad %s ' % autobad
 
     if skip is not None:
+        if isinstance(skip, list):
+            skip = ' '.join(['%0.3f %0.3f' % (s[0], s[1]) for s in skip])
         cmd += '-skip %s ' % skip
 
     if force:
