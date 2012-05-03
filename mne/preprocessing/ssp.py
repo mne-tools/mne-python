@@ -6,6 +6,8 @@
 
 import os
 
+import numpy as np
+
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import Raw, pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
@@ -14,7 +16,7 @@ from ..artifacts import find_ecg_events, find_eog_events
 def _compute_exg_proj(mode, raw, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
-                      reject, bads, avg_ref, excl_proj, event_id):
+                      reject, bads, avg_ref, no_proj, event_id):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -70,7 +72,7 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
     avg_ref: bool
         Add EEG average reference proj
 
-    excl_proj: bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file
 
     event_id: int
@@ -87,7 +89,7 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
     if not raw._preloaded:
         raise ValueError('raw needs to be preloaded, use preload=True in constructor')
 
-    if excl_proj:
+    if no_proj:
         projs = []
     else:
         projs = raw.info['projs']
@@ -149,7 +151,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), bads=[], avg_ref=False, excl_proj=True,
+                     eog=250e-6), bads=[], avg_ref=False, no_proj=True,
                      event_id=999):
     """Compute SSP/PCA projections for ECG artifacts
 
@@ -203,7 +205,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
     avg_ref: bool
         Add EEG average reference proj
 
-    excl_proj: bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file
 
     event_id: int
@@ -221,7 +223,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
     projs, ecg_events = _compute_exg_proj('ECG', raw, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
-                        reject, bads, avg_ref, excl_proj, event_id)
+                        reject, bads, avg_ref, no_proj, event_id)
 
     return projs, ecg_events
 
@@ -230,7 +232,7 @@ def compute_proj_eog(raw, tmin=-0.15, tmax=0.15,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
-                     eog=1e9), bads=[], avg_ref=False, excl_proj=True,
+                     eog=np.inf), bads=[], avg_ref=False, no_proj=True,
                      event_id=998):
     """Compute SSP/PCA projections for EOG artifacts
 
@@ -284,7 +286,7 @@ def compute_proj_eog(raw, tmin=-0.15, tmax=0.15,
     avg_ref: bool
         Add EEG average reference proj
 
-    excl_proj: bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file
 
     event_id: int
@@ -302,6 +304,6 @@ def compute_proj_eog(raw, tmin=-0.15, tmax=0.15,
     projs, eog_events = _compute_exg_proj('EOG', raw, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
-                        reject, bads, avg_ref, excl_proj, event_id)
+                        reject, bads, avg_ref, no_proj, event_id)
 
     return projs, eog_events

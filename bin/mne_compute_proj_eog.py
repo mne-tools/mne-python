@@ -43,7 +43,7 @@ if __name__ == '__main__':
                     help="Filter high cut-off frequency in Hz",
                     default=35)
     parser.add_option("-p", "--preload", dest="preload",
-                    help="Temporary file used during computaion (to save memory)",
+                    help="Temporary file used during computation (to save memory)",
                     default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                     help="Add EEG average reference proj",
                     default=False)
-    parser.add_option("--exclproj", dest="excl_proj", action="store_true",
+    parser.add_option("--no-proj", dest="no_proj", action="store_true",
                     help="Exclude the SSP projectors currently in the fiff file",
                     default=False)
     parser.add_option("--bad", dest="bad_fname",
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                   eeg=1e-6 * float(options.rej_eeg),
                   eog=1e-6 * float(options.rej_eog))
     avg_ref = options.avg_ref
-    excl_proj = options.excl_proj
+    no_proj = options.no_proj
     bad_fname = options.bad_fname
     event_id = options.event_id
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
     projs, events = mne.preprocessing.compute_proj_eog(raw, tmin, tmax,
                             n_grad, n_mag, n_eeg, l_freq, h_freq, average,
                             filter_length, n_jobs, reject, bads,
-                            avg_ref, excl_proj, event_id)
+                            avg_ref, no_proj, event_id)
 
     raw.close()
 
