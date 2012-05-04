@@ -11,7 +11,9 @@ Changelog
 
    - Add method to regularize a noise covariance by `Alex Gramfort`_.
 
-   - New mne_compute_proj_ecg.py script to estimate ECG PCA/SSP vectors by `Alex Gramfort`_.
+   - Read and write measurement info in forward and inverse operators for interactive visualization in mne_analyze by `Alex Gramfort`_.
+
+   - New mne_compute_proj_ecg.py and mne_compute_proj_eog.py scripts to estimate ECG/EOG PCA/SSP vectors by `Alex Gramfort`_ and `Martin Luessi`_.
 
 Version 0.3
 -----------
