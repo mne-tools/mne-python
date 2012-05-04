@@ -19,10 +19,13 @@ def data_path(path='.'):
     folder_name = "MNE-sample-data"
 
     martinos_path = '/homes/6/gramfort/cluster/work/data/MNE-sample-data-processed.tar.gz'
+    neurospin_path = '/neurospin/tmp/gramfort/MNE-sample-data-processed.tar.gz'
 
     if not os.path.exists(op.join(path, folder_name)):
         if os.path.exists(martinos_path):
             archive_name = martinos_path
+        elif os.path.exists(neurospin_path):
+            archive_name = neurospin_path
         elif not os.path.exists(archive_name):
             import urllib
             print "Downloading data, please Wait (600 MB)..."
