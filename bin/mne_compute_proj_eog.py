@@ -1,9 +1,15 @@
 #!/usr/bin/env python
-"""Compute SSP/PCA projections for ECG artifacts
+"""Compute SSP/PCA projections for EOG artifacts
 
 You can do for example:
 
-$mne_compute_proj_ecg.py -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-freq 100 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+$mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+
+or
+
+$mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 --proj sample_audvis_ecg_proj.fif
+
+to exclude ECG artifacts from projection computation.
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
@@ -26,7 +32,7 @@ if __name__ == '__main__':
                     default=-0.2)
     parser.add_option("--tmax", dest="tmax",
                     help="Time after event in seconds",
-                    default=0.4)
+                    default=0.2)
     parser.add_option("-g", "--n-grad", dest="n_grad",
                     help="Number of SSP vectors for gradiometers",
                     default=2)
@@ -41,22 +47,22 @@ if __name__ == '__main__':
                     default=1)
     parser.add_option("--h-freq", dest="h_freq",
                     help="Filter high cut-off frequency in Hz",
-                    default=100)
+                    default=35)
     parser.add_option("-p", "--preload", dest="preload",
                     help="Temporary file used during computation (to save memory)",
                     default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
                     default=False)
+    parser.add_option("--proj", dest="proj",
+                    help="Use SSP projections from a fif file.",
+                    default=None)
     parser.add_option("--filtersize", dest="filter_length",
                     help="Number of taps to use for filtering",
                     default=2048)
     parser.add_option("-j", "--n-jobs", dest="n_jobs",
                     help="Number of jobs to run in parallel",
                     default=1)
-    parser.add_option("-c", "--channel", dest="ch_name",
-                    help="Channel to use for ECG detection (Required if no ECG found)",
-                    default=None)
     parser.add_option("--rej-grad", dest="rej_grad",
                     help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
                     default=2000)
@@ -68,7 +74,7 @@ if __name__ == '__main__':
                     default=50)
     parser.add_option("--rej-eog", dest="rej_eog",
                     help="EOG rejection parameter in uV (peak to peak amplitude)",
-                    default=250)
+                    default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                     help="Add EEG average reference proj",
                     default=False)
@@ -79,7 +85,7 @@ if __name__ == '__main__':
                     help="Text file containing bad channels list (one per line)",
                     default=None)
     parser.add_option("--event-id", dest="event_id", type="int",
-                    help="ID to use for events", default=999)
+                    help="ID to use for events", default=998)
 
     options, args = parser.parse_args()
 
@@ -100,7 +106,6 @@ if __name__ == '__main__':
     preload = options.preload
     filter_length = options.filter_length
     n_jobs = options.n_jobs
-    ch_name = options.ch_name
     reject = dict(grad=1e-13 * float(options.rej_grad),
                   mag=1e-15 * float(options.rej_mag),
                   eeg=1e-6 * float(options.rej_eeg),
@@ -109,6 +114,7 @@ if __name__ == '__main__':
     no_proj = options.no_proj
     bad_fname = options.bad_fname
     event_id = options.event_id
+    proj_fname = options.proj
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -121,27 +127,31 @@ if __name__ == '__main__':
     else:
         prefix = raw_in[:-4]
 
-    ecg_event_fname = prefix + '_ecg-eve.fif'
+    eog_event_fname = prefix + '_eog-eve.fif'
 
     if average:
-        ecg_proj_fname = prefix + '_ecg_avg_proj.fif'
+        eog_proj_fname = prefix + '_eog_avg_proj.fif'
     else:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        eog_proj_fname = prefix + '_eog_proj.fif'
 
     raw = mne.fiff.Raw(raw_in, preload=preload)
 
-    projs, events = mne.preprocessing.compute_proj_ecg(raw, tmin, tmax,
+    if proj_fname is not None:
+        print 'Including SSP projections from : %s' % proj_fname
+        raw.info['projs'] += mne.read_proj(proj_fname)
+
+    projs, events = mne.preprocessing.compute_proj_eog(raw, tmin, tmax,
                             n_grad, n_mag, n_eeg, l_freq, h_freq, average,
-                            filter_length, n_jobs, ch_name, reject,
-                            bads, avg_ref, no_proj, event_id)
+                            filter_length, n_jobs, reject, bads,
+                            avg_ref, no_proj, event_id)
 
     raw.close()
 
     if isinstance(preload, basestring) and os.path.exists(preload):
         os.remove(preload)
 
-    print "Writing ECG projections in %s" % ecg_proj_fname
-    mne.write_proj(ecg_proj_fname, projs)
+    print "Writing EOG projections in %s" % eog_proj_fname
+    mne.write_proj(eog_proj_fname, projs)
 
-    print "Writing ECG events in %s" % ecg_event_fname
-    mne.write_events(ecg_event_fname, events)
+    print "Writing EOG events in %s" % eog_event_fname
+    mne.write_events(eog_event_fname, events)
