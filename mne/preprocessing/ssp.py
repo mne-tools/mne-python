@@ -140,6 +140,10 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
                                         n_eeg=n_eeg)
+
+    for p in ev_projs:
+        p['desc'] = mode + "-" + p['desc']
+
     projs.extend(ev_projs)
 
     print 'Done.'
@@ -151,7 +155,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), bads=[], avg_ref=False, no_proj=True,
+                     eog=250e-6), bads=[], avg_ref=False, no_proj=False,
                      event_id=999):
     """Compute SSP/PCA projections for ECG artifacts
 
@@ -228,11 +232,11 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
     return projs, ecg_events
 
 
-def compute_proj_eog(raw, tmin=-0.15, tmax=0.15,
+def compute_proj_eog(raw, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
-                     eog=np.inf), bads=[], avg_ref=False, no_proj=True,
+                     eog=np.inf), bads=[], avg_ref=False, no_proj=False,
                      event_id=998):
     """Compute SSP/PCA projections for EOG artifacts
 

@@ -3,7 +3,13 @@
 
 You can do for example:
 
-$mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 100 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+$mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+
+or
+
+$mne_compute_proj_eog.py -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 --proj sample_audvis_ecg_proj.fif
+
+to exclude ECG artifacts from projection computation.
 """
 
 # Authors : Alexandre Gramfort, Ph.D.
@@ -23,10 +29,10 @@ if __name__ == '__main__':
                     help="Input raw FIF file", metavar="FILE")
     parser.add_option("--tmin", dest="tmin",
                     help="Time before event in seconds",
-                    default=-0.15)
+                    default=-0.2)
     parser.add_option("--tmax", dest="tmax",
                     help="Time after event in seconds",
-                    default=0.15)
+                    default=0.2)
     parser.add_option("-g", "--n-grad", dest="n_grad",
                     help="Number of SSP vectors for gradiometers",
                     default=2)
@@ -38,7 +44,7 @@ if __name__ == '__main__':
                     default=2)
     parser.add_option("--l-freq", dest="l_freq",
                     help="Filter low cut-off frequency in Hz",
-                    default=5)
+                    default=1)
     parser.add_option("--h-freq", dest="h_freq",
                     help="Filter high cut-off frequency in Hz",
                     default=35)
@@ -48,6 +54,9 @@ if __name__ == '__main__':
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
                     default=False)
+    parser.add_option("--proj", dest="proj",
+                    help="Use SSP projections from a fif file.",
+                    default=None)
     parser.add_option("--filtersize", dest="filter_length",
                     help="Number of taps to use for filtering",
                     default=2048)
@@ -76,7 +85,7 @@ if __name__ == '__main__':
                     help="Text file containing bad channels list (one per line)",
                     default=None)
     parser.add_option("--event-id", dest="event_id", type="int",
-                    help="ID to use for events", default=999)
+                    help="ID to use for events", default=998)
 
     options, args = parser.parse_args()
 
@@ -105,6 +114,7 @@ if __name__ == '__main__':
     no_proj = options.no_proj
     bad_fname = options.bad_fname
     event_id = options.event_id
+    proj_fname = options.proj
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -126,6 +136,10 @@ if __name__ == '__main__':
 
     raw = mne.fiff.Raw(raw_in, preload=preload)
 
+    if proj_fname is not None:
+        print 'Including SSP projections from : %s' % proj_fname
+        raw.info['projs'] += mne.read_proj(proj_fname)
+
     projs, events = mne.preprocessing.compute_proj_eog(raw, tmin, tmax,
                             n_grad, n_mag, n_eeg, l_freq, h_freq, average,
                             filter_length, n_jobs, reject, bads,
@@ -133,7 +147,7 @@ if __name__ == '__main__':
 
     raw.close()
 
-    if isinstance(preload, str) and os.path.exists(preload):
+    if isinstance(preload, basestring) and os.path.exists(preload):
         os.remove(preload)
 
     print "Writing EOG projections in %s" % eog_proj_fname

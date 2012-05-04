@@ -38,10 +38,10 @@ if __name__ == '__main__':
                     default=2)
     parser.add_option("--l-freq", dest="l_freq",
                     help="Filter low cut-off frequency in Hz",
-                    default=5)
+                    default=1)
     parser.add_option("--h-freq", dest="h_freq",
                     help="Filter high cut-off frequency in Hz",
-                    default=35)
+                    default=100)
     parser.add_option("-p", "--preload", dest="preload",
                     help="Temporary file used during computation (to save memory)",
                     default=True)
@@ -137,7 +137,7 @@ if __name__ == '__main__':
 
     raw.close()
 
-    if isinstance(preload, str) and os.path.exists(preload):
+    if isinstance(preload, basestring) and os.path.exists(preload):
         os.remove(preload)
 
     print "Writing ECG projections in %s" % ecg_proj_fname
