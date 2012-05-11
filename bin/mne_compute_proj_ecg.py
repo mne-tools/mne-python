@@ -48,6 +48,9 @@ if __name__ == '__main__':
     parser.add_option("-a", "--average", dest="average", action="store_true",
                     help="Compute SSP after averaging",
                     default=False)
+    parser.add_option("--proj", dest="proj",
+                    help="Use SSP projections from a fif file.",
+                    default=None)
     parser.add_option("--filtersize", dest="filter_length",
                     help="Number of taps to use for filtering",
                     default=2048)
@@ -109,6 +112,7 @@ if __name__ == '__main__':
     no_proj = options.no_proj
     bad_fname = options.bad_fname
     event_id = options.event_id
+    proj_fname = options.proj
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -136,6 +140,11 @@ if __name__ == '__main__':
                             bads, avg_ref, no_proj, event_id)
 
     raw.close()
+
+    if proj_fname is not None:
+        print 'Including SSP projections from : %s' % proj_fname
+        # append the ecg projs, so they are last in the list
+        projs = mne.read_proj(proj_fname) + projs
 
     if isinstance(preload, basestring) and os.path.exists(preload):
         os.remove(preload)
