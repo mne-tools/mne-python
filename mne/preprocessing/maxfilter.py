@@ -171,8 +171,8 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     Returns
     -------
-    origin: ndarray
-        Head origin in selected coordinate frame (mm)
+    origin: string
+        Head origin in selected coordinate frame
     """
 
     # check for possible maxfilter bugs
@@ -266,3 +266,5 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     if st != 0:
         raise RuntimeError('MaxFilter returned non-zero exit status %d' % st)
     print '[done]'
+
+    return origin

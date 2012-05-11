@@ -136,16 +136,17 @@ if __name__ == '__main__':
 
     raw = mne.fiff.Raw(raw_in, preload=preload)
 
-    if proj_fname is not None:
-        print 'Including SSP projections from : %s' % proj_fname
-        raw.info['projs'] += mne.read_proj(proj_fname)
-
     projs, events = mne.preprocessing.compute_proj_eog(raw, tmin, tmax,
                             n_grad, n_mag, n_eeg, l_freq, h_freq, average,
                             filter_length, n_jobs, reject, bads,
                             avg_ref, no_proj, event_id)
 
     raw.close()
+
+    if proj_fname is not None:
+        print 'Including SSP projections from : %s' % proj_fname
+        # append the eog projs, so they are last in the list
+        projs = mne.read_proj(proj_fname) + projs
 
     if isinstance(preload, basestring) and os.path.exists(preload):
         os.remove(preload)
