@@ -145,6 +145,7 @@ if __name__ == '__main__':
 
     if proj_fname is not None:
         print 'Including SSP projections from : %s' % proj_fname
+        # append the eog projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
     if isinstance(preload, basestring) and os.path.exists(preload):
