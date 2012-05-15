@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_option("--trans", dest="mv_trans",
                     help="Transforms the data into the coil definitions of in_fname, or into the default frame",
                     default=None)
-    parser.add_option("--movecomp", dest="mv_comp",
+    parser.add_option("--movecomp", dest="mv_comp", action="store_true",
                     help="Estimates and compensates head movements in continuous raw data",
                     default=False)
     parser.add_option("--headpos", dest="mv_headpos", action="store_true",
