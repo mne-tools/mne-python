@@ -21,25 +21,25 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-i", "--in", dest="raw_in",
                     help="Input raw FIF file", metavar="FILE")
-    parser.add_option("--tmin", dest="tmin",
+    parser.add_option("--tmin", dest="tmin", type="float",
                     help="Time before event in seconds",
                     default=-0.2)
-    parser.add_option("--tmax", dest="tmax",
+    parser.add_option("--tmax", dest="tmax", type="float",
                     help="Time after event in seconds",
                     default=0.4)
-    parser.add_option("-g", "--n-grad", dest="n_grad",
+    parser.add_option("-g", "--n-grad", dest="n_grad", type="int",
                     help="Number of SSP vectors for gradiometers",
                     default=2)
-    parser.add_option("-m", "--n-mag", dest="n_mag",
+    parser.add_option("-m", "--n-mag", dest="n_mag", type="int",
                     help="Number of SSP vectors for magnetometers",
                     default=2)
-    parser.add_option("-e", "--n-eeg", dest="n_eeg",
+    parser.add_option("-e", "--n-eeg", dest="n_eeg", type="int",
                     help="Number of SSP vectors for EEG",
                     default=2)
-    parser.add_option("--l-freq", dest="l_freq",
+    parser.add_option("--l-freq", dest="l_freq", type="float",
                     help="Filter low cut-off frequency in Hz",
                     default=1)
-    parser.add_option("--h-freq", dest="h_freq",
+    parser.add_option("--h-freq", dest="h_freq", type="float",
                     help="Filter high cut-off frequency in Hz",
                     default=100)
     parser.add_option("-p", "--preload", dest="preload",
@@ -51,25 +51,25 @@ if __name__ == '__main__':
     parser.add_option("--proj", dest="proj",
                     help="Use SSP projections from a fif file.",
                     default=None)
-    parser.add_option("--filtersize", dest="filter_length",
+    parser.add_option("--filtersize", dest="filter_length", type="int",
                     help="Number of taps to use for filtering",
                     default=2048)
-    parser.add_option("-j", "--n-jobs", dest="n_jobs",
+    parser.add_option("-j", "--n-jobs", dest="n_jobs", type="int",
                     help="Number of jobs to run in parallel",
                     default=1)
     parser.add_option("-c", "--channel", dest="ch_name",
                     help="Channel to use for ECG detection (Required if no ECG found)",
                     default=None)
-    parser.add_option("--rej-grad", dest="rej_grad",
+    parser.add_option("--rej-grad", dest="rej_grad", type="float",
                     help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
                     default=2000)
-    parser.add_option("--rej-mag", dest="rej_mag",
+    parser.add_option("--rej-mag", dest="rej_mag", type="float",
                     help="Magnetometers rejection parameter in fT (peak to peak amplitude)",
                     default=3000)
-    parser.add_option("--rej-eeg", dest="rej_eeg",
+    parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
                     help="EEG rejection parameter in uV (peak to peak amplitude)",
                     default=50)
-    parser.add_option("--rej-eog", dest="rej_eog",
+    parser.add_option("--rej-eog", dest="rej_eog", type="float",
                     help="EOG rejection parameter in uV (peak to peak amplitude)",
                     default=250)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
