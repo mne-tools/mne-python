@@ -4,16 +4,14 @@
 #
 # License: BSD (3-clause)
 
-import os
-
 import numpy as np
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
-from ..fiff import Raw, pick_types, make_eeg_average_ref_proj
+from ..fiff import pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
 
 
-def _compute_exg_proj(mode, raw, tmin, tmax,
+def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
                       reject, bads, avg_ref, no_proj, event_id):
@@ -29,6 +27,9 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
 
     raw: mne.fiff.Raw
         Raw input file
+
+    raw_event: mne.fiff.Raw or None
+        Raw file to use for event detection (if None, raw is used)
 
     tmin: float
         Time before event in second
@@ -87,7 +88,8 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
         Detected events
     """
     if not raw._preloaded:
-        raise ValueError('raw needs to be preloaded, use preload=True in constructor')
+        raise ValueError('raw needs to be preloaded, '
+                         'use preload=True in constructor')
 
     if no_proj:
         projs = []
@@ -100,12 +102,16 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
         eeg_proj = make_eeg_average_ref_proj(raw.info)
         projs.append(eeg_proj)
 
+    if raw_event is None:
+        raw_event = raw
+
     if mode == 'ECG':
         print 'Running ECG SSP computation'
-        events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id)
+        events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
+                                       event_id=event_id)
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
-        events = find_eog_events(raw, event_id=event_id)
+        events = find_eog_events(raw_event, event_id=event_id)
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -151,7 +157,7 @@ def _compute_exg_proj(mode, raw, tmin, tmax,
     return projs, events
 
 
-def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
+def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
@@ -166,6 +172,9 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
     ----------
     raw: mne.fiff.Raw
         Raw input file
+
+    raw_event: mne.fiff.Raw or None
+        Raw file to use for event detection (if None, raw is used)
 
     tmin: float
         Time before event in second
@@ -224,7 +233,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
         Detected ECG events
     """
 
-    projs, ecg_events = _compute_exg_proj('ECG', raw, tmin, tmax,
+    projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
                         reject, bads, avg_ref, no_proj, event_id)
@@ -232,7 +241,7 @@ def compute_proj_ecg(raw, tmin=-0.2, tmax=0.4,
     return projs, ecg_events
 
 
-def compute_proj_eog(raw, tmin=-0.2, tmax=0.2,
+def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
@@ -247,6 +256,9 @@ def compute_proj_eog(raw, tmin=-0.2, tmax=0.2,
     ----------
     raw: mne.fiff.Raw
         Raw input file
+
+    raw_event: mne.fiff.Raw or None
+        Raw file to use for event detection (if None, raw is used)
 
     tmin: float
         Time before event in second
@@ -305,7 +317,7 @@ def compute_proj_eog(raw, tmin=-0.2, tmax=0.2,
         Detected ECG events
     """
 
-    projs, eog_events = _compute_exg_proj('EOG', raw, tmin, tmax,
+    projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
                         reject, bads, avg_ref, no_proj, event_id)

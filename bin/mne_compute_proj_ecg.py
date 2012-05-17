@@ -83,6 +83,8 @@ if __name__ == '__main__':
                     default=None)
     parser.add_option("--event-id", dest="event_id", type="int",
                     help="ID to use for events", default=999)
+    parser.add_option("--event-raw", dest="raw_event_fname",
+                    help="raw file to use for event detection", default=None)
 
     options, args = parser.parse_args()
 
@@ -113,6 +115,7 @@ if __name__ == '__main__':
     bad_fname = options.bad_fname
     event_id = options.event_id
     proj_fname = options.proj
+    raw_event_fname = options.raw_event_fname
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -134,12 +137,21 @@ if __name__ == '__main__':
 
     raw = mne.fiff.Raw(raw_in, preload=preload)
 
-    projs, events = mne.preprocessing.compute_proj_ecg(raw, tmin, tmax,
-                            n_grad, n_mag, n_eeg, l_freq, h_freq, average,
-                            filter_length, n_jobs, ch_name, reject,
+    if raw_event_fname is not None:
+        raw_event = mne.fiff.Raw(raw_event_fname)
+    else:
+        raw_event = raw
+
+    projs, events = mne.preprocessing.compute_proj_ecg(raw, raw_event,
+                            tmin, tmax, n_grad, n_mag, n_eeg,
+                            l_freq, h_freq, average, filter_length,
+                            n_jobs, ch_name, reject,
                             bads, avg_ref, no_proj, event_id)
 
     raw.close()
+
+    if raw_event_fname is not None:
+        raw_event.close()
 
     if proj_fname is not None:
         print 'Including SSP projections from : %s' % proj_fname
