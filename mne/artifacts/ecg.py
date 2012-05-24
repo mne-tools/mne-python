@@ -107,6 +107,9 @@ def find_ecg_events(raw, event_id=999, ch_name=None):
                                  eog=False, ecg=True, emg=False)
     else:
         ch_ECG = fiff.pick_channels(raw.ch_names, include=[ch_name])
+        if len(ch_ECG) == 0:
+            raise ValueError('%s not in channel list (%s)' %
+                              (ch_name, raw.ch_names))
 
     if len(ch_ECG) == 0 and ch_name is None:
         raise Exception('No ECG channel found. Please specify ch_name '
