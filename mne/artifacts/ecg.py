@@ -143,7 +143,6 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     ecg_events = qrs_detector(info['sfreq'], ecg.ravel(), tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=l_freq,
                               h_freq=h_freq)
-    import ipdb; ipdb.set_trace()
 
     n_events = len(ecg_events)
     average_pulse = n_events * 60.0 / (times[-1] - times[0])
