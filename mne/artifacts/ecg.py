@@ -5,7 +5,7 @@ from ..filter import band_pass_filter
 
 
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
-                 low_pass=5, high_pass=35):
+                 l_freq=5, h_freq=35, tstart=0):
     """Detect QRS component in ECG channels.
 
     QRS is the main wave on the heart beat.
@@ -22,10 +22,12 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         number of std from mean to include for detection
     n_thresh: int
         max number of crossings
-    low_pass: float
+    l_freq: float
         Low pass frequency
-    high_pass: float
+    h_freq: float
         High pass frequency
+    tstart: float
+        Start detection after tstart seconds.
 
     Returns
     -------
@@ -34,11 +36,15 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     """
     win_size = round((60.0 * sfreq) / 120.0)
 
-    filtecg = band_pass_filter(ecg, sfreq, low_pass, high_pass)
-    n_points = len(filtecg)
+    filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq)
 
     absecg = np.abs(filtecg)
     init = int(sfreq)
+
+    n_samples_start = int(init * tstart)
+    absecg = absecg[n_samples_start:]
+
+    n_points = len(absecg)
 
     maxpt = np.empty(3)
     maxpt[0] = np.max(absecg[:init])
@@ -73,10 +79,13 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     a = np.array(numcross)[b]
     clean_events = time[b[a < n_thresh]]
 
+    clean_events += n_samples_start
+
     return clean_events
 
 
-def find_ecg_events(raw, event_id=999, ch_name=None):
+def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
+                    l_freq=5, h_freq=35, qrs_threshold=0.6):
     """Find ECG peaks
 
     Parameters
@@ -89,6 +98,15 @@ def find_ecg_events(raw, event_id=999, ch_name=None):
         The name of the channel to use for ECG peak detection.
         The argument is mandatory if the dataset contains no ECG
         channels.
+    tstart: float
+        Start detection after tstart seconds. Useful when beginning
+        of run is noisy.
+    l_freq: float
+        Low pass frequency
+    h_freq: float
+        High pass frequency
+    qrs_threshold: float
+        Between 0 and 1. qrs detection threshold
 
     Returns
     -------
@@ -122,7 +140,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None):
     ecg, times = raw[ch_ECG, :]
 
     # detecting QRS and generating event file
-    ecg_events = qrs_detector(info['sfreq'], ecg.ravel())
+    ecg_events = qrs_detector(info['sfreq'], ecg.ravel(), tstart=tstart,
+                              thresh_value=qrs_threshold, l_freq=l_freq,
+                              h_freq=h_freq)
+
     n_events = len(ecg_events)
     average_pulse = n_events * 60.0 / (times[-1] - times[0])
     print ("Number of ECG events detected : %d (average pulse %d / min.)"
