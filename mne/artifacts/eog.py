@@ -5,7 +5,7 @@ from .. import fiff
 from ..filter import band_pass_filter
 
 
-def find_eog_events(raw, event_id=998):
+def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10):
     """Locate EOG artifacts
 
     Parameters
@@ -14,6 +14,10 @@ def find_eog_events(raw, event_id=998):
         The raw data
     event_id : int
         The index to assign to found events
+    low_pass: float
+        Low pass frequency
+    high_pass: float
+        High pass frequency
 
     Returns
     -------
@@ -49,8 +53,8 @@ def find_eog_events(raw, event_id=998):
 
     indexmax = np.argmax(temp)
 
-    # easy to detect peaks with this filtering.
-    filteog = band_pass_filter(eog[indexmax], sampRate, 1, 10)
+    # easier to detect peaks with filtering.
+    filteog = band_pass_filter(eog[indexmax], sampRate, l_freq, h_freq)
 
     # detecting eog blinks and generating event file
 

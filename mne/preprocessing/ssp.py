@@ -14,7 +14,8 @@ from ..artifacts import find_ecg_events, find_eog_events
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
-                      reject, bads, avg_ref, no_proj, event_id):
+                      reject, bads, avg_ref, no_proj, event_id,
+                      exg_l_freq, exg_h_freq, tstart):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -79,6 +80,15 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     event_id: int
         ID to use for events
 
+    exg_l_freq: float
+        Low pass frequency applied for filtering EXG channel
+
+    exg_h_freq: float
+        High pass frequency applied for filtering EXG channel
+
+    tstart: float
+        Start artifact detection after tstart seconds.
+
     Returns
     -------
     proj : list
@@ -108,10 +118,12 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if mode == 'ECG':
         print 'Running ECG SSP computation'
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
-                                       event_id=event_id)
+                           event_id=event_id, l_freq=exg_l_freq,
+                           h_freq=exg_h_freq, tstart=tstart)
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
-        events = find_eog_events(raw_event, event_id=event_id)
+        events = find_eog_events(raw_event, event_id=event_id,
+                           l_freq=exg_l_freq, h_freq=exg_h_freq)
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -162,7 +174,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
                      eog=250e-6), bads=[], avg_ref=False, no_proj=False,
-                     event_id=999):
+                     event_id=999, ecg_l_freq=5, ecg_h_freq=35,
+                     tstart=0.):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -224,6 +237,15 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     event_id: int
         ID to use for events
 
+    ecg_l_freq: float
+        Low pass frequency applied for filtering ECG channel
+
+    ecg_h_freq: float
+        High pass frequency applied for filtering ECG channel
+
+    tstart: float
+        Start artifact detection after tstart seconds.
+
     Returns
     -------
     proj : list
@@ -236,7 +258,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
-                        reject, bads, avg_ref, no_proj, event_id)
+                        reject, bads, avg_ref, no_proj, event_id,
+                        ecg_l_freq, ecg_h_freq, tstart)
 
     return projs, ecg_events
 
@@ -246,7 +269,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                      eog=np.inf), bads=[], avg_ref=False, no_proj=False,
-                     event_id=998):
+                     event_id=998, eog_l_freq=1, eog_h_freq=10, tstart=0.):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -308,6 +331,15 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     event_id: int
         ID to use for events
 
+    eog_l_freq: float
+        Low pass frequency applied for filtering E0G channel
+
+    eog_h_freq: float
+        High pass frequency applied for filtering E0G channel
+
+    tstart: float
+        Start artifact detection after tstart seconds.
+
     Returns
     -------
     proj : list
@@ -320,6 +352,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
-                        reject, bads, avg_ref, no_proj, event_id)
+                        reject, bads, avg_ref, no_proj, event_id,
+                        eog_l_freq, eog_h_freq, tstart)
 
     return projs, eog_events

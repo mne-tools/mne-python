@@ -42,6 +42,12 @@ if __name__ == '__main__':
     parser.add_option("--h-freq", dest="h_freq", type="float",
                     help="Filter high cut-off frequency in Hz",
                     default=100)
+    parser.add_option("--ecg-l-freq", dest="ecg_l_freq", type="float",
+                    help="Filter low cut-off frequency in Hz used for ECG event detection",
+                    default=5)
+    parser.add_option("--ecg-h-freq", dest="ecg_h_freq", type="float",
+                    help="Filter high cut-off frequency in Hz used for ECG event detection",
+                    default=35)
     parser.add_option("-p", "--preload", dest="preload",
                     help="Temporary file used during computation (to save memory)",
                     default=True)
@@ -85,6 +91,8 @@ if __name__ == '__main__':
                     help="ID to use for events", default=999)
     parser.add_option("--event-raw", dest="raw_event_fname",
                     help="raw file to use for event detection", default=None)
+    parser.add_option("--tstart", dest="tstart", type="float",
+                    help="Start artifact detection after tstart seconds", default=0.)
 
     options, args = parser.parse_args()
 
@@ -101,6 +109,8 @@ if __name__ == '__main__':
     n_eeg = options.n_eeg
     l_freq = options.l_freq
     h_freq = options.h_freq
+    ecg_l_freq = options.ecg_l_freq
+    ecg_h_freq = options.ecg_h_freq
     average = options.average
     preload = options.preload
     filter_length = options.filter_length
@@ -116,6 +126,7 @@ if __name__ == '__main__':
     event_id = options.event_id
     proj_fname = options.proj
     raw_event_fname = options.raw_event_fname
+    tstart = options.tstart
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -146,7 +157,8 @@ if __name__ == '__main__':
                             tmin, tmax, n_grad, n_mag, n_eeg,
                             l_freq, h_freq, average, filter_length,
                             n_jobs, ch_name, reject,
-                            bads, avg_ref, no_proj, event_id)
+                            bads, avg_ref, no_proj, event_id,
+                            ecg_l_freq, ecg_h_freq, tstart)
 
     raw.close()
 
