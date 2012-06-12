@@ -18,7 +18,6 @@ import webbrowser
 
 import copy
 import inspect
-
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
