@@ -298,10 +298,10 @@ class Epochs(object):
         if data is None:
             return False
         n_times = len(self.times)
+        if data.shape[1] < n_times:
+            return False  # epoch is too short ie at the end of the data
         if self.reject is None and self.flat is None:
             return True
-        elif data.shape[1] < n_times:
-            return False  # epoch is too short ie at the end of the data
         else:
             return _is_good(data, self.ch_names, self._channel_type_idx,
                             self.reject, self.flat)
