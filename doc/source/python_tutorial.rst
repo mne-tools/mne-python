@@ -126,6 +126,8 @@ First extract events:
 
     >>> events = mne.find_events(raw, stim_channel='STI 014')
     Reading 6450 ... 48149  =     42.956 ...   320.665 secs...  [done]
+    319 events found
+    Events id: [ 1  2  3  4  5 32]
     >>> print events[:5]
     [[6994    0    2]
      [7086    0    3]
@@ -275,17 +277,17 @@ Define the inverse parameters:
 
     >>> snr = 3.0
     >>> lambda2 = 1.0 / snr ** 2
-    >>> dSPM = True
+    >>> method = "dSPM"
 
 Compute the inverse solution:
 
-    >>> stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+    >>> stc = apply_inverse(evoked, inverse_operator, lambda2, method)
     Preparing the inverse operator for use...
         Scaled noise and source covariance from nave = 1 to nave = 72
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
-        Computing noise-normalization factors... [done]
+        Computing noise-normalization factors (dSPM)... [done]
     Picked 305 channels from the data
     Computing inverse... (eigenleads need to be weighted)... combining the current components... (dSPM)... [done]
 
@@ -303,13 +305,13 @@ Compute inverse solution during the first 15s:
 
     >>> from mne.minimum_norm import apply_inverse_raw
     >>> start, stop = raw.time_to_index(0, 15)  # read the first 15s of data
-    >>> stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM, label, start, stop)
+    >>> stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label, start, stop)
     Preparing the inverse operator for use...
         Scaled noise and source covariance from nave = 1 to nave = 1
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
-        Computing noise-normalization factors... [done]
+        Computing noise-normalization factors (dSPM)... [done]
     Picked 305 channels from the data
     Computing inverse... Reading 6450 ... 8701  =     42.956 ...    57.947 secs...  [done]
     (eigenleads need to be weighted)... combining the current components... [done]

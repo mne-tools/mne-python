@@ -25,23 +25,22 @@ data_path = sample.data_path('..')
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-setno = 0
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-dSPM = True
+method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
+evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 
 # Compute inverse solution
-stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM)
+stc = apply_inverse(evoked, inverse_operator, lambda2, method)
 stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
-img = mne.save_stc_as_volume('mne_dSPM_inverse.nii.gz', stc, src,
-          mri_resolution=False)  # set to True for full MRI resolution
+img = mne.save_stc_as_volume('mne_%s_inverse.nii.gz' % method, stc,
+        src, mri_resolution=False)  # set to True for full MRI resolution
 data = img.get_data()
 
 # plot result (one slice)

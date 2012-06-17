@@ -27,13 +27,11 @@ fname_fwd = data_path + '/MEG/sample/sample_audvis-eeg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-setno = 0
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-dSPM = True
 
 # Load data
-evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
+evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 noise_cov = mne.read_cov(fname_cov)
 
@@ -48,7 +46,8 @@ inverse_operator = make_inverse_operator(evoked.info, forward, noise_cov,
 write_inverse_operator('sample_audvis-eeg-oct-6-eeg-inv.fif', inverse_operator)
 
 # Compute inverse solution
-stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM, pick_normal=False)
+stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM",
+                    pick_normal=False)
 
 # Save result in stc files
 stc.save('mne_dSPM_inverse')
