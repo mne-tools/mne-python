@@ -1,7 +1,11 @@
 """
-========================================
-Estimate covariance matrix from baseline
-========================================
+===============================================
+Estimate covariance matrix from Epochs baseline
+===============================================
+
+We first define a set of Epochs from events and a raw file.
+Then we estimate the noise covariance of prestimulus data,
+a.k.a. baseline.
 
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
