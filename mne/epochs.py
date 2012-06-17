@@ -146,7 +146,6 @@ class Epochs(object):
             self.info['projs'] = activate_proj(self.info['projs'], copy=False)
 
             # Add EEG ref reference proj
-            print "Adding average EEG reference projection."
             eeg_sel = pick_types(self.info, meg=False, eeg=True)
             if len(eeg_sel) > 0:
                 eeg_proj = make_eeg_average_ref_proj(self.info)

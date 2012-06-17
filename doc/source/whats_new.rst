@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add support for sLORETA in apply_inverse, apply_inverse_raw, apply_inverse_epochs (API Change) by `Alex Gramfort`_.
+
    - Add method to regularize a noise covariance by `Alex Gramfort`_.
 
    - Read and write measurement info in forward and inverse operators for interactive visualization in mne_analyze by `Alex Gramfort`_.

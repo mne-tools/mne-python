@@ -24,24 +24,24 @@ data_path = sample.data_path('..')
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-setno = 0
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-dSPM = True
+method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=setno, baseline=(None, 0))
+evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
-stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM, pick_normal=False)
+stc = apply_inverse(evoked, inverse_operator, lambda2, method,
+                    pick_normal=False)
 
 # Save result in stc files
-stc.save('mne_dSPM_inverse')
+stc.save('mne_%s_inverse' % method)
 
 ###############################################################################
 # View activation time-series
 pl.plot(1e3 * stc.times, stc.data[::100, :].T)
 pl.xlabel('time (ms)')
-pl.ylabel('dSPM value')
+pl.ylabel('%s value' % method)
 pl.show()

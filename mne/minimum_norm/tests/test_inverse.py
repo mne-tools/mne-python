@@ -47,7 +47,6 @@ noise_cov = read_cov(fname_cov)
 raw = fiff.Raw(fname_raw)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-dSPM = True
 
 
 def _compare(a, b):
@@ -90,17 +89,17 @@ def test_apply_inverse_operator():
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
 
-    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM=False)
-
+    stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert_true(stc.data.min() > 0)
     assert_true(stc.data.max() < 10e-10)
     assert_true(stc.data.mean() > 1e-11)
 
-    stc = apply_inverse(evoked, inverse_operator, lambda2, dSPM=True)
+    stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
+    assert_true(stc.data.min() > 0)
+    assert_true(stc.data.max() < 9.0)
+    assert_true(stc.data.mean() > 0.1)
 
-    assert_true(np.all(stc.data > 0))
-    assert_true(np.all(stc.data < 35))
-
+    stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
     assert_true(stc.data.min() > 0)
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
@@ -115,7 +114,7 @@ def test_apply_inverse_operator():
     read_my_inv_op = read_inverse_operator('test-inv.fif')
     _compare(my_inv_op, read_my_inv_op)
 
-    my_stc = apply_inverse(evoked, my_inv_op, lambda2, dSPM)
+    my_stc = apply_inverse(evoked, my_inv_op, lambda2, "dSPM")
 
     assert_true('dev_head_t' in my_inv_op['info'])
     assert_true('mri_head_t' in my_inv_op)
@@ -141,8 +140,8 @@ def test_make_inverse_operator_fixed():
     assert_array_almost_equal(inverse_operator_fixed['source_cov']['data'],
                               inv_op['source_cov']['data'])
 
-    stc_fixed = apply_inverse(evoked, inverse_operator_fixed, lambda2, dSPM)
-    my_stc = apply_inverse(evoked, inv_op, lambda2, dSPM)
+    stc_fixed = apply_inverse(evoked, inverse_operator_fixed, lambda2, "dSPM")
+    my_stc = apply_inverse(evoked, inv_op, lambda2, "dSPM")
 
     assert_equal(stc_fixed.times, my_stc.times)
     assert_array_almost_equal(stc_fixed.data, my_stc.data, 2)
@@ -157,7 +156,7 @@ def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space"""
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, dSPM)
+    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
     stc.save('tmp-vl.stc')
     stc2 = SourceEstimate('tmp-vl.stc')
     assert_true(np.all(stc.data > 0))
@@ -172,11 +171,11 @@ def test_apply_mne_inverse_raw():
     stop = 10
     _, times = raw[0, start:stop]
     for pick_normal in [False, True]:
-        stc = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+        stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                 label=label, start=start, stop=stop, nave=1,
                                 pick_normal=pick_normal, buffer_size=None)
 
-        stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+        stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                  label=label, start=start, stop=stop, nave=1,
                                  pick_normal=pick_normal, buffer_size=3)
 
@@ -201,11 +200,11 @@ def test_apply_mne_inverse_fixed_raw():
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
                                    loose=None, depth=0.8)
 
-    stc = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
+    stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                             label=label, start=start, stop=stop, nave=1,
                             pick_normal=False, buffer_size=None)
 
-    stc2 = apply_inverse_raw(raw, inv_op, lambda2, dSPM=True,
+    stc2 = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                              label=label, start=start, stop=stop, nave=1,
                              pick_normal=False, buffer_size=3)
 
@@ -227,7 +226,7 @@ def test_apply_mne_inverse_epochs():
     events = read_events(fname_event)[:15]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
-    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM,
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 label=label, pick_normal=True)
 
     assert_true(len(stcs) == 4)
