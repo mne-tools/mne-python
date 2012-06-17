@@ -247,7 +247,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
     Fp2 = float(Fp2)
 
     # Default values in Hz
-    Fs1 = Fp1 - 0.5
+    Fs1 = max(Fp1 - 0.5, 0.)
     Fs2 = Fp2 + 0.5
 
     xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
