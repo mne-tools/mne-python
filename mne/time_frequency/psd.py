@@ -7,7 +7,8 @@ from ..parallel import parallel_func
 
 
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
-                            fmin=0, fmax=np.inf,  NFFT=2048, n_jobs=1):
+                    fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
+                    plot=False):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -38,6 +39,9 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     n_jobs: int
         Number of CPUs to use in the computation.
 
+    plot: bool
+        Plot each PSD estimates
+
     Return
     ------
     psd: array of float
@@ -58,8 +62,10 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     print "Effective window size : %s (s)" % (NFFT * Fs)
 
     parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs, verbose=0)
+    fig = pl.figure()
     out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data)
-
+    if not plot:
+        pl.close(fig)
     freqs = out[0][1]
     psd = np.array(zip(*out)[0])
 
