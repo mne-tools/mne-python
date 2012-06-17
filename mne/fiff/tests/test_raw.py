@@ -148,13 +148,13 @@ def test_filter():
     picks = picks_meg[:4]
 
     raw_lp = deepcopy(raw)
-    raw_lp.low_pass_filter(picks, 4.0, verbose=0, n_jobs=2)
+    raw_lp.filter(0., 4.0, picks=picks, verbose=0, n_jobs=2)
 
     raw_hp = deepcopy(raw)
-    raw_hp.high_pass_filter(picks, 8.0, verbose=0)
+    raw_lp.filter(8.0, None, picks=picks, verbose=0, n_jobs=2)
 
     raw_bp = deepcopy(raw)
-    raw_bp.band_pass_filter(picks, 4.0, 8.0, verbose=0)
+    raw_bp.filter(4.0, 8.0, picks=picks, verbose=0)
 
     data, _ = raw[picks, :]
 

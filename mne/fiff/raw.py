@@ -16,9 +16,11 @@ from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
+from .pick import pick_types
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
+from ..utils import deprecated
 
 
 class Raw(object):
@@ -360,6 +362,61 @@ class Raw(object):
         else:
             self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
 
+    def filter(self, l_freq, h_freq, picks=None, filter_length=None,
+               n_jobs=1, verbose=5):
+        """Filter a subset of channels.
+
+        Applies a zero-phase band-pass filter to the channels selected by
+        "picks". The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+        Parameters
+        ----------
+        l_freq : float | None
+            Low cut-off frequency in Hz. If None the data are only low-passed.
+
+        h_freq : float
+            High cut-off frequency in Hz. If None the data are only high-passed.
+
+        picks : list of int | None
+            Indices of channels to filter. If None only the data (MEG/EEG)
+            channels will be filtered.
+
+        filter_length : int (default: None)
+            Length of the filter to use (e.g. 4096).
+            If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+
+        n_jobs: int (default: 1)
+            Number of jobs to run in parallel.
+
+        verbose: int (default: 5)
+            Verbosity level.
+        """
+        fs = float(self.info['sfreq'])
+        if l_freq == 0:
+            l_freq = None
+        if h_freq > (fs / 2.):
+            h_freq = None
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True)
+        if l_freq is None and h_freq is not None:
+            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose, fs,
+                                h_freq, filter_length=filter_length)
+        if l_freq is not None and h_freq is None:
+            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose, fs,
+                                l_freq, filter_length=filter_length)
+        if l_freq is not None and h_freq is not None:
+            self.apply_function(band_pass_filter, picks, None, n_jobs, verbose, fs,
+                                l_freq, h_freq, filter_length=filter_length)
+
+    @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
                          n_jobs=1, verbose=5):
         """Band-pass filter a subset of channels.
@@ -371,7 +428,6 @@ class Raw(object):
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               addtional time points need to be temporaily stored in memory.
-
 
         Parameters
         ----------
@@ -396,10 +452,10 @@ class Raw(object):
         verbose: int (default: 5)
             Verbosity level.
         """
-        fs = float(self.info['sfreq'])
-        self.apply_function(band_pass_filter, picks, None, n_jobs, verbose, fs,
-                            l_freq, h_freq, filter_length=filter_length)
+        self.filter(l_freq, h_freq, picks, n_jobs=n_jobs, verbose=verbose,
+                    filter_length=filter_length)
 
+    @deprecated('high_pass_filter is deprecated please use raw.filter instead')
     def high_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
                          verbose=5):
         """High-pass filter a subset of channels.
@@ -432,11 +488,10 @@ class Raw(object):
         verbose: int (default: 5)
             Verbosity level.
         """
+        self.filter(freq, None, picks, n_jobs=n_jobs, verbose=verbose,
+                    filter_length=filter_length)
 
-        fs = float(self.info['sfreq'])
-        self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
-                            fs, freq, filter_length=filter_length)
-
+    @deprecated('low_pass_filter is deprecated please use raw.filter instead')
     def low_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
                         verbose=5):
         """Low-pass filter a subset of channels.
@@ -469,9 +524,8 @@ class Raw(object):
         verbose: int (default: 5)
             Verbosity level.
         """
-        fs = float(self.info['sfreq'])
-        self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
-                            fs, freq, filter_length=filter_length)
+        self.filter(None, freq, picks, n_jobs=n_jobs, verbose=verbose,
+                    filter_length=filter_length)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
