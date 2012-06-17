@@ -230,7 +230,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     return cov
 
 
-def compute_covariance(epochs, keep_sample_mean=True):
+def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -257,6 +257,10 @@ def compute_covariance(epochs, keep_sample_mean=True):
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
         previous stimulus extends into the baseline period of the next.
+    tmin : float | None
+        Start time for baseline. If None start at first sample.
+    tmax : float | None
+        End time for baseline. If None end at last sample.
 
     Returns
     -------
@@ -295,8 +299,16 @@ def compute_covariance(epochs, keep_sample_mean=True):
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False)
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     for i, epochs_t in enumerate(epochs):
+
+        tstart, tend = None, None
+        if tmin is not None:
+            tstart = np.where(epochs_t.times >= tmin)[0][0]
+        if tmax is not None:
+            tend = np.where(epochs_t.times <= tmax)[0][-1] + 1
+        tslice = slice(tstart, tend, None)
+
         for e in epochs_t:
-            e = e[picks_meeg]
+            e = e[picks_meeg][:, tslice]
             if not keep_sample_mean:
                 data_mean[i] += e
             data += np.dot(e, e.T)
