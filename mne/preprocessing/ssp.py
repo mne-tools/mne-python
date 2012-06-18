@@ -141,12 +141,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=raw.info['bads'] + bads)
-    if l_freq is None and h_freq is not None:
-        raw.high_pass_filter(picks, h_freq, filter_length, n_jobs)
-    if l_freq is not None and h_freq is None:
-        raw.low_pass_filter(picks, h_freq, filter_length, n_jobs)
-    if l_freq is not None and h_freq is not None:
-        raw.band_pass_filter(picks, l_freq, h_freq, filter_length, n_jobs)
+    raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
+               n_jobs=n_jobs)
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None,
                     picks=picks, reject=reject, proj=True)
