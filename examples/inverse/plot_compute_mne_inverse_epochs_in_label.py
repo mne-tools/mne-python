@@ -30,9 +30,9 @@ label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 event_id, tmin, tmax = 1, -0.2, 0.5
-snr = 3.0
+snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
-dSPM = True
+method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
@@ -53,7 +53,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                                                     eog=150e-6))
 
 # Compute inverse solution and stcs for each epoch
-stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM, label,
+stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
                             pick_normal=True)
 
 data = sum(stc.data for stc in stcs) / len(stcs)
@@ -66,6 +66,7 @@ label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
 
 ###############################################################################
 # View activation time-series
+pl.figure()
 h0 = pl.plot(1e3 * stcs[0].times, data.T, 'k')
 h1 = pl.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
 h2 = pl.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)

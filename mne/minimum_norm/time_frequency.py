@@ -9,15 +9,15 @@ from ..fiff.constants import FIFF
 from ..time_frequency.tfr import cwt, morlet
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
-                     _make_stc, _pick_channels_inverse_operator
+                     _make_stc, _pick_channels_inverse_operator, _check_method
 from ..parallel import parallel_func
 
 
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
-                              lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, df=1,
+                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, df=1,
                               use_fft=False, decim=1, baseline=None,
                               baseline_mode='logratio', pca=True,
-                              n_jobs=1):
+                              n_jobs=1, dSPM=None):
     """Compute source space induced power in given frequency bands
 
     Parameters
@@ -32,8 +32,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Restricts the source estimates to a given label
     lambda2: float
         The regularization parameter of the minimum norm
-    dSPM: bool
-        Do dSPM or not?
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
     n_cycles: int
         Number of cycles
     df: float
@@ -62,13 +62,15 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     n_jobs: int
         Number of jobs to run in parallel
     """
+    method = _check_method(method, dSPM)
+
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in bands.iteritems()])
 
     powers, _, vertno = _source_induced_power(epochs,
                                       inverse_operator, frequencies,
                                       label=label,
-                                      lambda2=lambda2, dSPM=dSPM,
+                                      lambda2=lambda2, method=method,
                                       n_cycles=n_cycles, decim=decim,
                                       use_fft=use_fft, pca=pca, n_jobs=n_jobs,
                                       with_plv=False)
@@ -162,7 +164,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
 
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                          lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, decim=1,
+                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
                           use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True):
     """Aux function for source_induced_power
@@ -176,7 +178,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
     nave = len(epochs_data)  # XXX : can do better when no preload
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
@@ -190,7 +192,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -222,16 +224,17 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     else:
         plv = None
 
-    if dSPM:
+    if method != "MNE":
         power *= noise_norm.ravel()[:, None, None] ** 2
 
     return power, plv, vertno
 
 
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                         lambda2=1.0 / 9.0, dSPM=True, n_cycles=5, decim=1,
+                         lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
                          use_fft=False, pick_normal=False, baseline=None,
-                         baseline_mode='logratio', pca=True, n_jobs=1):
+                         baseline_mode='logratio', pca=True, n_jobs=1,
+                         dSPM=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -248,8 +251,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         Array of frequencies of interest
     lambda2: float
         The regularization parameter of the minimum norm
-    dSPM: bool
-        Do dSPM or not?
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
     n_cycles: int
         Number of cycles
     decim: int
@@ -280,9 +283,11 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     n_jobs: int
         Number of jobs to run in parallel
     """
+    method = _check_method(method, dSPM)
+
     power, plv, vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
-                            label, lambda2, dSPM, n_cycles, decim,
+                            label, lambda2, method, n_cycles, decim,
                             use_fft, pick_normal=pick_normal, pca=pca,
                             n_jobs=n_jobs)
 

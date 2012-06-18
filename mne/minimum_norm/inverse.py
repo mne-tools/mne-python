@@ -414,7 +414,7 @@ def _chech_ch_names(inv, info):
                          'are not present in the data (%s)' % missing_ch_names)
 
 
-def prepare_inverse_operator(orig, nave, lambda2, dSPM):
+def prepare_inverse_operator(orig, nave, lambda2, method):
     """Prepare an inverse operator for actually computing the inverse
 
     Parameters
@@ -425,15 +425,14 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
         Number of averages (scales the noise covariance)
     lambda2: float
         The regularization factor. Recommended to be 1 / SNR**2
-    dSPM: bool
-        If True, compute the noise-normalization factors for dSPM.
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
 
     Returns
     -------
     inv: dict
         Prepared inverse operator
     """
-
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
@@ -500,18 +499,24 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     #
     #   Finally, compute the noise-normalization factors
     #
-    if dSPM:
-        print '    Computing noise-normalization factors...',
+    if method in ["dSPM", 'sLORETA']:
+        if method == "dSPM":
+            print '    Computing noise-normalization factors (dSPM)...',
+            noise_weight = inv['reginv']
+        else:
+            print '    Computing noise-normalization factors (sLORETA)...',
+            noise_weight = inv['reginv'] * \
+                           np.sqrt((1. + inv['sing'] ** 2 / lambda2))
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
         nrm2, = linalg.get_blas_funcs(('nrm2',), (noise_norm,))
         if inv['eigen_leads_weighted']:
             for k in range(inv['eigen_leads']['nrow']):
-                one = inv['eigen_leads']['data'][k, :] * inv['reginv']
+                one = inv['eigen_leads']['data'][k, :] * noise_weight
                 noise_norm[k] = nrm2(one)
         else:
             for k in range(inv['eigen_leads']['nrow']):
                 one = sqrt(inv['source_cov']['data'][k]) * \
-                            inv['eigen_leads']['data'][k, :] * inv['reginv']
+                            inv['eigen_leads']['data'][k, :] * noise_weight
                 noise_norm[k] = nrm2(one)
 
         #
@@ -536,7 +541,7 @@ def prepare_inverse_operator(orig, nave, lambda2, dSPM):
     return inv
 
 
-def _assemble_kernel(inv, label, dSPM, pick_normal):
+def _assemble_kernel(inv, label, method, pick_normal):
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -546,7 +551,7 @@ def _assemble_kernel(inv, label, dSPM, pick_normal):
     #
     eigen_leads = inv['eigen_leads']['data']
     source_cov = inv['source_cov']['data'][:, None]
-    if dSPM:
+    if method != "MNE":
         noise_norm = inv['noisenorm'][:, None]
 
     src = inv['src']
@@ -555,7 +560,7 @@ def _assemble_kernel(inv, label, dSPM, pick_normal):
     if label is not None:
         vertno, src_sel = _get_label_sel(label, inv)
 
-        if dSPM:
+        if method != "MNE":
             noise_norm = noise_norm[src_sel]
 
         if inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
@@ -601,7 +606,7 @@ def _assemble_kernel(inv, label, dSPM, pick_normal):
         print '(eigenleads need to be weighted)...',
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
-    if not dSPM:
+    if method == "MNE":
         noise_norm = None
 
     return K, noise_norm, vertno
@@ -641,8 +646,28 @@ def _get_label_sel(label, inv):
     return vertno, src_sel
 
 
-def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
-                  pick_normal=False):
+def _check_method(method, dSPM):
+    if dSPM is not None:
+        warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
+                      'method. Please update your code')
+        method = dSPM
+    if method == True:
+        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
+                      '"dSPM" or "sLORETA".')
+        method = "dSPM"
+    if method == False:
+        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
+                      '"dSPM" or "sLORETA".')
+        method = "MNE"
+
+    if method not in ["MNE", "dSPM", "sLORETA"]:
+        raise ValueError('method parameter should be "MNE" or "dSPM" '
+                         'or "sLORETA".')
+    return method
+
+
+def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
+                  pick_normal=False, dSPM=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -657,8 +682,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
         Inverse operator read with mne.read_inverse_operator
     lambda2: float
         The regularization parameter
-    dSPM: bool
-        do dSPM ?
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
     pick_normal: bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
@@ -669,6 +694,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
+    method = _check_method(method, dSPM)
     #
     #   Set up the inverse according to the parameters
     #
@@ -676,7 +702,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
 
     _chech_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
@@ -684,7 +710,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, _ = _assemble_kernel(inv, None, dSPM, pick_normal)
+    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
@@ -707,10 +733,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, dSPM=True,
     return stc
 
 
-def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
+def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_normal=False,
-                      buffer_size=None):
+                      buffer_size=None, dSPM=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -725,8 +751,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
         Inverse operator read with mne.read_inverse_operator
     lambda2: float
         The regularization parameter
-    dSPM: bool
-        do dSPM ?
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
     label: Label
         Restricts the source estimates to a given label
     start: int
@@ -755,12 +781,14 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     stc: SourceEstimate
         The source estimates
     """
+    method = _check_method(method, dSPM)
+
     _chech_ch_names(inverse_operator, raw.info)
 
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
@@ -773,7 +801,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
                    and not pick_normal)
@@ -811,8 +839,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, dSPM=True,
     return stc
 
 
-def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
-                         label=None, nave=1, pick_normal=False):
+def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
+                         label=None, nave=1, pick_normal=False, dSPM=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -826,8 +854,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
         Inverse operator read with mne.read_inverse_operator
     lambda2: float
         The regularization parameter
-    dSPM: bool
-        do dSPM ?
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
     label: Label
         Restricts the source estimates to a given label
     nave: int
@@ -843,12 +871,14 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     stc: list of SourceEstimate
         The source estimates for all epochs
     """
+    method = _check_method(method, dSPM)
+
     _chech_ch_names(inverse_operator, epochs.info)
 
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, dSPM)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
@@ -856,7 +886,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, dSPM=True,
     print 'Picked %d channels from the data' % len(sel)
 
     print 'Computing inverse...',
-    K, noise_norm, vertno = _assemble_kernel(inv, label, dSPM, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     stcs = list()
     tstep = 1.0 / epochs.info['sfreq']
