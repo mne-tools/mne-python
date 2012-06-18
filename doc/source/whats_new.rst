@@ -9,6 +9,8 @@ Changelog
 
    - Add Raw.filter method to more easily band pass data by `Alex Gramfort`_.
 
+   - Add tmin + tmax parameters in mne.compute_covariance to estimate noise covariance in epochs baseline without creating new epochs by `Alex Gramfort`_.
+
    - Add method to regularize a noise covariance by `Alex Gramfort`_.
 
    - Read and write measurement info in forward and inverse operators for interactive visualization in mne_analyze by `Alex Gramfort`_.
