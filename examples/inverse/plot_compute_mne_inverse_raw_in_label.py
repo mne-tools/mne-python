@@ -28,7 +28,7 @@ fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
-snr = 1.0  # use smaller SNR or raw data
+snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
 method = "sLORETA"  # use sLORETA method (could also be MNE or dSPM)
 

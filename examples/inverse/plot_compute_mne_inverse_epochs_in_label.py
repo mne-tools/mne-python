@@ -30,7 +30,7 @@ label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
 event_id, tmin, tmax = 1, -0.2, 0.5
-snr = 1.0  # use smaller SNR or raw data
+snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
