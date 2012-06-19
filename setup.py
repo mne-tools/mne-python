@@ -60,6 +60,7 @@ if __name__ == "__main__":
                    'mne.layouts',
                    'mne.time_frequency', 'mne.time_frequency.tests',
                    'mne.preprocessing', 'mne.preprocessing.tests'],
+         package_data={'mne': ['data/mne_analyze.sel']},
          scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
                   'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
                   'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py'])
