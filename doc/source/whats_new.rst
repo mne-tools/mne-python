@@ -7,6 +7,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - LCMV Beamformer by `Alex Gramfort`_.
+
    - Add support for reading named channel selections by `Martin Luessi`_.
 
    - Add Raw.filter method to more easily band pass data by `Alex Gramfort`_.

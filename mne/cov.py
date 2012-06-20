@@ -518,3 +518,47 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     cov['data'] = C
 
     return cov
+
+
+def compute_whitener(noise_cov, info, picks=None):
+    """Compute whitening matrix
+
+    Parameters
+    ----------
+    noise_cov : Covariance
+        The noise covariance
+    info : dict
+        The measurement info
+    picks : array of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
+
+    Returns
+    -------
+    W : 2d array
+        The whitening matrix
+    ch_names : list
+        The channel names
+    """
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+
+    ch_names = [info['chs'][k]['ch_name'] for k in picks]
+
+    noise_cov = copy.deepcopy(noise_cov)
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
+    n_chan = len(ch_names)
+
+    W = np.zeros((n_chan, n_chan), dtype=np.float)
+    #
+    #   Omit the zeroes due to projection
+    #
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+    #
+    #   Rows of eigvec are the eigenvectors
+    #
+    W = np.dot(W, noise_cov['eigvec'])
+    W = np.dot(noise_cov['eigvec'].T, W)
+    return W, ch_names
