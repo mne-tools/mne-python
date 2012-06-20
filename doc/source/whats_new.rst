@@ -7,6 +7,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add support for reading named channel selections by `Martin Luessi`_.
+
    - Add Raw.filter method to more easily band pass data by `Alex Gramfort`_.
 
    - Add tmin + tmax parameters in mne.compute_covariance to estimate noise covariance in epochs baseline without creating new epochs by `Alex Gramfort`_.
