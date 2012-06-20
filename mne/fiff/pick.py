@@ -1,9 +1,9 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-from os import path
 from copy import deepcopy
 import re
 
@@ -110,80 +110,8 @@ def pick_channels_regexp(ch_names, regexp):
     return [k for k, name in enumerate(ch_names) if r.match(name)]
 
 
-def _load_selections_file(fname):
-    """Load selections from file"""
-    fid = open(fname, 'r')
-
-    selections = {}
-
-    for line in fid:
-        line = line.strip()
-
-        # skip blank lines and comments
-        if len(line) == 0 or line[0] == '#':
-            continue
-
-        # read the channel names into a list
-        pos = line.find(':')
-        if pos < 0:
-            print '":" delimiter not found in selections file, '\
-                  'skipping line'
-            continue
-        selections[line[:pos]] = line[pos + 1:].split('|')
-
-    fid.close()
-
-    return selections
-
-
-def pick_selection(ch_names, sel_name, sel_fname=None):
-    """Pick channels using a named selection
-
-    By default, the selections used in mne_browse_raw are supported*.
-    Additional selections can be added by specifying a selection file (e.g.
-    produced using mne_browse_raw) using the sel_fname parameter.
-
-    * The included selections are: "Vertex", "Left-temporal", "Right-temporal",
-    "Left-parietal", "Right-parietal", "Left-occipital", "Right-occipital",
-    "Left-frontal", and "Right-frontal"
-
-    Parameters
-    ----------
-    ch_names : list of string
-        List of channels
-
-    sel_name : string
-        Name of the selection
-
-    self_fname : string
-        Filename of the selection file (if None, built-in selections are used)
-
-    Returns
-    -------
-    sel : array of int
-        Indices of channels in selection.
-    """
-
-    if sel_fname is None:
-        sel_fname = path.join(path.dirname(__file__), '..', 'data',
-                              'mne_analyze.sel')
-
-    if not path.exists(sel_fname):
-        raise ValueError('The file %s does not exist.' % sel_fname)
-
-    selections = _load_selections_file(sel_fname)
-
-    if sel_name not in selections:
-        raise ValueError('Selection "%s" not in %s' % (sel_name, sel_fname))
-
-    # get the channel indices of the selection
-    sel = pick_channels(ch_names, selections[sel_name])
-
-    return sel
-
-
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, misc=False, include=[], exclude=[]):
+               emg=False, misc=False, include=[], exclude=[], selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -209,9 +137,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include miscellaneous analog channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-
     exclude : list of string
         List of channels to exclude. If empty do not include any.
+    selection : list of string
+        Restrict sensor channels (MEG, EEG) to this list of channel names.
 
     Returns
     -------
@@ -246,6 +175,17 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = True
         elif kind == FIFF.FIFFV_MISC_CH and misc:
             pick[k] = True
+
+    # restrict channels to selection if provided
+    if selection is not None:
+        # the selection only restricts these types of channels
+        sel_kind = [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH,
+                    FIFF.FIFFV_EEG_CH]
+        for k in np.where(pick == True)[0]:
+            if info['chs'][k]['kind'] not in sel_kind:
+                continue
+            if info['ch_names'][k] not in selection:
+                pick[k] = False
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]
     myinclude += include
