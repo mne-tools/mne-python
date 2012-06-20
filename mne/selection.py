@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 from os import path
-from sets import Set
 
 
 def read_selection(name, fname=None):
@@ -92,7 +91,7 @@ def read_selection(name, fname=None):
             raise ValueError('No match for selection name "%s" found' % n)
 
     # make the selection a sorted list with unique elements
-    sel = list(Set(sel))
+    sel = list(set(sel))
     sel.sort()
 
     return sel

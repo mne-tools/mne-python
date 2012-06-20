@@ -1,4 +1,3 @@
-from sets import Set
 from .. import read_selection
 
 
@@ -21,9 +20,9 @@ def test_read_selection():
     right = read_selection('R')
 
     assert(len(all_ch) == len(left) + len(right))
-    assert(len(Set(left).intersection(Set(right))) == 0)
+    assert(len(set(left).intersection(set(right))) == 0)
 
     frontal = read_selection('frontal')
     occipital = read_selection('Right-occipital')
-    assert(len(Set(frontal).intersection(Set(occipital))) == 0)
+    assert(len(set(frontal).intersection(set(occipital))) == 0)
 
