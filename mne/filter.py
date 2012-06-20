@@ -1,8 +1,8 @@
 import warnings
 import numpy as np
-from scipy import signal
 from scipy.fftpack import fft, ifft
 
+from .utils import firwin2  # back port for old scipy
 
 def is_power2(num):
     """Test if number is a power of 2
@@ -178,7 +178,7 @@ def _filter(x, Fs, freq, gain, filter_length=None):
 
         N = len(x)
 
-        H = signal.firwin2(N, freq, gain)
+        H = firwin2(N, freq, gain)
 
         # Make zero-phase filter function
         B = np.abs(fft(H))
@@ -195,7 +195,7 @@ def _filter(x, Fs, freq, gain, filter_length=None):
             # Gain at Nyquist freq: 1: make N EVEN, 0: make N ODD
             N += 1
 
-        H = signal.firwin2(N, freq, gain)
+        H = firwin2(N, freq, gain)
         xf = _overlap_add_filter(x, H, zero_phase=True)
 
     return xf

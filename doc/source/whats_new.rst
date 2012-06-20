@@ -7,6 +7,10 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Backporting scipy.signa.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
+
+   - LCMV Beamformer by `Alex Gramfort`_.
+
    - Add support for reading named channel selections by `Martin Luessi`_.
 
    - Add Raw.filter method to more easily band pass data by `Alex Gramfort`_.
