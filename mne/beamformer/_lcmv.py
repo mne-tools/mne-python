@@ -18,8 +18,11 @@ from ..cov import compute_whitener
 def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
-    Compute LCMV on evoked data starting from
-    a forward operator.
+    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    on evoked data.
+
+    NOTE : This implementation is heavilly tested so please
+    report any issue or suggestions.
 
     Parameters
     ----------
@@ -27,6 +30,12 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01):
         Evoked data to invert
     forward : dict
         Forward operator
+    noise_cov : Covariance
+        The noise covariance
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
 
     Returns
     -------
