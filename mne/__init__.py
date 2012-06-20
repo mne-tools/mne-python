@@ -22,6 +22,7 @@ from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked
+from .selection import read_selection
 from . import fiff
 from . import artifacts
 from . import stats
