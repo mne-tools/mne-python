@@ -30,7 +30,7 @@ def read_selection(name, fname=None):
     name : string or list of string
         Name of the selection. If is a list, the selections are combined.
 
-    self_fname : string
+    fname : string
         Filename of the selection file (if None, built-in selections are used)
 
     Returns
@@ -96,3 +96,4 @@ def read_selection(name, fname=None):
     sel.sort()
 
     return sel
+

@@ -26,3 +26,4 @@ def test_read_selection():
     frontal = read_selection('frontal')
     occipital = read_selection('Right-occipital')
     assert(len(Set(frontal).intersection(Set(occipital))) == 0)
+
