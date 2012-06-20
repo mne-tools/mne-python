@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -110,7 +111,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, misc=False, include=[], exclude=[]):
+               emg=False, misc=False, include=[], exclude=[], selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -136,9 +137,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include miscellaneous analog channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-
     exclude : list of string
         List of channels to exclude. If empty do not include any.
+    selection : list of string
+        Restrict sensor channels (MEG, EEG) to this list of channel names.
 
     Returns
     -------
@@ -173,6 +175,16 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             pick[k] = True
         elif kind == FIFF.FIFFV_MISC_CH and misc:
             pick[k] = True
+
+    # restrict channels to selection if provided
+    if selection is not None:
+        # the selection only restricts these types of channels
+        sel_kind = [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH,
+                    FIFF.FIFFV_EEG_CH]
+        for k in np.where(pick == True)[0]:
+            if (info['chs'][k]['kind'] in sel_kind
+                and info['ch_names'][k] not in selection):
+                pick[k] = False
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]
     myinclude += include
