@@ -6,8 +6,11 @@
 
 import os
 import copy
+from math import ceil
 import numpy as np
 from scipy import sparse
+
+from .parallel import parallel_func
 
 
 def read_stc(filename):
@@ -549,8 +552,38 @@ def mesh_edges(tris):
     return edges
 
 
+def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
+    n_iter = 100  # max nb of smoothing iterations
+    for k in range(n_iter):
+        e_use = e[:, idx_use]
+        data1 = e_use * np.ones(len(idx_use))
+        data = e_use * data
+        idx_use = np.where(data1)[0]
+        if smooth is None:
+            if ((k == (n_iter - 1)) or (len(idx_use) >= n_vertices)):
+                # stop when source space in filled with non-zeros
+                break
+        elif k == (smooth - 1):
+            break
+        data = data[idx_use, :] / data1[idx_use][:, None]
+
+    data[idx_use, :] /= data1[idx_use][:, None]
+    print '    %d smooth iterations done.' % (k + 1)
+    data_morphed = maps[nearest, :] * data
+    return data_morphed
+
+
+def _compute_nearest(xhs, rr):
+    nearest = np.zeros(len(rr), dtype=np.int)
+    dr = 32
+    for k in range(0, len(rr), dr):
+        dots = np.dot(rr[k:k + dr], xhs.T)
+        nearest[k:k + dr] = np.argmax(dots, axis=1)
+    return nearest
+
+
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=0):
     """Morph a source estimate from one subject to another
 
     The functions requires to set MNE_ROOT and SUBJECTS_DIR variables.
@@ -571,6 +604,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    buffer_size : int
+        Morph data in chunks of `buffer_size` time instants.
+        Saves memory when morphing long time intervals.
+    n_jobs: int
+        Number of jobs to run in parallel
+    verbose: int
+        Verbosity level.
 
     Returns
     -------
@@ -610,18 +650,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             ico = s
             break
 
-    nearest = np.zeros((2, ico['np']), dtype=np.int)
-
     lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
     rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
 
-    rr = ico['rr']
-    dr = 16
-    for k in range(0, len(rr), dr):
-        dots = np.dot(rr[k:k + dr], lhs.T)
-        nearest[0, k:k + dr] = np.argmax(dots, axis=1)
-        dots = np.dot(rr[k:k + dr], rhs.T)
-        nearest[1, k:k + dr] = np.argmax(dots, axis=1)
+    # Compute nearest vertices in high dim mesh
+    parallel, my_compute_nearest, _ = \
+                        parallel_func(_compute_nearest, n_jobs, verbose)
+    lhs, rhs, rr = [a.astype(np.float32) for a in [lhs, rhs, ico['rr']]]
+    nearest = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
 
     # morph the data
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -631,6 +667,11 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     data = [lh_data, rh_data]
     data_morphed = [None, None]
 
+    n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
+
+    parallel, my_morph_buffer, _ = \
+                        parallel_func(_morph_buffer, n_jobs, verbose)
+
     for hemi in [0, 1]:
         e = mesh_edges(tris[hemi])
         e.data[e.data == 2] = 1
@@ -639,24 +680,11 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         idx_use = stc_from.vertno[hemi]
         if len(idx_use) == 0:
             continue
-        n_iter = 100  # max nb of smoothing iterations
-        for k in range(n_iter):
-            e_use = e[:, idx_use]
-            data1 = e_use * np.ones(len(idx_use))
-            data[hemi] = e_use * data[hemi]
-            idx_use = np.where(data1)[0]
-            if smooth is None:
-                if ((k == (n_iter - 1)) or (len(idx_use) >= n_vertices)):
-                    # stop when source space in filled with non-zeros
-                    break
-            elif k == (smooth - 1):
-                break
-            data[hemi] = data[hemi][idx_use, :] / data1[idx_use][:, None]
-
-        data[hemi][idx_use, :] /= data1[idx_use][:, None]
-
-        print '    %d smooth iterations done.' % (k + 1)
-        data_morphed[hemi] = maps[hemi][nearest[hemi], :] * data[hemi]
+        data_morphed[hemi] = np.concatenate(
+                    parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
+                                   n_vertices, nearest[hemi], maps[hemi])
+                     for data_buffer
+                     in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
     stc_to = copy.deepcopy(stc_from)
     stc_to.vertno = [nearest[0], nearest[1]]

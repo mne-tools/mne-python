@@ -82,14 +82,18 @@ def test_morph_data():
     subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc_from = SourceEstimate(fname)
+    stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to = morph_data(subject_from, subject_to, stc_from,
-                            grade=3, smooth=12)
-
+                            grade=3, smooth=12, buffer_size=1000)
     stc_to.save('%s_audvis-meg' % subject_to)
+
+    stc_to2 = morph_data(subject_from, subject_to, stc_from,
+                            grade=3, smooth=12, buffer_size=3)
+    assert_array_almost_equal(stc_to.data, stc_to2.data)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to.data.mean(axis=0)
-    assert_true(np.corrcoef(mean_to, mean_from).min() > 0.99)
+    assert_true(np.corrcoef(mean_to, mean_from).min() > 0.999)
 
 
 def test_spatio_temporal_tris_connectivity():
