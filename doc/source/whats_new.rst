@@ -7,6 +7,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - speedup + reduce memory of mne.morph_data by `Alex Gramfort`_.
+
    - Backporting scipy.signa.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
 
    - LCMV Beamformer by `Alex Gramfort`_.
