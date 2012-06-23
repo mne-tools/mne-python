@@ -363,7 +363,7 @@ class Raw(object):
             self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
 
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
-               n_jobs=1, verbose=5):
+               trans_bw=0.5, n_jobs=1, verbose=5):
         """Filter a subset of channels.
 
         Applies a zero-phase band-pass filter to the channels selected by
@@ -392,7 +392,8 @@ class Raw(object):
             (n_times: number of timepoints in Raw object) the filter length
             used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
-
+        trans_bw : float
+            Width of the transition band in Hz.
         n_jobs: int (default: 1)
             Number of jobs to run in parallel.
 
@@ -407,14 +408,17 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
         if l_freq is None and h_freq is not None:
-            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose, fs,
-                                h_freq, filter_length=filter_length)
+            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
+                                fs, h_freq, filter_length=filter_length,
+                                trans_bw=trans_bw)
         if l_freq is not None and h_freq is None:
-            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose, fs,
-                                l_freq, filter_length=filter_length)
+            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
+                                fs, l_freq, filter_length=filter_length,
+                                trans_bw=trans_bw)
         if l_freq is not None and h_freq is not None:
-            self.apply_function(band_pass_filter, picks, None, n_jobs, verbose, fs,
-                                l_freq, h_freq, filter_length=filter_length)
+            self.apply_function(band_pass_filter, picks, None, n_jobs, verbose,
+                                fs, l_freq, h_freq,
+                                filter_length=filter_length, trans_bw=trans_bw)
 
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
