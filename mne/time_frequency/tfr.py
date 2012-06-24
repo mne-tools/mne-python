@@ -337,9 +337,7 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
 
-    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-
-    if my_time_frequency is _time_frequency:  # not parallel
+    if n_jobs == 1:
         psd = np.empty((n_channels, n_frequencies, n_times))
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
@@ -347,8 +345,9 @@ def induced_power(epochs, Fs, frequencies, use_fft=True, n_cycles=7,
             X = np.squeeze(epochs[:, c, :])
             this_psd, this_plf = _time_frequency(X, Ws, use_fft)
             psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
-
     else:
+        parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
+
         psd_plf = parallel(my_time_frequency(np.squeeze(epochs[:, c, :]),
                                              Ws, use_fft)
                            for c in range(n_channels))
