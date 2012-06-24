@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
+from scipy.signal import freqz
 
 from .utils import firwin2  # back port for old scipy
 
@@ -134,6 +135,19 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     return x_filtered
 
 
+def _filter_attenuation(h, freq, gain):
+    """Compute minimum attenuation at stop frequency"""
+
+    _, filt_resp = freqz(h, worN=np.pi * freq)
+    filt_resp = np.abs(filt_resp)  # use amplitude response
+    filt_resp /= np.max(filt_resp)
+    filt_resp[np.where(gain == 1)] = 0
+    idx = np.argmax(filt_resp)
+    att_db = -20 * np.log10(filt_resp[idx])
+    att_freq = freq[idx]
+
+    return att_db, att_freq
+
 def _filter(x, Fs, freq, gain, filter_length=None):
     """Filter signal using gain control points in the frequency domain.
 
@@ -161,10 +175,15 @@ def _filter(x, Fs, freq, gain, filter_length=None):
     xf : 1d array
         x filtered
     """
+
+    # issue a warning if attenuation is less than this
+    min_att_db = 20
+
     assert x.ndim == 1
 
     # normalize frequencies
-    freq = [f / (Fs / 2) for f in freq]
+    freq = np.array([f / (Fs / 2) for f in freq])
+    gain = np.array(gain)
 
     if filter_length is None or len(x) <= filter_length:
         # Use direct FFT filtering for short signals
@@ -179,6 +198,12 @@ def _filter(x, Fs, freq, gain, filter_length=None):
         N = len(x)
 
         H = firwin2(N, freq, gain)
+
+        att_db, att_freq = _filter_attenuation(H, freq, gain)
+        if att_db < min_att_db:
+            att_freq *= Fs / 2
+            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                          '%0.1fdB.' % (att_freq, att_db))
 
         # Make zero-phase filter function
         B = np.abs(fft(H))
@@ -196,12 +221,22 @@ def _filter(x, Fs, freq, gain, filter_length=None):
             N += 1
 
         H = firwin2(N, freq, gain)
+
+        att_db, att_freq = _filter_attenuation(H, freq, gain)
+        att_db += 6  # the filter is applied twice (zero phase)
+        if att_db < min_att_db:
+            att_freq *= Fs / 2
+            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                          '%0.1fdB. Increase filter_length for higher '
+                          'attenuation.' % (att_freq, att_db))
+
         xf = _overlap_add_filter(x, H, zero_phase=True)
 
     return xf
 
 
-def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
+def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
+                     l_trans_bandwidth=0.5, h_trans_bandwidth=0.5):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -220,6 +255,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    l_trans_bandwidth : float
+        Width of the transition band at the low cut-off frequency in Hz.
+    h_trans_bandwidth : float
+        Width of the transition band at the high cut-off frequency in Hz.
 
     Returns
     -------
@@ -228,7 +267,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
 
     Notes
     -----
-    The passbands (Fp1 Fp2) frequencies are defined in Hz as
+    The frequency response is (approximately) given by
                      ----------
                    /|         | \
                   / |         |  \
@@ -238,17 +277,21 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
                     |         |
               Fs1  Fp1       Fp2   Fs2
 
-    DEFAULTS values
-    Fs1 = Fp1 - 0.5 in Hz
-    Fs2 = Fp2 + 0.5 in Hz
+    Where
+    Fs1 = Fp1 - l_trans_bandwidth in Hz
+    Fs2 = Fp2 + h_trans_bandwidth in Hz
     """
     Fs = float(Fs)
     Fp1 = float(Fp1)
     Fp2 = float(Fp2)
 
-    # Default values in Hz
-    Fs1 = max(Fp1 - 0.5, 0.)
-    Fs2 = Fp2 + 0.5
+    Fs1 = Fp1 - l_trans_bandwidth
+    Fs2 = Fp2 + h_trans_bandwidth
+
+    if Fs1 <= 0:
+        raise ValueError('Filter specification invalid: Lower stop frequency '
+                         'too low (%0.1fHz). Increase Fp1 or reduce '
+                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
     xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
                  filter_length)
@@ -256,7 +299,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None):
     return xf
 
 
-def low_pass_filter(x, Fs, Fp, filter_length=None):
+def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -273,6 +316,8 @@ def low_pass_filter(x, Fs, Fp, filter_length=None):
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    trans_bandwidth : float
+        Width of the transition band in Hz.
 
     Returns
     -------
@@ -281,7 +326,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None):
 
     Notes
     -----
-    The passbands (Fp1 Fp2) frequencies are defined in Hz as
+    The frequency response is (approximately) given by
       -------------------------
                               | \
                               |  \
@@ -289,20 +334,20 @@ def low_pass_filter(x, Fs, Fp, filter_length=None):
                               |    \
                               |     -----------------
                               |
-                              Fp  Fp+0.5
+                              Fp  Fp+trans_bandwidth
 
     """
     Fs = float(Fs)
     Fp = float(Fp)
 
-    Fstop = Fp + 0.5
+    Fstop = Fp + trans_bandwidth
 
     xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0], filter_length)
 
     return xf
 
 
-def high_pass_filter(x, Fs, Fp, filter_length=None):
+def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -319,6 +364,8 @@ def high_pass_filter(x, Fs, Fp, filter_length=None):
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    trans_bandwidth : float
+        Width of the transition band in Hz.
 
     Returns
     -------
@@ -327,7 +374,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None):
 
     Notes
     -----
-    The passbands (Fp1 Fp2) frequencies are defined in Hz as
+    The frequency response is (approximately) given by
                    -----------------------
                  /|
                 / |
@@ -335,14 +382,19 @@ def high_pass_filter(x, Fs, Fp, filter_length=None):
               /   |
     ----------    |
                   |
-          Fp-0.5  Fp
+           Fstop  Fp
 
+    where Fstop = Fp - trans_bandwidth
     """
 
     Fs = float(Fs)
     Fp = float(Fp)
 
-    Fstop = Fp - 0.5
+    Fstop = Fp - trans_bandwidth
+    if Fstop <= 0:
+        raise ValueError('Filter specification invalid: Stop frequency too low'
+                         '(%0.1fHz). Increase Fp or reduce transition '
+                         'bandwidth (trans_bandwidth)' % Fstop)
 
     xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
 
