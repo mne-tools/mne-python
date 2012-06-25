@@ -59,7 +59,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     NFFT = int(NFFT)
     Fs = raw.info['sfreq']
 
-    print "Effective window size : %s (s)" % (NFFT * Fs)
+    print "Effective window size : %0.3f (s)" % (NFFT / float(Fs))
 
     parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs, verbose=0)
     fig = pl.figure()
