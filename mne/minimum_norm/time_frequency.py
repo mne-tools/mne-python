@@ -34,8 +34,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         The regularization parameter of the minimum norm
     method: "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA
-    n_cycles: int
-        Number of cycles
+    n_cycles: float | array of float
+        Number of cycles. Fixed number or one per frequency.
     df: float
         delta frequency within bands
     decim: int
@@ -253,8 +253,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         The regularization parameter of the minimum norm
     method: "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA
-    n_cycles: int
-        Number of cycles
+    n_cycles: float | array of float
+        Number of cycles. Fixed number or one per frequency.
     decim: int
         Temporal decimation factor
     use_fft: bool
