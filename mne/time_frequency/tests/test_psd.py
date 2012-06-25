@@ -27,8 +27,13 @@ def test_psd():
     fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
     NFFT = 124 # the FFT size (NFFT). Ideally a power of 2
     psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                  fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1)
+                                  fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
+                                  proj=False)
+    psds_proj, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                  fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
+                                  proj=True)
 
+    assert_array_almost_equal(psds, psds_proj)
     assert_true(psds.shape == (len(picks), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
