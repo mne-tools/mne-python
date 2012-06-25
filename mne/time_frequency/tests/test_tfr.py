@@ -39,8 +39,9 @@ def test_time_frequency():
 
     frequencies = np.arange(6, 20, 5) # define frequencies of interest
     Fs = raw.info['sfreq'] # sampling in Hz
+    n_cycles = frequencies / float(4)
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                       n_cycles=2, use_fft=True)
+                                      n_cycles=n_cycles, use_fft=True)
 
     assert_true(power.shape == (len(picks), len(frequencies), len(times)))
     assert_true(power.shape == phase_lock.shape)

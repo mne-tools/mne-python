@@ -52,10 +52,11 @@ data = data[:, 97:98, :]
 evoked_data = evoked_data[97:98, :]
 
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
+n_cycles = frequencies / float(7)  # different number of cycle per frequency
 Fs = raw.info['sfreq']  # sampling in Hz
 decim = 3
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                  n_cycles=2, n_jobs=1, use_fft=False,
+                                  n_cycles=n_cycles, n_jobs=1, use_fft=False,
                                   decim=decim)
 
 # baseline corrections with ratio
