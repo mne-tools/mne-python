@@ -49,7 +49,7 @@ def data_path(path='.', force_update=False):
             archive_name = neurospin_path
         elif not op.exists(archive_name):
             import urllib
-            print "Downloading data, please Wait (600 MB)..."
+            print "Downloading data, please Wait (1.3 GB)..."
             print url
             opener = urllib.urlopen(url)
             open(archive_name, 'wb').write(opener.read())
