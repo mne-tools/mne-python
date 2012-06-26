@@ -1,10 +1,11 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: BSD Style.
 
 
 def _sample_version(path):
     """Get the version of the Sample dataset"""
-    import os.path as op
+    import os.path as op  # lazy import so it does not become visible outside
     ver_fname = op.join(path, 'version.txt')
     if op.exists(ver_fname):
         fid = open(ver_fname, 'r')
@@ -29,6 +30,7 @@ def data_path(path='.', force_update=False):
     force_update : bool
         Force update of the sample dataset even if a local copy exists.
     """
+    # lazy import so things do not become visible outside
     import os.path as op
     from warnings import warn
     from distutils.version import LooseVersion
