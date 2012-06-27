@@ -17,6 +17,7 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types
+from .proj import activate_proj
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
@@ -534,6 +535,30 @@ class Raw(object):
         """
         self.filter(None, freq, picks, n_jobs=n_jobs, verbose=verbose,
                     filter_length=filter_length)
+
+    def add_proj(self, projs, activate=True, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors
+
+        activate : bool
+            Activate the projection vectors being added
+
+        remove_existing : bool
+            Remove the projection vectors currently in the file
+        """
+        if activate:
+            projs = activate_proj(projs, copy=True)
+        else:
+            projs = copy.deepcopy(projs)
+
+        if remove_existing:
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
