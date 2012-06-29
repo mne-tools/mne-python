@@ -31,7 +31,7 @@ exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Add SSP projection vectors to reduce EOG and ECG artifacts
 projs = read_proj(proj_fname)
-raw.add_proj(projs, activate=True, remove_existing=True)
+raw.add_proj(projs, remove_existing=True)
 
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')

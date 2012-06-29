@@ -195,7 +195,7 @@ def write_proj(fid, projs):
 ###############################################################################
 # Utils
 
-def make_projector(projs, ch_names, bads=[]):
+def make_projector(projs, ch_names, bads=[], idle_only=False):
     """Create an SSP operator from SSP projection vectors
 
     Parameters
@@ -206,6 +206,9 @@ def make_projector(projs, ch_names, bads=[]):
         List of channels to include in the projection matrix
     bads : list of strings
         Some bad channels to exclude
+    idle_only : bool
+        Only include projectors that are currently idle. By default all
+        projectors are included.
 
     Returns
     -------
@@ -228,14 +231,13 @@ def make_projector(projs, ch_names, bads=[]):
     if projs is None:
         return proj, nproj, U
 
-    nactive = 0
     nvec = 0
     for p in projs:
-        if p['active']:
-            nactive += 1
+        if (not p['active'] and idle_only) or not idle_only:
+            nproj += 1
             nvec += p['data']['nrow']
 
-    if nactive == 0:
+    if nproj == 0:
         return proj, nproj, U
 
     #   Pick the appropriate entries
@@ -243,7 +245,7 @@ def make_projector(projs, ch_names, bads=[]):
     nvec = 0
     nonzero = 0
     for k, p in enumerate(projs):
-        if p['active']:
+        if (not p['active'] and idle_only) or not idle_only:
             if len(p['data']['col_names']) != \
                         len(np.unique(p['data']['col_names'])):
                 raise ValueError('Channel name list in projection item %d'
@@ -289,7 +291,7 @@ def make_projector(projs, ch_names, bads=[]):
     return proj, nproj, U
 
 
-def make_projector_info(info):
+def make_projector_info(info, idle_only=False):
     """Make an SSP operator using the measurement info
 
     Calls make_projector on good channels.
@@ -298,6 +300,9 @@ def make_projector_info(info):
     ----------
     info : dict
         Measurement info
+    idle_only : bool
+        Only include projectors that are currently idle. By default all
+        projectors are included.
 
     Returns
     -------
@@ -307,7 +312,7 @@ def make_projector_info(info):
         How many items in the projector
     """
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
-                                    info['bads'])
+                                    info['bads'], idle_only)
     return proj, nproj
 
 
