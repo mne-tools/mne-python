@@ -535,6 +535,24 @@ class Raw(object):
         self.filter(None, freq, picks, n_jobs=n_jobs, verbose=verbose,
                     filter_length=filter_length)
 
+    def add_proj(self, projs, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors
+
+        remove_existing : bool
+            Remove the projection vectors currently in the file
+        """
+        projs = copy.deepcopy(projs)
+
+        if remove_existing:
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
+
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
         """Save raw data to file

@@ -142,9 +142,6 @@ class Epochs(object):
             print 'No projector specified for these data'
             self.proj = None
         else:
-            #   Activate the projection items
-            self.info['projs'] = activate_proj(self.info['projs'], copy=False)
-
             # Add EEG ref reference proj
             eeg_sel = pick_types(self.info, meg=False, eeg=True)
             if len(eeg_sel) > 0:
@@ -160,6 +157,9 @@ class Epochs(object):
                 print ('Created an SSP operator (subspace dimension = %d)'
                                                                     % nproj)
                 self.proj = proj
+
+            #   The projection items have been activated
+            self.info['projs'] = activate_proj(self.info['projs'], copy=False)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
