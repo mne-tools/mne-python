@@ -218,9 +218,6 @@ class Evoked(object):
             print 'No projector specified for these data'
             self.proj = None
         else:
-            #   Activate the projection items
-            info['projs'] = activate_proj(info['projs'], copy=False)
-
             #   Create the projector
             proj, nproj = make_projector_info(info)
             if nproj == 0:
@@ -230,6 +227,9 @@ class Evoked(object):
                 print ('Created an SSP operator (subspace dimension = %d)'
                                                                     % nproj)
                 self.proj = proj
+
+            #   The projection items have been activated
+            info['projs'] = activate_proj(info['projs'], copy=False)
 
         if self.proj is not None:
             print "SSP projectors applied..."

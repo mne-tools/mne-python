@@ -4,11 +4,11 @@
 import numpy as np
 import pylab as pl
 from ..parallel import parallel_func
-
+from ..fiff.proj import make_projector_info
 
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
-                    plot=False):
+                    plot=False, proj=False):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -42,6 +42,9 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     plot: bool
         Plot each PSD estimates
 
+    proj : bool
+        Apply SSP projection vectors
+
     Return
     ------
     psd: array of float
@@ -55,6 +58,13 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
         data, times = raw[picks, start:(stop + 1)]
     else:
         data, times = raw[:, start:(stop + 1)]
+
+    if proj:
+        proj, _ = make_projector_info(raw.info)
+        if picks is not None:
+            data = np.dot(proj[picks][:, picks], data)
+        else:
+            data = np.dot(proj, data)
 
     NFFT = int(NFFT)
     Fs = raw.info['sfreq']
