@@ -275,7 +275,7 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
 
     #   Check whether all of the vectors are exactly zero
     if nonzero == 0:
-        return proj, nproj, U
+        return proj, 0, U
 
     # Reorthogonalize the vectors
     U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
