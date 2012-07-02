@@ -170,9 +170,9 @@ Define peak-to-peak rejection parameters for gradiometers, magnetometers and EOG
 Read epochs:
 
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
-    4 projection items activated
     Adding average EEG reference projection.
     Created an SSP operator (subspace dimension = 4)
+    5 projection items activated
     72 matching events found
     >>> print epochs
     Epochs (n_events : 72 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
@@ -226,8 +226,8 @@ It is also possible to read evoked data stored in a fif file:
             t =    -199.80 ...     499.49 ms (Left Auditory)
             0 CTF compensation matrices available
             nave = 55 - aspect type = 100
-    4 projection items activated
     Created an SSP operator (subspace dimension = 4)
+    4 projection items activated
     SSP projectors applied...
     Applying baseline correction ... (mode: mean)
 
