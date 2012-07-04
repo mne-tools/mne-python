@@ -57,7 +57,7 @@ Fs = raw.info['sfreq']  # sampling in Hz
 decim = 3
 power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                   n_cycles=n_cycles, n_jobs=1, use_fft=False,
-                                  decim=decim)
+                                  decim=decim, zero_mean=True)
 
 # baseline corrections with ratio
 power /= np.mean(power[:, :, times[::decim] < 0], axis=2)[:, :, None]
