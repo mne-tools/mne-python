@@ -5,12 +5,22 @@ from nose.tools import assert_true
 
 from ... import fiff, Epochs, read_events
 from ...time_frequency import induced_power, single_trial_power
-from ...time_frequency.tfr import cwt_morlet
+from ...time_frequency.tfr import cwt_morlet, morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
 event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
+
+
+def test_morlet():
+    """Test morlet with and without zero mean"""
+    Wz = morlet(1000, [10], 2., zero_mean=True)
+    W = morlet(1000, [10], 2., zero_mean=False)
+
+    assert_true(np.abs(np.mean(np.real(Wz[0]))) < 1e-5)
+    assert_true(np.abs(np.mean(np.real(W[0]))) > 1e-3)
+
 
 def test_time_frequency():
     """Test time frequency transform (PSD and phase lock)

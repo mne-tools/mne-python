@@ -15,7 +15,7 @@ from ..baseline import rescale
 from ..parallel import parallel_func
 
 
-def morlet(Fs, freqs, n_cycles=7, sigma=None):
+def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
     """Compute Wavelets for the given frequency range
 
     Parameters
@@ -37,6 +37,9 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None):
         If sigma is fixed the temporal resolution is fixed
         like for the short time Fourier transform and the number
         of oscillations increases with the frequency.
+
+    zero_mean : bool
+        Make sure the wavelet is zero mean
 
     Returns
     -------
@@ -62,8 +65,12 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None):
         # (sigma_t*sqrt(pi))^(-1/2);
         t = np.arange(0, 5 * sigma_t, 1.0 / Fs)
         t = np.r_[-t[::-1], t[1:]]
-        W = np.exp(2.0 * 1j * np.pi * f * t)
-        W *= np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
+        oscillation = np.exp(2.0 * 1j * np.pi * f * t)
+        gaussian_enveloppe = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
+        if zero_mean:  # to make it zero mean
+            real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
+            oscillation -= real_offset
+        W = oscillation * gaussian_enveloppe
         W /= sqrt(0.5) * linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
@@ -146,7 +153,7 @@ def _cwt_convolve(X, Ws, mode='same'):
         yield tfr
 
 
-def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
+def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     """Compute time freq decomposition with Morlet wavelets
 
     Parameters
@@ -161,6 +168,8 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
         Compute convolution with FFT or temoral convolution.
     n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency.
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
 
     Returns
     -------
@@ -173,7 +182,7 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0):
     n_frequencies = len(freqs)
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, freqs, n_cycles=n_cycles)
+    Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     if use_fft:
         coefs = _cwt_fft(X, Ws, mode)
@@ -245,7 +254,7 @@ def _time_frequency(X, Ws, use_fft):
 
 def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       n_jobs=1):
+                       n_jobs=1, zero_mean=False):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -278,6 +287,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         Required to define baseline
     n_jobs : int
         The number of epochs to process at the same time
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
 
     Returns
     -------
@@ -289,7 +300,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     n_epochs, n_channels, n_times = data.shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
+    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
@@ -313,7 +324,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
 
 def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
-                  decim=1, n_jobs=1):
+                  decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -336,6 +347,8 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package.
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
 
     Returns
     -------
@@ -349,7 +362,7 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
+    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     if n_jobs == 1:
         psd = np.empty((n_channels, n_frequencies, n_times))
