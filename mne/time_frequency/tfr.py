@@ -71,7 +71,6 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
             real_offset = np.exp(- 2 * (np.pi * f * sigma_t) ** 2)
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
-        # zero mean the wavelet (required)
         W /= sqrt(0.5) * linalg.norm(W.ravel())
         Ws.append(W)
     return Ws
