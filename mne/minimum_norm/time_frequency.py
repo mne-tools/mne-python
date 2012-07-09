@@ -166,7 +166,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
                           use_fft=False, pca=True, pick_normal=True,
-                          n_jobs=1, with_plv=True):
+                          n_jobs=1, with_plv=True, zero_mean=False):
     """Aux function for source_induced_power
     """
     parallel, my_compute_pow_plv, n_jobs = parallel_func(_compute_pow_plv,
@@ -207,7 +207,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
     print 'Computing source power ...'
 
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles)
+    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_pow_plv(data, K, sel, Ws,
@@ -234,7 +234,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
                          use_fft=False, pick_normal=False, baseline=None,
                          baseline_mode='logratio', pca=True, n_jobs=1,
-                         dSPM=None):
+                         dSPM=None, zero_mean=False):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -282,6 +282,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         e.g. with a dataset that was maxfiltered (true dim is 64)
     n_jobs: int
         Number of jobs to run in parallel
+    zero_mean: bool
+        Make sure the wavelets are zero mean.
     """
     method = _check_method(method, dSPM)
 
