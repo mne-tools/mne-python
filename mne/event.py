@@ -130,7 +130,7 @@ def write_events(filename, event_list):
     end_file(fid)
 
 
-def find_events(raw, stim_channel='STI 014', verbose=False):
+def find_events(raw, stim_channel='STI 014', verbose=True):
     """Find events from raw file
 
     Parameters
@@ -155,9 +155,10 @@ def find_events(raw, stim_channel='STI 014', verbose=False):
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, times = raw[pick, :]
-    if np.any(data < 0) and verbose:
-        warnings.warn('Trigger channel contains negative values. '
-                      'Taking absolute value.')
+    if np.any(data < 0):
+        if verbose:
+            warnings.warn('Trigger channel contains negative values. '
+                          'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
     idx = np.where(np.all(np.diff(data, axis=1) > 0, axis=0))[0]

@@ -50,7 +50,7 @@ class Raw(object):
         List of channels' names
     """
 
-    def __init__(self, fname, allow_maxshield=False, preload=False, verbose=False):
+    def __init__(self, fname, allow_maxshield=False, preload=False, verbose=True):
         #   Open the file
         if verbose:
             print 'Opening raw data file %s...' % fname
@@ -646,7 +646,8 @@ class Raw(object):
         return self.info['ch_names']
 
 
-def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None, verbose=False):
+def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
+    verbose=False):
     """Read a chunck of raw data
 
     Parameters
