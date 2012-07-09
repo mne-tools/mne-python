@@ -50,9 +50,10 @@ class Raw(object):
         List of channels' names
     """
 
-    def __init__(self, fname, allow_maxshield=False, preload=False):
+    def __init__(self, fname, allow_maxshield=False, preload=False, verbose=False):
         #   Open the file
-        print 'Opening raw data file %s...' % fname
+        if verbose:
+            print 'Opening raw data file %s...' % fname
         fid, tree, _ = fiff_open(fname)
 
         #   Read the measurement info
@@ -157,11 +158,12 @@ class Raw(object):
         self.rawdir = rawdir
         self.proj = None
         self.comp = None
-        print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                   self.first_samp, self.last_samp,
-                   float(self.first_samp) / info['sfreq'],
-                   float(self.last_samp) / info['sfreq'])
-        print 'Ready.'
+        if verbose:
+            print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
+                       self.first_samp, self.last_samp,
+                       float(self.first_samp) / info['sfreq'],
+                       float(self.last_samp) / info['sfreq'])
+            print 'Ready.'
 
         self.fid = fid
         self.info = info
@@ -644,7 +646,7 @@ class Raw(object):
         return self.info['ch_names']
 
 
-def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
+def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None, verbose=False):
     """Read a chunck of raw data
 
     Parameters
@@ -689,9 +691,10 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None):
     if start >= stop:
         raise ValueError('No data in this range')
 
-    print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                       start, stop - 1, start / float(raw.info['sfreq']),
-                       (stop - 1) / float(raw.info['sfreq'])),
+    if verbose:
+        print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
+                           start, stop - 1, start / float(raw.info['sfreq']),
+                           (stop - 1) / float(raw.info['sfreq'])),
 
     #  Initialize the data and calibration vector
     nchan = raw.info['nchan']
