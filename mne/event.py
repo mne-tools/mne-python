@@ -119,6 +119,9 @@ def write_events(filename, event_list):
 
     events: array, shape (n_events, 3)
         The list of events
+
+    verbose:  bool
+        Use verbose output
     """
     #   Start writing...
     fid = start_file(filename)
@@ -141,6 +144,9 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
     stim_channel : string or list of string
         Name of the stim channel or all the stim channels
         affected by the trigger.
+
+    verbose : bool
+        User verbose output
 
     Returns
     -------

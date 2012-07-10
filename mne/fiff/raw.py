@@ -41,6 +41,9 @@ class Raw(object):
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
+    verbose: bool
+        Use verbose output
+
     Attributes
     ----------
     info: dict
@@ -668,6 +671,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     data_buffer: array, optional
         numpy array to fill with data read, must have the correct shape
+
+    verbose: bool
+        User verbose output
 
     Returns
     -------
