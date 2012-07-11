@@ -411,6 +411,7 @@ class Epochs(object):
         if self.preload:
             n_events = len(self.events)
             data = np.mean(self._data, axis=0)
+            assert len(self.events) == len(self._data)
         else:
             data = np.zeros((n_channels, n_times))
             n_events = 0
