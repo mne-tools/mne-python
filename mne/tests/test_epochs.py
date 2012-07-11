@@ -84,16 +84,17 @@ def test_reject_epochs():
 def test_preload_epochs():
     """Test of epochs rejection
     """
-    epochs = Epochs(raw, events[:12], event_id, tmin, tmax, picks=picks,
+    epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True,
                         reject=reject, flat=flat)
-    data_preload = epochs.get_data()
+    data_preload = epochs_preload.get_data()
 
-    epochs = Epochs(raw, events[:12], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:16], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=False,
                         reject=reject, flat=flat)
-    data_no_preload = epochs.get_data()
-    assert_array_equal(data_preload, data_no_preload)
+    data = epochs.get_data()
+    assert_array_equal(data_preload, data)
+    assert_array_equal(epochs_preload.average().data, epochs.average().data)
 
 
 def test_indexing_slicing():
