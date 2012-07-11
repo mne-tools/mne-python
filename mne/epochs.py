@@ -408,13 +408,16 @@ class Epochs(object):
         evoked.info = copy.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        n_events = len(self.events)
         if self.preload:
+            n_events = len(self.events)
             data = np.mean(self._data, axis=0)
+            assert len(self.events) == len(self._data)
         else:
             data = np.zeros((n_channels, n_times))
+            n_events = 0
             for e in self:
                 data += e
+                n_events += 1
             data /= n_events
         evoked.data = data
         evoked.times = self.times.copy()
