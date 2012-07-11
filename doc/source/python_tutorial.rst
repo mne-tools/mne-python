@@ -196,7 +196,7 @@ Compute evoked responses by averaging and plot it:
     >>> evoked = epochs.average() # doctest: +ELLIPSIS
     Reading ...
     >>> print evoked
-    Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 72, n_channels x n_times : 364 x 106)
+    Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106)
     >>> from mne.viz import plot_evoked
     >>> plot_evoked(evoked)
 
@@ -283,7 +283,7 @@ Compute the inverse solution:
 
     >>> stc = apply_inverse(evoked, inverse_operator, lambda2, method)
     Preparing the inverse operator for use...
-        Scaled noise and source covariance from nave = 1 to nave = 72
+        Scaled noise and source covariance from nave = 1 to nave = 55
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
