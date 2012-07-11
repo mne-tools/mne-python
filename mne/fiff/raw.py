@@ -53,7 +53,8 @@ class Raw(object):
         List of channels' names
     """
 
-    def __init__(self, fname, allow_maxshield=False, preload=False, verbose=True):
+    def __init__(self, fname, allow_maxshield=False, preload=False,
+                 verbose=True):
         #   Open the file
         if verbose:
             print 'Opening raw data file %s...' % fname
@@ -170,6 +171,7 @@ class Raw(object):
 
         self.fid = fid
         self.info = info
+        self.verbose = verbose
 
         if preload:
             nchan = self.info['nchan']
@@ -227,7 +229,8 @@ class Raw(object):
         if self._preloaded:
             return self._data[sel, start:stop], self._times[start:stop]
         else:
-            return read_raw_segment(self, start=start, stop=stop, sel=sel)
+            return read_raw_segment(self, start=start, stop=stop, sel=sel,
+                                    verbose=self.verbose)
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
@@ -386,7 +389,8 @@ class Raw(object):
             Low cut-off frequency in Hz. If None the data are only low-passed.
 
         h_freq : float
-            High cut-off frequency in Hz. If None the data are only high-passed.
+            High cut-off frequency in Hz. If None the data are only
+            high-passed.
 
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
@@ -673,7 +677,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         numpy array to fill with data read, must have the correct shape
 
     verbose: bool
-        User verbose output
+        Use verbose output
 
     Returns
     -------
@@ -838,7 +842,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     return data, times
 
 
-def read_raw_segment_times(raw, start, stop, sel=None):
+def read_raw_segment_times(raw, start, stop, sel=None, verbose=True):
     """Read a chunck of raw data
 
     Parameters
@@ -858,6 +862,9 @@ def read_raw_segment_times(raw, start, stop, sel=None):
     node: tree node
         The node of the tree where to look
 
+    verbose: bool
+        Use verbose output
+
     Returns
     -------
     data: array, [channels x samples]
@@ -871,7 +878,7 @@ def read_raw_segment_times(raw, start, stop, sel=None):
     stop = ceil(stop * raw.info['sfreq'])
 
     #   Read it
-    return read_raw_segment(raw, start, stop, sel)
+    return read_raw_segment(raw, start, stop, sel, verbose=verbose)
 
 ###############################################################################
 # Writing

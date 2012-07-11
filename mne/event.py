@@ -143,7 +143,7 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
         affected by the trigger.
 
     verbose : bool
-        User verbose output
+        Use verbose output
 
     Returns
     -------
