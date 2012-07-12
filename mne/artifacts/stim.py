@@ -5,7 +5,7 @@ from scipy import signal, interpolate
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                                 tmax=0.01, mode='linear'):
     """Eliminates stimulations artifacts from raw data
-     
+
     The raw object will be modified in place (no copy)
 
     Parameters

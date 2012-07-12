@@ -1,4 +1,5 @@
 import os.path as op
+import numpy as np
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
@@ -16,6 +17,16 @@ def test_find_ecg():
     """Test eliminate stim artifact"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
-    n_events = len(events)
+    event_idx = np.where(events[:, 2] == 1)[0][0]
+    tidx = events[event_idx, 0] - raw.first_samp
+
     raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=-0.005,
                                   tmax=0.01, mode='linear')
+    data, times = raw[:, tidx - 3:tidx + 5]
+    diff_data0 = np.diff(data[0])
+    diff_data0 -= np.mean(diff_data0)
+    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
+    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=-0.005,
+                                  tmax=0.01, mode='window')
+    data, times = raw[:, tidx:tidx + 1]
+    assert_true(np.all(data) == 0.)
