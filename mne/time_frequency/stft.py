@@ -187,7 +187,8 @@ def stftfreq(wsize, sfreq=None):
     wsize : int
         Size of stft window
     sfreq : float
-        Sampling frequency. If None the frequencies are given in Hz.
+        Sampling frequency. If None the frequencies are given between 0 and pi
+        otherwise it's given in Hz.
 
     Returns
     -------
