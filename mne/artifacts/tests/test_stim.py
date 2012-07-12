@@ -13,7 +13,7 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 event_fname = op.join(data_path, 'test-eve.fif')
 
 
-def test_find_ecg():
+def test_stim_elim():
     """Test eliminate stim artifact"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
