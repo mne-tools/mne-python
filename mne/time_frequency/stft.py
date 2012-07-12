@@ -37,6 +37,9 @@ def stft(x, wsize, tstep=None, verbose=True):
     istft
     stftfreq
     """
+    if not np.isrealobj(x):
+        raise ValueError("x is not a real valued array")
+
     if x.ndim == 1:
         x = x[None, :]
 
@@ -86,7 +89,7 @@ def stft(x, wsize, tstep=None, verbose=True):
     for t in range(n_step):
         # Framing
         wwin = win / swin[t * tstep: t * tstep + wsize]
-        frame = np.conj(x[:, t * tstep: t * tstep + wsize]) * wwin[None, :]
+        frame = x[:, t * tstep: t * tstep + wsize] * wwin[None, :]
         # FFT
         fframe = fft(frame)
         X[:, :, t] = fframe[:, :n_freq]
@@ -176,13 +179,15 @@ def istft(X, tstep=None, Tx=None):
     return x
 
 
-def stftfreq(wsize):
+def stftfreq(wsize, sfreq=None):
     """Frequencies of stft transformation
 
     Parameters
     ----------
     wsize : int
         Size of stft window
+    sfreq : float
+        Sampling frequency. If None the frequencies are given in Hz.
 
     Returns
     -------
@@ -192,4 +197,6 @@ def stftfreq(wsize):
     n_freq = wsize / 2 + 1
     freqs = fftfreq(wsize)
     freqs = np.abs(freqs[:n_freq])
+    if sfreq is not None:
+        freqs *= float(sfreq)
     return freqs
