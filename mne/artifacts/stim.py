@@ -36,23 +36,23 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     event_start = events[events_sel, 0]
     s_start = np.ceil(raw.info['sfreq'] * np.abs(tmin))[0]
     s_end = np.ceil(raw.info['sfreq'] * tmax)[0]
+
     picks = pick_types(raw.info, meg=True, eeg=True)
-    if mode == 'linear':
-        for k in range(len(event_start)):
-            first_samp = event_start[k] - raw.first_samp - s_start
-            last_samp = event_start[k] - raw.first_samp + s_end
+
+    if mode == 'window':
+        window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4), \
+                            signal.hann(4)[-2:]].T
+    
+    for k in range(len(event_start)):
+        first_samp = event_start[k] - raw.first_samp - s_start
+        last_samp = event_start[k] - raw.first_samp + s_end
+        data = raw[picks, first_samp:last_samp]
+        if mode == 'linear':
             x = np.array([first_samp, last_samp])
-            data = raw[picks, first_samp:last_samp]
             f = interpolate.interp1d(x, data[0][:, [0, -1]])
             xnew = np.arange(first_samp, last_samp)
             interp_data = f(xnew)
             raw[picks, first_samp:last_samp] = interp_data
-    if mode == 'window':
-        window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4), \
-                            signal.hann(4)[-2:]].T
-        for k in range(len(event_start)):
-            first_samp = event_start[k] - raw.first_samp - s_start
-            last_samp = event_start[k] - raw.first_samp + s_end
-            data = raw[picks, first_samp:last_samp]
+        elif mode == 'window':
             raw[picks, first_samp:last_samp] = data[0] * window[np.newaxis, :]
     return raw
