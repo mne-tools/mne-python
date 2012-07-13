@@ -28,6 +28,9 @@ Changelog
    - New mne_compute_proj_ecg.py and mne_compute_proj_eog.py scripts to estimate ECG/EOG PCA/SSP vectors by `Alex Gramfort`_ and `Martin Luessi`_.
 
    - Wrapper function and script (mne_maxfilter.py) for Elekta Neuromag MaxFilter(TM) by `Martin Luessi`_
+   
+   - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
+   
 
 .. _changes_0_3:
 
@@ -108,9 +111,12 @@ of commits):
     * 12  Martin Luessi
     *  2  Yaroslav Halchenko
     *  1  Manfred Kitzbichler
+    *  1  Daniel Strohmeier
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
 .. _Martin Luessi: http://ivpl.eecs.northwestern.edu/people/mluessi
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
+
+.. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
