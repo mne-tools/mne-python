@@ -30,7 +30,6 @@ Changelog
    - Wrapper function and script (mne_maxfilter.py) for Elekta Neuromag MaxFilter(TM) by `Martin Luessi`_
    
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
-   
 
 .. _changes_0_3:
 
@@ -111,7 +110,6 @@ of commits):
     * 12  Martin Luessi
     *  2  Yaroslav Halchenko
     *  1  Manfred Kitzbichler
-    *  1  Daniel Strohmeier
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
