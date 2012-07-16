@@ -16,9 +16,10 @@ import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
 from mne.forward import apply_forward
 from mne.datasets import sample
-from mne.time_frequency import fir_filter_raw
+from mne.time_frequency import fir_filter_raw, morlet
 from mne.viz import plot_evoked, plot_sparse_source_estimates
-from mne.simulation.sim_evoked import source_signal, generate_stc, generate_noise_evoked, add_noise
+from mne.simulation import generate_stc, generate_noise_evoked, \
+                           add_noise_evoked
 
 ###############################################################################
 # Load real data as templates
@@ -42,26 +43,29 @@ evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
 evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
                                     exclude=raw.info['bads'])
 
-tmin = -0.1
-sfreq = 1000  # Hz
-tstep = 1. / sfreq
-n_samples = 300
-timesamples = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
-
 label_names = ['Aud-lh', 'Aud-rh']
 labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
           for ln in label_names]
 
-mus = [[0.030, 0.060, 0.120], [0.040, 0.060, 0.140]]
-sigmas = [[0.01, 0.02, 0.03], [0.01, 0.02, 0.03]]
-amps = [[40 * 1e-9, 40 * 1e-9, 30 * 1e-9], [30 * 1e-9, 40 * 1e-9, 40 * 1e-9]]
-freqs = [[0, 0, 0], [0, 0, 0]]
-phis = [[0, 0, 0], [0, 0, 0]]
+###############################################################################
+# Generate source time courses and the correspond evoked data
+snr = 6  # dB
+tmin = -0.1
+sfreq = 1000.  # Hz
+tstep = 1. / sfreq
+n_samples = 600
+times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
 
-SNR = 6
-dB = True
+# Generate times series from 2 Morlet wavelets
+stc_data = np.zeros((len(labels), len(times)))
+Ws = morlet(sfreq, [3, 10], n_cycles=[1, 1.5])
+stc_data[0][:len(Ws[0])] = np.real(Ws[0])
+stc_data[1][:len(Ws[1])] = np.real(Ws[1])
+stc_data *= 100 * 1e-9  # use nAm as unit
 
-stc_data = source_signal(mus, sigmas, amps, freqs, phis, timesamples)
+# time translation
+stc_data[1] = np.roll(stc_data[1], 80)
+
 stc = generate_stc(fwd, labels, stc_data, tmin, tstep, random_state=0)
 evoked = apply_forward(fwd, stc, evoked_template)
 
@@ -70,8 +74,7 @@ evoked = apply_forward(fwd, stc, evoked_template)
 picks = mne.fiff.pick_types(raw.info, meg=True)
 fir_filter = fir_filter_raw(raw, order=5, picks=picks, tmin=60, tmax=180)
 noise = generate_noise_evoked(evoked, noise_cov, n_samples, fir_filter)
-
-evoked_noise = add_noise(evoked, noise, SNR, timesamples, tmin=0.0, tmax=0.2, dB=dB)
+evoked_noise = add_noise_evoked(evoked, noise, snr, times, tmin=0.0, tmax=0.2)
 
 ###############################################################################
 # Plot
@@ -82,4 +85,4 @@ pl.figure()
 pl.psd(evoked_noise.data[0])
 
 pl.figure()
-plot_evoked(evoked)
+plot_evoked(evoked_noise)
