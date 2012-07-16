@@ -20,7 +20,7 @@ def select_source_in_label(fwd, label, random_state=None):
     Parameters
     ----------
     fwd : dict
-        a forward solution
+        A forward solution
     label : dict
         the label (read with mne.read_label)
     random_state : None | int | np.random.RandomState
@@ -51,15 +51,18 @@ def select_source_in_label(fwd, label, random_state=None):
 
 
 def generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0):
-    """Generate sources time courses from waveforms and labels
+    """Generate sparse sources time courses from waveforms and labels
+
+    This function randomly selects a single vertex in each label and assigns
+    a waveform from stc_data to it.
 
     Parameters
     ----------
     fwd : dict
-        a forward solution
+        A forward solution
     labels : list of dict
         The labels
-    stc_data : array
+    stc_data : array (shape: len(labels) x n_times)
         The waveforms
     tmin : float
         The beginning of the timeseries
@@ -73,6 +76,9 @@ def generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0):
     stc : SourceEstimate
         The generated source time courses.
     """
+    if len(labels) != len(stc_data):
+        raise ValueError('labels and stc_data must have the same length')
+
     rng = check_random_state(random_state)
     vertno = [[], []]
     for label in labels:
@@ -80,6 +86,97 @@ def generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0):
         vertno[0] += lh_vertno
         vertno[1] += rh_vertno
     vertno = map(np.array, vertno)
+    # XXX there is a bug here, the ordering of the stc_data is assumed
+    # to be the same as in vertno (not the same as labels, left comes first)
+    stc = _make_stc(stc_data, tmin, tstep, vertno)
+    return stc
+
+
+def generate_stc(fwd, labels, stc_data, tmin, tstep, value_fun=None):
+    """Generate sources time courses from waveforms and labels
+
+    This function generates a source estimate with extended sources by
+    filling the labels with the waveforms given in stc_data.
+
+    By default, the vertices within a label are assigned the same waveform.
+    The waveforms can be scaled for each vertex by using the label values
+    and value_fun. E.g.,
+
+    # create a source label where the values are the distance from the center
+    labels = circular_source_labels('sample', 0, 10, 0)
+
+    # sources with decaying strength (x will be the distance from the center)
+    fun = lambda x: exp(- x / 10)
+    stc = generate_stc(fwd, labels, stc_data, tmin, tstep, fun)
+
+    Parameters
+    ----------
+    fwd : dict
+        A forward solution
+    labels : list of dict
+        The labels
+    stc_data : array (shape: len(labels) x n_times)
+        The waveforms
+    tmin : float
+        The beginning of the timeseries
+    tstep : float
+        The time step (1 / sampling frequency)
+    value_fun : function
+        Function to apply to the label values
+
+    Returns
+    -------
+    stc : SourceEstimate
+        The generated source time courses.
+    """
+
+    if len(labels) != len(stc_data):
+        raise ValueError('labels and stc_data must have the same length')
+
+    vertno = [[], []]
+    stc_data_extended = [[], []]
+    hemi_to_ind = {}
+    hemi_to_ind['lh'],  hemi_to_ind['rh'] = 0, 1
+    for i, label in enumerate(labels):
+        hemi_ind = hemi_to_ind[label['hemi']]
+        src_sel = np.intersect1d(fwd['src'][hemi_ind]['vertno'],
+                                 label['vertices'])
+        if value_fun is not None:
+            idx_sel = np.searchsorted(label['vertices'], src_sel)
+            values_sel = np.array([value_fun(v) for v in
+                                   label['values'][idx_sel]])
+
+            data = np.outer(values_sel, stc_data[i])
+        else:
+            data = np.tile(stc_data[i], (len(src_sel), 1))
+
+        vertno[hemi_ind].append(src_sel)
+        stc_data_extended[hemi_ind].append(data)
+
+    # format the vertno list
+    for idx in (0, 1):
+        if len(vertno[idx]) > 1:
+            vertno[idx] = np.concatenate(vertno[idx])
+        elif len(vertno[idx]) == 1:
+            vertno[idx] = vertno[idx][0]
+    vertno = map(np.array, vertno)
+
+    # the data is in the same order as the vertices in vertno
+    n_vert_tot = len(vertno[0]) + len(vertno[1])
+    stc_data = np.zeros((n_vert_tot, stc_data.shape[1]))
+    for idx in (0, 1):
+        if len(stc_data_extended[idx]) == 0:
+            continue
+        if len(stc_data_extended[idx]) == 1:
+            data = stc_data_extended[idx][0]
+        else:
+            data = np.concatenate(stc_data_extended[idx])
+
+        if idx == 0:
+            stc_data[:len(vertno[0]), :] = data
+        else:
+            stc_data[len(vertno[0]):, :] = data
+
     stc = _make_stc(stc_data, tmin, tstep, vertno)
     return stc
 
