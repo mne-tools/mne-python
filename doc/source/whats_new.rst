@@ -7,6 +7,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Fit AR models to raw data for temporal whitening by `Alex Gramfort`_.
+
    - speedup + reduce memory of mne.morph_data by `Alex Gramfort`_.
 
    - Backporting scipy.signa.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
