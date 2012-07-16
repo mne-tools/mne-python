@@ -117,7 +117,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     fontsize: int
         Font size
     bgcolor: tuple of length 3
-        Back ground color in 3D
+        Background color in 3D
     opacity: float in [0, 1]
         Opacity of brain mesh
     brain_color: tuple of length 3
