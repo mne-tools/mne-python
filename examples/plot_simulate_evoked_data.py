@@ -17,7 +17,7 @@ from mne.fiff.pick import pick_types_evoked, pick_types_forward
 from mne.datasets import sample
 from mne.time_frequency import fir_filter_raw, morlet
 from mne.viz import plot_evoked, plot_sparse_source_estimates
-from mne.simulation import generate_stc, generate_evoked
+from mne.simulation import generate_sparse_stc, generate_evoked
 
 ###############################################################################
 # Load real data as templates
@@ -63,7 +63,7 @@ stc_data *= 100 * 1e-9  # use nAm as unit
 
 # time translation
 stc_data[1] = np.roll(stc_data[1], 80)
-stc = generate_stc(fwd, labels, stc_data, tmin, tstep, random_state=0)
+stc = generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0)
 
 ###############################################################################
 # Generate noisy evoked data

@@ -162,7 +162,7 @@ def select_source_in_label(fwd, label, random_state=None):
     return lh_vertno, rh_vertno
 
 
-def generate_stc(fwd, labels, stc_data, tmin, tstep, random_state=0):
+def generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0):
     """Generate sources time courses from waveforms and labels
 
     Parameters
