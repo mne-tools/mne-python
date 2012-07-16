@@ -14,12 +14,10 @@ import pylab as pl
 
 import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
-from mne.forward import apply_forward
 from mne.datasets import sample
 from mne.time_frequency import fir_filter_raw, morlet
 from mne.viz import plot_evoked, plot_sparse_source_estimates
-from mne.simulation import generate_stc, generate_noise_evoked, \
-                           add_noise_evoked
+from mne.simulation import generate_stc, generate_evoked
 
 ###############################################################################
 # Load real data as templates
@@ -37,7 +35,7 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fwd = mne.read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
 fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 
-noise_cov = mne.read_cov(cov_fname)
+cov = mne.read_cov(cov_fname)
 
 evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
 evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
@@ -65,16 +63,14 @@ stc_data *= 100 * 1e-9  # use nAm as unit
 
 # time translation
 stc_data[1] = np.roll(stc_data[1], 80)
-
 stc = generate_stc(fwd, labels, stc_data, tmin, tstep, random_state=0)
-evoked = apply_forward(fwd, stc, evoked_template)
 
 ###############################################################################
-# Add noise
+# Generate noisy evoked data
 picks = mne.fiff.pick_types(raw.info, meg=True)
 fir_filter = fir_filter_raw(raw, order=5, picks=picks, tmin=60, tmax=180)
-noise = generate_noise_evoked(evoked, noise_cov, n_samples, fir_filter)
-evoked_noise = add_noise_evoked(evoked, noise, snr, times, tmin=0.0, tmax=0.2)
+evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+                         tmin=0.0, tmax=0.2, fir_filter=fir_filter)
 
 ###############################################################################
 # Plot
@@ -82,7 +78,7 @@ plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
                                 opacity=0.5, high_resolution=True)
 
 pl.figure()
-pl.psd(evoked_noise.data[0])
+pl.psd(evoked.data[0])
 
 pl.figure()
-plot_evoked(evoked_noise)
+plot_evoked(evoked)
