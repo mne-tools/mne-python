@@ -120,7 +120,7 @@ def circular_source_labels(subject, seeds, extents, hemis, subjects_dir=None):
             hemi        Hemisphere of the label ('lh', or 'rh')
             vertices    Vertex indices (0 based)
             pos         Locations in millimeters
-            values      Values at the vertices (not used, all 1)
+            values      Distances in millimeters from seed
     """
     if subjects_dir is None:
         if 'SUBJECTS_DIR' in os.environ:
@@ -163,15 +163,15 @@ def circular_source_labels(subject, seeds, extents, hemis, subjects_dir=None):
     # create the patches
     labels = []
     for seed, extent, hemi in zip(seeds, extents, hemis):
-        patch_verts, _ = _verts_within_dist(dist[hemi], seed, extent)
+        label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
 
         # create a label
         label = dict()
         label['comment'] = 'Circular label: seed=%d, extent=%0.1fmm' %\
                            (seed, extent)
-        label['vertices'] = patch_verts
-        label['pos'] = vert[hemi][patch_verts]
-        label['values'] = np.ones(len(patch_verts))
+        label['vertices'] = label_verts
+        label['pos'] = vert[hemi][label_verts]
+        label['values'] = label_dist
         label['hemi'] = hemi
 
         labels.append(label)
