@@ -5,6 +5,7 @@
 #
 # License: Simplified BSD
 
+from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
@@ -83,6 +84,160 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     if show:
         pl.show()
+
+
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
+          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+
+
+def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
+                                fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
+                                brain_color=(0.7, ) * 3, show=True,
+                                high_resolution=False, fig_name=None,
+                                fig_number=None, labels=None,
+                                modes=['cone', 'sphere'],
+                                scale_factors=[1, 0.6],
+                                **kwargs):
+    """Plot source estimates obtained with sparse solver
+
+    Active dipoles are represented in a "Glass" brain.
+    If the same source is active in multiple source estimates it is
+    displayed with a sphere otherwise with a cone in 3D.
+
+    Parameters
+    ----------
+    src: dict
+        The source space
+    stcs: instance of SourceEstimate or list of instances of SourceEstimate
+        The source estimates (up to 3)
+    colors: list
+        List of colors
+    linewidth: int
+        Line width in 2D plot
+    fontsize: int
+        Font size
+    bgcolor: tuple of length 3
+        Back ground color in 3D
+    opacity: float in [0, 1]
+        Opacity of brain mesh
+    brain_color: tuple of length 3
+        Brain color
+    show: bool
+        Show figures if True
+    fig_name:
+        Mayavi figure name
+    fig_number:
+        Pylab figure number
+    labels: ndarray or list of ndarrays
+        Labels to show sources in clusters. Sources with the same
+        label and the waveforms within each cluster are presented in
+        the same color. labels should be a list of ndarrays when
+        stcs is a list ie. one label for each stc.
+    kwargs: kwargs
+        kwargs pass to mlab.triangular_mesh
+    """
+    if not isinstance(stcs, list):
+        stcs = [stcs]
+    if labels is not None and not isinstance(labels, list):
+        labels = [labels]
+
+    if colors is None:
+        colors = COLORS
+
+    linestyles = ['-', '--', ':']
+
+    # Show 3D
+    lh_points = src[0]['rr']
+    rh_points = src[1]['rr']
+    points = np.r_[lh_points, rh_points]
+
+    lh_normals = src[0]['nn']
+    rh_normals = src[1]['nn']
+    normals = np.r_[lh_normals, rh_normals]
+
+    if high_resolution:
+        use_lh_faces = src[0]['tris']
+        use_rh_faces = src[1]['tris']
+    else:
+        use_lh_faces = src[0]['use_tris']
+        use_rh_faces = src[1]['use_tris']
+
+    use_faces = np.r_[use_lh_faces, lh_points.shape[0] + use_rh_faces]
+
+    points *= 170
+
+    vertnos = [np.r_[stc.lh_vertno, lh_points.shape[0] + stc.rh_vertno]
+               for stc in stcs]
+    unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
+
+    try:
+        from mayavi import mlab
+    except ImportError:
+        from enthought.mayavi import mlab
+
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
+
+    f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(800, 800))
+    mlab.clf()
+    f.scene.disable_render = True
+    surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                            use_faces, color=brain_color, opacity=opacity,
+                            **kwargs)
+
+    import pylab as pl
+    # Show time courses
+    pl.figure(fig_number)
+    pl.clf()
+
+    colors = cycle(colors)
+
+    print "Total number of active sources: %d" % len(unique_vertnos)
+
+    if labels is not None:
+        colors = [colors.next() for _ in
+                        range(np.unique(np.concatenate(labels).ravel()).size)]
+
+    for v in unique_vertnos:
+        # get indices of stcs it belongs to
+        ind = [k for k, vertno in enumerate(vertnos) if v in vertno]
+        is_common = len(ind) > 1
+
+        if labels is None:
+            c = colors.next()
+        else:
+            # if vertex is in different stcs than take label from first one
+            c = colors[labels[ind[0]][vertnos[ind[0]] == v]]
+
+        mode = modes[1] if is_common else modes[0]
+        scale_factor = scale_factors[1] if is_common else scale_factors[0]
+        x, y, z = points[v]
+        nx, ny, nz = normals[v]
+        mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),
+                      mode=mode, scale_factor=scale_factor)
+
+        for k in ind:
+            vertno = vertnos[k]
+            mask = (vertno == v)
+            assert np.sum(mask) == 1
+            linestyle = linestyles[k]
+            pl.plot(1e3 * stc.times, 1e9 * stcs[k].data[mask].ravel(), c=c,
+                    linewidth=linewidth, linestyle=linestyle)
+
+    pl.xlabel('Time (ms)', fontsize=18)
+    pl.ylabel('Source amplitude (nAm)', fontsize=18)
+
+    if fig_name is not None:
+        pl.title(fig_name)
+
+    if show:
+        pl.show()
+        mlab.show()
+
+    surface.actor.property.backface_culling = True
+    surface.actor.property.shading = True
+
+    return surface
 
 
 def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
