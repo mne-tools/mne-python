@@ -45,7 +45,7 @@ def select_source_in_label(src, label, random_state=None):
     return lh_vertno, rh_vertno
 
 
-def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=0):
+def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     """Generate sparse sources time courses from waveforms and labels
 
     This function randomly selects a single vertex in each label and assigns
@@ -83,14 +83,20 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=0):
         vertno[0] += lh_vertno
         vertno[1] += rh_vertno
         if len(lh_vertno) != 0:
-            lh_data.append(label_data)
+            lh_data.append(np.atleast_2d(label_data))
         elif len(rh_vertno) != 0:
-            rh_data.append(label_data)
+            rh_data.append(np.atleast_2d(label_data))
         else:
             raise ValueError('No vertno found.')
+
     vertno = map(np.array, vertno)
-    data = np.r_[lh_data, rh_data]
+
+    # the data is in the order left, right
+    lh_data.extend(rh_data)
+    data = np.concatenate(lh_data)
+
     stc = _make_stc(data, tmin, tstep, vertno)
+
     return stc
 
 
@@ -137,8 +143,7 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
 
     vertno = [[], []]
     stc_data_extended = [[], []]
-    hemi_to_ind = {}
-    hemi_to_ind['lh'],  hemi_to_ind['rh'] = 0, 1
+    hemi_to_ind = {'lh': 0, 'rh': 1}
     for i, label in enumerate(labels):
         hemi_ind = hemi_to_ind[label['hemi']]
         src_sel = np.intersect1d(src[hemi_ind]['vertno'],
@@ -153,7 +158,7 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             data = np.tile(stc_data[i], (len(src_sel), 1))
 
         vertno[hemi_ind].append(src_sel)
-        stc_data_extended[hemi_ind].append(data)
+        stc_data_extended[hemi_ind].append(np.atleast_2d(data))
 
     # format the vertno list
     for idx in (0, 1):
@@ -163,21 +168,11 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             vertno[idx] = vertno[idx][0]
     vertno = map(np.array, vertno)
 
-    # the data is in the same order as the vertices in vertno
-    n_vert_tot = len(vertno[0]) + len(vertno[1])
-    stc_data = np.zeros((n_vert_tot, stc_data.shape[1]))
-    for idx in (0, 1):
-        if len(stc_data_extended[idx]) == 0:
-            continue
-        if len(stc_data_extended[idx]) == 1:
-            data = stc_data_extended[idx][0]
-        else:
-            data = np.concatenate(stc_data_extended[idx])
-
-        if idx == 0:
-            stc_data[:len(vertno[0]), :] = data
-        else:
-            stc_data[len(vertno[0]):, :] = data
+    # the data is in the order left, right
+    lh_data = stc_data_extended[0]
+    rh_data = stc_data_extended[1]
+    lh_data.extend(rh_data)
+    stc_data = np.concatenate(lh_data)
 
     stc = _make_stc(stc_data, tmin, tstep, vertno)
     return stc

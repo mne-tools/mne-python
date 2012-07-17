@@ -2,14 +2,14 @@ import os.path as op
 import copy
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true
 
 from ...datasets import sample
 from ... import read_label
 from ... import read_forward_solution
 
-from ..source import generate_stc
+from ..source import generate_stc, generate_sparse_stc
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..' '/examples')
 data_path = sample.data_path(examples_folder)
@@ -46,3 +46,25 @@ def test_generate_stc():
     # the first label has value 0, the second value 2
     assert_array_almost_equal(stc.data[0], np.zeros(n_times))
     assert_array_almost_equal(stc.data[-1], 4 * np.ones(n_times))
+
+
+def test_generate_sparse_stc():
+    """ Test generation of sparse source estimate """
+
+    n_times = 10
+    tmin = 0
+    tstep = 1e-3
+
+    stc_data = np.ones((len(labels), n_times))
+    stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
+
+    assert_true(np.all(stc_1.data == 1.0))
+    assert_true(stc_1.data.shape[0] == len(labels))
+    assert_true(stc_1.data.shape[1] == n_times)
+
+    # make sure we get the same result when using the same seed
+    stc_2 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
+
+    assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
+    assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
