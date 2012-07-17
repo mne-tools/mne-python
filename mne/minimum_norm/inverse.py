@@ -960,6 +960,48 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
+def _prepare_inverse(forward, info, noise_cov, pca=False):
+    """Util function for inverse solvers
+    """
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    ch_names = [c['ch_name'] for c in info['chs']
+                                    if (c['ch_name'] not in info['bads'])
+                                        and (c['ch_name'] in fwd_ch_names)]
+    n_chan = len(ch_names)
+    print "Computing inverse operator with %d channels." % n_chan
+
+    #
+    #   Handle noise cov
+    #
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
+
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    n_nzero = sum(nzero)
+
+    if pca:
+        whitener = np.zeros((n_nzero, n_chan), dtype=np.float)
+        whitener = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
+        print 'Reducing data rank to %d' % n_nzero
+    else:
+        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = np.dot(whitener, noise_cov['eigvec'])
+
+    gain = forward['sol']['data']
+
+    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    gain = gain[fwd_idx]
+
+    print 'Total rank is %d' % n_nzero
+
+    return ch_names, gain, noise_cov, whitener, n_nzero
+
+
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     """Assemble inverse operator
 
