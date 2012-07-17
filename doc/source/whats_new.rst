@@ -6,6 +6,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+   - Generation of simulated evoked responses by `Alex Gramfort`_, `Daniel Strohmeier`_, and `Martin Luessi`_
 
    - Fit AR models to raw data for temporal whitening by `Alex Gramfort`_.
 
