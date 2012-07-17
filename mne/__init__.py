@@ -28,3 +28,4 @@ from . import artifacts
 from . import stats
 from . import viz
 from . import preprocessing
+from . import simulation
