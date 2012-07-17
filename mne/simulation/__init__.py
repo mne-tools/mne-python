@@ -3,6 +3,4 @@
 
 from .evoked import generate_evoked
 
-from .source import select_source_in_label, generate_sparse_stc, \
-                    circular_source_labels
-
+from .source import select_source_in_label, generate_sparse_stc

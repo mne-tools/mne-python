@@ -9,6 +9,7 @@ import copy
 from math import ceil
 import numpy as np
 from scipy import sparse
+from scipy.sparse import csr_matrix
 
 from .parallel import parallel_func
 
@@ -550,6 +551,35 @@ def mesh_edges(tris):
     edges = edges.tocsr()
     edges = edges + edges.T
     return edges
+
+
+def mesh_dist(tris, vert):
+    """Compute adjacency matrix weighted by distances
+
+    It generates an adjacency matrix where the entries are the distances
+    between neighboring vertices.
+
+    Parameters:
+    -----------
+    tris : array (n_tris x 3)
+        Mesh triangulation
+    vert : array (n_vert x 3)
+        Vertex locations
+
+    Returns:
+    --------
+    dist_matrix : scipy.sparse.csr_matrix
+        Sparse matrix with distances between adjacent vertices
+    """
+    edges = mesh_edges(tris).tocoo()
+
+    # Euclidean distances between neighboring vertices
+    dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
+                          axis=1))
+
+    dist_matrix = csr_matrix((dist, (edges.row, edges.col)), shape=edges.shape)
+
+    return dist_matrix
 
 
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):

@@ -1,6 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 import copy
@@ -123,5 +123,3 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
     evoked.data += noise.data
     return evoked
-
-

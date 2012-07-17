@@ -63,7 +63,8 @@ stc_data *= 100 * 1e-9  # use nAm as unit
 
 # time translation
 stc_data[1] = np.roll(stc_data[1], 80)
-stc = generate_sparse_stc(fwd, labels, stc_data, tmin, tstep, random_state=0)
+stc = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep,
+                          random_state=0)
 
 ###############################################################################
 # Generate noisy evoked data
