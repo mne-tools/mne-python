@@ -13,7 +13,7 @@ from scipy import linalg
 # XXX : don't import pylab here or you will break the doc
 
 from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector
+from .fiff.proj import make_projector, activate_proj
 
 
 def plot_topo(evoked, layout):
@@ -37,7 +37,8 @@ def plot_topo(evoked, layout):
     pl.rcParams['axes.edgecolor'] = 'k'
 
 
-def plot_evoked(evoked, picks=None, unit=True, show=True):
+def plot_evoked(evoked, picks=None, unit=True, show=True,
+                ylim=None, proj=False, xlim='tight'):
     """Plot evoked data
 
     Parameters
@@ -50,6 +51,13 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
         Scale plot with channel (SI) unit.
     show : bool
         Call pylab.show() as the end or not.
+    ylim : dict
+        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad
+    xlim : 'tight' | tuple | None
+        xlim for plots.
+    proj : bool
+        If true SSP projections are applied before display.
     """
     import pylab as pl
     pl.clf()
@@ -74,14 +82,31 @@ def plot_evoked(evoked, picks=None, unit=True, show=True):
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
+            D = scaling * evoked.data[idx, :]
+            if proj:
+                projs = activate_proj(evoked.info['projs'])
+                this_ch_names = [evoked.ch_names[k] for k in idx]
+                P, ncomp, _ = make_projector(projs, this_ch_names)
+                D = np.dot(P, D)
+
             pl.subplot(n_channel_types, 1, counter)
-            pl.plot(times, scaling * evoked.data[idx, :].T)
-            pl.title(name)
+            pl.plot(times, D.T)
+            if xlim is not None:
+                if xlim == 'tight':
+                    xlim = (times[0], times[-1])
+                pl.xlim(xlim)
+            if ylim is not None and t in ylim:
+                pl.ylim(ylim[t])
+            pl.title(name + ' (%d channels)' % len(D))
             pl.xlabel('time (ms)')
             counter += 1
             pl.ylabel('data (%s)' % ch_unit)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+    try:
+        pl.tight_layout()
+    except:
+        pass
     if show:
         pl.show()
 
