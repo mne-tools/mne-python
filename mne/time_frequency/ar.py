@@ -109,3 +109,33 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
         this_coefs, _ = yule_walker(d, order=order)
         coefs[k, :] = this_coefs
     return coefs
+
+
+def fir_filter_raw(raw, order, picks, tmin=None, tmax=None):
+    """Fits an AR model to raw data and creates corresponding FIR filter
+
+    The returned filter is the average filter for all the picked channels.
+
+    Parameters
+    ----------
+    raw : Raw object
+        an instance of Raw
+    order : int
+        order of the FIR filter
+    picks : array of int
+        indices of selected channels
+    tmin : float
+        The beginning of time interval in seconds.
+    tmax : float
+        The end of time interval in seconds.
+
+    Returns
+    -------
+    fir : array
+        filter coefficients
+    """
+    picks = picks[:5]
+    coefs = ar_raw(raw, order=order, picks=picks, tmin=tmin, tmax=tmax)
+    mean_coefs = np.mean(coefs, axis=0)  # mean model accross channels
+    fir = np.r_[1, -mean_coefs]  # filter coefficient
+    return fir

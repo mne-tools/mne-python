@@ -1,11 +1,12 @@
 import os
 import os.path as op
+import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from ..datasets import sample
 from .. import label_time_courses, read_label, write_label, stc_to_label, \
-               SourceEstimate, read_source_spaces
+               SourceEstimate, read_source_spaces, grow_labels
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -56,3 +57,17 @@ def test_stc_to_label():
                 assert_true(l1[key] == l1[key])
             else:
                 assert_array_almost_equal(l1[key], l2[key], 4)
+
+
+def test_grow_labels():
+    """Test generation of circular source labels"""
+    seeds = [0, 50000]
+    hemis = [0, 1]
+    labels = grow_labels('sample', seeds, 3, hemis)
+
+    for label, seed, hemi in zip(labels, seeds, hemis):
+        assert(np.any(label['vertices'] == seed))
+        if hemi == 0:
+            assert(label['hemi'] == 'lh')
+        else:
+            assert(label['hemi'] == 'rh')
