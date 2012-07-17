@@ -1,3 +1,7 @@
+# Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 import numpy as np
 

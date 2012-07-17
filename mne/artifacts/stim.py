@@ -1,10 +1,15 @@
+# Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from scipy import signal, interpolate
 
 from ..fiff import pick_types
 
+
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
-                                tmax=0.01, mode='linear'):
+                            tmax=0.01, mode='linear'):
     """Eliminates stimulations artifacts from raw data
 
     The raw object will be modified in place (no copy)
@@ -45,7 +50,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     if mode == 'window':
         window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4), \
                             signal.hann(4)[-2:]].T
-    
+
     for k in range(len(event_start)):
         first_samp = event_start[k] - raw.first_samp - s_start
         last_samp = event_start[k] - raw.first_samp + s_end
