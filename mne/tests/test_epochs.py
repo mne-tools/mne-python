@@ -137,22 +137,23 @@ def test_indexing_slicing():
             assert_array_equal(data[0], data_normal[idx])
             pos += 1
             
-        # using indexing with int
+        # using indexing with an int
         idx = np.random.randint(0, data_epochs2_sliced.shape[0], 1)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
         
-        # using indexing with array
+        # using indexing with an array
         idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
         
-        # using indexing with list of indices
-        #idx = list()
-        #for k in range(3):
-        #    idx.append(np.random.randint(0, data_epochs2_sliced.shape[0], 1))
-        #    data = epochs2[idx].get_data()
-        #    assert_array_equal(data, data_normal[idx])
+        # using indexing with a list of indices
+        idx = [0]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+        idx = [0, 1]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
 
 
 def test_comparision_with_c():
@@ -175,33 +176,37 @@ def test_comparision_with_c():
 def test_crop():
     """Test of crop of epochs
     """
-    epochs = Epochs(raw, events[:20], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
-    epochs2 = Epochs(raw, events[:20], event_id, tmin, tmax,
+    data_normal = epochs.get_data()
+
+    epochs2 = Epochs(raw, events[:5], event_id, tmin, tmax,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
-    data_normal = epochs.get_data()
 
     # indices for slicing
     start_tsamp = tmin + 60 * epochs.info['sfreq']
     end_tsamp = tmax - 60 * epochs.info['sfreq']
     tmask = (epochs.times >= start_tsamp) & (epochs.times <= end_tsamp)
-    assert((start_tsamp) > tmin)
-    assert((end_tsamp) < tmax)
+    assert_true(start_tsamp > tmin)
+    assert_true(end_tsamp < tmax)
+    epochs3 = epochs2.crop(start_tsamp, end_tsamp, copy=True)
+    data3 = epochs3.get_data()
     epochs2.crop(start_tsamp, end_tsamp)
-    data = epochs2.get_data()
-    assert_array_equal(data, data_normal[:, :, tmask])
-    
+    data2 = epochs2.get_data()
+    assert_array_equal(data2, data_normal[:, :, tmask])
+    assert_array_equal(data3, data_normal[:, :, tmask])
+
 
 def test_bootstrap():
-    """Test of crop of epochs
+    """Test of bootstrapping of epochs
     """
-    epochs = Epochs(raw, events[:20], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
     data_normal = epochs._data
-    rng = np.random.RandomState(0)
-    epochs2, idx = bootstrap(epochs, rng, return_idx=True)
+    epochs2 = bootstrap(epochs, random_state=0)
     n_events = len(epochs.events)
-    assert_array_equal(epochs2._data, data_normal[idx])
+    assert_true(len(epochs2.events) == len(epochs.events))
+    assert_true(epochs._data.shape == epochs2._data.shape)

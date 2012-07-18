@@ -1,17 +1,20 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
-import copy
-import numpy as np
-import fiff
+import copy as cp
 import warnings
+
+import numpy as np
+
+import fiff
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
 from .fiff.proj import activate_proj, make_eeg_average_ref_proj
 from .baseline import rescale
-
+from .utils import check_random_state
 
 class Epochs(object):
     """List of Epochs
@@ -122,7 +125,7 @@ class Epochs(object):
         self._bad_dropped = False
 
         # Handle measurement info
-        self.info = copy.deepcopy(raw.info)
+        self.info = cp.deepcopy(raw.info)
         if picks is not None:
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
@@ -377,7 +380,7 @@ class Epochs(object):
             warnings.warn("Bad epochs have not been dropped, indexing will be "
                           "inaccurate. Use drop_bad_epochs() or preload=True")
 
-        epochs = copy.copy(self)  # XXX : should use deepcopy but breaks ...
+        epochs = cp.copy(self)  # XXX : should use deepcopy but breaks ...
         epochs.events = np.atleast_2d(self.events[key])
 
         if self.preload:
@@ -386,6 +389,8 @@ class Epochs(object):
             else:
                 if isinstance(key, list):
                     key = np.array(key)
+                    print key
+                    print np.ndim(key)
                 if np.ndim(key) == 0:
                     epochs._data = self._data[key][np.newaxis, :, :]
                 else:
@@ -407,7 +412,7 @@ class Epochs(object):
             The averaged epochs
         """
         evoked = Evoked(None)
-        evoked.info = copy.deepcopy(self.info)
+        evoked.info = cp.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
@@ -444,7 +449,7 @@ class Epochs(object):
             evoked.data = evoked.data[data_picks]
         return evoked
     
-    def crop(self, tmin, tmax):
+    def crop(self, tmin=None, tmax=None, copy=False):
         """Crops a time interval from epochs object.
     
         Parameters
@@ -453,7 +458,9 @@ class Epochs(object):
             Start time of selection in seconds
         tmax : float
             End time of selection in seconds
-    
+        copy : bool
+            If False epochs is cropped in place
+
         Returns
         -------
         epochs : Epochs instance
@@ -463,19 +470,27 @@ class Epochs(object):
             raise RuntimeError('Modifying data of epochs is only supported '
                                 'when preloading is used. Use preload=True '
                                 'in the constructor.')
-        if tmin < self.tmin:
+        if tmin is None:
             tmin = self.tmin
-        if tmax > self.tmax:
+        elif tmin < self.tmin:
+            warnings.warn("tmin is not in epochs' time interval."
+                          "tmin is set to epochs.tmin")
+            tmin = self.tmin
+        if tmax is None:
+            tmax = self.tmax
+        elif tmax > self.tmax:
+            warnings.warn("tmax is not in epochs' time interval."
+                          "tmax is set to epochs.tmax")
             tmax = self.tmax
             
-        sfreq = self.info['sfreq']
-        first_samp = int((tmin - self.tmin) * sfreq)
-        last_samp = int((tmax - self.tmax) * sfreq) - 1
-        
-        self.tmin = tmin
-        self.tmax = tmax
-        self._data = self._data[:, :, first_samp:last_samp]
-        return self
+        tmask = (self.times >= tmin) & (self.times <= tmax)
+
+        this_epochs = self if not copy else cp.deepcopy(self)
+        this_epochs.tmin = tmin
+        this_epochs.tmax = tmax
+        this_epochs.times = this_epochs.times[tmask]
+        this_epochs._data = this_epochs._data[:, :, tmask]
+        return this_epochs
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat):
@@ -514,15 +529,15 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
     return True
 
 
-def bootstrap(epochs, rng, return_idx=False):
-    """Compute average of epochs selected by bootstrapping
+def bootstrap(epochs, random_state=None):
+    """Compute epochs selected by bootstrapping
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    rng : 
-        random number generator.
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state
     return_idx : bool
         If True the selected indices are provided as an output
 
@@ -536,11 +551,9 @@ def bootstrap(epochs, rng, return_idx=False):
                             'when preloading is used. Use preload=True '
                             'in the constructor.')
 
-    epochs_bootstrap = copy.deepcopy(epochs)
+    rng = check_random_state(random_state)
+    epochs_bootstrap = cp.deepcopy(epochs)
     n_events = len(epochs_bootstrap.events)
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
-    if return_idx:
-        return epochs_bootstrap, idx
-    else:
-        return epochs_bootstrap
+    return epochs_bootstrap
