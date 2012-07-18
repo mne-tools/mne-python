@@ -1042,33 +1042,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
 
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    ch_names = [c['ch_name'] for c in info['chs']
-                                    if (c['ch_name'] not in info['bads'])
-                                        and (c['ch_name'] in fwd_ch_names)]
-    n_chan = len(ch_names)
-
-    print "Computing inverse operator with %d channels." % n_chan
-
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
-
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    n_nzero = sum(nzero)
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
-
-    gain = forward['sol']['data']
-
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
-    gain = gain[fwd_idx]
+    ch_names, gain, noise_cov, whitener, n_nzero = \
+                            _prepare_inverse(forward, info, noise_cov)
 
     n_dipoles = gain.shape[1]
 
@@ -1084,7 +1059,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
-    gain = np.dot(W, gain)
+    gain = np.dot(whitener, gain)
 
     source_cov = depth_prior.copy()
     depth_prior = dict(data=depth_prior, kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
