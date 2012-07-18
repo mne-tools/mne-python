@@ -514,15 +514,17 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
     return True
 
 
-def bootstrap(epochs, rng):
+def bootstrap(epochs, rng, return_idx=False):
     """Compute average of epochs selected by bootstrapping
 
     Parameters
     ----------
     epochs : Epochs instance
         epochs data to be bootstrapped
-    rng: 
+    rng : 
         random number generator.
+    return_idx : bool
+        If True the selected indices are provided as an output
 
     Returns
     -------
@@ -538,4 +540,7 @@ def bootstrap(epochs, rng):
     n_events = len(epochs_bootstrap.events)
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
-    return epochs_bootstrap, idx
+    if output_idx:
+        return epochs_bootstrap, idx
+    else:
+        return epochs_bootstrap
