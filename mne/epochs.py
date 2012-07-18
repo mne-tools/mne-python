@@ -384,10 +384,12 @@ class Epochs(object):
             if isinstance(key, slice):
                 epochs._data = self._data[key]
             else:
-                #make sure data remains a 3D array
-                #Note: np.atleast_3d() doesn't do what we want
-                epochs._data = np.array([self._data[key]])
-
+                if isinstance(key, list):
+                    key = np.array(key)
+                if np.ndim(key) == 0:
+                    epochs._data = self._data[key][np.newaxis, :, :]
+                else:
+                    epochs._data = self._data[key]
         return epochs
 
     def average(self, keep_only_data_channels=True):
@@ -441,6 +443,39 @@ class Epochs(object):
             evoked.info['nchan'] = len(data_picks)
             evoked.data = evoked.data[data_picks]
         return evoked
+    
+    def crop(self, tmin, tmax):
+        """Crops a time interval from epochs object.
+    
+        Parameters
+        ----------
+        tmin : float
+            Start time of selection in seconds
+        tmax : float
+            End time of selection in seconds
+    
+        Returns
+        -------
+        epochs : Epochs instance
+            The bootstrap samples
+        """
+        if not self.preload:
+            raise RuntimeError('Modifying data of epochs is only supported '
+                                'when preloading is used. Use preload=True '
+                                'in the constructor.')
+        if tmin < self.tmin:
+            tmin = self.tmin
+        if tmax > self.tmax:
+            tmax = self.tmax
+            
+        sfreq = self.info['sfreq']
+        first_samp = int((tmin - self.tmin) * sfreq)
+        last_samp = int((tmax - self.tmax) * sfreq) - 1
+        
+        self.tmin = tmin
+        self.tmax = tmax
+        self._data = self._data[:, :, first_samp:last_samp]
+        return self
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat):
@@ -477,3 +512,30 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                     return False
 
     return True
+
+
+def bootstrap(epochs, rng):
+    """Compute average of epochs selected by bootstrapping
+
+    Parameters
+    ----------
+    epochs : Epochs instance
+        epochs data to be bootstrapped
+    rng: 
+        random number generator.
+
+    Returns
+    -------
+    epochs : Epochs instance
+        The bootstrap samples
+    """
+    if not epochs.preload:
+        raise RuntimeError('Modifying data of epochs is only supported '
+                            'when preloading is used. Use preload=True '
+                            'in the constructor.')
+
+    epochs_bootstrap = copy.deepcopy(epochs)
+    n_events = len(epochs_bootstrap.events)
+    idx = rng.randint(0, n_events, n_events)
+    epochs_bootstrap = epochs_bootstrap[idx]
+    return epochs_bootstrap, idx
