@@ -202,6 +202,6 @@ def test_bootstrap():
                     reject=reject, flat=flat)
     data_normal = epochs._data
     rng = np.random.RandomState(0)
-    epochs2, idx = bootstrap(epochs, rng)
+    epochs2, idx = bootstrap(epochs, rng, return_idx=True)
     n_events = len(epochs.events)
     assert_array_equal(epochs2._data, data_normal[idx])

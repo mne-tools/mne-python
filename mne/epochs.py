@@ -540,7 +540,7 @@ def bootstrap(epochs, rng, return_idx=False):
     n_events = len(epochs_bootstrap.events)
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
-    if output_idx:
+    if return_idx:
         return epochs_bootstrap, idx
     else:
         return epochs_bootstrap
