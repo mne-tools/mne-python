@@ -6,6 +6,8 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+from .debiasing import compute_bias
+
 
 def groups_norm2(A, n_orient):
     """compute squared L2 norms of groups inplace"""
@@ -295,10 +297,7 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
                                               n_orient=n_orient)
 
     if (active_set.sum() > 0) and debias:
-        # Run ordinary least square on active set
-        GX = np.dot(G[:, active_set], X)
-        k, _, _, _ = linalg.lstsq(GX.reshape(-1, 1), M.reshape(-1, 1))
-        X *= k
-        GX *= k
+        bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
+        X *= bias[:, np.newaxis]
 
     return X, active_set, E
