@@ -295,7 +295,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     megfwd = _read_one(fid, megnode)
     if megfwd is not None:
-        if megfwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        if is_fixed_orient(megfwd):
             ori = 'fixed'
         else:
             ori = 'free'
@@ -305,7 +305,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     eegfwd = _read_one(fid, eegnode)
     if eegfwd is not None:
-        if eegfwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        if is_fixed_orient(eegfwd):
             ori = 'fixed'
         else:
             ori = 'free'
@@ -395,7 +395,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd['src'] = src
 
     #   Handle the source locations and orientations
-    if (fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI) or force_fixed:
+    if is_fixed_orient(fwd) or force_fixed:
         nuse = 0
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         fwd['source_nn'] = np.zeros((fwd['nsource'], 3))
@@ -407,7 +407,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             nuse += s['nuse']
 
         #   Modify the forward solution for fixed source orientations
-        if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
+        if not is_fixed_orient(fwd):
             print '    Changing to fixed-orientation forward solution...'
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             fwd['sol']['data'] *= fix_rot
@@ -625,7 +625,7 @@ def _fill_measurement_info(info, fwd, sfreq):
 def _apply_forward(fwd, stc, start=None, stop=None):
     """ Apply forward model and return data, times, ch_names
     """
-    if fwd['source_ori'] != FIFF.FIFFV_MNE_FIXED_ORI:
+    if not is_fixed_orient(fwd['source_ori']):
         raise ValueError('Only fixed-orientation forward operators are '
                          'supported.')
 

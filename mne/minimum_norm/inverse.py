@@ -24,7 +24,8 @@ from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type
 from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
-                      read_forward_meas_info, write_forward_meas_info
+                      read_forward_meas_info, write_forward_meas_info, \
+                      is_fixed_orient, compute_orient_prior
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces
@@ -1025,7 +1026,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     stc: dict
         Source time courses
     """
-    is_fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
+    is_fixed_ori = is_fixed_orient(forward)
     if is_fixed_ori and loose is not None:
         warnings.warn('Ignoring loose parameter with forward operator with '
                       'fixed orientation.')
@@ -1069,12 +1070,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     # apply loose orientations
     if not is_fixed_ori:
-        orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
-        if loose is not None:
-            print ('Applying loose dipole orientations. Loose value of %s.'
-                                                                    % loose)
-            orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
-            source_cov *= orient_prior
+        orient_prior = compute_orient_prior(forward, loose=loose)
+        source_cov *= orient_prior
         orient_prior = dict(data=orient_prior,
                             kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
                             bads=[], diag=True, names=[], eig=None,
