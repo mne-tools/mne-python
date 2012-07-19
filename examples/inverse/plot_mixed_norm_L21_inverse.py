@@ -1,12 +1,13 @@
 """
-===============================================
-Compute sparse solver based on L1/L2 mixed norm
-===============================================
+================================================================
+Compute sparse inverse solution based on L1/L2 mixed norm (MxNE)
+================================================================
 
 See
 Gramfort A., Kowalski M. and Hamalainen, M,
 Mixed-norm estimates for the M/EEG inverse problem using accelerated
 gradient methods, Physics in Medicine and Biology, 2012
+http://dx.doi.org/10.1088/0031-9155/57/7/1937
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
@@ -51,7 +52,8 @@ loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
                                          loose=loose, depth=depth)
-stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9., dSPM=True)
+stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
+                         method='dSPM')
 
 # Compute MxNE inverse solution
 stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,

@@ -544,15 +544,11 @@ def compute_orient_prior(forward, loose=0.2):
     if is_fixed_ori:
         orient_prior = np.ones(n_sources, dtype=np.float)
     else:
-        n_dip_per_pos = 1 if is_fixed_ori else 3
-        n_positions = n_sources / 3
-        n_dipoles = n_positions * n_dip_per_pos
-        orient_prior = np.ones(n_dipoles, dtype=np.float)
-
+        orient_prior = np.ones(n_sources, dtype=np.float)
         if loose is not None:
             print ('Applying loose dipole orientations. Loose value of %s.'
                     % loose)
-            orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
+            orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
     return orient_prior
 
 
@@ -625,7 +621,7 @@ def _fill_measurement_info(info, fwd, sfreq):
 def _apply_forward(fwd, stc, start=None, stop=None):
     """ Apply forward model and return data, times, ch_names
     """
-    if not is_fixed_orient(fwd['source_ori']):
+    if not is_fixed_orient(fwd):
         raise ValueError('Only fixed-orientation forward operators are '
                          'supported.')
 

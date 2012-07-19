@@ -30,6 +30,10 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     -------
     L : float
         largest singular value
+
+    Notes
+    -----
+    http://en.wikipedia.org/wiki/Power_iteration
     """
     AS_size = C.shape[0]
     rng = check_random_state(random_state)
@@ -57,6 +61,12 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
 
     min 1/2 * (|| M - GDX ||fro)^2
     s.t. D >= 0 and D is a diagonal matrix
+
+    Reference for the FISTA algorithm:
+    Amir Beck and Marc Teboulle
+    A Fast Iterative Shrinkage-Thresholding Algorithm for Linear Inverse
+    Problems, SIAM J. Imaging Sci., 2(1), 183-202. (20 pages)
+    http://epubs.siam.org/doi/abs/10.1137/080716542
 
     Parameters
     ----------

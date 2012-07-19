@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..source_estimate import SourceEstimate
-from ..minimum_norm.inverse import combine_xyz, _make_stc, _prepare_inverse
+from ..minimum_norm.inverse import combine_xyz, _make_stc, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient
 from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf
@@ -84,9 +84,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     Compute L1/L2 mixed-norm solution on evoked data.
 
+    Reference:
+    Gramfort A., Kowalski M. and Hamalainen, M,
+    Mixed-norm estimates for the M/EEG inverse problem using accelerated
+    gradient methods, Physics in Medicine and Biology, 2012
+    http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
     Parameters
     ----------
-    evoked : instance of Evoked or list of instance of Evoked
+    evoked : instance of Evoked or list of instances of Evoked
         Evoked data to invert
     forward : dict
         Forward operator
@@ -123,14 +129,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     Returns
     -------
-    stc : dict
-        Source time courses
-
-    References
-    ----------
-    Gramfort A., Kowalski M. and Hamalainen, M,
-    Mixed-norm estimates for the M/EEG inverse problem using accelerated
-    gradient methods, Physics in Medicine and Biology, 2012
+    stc : SourceEstimate | list of SourceEstimate
+        Source time courses for each evoked data passed as input.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the sources.
+        Only returned if return_residual is True.
     """
     if not isinstance(evoked, list):
         evoked = [evoked]
@@ -141,7 +144,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         raise Exception('All the datasets must have the same good channels.')
 
     info = evoked[0].info
-    ch_names, gain, _, whitener, _ = _prepare_inverse(forward,
+    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
                                                       info, noise_cov, pca)
 
     # Whiten lead field.

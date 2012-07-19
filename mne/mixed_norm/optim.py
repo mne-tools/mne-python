@@ -108,6 +108,12 @@ def prox_l1(Y, alpha, n_orient):
 def dgap_l21(M, G, X, active_set, alpha, n_orient):
     """Duality gaps for the mixed norm inverse problem
 
+    For details see:
+    Gramfort A., Kowalski M. and Hamalainen, M,
+    Mixed-norm estimates for the M/EEG inverse problem using accelerated
+    gradient methods, Physics in Medicine and Biology, 2012
+    http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
     Parameters
     ----------
     M : array of shape [n_sensors, n_times]
@@ -214,6 +220,12 @@ def _mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
 def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
                       active_set_size=50, debias=True, n_orient=1):
     """Solves L21 inverse solver with active set strategy
+
+    Algorithm is detailed in:
+    Gramfort A., Kowalski M. and Hamalainen, M,
+    Mixed-norm estimates for the M/EEG inverse problem using accelerated
+    gradient methods, Physics in Medicine and Biology, 2012
+    http://dx.doi.org/10.1088/0031-9155/57/7/1937
 
     Parameters
     ----------

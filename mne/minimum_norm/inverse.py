@@ -961,8 +961,8 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_inverse(forward, info, noise_cov, pca=False):
-    """Util function for inverse solvers
+def _prepare_forward(forward, info, noise_cov, pca=False):
+    """Util function to prepare forward solution for inverse solvers
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
     ch_names = [c['ch_name'] for c in info['chs']
@@ -1044,7 +1044,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
         raise ValueError('depth should be a scalar between 0 and 1')
 
     ch_names, gain, noise_cov, whitener, n_nzero = \
-                            _prepare_inverse(forward, info, noise_cov)
+                            _prepare_forward(forward, info, noise_cov)
 
     n_dipoles = gain.shape[1]
 
