@@ -387,14 +387,8 @@ class Epochs(object):
             if isinstance(key, slice):
                 epochs._data = self._data[key]
             else:
-                if isinstance(key, list):
-                    key = np.array(key)
-                    print key
-                    print np.ndim(key)
-                if np.ndim(key) == 0:
-                    epochs._data = self._data[key][np.newaxis, :, :]
-                else:
-                    epochs._data = self._data[key]
+                key = np.atleast_1d(key)
+                epochs._data = self._data[key]
         return epochs
 
     def average(self, keep_only_data_channels=True):
@@ -470,24 +464,27 @@ class Epochs(object):
             raise RuntimeError('Modifying data of epochs is only supported '
                                 'when preloading is used. Use preload=True '
                                 'in the constructor.')
+
         if tmin is None:
             tmin = self.tmin
         elif tmin < self.tmin:
             warnings.warn("tmin is not in epochs' time interval."
                           "tmin is set to epochs.tmin")
             tmin = self.tmin
+
         if tmax is None:
             tmax = self.tmax
         elif tmax > self.tmax:
             warnings.warn("tmax is not in epochs' time interval."
                           "tmax is set to epochs.tmax")
             tmax = self.tmax
-            
+
         tmask = (self.times >= tmin) & (self.times <= tmax)
+        tidx = np.where(tmask)[0]
 
         this_epochs = self if not copy else cp.deepcopy(self)
-        this_epochs.tmin = tmin
-        this_epochs.tmax = tmax
+        this_epochs.tmin = this_epochs.times[tidx[0]]
+        this_epochs.tmax = this_epochs.times[tidx[-1]]
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs

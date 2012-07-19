@@ -138,9 +138,8 @@ def test_indexing_slicing():
             pos += 1
             
         # using indexing with an int
-        idx = np.random.randint(0, data_epochs2_sliced.shape[0], 1)
-        data = epochs2[idx].get_data()
-        assert_array_equal(data, data_normal[idx])
+        data = epochs2[data_epochs2_sliced.shape[0]].get_data()
+        assert_array_equal(data, data_normal[[idx]])
         
         # using indexing with an array
         idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
@@ -186,14 +185,14 @@ def test_crop():
                     reject=reject, flat=flat)
 
     # indices for slicing
-    start_tsamp = tmin + 60 * epochs.info['sfreq']
-    end_tsamp = tmax - 60 * epochs.info['sfreq']
-    tmask = (epochs.times >= start_tsamp) & (epochs.times <= end_tsamp)
-    assert_true(start_tsamp > tmin)
-    assert_true(end_tsamp < tmax)
-    epochs3 = epochs2.crop(start_tsamp, end_tsamp, copy=True)
+    tmin_window = tmin + 0.1
+    tmax_window = tmax - 0.1
+    tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
+    assert_true(tmin_window > tmin)
+    assert_true(tmax_window < tmax)
+    epochs3 = epochs2.crop(tmin_window, tmax_window, copy=True)
     data3 = epochs3.get_data()
-    epochs2.crop(start_tsamp, end_tsamp)
+    epochs2.crop(tmin_window, tmax_window)
     data2 = epochs2.get_data()
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
