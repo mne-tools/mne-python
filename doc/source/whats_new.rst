@@ -6,6 +6,9 @@ Current
 
 Changelog
 ~~~~~~~~~
+
+   - L21 Mixed Norm Estimates (MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
+
    - Generation of simulated evoked responses by `Alex Gramfort`_, `Daniel Strohmeier`_, and `Martin Luessi`_
 
    - Fit AR models to raw data for temporal whitening by `Alex Gramfort`_.

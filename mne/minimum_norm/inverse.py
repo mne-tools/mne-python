@@ -24,7 +24,8 @@ from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type
 from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
-                      read_forward_meas_info, write_forward_meas_info
+                      read_forward_meas_info, write_forward_meas_info, \
+                      is_fixed_orient, compute_orient_prior
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces
@@ -960,6 +961,48 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
+def _prepare_forward(forward, info, noise_cov, pca=False):
+    """Util function to prepare forward solution for inverse solvers
+    """
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    ch_names = [c['ch_name'] for c in info['chs']
+                                    if (c['ch_name'] not in info['bads'])
+                                        and (c['ch_name'] in fwd_ch_names)]
+    n_chan = len(ch_names)
+    print "Computing inverse operator with %d channels." % n_chan
+
+    #
+    #   Handle noise cov
+    #
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
+
+    #   Omit the zeroes due to projection
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    n_nzero = sum(nzero)
+
+    if pca:
+        whitener = np.zeros((n_nzero, n_chan), dtype=np.float)
+        whitener = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
+        print 'Reducing data rank to %d' % n_nzero
+    else:
+        whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+        #   Rows of eigvec are the eigenvectors
+        whitener = np.dot(whitener, noise_cov['eigvec'])
+
+    gain = forward['sol']['data']
+
+    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    gain = gain[fwd_idx]
+
+    print 'Total rank is %d' % n_nzero
+
+    return ch_names, gain, noise_cov, whitener, n_nzero
+
+
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     """Assemble inverse operator
 
@@ -983,7 +1026,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     stc: dict
         Source time courses
     """
-    is_fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
+    is_fixed_ori = is_fixed_orient(forward)
     if is_fixed_ori and loose is not None:
         warnings.warn('Ignoring loose parameter with forward operator with '
                       'fixed orientation.')
@@ -1000,33 +1043,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
 
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    ch_names = [c['ch_name'] for c in info['chs']
-                                    if (c['ch_name'] not in info['bads'])
-                                        and (c['ch_name'] in fwd_ch_names)]
-    n_chan = len(ch_names)
-
-    print "Computing inverse operator with %d channels." % n_chan
-
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
-
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    n_nzero = sum(nzero)
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
-
-    gain = forward['sol']['data']
-
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
-    gain = gain[fwd_idx]
+    ch_names, gain, noise_cov, whitener, n_nzero = \
+                            _prepare_forward(forward, info, noise_cov)
 
     n_dipoles = gain.shape[1]
 
@@ -1042,7 +1060,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     # Whiten lead field.
     print 'Whitening lead field matrix.'
-    gain = np.dot(W, gain)
+    gain = np.dot(whitener, gain)
 
     source_cov = depth_prior.copy()
     depth_prior = dict(data=depth_prior, kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
@@ -1052,12 +1070,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     # apply loose orientations
     if not is_fixed_ori:
-        orient_prior = np.ones(n_dipoles, dtype=gain.dtype)
-        if loose is not None:
-            print ('Applying loose dipole orientations. Loose value of %s.'
-                                                                    % loose)
-            orient_prior[np.mod(np.arange(n_dipoles), 3) != 2] *= loose
-            source_cov *= orient_prior
+        orient_prior = compute_orient_prior(forward, loose=loose)
+        source_cov *= orient_prior
         orient_prior = dict(data=orient_prior,
                             kind=FIFF.FIFFV_MNE_ORIENT_PRIOR_COV,
                             bads=[], diag=True, names=[], eig=None,
