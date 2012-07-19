@@ -442,10 +442,10 @@ class Epochs(object):
             evoked.info['nchan'] = len(data_picks)
             evoked.data = evoked.data[data_picks]
         return evoked
-    
+
     def crop(self, tmin=None, tmax=None, copy=False):
         """Crops a time interval from epochs object.
-    
+
         Parameters
         ----------
         tmin : float
@@ -535,8 +535,6 @@ def bootstrap(epochs, random_state=None):
         epochs data to be bootstrapped
     random_state : None | int | np.random.RandomState
         To specify the random generator state
-    return_idx : bool
-        If True the selected indices are provided as an output
 
     Returns
     -------
