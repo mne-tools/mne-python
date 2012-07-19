@@ -8,6 +8,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 
 from .. import fiff, Epochs, read_events, pick_events
+from ..epochs import bootstrap
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test_raw.fif')
@@ -135,6 +136,23 @@ def test_indexing_slicing():
             data = epochs2_sliced[pos].get_data()
             assert_array_equal(data[0], data_normal[idx])
             pos += 1
+            
+        # using indexing with an int
+        data = epochs2[data_epochs2_sliced.shape[0]].get_data()
+        assert_array_equal(data, data_normal[[idx]])
+        
+        # using indexing with an array
+        idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+        
+        # using indexing with a list of indices
+        idx = [0]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+        idx = [0, 1]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
 
 
 def test_comparision_with_c():
@@ -152,3 +170,42 @@ def test_comparision_with_c():
     assert_true(evoked.nave == c_evoked.nave)
     assert_array_almost_equal(evoked_data, c_evoked_data, 10)
     assert_array_almost_equal(evoked.times, c_evoked.times, 12)
+
+
+def test_crop():
+    """Test of crop of epochs
+    """
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
+    data_normal = epochs.get_data()
+
+    epochs2 = Epochs(raw, events[:5], event_id, tmin, tmax,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+
+    # indices for slicing
+    tmin_window = tmin + 0.1
+    tmax_window = tmax - 0.1
+    tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
+    assert_true(tmin_window > tmin)
+    assert_true(tmax_window < tmax)
+    epochs3 = epochs2.crop(tmin_window, tmax_window, copy=True)
+    data3 = epochs3.get_data()
+    epochs2.crop(tmin_window, tmax_window)
+    data2 = epochs2.get_data()
+    assert_array_equal(data2, data_normal[:, :, tmask])
+    assert_array_equal(data3, data_normal[:, :, tmask])
+
+
+def test_bootstrap():
+    """Test of bootstrapping of epochs
+    """
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+    data_normal = epochs._data
+    epochs2 = bootstrap(epochs, random_state=0)
+    n_events = len(epochs.events)
+    assert_true(len(epochs2.events) == len(epochs.events))
+    assert_true(epochs._data.shape == epochs2._data.shape)
