@@ -4,7 +4,7 @@
 
 from copy import deepcopy
 import numpy as np
-from scipy import linalg
+from scipy import linalg, signal
 
 import logging
 logger = logging.getLogger('mne')
@@ -13,7 +13,7 @@ from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient
 from ..fiff.pick import pick_channels_evoked
-from .optim import mixed_norm_solver, norm_l2inf
+from .optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
 from .. import verbose
 
 
@@ -113,6 +113,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces. If loose
         is 0 or None then the solution is computed with fixed orientation.
+    depth: None | float in [0, 1]
+        Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
         Maximum number of iterations.
     tol : float
@@ -236,6 +238,163 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
             residual = residual[0]
     else:
         out = stcs
+
+    if return_residual:
+        out = out, residual
+
+    return out
+
+
+def _window_evoked(evoked, size):
+    """Window evoked (size in seconds)"""
+    if isinstance(size, (float, int)):
+        lsize = rsize = float(size)
+    else:
+        lsize, rsize = size
+    evoked = deepcopy(evoked)
+    sfreq = float(evoked.info['sfreq'])
+    lsize = int(lsize * sfreq)
+    rsize = int(rsize * sfreq)
+    lhann = signal.hann(lsize * 2)
+    rhann = signal.hann(rsize * 2)
+    window = np.r_[lhann[:lsize],
+                   np.ones(len(evoked.times) - lsize - rsize),
+                   rhann[-rsize:]]
+    evoked.data *= window[None, :]
+    return evoked
+
+@verbose
+def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
+                  loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
+                  weights=None, weights_min=None, pca=True, debias=True,
+                  wsize=64, tstep=4, window=0.02,
+                  return_residual=False, verbose=True):
+    """Time-Frequency Mixed-norm estimate (TF-MxNE)
+
+    Compute L1/L2 + L1 mixed-norm solution on time frequency
+    dictionnary. Works with evoked data.
+
+    Reference
+    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    Functional Brain Imaging with M/EEG Using Structured Sparsity in
+    Time-Frequency Dictionaries
+    Proceedings Information Processing in Medical Imaging
+    Lecture Notes in Computer Science, 2011, Volume 6801/2011,
+    600-611, DOI: 10.1007/978-3-642-22092-0_49
+    http://dx.doi.org/10.1007/978-3-642-22092-0_49
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked data to invert
+    forward : dict
+        Forward operator
+    noise_cov : instance of Covariance
+        Noise covariance to compute whitener
+    alpha_space : float
+        Regularization parameter for spatial sparsity
+    alpha_time : float
+        Regularization parameter for spatial sparsity
+    loose : float in [0, 1]
+        Value that weights the source variances of the dipole components
+        defining the tangent space of the cortical surfaces. If loose
+        is 0 or None then the solution is computed with fixed orientation.
+    depth: None | float in [0, 1]
+        Depth weighting coefficients. If None, no depth weighting is performed.
+    maxit : int
+        Maximum number of iterations
+    tol : float
+        Tolerance parameter
+    weights: None | array | SourceEstimate
+        Weight for penalty in mixed_norm. Can be None or
+        1d array of length n_sources or a SourceEstimate e.g. obtained
+        with wMNE or dSPM or fMRI
+    weights_min: float
+        Do not consider in the estimation sources for which weights
+        is less than weights_min.
+    pca: bool
+        If True the rank of the data is reduced to true dimension.
+    wsize: int
+        length of the STFT window in samples (must be a multiple of 4)
+    tstep: int
+        step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2)
+    window : float or (float, float)
+        Length of time window used to take care of edge artifacts in seconds.
+        It can be one float or float if the values are different for left
+        and right window length.
+    debias: bool
+        Remove coefficient amplitude bias due to L1 penalty
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
+    verbose: bool
+        Verbose output or not.
+
+    Returns
+    -------
+    stc : dict
+        Source time courses
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the sources.
+        Only returned if return_residual is True.
+    """
+    all_ch_names = evoked.ch_names
+    info = evoked.info
+    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
+                                                      info, noise_cov, pca)
+
+    # Whiten lead field.
+    gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
+                                        depth, loose, weights, weights_min)
+
+    if window is not None:
+        evoked = _window_evoked(evoked, window)
+
+    sel = [all_ch_names.index(name) for name in ch_names]
+    M = evoked.data[sel]
+
+    # Whiten data
+    print 'Whitening data matrix.'
+    M = np.dot(whitener, M)
+
+    # Scaling to make setting of alpha easy
+    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
+    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
+    alpha_max *= 0.01
+    gain /= alpha_max
+    source_weighting *= alpha_max
+
+    X, active_set, E = tf_mixed_norm_solver(M, gain,
+                                            alpha_space, alpha_time,
+                                            wsize=wsize, tstep=tstep,
+                                            maxit=maxit, tol=tol,
+                                            verbose=verbose,
+                                            n_orient=n_dip_per_pos,
+                                            debias=debias)
+
+    if active_set.sum() == 0:
+        raise Exception("No active dipoles found. alpha is too big.")
+
+    if mask is not None:
+        active_set_tmp = np.zeros(len(mask), dtype=np.bool)
+        active_set_tmp[mask] = active_set
+        active_set = active_set_tmp
+        del active_set_tmp
+
+    # Reapply weights to have correct unit
+    X /= source_weighting[active_set][:, None]
+
+    if return_residual:
+        sel = [forward['sol']['row_names'].index(c) for c in ch_names]
+        residual = deepcopy(evoked)
+        residual = pick_channels_evoked(residual, include=ch_names)
+        residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
+                                X)
+
+    tmin = float(evoked.first) / evoked.info['sfreq']
+    tstep = 1.0 / info['sfreq']
+    out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
+    print '[done]'
 
     if return_residual:
         out = out, residual
