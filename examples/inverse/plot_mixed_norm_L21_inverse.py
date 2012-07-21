@@ -46,7 +46,7 @@ plot_evoked(evoked, ylim=ylim, proj=True)
 
 ###############################################################################
 # Run solver
-alpha = 70  # regularization parameter between 0 and 100 (100 is high)
+alpha = 50  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 
 # Compute dSPM solution to be used as weights in MxNE
