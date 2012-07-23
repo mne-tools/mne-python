@@ -120,6 +120,8 @@ Version 0.4
 Changelog
 ~~~~~~~~~
 
+   - Time-frequency Mixed Norm Estimates (TF-MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
+
    - Add function to compute source PSD using minimum norm by `Alex Gramfort`_
 
    - L21 Mixed Norm Estimates (MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
