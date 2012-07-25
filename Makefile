@@ -33,6 +33,7 @@ test-doc:
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
 test-coverage:
+	rm -rf coverage .coverage
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
 test-profile:
