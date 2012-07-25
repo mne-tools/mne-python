@@ -17,11 +17,13 @@ of the latest code: http://github.com/mne-tools/mne-python/archives/master
 Installing
 ==========
 
-As any Python packages, to install MNE-Python, simply do::
+As any Python packages, to install MNE-Python, go in the mne-python source code directory and do::
 
     python setup.py install
 
-in the source code directory.
+or if you don't have admin access to your python setup (permission denied when install) use::
+
+    python setup.py install --user
 
 You can also install the latest release with easy_install::
 

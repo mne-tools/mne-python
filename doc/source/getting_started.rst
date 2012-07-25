@@ -65,6 +65,10 @@ Then from the mne-python folder (containing a setup.py file) you can install wit
 
     python setup.py install
 
+or if you don't have admin access to your python setup (permission denied when install) use::
+
+    python setup.py install --user
+
 You can also install the latest release with easy_install::
 
     easy_install -U mne
