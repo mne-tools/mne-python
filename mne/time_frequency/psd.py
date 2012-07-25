@@ -2,9 +2,12 @@
 # License : BSD 3-clause
 
 import numpy as np
-import pylab as pl
+
+# XXX : don't import pylab here or you will break the doc
+
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
+
 
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
@@ -71,6 +74,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 
     print "Effective window size : %0.3f (s)" % (NFFT / float(Fs))
 
+    import pylab as pl
     parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs, verbose=0)
     fig = pl.figure()
     out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data)
