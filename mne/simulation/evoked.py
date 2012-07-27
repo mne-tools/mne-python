@@ -14,7 +14,7 @@ from ..forward import apply_forward
 
 
 def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
-                    fir_filter=None, random_state=None):
+                    iir_filter=None, random_state=None):
     """Generate noisy evoked data
 
     Parameters
@@ -36,8 +36,8 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     tmax : float
         start of time interval to estimate SNR. If None last time point
         is used.
-    fir_filter : None | array
-        FIR filter coefficients e.g. [1, -1, 0.2]
+    iir_filter : None | array
+        IIR filter coefficients (denominator) e.g. [1, -1, 0.2]
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
 
@@ -52,7 +52,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     return evoked_noise
 
 
-def generate_noise_evoked(evoked, noise_cov, fir_filter=None,
+def generate_noise_evoked(evoked, noise_cov, iir_filter=None,
                           random_state=None):
     """Creates noise as a multivariate Gaussian
 
@@ -64,8 +64,8 @@ def generate_noise_evoked(evoked, noise_cov, fir_filter=None,
         an instance of evoked used as template
     cov : Covariance object
         The noise covariance
-    fir_filter : None | array
-        FIR filter coefficients
+    iir_filter : None | array
+        IIR filter coefficients (denominator)
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
 
@@ -82,7 +82,7 @@ def generate_noise_evoked(evoked, noise_cov, fir_filter=None,
     noise.data = rng.multivariate_normal(n_channels, noise_cov.data,
                                          n_samples).T
     if fir_filter is not None:
-        noise.data = signal.lfilter([1], fir_filter, noise.data, axis=-1)
+        noise.data = signal.lfilter([1], iir_filter, noise.data, axis=-1)
     return noise
 
 
