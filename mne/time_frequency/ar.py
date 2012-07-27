@@ -101,8 +101,12 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
     coefs : array
         Sets of coefficients for each channel
     """
-    start, stop = raw.time_to_index(tmin, tmax)
-    data, times = raw[picks, start:(stop + 1)]
+    start, stop = None, None
+    if tmin is not None:
+        start = raw.time_to_index(tmin)[0]
+    if tmax is not None:
+        stop = raw.time_to_index(tmax)[0] + 1
+    data, times = raw[picks, start:stop]
 
     coefs = np.empty((len(data), order))
     for k, d in enumerate(data):
@@ -111,10 +115,17 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
     return coefs
 
 
-def fir_filter_raw(raw, order, picks, tmin=None, tmax=None):
-    """Fits an AR model to raw data and creates corresponding FIR filter
+def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
+    """Fits an AR model to raw data and creates the corresponding IIR filter
 
-    The returned filter is the average filter for all the picked channels.
+    The computed filter is the average filter for all the picked channels.
+    The returned filter coefficents are the denominator of the filter
+    (the numerator is 1). The frequency response is given by
+
+        jw   1
+     H(e) = --------------------------------
+                        -jw             -jnw
+            a[0] + a[1]e    + ... + a[n]e
 
     Parameters
     ----------
@@ -131,11 +142,11 @@ def fir_filter_raw(raw, order, picks, tmin=None, tmax=None):
 
     Returns
     -------
-    fir : array
+    a : array
         filter coefficients
     """
     picks = picks[:5]
     coefs = ar_raw(raw, order=order, picks=picks, tmin=tmin, tmax=tmax)
     mean_coefs = np.mean(coefs, axis=0)  # mean model accross channels
-    fir = np.r_[1, -mean_coefs]  # filter coefficient
-    return fir
+    a = np.r_[1, -mean_coefs]  # filter coefficients
+    return a

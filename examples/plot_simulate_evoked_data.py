@@ -15,7 +15,7 @@ import pylab as pl
 import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
 from mne.datasets import sample
-from mne.time_frequency import fir_filter_raw, morlet
+from mne.time_frequency import iir_filter_raw, morlet
 from mne.viz import plot_evoked, plot_sparse_source_estimates
 from mne.simulation import generate_sparse_stc, generate_evoked
 
@@ -69,9 +69,9 @@ stc = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep,
 ###############################################################################
 # Generate noisy evoked data
 picks = mne.fiff.pick_types(raw.info, meg=True)
-fir_filter = fir_filter_raw(raw, order=5, picks=picks, tmin=60, tmax=180)
+iir_filter = iir_filter_raw(raw, order=5, picks=picks, tmin=60, tmax=180)
 evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
-                         tmin=0.0, tmax=0.2, fir_filter=fir_filter)
+                         tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
 ###############################################################################
 # Plot
