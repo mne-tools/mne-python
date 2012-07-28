@@ -8,7 +8,8 @@ from ...datasets import sample
 from ... import fiff, find_events, Epochs
 from ...label import read_label
 from ..inverse import read_inverse_operator
-from ..time_frequency import source_band_induced_power, source_induced_power
+from ..time_frequency import source_band_induced_power, source_induced_power, \
+                             compute_source_psd
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
@@ -73,3 +74,21 @@ def test_tfr_with_inverse_operator():
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
     assert_true(np.max(power) > 10)
+
+
+def test_source_psd():
+    """Test source PSD computation in label"""
+    raw = fiff.Raw(fname_data)
+    inverse_operator = read_inverse_operator(fname_inv)
+    label = read_label(fname_label)
+    tmin, tmax = 0, 20  # seconds
+    fmin, fmax = 55, 65  # Hz
+    NFFT = 2048
+    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
+                             tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                             pick_normal=True, NFFT=NFFT, label=label, overlap=0.1)
+    assert_true(stc.times[0] >= fmin * 1e-3)
+    assert_true(stc.times[-1] <= fmax * 1e-3)
+    # Time max at line frequency (60 Hz in US)
+    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61e-3)
+    
