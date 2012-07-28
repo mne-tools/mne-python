@@ -31,20 +31,26 @@ def parallel_func(func, n_jobs, verbose=5):
     """
     try:
         from sklearn.externals.joblib import Parallel, delayed
-        parallel = Parallel(n_jobs, verbose=verbose)
-        my_func = delayed(func)
-
-        if n_jobs == -1:
-            try:
-                import multiprocessing
-                n_jobs = multiprocessing.cpu_count()
-            except ImportError:
-                print "multiprocessing not installed. Cannot run in parallel."
-                n_jobs = 1
-
     except ImportError:
-        print "joblib not installed. Cannot run in parallel."
-        n_jobs = 1
-        my_func = func
-        parallel = list
+        try:
+            from joblib import Parallel, delayed
+        except ImportError:
+            print "joblib not installed. Cannot run in parallel."
+            n_jobs = 1
+            my_func = func
+            parallel = list
+
+        return parallel, my_func, n_jobs
+
+    parallel = Parallel(n_jobs, verbose=verbose)
+    my_func = delayed(func)
+
+    if n_jobs == -1:
+        try:
+            import multiprocessing
+            n_jobs = multiprocessing.cpu_count()
+        except ImportError:
+            print "multiprocessing not installed. Cannot run in parallel."
+            n_jobs = 1
+
     return parallel, my_func, n_jobs
