@@ -14,8 +14,8 @@ from ..parallel import parallel_func
 
 
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
-                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, df=1,
-                              use_fft=False, decim=1, baseline=None,
+                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
+                              df=1, use_fft=False, decim=1, baseline=None,
                               baseline_mode='logratio', pca=True,
                               n_jobs=1, dSPM=None):
     """Compute source space induced power in given frequency bands
@@ -164,8 +164,8 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
 
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
-                          use_fft=False, pca=True, pick_normal=True,
+                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
+                          decim=1, use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True, zero_mean=False):
     """Aux function for source_induced_power
     """

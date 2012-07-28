@@ -84,11 +84,12 @@ def test_source_psd():
     tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
     NFFT = 2048
-    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
-                             tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                             pick_normal=True, NFFT=NFFT, label=label, overlap=0.1)
+    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
+                            method="dSPM", tmin=tmin, tmax=tmax,
+                            fmin=fmin, fmax=fmax, pick_normal=True,
+                            NFFT=NFFT, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
-    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))] <= 61e-3)
-    
+    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
+                      <= 61e-3)
