@@ -30,7 +30,7 @@ def parallel_func(func, n_jobs, verbose=5):
         Number of jobs >= 0
     """
     try:
-        from sklearn.externals.joblib import Parallel, delayed
+        from joblib import Parallel, delayed
         parallel = Parallel(n_jobs, verbose=verbose)
         my_func = delayed(func)
 
