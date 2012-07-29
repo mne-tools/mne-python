@@ -7,6 +7,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add function to compute source PSD using minimum norm by `Alex Gramfort`_
+
    - L21 Mixed Norm Estimates (MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
 
    - Generation of simulated evoked responses by `Alex Gramfort`_, `Daniel Strohmeier`_, and `Martin Luessi`_

@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, signal, fftpack
 
 from ..fiff.constants import FIFF
 from ..time_frequency.tfr import cwt, morlet
@@ -14,8 +14,8 @@ from ..parallel import parallel_func
 
 
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
-                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, df=1,
-                              use_fft=False, decim=1, baseline=None,
+                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
+                              df=1, use_fft=False, decim=1, baseline=None,
                               baseline_mode='logratio', pca=True,
                               n_jobs=1, dSPM=None):
     """Compute source space induced power in given frequency bands
@@ -164,8 +164,8 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
 
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
-                          use_fft=False, pca=True, pick_normal=True,
+                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
+                          decim=1, use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True, zero_mean=False):
     """Aux function for source_induced_power
     """
@@ -299,3 +299,130 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                         verbose=True, copy=False)
 
     return power, plv
+
+
+def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
+                       tmin=None, tmax=None, fmin=0., fmax=200.,
+                       NFFT=2048, overlap=0.5, pick_normal=False, label=None,
+                       nave=1, pca=True):
+    """Compute source power spectrum density (PSD)
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data
+    inverse_operator : dict
+        The inverse operator
+    lambda2: float
+        The regularization parameter
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
+    tmin : float | None
+        The beginning of the time interval of interest (in seconds). If None
+        start from the beginning of the file.
+    tmax : float | None
+        The end of the time interval of interest (in seconds). If None
+        stop at the end of the file.
+    fmin : float
+        The lower frequency of interest
+    fmax : float
+        The upper frequency of interest
+    NFFT: int
+        Window size for the FFT. Should be a power of 2.
+    overlap: float
+        The overlap fraction between windows. Should be between 0 and 1.
+        0 means no overlap.
+    pick_normal : bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
+    label: Label
+        Restricts the source estimates to a given label
+    nave : int
+        The number of averages used to scale the noise covariance matrix.
+    pca: bool
+        If True, the true dimension of data is estimated before running
+        the time frequency transforms. It reduces the computation times
+        e.g. with a dataset that was maxfiltered (true dim is 64)
+
+    Returns
+    -------
+    stc : SourceEstimate
+        The PSD (in dB) of each of the sources.
+    """
+
+    print 'Considering frequencies %g ... %g Hz' % (fmin, fmax)
+
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(raw.ch_names, inv)
+    print 'Picked %d channels from the data' % len(sel)
+    print 'Computing inverse...',
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+
+    if pca:
+        U, s, Vh = linalg.svd(K, full_matrices=False)
+        rank = np.sum(s > 1e-8 * s[0])
+        K = s[:rank] * U[:, :rank]
+        Vh = Vh[:rank]
+        print 'Reducing data rank to %d' % rank
+    else:
+        Vh = None
+
+    start, stop = 0, raw.last_samp + 1 - raw.first_samp
+    if tmin is not None:
+        start = raw.time_to_index(tmin)[0]
+    if tmax is not None:
+        stop = raw.time_to_index(tmax)[0] + 1
+    NFFT = int(NFFT)
+    Fs = raw.info['sfreq']
+    window = signal.hanning(NFFT)
+    freqs = fftpack.fftfreq(NFFT, 1. / Fs)
+    freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[freqs_mask]
+    fstep = np.mean(np.diff(freqs))
+    psd = np.zeros((noise_norm.size, np.sum(freqs_mask)))
+    n_windows = 0
+
+    for this_start in np.arange(start, stop, int(NFFT * (1. - overlap))):
+        data, _ = raw[sel, this_start:this_start + NFFT]
+        if data.shape[1] < NFFT:
+            print "Skipping last buffer"
+            break
+
+        if Vh is not None:
+            data = np.dot(Vh, data)  # reducing data rank
+
+        data *= window[None, :]
+
+        data_fft = fftpack.fft(data)[:, freqs_mask]
+        sol = np.dot(K, data_fft)
+
+        if is_free_ori and not pick_normal:
+            sol = combine_xyz(sol, square=True)
+        else:
+            sol = np.abs(sol) ** 2
+
+        if method != "MNE":
+            sol *= noise_norm ** 2
+
+        psd += sol
+        n_windows += 1
+
+    psd /= n_windows
+
+    psd = 10 * np.log10(psd)
+
+    stc = _make_stc(psd, fmin * 1e-3, fstep * 1e-3, vertno)
+    return stc

@@ -832,7 +832,8 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
         #   Done?
         if this['last'] >= stop - 1:
-            print ' [done]'
+            if verbose:
+                print ' [done]'
             break
 
     times = (np.arange(start, stop) - raw.first_samp) / raw.info['sfreq']
