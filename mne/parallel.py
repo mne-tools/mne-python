@@ -39,8 +39,7 @@ def parallel_func(func, n_jobs, verbose=5):
             n_jobs = 1
             my_func = func
             parallel = list
-
-        return parallel, my_func, n_jobs
+            return parallel, my_func, n_jobs
 
     parallel = Parallel(n_jobs, verbose=verbose)
     my_func = delayed(func)
