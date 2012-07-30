@@ -491,13 +491,13 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     ch_names = cov.ch_names
 
     idx_eeg, idx_mag, idx_grad = [], [], []
-    for ch in ch_names:
+    for i, ch in enumerate(ch_names):
         if ch in ch_names_eeg:
-            idx_eeg.append(ch_names.index(ch))
+            idx_eeg.append(i)
         elif ch in ch_names_mag:
-            idx_mag.append(ch_names.index(ch))
+            idx_mag.append(i)
         elif ch in ch_names_grad:
-            idx_grad.append(ch_names.index(ch))
+            idx_grad.append(i)
         else:
             raise Exception('channel is unknown type')
 
