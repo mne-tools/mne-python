@@ -8,71 +8,81 @@
 import numpy as np
 from scipy import linalg
 
+from ..fiff import Evoked, Raw
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
-from ..fiff.pick import pick_types, pick_channels_forward
+from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..minimum_norm.inverse import _make_stc, _get_vertno, combine_xyz
 from ..cov import compute_whitener
 
 
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01):
-    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+def _lcmv_any(evraw, forward, noise_cov, data_cov, reg, label, start, stop,
+              picks):
+    """ LCMV beamformer for evoked or raw data """
 
-    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
-    on evoked data.
-
-    NOTE : This implementation is heavilly tested so please
-    report any issue or suggestions.
-
-    Parameters
-    ----------
-    evoked : Evoked
-        Evoked data to invert
-    forward : dict
-        Forward operator
-    noise_cov : Covariance
-        The noise covariance
-    data_cov : Covariance
-        The data covariance
-    reg : float
-        The regularization for the whitened data covariance.
-
-    Returns
-    -------
-    stc : dict
-        Source time courses
-
-    Notes
-    -----
-    The original reference is:
-    Van Veen et al. Localization of brain electrical activity via linearly
-    constrained minimum variance spatial filtering.
-    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    """
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    picks = pick_types(evoked.info, meg=True, eeg=True,
-                       exclude=evoked.info['bads'])
-    ch_names = [evoked.ch_names[k] for k in picks]
+    if picks is None:
+        picks = pick_types(evraw.info, meg=True, eeg=True,
+                           exclude=evraw.info['bads'])
 
+    ch_names = [evraw.ch_names[k] for k in picks]
+
+    # restrict forward solution to selected channels
     forward = pick_channels_forward(forward, include=ch_names)
 
-    M = evoked.data
-    G = forward['sol']['data']
+    # get gain matrix (forward operator)
+    if label is not None:
+        if forward['src'][0]['type'] != 'surf':
+            return Exception('Labels are only supported with surface '
+                             'source spaces')
+
+        vertno_fwd = _get_vertno(forward['src'])
+        if label['hemi'] == 'lh':
+            vertno_sel = np.intersect1d(vertno_fwd[0], label['vertices'])
+            idx_sel = np.searchsorted(vertno_fwd[0], vertno_sel)
+            vertno = [vertno_sel, np.empty(0, dtype=vertno_sel.dtype)]
+        elif label['hemi'] == 'rh':
+            vertno_sel = np.intersect1d(vertno_fwd[1], label['vertices'])
+            idx_sel = len(vertno_fwd[0]) + np.searchsorted(vertno_fwd[1],
+                                                           vertno_sel)
+            vertno = [np.empty(0, dtype=vertno_sel.dtype), vertno_sel]
+        else:
+            raise Exception("Unknown hemisphere type")
+
+        if is_free_ori:
+            idx_sel_free = np.zeros(3 * len(idx_sel), dtype=idx_sel.dtype)
+            for i in range(3):
+                idx_sel_free[i::3] = 3 * idx_sel + i
+            idx_sel = idx_sel_free
+
+        G = forward['sol']['data'][:, idx_sel]
+    else:
+        vertno = _get_vertno(forward['src'])
+        G = forward['sol']['data']
+
+    if isinstance(evraw, Raw):
+        M, times = evraw[picks, start:stop]
+    elif isinstance(evraw, Evoked):
+        M = evraw.data[picks, start:stop]
+        times = evraw.times[start:stop]
+    else:
+        raise ValueError('evraw has to be of type Evoked or Raw')
 
     # Handle SSPs
-    proj, ncomp, _ = make_projector(evoked.info['projs'], evoked.ch_names)
+    proj, ncomp, _ = make_projector(evraw.info['projs'], ch_names)
     M = np.dot(proj, M)
     G = np.dot(proj, G)
 
     # Handle whitening + data covariance
-    W, _ = compute_whitener(noise_cov, evoked.info, picks)
+    W, _ = compute_whitener(noise_cov, evraw.info, picks)
 
     # whiten data and leadfield
     M = np.dot(W, M)
     G = np.dot(W, G)
 
     # Apply SSPs + whitener to data covariance
+    data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
     Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(W, np.dot(Cm, W.T))
@@ -105,10 +115,109 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01):
 
     sol /= noise_norm[:, None]
 
-    tstep = 1.0 / evoked.info['sfreq']
-    tmin = float(evoked.first) / evoked.info['sfreq']
-    vertno = _get_vertno(forward['src'])
+    tstep = 1.0 / evraw.info['sfreq']
+    tmin = times[0]
     stc = _make_stc(sol, tmin, tstep, vertno)
     print '[done]'
 
     return stc
+
+
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
+         start=None, stop=None):
+    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
+    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    on evoked data.
+
+    NOTE : This implementation is heavilly tested so please
+    report any issue or suggestions.
+
+    Parameters
+    ----------
+    evoked : Evoked
+        Evoked data to invert
+    forward : dict
+        Forward operator
+    noise_cov : Covariance
+        The noise covariance
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label
+        Restricts the LCMV solution to a given label
+    start : int
+        Index of first time sample (index not time is seconds)
+    stop : int
+        Index of first time sample not to include (index not time is seconds)
+
+    Returns
+    -------
+    stc : dict
+        Source time courses
+
+    Notes
+    -----
+    The original reference is:
+    Van Veen et al. Localization of brain electrical activity via linearly
+    constrained minimum variance spatial filtering.
+    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    """
+
+    stc = _lcmv_any(evoked, forward, noise_cov, data_cov, reg, label,
+                    start, stop, None)
+
+    return stc
+
+
+def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
+             start=None, stop=None, picks=None):
+    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
+    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    on raw data.
+
+    NOTE : This implementation is heavilly tested so please
+    report any issue or suggestions.
+
+    Parameters
+    ----------
+    raw : mne.fiff.Raw
+        Raw data to invert
+    forward : dict
+        Forward operator
+    noise_cov : Covariance
+        The noise covariance
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label
+        Restricts the LCMV solution to a given label
+    start : int
+        Index of first time sample (index not time is seconds)
+    stop : int
+        Index of first time sample not to include (index not time is seconds)
+    picks: aray of int
+        Channel indices in raw to use for beamforming (if None all channels
+        are used)
+
+    Returns
+    -------
+    stc : dict
+        Source time courses
+
+    Notes
+    -----
+    The original reference is:
+    Van Veen et al. Localization of brain electrical activity via linearly
+    constrained minimum variance spatial filtering.
+    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    """
+
+    stc = _lcmv_any(raw, forward, noise_cov, data_cov, reg, label, start, stop,
+                    picks)
+
+    return stc
+

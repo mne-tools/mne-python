@@ -133,7 +133,7 @@ def read_cov(fname):
 # Estimate from data
 
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                                reject=None, flat=None):
+                                reject=None, flat=None, picks=None):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
     It is typically useful to estimate a noise covariance
@@ -164,6 +164,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
+    picks : array of int
+        Indices of channels to include (if None, all channels
+        are used)
 
     Returns
     -------
@@ -180,8 +183,12 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
 
+    if picks is None:
+        picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
+    else:
+        picks_data = picks
+
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
-    picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
     idx = [list(picks).index(k) for k in picks_data]
 
     data = 0
