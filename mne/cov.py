@@ -483,11 +483,23 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
 
     info_ch_names = info['ch_names']
+    ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
+    ch_names_mag = [info_ch_names[i] for i in sel_mag]
+    ch_names_grad = [info_ch_names[i] for i in sel_grad]
+
     cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
     ch_names = cov.ch_names
-    idx_eeg = [ch_names.index(info_ch_names[c]) for c in sel_eeg]
-    idx_mag = [ch_names.index(info_ch_names[c]) for c in sel_mag]
-    idx_grad = [ch_names.index(info_ch_names[c]) for c in sel_grad]
+
+    idx_eeg, idx_mag, idx_grad = [], [], []
+    for ch in ch_names:
+        if ch in ch_names_eeg:
+            idx_eeg.append(ch_names.index(ch))
+        elif ch in ch_names_mag:
+            idx_mag.append(ch_names.index(ch))
+        elif ch in ch_names_grad:
+            idx_grad.append(ch_names.index(ch))
+        else:
+            raise Exception('channel is unknown type')
 
     C = cov['data']
 
