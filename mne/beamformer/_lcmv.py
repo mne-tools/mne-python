@@ -8,7 +8,6 @@
 import numpy as np
 from scipy import linalg
 
-from ..fiff import Evoked, Raw
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
@@ -16,17 +15,46 @@ from ..minimum_norm.inverse import _make_stc, _get_vertno, combine_xyz
 from ..cov import compute_whitener
 
 
-def _lcmv_any(evraw, forward, noise_cov, data_cov, reg, label, start, stop,
-              picks):
-    """ LCMV beamformer for evoked or raw data """
+def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                label=None, picks=None):
+    """ LCMV beamformer for evoked or raw data
+
+    Parameters
+    ----------
+    data : array
+        Sensor space data
+    info : dict
+        Measurement info
+    tmin : float
+        Time of first sample
+    forward : dict
+        Forward operator
+    noise_cov : Covariance
+        The noise covariance
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label
+        Restricts the LCMV solution to a given label
+    picks : array of int
+        Indices (in info) of data channels
+
+    Returns
+    -------
+    stc : dict
+        Source time courses
+    """
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     if picks is None:
-        picks = pick_types(evraw.info, meg=True, eeg=True,
-                           exclude=evraw.info['bads'])
+        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
 
-    ch_names = [evraw.ch_names[k] for k in picks]
+    if len(data) != len(picks):
+        raise ValueError('data and picks must have the same length')
+
+    ch_names = [info['ch_names'][k] for k in picks]
 
     # restrict forward solution to selected channels
     forward = pick_channels_forward(forward, include=ch_names)
@@ -61,21 +89,13 @@ def _lcmv_any(evraw, forward, noise_cov, data_cov, reg, label, start, stop,
         vertno = _get_vertno(forward['src'])
         G = forward['sol']['data']
 
-    if isinstance(evraw, Raw):
-        M, times = evraw[picks, start:stop]
-    elif isinstance(evraw, Evoked):
-        M = evraw.data[picks, start:stop]
-        times = evraw.times[start:stop]
-    else:
-        raise ValueError('evraw has to be of type Evoked or Raw')
-
     # Handle SSPs
-    proj, ncomp, _ = make_projector(evraw.info['projs'], ch_names)
-    M = np.dot(proj, M)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    M = np.dot(proj, data)
     G = np.dot(proj, G)
 
     # Handle whitening + data covariance
-    W, _ = compute_whitener(noise_cov, evraw.info, picks)
+    W, _ = compute_whitener(noise_cov, info, picks)
 
     # whiten data and leadfield
     M = np.dot(W, M)
@@ -115,16 +135,14 @@ def _lcmv_any(evraw, forward, noise_cov, data_cov, reg, label, start, stop,
 
     sol /= noise_norm[:, None]
 
-    tstep = 1.0 / evraw.info['sfreq']
-    tmin = times[0]
+    tstep = 1.0 / info['sfreq']
     stc = _make_stc(sol, tmin, tstep, vertno)
     print '[done]'
 
     return stc
 
 
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
-         start=None, stop=None):
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -147,10 +165,6 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
-    start : int
-        Index of first time sample (index not time is seconds)
-    stop : int
-        Index of first time sample not to include (index not time is seconds)
 
     Returns
     -------
@@ -165,8 +179,12 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
     """
 
-    stc = _lcmv_any(evoked, forward, noise_cov, data_cov, reg, label,
-                    start, stop, None)
+    info = evoked.info
+    data = evoked.data
+    tmin = evoked.times[0]
+
+    stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                      label)
 
     return stc
 
@@ -199,7 +217,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         Index of first time sample (index not time is seconds)
     stop : int
         Index of first time sample not to include (index not time is seconds)
-    picks: aray of int
+    picks: array of int
         Channel indices in raw to use for beamforming (if None all channels
         are used)
 
@@ -216,8 +234,16 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
     """
 
-    stc = _lcmv_any(raw, forward, noise_cov, data_cov, reg, label, start, stop,
-                    picks)
+    info = raw.info
+
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+
+    data, times = raw[picks, start:stop]
+    tmin = times[0]
+
+    stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                      label, picks)
 
     return stc
 
