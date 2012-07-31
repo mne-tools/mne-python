@@ -155,7 +155,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
 
-    NOTE : This implementation is heavilly tested so please
+    NOTE : This implementation has not been heavilly tested so please
     report any issue or suggestions.
 
     Parameters
@@ -202,7 +202,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
 
-    NOTE : This implementation is heavilly tested so please
+    NOTE : This implementation has not been heavilly tested so please
     report any issue or suggestions.
 
     Parameters
@@ -258,7 +258,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on raw data.
 
-    NOTE : This implementation is heavilly tested so please
+    NOTE : This implementation has not been heavilly tested so please
     report any issue or suggestions.
 
     Parameters
