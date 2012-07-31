@@ -237,13 +237,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
     tmin = epochs.times[0]
 
     # use only the good data channels
-    def _epochs_data(epochs, picks):
-        for e in epochs:
-            yield e[picks, :]
-
     picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
-
-    data = _epochs_data(epochs, picks)
+    data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                        label)

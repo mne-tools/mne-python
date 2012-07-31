@@ -78,8 +78,8 @@ def test_lcmv():
 
     # average the single trial estimates
     stc_avg = np.zeros_like(stc.data)
-    for stc_single in stcs:
-        stc_avg += stc_single.data
+    for this_stc in stcs:
+        stc_avg += this_stc.data
     stc_avg /= len(stcs)
 
     # compare it to the solution using evoked with fixed orientation
