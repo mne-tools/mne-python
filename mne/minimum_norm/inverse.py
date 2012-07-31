@@ -28,7 +28,7 @@ from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
                       is_fixed_orient, compute_orient_prior
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
-                           write_source_spaces
+                           write_source_spaces, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
 
@@ -559,7 +559,7 @@ def _assemble_kernel(inv, label, method, pick_normal):
     vertno = _get_vertno(src)
 
     if label is not None:
-        vertno, src_sel = _get_label_sel(label, inv)
+        vertno, src_sel = label_src_vertno_sel(label, inv['src'])
 
         if method != "MNE":
             noise_norm = noise_norm[src_sel]
@@ -622,29 +622,6 @@ def _make_stc(sol, tmin, tstep, vertno):
     stc._init_times()
     return stc
 
-
-def _get_label_sel(label, inv):
-    src = inv['src']
-
-    if src[0]['type'] != 'surf':
-        return Exception('Label are only supported with surface source spaces')
-
-    vertno = [src[0]['vertno'], src[1]['vertno']]
-
-    if label['hemi'] == 'lh':
-        vertno_sel = np.intersect1d(vertno[0], label['vertices'])
-        src_sel = np.searchsorted(vertno[0], vertno_sel)
-        vertno[0] = vertno_sel
-        vertno[1] = np.array([])
-    elif label['hemi'] == 'rh':
-        vertno_sel = np.intersect1d(vertno[1], label['vertices'])
-        src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
-        vertno[0] = np.array([])
-        vertno[1] = vertno_sel
-    else:
-        raise Exception("Unknown hemisphere type")
-
-    return vertno, src_sel
 
 
 def _check_method(method, dSPM):

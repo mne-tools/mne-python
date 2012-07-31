@@ -13,16 +13,19 @@ from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..minimum_norm.inverse import _make_stc, _get_vertno, combine_xyz
 from ..cov import compute_whitener
+from ..source_space import label_src_vertno_sel
 
 
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None):
-    """ LCMV beamformer for evoked or raw data
+    """ LCMV beamformer for evoked data, single epochs, and raw data
 
     Parameters
     ----------
-    data : array
-        Sensor space data
+    data : array or list / iterable
+        Sensor space data. If data.ndim == 2 a single observation is assumed
+        and a single stc is returned. If data.ndim == 3 or if data is
+        a list / iterable, a list of stc's is returned.
     info : dict
         Measurement info
     tmin : float
@@ -42,7 +45,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     Returns
     -------
-    stc : dict
+    stc : SourceEstimate (or list of SourceEstimate)
         Source time courses
     """
 
@@ -51,9 +54,6 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
 
-    if len(data) != len(picks):
-        raise ValueError('data and picks must have the same length')
-
     ch_names = [info['ch_names'][k] for k in picks]
 
     # restrict forward solution to selected channels
@@ -61,51 +61,33 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     # get gain matrix (forward operator)
     if label is not None:
-        if forward['src'][0]['type'] != 'surf':
-            return Exception('Labels are only supported with surface '
-                             'source spaces')
-
-        vertno_fwd = _get_vertno(forward['src'])
-        if label['hemi'] == 'lh':
-            vertno_sel = np.intersect1d(vertno_fwd[0], label['vertices'])
-            idx_sel = np.searchsorted(vertno_fwd[0], vertno_sel)
-            vertno = [vertno_sel, np.empty(0, dtype=vertno_sel.dtype)]
-        elif label['hemi'] == 'rh':
-            vertno_sel = np.intersect1d(vertno_fwd[1], label['vertices'])
-            idx_sel = len(vertno_fwd[0]) + np.searchsorted(vertno_fwd[1],
-                                                           vertno_sel)
-            vertno = [np.empty(0, dtype=vertno_sel.dtype), vertno_sel]
-        else:
-            raise Exception("Unknown hemisphere type")
+        vertno, src_sel = label_src_vertno_sel(label, forward['src'])
 
         if is_free_ori:
-            idx_sel_free = np.zeros(3 * len(idx_sel), dtype=idx_sel.dtype)
-            for i in range(3):
-                idx_sel_free[i::3] = 3 * idx_sel + i
-            idx_sel = idx_sel_free
+            src_sel = 3 * src_sel
+            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
+            src_sel = src_sel.ravel()
 
-        G = forward['sol']['data'][:, idx_sel]
+        G = forward['sol']['data'][:, src_sel]
     else:
         vertno = _get_vertno(forward['src'])
         G = forward['sol']['data']
 
     # Handle SSPs
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
-    M = np.dot(proj, data)
     G = np.dot(proj, G)
 
     # Handle whitening + data covariance
-    W, _ = compute_whitener(noise_cov, info, picks)
+    whitener, _ = compute_whitener(noise_cov, info, picks)
 
-    # whiten data and leadfield
-    M = np.dot(W, M)
-    G = np.dot(W, G)
+    # whiten the leadfield
+    G = np.dot(whitener, G)
 
     # Apply SSPs + whitener to data covariance
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
     Cm = np.dot(proj, np.dot(Cm, proj.T))
-    Cm = np.dot(W, np.dot(Cm, W.T))
+    Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
     Cm_inv = linalg.pinv(Cm, reg)
@@ -127,19 +109,44 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     noise_norm = np.sqrt(noise_norm)
 
-    sol = np.dot(W, M)
+    if isinstance(data, np.ndarray) and data.ndim == 2:
+        data = [data]
+        return_single = True
+    else:
+        return_single = False
+        stcs = []
 
-    if is_free_ori:
-        print 'combining the current components...',
-        sol = combine_xyz(sol)
+    for i, M in enumerate(data):
+        if len(M) != len(picks):
+            raise ValueError('data and picks must have the same length')
 
-    sol /= noise_norm[:, None]
+        if not return_single:
+            print "Processing epoch : %d" % (i + 1)
 
-    tstep = 1.0 / info['sfreq']
-    stc = _make_stc(sol, tmin, tstep, vertno)
-    print '[done]'
+        # SSP and whitening
+        M = np.dot(proj, M)
+        M = np.dot(whitener, M)
 
-    return stc
+        # project to source space using beamformer weights
+        sol = np.dot(W, M)
+
+        if is_free_ori:
+            print 'combining the current components...',
+            sol = combine_xyz(sol)
+
+        sol /= noise_norm[:, None]
+
+        tstep = 1.0 / info['sfreq']
+        stc = _make_stc(sol, tmin, tstep, vertno)
+
+        if not return_single:
+            stcs.append(stc)
+        print '[done]'
+
+    if return_single:
+        return stc
+    else:
+        return stcs
 
 
 def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
@@ -168,7 +175,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
 
     Returns
     -------
-    stc : dict
+    stc : SourceEstimate
         Source time courses
 
     Notes
@@ -187,6 +194,61 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
                       label)
 
     return stc
+
+
+def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
+    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
+    Compute Linearly Constrained Minimum Variance (LCMV) beamformer
+    on single trial data.
+
+    NOTE : This implementation is heavilly tested so please
+    report any issue or suggestions.
+
+    Parameters
+    ----------
+    epochs: Epochs
+        Single trial epochs
+    forward : dict
+        Forward operator
+    noise_cov : Covariance
+        The noise covariance
+    data_cov : Covariance
+        The data covariance
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label
+        Restricts the LCMV solution to a given label
+
+    Returns
+    -------
+    stc: list of SourceEstimate
+        The source estimates for all epochs
+
+    Notes
+    -----
+    The original reference is:
+    Van Veen et al. Localization of brain electrical activity via linearly
+    constrained minimum variance spatial filtering.
+    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    """
+
+    info = epochs.info
+    tmin = epochs.times[0]
+
+    # use only the good data channels
+    def _epochs_data(epochs, picks):
+        for e in epochs:
+            yield e[picks, :]
+
+    picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+
+    data = _epochs_data(epochs, picks)
+
+    stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                       label)
+
+    return stcs
 
 
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
@@ -223,7 +285,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Returns
     -------
-    stc : dict
+    stc : SourceEstimate
         Source time courses
 
     Notes

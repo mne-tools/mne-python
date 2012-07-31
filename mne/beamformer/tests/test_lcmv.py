@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import lcmv, lcmv_raw
+from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
@@ -28,11 +28,13 @@ label = mne.read_label(fname_label)
 noise_cov = mne.read_cov(fname_cov)
 raw = mne.fiff.Raw(fname_raw)
 forward = mne.read_forward_solution(fname_fwd)
+forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                          surf_ori=True)
 events = mne.read_events(fname_event)
 
 
 def test_lcmv():
-    """Test LCMV with evoked data
+    """Test LCMV with evoked data and single trials
     """
     event_id, tmin, tmax = 1, -0.2, 0.2
 
@@ -66,6 +68,23 @@ def test_lcmv():
 
     assert_true(0.09 < tmax < 0.1)
     assert_true(2. < np.max(max_stc) < 3.)
+
+    # Now test single trial using fixed orientation forward solution
+    # so we can compare it to the evoked solution
+    stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
+
+    epochs.drop_bad_epochs()
+    assert_true(len(epochs.events) == len(stcs))
+
+    # average the single trial estimates
+    stc_avg = np.zeros_like(stc.data)
+    for stc_single in stcs:
+        stc_avg += stc_single.data
+    stc_avg /= len(stcs)
+
+    # compare it to the solution using evoked with fixed orientation
+    stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
+    assert_array_almost_equal(stc_avg, stc_fixed.data)
 
 
 def test_lcmv_raw():
