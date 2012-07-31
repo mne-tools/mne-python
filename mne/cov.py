@@ -133,7 +133,7 @@ def read_cov(fname):
 # Estimate from data
 
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                                reject=None, flat=None):
+                                reject=None, flat=None, picks=None):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
     It is typically useful to estimate a noise covariance
@@ -164,6 +164,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
+    picks : array of int
+        Indices of channels to include (if None, all channels
+        are used)
 
     Returns
     -------
@@ -180,8 +183,12 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
 
+    if picks is None:
+        picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
+    else:
+        picks_data = picks
+
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
-    picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
     idx = [list(picks).index(k) for k in picks_data]
 
     data = 0
@@ -476,11 +483,23 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
 
     info_ch_names = info['ch_names']
+    ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
+    ch_names_mag = [info_ch_names[i] for i in sel_mag]
+    ch_names_grad = [info_ch_names[i] for i in sel_grad]
+
     cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
     ch_names = cov.ch_names
-    idx_eeg = [ch_names.index(info_ch_names[c]) for c in sel_eeg]
-    idx_mag = [ch_names.index(info_ch_names[c]) for c in sel_mag]
-    idx_grad = [ch_names.index(info_ch_names[c]) for c in sel_grad]
+
+    idx_eeg, idx_mag, idx_grad = [], [], []
+    for i, ch in enumerate(ch_names):
+        if ch in ch_names_eeg:
+            idx_eeg.append(i)
+        elif ch in ch_names_mag:
+            idx_mag.append(i)
+        elif ch in ch_names_grad:
+            idx_grad.append(i)
+        else:
+            raise Exception('channel is unknown type')
 
     C = cov['data']
 

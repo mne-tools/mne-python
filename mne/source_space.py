@@ -182,7 +182,6 @@ def _read_one_source_space(fid, this):
         if tag is not None:
             res['mri_depth'] = int(tag.data)
 
-
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         raise ValueError('Number of vertices not found')
@@ -338,6 +337,45 @@ def find_source_space_hemi(src):
     return hemi
 
 
+def label_src_vertno_sel(label, src):
+    """ Find vertex numbers and indices from label
+
+    Parameters
+    ----------
+    label : Label
+        Source space label
+    src : dict
+        Source space
+
+    Returns
+    -------
+    vertno : list of length 2
+        Vertex numbers for lh and rh
+    src_sel : array of int (len(idx) = len(vertno[0]) + len(vertno[1]))
+        Indices of the selected vertices in sourse space
+    """
+
+    if src[0]['type'] != 'surf':
+        return Exception('Label are only supported with surface source spaces')
+
+    vertno = [src[0]['vertno'], src[1]['vertno']]
+
+    if label['hemi'] == 'lh':
+        vertno_sel = np.intersect1d(vertno[0], label['vertices'])
+        src_sel = np.searchsorted(vertno[0], vertno_sel)
+        vertno[0] = vertno_sel
+        vertno[1] = np.array([])
+    elif label['hemi'] == 'rh':
+        vertno_sel = np.intersect1d(vertno[1], label['vertices'])
+        src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
+        vertno[0] = np.array([])
+        vertno[1] = vertno_sel
+    else:
+        raise Exception("Unknown hemisphere type")
+
+    return vertno, src_sel
+
+
 def _get_vertno(src):
     vertno = list()
     for s in src:
@@ -408,7 +446,8 @@ def _write_one_source_space(fid, this):
     write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, this['nn'])
 
     if this['ntri'] > 0:
-        write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES, this['tris'] + 1)
+        write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES,
+                         this['tris'] + 1)
 
     #   Which vertices are active
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])

@@ -9,7 +9,7 @@ from ..cov import regularize
 from .. import read_cov, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import Raw, pick_channels_cov
+from ..fiff import Raw, pick_channels_cov, pick_channels
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -55,6 +55,13 @@ def test_cov_estimation_on_raw_segment():
     assert_true(cov_read.nfree == cov.nfree)
     assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-5)
+
+    # test with a subset of channels
+    picks = pick_channels(raw.ch_names, include=raw.ch_names[:5])
+    cov = compute_raw_data_covariance(raw, picks=picks)
+    assert_true(cov_mne.ch_names[:5] == cov.ch_names)
+    assert_true(linalg.norm(cov.data - cov_mne.data[picks][:, picks],
+                ord='fro') / linalg.norm(cov.data, ord='fro')) < 1e-6
 
 
 def test_cov_estimation_with_triggers():
