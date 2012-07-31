@@ -803,6 +803,13 @@ toolbox contains the function fiff_write_dig_file to
 write a digitization file based on digitization data available in
 another format, see :ref:`ch_matlab`.
 
+.. Note:: 
+    
+    mne_brain_vision2fiff reads events from the ``vmrk`` file referenced in the
+    ``vhdr`` file, but it only includes events whose "Type" is ``Stimulus`` and
+    whose "description" is given by ``S<number>``. All other events are ignored.
+
+
 The command-line options of mne_brain_vision2fiff are:
 
 **\---version**
