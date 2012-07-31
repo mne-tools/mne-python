@@ -19,7 +19,7 @@ Changelog
 
    - Backporting scipy.signa.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
 
-   - LCMV Beamformer by `Alex Gramfort`_.
+   - LCMV Beamformer for evoked data, single trials, and raw data by `Alex Gramfort`_ and `Martin Luessi`_.
 
    - Add support for reading named channel selections by `Martin Luessi`_.
 
