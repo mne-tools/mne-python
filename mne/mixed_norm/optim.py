@@ -13,6 +13,7 @@ logger = logging.getLogger('mne')
 from .debiasing import compute_bias
 from .. import verbose
 from ..time_frequency import stft, istft
+from ..time_frequency.stft import stft_norm2
 
 
 def groups_norm2(A, n_orient):
@@ -39,8 +40,11 @@ def norm_l21(A, n_orient, copy=True):
     return np.sum(np.sqrt(groups_norm2(A, n_orient)))
 
 
-def prox_l21(Y, alpha, n_orient):
+def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     """proximity operator for l21 norm
+
+    It can eventually take into account the negative frequencies
+    with a complex value is passed as well as n_freq and n
 
     (L2 over columns and L1 over rows => groups contain n_orient rows)
 
@@ -60,12 +64,18 @@ def prox_l21(Y, alpha, n_orient):
     >>> print active_set
     [ True  True False False]
     """
+    if shape is not None:
+        shape_init = Y.shape
+        Y = Y.reshape(*shape)
     if len(Y) == 0:
-        return np.zeros((0, Y.shape[1]), dtype=Y.dtype), \
-                    np.zeros((0,), dtype=np.bool)
+        return np.zeros_like(Y), np.zeros((0,), dtype=np.bool)
     n_positions = Y.shape[0] // n_orient
-    rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
-                                axis=1))
+
+    if is_stft:
+        rows_norm = np.sqrt(stft_norm2(Y).reshape(n_positions, -1).sum(axis=1))
+    else:
+        rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
+                                    axis=1))
     # Ensure shrink is >= 0 while avoiding any division by zero
     shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
     active_set = shrink > 0.0
@@ -73,7 +83,11 @@ def prox_l21(Y, alpha, n_orient):
         active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
         shrink = np.tile(shrink[:, None], [1, n_orient]).ravel()
     Y = Y[active_set]
-    Y *= shrink[active_set][:, np.newaxis]
+    if shape is None:
+        Y *= shrink[active_set][:, np.newaxis]
+    else:
+        Y *= shrink[active_set][:, np.newaxis, np.newaxis]
+        Y = Y.reshape(-1, *shape_init[1:])
     return Y, active_set
 
 
@@ -205,7 +219,7 @@ def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
         t0 = t
         t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
-        Y[:] = 0.0
+        Y.fill(0.0)
         dt = ((t0 - 1.0) / t)
         Y[active_set] = (1.0 + dt) * X
         Y[active_set_0] -= dt * X0
@@ -396,7 +410,7 @@ def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3):
     n_points = G.shape[1]
     iv = np.ones((n_points, n_times), dtype=np.float)
     v = phi(iv)
-    L = 0.
+    L = 1e100
     for it in range(100):
         L_old = L
         print 'Lipschitz estimation: iteration = %d' % it
@@ -406,7 +420,7 @@ def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3):
         w = phi(GtGv)
         L = np.max(np.abs(w))  # l_inf norm
         v = w / L
-        if ((L - L_old) / (L_old + np.finfo(np.float).tiny)) < tol:
+        if abs((L - L_old) / L_old) < tol:
             break
     return L
 
@@ -555,7 +569,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             Y += np.dot(G.T, phi(R)) / lipschitz_constant  # ISTA step
             Z, active_set_l1 = prox_l1(Y, alpha_time_lc, n_orient)
 
-        Z, active_set_l21 = prox_l21(Z, alpha_space_lc, n_orient)
+        Z, active_set_l21 = prox_l21(Z, alpha_space_lc, n_orient,
+                                shape=(-1, n_freq, n_step), is_stft=True)
         active_set = active_set_l1
         active_set[active_set_l1] = active_set_l21
 
@@ -572,7 +587,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         # compute efficiently : Y = Z + ((t0 - 1.0) / t) * (Z - Z0)
         t0 = t
         t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
-        Y[:] = 0.0
+        Y.fill(0.0)
         dt = ((t0 - 1.0) / t)
         Y[active_set] = (1.0 + dt) * Z
         if len(Z0):
@@ -585,12 +600,12 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         if verbose:  # log cost function value
             Z2 = np.abs(Z)
             Z2 **= 2
-            RZ = M - np.dot(G[:, active_set], phiT(Z))
+            X = phiT(Z)
+            RZ = M - np.dot(G[:, active_set], X)
             pobj = 0.5 * linalg.norm(RZ, ord='fro') ** 2 \
-               + alpha_space * np.sqrt(Z2.reshape(-1,
-                                       n_orient * n_coefs).sum(axis=1)).sum() \
-               + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1,
-                                      n_orient), axis=1)).sum()
+               + alpha_space * norm_l21(X, n_orient) \
+               + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
+                                             axis=1)).sum()
             E.append(pobj)
             print "Iteration %d :: pobj %f :: n_active %d" % (i + 1, pobj,
                                                             np.sum(active_set))
