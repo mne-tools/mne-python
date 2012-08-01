@@ -201,3 +201,25 @@ def stftfreq(wsize, sfreq=None):
     if sfreq is not None:
         freqs *= float(sfreq)
     return freqs
+
+
+def stft_norm2(X):
+    """Compute L2 norm of STFT transform
+
+    It takes into account that stft only return positive frequencies.
+    As we use tight frame this quantity is conserved by the stft.
+
+    Parameters
+    ----------
+    X : 3D complex array
+        The STFT transforms
+
+    Returns
+    -------
+    norms2 : array
+        The squared L2 norm of every raw of X.
+    """
+    X2 = np.abs(X) ** 2
+    # compute all L2 coefs and remove freq zero once.
+    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1))
+    return norms2

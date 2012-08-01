@@ -3,7 +3,7 @@ from scipy import linalg
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 from nose.tools import assert_true
 
-from ..stft import stft, istft, stftfreq
+from ..stft import stft, istft, stftfreq, stft_norm2
 
 
 def test_stft():
@@ -29,12 +29,9 @@ def test_stft():
 
         assert_array_almost_equal(x, xp, decimal=6)
 
-        # Symmetrize X to get also negative frequencies to guarantee
         # norm conservation thanks to tight frame property
-        X = np.concatenate([X[:, 1:, :][:, ::-1, :], X], axis=1)
-
-        assert_almost_equal(linalg.norm(X.ravel()), linalg.norm(x.ravel()),
-                            decimal=2)
+        assert_almost_equal(np.sqrt(stft_norm2(X)),
+                            map(linalg.norm, x), decimal=2)
 
         # Try with empty array
         x = np.zeros((0, T))
