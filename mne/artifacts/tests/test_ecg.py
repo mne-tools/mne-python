@@ -3,8 +3,8 @@ import os.path as op
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
-from ...fiff import Raw
-from ..ecg import find_ecg_events
+from mne.fiff import Raw
+from mne.artifacts.ecg import find_ecg_events
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')

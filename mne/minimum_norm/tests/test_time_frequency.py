@@ -4,12 +4,12 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from ...datasets import sample
-from ... import fiff, find_events, Epochs
-from ...label import read_label
-from ..inverse import read_inverse_operator
-from ..time_frequency import source_band_induced_power, source_induced_power, \
-                             compute_source_psd
+from mne.datasets import sample
+from mne import fiff, find_events, Epochs
+from mne.label import read_label
+from mne.minimum_norm.inverse import read_inverse_operator
+from mne.minimum_norm.time_frequency import source_band_induced_power, \
+                            source_induced_power, compute_source_psd
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')

@@ -3,8 +3,8 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from ... import fiff, Epochs, read_events
-from ...time_frequency import compute_raw_psd
+from mne import fiff, Epochs, read_events
+from mne.time_frequency import compute_raw_psd
 
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',

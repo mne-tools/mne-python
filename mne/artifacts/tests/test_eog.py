@@ -1,8 +1,8 @@
 import os.path as op
 from nose.tools import assert_true
 
-from ...fiff import Raw
-from ..eog import find_eog_events
+from mne.fiff import Raw
+from mne.artifacts.eog import find_eog_events
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')

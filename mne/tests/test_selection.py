@@ -1,4 +1,4 @@
-from .. import read_selection
+from mne import read_selection
 
 
 def test_read_selection():

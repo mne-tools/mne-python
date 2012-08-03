@@ -6,10 +6,10 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from ...datasets import sample
-from ...label import read_label
-from ... import fiff, read_cov, read_forward_solution
-from ..inverse import mixed_norm
+from mne.datasets import sample
+from mne.label import read_label
+from mne import fiff, read_cov, read_forward_solution
+from mne.mixed_norm.inverse import mixed_norm
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')

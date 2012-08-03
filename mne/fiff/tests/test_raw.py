@@ -1,11 +1,11 @@
 import os.path as op
 from copy import deepcopy
 
-import numpy as np
 from nose.tools import assert_true
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from .. import Raw, pick_types, pick_channels
+from mne.fiff import Raw, pick_types, pick_channels
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')

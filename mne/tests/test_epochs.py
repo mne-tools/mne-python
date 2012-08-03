@@ -7,8 +7,8 @@ from nose.tools import assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 
-from .. import fiff, Epochs, read_events, pick_events
-from ..epochs import bootstrap
+from mne import fiff, Epochs, read_events, pick_events
+from mne.epochs import bootstrap
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test_raw.fif')

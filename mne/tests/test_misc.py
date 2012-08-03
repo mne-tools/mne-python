@@ -1,7 +1,7 @@
 import os.path as op
 from nose.tools import assert_true
 
-from ..misc import parse_config
+from mne.misc import parse_config
 
 ave_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test.ave')

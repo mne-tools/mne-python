@@ -2,7 +2,7 @@ import os.path as op
 
 from numpy.testing import assert_array_almost_equal, assert_equal
 
-from .. import read_evoked, write_evoked
+from mne.fiff import read_evoked, write_evoked
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
 
