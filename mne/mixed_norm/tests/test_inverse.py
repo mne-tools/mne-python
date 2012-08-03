@@ -90,7 +90,7 @@ def test_mxne_inverse():
 
 def test_tf_mxne_inverse():
     """Test TF-MxNE inverse computation"""
-    alpha_space = 50.  # spatial regularization parameter
+    alpha_space = 60.  # spatial regularization parameter
     alpha_time = 1.  # temporal regularization parameter
 
     stc, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
