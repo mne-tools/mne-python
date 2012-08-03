@@ -54,13 +54,13 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     return L
 
 
-def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
+def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1):
     """Compute scaling to correct amplitude bias
 
     It solves the following optimization problem using FISTA:
 
     min 1/2 * (|| M - GDX ||fro)^2
-    s.t. D >= 0 and D is a diagonal matrix
+    s.t. D >= 1 and D is a diagonal matrix
 
     Reference for the FISTA algorithm:
     Amir Beck and Marc Teboulle
@@ -111,7 +111,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
             # The scaling has to be the same for all orientations
             D = np.mean(D.reshape(-1, n_orient), axis=1)
             D = np.tile(D, [n_orient, 1]).T.ravel()
-        D = np.maximum(D, 0.0)
+        D = np.maximum(D, 1.0)
 
         t0 = t
         t = 0.5 * (1.0 + sqrt(1.0 + 4.0 * t ** 2))
