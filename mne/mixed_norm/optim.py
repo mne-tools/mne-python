@@ -12,8 +12,7 @@ logger = logging.getLogger('mne')
 
 from .debiasing import compute_bias
 from .. import verbose
-from ..time_frequency import stft, istft
-from ..time_frequency.stft import stft_norm2
+from ..time_frequency.stft import stft_norm2, stft, istft
 
 
 def groups_norm2(A, n_orient):
