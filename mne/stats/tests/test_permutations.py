@@ -12,7 +12,7 @@ def test_permutation_t_test():
     np.random.seed(10)
     n_samples, n_tests = 30, 5
     X = np.random.randn(n_samples, n_tests)
-    X[:,:2] += 1
+    X[:, :2] += 1
 
     T_obs, p_values, H0 = permutation_t_test(X, n_permutations=999, tail=0)
     is_significant = p_values < 0.05

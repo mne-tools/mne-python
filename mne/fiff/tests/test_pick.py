@@ -8,4 +8,3 @@ def test_pick_channels_regexp():
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG ...1'), [0])
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG ...[2-3]'), [1, 2])
     assert_array_equal(pick_channels_regexp(ch_names, 'MEG *'), [0, 1, 2])
-

@@ -3,6 +3,7 @@ from numpy.testing import assert_equal
 
 from mne.utils import _firwin2 as mne_firwin2
 
+
 def test_firwin2():
     """Test firwin2 backport
     """

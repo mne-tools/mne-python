@@ -85,8 +85,8 @@ def test_reject_epochs():
 def test_preload_epochs():
     """Test of epochs rejection
     """
-    epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=True,
+    epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax,
+                        picks=picks, baseline=(None, 0), preload=True,
                         reject=reject, flat=flat)
     data_preload = epochs_preload.get_data()
 
@@ -127,7 +127,7 @@ def test_indexing_slicing():
         epochs2_sliced = epochs2[start_index:end_index]
 
         data_epochs2_sliced = epochs2_sliced.get_data()
-        assert_array_equal(data_epochs2_sliced, \
+        assert_array_equal(data_epochs2_sliced,
                            data_normal[start_index:end_index])
 
         # using indexing
@@ -136,16 +136,16 @@ def test_indexing_slicing():
             data = epochs2_sliced[pos].get_data()
             assert_array_equal(data[0], data_normal[idx])
             pos += 1
-            
+
         # using indexing with an int
         data = epochs2[data_epochs2_sliced.shape[0]].get_data()
         assert_array_equal(data, data_normal[[idx]])
-        
+
         # using indexing with an array
         idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
         data = epochs2[idx].get_data()
         assert_array_equal(data, data_normal[idx])
-        
+
         # using indexing with a list of indices
         idx = [0]
         data = epochs2[idx].get_data()

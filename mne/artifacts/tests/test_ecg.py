@@ -1,7 +1,6 @@
 import os.path as op
 
 from nose.tools import assert_true
-from numpy.testing import assert_array_almost_equal
 
 from mne.fiff import Raw
 from mne.artifacts.ecg import find_ecg_events

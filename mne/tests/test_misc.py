@@ -6,6 +6,7 @@ from mne.misc import parse_config
 ave_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test.ave')
 
+
 def test_parse_ave():
     """Test parsing of .ave file
     """

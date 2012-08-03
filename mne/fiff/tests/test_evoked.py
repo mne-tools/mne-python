@@ -6,6 +6,7 @@ from mne.fiff import read_evoked, write_evoked
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
 
+
 def test_io_evoked():
     """Test IO for evoked data
     """

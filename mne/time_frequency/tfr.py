@@ -142,8 +142,8 @@ def _cwt_convolve(X, Ws, mode='same'):
         for i, W in enumerate(Ws):
             ret = np.convolve(x, W, mode=mode)
             if len(W) > len(x):
-                raise ValueError('Wavelet is too long for such a short signal. '
-                                 'Reduce the number of cycles.')
+                raise ValueError('Wavelet is too long for such a short '
+                                 'signal. Reduce the number of cycles.')
             if mode == "valid":
                 sz = abs(W.size - n_times) + 1
                 offset = (n_times - sz) / 2
