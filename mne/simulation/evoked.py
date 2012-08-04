@@ -47,7 +47,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
         The simulated evoked data
     """
     evoked = apply_forward(fwd, stc, evoked)
-    noise = generate_noise_evoked(evoked, cov, fir_filter, random_state)
+    noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
     evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
     return evoked_noise
 
