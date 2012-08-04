@@ -785,9 +785,13 @@ the following command-line options:
     files with the elp ending not
     conforming to the above specification.
 
-.. note:: The conversion process includes a transformation    from the Tufts head coordinate system convention to that used in    the Neuromag systems.
+.. note::
 
-.. note:: The fiducial landmark locations, optional    in the probe file format, must be present for mne_tufts2fiff .
+    The conversion process includes a transformation from the Tufts head coordinate system convention to that used in    the Neuromag systems.
+
+.. note::
+
+    The fiducial landmark locations, optional in the probe file format, must be present for mne_tufts2fiff .
 
 .. _BEHCCCDC:
 
@@ -803,8 +807,8 @@ toolbox contains the function fiff_write_dig_file to
 write a digitization file based on digitization data available in
 another format, see :ref:`ch_matlab`.
 
-.. Note:: 
-    
+.. note::
+
     mne_brain_vision2fiff reads events from the ``vmrk`` file referenced in the
     ``vhdr`` file, but it only includes events whose "Type" is ``Stimulus`` and
     whose "description" is given by ``S<number>``. All other events are ignored.
@@ -860,7 +864,8 @@ The command-line options of mne_brain_vision2fiff are:
     with ``.fif`` or ``_raw.fif`` , these endings are
     deleted. After these modifications, ``_raw.fif`` is inserted
     after the remaining part of the file name. If the file is split
-    into multiple parts, the additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif`` .
+    into multiple parts, the additional parts will be called
+    <*name*> ``-`` <*number*> ``_raw.fif`` .
 
 .. _BEHGCEHH:
 
