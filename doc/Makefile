@@ -28,7 +28,11 @@ help:
 
 clean:
 	-rm -rf build/*
-	-rm -rf sources/auto_examples
+	-rm -rf source/auto_examples
+	-rm -rf source/generated
+	-rm -rf *.stc
+	-rm -rf *.fif
+	-rm -rf *.nii.gz
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
