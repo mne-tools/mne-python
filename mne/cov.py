@@ -470,8 +470,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     proj: bool
         Apply or not projections to keep rank of data.
 
-    Return
-    ------
+    Returns
+    -------
     reg_cov : Covariance
         The regularized covariance matrix.
     """

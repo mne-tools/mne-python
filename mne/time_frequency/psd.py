@@ -48,8 +48,8 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     proj : bool
         Apply SSP projection vectors
 
-    Return
-    ------
+    Returns
+    -------
     psd: array of float
         The PSD for all channels
 
