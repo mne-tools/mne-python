@@ -15,6 +15,8 @@ Freeview.
 
 print __doc__
 
+import numpy as np
+import pylab as pl
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
@@ -64,3 +66,22 @@ stc.crop(0.0, 0.2)
 # Save result in a 4D nifti file
 img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
         forward['src'], mri_resolution=False)  # True for full MRI resolution
+
+# plot result (one slice)
+pl.close('all')
+data = img.get_data()
+coronal_slice = data[:, 10, :, 60]
+pl.figure()
+pl.imshow(np.ma.masked_less(coronal_slice, 1), cmap=pl.cm.Reds,
+          interpolation='nearest')
+pl.colorbar()
+pl.contour(coronal_slice != 0, 1, colors=['black'])
+pl.xticks([])
+pl.yticks([])
+
+# plot source time courses with the maximum peak amplitudes
+pl.figure()
+pl.plot(stc.times, stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
+pl.xlabel('Time (ms)')
+pl.ylabel('LCMV value')
+pl.show()
