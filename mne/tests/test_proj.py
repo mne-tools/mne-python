@@ -4,11 +4,11 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from ..fiff import Raw, pick_types
-from .. import compute_proj_epochs, compute_proj_evoked
-from ..fiff.proj import make_projector, activate_proj
-from ..proj import read_proj
-from .. import read_events, Epochs
+from mne.fiff import Raw, pick_types
+from mne import compute_proj_epochs, compute_proj_evoked
+from mne.fiff.proj import make_projector, activate_proj
+from mne.proj import read_proj
+from mne import read_events, Epochs
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

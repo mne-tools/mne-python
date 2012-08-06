@@ -95,4 +95,3 @@ def read_selection(name, fname=None):
     sel.sort()
 
     return sel
-

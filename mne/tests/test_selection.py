@@ -1,4 +1,4 @@
-from .. import read_selection
+from mne import read_selection
 
 
 def test_read_selection():
@@ -25,4 +25,3 @@ def test_read_selection():
     frontal = read_selection('frontal')
     occipital = read_selection('Right-occipital')
     assert(len(set(frontal).intersection(set(occipital))) == 0)
-

@@ -1,8 +1,8 @@
 import os.path as op
 from nose.tools import assert_true
 
-from ..datasets import sample
-from .. import read_source_spaces
+from mne.datasets import sample
+from mne import read_source_spaces
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)

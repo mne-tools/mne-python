@@ -5,11 +5,11 @@ from numpy.testing import assert_array_almost_equal
 import numpy as np
 from scipy import linalg
 
-from ..cov import regularize
-from .. import read_cov, Epochs, merge_events, \
+from mne.cov import regularize
+from mne import read_cov, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
-from ..fiff import Raw, pick_channels_cov, pick_channels
+from mne.fiff import Raw, pick_channels_cov, pick_channels
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')

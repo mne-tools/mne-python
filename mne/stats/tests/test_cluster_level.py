@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 from nose.tools import assert_true
 
-from ..cluster_level import permutation_cluster_test, \
+from mne.stats.cluster_level import permutation_cluster_test, \
                             permutation_cluster_1samp_test
 
 noiselevel = 20

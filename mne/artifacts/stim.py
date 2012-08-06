@@ -48,7 +48,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     picks = pick_types(raw.info, meg=True, eeg=True)
 
     if mode == 'window':
-        window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4), \
+        window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4),
                             signal.hann(4)[-2:]].T
 
     for k in range(len(event_start)):

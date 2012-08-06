@@ -4,8 +4,8 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 import nose
 
-from ... import fiff
-from .. import yule_walker, ar_raw
+from mne import fiff
+from mne.time_frequency import yule_walker, ar_raw
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')

@@ -1,8 +1,8 @@
 import os.path as op
 
-from .. import fiff
-from ..layouts import Layout
-from ..viz import plot_topo
+from mne import fiff
+from mne.layouts import Layout
+from mne.viz import plot_topo
 
 
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',

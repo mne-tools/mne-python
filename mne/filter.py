@@ -5,6 +5,7 @@ from scipy.signal import freqz
 
 from .utils import firwin2  # back port for old scipy
 
+
 def is_power2(num):
     """Test if number is a power of 2
 
@@ -147,6 +148,7 @@ def _filter_attenuation(h, freq, gain):
     att_freq = freq[idx]
 
     return att_db, att_freq
+
 
 def _filter(x, Fs, freq, gain, filter_length=None):
     """Filter signal using gain control points in the frequency domain.
