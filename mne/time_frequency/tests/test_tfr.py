@@ -3,14 +3,14 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from ... import fiff, Epochs, read_events
-from ...time_frequency import induced_power, single_trial_power
-from ...time_frequency.tfr import cwt_morlet, morlet
+from mne import fiff, Epochs, read_events
+from mne.time_frequency import induced_power, single_trial_power
+from mne.time_frequency.tfr import cwt_morlet, morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
-event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                'test-eve.fif')
+event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                'data', 'test-eve.fif')
 
 
 def test_morlet():
@@ -35,11 +35,11 @@ def test_time_frequency():
     events = read_events(event_fname)
 
     include = []
-    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053'] # bads + 2 more
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
     picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
-                                    stim=False, include=include, exclude=exclude)
+                            stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -47,8 +47,8 @@ def test_time_frequency():
     data = epochs.get_data()
     times = epochs.times
 
-    frequencies = np.arange(6, 20, 5) # define frequencies of interest
-    Fs = raw.info['sfreq'] # sampling in Hz
+    frequencies = np.arange(6, 20, 5)  # define frequencies of interest
+    Fs = raw.info['sfreq']  # sampling in Hz
     n_cycles = frequencies / float(4)
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                       n_cycles=n_cycles, use_fft=True)

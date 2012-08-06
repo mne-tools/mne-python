@@ -2,8 +2,7 @@ import os.path as op
 
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from .. import read_events, write_events, find_events
-from .. import fiff
+from mne import read_events, write_events, find_events, fiff
 
 
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',

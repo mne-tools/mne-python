@@ -7,7 +7,7 @@ import copy
 from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import write_int, start_block, end_block, write_float_matrix, \
-                   write_string, write_name_list
+                   write_name_list
 
 
 def _transpose_named_matrix(mat):

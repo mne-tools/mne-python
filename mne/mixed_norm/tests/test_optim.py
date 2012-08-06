@@ -5,7 +5,7 @@
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from ..optim import mixed_norm_solver
+from mne.mixed_norm.optim import mixed_norm_solver
 
 
 def test_l21_MxNE():

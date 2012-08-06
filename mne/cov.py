@@ -94,7 +94,7 @@ class Covariance(dict):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         this_cov = copy.deepcopy(cov)
-        this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) + \
+        this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) +
                             (self['data'] * self['nfree'])) / \
                                 (self['nfree'] + this_cov['nfree'])
         this_cov['nfree'] += self['nfree']

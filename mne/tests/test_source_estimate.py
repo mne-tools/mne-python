@@ -4,10 +4,10 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from ..datasets import sample
-from .. import stats
-from .. import read_stc, write_stc, SourceEstimate, morph_data
-from ..source_estimate import spatio_temporal_tris_connectivity, \
+from mne.datasets import sample
+from mne import stats
+from mne import read_stc, write_stc, SourceEstimate, morph_data
+from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity
 
 

@@ -16,6 +16,7 @@ from .fiff.proj import activate_proj, make_eeg_average_ref_proj
 from .baseline import rescale
 from .utils import check_random_state
 
+
 class Epochs(object):
     """List of Epochs
 
@@ -181,7 +182,8 @@ class Epochs(object):
         #    Select the desired events
         self.events = events
         if event_id is not None:
-            selected = np.logical_and(events[:, 1] == 0, events[:, 2] == event_id)
+            selected = np.logical_and(events[:, 1] == 0,
+                                      events[:, 2] == event_id)
             self.events = self.events[selected]
 
         n_events = len(self.events)
@@ -519,8 +521,9 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    print ('    Rejecting flat epoch based on %s : %s (%s < %s).'
-                                % (name, ch_name, delta, thresh))
+                    print ('    Rejecting flat epoch based on '
+                           '%s : %s (%s < %s).' % (name, ch_name, delta,
+                                                   thresh))
                     return False
 
     return True

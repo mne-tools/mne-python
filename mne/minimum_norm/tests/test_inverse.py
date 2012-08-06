@@ -6,13 +6,13 @@ from nose.tools import assert_true
 import nose
 import copy
 
-from ...datasets import sample
-from ...label import read_label, label_sign_flip
-from ...event import read_events
-from ...epochs import Epochs
-from ...source_estimate import SourceEstimate
-from ... import fiff, read_cov, read_forward_solution
-from ..inverse import apply_inverse, read_inverse_operator, \
+from mne.datasets import sample
+from mne.label import read_label, label_sign_flip
+from mne.event import read_events
+from mne.epochs import Epochs
+from mne.source_estimate import SourceEstimate
+from mne import fiff, read_cov, read_forward_solution
+from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
                       apply_inverse_raw, apply_inverse_epochs, \
                       make_inverse_operator, write_inverse_operator
 

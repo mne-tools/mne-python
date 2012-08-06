@@ -382,6 +382,7 @@ def _get_vertno(src):
         vertno.append(s['vertno'])
     return vertno
 
+
 ###############################################################################
 # Write routines
 

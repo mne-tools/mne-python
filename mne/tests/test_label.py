@@ -4,8 +4,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from ..datasets import sample
-from .. import label_time_courses, read_label, write_label, stc_to_label, \
+from mne.datasets import sample
+from mne import label_time_courses, read_label, write_label, stc_to_label, \
                SourceEstimate, read_source_spaces, grow_labels
 
 

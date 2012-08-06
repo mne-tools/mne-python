@@ -3,14 +3,14 @@
 # License: BSD (3-clause)
 
 import os.path as op
+
 import numpy as np
-
-from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_true
 
-from ...fiff import Raw
-from ...event import read_events
-from ..stim import eliminate_stim_artifact
+from mne.fiff import Raw
+from mne.event import read_events
+from mne.artifacts.stim import eliminate_stim_artifact
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')

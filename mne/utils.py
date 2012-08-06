@@ -193,7 +193,7 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     if nfreqs is not None and numtaps >= nfreqs:
         raise ValueError('ntaps must be less than nfreqs, but firwin2 was '
-                            'called with ntaps=%d and nfreqs=%s' % (numtaps, nfreqs))
+                    'called with ntaps=%d and nfreqs=%s' % (numtaps, nfreqs))
 
     if freq[0] != 0 or freq[-1] != nyq:
         raise ValueError('freq must start with 0 and end with `nyq`.')
@@ -209,14 +209,14 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
                             "have zero gain at the Nyquist rate.")
 
     if nfreqs is None:
-        nfreqs = 1 + 2 ** int(ceil(log(numtaps,2)))
+        nfreqs = 1 + 2 ** int(ceil(log(numtaps, 2)))
 
     # Tweak any repeated values in freq so that interp works.
     eps = np.finfo(float).eps
     for k in range(len(freq)):
-        if k < len(freq)-1 and freq[k] == freq[k+1]:
+        if k < len(freq) - 1 and freq[k] == freq[k + 1]:
             freq[k] = freq[k] - eps
-            freq[k+1] = freq[k+1] + eps
+            freq[k + 1] = freq[k + 1] + eps
 
     # Linearly interpolate the desired response on a uniform mesh `x`.
     x = np.linspace(0.0, nyq, nfreqs)
@@ -224,7 +224,7 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     # Adjust the phases of the coefficients so that the first `ntaps` of the
     # inverse FFT are the desired filter coefficients.
-    shift = np.exp(-(numtaps-1)/2. * 1.j * np.pi * x / nyq)
+    shift = np.exp(-(numtaps - 1) / 2. * 1.j * np.pi * x / nyq)
     fx2 = fx * shift
 
     # Use irfft to compute the inverse FFT.

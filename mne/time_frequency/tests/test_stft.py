@@ -3,7 +3,7 @@ from scipy import linalg
 from numpy.testing import assert_almost_equal, assert_array_almost_equal
 from nose.tools import assert_true
 
-from ..stft import stft, istft, stftfreq, stft_norm2
+from mne.time_frequency.stft import stft, istft, stftfreq, stft_norm2
 
 
 def test_stft():

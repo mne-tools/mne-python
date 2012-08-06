@@ -4,10 +4,10 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 
-from ..datasets import sample
-from ..fiff import Raw, Evoked, pick_types_forward
-from ..minimum_norm.inverse import _make_stc
-from .. import read_forward_solution, apply_forward, apply_forward_raw
+from mne.datasets import sample
+from mne.fiff import Raw, Evoked, pick_types_forward
+from mne.minimum_norm.inverse import _make_stc
+from mne import read_forward_solution, apply_forward, apply_forward_raw
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')

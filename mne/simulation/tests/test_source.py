@@ -5,11 +5,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true
 
-from ...datasets import sample
-from ... import read_label
-from ... import read_forward_solution
+from mne.datasets import sample
+from mne import read_label, read_forward_solution
+from mne.simulation.source import generate_stc, generate_sparse_stc
 
-from ..source import generate_stc, generate_sparse_stc
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..' '/examples')
 data_path = sample.data_path(examples_folder)
@@ -67,4 +66,3 @@ def test_generate_sparse_stc():
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
-
