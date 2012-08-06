@@ -203,7 +203,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 
-    f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(800, 800))
+    f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
     mlab.clf()
     f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
@@ -257,7 +257,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     if show:
         pl.show()
-        mlab.show()
 
     surface.actor.property.backface_culling = True
     surface.actor.property.shading = True
@@ -325,6 +324,17 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import pylab as pl
 
+    pl.figure(figsize=(2.5 * len(idx_names), 2.7))
+    for k, (idx, name, _, _) in enumerate(idx_names):
+        pl.subplot(1, len(idx_names), k + 1)
+        pl.imshow(C[idx][:, idx], interpolation="nearest")
+        pl.title(name)
+    pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
+    try:
+        pl.tight_layout()  # XXX : recent pylab feature
+    except:
+        pass
+
     if show_svd:
         pl.figure()
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
@@ -338,17 +348,6 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             pl.tight_layout()  # XXX : recent pylab feature
         except:
             pass
-
-    pl.figure(figsize=(2.5 * len(idx_names), 2.7))
-    for k, (idx, name, _, _) in enumerate(idx_names):
-        pl.subplot(1, len(idx_names), k + 1)
-        pl.imshow(C[idx][:, idx], interpolation="nearest")
-        pl.title(name)
-    pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-    try:
-        pl.tight_layout()  # XXX : recent pylab feature
-    except:
-        pass
 
     if show:
         pl.show()

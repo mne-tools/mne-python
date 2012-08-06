@@ -234,8 +234,8 @@ def stc_to_label(stc, src, smooth=5):
 def _verts_within_dist(graph, source, max_dist):
     """Find all vertices wihin a maximum geodesic distance from source
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     graph : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices
     source : int
@@ -243,8 +243,8 @@ def _verts_within_dist(graph, source, max_dist):
     max_dist: float
         Maximum geodesic distance
 
-    Returns:
-    --------
+    Returns
+    -------
     verts : array
         Vertices within max_dist
     dist : array
@@ -292,7 +292,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
           label, or integers, in which case the same extent and hemisphere is
           used for each label.
 
-    Parameters:
+    Parameters
     ----------
     subject : string
         Name of the subject as in SUBJECTS_DIR
@@ -305,8 +305,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment
 
-    Returns:
-    --------
+    Returns
+    -------
     labels : list
         List with lables. Each label is a dictionary with keys:
             comment     Comment with seed vertex and extent

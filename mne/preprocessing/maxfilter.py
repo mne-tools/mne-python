@@ -96,8 +96,8 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
         Needs Maxfilter license, maxfilter has to be in PATH
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     in_fname: string
         Input file name
 

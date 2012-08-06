@@ -35,8 +35,8 @@ from mne.datasets import sample
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_id = 1
-tmin = -0.2
-tmax = 0.5
+tmin = -0.3
+tmax = 0.6
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
