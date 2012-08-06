@@ -74,8 +74,8 @@ def transform_coordinates(filename, pos, orig, dest):
         'mni_tal' is MNI Talairach
         'fs_tal' is FreeSurfer Talairach
 
-    Return
-    ------
+    Returns
+    -------
     trans_pos: array of shape N x 3
         The transformed locations
 

@@ -559,15 +559,15 @@ def mesh_dist(tris, vert):
     It generates an adjacency matrix where the entries are the distances
     between neighboring vertices.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     tris : array (n_tris x 3)
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
 
-    Returns:
-    --------
+    Returns
+    -------
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices
     """

@@ -40,7 +40,7 @@ forward = mne.read_forward_solution(fwd_fname, force_fixed=True,
 cov = mne.cov.regularize(cov, evoked.info)
 
 import pylab as pl
-pl.figure(-2)
+pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 plot_evoked(evoked, ylim=ylim, proj=True)
 
@@ -61,11 +61,10 @@ stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                  debias=True, weights=stc_dspm, weights_min=8.,
                  return_residual=True)
 
-pl.figure(-3)
+pl.figure()
 plot_evoked(residual, ylim=ylim, proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1, fig_name="MxNE (cond %s)" % setno,
-                             fig_number=setno)
+                             opacity=0.1, fig_name="MxNE (cond %s)" % setno)

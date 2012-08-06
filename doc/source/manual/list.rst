@@ -433,4 +433,7 @@ listed in :ref:`CIHDGFAA`.
     |                         | values, see :ref:`BABBGJEA`.               |
     +-------------------------+--------------------------------------------+
 
-.. note:: :ref:`setup_martinos` contains information specific to the setup at the Martinos Center including instructions to access the Neuromag software.
+.. note::
+
+    Section :ref:`setup_martinos` contains information specific to the setup at
+    the Martinos Center including instructions to access the Neuromag software.
