@@ -114,7 +114,7 @@ def test_TF_MxNE_vs_MxNE():
                                 tol=1e-8, verbose=True, debias=False,
                                 n_orient=1, tstep=4, wsize=32)
 
-    # Also run L21 with no time-regularization and check that we get the same
+    # Also run L21 and check that we get the same
     X_hat_l21, _, _ = mixed_norm_solver(M, G, alpha_space, maxit=200,
                             tol=1e-8, verbose=False, n_orient=1,
                             active_set_size=None, debias=False)

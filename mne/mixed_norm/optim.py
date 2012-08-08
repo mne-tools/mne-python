@@ -520,6 +520,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         The cost function over the iterations
     """
     n_sensors, n_times = M.shape
+    n_dipoles = G.shape[1]
 
     n_step = int(ceil(n_times / tstep))
     n_freq = wsize / 2 + 1
@@ -528,10 +529,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
 
     Z = np.zeros((0, n_coefs), dtype=np.complex)
-    active_set = np.zeros(G.shape[1], dtype=np.bool)
+    active_set = np.zeros(n_dipoles, dtype=np.bool)
     R = M.copy()  # residual
-
-    n_dipoles = G.shape[1]
 
     if lipschitz_constant is None:
         lipschitz_constant = 1.1 * tf_lipschitz_constant(M, G, phi, phiT)

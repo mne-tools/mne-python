@@ -216,7 +216,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     residual = list()
     cnt = 0
     for e in evoked:
-        tmin = float(e.first) / e.info['sfreq']
+        tmin = e.times[0]
         tstep = 1.0 / e.info['sfreq']
         Xe = X[:, cnt:(cnt + len(e.times))]
         stc = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
@@ -272,7 +272,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
     Compute L1/L2 + L1 mixed-norm solution on time frequency
-    dictionnary. Works with evoked data.
+    dictionary. Works with evoked data.
 
     Reference
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
@@ -391,7 +391,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
                                 X)
 
-    tmin = float(evoked.first) / evoked.info['sfreq']
+    tmin = evoked.times[0]
     tstep = 1.0 / info['sfreq']
     out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
     print '[done]'
