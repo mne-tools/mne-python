@@ -103,7 +103,7 @@ def test_TF_MxNE():
 
 
 def test_TF_MxNE_vs_MxNE():
-    """Test convergence TF-MxNE with no time regularization vs MxNE"""
+    """Test equivalence of TF-MxNE (with alpha_time=0) and MxNE"""
     alpha_space = 60
     alpha_time = 0
 
