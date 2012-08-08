@@ -74,17 +74,17 @@ def read_meas_info(fid, tree):
             nchan = int(tag.data)
         elif kind == FIFF.FIFF_SFREQ:
             tag = read_tag(fid, pos)
-            sfreq = tag.data
+            sfreq = float(tag.data)
         elif kind == FIFF.FIFF_CH_INFO:
             tag = read_tag(fid, pos)
             chs.append(tag.data)
             p += 1
         elif kind == FIFF.FIFF_LOWPASS:
             tag = read_tag(fid, pos)
-            lowpass = tag.data
+            lowpass = float(tag.data)
         elif kind == FIFF.FIFF_HIGHPASS:
             tag = read_tag(fid, pos)
-            highpass = tag.data
+            highpass = float(tag.data)
         elif kind == FIFF.FIFF_MEAS_DATE:
             tag = read_tag(fid, pos)
             meas_date = tag.data

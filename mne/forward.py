@@ -610,9 +610,9 @@ def _fill_measurement_info(info, fwd, sfreq):
     usec = 1e6 * (now - sec)
 
     info['meas_date'] = np.array([sec, usec], dtype=np.int32)
-    info['highpass'] = np.array(0.0, dtype=np.float32)
-    info['lowpass'] = np.array(sfreq / 2.0, dtype=np.float32)
-    info['sfreq'] = np.array(sfreq, dtype=np.float32)
+    info['highpass'] = 0.0
+    info['lowpass'] = sfreq / 2.0
+    info['sfreq'] = sfreq
     info['projs'] = []
 
     return info

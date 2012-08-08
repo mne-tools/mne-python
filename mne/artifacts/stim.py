@@ -42,8 +42,8 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                             '(or string) in the constructor.')
     events_sel = (events[:, 2] == event_id)
     event_start = events[events_sel, 0]
-    s_start = np.ceil(raw.info['sfreq'] * np.abs(tmin))[0]
-    s_end = np.ceil(raw.info['sfreq'] * tmax)[0]
+    s_start = np.ceil(raw.info['sfreq'] * np.abs(tmin))
+    s_end = np.ceil(raw.info['sfreq'] * tmax)
 
     picks = pick_types(raw.info, meg=True, eeg=True)
 
