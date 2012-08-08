@@ -63,11 +63,11 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     >>> print active_set
     [ True  True False False]
     """
+    if len(Y) == 0:
+        return np.zeros_like(Y), np.zeros((0,), dtype=np.bool)
     if shape is not None:
         shape_init = Y.shape
         Y = Y.reshape(*shape)
-    if len(Y) == 0:
-        return np.zeros_like(Y), np.zeros((0,), dtype=np.bool)
     n_positions = Y.shape[0] // n_orient
 
     if is_stft:
