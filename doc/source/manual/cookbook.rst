@@ -613,7 +613,7 @@ an interactive program for averaging and noise-covariance matrix
 computation. It also includes routines for filtering so that the
 downsampling and filtering steps can be skipped. Therefore, with mne_browse_raw you
 can produce the off-line average and noise-covariance matrix estimates
-directly. The batch-mode version of mne_brawse_raw is
+directly. The batch-mode version of mne_browse_raw is
 called mne_process_raw . Detailed
 information on mne_browse_raw and mne_process_raw can
 be found in :ref:`ch_browse`.
