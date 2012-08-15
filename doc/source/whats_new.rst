@@ -17,7 +17,7 @@ Changelog
 
    - speedup + reduce memory of mne.morph_data by `Alex Gramfort`_.
 
-   - Backporting scipy.signa.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
+   - Backporting scipy.signal.firwin2 so filtering works with old scipy by `Alex Gramfort`_.
 
    - LCMV Beamformer for evoked data, single trials, and raw data by `Alex Gramfort`_ and `Martin Luessi`_.
 
@@ -36,7 +36,7 @@ Changelog
    - New mne_compute_proj_ecg.py and mne_compute_proj_eog.py scripts to estimate ECG/EOG PCA/SSP vectors by `Alex Gramfort`_ and `Martin Luessi`_.
 
    - Wrapper function and script (mne_maxfilter.py) for Elekta Neuromag MaxFilter(TM) by `Martin Luessi`_
-   
+
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
 
 .. _changes_0_3:
