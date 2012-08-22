@@ -41,6 +41,19 @@ Changelog
 
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
 
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   * 118 Alexandre Gramfort
+   * 81  Martin Luessi
+   * 15  Daniel Strohmeier
+   *  4  Christian Brodbeck
+   *  4  Louis Thibault
+   *  2  Brad Buran
+
 .. _changes_0_3:
 
 Version 0.3
