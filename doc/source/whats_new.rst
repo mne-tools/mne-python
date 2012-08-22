@@ -1,6 +1,16 @@
 What's new
 ==========
 
+.. _changes_0_5:
+
+Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+   - ...
+
 .. _changes_0_4:
 
 Version 0.4
