@@ -1,7 +1,7 @@
 """MNE for MEG and EEG data analysis
 """
 
-__version__ = '0.3.git'
+__version__ = '0.4'
 
 from .cov import read_cov, write_cov, Covariance, \
                  compute_raw_data_covariance, compute_covariance

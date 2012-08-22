@@ -1,7 +1,9 @@
 What's new
 ==========
 
-Current
+.. _changes_0_4:
+
+Version 0.4
 -----------
 
 Changelog
