@@ -10,8 +10,7 @@ import sys
 import mne
 
 DISTNAME            = 'mne'
-DESCRIPTION         = 'MNE python project for MEG and EEG data analysis'
-LONG_DESCRIPTION    = descr
+DESCRIPTION         = descr
 MAINTAINER          = 'Alexandre Gramfort'
 MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
 URL                 = 'http://martinos.org/mne'
@@ -36,7 +35,7 @@ if __name__ == "__main__":
         url = URL,
         version = VERSION,
         download_url = DOWNLOAD_URL,
-        long_description = LONG_DESCRIPTION,
+        long_description = open('README.rst').read(),
         zip_safe=False, # the package can run out of an .egg file
         classifiers =
             ['Intended Audience :: Science/Research',
