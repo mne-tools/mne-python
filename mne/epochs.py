@@ -112,6 +112,7 @@ class Epochs(object):
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False, reject=None, flat=None, proj=True):
         self.raw = raw
+        self.verbose = raw.verbose
         self.event_id = event_id
         self.tmin = tmin
         self.tmax = tmax
@@ -275,8 +276,8 @@ class Epochs(object):
             epoch = np.dot(self.proj, epoch)
 
         # Run baseline correction
-        epoch = rescale(epoch, self.times, self.baseline, 'mean', verbose=True,
-                        copy=False)
+        epoch = rescale(epoch, self.times, self.baseline, 'mean',
+                        verbose=self.verbose, copy=False)
         return epoch
 
     def _get_data_from_disk(self):
