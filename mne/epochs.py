@@ -75,6 +75,10 @@ class Epochs(object):
 
     proj : bool, optional
         Apply SSP projection vectors
+        
+    verbose : None | bool
+        Use verbose output. None defaults to raw.verbose.
+        
 
     Attributes
     ----------
@@ -110,9 +114,9 @@ class Epochs(object):
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True):
+                preload=False, reject=None, flat=None, proj=True, verbose=None):
         self.raw = raw
-        self.verbose = raw.verbose
+        self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
         self.tmin = tmin
         self.tmax = tmax
