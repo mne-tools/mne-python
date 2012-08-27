@@ -473,6 +473,32 @@ class SourceEstimate(object):
     def sqrt(self):
         return self ** (0.5)
 
+    def label_stc(self, label):
+        """
+
+        Returns
+        -------
+
+        values : 2d array (vertex by sample)
+            The time courses
+
+        """
+        if len(self.vertno) == 2:
+            hemi = ['lh', 'rh'].index(label.hemi)
+        else:
+            hemi = 0
+        stc_vertices = self.vertno[hemi]
+
+        idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
+        if len(idx) == 0:
+            raise ValueError('No vertices match the label in the stc file')
+        if hemi == 1:
+            idx += len(self.vertno[0])
+
+        values = self.data[idx]
+        return values
+
+
 ###############################################################################
 # Morphing
 

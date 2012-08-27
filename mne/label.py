@@ -11,6 +11,76 @@ from .source_estimate import read_stc, mesh_edges, mesh_dist
 from .surface import read_surface
 
 
+class Label(object):
+    """
+    
+    Attributes
+    ----------
+    
+    comment
+        comment from the first line of the label file
+    
+    vertices
+        vertex indices (0 based, column 1)
+    
+    pos
+        locations in meters (columns 2 - 4 divided by 1000)
+    
+    values
+        values at the vertices (column 5)
+
+    """
+    def __init__(self, vertices, pos, values, hemi, comment="", name=None,
+                 fpath=None):
+        if not (len(vertices) == len(values) == len(pos)):
+            err = ("vertices, values and pos need to have same length (number "
+                   "of vertices)")
+            raise ValueError(err)
+
+        self.vertices = vertices
+        self.pos = pos
+        self.values = values
+        self.hemi = hemi
+        self.comment = comment
+
+        # name
+        if name is None:
+            if fpath is not None:
+                name = os.path.basename(fpath)
+        self.name = name
+        self.fpath = fpath
+
+    def __repr__(self):
+        temp = "<Label: %r, %i vertices>"
+        name = self.name if self.name is not None else "unnamed"
+        n_vert = len(self)
+        return temp % (name, n_vert)
+
+    def __len__(self):
+        return len(self.vertices)
+
+    def __getitem__(self, name):
+        "for backwards compatibility"
+        return getattr(self, name)
+
+    def __add__(self, other):
+        if self.hemi != other.hemi:
+            raise ValueError("Labels need to be from the same hemisphere")
+
+        comment = " + ".join((self.comment, other.comment))
+        label = Label(np.hstack((self.vertices, other.vertices)),
+                      np.vstack((self.pos, other.pos)),
+                      np.hstack((self.values, other.values)),
+                      self.hemi,
+                      comment,
+                      name=' + '.join((self.name, other.name)))
+        return label
+
+    def save(self, filename):
+        write_label(filename, self)
+
+
+
 def read_label(filename):
     """Read FreeSurfer Label file
 
@@ -21,8 +91,8 @@ def read_label(filename):
 
     Returns
     -------
-    label : dict
-        Label dictionaries with keys:
+    label : Label
+        Label object with attributes:
             comment        comment from the first line of the label file
             vertices       vertex indices (0 based, column 1)
             pos            locations in meters (columns 2 - 4 divided by 1000)
@@ -30,28 +100,27 @@ def read_label(filename):
 
     """
     fid = open(filename, 'r')
-    comment = fid.readline().replace('\n', '')
+    comment = fid.readline().replace('\n', '')[1:]
     nv = int(fid.readline())
     data = np.empty((5, nv))
     for i, line in enumerate(fid):
         data[:, i] = line.split()
 
-    label = dict()
-    label['comment'] = comment[1:]
-    label['vertices'] = np.array(data[0], dtype=np.int32)
-    label['pos'] = 1e-3 * data[1:4].T
-    label['values'] = data[4]
+    vertices = np.array(data[0], dtype=np.int32)
+    pos = 1e-3 * data[1:4].T
+    values = data[4]
 
     basename = os.path.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
-        label['hemi'] = 'lh'
+        hemi = 'lh'
     elif basename.endswith('rh.label') or basename.startswith('rh.'):
-        label['hemi'] = 'rh'
+        hemi = 'rh'
     else:
         raise ValueError('Cannot find which hemisphere it is. File should end'
                          ' with lh.label or rh.label')
     fid.close()
 
+    label = Label(vertices, pos, values, hemi, comment=comment, fpath=filename)
     return label
 
 
@@ -62,7 +131,7 @@ def write_label(filename, label):
     ----------
     filename : string
         Path to label file to produce.
-    label : dict
+    label : dict | Label
         The label structure.
     """
     if not filename.endswith('lh.label') or not filename.endswith('rh.label'):
@@ -360,7 +429,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
 
         # create a label
         label = dict()
-        label['comment'] = 'Circular label: seed=%d, extent=%0.1fmm' %\
+        label['comment'] = 'Circular label: seed=%d, extent=%0.1fmm' % \
                            (seed, extent)
         label['vertices'] = label_verts
         label['pos'] = vert[hemi][label_verts]
