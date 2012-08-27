@@ -228,7 +228,46 @@ class SourceEstimate(object):
     """
     def __init__(self, fname):
         if fname is not None:
-            if fname.endswith('-vl.stc'):  # volumne source space
+            fname_arg = fname
+
+            # make sure corresponding file(s) can be found
+            ftype = None
+            if os.path.exists(fname):
+                if fname.endswith('-vl.stc'):
+                    ftype = 'volume'
+                elif fname.endswith('.stc'):
+                    ftype = 'surface'
+                    if fname.endswith(('-lh.stc', '-rh.stc')):
+                        fname = fname[:-7]
+                    else:
+                        err = ("Invalid .stc filename: %r; needs to end with "
+                               "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
+                               % fname)
+                        raise IOError(err)
+                elif fname.endswith('.w'):
+                    ftype = 'w'
+                    if fname.endswith(('-lh.w', '-rh.w')):
+                        fname = fname[:-5]
+                    else:
+                        err = ("Invalid .w filename: %r; needs to end with "
+                               "hemisphere tag ('...-lh.w' or '...-rh.w')"
+                               % fname)
+                        raise IOError(err)
+
+            if ftype is not 'volume':
+                stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
+                w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
+                if all(stc_exist) and (ftype is not 'w'):
+                    ftype = 'surface'
+                elif all(w_exist):
+                    ftype = 'w'
+                elif any(stc_exist) or any(w_exist):
+                    raise IOError("Hemisphere missing for %r" % fname_arg)
+                else:
+                    raise IOError("SourceEstimate File(s) not found for: %r" % fname_arg)
+
+            # load the data
+            if ftype == 'volume':  # volume source space
                 vl = read_stc(fname)
                 self.data = vl['data']
                 self.tmin = vl['tmin']
@@ -236,12 +275,7 @@ class SourceEstimate(object):
                 self.times = self.tmin + (self.tstep *
                                           np.arange(self.data.shape[1]))
                 self.vertno = [vl['vertices']]
-            elif (fname.endswith('.stc') or os.path.exists(fname + '-lh.stc')
-                  or os.path.exists(fname + '-rh.stc')):
-                # stc file with surface source spaces
-
-                if fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
-                    fname = fname[:-7]
+            elif ftype == 'surface': # stc file with surface source spaces
                 lh = read_stc(fname + '-lh.stc')
                 rh = read_stc(fname + '-rh.stc')
                 self.data = np.r_[lh['data'], rh['data']]
@@ -252,12 +286,7 @@ class SourceEstimate(object):
                 self.times = self.tmin + (self.tstep *
                                           np.arange(self.data.shape[1]))
                 self.vertno = [lh['vertices'], rh['vertices']]
-            elif (fname.endswith('.w') or os.path.exists(fname + '-lh.w')
-                  or os.path.exists(fname + '-rh.w')):
-                # w file with surface source spaces
-
-                if fname.endswith('-lh.w') or fname.endswith('-rh.w'):
-                    fname = fname[:-5]
+            elif ftype == 'w': # w file with surface source spaces
                 lh = read_w(fname + '-lh.w')
                 rh = read_w(fname + '-rh.w')
                 self.data = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
@@ -267,8 +296,6 @@ class SourceEstimate(object):
                 self.tstep = 1.0
                 self.times = np.array([0.0])
                 self.vertno = [lh['vertices'], rh['vertices']]
-            else:
-                raise ValueError('file type not supported')
 
     def _init_times(self):
         """create self.times"""
