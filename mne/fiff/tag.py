@@ -5,6 +5,7 @@
 
 import struct
 import numpy as np
+from scipy import linalg
 
 from .constants import FIFF
 
@@ -270,15 +271,15 @@ def read_tag(fid, pos=None):
                 loc = tag.data['loc']
                 kind = tag.data['kind']
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    tag.data['coil_trans'] = np.r_[np.c_[loc[3:5], loc[6:8],
-                                                        loc[9:11], loc[0:2]],
+                    tag.data['coil_trans'] = np.r_[np.c_[loc[3:6], loc[6:9],
+                                                        loc[9:12], loc[0:3]],
                                         np.array([0, 0, 0, 1]).reshape(1, 4)]
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
-                    if np.linalg.norm(loc[3:5]) > 0:
-                        tag.data['eeg_loc'] = np.c_[loc[0:2], loc[3:5]]
+                    if linalg.norm(loc[3:6]) > 0.:
+                        tag.data['eeg_loc'] = np.c_[loc[0:3], loc[3:6]]
                     else:
-                        tag.data['eeg_loc'] = loc[1:3]
+                        tag.data['eeg_loc'] = loc[0:3]
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 #
                 #   Unit and exponent
