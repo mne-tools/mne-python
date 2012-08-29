@@ -67,16 +67,37 @@ class Label(object):
         if self.hemi != other.hemi:
             raise ValueError("Labels need to be from the same hemisphere")
 
+        # check for overlap
+        duplicates = np.intersect1d(self.vertices, other.vertices)
+        if len(duplicates):
+            self_dup = [np.where(self.vertices == d)[0][0] for d in duplicates]
+            other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
+            if not np.all(self.pos[self_dup] == other.pos[other_dup]):
+                err = ("Labels %r and %r: vertices overlap but differ in " 
+                       "position values" % (self.name, other.name))
+                raise ValueError(err)
+            
+            isnew = np.array([v not in duplicates for v in other.vertices])
+            
+            other_vertices = other.vertices[isnew]
+            other_pos = other.pos[isnew]
+            other_values = other.values[isnew]
+        else:
+            other_vertices = other.vertices
+            other_pos = other.pos
+            other_values = other.values
+
         comment = " + ".join((self.comment, other.comment))
-        label = Label(np.hstack((self.vertices, other.vertices)),
-                      np.vstack((self.pos, other.pos)),
-                      np.hstack((self.values, other.values)),
+        label = Label(np.hstack((self.vertices, other_vertices)),
+                      np.vstack((self.pos, other_pos)),
+                      np.hstack((self.values, other_values)),
                       self.hemi,
                       comment,
                       name=' + '.join((self.name, other.name)))
         return label
 
     def save(self, filename):
+        "calls write_label to write the label to disk"
         write_label(filename, self)
 
 
@@ -156,8 +177,6 @@ def write_label(filename, label, verbose=True):
     for d in data:
         fid.write("%d %f %f %f %f\n" % tuple(d))
 
-    if verbose:
-        print '[done]'
     return label
 
 
