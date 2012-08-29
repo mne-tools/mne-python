@@ -124,7 +124,7 @@ def read_label(filename):
     return label
 
 
-def write_label(filename, label):
+def write_label(filename, label, verbose=True):
     """Write a FreeSurfer label
 
     Parameters
@@ -134,10 +134,16 @@ def write_label(filename, label):
     label : dict | Label
         The label structure.
     """
-    if not filename.endswith('lh.label') or not filename.endswith('rh.label'):
-        filename += '-' + label['hemi'] + '.label'
+    hemi = label['hemi']
+    path_head, name = os.path.split(filename)
+    if name.endswith('.label'):
+        name = name[:-6]
+    if not (name.startswith(hemi) or name.endswith(hemi)):
+        name += '-' + hemi
+    filename = os.path.join(path_head, name) + '.label'
 
-    print 'Saving label to : %s' % filename
+    if verbose:
+        print 'Saving label to : %s' % filename
 
     fid = open(filename, 'wb')
     n_vertices = len(label['vertices'])
@@ -150,7 +156,8 @@ def write_label(filename, label):
     for d in data:
         fid.write("%d %f %f %f %f\n" % tuple(d))
 
-    print '[done]'
+    if verbose:
+        print '[done]'
     return label
 
 
