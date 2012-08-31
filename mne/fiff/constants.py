@@ -466,43 +466,42 @@ FIFF.FIFF_UNITM_A    = -18
 #
 # Digitization point details
 #
-FIFFV_POINT_CARDINAL = 1
-FIFFV_POINT_HPI      = 2
-FIFFV_POINT_EEG      = 3
-FIFFV_POINT_ECG      = FIFFV_POINT_EEG
-FIFFV_POINT_EXTRA    = 4
+FIFF.FIFFV_POINT_CARDINAL = 1
+FIFF.FIFFV_POINT_HPI      = 2
+FIFF.FIFFV_POINT_EEG      = 3
+FIFF.FIFFV_POINT_ECG      = FIFFV_POINT_EEG
+FIFF.FIFFV_POINT_EXTRA    = 4
 
-FIFFV_POINT_LPA      = 1
-FIFFV_POINT_NASION   = 2
-FIFFV_POINT_RPA      = 3
+FIFF.FIFFV_POINT_LPA      = 1
+FIFF.FIFFV_POINT_NASION   = 2
+FIFF.FIFFV_POINT_RPA      = 3
 #
 # Coil types
 #
-FIFFV_COIL_NONE                  = 0  # The location info contains no data
-FIFFV_COIL_EEG                   = 1  # EEG electrode position in r0 
-FIFFV_COIL_NM_122                = 2  # Neuromag 122 coils
-FIFFV_COIL_NM_24                 = 3  # Old 24 channel system in HUT
-FIFFV_COIL_NM_MCG_AXIAL          = 4  # The axial devices in the HUCS MCG system
-FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
+FIFF.FIFFV_COIL_NONE                  = 0  # The location info contains no data
+FIFF.FIFFV_COIL_EEG                   = 1  # EEG electrode position in r0 
+FIFF.FIFFV_COIL_NM_122                = 2  # Neuromag 122 coils
+FIFF.FIFFV_COIL_NM_24                 = 3  # Old 24 channel system in HUT
+FIFF.FIFFV_COIL_NM_MCG_AXIAL          = 4  # The axial devices in the HUCS MCG system
+FIFF.FIFFV_COIL_EEG_BIPOLAR           = 5  # Bipolar EEG lead
 
-FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
+FIFF.FIFFV_COIL_DIPOLE             = 200  # Time-varying dipole definition
 # The coil info contains dipole location (r0) and
 # direction (ex)
-FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
+FIFF.FIFFV_COIL_MCG_42             = 1000  # For testing the MCG software
 
-FIFFV_COIL_POINT_MAGNETOMETER = 2000  # Simple point magnetometer
-FIFFV_COIL_AXIAL_GRAD_5CM     = 2001  # Generic axial gradiometer
+FIFF.FIFFV_COIL_POINT_MAGNETOMETER = 2000  # Simple point magnetometer
+FIFF.FIFFV_COIL_AXIAL_GRAD_5CM     = 2001  # Generic axial gradiometer
 
-FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
-FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
-FIFFV_COIL_VV_PLANAR_T2       = 3013  # Vectorview SQ20483N-A planar gradiometer
-FIFFV_COIL_VV_PLANAR_T3       = 3014  # Vectorview SQ20950N planar gradiometer
-FIFFV_COIL_VV_MAG_W           = 3021  # VV prototype wirewound magnetometer
-FIFFV_COIL_VV_MAG_T1          = 3022  # Vectorview SQ20483N magnetometer
-FIFFV_COIL_VV_MAG_T2          = 3023  # Vectorview SQ20483-A magnetometer
-FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
+FIFF.FIFFV_COIL_VV_PLANAR_W        = 3011  # VV prototype wirewound planar sensor
+FIFF.FIFFV_COIL_VV_PLANAR_T1       = 3012  # Vectorview SQ20483N planar gradiometer
+FIFF.FIFFV_COIL_VV_PLANAR_T2       = 3013  # Vectorview SQ20483N-A planar gradiometer
+FIFF.FIFFV_COIL_VV_PLANAR_T3       = 3014  # Vectorview SQ20950N planar gradiometer
+FIFF.FIFFV_COIL_VV_MAG_W           = 3021  # VV prototype wirewound magnetometer
+FIFF.FIFFV_COIL_VV_MAG_T1          = 3022  # Vectorview SQ20483N magnetometer
+FIFF.FIFFV_COIL_VV_MAG_T2          = 3023  # Vectorview SQ20483-A magnetometer
+FIFF.FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
 
-
-FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
-FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer 
-FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
+FIFF.FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
+FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer 
+FIFF.FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
