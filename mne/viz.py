@@ -1,8 +1,8 @@
 """Functions to plot M/EEG data e.g. topographies
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engeman@fz-juelich.de> 
 # License: Simplified BSD
 
 from itertools import cycle
@@ -15,6 +15,8 @@ from scipy import linalg
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
+          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 def plot_topo(evoked, layout):
     """Plot 2D topographies
@@ -111,8 +113,106 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         pl.show()
 
 
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
-          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+def plot_tfr(tfr, epochs,  ch_name, is_power, freq, plot=True, colorbar=True,
+             show=True, decim=1, xlim="tight"):
+    """Plot induced power or phase-lock as returned 
+       from mne.time_frequency.induced_power for a single channel
+
+       Parameters
+       ----------
+       tfr : 3D-array
+           results from induced_power, either power or phase_lock
+       epochs : epochsnobject
+           epochs object from mne.Epochs
+       ch_name : string
+           channel name
+       is_power : bool
+           if false, name of the plot will be 'phase_lock'
+       freq : array-like
+           frequencies of interest as passed to induced_power
+       plot : bool
+           Call pylab.plot() as the end or not.
+       colorbar : bool
+           Add colorbar to the plot or not.
+       show : bool
+           Call pylab.show() as the end or not.
+       decim : integer
+           steps for leaving out timeslices
+       xlim : 'tight' | tuple | None
+           xlim for plots.  
+    """
+    import pylab as pl
+    if ch_name not in epochs.info['ch_names']:
+        raise ValueError('"%s" is not a valid channel name' % ch_name)
+    # Milli seconds
+    times = epochs.times
+    times = 1e3 * times
+    tmin = 1e3 * epochs.tmin
+    tmax = 1e3 * epochs.tmax
+    ch_idx = epochs.info["ch_names"].index(ch_name)
+    kind = "Power" if is_power else "Phase Lock"
+    # baseline corrections with ratio
+    tfr /= np.mean(tfr[ch_idx:(ch_idx + 1), :, times[::decim] < 0], 
+                   axis=2)[:, :, None]
+    # plot_data = 20 * np.log10(tfr[0]) if dB else tfr[0]
+    plot_data = tfr[0]
+    extent = (tmin, tmax, freq[0], freq[-1])
+    if plot:
+        pl.clf()
+        fig = pl.figure()
+        pl.subplot(1, 1, 1)
+        pl.imshow(plot_data, extent=extent, aspect="auto", origin="lower")
+        pl.xlabel("Time (ms)")
+        pl.ylabel("Frequency (Hz)")
+        pl.title("%s -- Induced %s" % (ch_name,kind))
+        if xlim is not None:
+            if xlim == 'tight':
+                xlim = (times[0], times[-1])
+            pl.xlim(xlim)
+        if colorbar:
+            pl.colorbar()
+        if show:
+            pl.show()
+        else:
+            return fig
+    else:
+        return plot_data, extent
+
+
+def plot_topo_tfr(epochs, tfr, freq, layout, is_power=True, decim=1):
+    """Plot time frequency representations on sensor layout
+
+       Parameters
+       ----------
+       epochs : epochsnobject
+           epochs object from mne.Epochs
+       tfr : 3D-array
+           results from induced_power, either power or phase_lock
+       freq : array-like
+           frequencies of interest as passed to induced_power
+       layout : Layout object 
+           channel names and senosr positions
+       decim : integer
+           steps for leaving out timeslices
+       is_power : bool
+           if false, name of the plot will be 'phase_lock'
+    """
+    import pylab as pl
+    ch_names = epochs.info['ch_names']
+    pl.rcParams['axes.edgecolor'] = 'w'
+    fig = pl.figure(facecolor='k')
+    for idx, name in enumerate(layout.names):
+        if name in ch_names:
+            ax = pl.axes(layout.pos[idx], axisbg='k')
+            # tfr, ch_name, epochs, is_power, freq, 
+            tfr_data, extent = plot_tfr(tfr, epochs, name, is_power, freq, 
+                                        plot=False, show=False, xlim="tight")
+            ax.imshow(tfr_data, extent = extent, aspect="auto", origin="lower")
+            pl.xticks([], ())
+            pl.yticks([], ())
+    pl.rcParams['axes.edgecolor'] = 'k'
+
+    return fig
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
