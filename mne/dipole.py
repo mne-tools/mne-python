@@ -21,7 +21,7 @@ def read_dip(fname):
     amplitude : array, shape=(n_dipoles,)
         The amplitude of the dipoles in nAm
     ori : array, shape=(n_dipoles, 3)
-        The dipoles orientations in nAm
+        The dipole orientations in nAm
     gof : array, shape=(n_dipoles,)
         The goodness of fit
     """
