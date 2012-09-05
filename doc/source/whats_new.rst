@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - ...
+   - Read and visualize .dip files obtained with xfit or mne_dipole_fit by `Alex Gramfort`_
 
 .. _changes_0_4:
 
