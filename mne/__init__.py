@@ -23,6 +23,7 @@ from .transforms import transform_coordinates
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked
 from .selection import read_selection
+from .dipole import read_dip
 from . import fiff
 from . import artifacts
 from . import stats
