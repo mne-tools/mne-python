@@ -538,12 +538,14 @@ class SourceEstimate(object):
 
     def label_stc(self, label):
         """
+        Returns the time course of activation of all sources inside a label as
+        a 2-dimensional numpy array (vertex by sample).
 
-        Returns
-        -------
+        Parameters
+        ----------
 
-        values : 2d array (vertex by sample)
-            The time courses
+        label : ???
+            The label (as created for example by mne.read_label)
 
         """
         if len(self.vertno) == 2:
