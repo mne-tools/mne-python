@@ -42,7 +42,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 data = epochs.get_data()  # as 3D matrix
 
 ###############################################################################
-# Calculate power and phase_locking value
+# Calculate power and phase locking value
 
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = frequencies / float(7)  # different number of cycle per frequency
@@ -54,7 +54,7 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
 
 
 ###############################################################################
-# Prepare topgraphy plots
+# Prepare topgraphy plots, set baselin correction parameters
 
 layout = Layout('Vectorview-all')
 
@@ -63,7 +63,7 @@ baseline = (None, 0)  # set the baseline for induced power
 mode = 'ratio'  # set mode for baseline rescaling
 
 ###############################################################################
-# Show topography of power (be patient, may this take some time)
+# Show topography of power (be patient, this may take some time)
 
 plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
                 mode=mode, decim=decim)
