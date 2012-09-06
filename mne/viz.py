@@ -277,13 +277,16 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
 
     Parameters
     ----------
+    
+    epochs : instance of Epochs
+        The epochs used to generate the phase locking value
     phase_lock : 3D-array
         Phase locking value, second return value from
         mne.time_frequency.induced_power
-    epochs : instance of Epochs
-        The epochs used to generate the phase locking value
     freq : array-like
         frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
     baseline: tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
