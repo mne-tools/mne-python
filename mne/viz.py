@@ -10,7 +10,7 @@ from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
-import mne
+from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
@@ -119,41 +119,38 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
 def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
     """Helper function: plot time frequency representation for single channel
 
-       Parameters
-       ----------
+    Parameters
+    ----------
+    epochs : epochsnobject
+        epochs object from mne.Epochs
+    tfr : 3D-array
+        results from induced_power, either power or phase_lock
+    ch_name : string
+        channel name
+    freq : array-like
+        frequencies of interest as passed to induced_power
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        steps for leaving out timeslices
 
-       epochs : epochsnobject
-           epochs object from mne.Epochs
-       tfr : 3D-array
-           results from induced_power, either power or phase_lock 
-       ch_name : string
-           channel name
-       is_power : bool
-           if false, name of the plot will be 'phase_lock'
-       freq : array-like
-           frequencies of interest as passed to induced_power
-       plot : bool
-           Call pylab.plot() as the end or not.
-       colorbar : bool
-           Add colorbar to the plot or not.
-       show : bool
-           Call pylab.show() as the end or not.
-       decim : integer
-           steps for leaving out timeslices
-       mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-           Do baseline correction with ratio (power is divided by mean
-           power during baseline) or zscore (power is divided by standard
-           deviatio of power during baseline after substracting the mean,
-           power = [power - mean(power_baseline)] / std(power_baseline))
-       decim : integer
-           steps for leaving out timeslices
-
-       Returns
-       =======
-       tfr_ch : 2D array 
-           Time frequency representation of power for the selected channel
-       extent : tuple
-           Plotting parameters -- tmin, tmax, lower and upper frequency
+    Returns
+    =======
+    tfr_ch : 2D array
+        Time frequency representation of power for the selected channel
+    extent : tuple
+        Plotting parameters -- tmin, tmax, lower and upper frequency
     """
     if ch_name not in epochs.info['ch_names']:
         raise ValueError('"%s" is not a valid channel name' % ch_name)
@@ -166,48 +163,49 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
     # channel selcetion
     tfr_ch = tfr[ch_idx:(ch_idx + 1)].copy()
     # baseline corrections
-    tfr_ch = mne.baseline.rescale(tfr_ch, times, baseline, mode)
+    tfr_ch = rescale(tfr_ch, times, baseline, mode)
     # plot_data = 20 * np.log10(tfr[0]) if dB else tfr_ch[0]
     extent = (tmin, tmax, freq[0], freq[-1])
 
     return tfr_ch[0], extent
 
 
-def _plot_topo_imshow(epochs, tfr, name, freq, layout, baseline, mode, decim):
+def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
     """ Helper function: plot time frequency representations on sensor layout
 
-       Parameters
-       ----------
-       epochs : epochsnobject
-           Instance mne.Epochs
-       tfr : ndarray
-           power or phase_lock ndarray
-       freq : array-like
-           Frequencies of interest as passed to induced_power
-       layout : Layout object
-           channel names and senosr positions
-       baseline: tuple or list of length 2
-           The time interval to apply rescaling / baseline correction.
-           If None do not apply it. If baseline is (a, b)
-           the interval is between "a (s)" and "b (s)".
-           If a is None the beginning of the data is used
-           and if b is None then b is set to the end of the interval.
-           If baseline is equal ot (None, None) all the time
-           interval is used.
-           
-       mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-           Do baseline correction with ratio (power is divided by mean
-           power during baseline) or zscore (power is divided by standard
-           deviatio of power during baseline after substracting the mean,
-           power = [power - mean(power_baseline)] / std(power_baseline))
-       decim : integer
-           steps for leaving out timeslices
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    tfr : 3D-array
+        return value from time_frequency.induced_power, wither power
+        or phase_lock
+    freq : array-like
+        frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        steps for leaving out timeslices
 
-       Returns
-       =======
-       fig : matplotlib figure 
-
+    Returns
+    -------
+    fig : matplotlib figure
+        images of induced power at sensor locartions
     """
+
     import pylab as pl
     ch_names = epochs.info['ch_names']
     pl.rcParams['axes.edgecolor'] = 'w'
@@ -226,103 +224,99 @@ def _plot_topo_imshow(epochs, tfr, name, freq, layout, baseline, mode, decim):
     return fig
 
 
-<<<<<<< HEAD
-def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
-=======
-def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean', 
+def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
                     decim=1):
-    """Plot induced power or phase-lock as returned 
-       from mne.time_frequency.induced_power for a single channel
+    """Plot induced power on sensor layout
 
-       Parameters
-       ----------
-       power : 3D-array
-           first return value from mne.time_frequency.induced_power
-       epochs : instance of Epochs
-           The epochs used to generate the power
-       freq : array-like
-           frequencies of interest as passed to induced_power
-       decim : integer
-           steps for leaving out timeslices 
-       baseline: tuple or list of length 2
-           The time interval to apply rescaling / baseline correction.
-           If None do not apply it. If baseline is (a, b)
-           the interval is between "a (s)" and "b (s)".
-           If a is None the beginning of the data is used
-           and if b is None then b is set to the end of the interval.
-           If baseline is equal ot (None, None) all the time
-           interval is used.
-       mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-           Do baseline correction with ratio (power is divided by mean
-           power during baseline) or zscore (power is divided by standard
-           deviatio of power during baseline after substracting the mean,
-           power = [power - mean(power_baseline)] / std(power_baseline))
+    Parameters
+    ----------
 
-       Returns
-       ------- 
-       fig : matplotlib figure 
-           images of induced power at sensor locartions
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    power : 3D-array
+        first return value from mne.time_frequency.induced_power
+    freq : array-like
+        frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        steps for leaving out timeslices
+
+    Returns
+    -------
+    fig : matplotlib figure
+        images of induced power at sensor locartions
 
     """
     if not baseline:
-        baseline = epochs.basline
+        baseline = epochs.baseline
 
-    name = 'Induced Power'
-    ret = _plot_topo_imshow(epochs, power, name, freq, layout, decim=decim,
+    # name = 'Induced Power'
+    ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
                             baseline=baseline, mode=mode)
 
     return ret
 
 
-def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None, 
+def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
                          mode='mean', decim=1):
-    """Plot induced power or phase-lock as returned 
-       from mne.time_frequency.induced_power for a single channel
+    """Plot phase locking values on sensor layout
 
-       Parameters
-       ----------
-       phase_lock : 3D-array
-           Phase locking value, second return value from 
-           mne.time_frequency.induced_power
-       epochs : instance of Epochs
-           The epochs used to generate the phase locking value
-       freq : array-like
-           frequencies of interest as passed to induced_power
-       baseline: tuple or list of length 2
-           The time interval to apply rescaling / baseline correction.
-           If None do not apply it. If baseline is (a, b)
-           the interval is between "a (s)" and "b (s)".
-           If a is None the beginning of the data is used
-           and if b is None then b is set to the end of the interval.
-           If baseline is equal ot (None, None) all the time
-           interval is used.
+    Parameters
+    ----------
+    phase_lock : 3D-array
+        Phase locking value, second return value from
+        mne.time_frequency.induced_power
+    epochs : instance of Epochs
+        The epochs used to generate the phase locking value
+    freq : array-like
+        frequencies of interest as passed to induced_power
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or zscore (power is divided by standard
+        deviatio of power during baseline after substracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        steps for leaving out timeslices
 
-       mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-           Do baseline correction with ratio (power is divided by mean
-           power during baseline) or zscore (power is divided by standard
-           deviatio of power during baseline after substracting the mean,
-           power = [power - mean(power_baseline)] / std(power_baseline))
-       decim : integer
-           steps for leaving out timeslices
-
-       Returns
-       -------
-       fig : matplotlib figure 
-           Phase lock images at sensor locartions
+    Returns
+    -------
+    fig : matplotlib figure
+        Phase lock images at sensor locartions
 
     """
     if not baseline:
-        baseline = epochs.basline
-    
-    name = 'Phase Locking Value'
-    ret = _plot_topo_imshow(epochs, phase_lock, name, freq, layout, decim=decim,
+        baseline = epochs.baseline
+
+    # name = 'Phase Locking Value'
+    ret = _plot_topo_imshow(epochs, phase_lock, freq, layout, decim=decim,
                             baseline=baseline, mode=mode)
 
     return ret
 
 
-def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2, 
->>>>>>> Neater implementation of plotting functions
+def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
                                  brain_color=(0.7, ) * 3, show=True,
                                  high_resolution=False, fig_name=None,
@@ -414,7 +408,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     mlab.clf()
     f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                                   use_faces, color=brain_color, 
+                                   use_faces, color=brain_color,
                                    opacity=opacity, **kwargs)
 
     import pylab as pl
