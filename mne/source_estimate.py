@@ -473,6 +473,39 @@ class SourceEstimate(object):
     def sqrt(self):
         return self ** (0.5)
 
+    def bin(self, width, func=np.mean):
+        """
+        Returns a SourceEstimate object with data summarized over time in bins
+        of ``width`` seconds
+
+
+        Parameters
+        ----------
+
+        width : scalar
+            Width of the individual bins in seconds.
+
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
+
+        """
+        times = np.arange(self.tmin, self.times[-1] + width, width)
+        nv, _ = self.data.shape
+        data = np.empty((nv, len(times)), dtype=self.data.dtype)
+        for i in xrange(len(times) - 1):
+            idx = (self.times >= times[i]) & (self.times < times[i + 1])
+            data[:, i] = func(self.data[:, idx], axis=1)
+
+        times = times[:-1] + width / 2.
+        out = SourceEstimate(None)
+        out.data = data
+        out.tmin = times[0]
+        out.tstep = width
+        out.times = times
+        out.vertno = self.vertno # is sharing that between objects ok?
+        return out
+
     def label_stc(self, label):
         """
 
