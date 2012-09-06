@@ -46,13 +46,14 @@ print "GOF (%%): %s" % gof
 # only plot those for which GOF is above 50%
 pos = pos[gof > 50.]
 ori = ori[gof > 50.]
+time = time[gof > 50.]
 
 ###############################################################################
 # Show result on 3D source space
 from enthought.mayavi import mlab
 lh_points = src[0]['rr']
 lh_faces = src[0]['use_tris']
-mlab.figure(size=(600, 600), bgcolor=(1, 1, 1))
+mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
 # show brain surface after proper coordinate system transformation
 points = brain_surface['rr']
@@ -64,13 +65,14 @@ mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
 
 # show one cortical surface
 mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                     lh_faces, opacity=0.6)
+                     lh_faces, color=(0.7, ) * 3)
 
 # show dipole as small cones
-mlab.quiver3d(pos[:,0], pos[:,1], pos[:,2],
-              ori[:,0], ori[:,1], ori[:,2],
-              opacity=1, scale_factor=4e-4, color=(1, 0, 0),
-              mode='cone')
+dipoles = mlab.quiver3d(pos[:,0], pos[:,1], pos[:,2],
+                        ori[:,0], ori[:,1], ori[:,2],
+                        opacity=1., scale_factor=4e-4, scalars=time,
+                        mode='cone')
+mlab.colorbar(dipoles, title='Dipole fit time (ms)')
 
 # proper 3D orientation
 mlab.get_engine().scenes[0].scene.x_plus_view()
