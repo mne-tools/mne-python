@@ -60,7 +60,7 @@ layout = Layout('Vectorview-all')
 
 baseline = (None, 0)  # set the baseline for induced power
 
-mode = 'ratio'  # set mode for baseline rescaling 
+mode = 'ratio'  # set mode for baseline rescaling
 
 ###############################################################################
 # Show topography of power (be patient, may this take some time)
