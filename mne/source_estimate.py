@@ -506,6 +506,36 @@ class SourceEstimate(object):
         out.vertno = self.vertno # is sharing that between objects ok?
         return out
 
+    def get_surfer_stc(self, hemi='lh'):
+        """
+        Returns a dictionary that can be used in PySyrfer as an alternative to
+        reading the stc from a file.
+
+
+        Parameters
+        ----------
+
+        hemi : 'lh' | 'rh'
+            Hemisphere (can only include data for one hemisphere)
+
+        """
+        sstc = {'tmin': self.tmin, 'tstep': self.tstep, 'times': self.times}
+        if len(self.vertno) == 2:
+            if hemi == 'lh':
+                idx = slice(None, len(self.vertno[0]))
+                sstc['vertices'] = self.vertno[0]
+            elif hemi == 'rh':
+                idx = slice(len(self.vertno[0]), None)
+                sstc['vertices'] = self.vertno[1]
+            else:
+                raise ValueError("kwarg hemi needs to be 'lh' or 'rh', not %r" % hemi)
+            sstc['data'] = self.data[idx]
+        else:
+            sstc['vertices'] = self.vertno[0]
+            sstc['data'] = self.data
+
+        return sstc
+
     def label_stc(self, label):
         """
 
