@@ -101,7 +101,7 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
     return x0
 
 
-def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
+def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
                  interp_kind='linear'):
     """
     Returns the Discrete Prolate Spheroidal Sequences of orders [0,Kmax-1]
@@ -112,12 +112,12 @@ def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
     Parameters
     ----------
     N : int
-        sequence length
-    NW : float, unitless
-        standardized bandwidth corresponding to NW = BW*f0 = BW*N/dt
-        but with dt taken as 1
+        Sequence length
+    half_nbw : float, unitless
+        Standardized half bandwidth corresponding to 2 * half_bw = BW*f0
+        = BW*N/dt but with dt taken as 1
     Kmax : int
-        number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
+        Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
     low_bias : Bool
         Keep only tapers with eigenvalues > 0.9
     interp_from: int (optional)
@@ -146,7 +146,7 @@ def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     Kmax = int(Kmax)
-    W = float(NW) / (2 * N)
+    W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
 
     # In this case, we create the dpss windows of the smaller size
@@ -158,7 +158,7 @@ def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
             e_s += 'Please enter interp_from smaller than N.'
             raise ValueError(e_s)
         dpss = []
-        d, e = dpss_windows(interp_from, NW, Kmax, low_bias=False)
+        d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
             I = interpolate.interp1d(x, this_d, kind=interp_kind)
@@ -438,14 +438,15 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
 
     n_times = x_in.shape[1]
 
+    # compute standardized half-bandwidth
     if bandwidth is not None:
-        bw_norm = float(bandwidth) * n_times / sfreq
+        half_nbw = float(bandwidth) * n_times / (2 * sfreq)
     else:
-        bw_norm = 4
+        half_nbw = 4
 
-    n_tapers_max = int(2 * bw_norm)
+    n_tapers_max = int(2 * half_nbw)
 
-    dpss, eigvals = dpss_windows(n_times, bw_norm, n_tapers_max,
+    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                  low_bias=low_bias)
 
     # compute the tapered spectra

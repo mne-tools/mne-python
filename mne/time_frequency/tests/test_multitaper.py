@@ -9,17 +9,17 @@ def test_dpss_windows():
     """ Test computation of DPSS windows """
 
     N = 1000
-    NW = 4
-    Kmax = 2 * NW
+    half_nbw = 4
+    Kmax = int(2 * half_nbw)
 
-    dpss, eigs = dpss_windows(N, NW, Kmax, low_bias=False)
-    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, NW, Kmax)
+    dpss, eigs = dpss_windows(N, half_nbw, Kmax, low_bias=False)
+    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax)
 
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)
 
-    dpss, eigs = dpss_windows(N, NW, Kmax, interp_from=200, low_bias=False)
-    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, NW, Kmax, interp_from=200)
+    dpss, eigs = dpss_windows(N, half_nbw, Kmax, interp_from=200, low_bias=False)
+    dpss_ni, eigs_ni = ni.algorithms.dpss_windows(N, half_nbw, Kmax, interp_from=200)
 
     assert_array_almost_equal(dpss, dpss_ni)
     assert_array_almost_equal(eigs, eigs_ni)
