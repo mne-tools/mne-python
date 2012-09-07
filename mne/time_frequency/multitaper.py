@@ -114,7 +114,7 @@ def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
     N : int
         sequence length
     NW : float, unitless
-        standardized half bandwidth corresponding to 2NW = BW*f0 = BW*N/dt
+        standardized bandwidth corresponding to NW = BW*f0 = BW*N/dt
         but with dt taken as 1
     Kmax : int
         number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
@@ -146,7 +146,7 @@ def dpss_windows(N, NW, Kmax, low_bias=True, interp_from=None,
     Volume 57 (1978), 1371430
     """
     Kmax = int(Kmax)
-    W = float(NW) / N
+    W = float(NW) / (2 * N)
     nidx = np.arange(N, dtype='d')
 
     # In this case, we create the dpss windows of the smaller size
