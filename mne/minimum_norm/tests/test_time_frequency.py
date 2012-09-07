@@ -7,10 +7,14 @@ from nose.tools import assert_true
 from mne.datasets import sample
 from mne import fiff, find_events, Epochs
 from mne.label import read_label
-from mne.minimum_norm.inverse import read_inverse_operator
+from mne.minimum_norm.inverse import read_inverse_operator, \
+                                     apply_inverse_epochs
 from mne.minimum_norm.time_frequency import source_band_induced_power, \
-                            source_induced_power, compute_source_psd
+                            source_induced_power, compute_source_psd, \
+                            compute_source_psd_epochs
 
+
+from mne.time_frequency import multitaper_psd
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
@@ -93,3 +97,61 @@ def test_source_psd():
     # Time max at line frequency (60 Hz in US)
     assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
                       <= 61e-3)
+
+
+def test_source_psd_epochs():
+    """Test multi-taper source PSD computation in label from epochs"""
+
+    raw = fiff.Raw(fname_data)
+    inverse_operator = read_inverse_operator(fname_inv)
+    label = read_label(fname_label)
+
+    event_id, tmin, tmax = 1, -0.2, 0.5
+    lambda2, method = 1. / 9., 'dSPM'
+    bandwidth = 8.
+    fmin, fmax = 0, 100
+
+    picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
+                            ecg=True, eog=True, include=['STI 014'],
+                            exclude=raw.info['bads'])
+    reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
+
+    events = find_events(raw)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject)
+
+    # only look at one epoch
+    epochs.drop_bad_epochs()
+    one_epochs = epochs[:1]
+
+    # return list
+    stc_psd = compute_source_psd_epochs(one_epochs, inverse_operator,
+                                        lambda2=lambda2, method=method,
+                                        pick_normal=True, label=label,
+                                        bandwidth=bandwidth,
+                                        fmin=fmin, fmax=fmax)[0]
+
+    # return generator
+    stcs = compute_source_psd_epochs(one_epochs, inverse_operator,
+                                     lambda2=lambda2, method=method,
+                                     pick_normal=True, label=label,
+                                     bandwidth=bandwidth,
+                                     fmin=fmin, fmax=fmax,
+                                     return_generator=True)
+
+    for stc in stcs:
+        stc_psd_gen = stc
+
+    assert_array_almost_equal(stc_psd.data, stc_psd_gen.data)
+
+    # compare with direct computation
+    stc = apply_inverse_epochs(one_epochs, inverse_operator,
+                               lambda2=lambda2, method=method,
+                               pick_normal=True, label=label)[0]
+
+    sfreq = epochs.info['sfreq']
+    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,
+                                fmin=fmin, fmax=fmax)
+
+    assert_array_almost_equal(psd, stc_psd.data)
+    assert_array_almost_equal(freqs, stc_psd.times)
