@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Multi-taper PSD estimation for single epochs in source space using minimum norm by `Martin Luessi`_
+
    - Read and visualize .dip files obtained with xfit or mne_dipole_fit by `Alex Gramfort`_
 
 .. _changes_0_4:
