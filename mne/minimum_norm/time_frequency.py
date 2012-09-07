@@ -436,8 +436,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
                               pick_normal=False, label=None, nave=1,
-                              pca=True, inv_split=None, bw=4, adaptive=False,
-                              low_bias=True, n_jobs=1):
+                              pca=True, inv_split=None, bandwidth=4.,
+                              adaptive=False, low_bias=True, n_jobs=1):
     """ Generator for compute_source_psd_epochs """
 
     print 'Considering frequencies %g ... %g Hz' % (fmin, fmax)
@@ -479,13 +479,13 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_times = len(epochs.times)
     sfreq = epochs.info['sfreq']
 
-    bw_norm = float(bw) / (2 * sfreq) * n_times
+    bw_norm = float(bandwidth) * n_times / sfreq
     n_tapers_max = int(2 * bw_norm)
     dpss, eigvals = dpss_windows(n_times, bw_norm, n_tapers_max,
                                  low_bias=low_bias)
     n_tapers = len(dpss)
 
-    print 'Using %d tapers with bandwidth %0.1fHz' % (n_tapers, bw)
+    print 'Using %d tapers with bandwidth %0.1fHz' % (n_tapers, bandwidth)
 
     if adaptive and len(eigvals) < 3:
         warn('Not adaptively combining the spectral estimators '
@@ -556,8 +556,9 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
                               pick_normal=False, label=None, nave=1,
-                              pca=True, inv_split=None, bw=4, adaptive=False,
-                              low_bias=True, return_generator=False, n_jobs=1):
+                              pca=True, inv_split=None, bandwidth=4.,
+                              adaptive=False, low_bias=True,
+                              return_generator=False, n_jobs=1):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 
@@ -589,7 +590,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         e.g. with a dataset that was maxfiltered (true dim is 64)
     inv_split: int or None
         Split inverse operator into inv_split parts in order to save memory
-    bw: float
+    bandwidth: float
         The bandwidth of the multi taper windowing function in Hz
     adaptive: bool
         Use adaptive weights to combine the tapered spectra into PSD
@@ -614,8 +615,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               lambda2=lambda2, method=method, fmin=fmin,
                               fmax=fmax, pick_normal=pick_normal, label=label,
                               nave=nave, pca=pca, inv_split=inv_split,
-                              bw=bw, adaptive=adaptive, low_bias=low_bias,
-                              n_jobs=n_jobs)
+                              bandwidth=bandwidth, adaptive=adaptive,
+                              low_bias=low_bias, n_jobs=n_jobs)
 
     if return_generator:
         # return generator object

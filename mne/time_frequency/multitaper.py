@@ -399,7 +399,7 @@ def _mt_spectra(x, dpss, sfreq):
     return x_mt, freqs
 
 
-def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bw=None,
+def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
                    adaptive=False, low_bias=True, n_jobs=1):
     """Compute power spectrum density (PSD) using a multi-taper method
 
@@ -413,7 +413,7 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bw=None,
         The lower frequency of interest
     fmax : float
         The upper frequency of interest
-    bw: float
+    bandwidth: float
         The bandwidth of the multi taper windowing function in Hz
     adaptive: bool
         Use adaptive weights to combine the tapered spectra into PSD
@@ -438,8 +438,8 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bw=None,
 
     n_times = x_in.shape[1]
 
-    if bw is not None:
-        bw_norm = float(bw) / (2 * sfreq) * n_times
+    if bandwidth is not None:
+        bw_norm = float(bandwidth) * n_times / sfreq
     else:
         bw_norm = 4
 

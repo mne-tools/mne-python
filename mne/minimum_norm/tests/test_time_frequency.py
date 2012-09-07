@@ -108,7 +108,7 @@ def test_source_psd_epochs():
 
     event_id, tmin, tmax = 1, -0.2, 0.5
     lambda2, method = 1. / 9., 'dSPM'
-    bw = 8.
+    bandwidth = 8.
     fmin, fmax = 0, 100
 
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
@@ -128,13 +128,15 @@ def test_source_psd_epochs():
     stc_psd = compute_source_psd_epochs(one_epochs, inverse_operator,
                                         lambda2=lambda2, method=method,
                                         pick_normal=True, label=label,
-                                        bw=bw, fmin=fmin, fmax=fmax)[0]
+                                        bandwidth=bandwidth,
+                                        fmin=fmin, fmax=fmax)[0]
 
     # return generator
     stcs = compute_source_psd_epochs(one_epochs, inverse_operator,
                                      lambda2=lambda2, method=method,
                                      pick_normal=True, label=label,
-                                     bw=bw, fmin=fmin, fmax=fmax,
+                                     bandwidth=bandwidth,
+                                     fmin=fmin, fmax=fmax,
                                      return_generator=True)
 
     for stc in stcs:
@@ -148,7 +150,7 @@ def test_source_psd_epochs():
                                pick_normal=True, label=label)[0]
 
     sfreq = epochs.info['sfreq']
-    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bw=bw,
+    psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,
                                 fmin=fmin, fmax=fmax)
 
     assert_array_almost_equal(psd, stc_psd.data)

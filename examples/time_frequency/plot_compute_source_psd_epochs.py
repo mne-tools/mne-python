@@ -55,7 +55,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # define frequencies of interest
 fmin, fmax = 0., 70.
-bw = 4.  # bandwidth of the windows in Hz
+bandwidth = 4.  # bandwidth of the windows in Hz
 
 # compute source space psd in label
 
@@ -65,7 +65,7 @@ bw = 4.  # bandwidth of the windows in Hz
 
 stcs = compute_source_psd_epochs(epochs, inverse_operator, lambda2=lambda2,
                                  method=method, fmin=fmin, fmax=fmax,
-                                 bw=bw, return_generator=True)
+                                 bandwidth=bandwidth, return_generator=True)
 
 # compute average PSD over the first 10 epochs
 n_epochs = 10
