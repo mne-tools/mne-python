@@ -33,7 +33,7 @@ events = mne.read_events(event_fname)
 include = []
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
-# picks MEG gr  adiometers
+# picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude=exclude)
 
@@ -54,7 +54,7 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
 
 
 ###############################################################################
-# Prepare topgraphy plots, set baselin correction parameters
+# Prepare topgraphy plots, set baseline correction parameters
 
 layout = Layout('Vectorview-all')
 

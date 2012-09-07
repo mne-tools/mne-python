@@ -1,3 +1,8 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
+#
+# License: BSD (3-clause)
+
 """Functions to plot M/EEG data e.g. topographies
 """
 
@@ -121,14 +126,14 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
 
     Parameters
     ----------
-    epochs : epochsnobject
-        epochs object from mne.Epochs
+    epochs : instance of Epochs
+        The epochs used to generate the power
     tfr : 3D-array
-        results from induced_power, either power or phase_lock
+        Results from induced_power, either power or phase_lock
     ch_name : string
-        channel name
+        Channel name to select channel
     freq : array-like
-        frequencies of interest as passed to induced_power
+        Frequencies of interest as passed to induced_power
     baseline: tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -143,7 +148,7 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        steps for leaving out timeslices
+        Steps for leaving out timeslices
 
     Returns
     =======
@@ -178,10 +183,10 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
     epochs : instance of Epochs
         The epochs used to generate the power
     tfr : 3D-array
-        return value from time_frequency.induced_power, wither power
+        Return value from time_frequency.induced_power, wither power
         or phase_lock
     freq : array-like
-        frequencies of interest as passed to induced_power
+        Frequencies of interest as passed to induced_power
     layout: instance of Layout
         System specific sensor positions
     baseline: tuple or list of length 2
@@ -198,7 +203,7 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        steps for leaving out timeslices
+        Skipping each nth timeslices
 
     Returns
     -------
@@ -234,9 +239,9 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     epochs : instance of Epochs
         The epochs used to generate the power
     power : 3D-array
-        first return value from mne.time_frequency.induced_power
+        First return value from mne.time_frequency.induced_power
     freq : array-like
-        frequencies of interest as passed to induced_power
+        Frequencies of interest as passed to induced_power
     layout: instance of Layout
         System specific sensor positions
     baseline: tuple or list of length 2
@@ -253,12 +258,12 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        steps for leaving out timeslices
+        Skipping each nth timeslices
 
     Returns
     -------
     fig : matplotlib figure
-        images of induced power at sensor locartions
+        Images of induced power at sensor locartions
 
     """
     if not baseline:
@@ -284,7 +289,7 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
         Phase locking value, second return value from
         mne.time_frequency.induced_power
     freq : array-like
-        frequencies of interest as passed to induced_power
+        Frequencies of interest as passed to induced_power
     layout: instance of Layout
         System specific sensor positions
     baseline: tuple or list of length 2
@@ -301,7 +306,7 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        steps for leaving out timeslices
+        Skipping each nth timeslices
 
     Returns
     -------
