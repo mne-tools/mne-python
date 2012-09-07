@@ -479,9 +479,11 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_times = len(epochs.times)
     sfreq = epochs.info['sfreq']
 
-    bw_norm = float(bandwidth) * n_times / sfreq
-    n_tapers_max = int(2 * bw_norm)
-    dpss, eigvals = dpss_windows(n_times, bw_norm, n_tapers_max,
+    # compute standardized half-bandwidth
+    half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    n_tapers_max = int(2 * half_nbw)
+
+    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                  low_bias=low_bias)
     n_tapers = len(dpss)
 
