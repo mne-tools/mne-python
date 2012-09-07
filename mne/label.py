@@ -11,7 +11,7 @@ from .source_estimate import read_stc, mesh_edges, mesh_dist
 from .surface import read_surface
 
 
-class Label(object):
+class Label(dict):
     """
     
     Attributes
@@ -29,6 +29,9 @@ class Label(object):
     values
         values at the vertices (column 5)
 
+    For backwards compatibility, the following attributes are stored as dictionary
+    entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
+
     """
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
                  fpath=None):
@@ -37,11 +40,8 @@ class Label(object):
                    "of vertices)")
             raise ValueError(err)
 
-        self.vertices = vertices
-        self.pos = pos
-        self.values = values
-        self.hemi = hemi
-        self.comment = comment
+        self.update(vertices=vertices, pos=pos, values=values, hemi=hemi,
+                    comment=comment)
 
         # name
         if name is None:
@@ -49,6 +49,26 @@ class Label(object):
                 name = os.path.basename(fpath)
         self.name = name
         self.fpath = fpath
+
+    @property
+    def comment(self):
+        return self['comment']
+
+    @property
+    def hemi(self):
+        return self['hemi']
+
+    @property
+    def pos(self):
+        return self['pos']
+
+    @property
+    def values(self):
+        return self['values']
+
+    @property
+    def vertices(self):
+        return self['vertices']
 
     def __repr__(self):
         temp = "<Label: %r, %i vertices>"
@@ -58,10 +78,6 @@ class Label(object):
 
     def __len__(self):
         return len(self.vertices)
-
-    def __getitem__(self, name):
-        "for backwards compatibility"
-        return getattr(self, name)
 
     def __add__(self, other):
         if self.hemi != other.hemi:
