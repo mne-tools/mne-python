@@ -203,7 +203,7 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Skipping each nth timeslices
+        Increment for selecting each nth timeslice
 
     Returns
     -------
@@ -258,7 +258,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Skipping each nth timeslices
+        Increment for selecting each nth timeslice
 
     Returns
     -------
@@ -306,7 +306,7 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Skipping each nth timeslices
+        Increment for selecting each nth timeslice
 
     Returns
     -------
