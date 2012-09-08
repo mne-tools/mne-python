@@ -6,11 +6,6 @@
 """Functions to plot M/EEG data e.g. topographies
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engeman@fz-juelich.de> 
-#
-# License: Simplified BSD
-
 from itertools import cycle
 import copy
 import numpy as np
