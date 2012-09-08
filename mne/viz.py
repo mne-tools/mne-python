@@ -6,11 +6,6 @@
 """Functions to plot M/EEG data e.g. topographies
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
-#
-# License: Simplified BSD
-
 from itertools import cycle
 import copy
 import numpy as np
@@ -282,7 +277,7 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
 
     Parameters
     ----------
-    
+
     epochs : instance of Epochs
         The epochs used to generate the phase locking value
     phase_lock : 3D-array
