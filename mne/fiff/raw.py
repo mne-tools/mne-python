@@ -591,9 +591,8 @@ class Raw(object):
 
         """
         if fname == self.info['filename']:
-            raise RuntimeError('Invalid operation. '
-                               'Please use a filename which is different from the '
-                               'original filename!')
+            raise ValueError('You cannot save data to the same file.'
+                               ' Please use a different filename.')
 
         if self._preloaded:
             if np.iscomplexobj(self._data):
