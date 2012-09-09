@@ -140,7 +140,7 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Steps for leaving out timeslices
@@ -195,7 +195,7 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth timeslice
@@ -203,7 +203,7 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
     Returns
     -------
     fig : matplotlib figure
-        images of induced power at sensor locartions
+        images of induced power at sensor locations
     """
 
     import pylab as pl
@@ -250,7 +250,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth timeslice
@@ -258,12 +258,11 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     Returns
     -------
     fig : matplotlib figure
-        Images of induced power at sensor locartions
+        Images of induced power at sensor locations
 
     """
-    if not baseline:
+    if baseline is None:
         baseline = epochs.baseline
-
     # name = 'Induced Power'
     ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
                             baseline=baseline, mode=mode)
@@ -298,7 +297,7 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth timeslice
@@ -306,10 +305,10 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
     Returns
     -------
     fig : matplotlib figure
-        Phase lock images at sensor locartions
+        Phase lock images at sensor locations
 
     """
-    if not baseline:
+    if baseline is None:
         baseline = epochs.baseline
 
     # name = 'Phase Locking Value'
