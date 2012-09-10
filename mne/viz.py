@@ -77,7 +77,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
             channel_types.append(t)
 
     counter = 1
-    times = 1e3 * evoked.times  # time in miliseconds
+    times = 1e3 * evoked.times  # time in milliseconds
     for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
                            [1e6, 1e13, 1e15],
                            ['EEG', 'Gradiometers', 'Magnetometers'],
@@ -139,11 +139,11 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
         interval is used.
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after substracting the mean,
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Steps for leaving out timeslices
+        Increment for selecting each nth time slice
 
     Returns
     =======
@@ -194,11 +194,11 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
         interval is used.
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after substracting the mean,
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Increment for selecting each nth timeslice
+        Increment for selecting each nth time slice
 
     Returns
     -------
@@ -249,11 +249,11 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         interval is used.
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after substracting the mean,
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Increment for selecting each nth timeslice
+        Increment for selecting each nth time slice
 
     Returns
     -------
@@ -296,11 +296,11 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
         interval is used.
     mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
-        power during baseline) or zscore (power is divided by standard
-        deviation of power during baseline after substracting the mean,
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
-        Increment for selecting each nth timeslice
+        Increment for selecting each nth time slice
 
     Returns
     -------
@@ -359,7 +359,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     labels: ndarray or list of ndarrays
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
-        the same color. labels should be a list of ndarrays when
+        the same color. Labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
     kwargs: kwargs
         kwargs pass to mlab.triangular_mesh
