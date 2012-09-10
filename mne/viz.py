@@ -10,7 +10,7 @@ from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
-from mne.baseline import rescale
+from .baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
