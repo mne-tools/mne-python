@@ -54,7 +54,7 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
 
 
 ###############################################################################
-# Prepare topgraphy plots, set baseline correction parameters
+# Prepare topography plots, set baseline correction parameters
 
 layout = Layout('Vectorview-all')
 
