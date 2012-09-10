@@ -10,7 +10,7 @@ from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
-from mne.baseline import rescale
+from .baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
@@ -270,7 +270,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     return ret
 
 
-def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None, 
+def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
                          mode='mean', decim=1):
     """Plot phase locking values on sensor layout
 
