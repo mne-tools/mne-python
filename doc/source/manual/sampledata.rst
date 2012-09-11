@@ -33,7 +33,7 @@ Sonata scanner using an MPRAGE sequence.
 In the MEG/EEG experiment, checkerboard patterns were presented
 into the left and right visual field, interspersed by tones to the
 left or right ear. The interval between the stimuli was 750 ms. Occasionally
-an smiley face was presented at the center of the visual field.
+a smiley face was presented at the center of the visual field.
 The subject was asked to press a key with the right index finger
 as soon as possible after the appearance of the face. A listing
 of the corresponding trigger codes is provided in :ref:`BABDHIFJ`
@@ -551,9 +551,9 @@ coordinate alignment.
   should be negative, around -50 mm. An example of an initial
   coordinate transformation is shown in :ref:`CHDFIHAC`.
 
-- Make the Digitzer data again
+- Make the Digitizer data again
   visible from the options of the viewer window. Note that the points
-  are now much coloser to the scalp surface.
+  are now much closer to the scalp surface.
 
 .. _CHDFIHAC:
 
@@ -750,7 +750,7 @@ approximate location of the left and right auditory cortices. Save
 these labels in the newly created ``label`` directory.
 
 Load all labels from the ``label`` directory and
-investigate the timecourses in these two labels as well as at invidual
+investigate the timecourses in these two labels as well as at individual
 vertices. Information on label processing can be found from :ref:`CACCCFHH`.
 
 Morphing
