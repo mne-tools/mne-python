@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -137,7 +138,8 @@ class Raw(object):
 
                 #  Do we have a skip pending?
                 if nskip > 0:
-                    import pdb; pdb.set_trace()
+                    import pdb
+                    pdb.set_trace()
                     rawdir.append(dict(ent=None, first=first_samp,
                                        last=first_samp + nskip * nsamp - 1,
                                        nsamp=nskip * nsamp))
@@ -569,7 +571,7 @@ class Raw(object):
         Parameters
         ----------
         fname : string
-            File name of the new dataset.
+            File name of the new dataset. Caveat! This has to be a new filename.
 
         picks : list of int
             Indices of channels to include
@@ -588,6 +590,10 @@ class Raw(object):
             that only accepts raw files with buffers of the same size.
 
         """
+        if fname == self.info['filename']:
+            raise ValueError('You cannot save data to the same file.'
+                               ' Please use a different filename.')
+
         if self._preloaded:
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '

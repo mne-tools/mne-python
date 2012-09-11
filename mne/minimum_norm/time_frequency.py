@@ -1,12 +1,17 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+
+from warnings import warn
 
 import numpy as np
 from scipy import linalg, signal, fftpack
 
 from ..fiff.constants import FIFF
 from ..time_frequency.tfr import cwt, morlet
+from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
+                                        _psd_from_mt_adaptive, _mt_spectra
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
                      _make_stc, _pick_channels_inverse_operator, _check_method
@@ -426,3 +431,202 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     stc = _make_stc(psd, fmin * 1e-3, fstep * 1e-3, vertno)
     return stc
+
+
+def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
+                              method="dSPM", fmin=0., fmax=200.,
+                              pick_normal=False, label=None, nave=1,
+                              pca=True, inv_split=None, bandwidth=4.,
+                              adaptive=False, low_bias=True, n_jobs=1):
+    """ Generator for compute_source_psd_epochs """
+
+    print 'Considering frequencies %g ... %g Hz' % (fmin, fmax)
+
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
+    print 'Picked %d channels from the data' % len(sel)
+    print 'Computing inverse...',
+    #
+    #   Simple matrix multiplication followed by combination of the
+    #   three current components
+    #
+    #   This does all the data transformations to compute the weights for the
+    #   eigenleads
+    #
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+
+    if pca:
+        U, s, Vh = linalg.svd(K, full_matrices=False)
+        rank = np.sum(s > 1e-8 * s[0])
+        K = s[:rank] * U[:, :rank]
+        Vh = Vh[:rank]
+        print 'Reducing data rank to %d' % rank
+    else:
+        Vh = None
+
+    # split the inverse operator
+    if inv_split is not None:
+        K_split = np.array_split(K, inv_split)
+    else:
+        K_split = [K]
+
+    # compute DPSS windows
+    n_times = len(epochs.times)
+    sfreq = epochs.info['sfreq']
+
+    # compute standardized half-bandwidth
+    half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    n_tapers_max = int(2 * half_nbw)
+
+    dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                 low_bias=low_bias)
+    n_tapers = len(dpss)
+
+    print 'Using %d tapers with bandwidth %0.1fHz' % (n_tapers, bandwidth)
+
+    if adaptive and len(eigvals) < 3:
+        warn('Not adaptively combining the spectral estimators '
+             'due to a low number of tapers.')
+        adaptive = False
+
+    if adaptive:
+        parallel, my_psd_from_mt_adaptive, n_jobs = \
+            parallel_func(_psd_from_mt_adaptive, n_jobs)
+    else:
+        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+
+    for k, e in enumerate(epochs):
+        print "Processing epoch : %d" % (k + 1)
+        data = e[sel]
+
+        if Vh is not None:
+            data = np.dot(Vh, data)  # reducing data rank
+
+        # compute tapered spectra in sensor space
+        x_mt, freqs = _mt_spectra(data, dpss, sfreq)
+
+        if k == 0:
+            freq_mask = (freqs >= fmin) & (freqs <= fmax)
+            fstep = np.mean(np.diff(freqs))
+
+        # allocate space for output
+        psd = np.empty((K.shape[0], np.sum(freq_mask)))
+
+        # Optionally, we split the inverse operator into parts to save memory.
+        # Without splitting the tapered spectra in source space have size
+        # (n_vertices x n_tapers x n_times / 2)
+        pos = 0
+        for K_part in K_split:
+            # allocate space for tapered spectra in source space
+            x_mt_src = np.empty((K_part.shape[0], x_mt.shape[1],
+                                x_mt.shape[2]), dtype=x_mt.dtype)
+
+            # apply inverse to each taper
+            for i in range(n_tapers):
+                x_mt_src[:, i, :] = np.dot(K_part, x_mt[:, i, :])
+
+            # compute the psd
+            if adaptive:
+                out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
+                       for x in np.array_split(x_mt_src, n_jobs))
+                this_psd = np.concatenate(out)
+            else:
+                x_mt_src = x_mt_src[:, :, freq_mask]
+                this_psd = _psd_from_mt(x_mt_src, weights)
+
+            psd[pos:pos + K_part.shape[0], :] = this_psd
+            pos += K_part.shape[0]
+
+        # combine orientations
+        if is_free_ori and not pick_normal:
+            psd = combine_xyz(psd, square=False)
+
+        if method != "MNE":
+            psd *= noise_norm ** 2
+
+        stc = _make_stc(psd, fmin, fstep, vertno)
+
+        # we return a generator object for "stream processing"
+        yield stc
+
+
+def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
+                              method="dSPM", fmin=0., fmax=200.,
+                              pick_normal=False, label=None, nave=1,
+                              pca=True, inv_split=None, bandwidth=4.,
+                              adaptive=False, low_bias=True,
+                              return_generator=False, n_jobs=1):
+    """Compute source power spectrum density (PSD) from Epochs using
+       multi-taper method
+
+    Parameters
+    ----------
+    epochs: instance of Epochs
+        The raw data
+    inverse_operator: dict
+        The inverse operator
+    lambda2: float
+        The regularization parameter
+    method: "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA
+    fmin: float
+        The lower frequency of interest
+    fmax: float
+        The upper frequency of interest
+    pick_normal: bool
+        If True, rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations.
+    label: Label
+        Restricts the source estimates to a given label
+    nave: int
+        The number of averages used to scale the noise covariance matrix.
+    pca: bool
+        If True, the true dimension of data is estimated before running
+        the time frequency transforms. It reduces the computation times
+        e.g. with a dataset that was maxfiltered (true dim is 64)
+    inv_split: int or None
+        Split inverse operator into inv_split parts in order to save memory
+    bandwidth: float
+        The bandwidth of the multi taper windowing function in Hz
+    adaptive: bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation)
+    low_bias: bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth
+    return_generator: bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory
+    n_jobs: int
+        Number of parallel jobs to use (only used if adaptive=True)
+
+    Returns
+    -------
+    stcs: list (or generator object) of SourceEstimate
+        The source space PSDs for each epoch
+    """
+
+    # use an auxillary function so we can either return a generator or a list
+    stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
+                              lambda2=lambda2, method=method, fmin=fmin,
+                              fmax=fmax, pick_normal=pick_normal, label=label,
+                              nave=nave, pca=pca, inv_split=inv_split,
+                              bandwidth=bandwidth, adaptive=adaptive,
+                              low_bias=low_bias, n_jobs=n_jobs)
+
+    if return_generator:
+        # return generator object
+        return stcs_gen
+    else:
+        # return a list
+        stcs = list()
+        for stc in stcs_gen:
+            stcs.append(stc)
+
+        return stcs
