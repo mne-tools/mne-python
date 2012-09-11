@@ -212,6 +212,86 @@ def write_w(filename, vertices, data):
     fid.close()
 
 
+def read_source_estimate(filename):
+    """Returns a SourceEstimate object.
+
+    The single argument ``filename`` should provide the path to (a) source-estimate
+    file(s) as string.
+
+     - for volume source estimates, ``filename`` should provide the path to a
+       single file named '*-vl.stc`
+     - for surface source estimates, ``filename`` should either provide the
+       path to the file corresponding to a single hemisphere ('*-lh.stc',
+       '*-rh.stc') or only specify the asterisk part in these patterns. In any
+       case, the function expects files for both hemisphere with names
+       following this pattern.
+     - for single time point .w files, ``filename`` should follow the same
+       pattern as for surface estimates, except that files are named
+       '*-lh.w' and '*-rh.w'.
+
+    """
+    fname_arg = filename
+
+    # make sure corresponding file(s) can be found
+    ftype = None
+    if os.path.exists(filename):
+        if filename.endswith('-vl.stc'):
+            ftype = 'volume'
+        elif filename.endswith('.stc'):
+            ftype = 'surface'
+            if filename.endswith(('-lh.stc', '-rh.stc')):
+                fname = filename[:-7]
+            else:
+                err = ("Invalid .stc filename: %r; needs to end with "
+                       "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
+                       % fname)
+                raise IOError(err)
+        elif fname.endswith('.w'):
+            ftype = 'w'
+            if fname.endswith(('-lh.w', '-rh.w')):
+                fname = fname[:-5]
+            else:
+                err = ("Invalid .w filename: %r; needs to end with "
+                       "hemisphere tag ('...-lh.w' or '...-rh.w')"
+                       % fname)
+                raise IOError(err)
+
+    if ftype is not 'volume':
+        stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
+        w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
+        if all(stc_exist) and (ftype is not 'w'):
+            ftype = 'surface'
+        elif all(w_exist):
+            ftype = 'w'
+        elif any(stc_exist) or any(w_exist):
+            raise IOError("Hemisphere missing for %r" % fname_arg)
+        else:
+            raise IOError("SourceEstimate File(s) not found for: %r" % fname_arg)
+
+    # read the files
+    if ftype == 'volume':  # volume source space
+        kwargs = read_stc(fname)
+    elif ftype == 'surface': # stc file with surface source spaces
+        lh = read_stc(fname + '-lh.stc')
+        rh = read_stc(fname + '-rh.stc')
+        assert lh['tmin'] == rh['tmin']
+        assert lh['tstep'] == rh['tstep']
+        kwargs = lh.copy()
+        kwargs['data'] = np.r_[lh['data'], rh['data']]
+        kwargs['vertices'] = [lh['vertices'], rh['vertices']]
+    elif ftype == 'w': # w file with surface source spaces
+        lh = read_w(fname + '-lh.w')
+        rh = read_w(fname + '-rh.w')
+        kwargs = lh.copy()
+        kwargs['data'] = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
+        kwargs['vertices'] = [lh['vertices'], rh['vertices']]
+        # w files only have a single time point
+        kwargs['tmin'] = 0.0
+        kwargs['tstep'] = 1.0
+
+    return SourceEstimate(**kwargs)
+
+
 class SourceEstimate(object):
     """SourceEstimate container
 
@@ -226,76 +306,42 @@ class SourceEstimate(object):
     vertno : list of array of shape [n_dipoles in each source space]
         The indices of the dipoles in the different source spaces
     """
-    def __init__(self, fname):
-        if fname is not None:
-            fname_arg = fname
+    def __init__(self, data, vertices=None, tmin=None, tstep=None):
+        """
+        Arguments
+        ---------
 
-            # make sure corresponding file(s) can be found
-            ftype = None
-            if os.path.exists(fname):
-                if fname.endswith('-vl.stc'):
-                    ftype = 'volume'
-                elif fname.endswith('.stc'):
-                    ftype = 'surface'
-                    if fname.endswith(('-lh.stc', '-rh.stc')):
-                        fname = fname[:-7]
-                    else:
-                        err = ("Invalid .stc filename: %r; needs to end with "
-                               "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
-                               % fname)
-                        raise IOError(err)
-                elif fname.endswith('.w'):
-                    ftype = 'w'
-                    if fname.endswith(('-lh.w', '-rh.w')):
-                        fname = fname[:-5]
-                    else:
-                        err = ("Invalid .w filename: %r; needs to end with "
-                               "hemisphere tag ('...-lh.w' or '...-rh.w')"
-                               % fname)
-                        raise IOError(err)
+        data : array of shape [n_dipoles x n_times]
+            The data in source space
+        vertices : array | list of two arrays
+            vertex number corresponding to the data
+        tmin : scalar
+            time point of the first sample in data
+        tstep : scalar
+            time step between successive samples in data
 
-            if ftype is not 'volume':
-                stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
-                w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
-                if all(stc_exist) and (ftype is not 'w'):
-                    ftype = 'surface'
-                elif all(w_exist):
-                    ftype = 'w'
-                elif any(stc_exist) or any(w_exist):
-                    raise IOError("Hemisphere missing for %r" % fname_arg)
-                else:
-                    raise IOError("SourceEstimate File(s) not found for: %r" % fname_arg)
 
-            # load the data
-            if ftype == 'volume':  # volume source space
-                vl = read_stc(fname)
-                self.data = vl['data']
-                self.tmin = vl['tmin']
-                self.tstep = vl['tstep']
-                self.times = self.tmin + (self.tstep *
-                                          np.arange(self.data.shape[1]))
-                self.vertno = [vl['vertices']]
-            elif ftype == 'surface': # stc file with surface source spaces
-                lh = read_stc(fname + '-lh.stc')
-                rh = read_stc(fname + '-rh.stc')
-                self.data = np.r_[lh['data'], rh['data']]
-                assert lh['tmin'] == rh['tmin']
-                assert lh['tstep'] == rh['tstep']
-                self.tmin = lh['tmin']
-                self.tstep = lh['tstep']
-                self.times = self.tmin + (self.tstep *
-                                          np.arange(self.data.shape[1]))
-                self.vertno = [lh['vertices'], rh['vertices']]
-            elif ftype == 'w': # w file with surface source spaces
-                lh = read_w(fname + '-lh.w')
-                rh = read_w(fname + '-rh.w')
-                self.data = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
+        .. note::
+            For backwards compatibility, the SourceEstimate can also be
+            initialized with a single argument, which can be ``None`` (an
+            attribute-less SourceEstimate object will be returned) or a path as
+            string, in which case the corresponding file(s) will be loaded.
 
-                # w files only have a single time point
-                self.tmin = 0.0
-                self.tstep = 1.0
-                self.times = np.array([0.0])
-                self.vertno = [lh['vertices'], rh['vertices']]
+        """
+        if data is None:
+            return
+        elif isinstance(data, basestring):
+            se = read_source_estimate(data)
+            data = se.data
+            tmin = se.tmin
+            tstep = se.tstep
+            vertices = se.vertno
+
+        self.data = data
+        self.tmin = tmin
+        self.tstep = tstep
+        self.times = tmin + (tstep * np.arange(data.shape[1]))
+        self.vertno = vertices
 
     def _init_times(self):
         """create self.times"""
