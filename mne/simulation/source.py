@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from ..minimum_norm.inverse import _make_stc
+from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
 
 
@@ -95,7 +95,7 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     lh_data.extend(rh_data)
     data = np.concatenate(lh_data)
 
-    stc = _make_stc(data, tmin, tstep, vertno)
+    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
 
     return stc
 
@@ -174,5 +174,5 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     lh_data.extend(rh_data)
     stc_data = np.concatenate(lh_data)
 
-    stc = _make_stc(stc_data, tmin, tstep, vertno)
+    stc = SourceEstimate(stc_data, vertices=vertno, tmin=tmin, tstep=tstep)
     return stc

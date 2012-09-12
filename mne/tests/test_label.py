@@ -6,7 +6,7 @@ from nose.tools import assert_true
 
 from mne.datasets import sample
 from mne import label_time_courses, read_label, write_label, stc_to_label, \
-               SourceEstimate, read_source_spaces, grow_labels
+               read_source_estimate, read_source_spaces, grow_labels
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -46,7 +46,7 @@ def test_stc_to_label():
     """Test stc_to_label
     """
     src = read_source_spaces(src_fname)
-    stc = SourceEstimate(stc_fname)
+    stc = read_source_estimate(stc_fname)
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
     labels2 = stc_to_label(stc, src=src, smooth=3)

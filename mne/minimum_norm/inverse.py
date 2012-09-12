@@ -613,16 +613,6 @@ def _assemble_kernel(inv, label, method, pick_normal):
     return K, noise_norm, vertno
 
 
-def _make_stc(sol, tmin, tstep, vertno):
-    stc = SourceEstimate(None)
-    stc.data = sol
-    stc.tmin = tmin
-    stc.tstep = tstep
-    stc.vertno = vertno
-    stc._init_times()
-    return stc
-
-
 
 def _check_method(method, dSPM):
     if dSPM is not None:
@@ -705,7 +695,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
-    stc = _make_stc(sol, tmin, tstep, vertno)
+    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
     print '[done]'
 
     return stc
@@ -811,7 +801,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
-    stc = _make_stc(sol, tmin, tstep, vertno)
+    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
     print '[done]'
 
     return stc
@@ -884,7 +874,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         if noise_norm is not None:
             sol *= noise_norm
 
-        stcs.append(_make_stc(sol, tmin, tstep, vertno))
+        stcs.append(SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep))
 
     print '[done]'
 

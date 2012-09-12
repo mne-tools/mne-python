@@ -11,8 +11,9 @@ from scipy import linalg
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
-from ..minimum_norm.inverse import _make_stc, _get_vertno, combine_xyz
+from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
+from ..source_estimate import SourceEstimate
 from ..source_space import label_src_vertno_sel
 
 
@@ -137,7 +138,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         sol /= noise_norm[:, None]
 
         tstep = 1.0 / info['sfreq']
-        stc = _make_stc(sol, tmin, tstep, vertno)
+        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
 
         if not return_single:
             stcs.append(stc)

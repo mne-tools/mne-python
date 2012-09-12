@@ -10,6 +10,7 @@ from math import ceil
 import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix
+import warnings
 
 from .parallel import parallel_func
 
@@ -346,8 +347,14 @@ class SourceEstimate(object):
 
         """
         if data is None:
+            warnings.warn('Constructing a SourceEstimate object with no '
+                          'attribute will be deprecated in v0.6. Use proper '
+                          'constructor.')
             return
         elif isinstance(data, basestring):
+            warnings.warn('Constructing a SourceEstimate object with a '
+                          'filename will be deprecated in v0.6. Use '
+                          'read_source_estimate.')
             se = read_source_estimate(data)
             data = se.data
             tmin = se.tmin
@@ -359,10 +366,6 @@ class SourceEstimate(object):
         self.tstep = tstep
         self.times = tmin + (tstep * np.arange(data.shape[1]))
         self.vertno = vertices
-
-    def _init_times(self):
-        """create self.times"""
-        self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
 
     def save(self, fname, ftype='stc'):
         """Save the source estimates to a file
@@ -560,14 +563,9 @@ class SourceEstimate(object):
             idx = (self.times >= times[i]) & (self.times < times[i + 1])
             data[:, i] = func(self.data[:, idx], axis=1)
 
-        times = times[:-1] + width / 2.
-        out = SourceEstimate(None)
-        out.data = data
-        out.tmin = times[0]
-        out.tstep = width
-        out.times = times
-        out.vertno = self.vertno # is sharing that between objects ok?
-        return out
+        tmin = times[0] + width / 2.
+        stc = SourceEstimate(data, vertices=self.vertno, tmin=tmin, tstep=width)
+        return stc
 
     def get_surfer_stc(self, hemi='lh'):
         """
