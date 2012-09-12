@@ -601,30 +601,51 @@ class SourceEstimate(object):
 
     def label_stc(self, label):
         """
-        Returns the time course of activation of all sources inside a label as
-        a 2-dimensional numpy array (vertex by sample).
+        Returns a SourceEstimate object containing the time course of
+        activation of all sources inside the label.
 
         Parameters
         ----------
-
         label : Label
-            The label (as created for example by mne.read_label)
+            The label (as created for example by mne.read_label). If the label
+            does not match any sources in the SourceEstimate, a ValueError is
+            raised.
 
         """
-        if len(self.vertno) == 2:
-            hemi = ['lh', 'rh'].index(label.hemi)
-        else:
-            hemi = 0
-        stc_vertices = self.vertno[hemi]
+        is_surface = self.is_surface()
 
+        # find applicable SourceEstimate vertices
+        if is_surface:
+            if label.hemi == 'lh':
+                stc_vertices = self.vertno[0]
+            else:
+                stc_vertices = self.vertno[1]
+        else:
+            stc_vertices = self.vertno[0]
+
+        # find index of the Label's vertices
         idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
         if len(idx) == 0:
             raise ValueError('No vertices match the label in the stc file')
-        if hemi == 1:
-            idx += len(self.vertno[0])
 
-        values = self.data[idx]
-        return values
+        # find output vertices
+        if is_surface:
+            if label.hemi == 'lh':
+                vertices = [stc_vertices[idx], np.array([])]
+            else:
+                vertices = [np.array([]), stc_vertices[idx]]
+        else:
+            vertices = [stc_vertices[idx]]
+
+        # find data
+        if is_surface and (label.hemi == 'rh'):
+            values = self.data[idx + len(self.vertno[0])]
+        else:
+            values = self.data[idx]
+
+        label_stc = SourceEstimate(values, vertices=vertices, tmin=self.tmin,
+                                   tstep=self.tstep)
+        return label_stc
 
 
 ###############################################################################
