@@ -13,21 +13,26 @@ from .surface import read_surface
 
 class Label(dict):
     """
-    
+    Represents a freesurfer/mne label.
+
+
     Attributes
     ----------
-    
+
     comment
         comment from the first line of the label file
-    
-    vertices
-        vertex indices (0 based, column 1)
-    
+
+    hemi
+        hemisphere ('lh' or 'rh')
+
     pos
         locations in meters (columns 2 - 4 divided by 1000)
-    
+
     values
         values at the vertices (column 5)
+
+    vertices
+        vertex indices (0 based, column 1)
 
     For backwards compatibility, the following attributes are stored as dictionary
     entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
@@ -35,6 +40,27 @@ class Label(dict):
     """
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
                  fpath=None):
+        """
+
+        Arguments
+        ---------
+
+        vertices : array (length N)
+            vertex ids
+
+        pos : array (N by 3)
+            locations in meters (columns 2 - 4 divided by 1000)
+
+        values : array (length N)
+            values at the vertices
+
+        hemi : 'lh' | 'rh'
+            Hemisphere to which the label applies.
+
+        comment, name, fpath : str
+            Kept as information but not used by the label  object itself
+
+        """
         if not (len(vertices) == len(values) == len(pos)):
             err = ("vertices, values and pos need to have same length (number "
                    "of vertices)")
@@ -89,12 +115,12 @@ class Label(dict):
             self_dup = [np.where(self.vertices == d)[0][0] for d in duplicates]
             other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
-                err = ("Labels %r and %r: vertices overlap but differ in " 
+                err = ("Labels %r and %r: vertices overlap but differ in "
                        "position values" % (self.name, other.name))
                 raise ValueError(err)
-            
+
             isnew = np.array([v not in duplicates for v in other.vertices])
-            
+
             other_vertices = other.vertices[isnew]
             other_pos = other.pos[isnew]
             other_values = other.values[isnew]

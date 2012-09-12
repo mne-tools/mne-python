@@ -15,7 +15,7 @@ from .parallel import parallel_func
 
 
 def read_stc(filename):
-    """Read an STC file
+    """Read an STC file and return as dict
 
     STC files contain activations or source reconstructions
 
@@ -32,6 +32,11 @@ def read_stc(filename):
            tstep          Time between frames in seconds
            vertices       vertex indices (0 based)
            data           The data matrix (nvert * ntime)
+
+    See Also
+    --------
+    read_source_estimate
+
     """
     fid = open(filename, 'rb')
 
@@ -119,7 +124,7 @@ def _read_3(fid):
 
 
 def read_w(filename):
-    """Read a w file
+    """Read a w file and return as dict
 
     w files contain activations or source reconstructions for a single time
     point
@@ -189,6 +194,12 @@ def write_w(filename, vertices, data):
         Vertex indices (0 based)
     data: 1D array
         The data array (nvert)
+
+
+    See Also
+    --------
+    read_source_estimate
+
     """
 
     assert(len(vertices) == len(data))
@@ -215,6 +226,8 @@ def write_w(filename, vertices, data):
 def read_source_estimate(filename):
     """Returns a SourceEstimate object.
 
+    Parameters
+    ----------
     The single argument ``filename`` should provide the path to (a) source-estimate
     file(s) as string.
 
@@ -228,6 +241,10 @@ def read_source_estimate(filename):
      - for single time point .w files, ``filename`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
+
+    See Also
+    --------
+    read_stc, read_w
 
     """
     fname_arg = filename
@@ -410,9 +427,9 @@ class SourceEstimate(object):
         Parameters
         ----------
         tmin : float or None
-            The first time point in seconds. It None the first present is used.
+            The first time point in seconds. If None the first present is used.
         tmax : float or None
-            The last time point in seconds. It None the last present is used.
+            The last time point in seconds. If None the last present is used.
         """
         mask = np.ones(len(self.times), dtype=np.bool)
         if tmin is not None:
@@ -590,7 +607,7 @@ class SourceEstimate(object):
         Parameters
         ----------
 
-        label : ???
+        label : Label
             The label (as created for example by mne.read_label)
 
         """
