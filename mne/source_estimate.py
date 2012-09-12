@@ -599,19 +599,7 @@ class SourceEstimate(object):
 
         return sstc
 
-    def label_stc(self, label):
-        """
-        Returns a SourceEstimate object containing the time course of
-        activation of all sources inside the label.
-
-        Parameters
-        ----------
-        label : Label
-            The label (as created for example by mne.read_label). If the label
-            does not match any sources in the SourceEstimate, a ValueError is
-            raised.
-
-        """
+    def _hemilabel_stc(self, label):
         is_surface = self.is_surface()
 
         # find applicable SourceEstimate vertices
@@ -625,17 +613,9 @@ class SourceEstimate(object):
 
         # find index of the Label's vertices
         idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
-        if len(idx) == 0:
-            raise ValueError('No vertices match the label in the stc file')
 
         # find output vertices
-        if is_surface:
-            if label.hemi == 'lh':
-                vertices = [stc_vertices[idx], np.array([])]
-            else:
-                vertices = [np.array([]), stc_vertices[idx]]
-        else:
-            vertices = [stc_vertices[idx]]
+        vertices = stc_vertices[idx]
 
         # find data
         if is_surface and (label.hemi == 'rh'):
@@ -643,8 +623,43 @@ class SourceEstimate(object):
         else:
             values = self.data[idx]
 
-        label_stc = SourceEstimate(values, vertices=vertices, tmin=self.tmin,
-                                   tstep=self.tstep)
+        return vertices, values
+
+    def label_stc(self, label):
+        """
+        Returns a SourceEstimate object containing the time course of
+        activation of all sources inside the label.
+
+        Parameters
+        ----------
+        label : Label | HemiLabel
+            The label (as created for example by mne.read_label). If the label
+            does not match any sources in the SourceEstimate, a ValueError is
+            raised.
+
+        """
+        if not self.is_surface():
+            raise NotImplementedError
+
+        if label.hemi == 'both':
+            lh_vert, lh_val = self._hemilabel_stc(label.lh)
+            rh_vert, rh_val = self._hemilabel_stc(label.rh)
+            vertices = [lh_vert, rh_vert]
+            values = np.vstack((lh_val, rh_val))
+        elif label.hemi == 'lh':
+            lh_vert, values = self._hemilabel_stc(label)
+            vertices = [lh_vert, np.array([])]
+        elif label.hemi == 'rh':
+            rh_vert, values = self._hemilabel_stc(label)
+            vertices = [np.array([]), rh_vert]
+        else:
+            raise TypeError("Expected Label or HemiLabel; got %r" % label)
+
+        if sum(map(len, vertices)) == 0:
+            raise ValueError('No vertices match the label in the stc file')
+
+        label_stc = SourceEstimate(values, vertices=vertices,
+                                   tmin=self.tmin, tstep=self.tstep)
         return label_stc
 
 

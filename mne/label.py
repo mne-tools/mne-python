@@ -11,9 +11,10 @@ from .source_estimate import read_stc, mesh_edges, mesh_dist
 from .surface import read_surface
 
 
-class Label(dict):
+class HemiLabel(dict):
     """
-    Represents a freesurfer/mne label.
+    Represents a freesurfer/mne label with vertices restricted to one
+    hemisphere.
 
 
     Attributes
@@ -25,31 +26,35 @@ class Label(dict):
     hemi
         hemisphere ('lh' or 'rh')
 
+    name : None | str
+        A name for the label. It is OK to change that attribute manually.
+
     pos
-        locations in meters (columns 2 - 4 divided by 1000)
+        locations in meters
 
     values
-        values at the vertices (column 5)
+        values at the vertices
 
     vertices
-        vertex indices (0 based, column 1)
+        vertex indices (0 based)
+
 
     For backwards compatibility, the following attributes are stored as dictionary
     entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
 
     """
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
-                 fpath=None):
+                 filename=None):
         """
 
         Arguments
         ---------
 
         vertices : array (length N)
-            vertex ids
+            vertex indices (0 based)
 
         pos : array (N by 3)
-            locations in meters (columns 2 - 4 divided by 1000)
+            locations in meters
 
         values : array (length N)
             values at the vertices
@@ -71,10 +76,10 @@ class Label(dict):
 
         # name
         if name is None:
-            if fpath is not None:
-                name = os.path.basename(fpath)
+            if filename is not None:
+                name = os.path.basename(filename[:-6])
         self.name = name
-        self.fpath = fpath
+        self.filename = filename
 
     @property
     def comment(self):
@@ -97,17 +102,27 @@ class Label(dict):
         return self['vertices']
 
     def __repr__(self):
-        temp = "<Label: %r, %i vertices>"
-        name = self.name if self.name is not None else "unnamed"
+        temp = "<HemiLabel (%s), %s: %i vertices>"
+        name = repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return temp % (name, n_vert)
+        return temp % (name, self.hemi, n_vert)
 
     def __len__(self):
         return len(self.vertices)
 
     def __add__(self, other):
-        if self.hemi != other.hemi:
-            raise ValueError("Labels need to be from the same hemisphere")
+        if isinstance(other, Label):
+            return other + self
+        elif isinstance(other, HemiLabel):
+            if self.hemi != other.hemi:
+                name = '%s + %s' % (self.name, other.name)
+                if self.hemi == 'lh':
+                    lh, rh = self, other
+                else:
+                    lh, rh = other, self
+                return Label(lh, rh, name=name)
+        else:
+            raise TypeError("Need: Label | HemiLabel. Got: %r" % other)
 
         # check for overlap
         duplicates = np.intersect1d(self.vertices, other.vertices)
@@ -141,6 +156,66 @@ class Label(dict):
     def save(self, filename):
         "calls write_label to write the label to disk"
         write_label(filename, self)
+
+
+
+class Label(object):
+    """
+    Represents a freesurfer/mne label with vertices in both hemispheres.
+
+
+    Attributes
+    ----------
+
+    lh, rh : HemiLabel
+        HemiLabels for the left and right hemisphere, respectively
+
+    name : None | str
+        A name for the label. It is OK to change that attribute manually.
+
+    """
+    hemi = 'both'
+    def __init__(self, lh, rh, name=None):
+        """
+        Arguments
+        ---------
+
+        lh, rh : HemiLabel
+            HemiLabel objects representing the left and the right hemisphere,
+            respectively
+
+        name : None | str
+            name for the label
+
+        """
+        self.lh = lh
+        self.rh = rh
+        self.name = name
+
+    def __repr__(self):
+        temp = "<Label (%s), lh: %i vertices;  rh: %i vertices>"
+        name = repr(self.name) if self.name is not None else "unnamed"
+        return temp % (name, len(self.lh), len(self.rh))
+
+    def __len__(self):
+        return len(self.lh) + len(self.rh)
+
+    def __add__(self, other):
+        if isinstance(other, HemiLabel):
+            if other.hemi == 'lh':
+                lh = self.lh + other
+                rh = self.rh
+            else:
+                lh = self.lh
+                rh = self.rh + other
+        elif isinstance(other, Label):
+            lh = self.lh + other.lh
+            rh = self.rh + other.rh
+        else:
+            raise TypeError("Need: Label | HemiLabel. Got: %r" % other)
+
+        name = '%s + %s' % (self.name, other.name)
+        return Label(lh, rh, name=name)
 
 
 
@@ -183,7 +258,8 @@ def read_label(filename):
                          ' with lh.label or rh.label')
     fid.close()
 
-    label = Label(vertices, pos, values, hemi, comment=comment, fpath=filename)
+    label = HemiLabel(vertices, pos, values, hemi, comment=comment,
+                      filename=filename)
     return label
 
 
