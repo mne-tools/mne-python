@@ -450,6 +450,14 @@ class SourceEstimate(object):
         self.tmin = self.times[0]
 
     @property
+    def lh_data(self):
+        return self.data[:len(self.lh_vertno)]
+
+    @property
+    def rh_data(self):
+        return self.data[len(self.rh_vertno):]
+
+    @property
     def lh_vertno(self):
         return self.vertno[0]
 
@@ -572,36 +580,6 @@ class SourceEstimate(object):
         tmin = times[0] + width / 2.
         stc = SourceEstimate(data, vertices=self.vertno, tmin=tmin, tstep=width)
         return stc
-
-    def get_surfer_stc(self, hemi='lh'):
-        """
-        Returns a dictionary that can be used in PySurfer as an alternative to
-        reading the stc from a file.
-
-
-        Parameters
-        ----------
-
-        hemi : 'lh' | 'rh'
-            Hemisphere (can only include data for one hemisphere)
-
-        """
-        sstc = {'tmin': self.tmin, 'tstep': self.tstep, 'times': self.times}
-        if len(self.vertno) == 2:
-            if hemi == 'lh':
-                idx = slice(None, len(self.vertno[0]))
-                sstc['vertices'] = self.vertno[0]
-            elif hemi == 'rh':
-                idx = slice(len(self.vertno[0]), None)
-                sstc['vertices'] = self.vertno[1]
-            else:
-                raise ValueError("kwarg hemi needs to be 'lh' or 'rh', not %r" % hemi)
-            sstc['data'] = self.data[idx]
-        else:
-            sstc['vertices'] = self.vertno[0]
-            sstc['data'] = self.data
-
-        return sstc
 
     def _hemilabel_stc(self, label):
         is_surface = self.is_surface()
