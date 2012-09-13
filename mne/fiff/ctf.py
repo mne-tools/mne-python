@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -157,6 +158,9 @@ def read_ctf_comp(fid, node, chs):
         one['save_calibrated'] = calibrated
         one['rowcals'] = np.ones(mat['data'].shape[0], dtype=np.float)
         one['colcals'] = np.ones(mat['data'].shape[1], dtype=np.float)
+
+        row_cals, col_cals = None, None  # initialize cals
+
         if not calibrated:
             #
             #   Calibrate...
@@ -199,14 +203,10 @@ def read_ctf_comp(fid, node, chs):
 
         one['data'] = mat
         compdata.append(one)
-        try:
+        if row_cals is not None:
             del row_cals
-        except:
-            print '    No row_cals defined'    
-        try:
+        if col_cals is not None:
             del col_cals
-        except:
-            print '    No col_cals defined'
 
     if len(compdata) > 0:
         print '    Read %d compensation matrices' % len(compdata)
