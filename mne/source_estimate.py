@@ -317,24 +317,30 @@ class SourceEstimate(object):
 
     Attributes
     ----------
+
     data : array of shape [n_dipoles x n_times]
         The data in source space
+
     times : array of shape [n_times]
         The time vector
+
     vertno : list of array of shape [n_dipoles in each source space]
         The indices of the dipoles in the different source spaces
     """
     def __init__(self, data, vertices=None, tmin=None, tstep=None):
         """
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         data : array of shape [n_dipoles x n_times]
             The data in source space
+
         vertices : array | list of two arrays
             vertex number corresponding to the data
+
         tmin : scalar
             time point of the first sample in data
+
         tstep : scalar
             time step between successive samples in data
 
@@ -569,7 +575,7 @@ class SourceEstimate(object):
 
     def get_surfer_stc(self, hemi='lh'):
         """
-        Returns a dictionary that can be used in PySyrfer as an alternative to
+        Returns a dictionary that can be used in PySurfer as an alternative to
         reading the stc from a file.
 
 

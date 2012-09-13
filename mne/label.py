@@ -20,23 +20,23 @@ class HemiLabel(dict):
     Attributes
     ----------
 
-    comment
-        comment from the first line of the label file
+    comment : str
+        Comment from the first line of the label file
 
-    hemi
-        hemisphere ('lh' or 'rh')
+    hemi : 'lh' | 'rh'
+        Hemisphere
 
     name : None | str
         A name for the label. It is OK to change that attribute manually.
 
-    pos
-        locations in meters
+    pos : array, shape = (n_pos, 3)
+        Locations in meters
 
-    values
-        values at the vertices
+    values : array, len = n_pos
+        Values at the vertices
 
-    vertices
-        vertex indices (0 based)
+    vertices : array, len = n_pos
+        Vertex indices (0 based)
 
 
     For backwards compatibility, the following attributes are stored as dictionary
@@ -47,8 +47,8 @@ class HemiLabel(dict):
                  filename=None):
         """
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         vertices : array (length N)
             vertex indices (0 based)
@@ -63,7 +63,7 @@ class HemiLabel(dict):
             Hemisphere to which the label applies.
 
         comment, name, fpath : str
-            Kept as information but not used by the label  object itself
+            Kept as information but not used by the object itself
 
         """
         if not (len(vertices) == len(values) == len(pos)):
@@ -177,8 +177,8 @@ class Label(object):
     hemi = 'both'
     def __init__(self, lh, rh, name=None):
         """
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         lh, rh : HemiLabel
             HemiLabel objects representing the left and the right hemisphere,
