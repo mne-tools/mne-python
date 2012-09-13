@@ -199,8 +199,14 @@ def read_ctf_comp(fid, node, chs):
 
         one['data'] = mat
         compdata.append(one)
-        del row_cals
-        del col_cals
+        try:
+            del row_cals
+        except:
+            print '    No row_cals defined'    
+        try:
+            del col_cals
+        except:
+            print '    No col_cals defined'
 
     if len(compdata) > 0:
         print '    Read %d compensation matrices' % len(compdata)
