@@ -455,7 +455,7 @@ class SourceEstimate(object):
 
     @property
     def rh_data(self):
-        return self.data[len(self.rh_vertno):]
+        return self.data[len(self.lh_vertno):]
 
     @property
     def lh_vertno(self):
