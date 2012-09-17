@@ -614,7 +614,8 @@ class SourceEstimate(object):
 
         Parameters
         ----------
-        label : Label | HemiLabel
+
+        label : Label | BiHemiLabel
             The label (as created for example by mne.read_label). If the label
             does not match any sources in the SourceEstimate, a ValueError is
             raised.
@@ -635,7 +636,7 @@ class SourceEstimate(object):
             rh_vert, values = self._hemilabel_stc(label)
             vertices = [np.array([]), rh_vert]
         else:
-            raise TypeError("Expected Label or HemiLabel; got %r" % label)
+            raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
 
         if sum(map(len, vertices)) == 0:
             raise ValueError('No vertices match the label in the stc file')

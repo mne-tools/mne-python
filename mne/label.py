@@ -11,7 +11,7 @@ from .source_estimate import read_stc, mesh_edges, mesh_dist
 from .surface import read_surface
 
 
-class HemiLabel(dict):
+class Label(dict):
     """
     Represents a freesurfer/mne label with vertices restricted to one
     hemisphere.
@@ -102,7 +102,7 @@ class HemiLabel(dict):
         return self['vertices']
 
     def __repr__(self):
-        temp = "<HemiLabel (%s), %s: %i vertices>"
+        temp = "<Label %s, %s: %i vertices>"
         name = repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
         return temp % (name, self.hemi, n_vert)
@@ -111,18 +111,18 @@ class HemiLabel(dict):
         return len(self.vertices)
 
     def __add__(self, other):
-        if isinstance(other, Label):
+        if isinstance(other, BiHemiLabel):
             return other + self
-        elif isinstance(other, HemiLabel):
+        elif isinstance(other, Label):
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
                 if self.hemi == 'lh':
                     lh, rh = self, other
                 else:
                     lh, rh = other, self
-                return Label(lh, rh, name=name)
+                return BiHemiLabel(lh, rh, name=name)
         else:
-            raise TypeError("Need: Label | HemiLabel. Got: %r" % other)
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         # check for overlap
         duplicates = np.intersect1d(self.vertices, other.vertices)
@@ -159,7 +159,7 @@ class HemiLabel(dict):
 
 
 
-class Label(object):
+class BiHemiLabel(object):
     """
     Represents a freesurfer/mne label with vertices in both hemispheres.
 
@@ -167,8 +167,8 @@ class Label(object):
     Attributes
     ----------
 
-    lh, rh : HemiLabel
-        HemiLabels for the left and right hemisphere, respectively
+    lh, rh : Label
+        Labels for the left and right hemisphere, respectively
 
     name : None | str
         A name for the label. It is OK to change that attribute manually.
@@ -180,8 +180,8 @@ class Label(object):
         Parameters
         ----------
 
-        lh, rh : HemiLabel
-            HemiLabel objects representing the left and the right hemisphere,
+        lh, rh : Label
+            Label objects representing the left and the right hemisphere,
             respectively
 
         name : None | str
@@ -193,7 +193,7 @@ class Label(object):
         self.name = name
 
     def __repr__(self):
-        temp = "<Label (%s), lh: %i vertices;  rh: %i vertices>"
+        temp = "<BiHemiLabel %s, lh: %i vertices;  rh: %i vertices>"
         name = repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
@@ -201,21 +201,21 @@ class Label(object):
         return len(self.lh) + len(self.rh)
 
     def __add__(self, other):
-        if isinstance(other, HemiLabel):
+        if isinstance(other, Label):
             if other.hemi == 'lh':
                 lh = self.lh + other
                 rh = self.rh
             else:
                 lh = self.lh
                 rh = self.rh + other
-        elif isinstance(other, Label):
+        elif isinstance(other, BiHemiLabel):
             lh = self.lh + other.lh
             rh = self.rh + other.rh
         else:
-            raise TypeError("Need: Label | HemiLabel. Got: %r" % other)
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         name = '%s + %s' % (self.name, other.name)
-        return Label(lh, rh, name=name)
+        return BiHemiLabel(lh, rh, name=name)
 
 
 
@@ -258,7 +258,7 @@ def read_label(filename):
                          ' with lh.label or rh.label')
     fid.close()
 
-    label = HemiLabel(vertices, pos, values, hemi, comment=comment,
+    label = Label(vertices, pos, values, hemi, comment=comment,
                       filename=filename)
     return label
 
