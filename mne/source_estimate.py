@@ -354,13 +354,13 @@ class SourceEstimate(object):
         """
         if data is None:
             warnings.warn('Constructing a SourceEstimate object with no '
-                          'attribute will be deprecated in v0.6. Use proper '
-                          'constructor.')
+                          'attributes is deprecated and will stop working in '
+                          'v0.6. Use the proper constructor.')
             return
         elif isinstance(data, basestring):
             warnings.warn('Constructing a SourceEstimate object with a '
-                          'filename will be deprecated in v0.6. Use '
-                          'read_source_estimate.')
+                          'filename is deprecated and will stop working in '
+                          'v0.6. Use read_source_estimate().')
             se = read_source_estimate(data)
             data = se.data
             tmin = se.tmin
