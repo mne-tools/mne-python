@@ -224,22 +224,22 @@ def write_w(filename, vertices, data):
     fid.close()
 
 
-def read_source_estimate(filename):
+def read_source_estimate(fname):
     """Returns a SourceEstimate object.
 
     Parameters
     ----------
-    The single argument ``filename`` should provide the path to (a) source-estimate
+    The single argument ``fname`` should provide the path to (a) source-estimate
     file(s) as string.
 
-     - for volume source estimates, ``filename`` should provide the path to a
+     - for volume source estimates, ``fname`` should provide the path to a
        single file named '*-vl.stc`
-     - for surface source estimates, ``filename`` should either provide the
+     - for surface source estimates, ``fname`` should either provide the
        path to the file corresponding to a single hemisphere ('*-lh.stc',
        '*-rh.stc') or only specify the asterisk part in these patterns. In any
        case, the function expects files for both hemisphere with names
        following this pattern.
-     - for single time point .w files, ``filename`` should follow the same
+     - for single time point .w files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
 
@@ -248,17 +248,17 @@ def read_source_estimate(filename):
     read_stc, read_w
 
     """
-    fname_arg = filename
+    fname_arg = fname
 
     # make sure corresponding file(s) can be found
     ftype = None
-    if os.path.exists(filename):
-        if filename.endswith('-vl.stc'):
+    if os.path.exists(fname):
+        if fname.endswith('-vl.stc'):
             ftype = 'volume'
-        elif filename.endswith('.stc'):
+        elif fname.endswith('.stc'):
             ftype = 'surface'
-            if filename.endswith(('-lh.stc', '-rh.stc')):
-                fname = filename[:-7]
+            if fname.endswith(('-lh.stc', '-rh.stc')):
+                fname = fname[:-7]
             else:
                 err = ("Invalid .stc filename: %r; needs to end with "
                        "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
