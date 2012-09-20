@@ -396,7 +396,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
                                              connectivity)
 
     parallel, my_one_1samp_permutation, _ = parallel_func(
-                                _one_1samp_permutation, n_jobs, verbose)
+                                _one_1samp_permutation, n_jobs,
+                                verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
