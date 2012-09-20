@@ -110,7 +110,6 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2):
     desc_prefix = "%-d-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
-
 def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
     """Compute SSP (spatial space projection) vectors on Evoked
 
@@ -133,3 +132,38 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
+
+def compute_proj_continuous(raw, start=0, stop=None, n_grad=2, n_mag=2, n_eeg=0):
+    """Compute SSP (spatial space projection) vectors on Evoked
+
+    Parameters
+    ----------
+    raw: instance of raw data to use
+        A raw object to use the data from
+    start: float
+        Time (in sec) to start computing SSP
+    stop: float
+        Time (in sec) to start computing SSP
+    n_grad: int
+        Number of vectors for gradiometers
+    n_mag: int
+        Number of vectors for gradiometers
+    n_eeg: int
+        Number of vectors for gradiometers
+
+    Returns
+    -------
+    projs: list
+        List of projection vectors
+    """
+    start = raw.time_to_index(start)
+    start = start[0] + raw.first_samp
+    if stop:
+        stop = raw.time_to_indx(stop)
+        stop = min([stop[0]+raw.fist_samp, raw.last_samp+1])
+    else:
+        stop = raw.last_samp+1
+    data, times = raw[:, start:stop]
+    data = np.dot(data, data.T)
+    desc_prefix = "Continuous-%-.3f-%-.3f" % (start/raw.info['sfreq'], stop/raw.info['sfreq'])
+    return _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix)
