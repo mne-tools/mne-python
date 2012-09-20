@@ -22,6 +22,7 @@ from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw
+
 from .selection import read_selection
 from .dipole import read_dip
 from . import fiff
@@ -30,3 +31,4 @@ from . import stats
 from . import viz
 from . import preprocessing
 from . import simulation
+from . import layouts
