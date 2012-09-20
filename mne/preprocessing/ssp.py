@@ -15,7 +15,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
                       reject, bads, avg_ref, no_proj, event_id,
-                      exg_l_freq, exg_h_freq, tstart):
+                      exg_l_freq, exg_h_freq, tstart, qrs_threshold):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -89,6 +89,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     tstart: float
         Start artifact detection after tstart seconds.
 
+    qrs_threshold: float
+        Between 0 and 1. qrs detection threshold (only for ECG)
+
     Returns
     -------
     proj : list
@@ -119,7 +122,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         print 'Running ECG SSP computation'
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
                            event_id=event_id, l_freq=exg_l_freq,
-                           h_freq=exg_h_freq, tstart=tstart)
+                           h_freq=exg_h_freq, tstart=tstart, qrs_threshold=qrs_threshold)
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
         events = find_eog_events(raw_event, event_id=event_id,
@@ -171,7 +174,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
                      eog=250e-6), bads=[], avg_ref=False, no_proj=False,
                      event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0.):
+                     tstart=0., qrs_threshold=0.6):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -242,6 +245,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     tstart: float
         Start artifact detection after tstart seconds.
 
+    qrs_threshold: float
+        Between 0 and 1. qrs detection threshold
+
     Returns
     -------
     proj : list
@@ -255,7 +261,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
                         reject, bads, avg_ref, no_proj, event_id,
-                        ecg_l_freq, ecg_h_freq, tstart)
+                        ecg_l_freq, ecg_h_freq, tstart, qrs_threshold)
 
     return projs, ecg_events
 
@@ -349,6 +355,6 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
                         reject, bads, avg_ref, no_proj, event_id,
-                        eog_l_freq, eog_h_freq, tstart)
+                        eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6)
 
     return projs, eog_events
