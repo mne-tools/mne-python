@@ -5,9 +5,9 @@
 import numpy as np
 from scipy import linalg
 
-from . import fiff
+from . import fiff, Epochs
 from .fiff.pick import pick_types
-
+from .event import make_fixed_length_events
 
 def read_proj(fname):
     """Read projections from a FIF file.
@@ -133,17 +133,21 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
 
-def compute_proj_continuous(raw, start=0, stop=None, n_grad=2, n_mag=2, n_eeg=0):
-    """Compute SSP (spatial space projection) vectors on Evoked
+def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_eeg=0):
+    """Compute SSP (spatial space projection) vectors on Raw
 
     Parameters
     ----------
-    raw: instance of raw data to use
+    raw: instance of Raw
         A raw object to use the data from
     start: float
         Time (in sec) to start computing SSP
     stop: float
-        Time (in sec) to start computing SSP
+        Time (in sec) to stop computing SSP
+        None will go to the end of the file
+    duration: float
+        Duration to chunk data into for SSP
+        Using None or a number <= 0 will not chunk data
     n_grad: int
         Number of vectors for gradiometers
     n_mag: int
@@ -156,14 +160,29 @@ def compute_proj_continuous(raw, start=0, stop=None, n_grad=2, n_mag=2, n_eeg=0)
     projs: list
         List of projection vectors
     """
-    start = raw.time_to_index(start)
-    start = start[0] + raw.first_samp
-    if stop:
-        stop = raw.time_to_indx(stop)
-        stop = min([stop[0]+raw.fist_samp, raw.last_samp+1])
+    if (not duration==None) and duration > 0:
+        events = make_fixed_length_events(raw, 999, start, stop, duration)
+        epochs = Epochs(raw, events, None, tmin=0., tmax=duration, picks=pick_types(raw.info, meg=True, eeg=True))
+        data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
+        if not stop:
+            stop = (raw.last_samp-raw.first_samp+1)/raw.info['sfreq']
     else:
-        stop = raw.last_samp+1
-    data, times = raw[:, start:stop]
-    data = np.dot(data, data.T)
-    desc_prefix = "Continuous-%-.3f-%-.3f" % (start/raw.info['sfreq'], stop/raw.info['sfreq'])
-    return _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix)
+        # convert to sample indices
+        start = raw.time_to_index(start)
+        start = start[0]
+        if stop:
+            stop = raw.time_to_indx(stop)
+            stop = min(stop[0], raw.last_samp-raw.fist_samp+1)
+        else:
+            stop = raw.last_samp - raw.first_samp + 1
+        print start
+        print stop
+        data, times = raw[:, start:stop]
+        data = np.dot(data, data.T) # compute data covariance
+        # convert back to times
+        start = start/raw.info['sfreq']
+        stop = stop/raw.info['sfreq']
+
+    desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
+    projs = _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix)
+    return projs
