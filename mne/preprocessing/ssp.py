@@ -9,6 +9,7 @@ import numpy as np
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
+from warnings import warn
 
 
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
@@ -132,6 +133,11 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                            l_freq=exg_l_freq, h_freq=exg_h_freq)
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
+
+    # Check to make sure we actually got at least one useable event
+    if events.shape[0] < 1:
+        warn('No %s events found, returning None for projs' % mode)
+        return None, events
 
     print 'Computing projector'
 
