@@ -133,7 +133,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
 
-def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_eeg=0):
+def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_eeg=0, reject=None, flat=None):
     """Compute SSP (spatial space projection) vectors on Raw
 
     Parameters
@@ -147,13 +147,29 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
         None will go to the end of the file
     duration: float
         Duration to chunk data into for SSP
-        Using None or a number <= 0 will not chunk data
+        If duration <=0 or None, data will not be chunked
     n_grad: int
         Number of vectors for gradiometers
     n_mag: int
         Number of vectors for gradiometers
     n_eeg: int
         Number of vectors for gradiometers
+    reject : dict
+        Epoch rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done.
+        If duration <=0 or None, no rejection is done.
+        Values are float. Example:
+        reject = dict(grad=4000e-13, # T / m (gradiometers)
+                      mag=4e-12, # T (magnetometers)
+                      eeg=40e-6, # uV (EEG channels)
+                      eog=250e-6 # uV (EOG channels)
+                      )
+    flat : dict
+        Epoch rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+        If duration <=0 or None, no rejection is done.
 
     Returns
     -------
@@ -162,7 +178,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
     """
     if (not duration==None) and duration > 0:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
-        epochs = Epochs(raw, events, None, tmin=0., tmax=duration, picks=pick_types(raw.info, meg=True, eeg=True))
+        epochs = Epochs(raw, events, None, tmin=0., tmax=duration, picks=pick_types(raw.info, meg=True, eeg=True), reject=reject, flat=flat)
         data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
         if not stop:
             stop = (raw.last_samp-raw.first_samp+1)/raw.info['sfreq']
@@ -175,8 +191,6 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
             stop = min(stop[0], raw.last_samp-raw.fist_samp+1)
         else:
             stop = raw.last_samp - raw.first_samp + 1
-        print start
-        print stop
         data, times = raw[:, start:stop]
         data = np.dot(data, data.T) # compute data covariance
         # convert back to times
