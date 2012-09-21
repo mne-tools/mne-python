@@ -138,8 +138,6 @@ class Raw(object):
 
                 #  Do we have a skip pending?
                 if nskip > 0:
-                    import pdb
-                    pdb.set_trace()
                     rawdir.append(dict(ent=None, first=first_samp,
                                        last=first_samp + nskip * nsamp - 1,
                                        nsamp=nskip * nsamp))
