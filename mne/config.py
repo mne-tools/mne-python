@@ -14,7 +14,8 @@ _CONFIG = {'cache_dir': None}
 
 
 def set_cache_dir(cache_dir):
-    """ Set the directory to be used for temporary file storage.
+    """Set the directory to be used for temporary file storage.
+
     This directory is used by joblib to store memmapped arrays,
     which reduces memory requirements and speeds up parallel
     computation.

@@ -329,7 +329,8 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
                 # number of variables for this loop
                 n_var_loop = min(pos + buffer_size, n_vars) - pos
 
-                X_flip_buffer[:, :] = signs * X[:, pos: pos + n_var_loop]
+                X_flip_buffer[:, :n_var_loop] =\
+                                signs * X[:, pos: pos + n_var_loop]
 
                 # apply stat_fun and store result
                 tmp = stat_fun(X_flip_buffer)
