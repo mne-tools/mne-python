@@ -2,7 +2,7 @@ import os.path as op
 
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne import read_events, write_events, find_events, fiff
+from mne import read_events, write_events, make_fixed_length_events, find_events, fiff
 
 
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
@@ -36,3 +36,11 @@ def test_find_events():
     raw = fiff.Raw(raw_fname)
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+
+
+def test_make_fixed_length_events():
+    """Test making events of a fixed length
+    """
+    raw = fiff.Raw(raw_fname)
+    events = make_fixed_length_events(raw, 1)
+    
