@@ -645,6 +645,49 @@ class Raw(object):
             ind = int(time * self.info['sfreq'])
             indices.append(ind)
         return indices
+    
+    def mark_bad_channels(self, bad_file=None, force=False):
+        """
+        Mark channels as bad from a text file
+
+        Parameters
+        ----------
+        bad_file : string
+            File name of the text file containing bad channels
+            If bad_file = None, 0, or [], bad channels are cleared
+
+        force : boolean
+            Whether or not to force bad channel marking (of those
+            that exist) if channels are not found, instead of 
+            raising an error.
+        """
+
+        if bad_file:
+            # Check to make sure bad channels are there
+            names = frozenset(self.info['ch_names'])
+            bad_names = filter(None, open(bad_file).read().splitlines())
+            isthere = [False] * len(bad_names)
+            for ci in range(len(bad_names)):
+                isthere[ci] = bad_names[ci] in names
+
+            if not all(isthere):
+                if force:
+                    self.info['bads'] = []
+                    count = 0
+                    for ci in range(len(bad_names)):
+                        if isthere[ci]:
+                            self.info['bads'].append(bad_names[ci])
+                            count = count + 1
+                    count = len(bad_names) - count
+
+                    warnings.warn('%d bad channels from:\n%s\nnot found in:\n%s' % (count, bad_file, self.info['filename']))
+                else:
+                    raise ValueError('Bad channels from:\n%s\n not found in:\n%s' % (bad_file, self.info['filename']))
+            else:
+                self.info['bads'] = bad_names
+        else:
+            self.info['bads'] = []
+
 
     def close(self):
         self.fid.close()
