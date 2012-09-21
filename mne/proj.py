@@ -155,21 +155,9 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
     n_eeg: int
         Number of vectors for gradiometers
     reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        If duration <=0 or None, no rejection is done.
-        Values are float. Example:
-        reject = dict(grad=4000e-13, # T / m (gradiometers)
-                      mag=4e-12, # T (magnetometers)
-                      eeg=40e-6, # uV (EEG channels)
-                      eog=250e-6 # uV (EOG channels)
-                      )
+        Epoch rejection configuration (see Epochs)
     flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
-        If flat is None then no rejection is done.
-        If duration <=0 or None, no rejection is done.
+        Epoch flat configuration (see Epochs)
 
     Returns
     -------
