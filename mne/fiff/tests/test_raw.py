@@ -6,10 +6,12 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.fiff import Raw, pick_types, pick_channels
+from mne.layouts import make_eeg_layout, Layout
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
-
+lout_path = op.join(op.dirname(__file__), 'data')
+lout_name = 'test_raw'
 
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF)
@@ -183,3 +185,14 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
+
+
+def test_make_eeg_layout():
+    """ Test creation of EEG layout """
+    tmp_name = 'foo'
+    make_eeg_layout(Raw(fif_fname).info, tmp_name + '.lout')
+    lout_orig = Layout(kind=lout_name, path=lout_path)
+    lout_new = Layout(kind=tmp_name, path='.')
+    assert_array_equal(lout_new.kind, tmp_name)
+    assert_array_equal(lout_orig.pos, lout_new.pos)
+    assert_array_equal(lout_orig.names, lout_new.names)
