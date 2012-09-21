@@ -35,22 +35,21 @@ def make_eeg_layout(info, output_file, prad=20, width=5, height=4):
 
     # Calculate angles
     r = np.sum(hsp**2,axis=-1)**(1./2)
-    theta = np.arccos(hsp[:,1]/r)
-    phi = np.arctan2(hsp[:,0], hsp[:,2])
+    theta = np.arccos(hsp[:,2]/r)
+    phi = np.arctan2(hsp[:,1], hsp[:,0])
 
     # Mark the points that might have caused bad angle estimates
-    iffy = np.nonzero(np.real_if_close(np.sum(hsp[:,:2]**2,axis=-1)**(1./2)))
+    iffy = np.nonzero(np.sum(hsp[:,:2]**2,axis=-1)**(1./2) < np.finfo(np.float).eps*10)
     theta[iffy] = 0
     phi[iffy] = 0
-    r[iffy] = hsp[iffy,2]
 
     # Do the azimuthal equidistant projection
-    xx = prad*(2.0*theta/M_PI)*cos(phi);
-    yy = prad*(2.0*theta/M_PI)*sin(phi);
+    x = prad*(2.0*theta/pi)*np.cos(phi);
+    y = prad*(2.0*theta/pi)*np.sin(phi);
 
-    outStr = '%8.02f %8.02f %8.02f %8.02f\n' % (x.min() - 0.6*w, x.max() + 0.6*w, y.min() - 0.6*h, y.max() + 0.6*h)
+    outStr = '%8.2f %8.2f %8.2f %8.2f\n' % (x.min() - 0.1*width, x.max() + 1.1*width, y.min() - 0.1*width, y.max() + 1.1*height)
     for ii in range(hsp.shape[0]):
-      outStr = outStr + '%03.0f %8.02f %8.02f %8.02f %8.02f %s\n' % (ii, x[ii], y[ii], width, height, names[ii])
+      outStr = outStr + '%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (ii+1, x[ii], y[ii], width, height, names[ii])
 
     f = open(output_file, 'w')
     f.write(outStr)
