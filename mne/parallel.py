@@ -7,8 +7,10 @@
 
 from warnings import warn
 
+from . import get_cache_dir
 
-def parallel_func(func, n_jobs, temp_folder=None, max_nbytes=1e6, verbose=5):
+
+def parallel_func(func, n_jobs, max_nbytes=1e6, verbose=5):
     """Return parallel instance with delayed function
 
     Util function to use joblib only if available
@@ -19,14 +21,10 @@ def parallel_func(func, n_jobs, temp_folder=None, max_nbytes=1e6, verbose=5):
         A function
     n_jobs: int
         Number of jobs to run in parallel
-    temp_folder: str, optional
-        Folder to be used by the pool for memmaping large numpy
-        arrays for sharing memory with worker processes. If
-        None, memory sharing is disabled.
     max_nbytes int or None, optional, 1e6 (1MB) by default
         Threshold on the size of arrays passed to the workers that
-        triggers automated memmory mapping in temp_folder.
-        If None, memory sharing is diabled
+        triggers automated memmory mapping. If None, memory sharing
+        is diabled.
     verbose: int
         Verbosity level
 
@@ -39,6 +37,13 @@ def parallel_func(func, n_jobs, temp_folder=None, max_nbytes=1e6, verbose=5):
     n_jobs: int
         Number of jobs >= 0
     """
+    # for a single job, we don't need joblib
+    if n_jobs == 1:
+        n_jobs = 1
+        my_func = func
+        parallel = list
+        return parallel, my_func, n_jobs
+
     try:
         from joblib import Parallel, delayed
     except ImportError:
@@ -59,17 +64,20 @@ def parallel_func(func, n_jobs, temp_folder=None, max_nbytes=1e6, verbose=5):
     # create keyword arguments for Parallel
     kwargs = {'verbose': verbose}
 
+    # get the cache directory
+    cache_dir = get_cache_dir()
+
     if joblib_mmap:
-        kwargs['temp_folder'] = temp_folder
-        if temp_folder is None:
-            # we only use memmapping if temp_folder has been specified
+        kwargs['temp_folder'] = cache_dir
+        if cache_dir is None:
+            # we only use memmapping if temp_dir has been set
             kwargs['max_nbytes'] = None
         else:
             kwargs['max_nbytes'] = max_nbytes
     else:
-        if temp_folder is not None:
+        if cache_dir is not None:
             warn('joblib is not new enough to support memmapping pool. '
-                 'Update joblib or use temp_folder=None')
+                 'Update joblib to use this feature.')
 
     parallel = Parallel(n_jobs, **kwargs)
 

@@ -8,6 +8,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+   - More memory-efficient cluster-level statistics by using shared memory between processes by `Martin Luessi`_ (requires recent version of joblib, see https://github.com/joblib/joblib/pull/44)
 
    - Multi-taper PSD estimation for single epochs in source space using minimum norm by `Martin Luessi`_
 

@@ -3,6 +3,7 @@
 
 __version__ = '0.4.git'
 
+from .config import get_cache_dir, set_cache_dir
 from .cov import read_cov, write_cov, Covariance, \
                  compute_raw_data_covariance, compute_covariance
 from .event import read_events, write_events, find_events, merge_events, \

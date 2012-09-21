@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Author: Thorsten Kranz <thorstenkranz@gmail.com>
+# Authors: Thorsten Kranz <thorstenkranz@gmail.com>
 #         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
 
@@ -142,7 +140,7 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
 
     if buffer_size is not None:
         # allocate buffer, so we don't need to allocate memory during loop
-        X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=np.double)
+        X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
                     for s in slices]
 
     for seed_idx, seed in enumerate(seeds):
@@ -186,8 +184,7 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
                              connectivity=None, n_jobs=1,
-                             verbose=5, seed=None, temp_folder=None,
-                             buffer_size=1000):
+                             verbose=5, seed=None, buffer_size=1000):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -222,16 +219,13 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
-    temp_folder: str, optional
-        Folder to be used for memmaping the data in X for sharing memory
-        with worker processes. If None, memory sharing is disabled.
-    buffer_size: int, optional
-        When memory sharing is enabled (see temp_folder), each process
-        will apply stat_fun to blocks of size buffer_size variables at
-        a time. The amout of memory for each process is approx.
-        "buffer_size * n_samples * sizeof(double)", where n_samples
-        is the total number of samples ("n_samples = sum(x.shape[0]
-        for x in X)")
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option signifficantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -256,6 +250,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     X_full = np.concatenate(X, axis=0)
     n_samples_per_condition = [x.shape[0] for x in X]
 
+    if buffer_size is not None and X_full.shape[1] <= buffer_size:
+        buffer_size = None  # don't use buffer for few variables
+
     if connectivity is not None:
         connectivity = connectivity.tocoo()
 
@@ -274,7 +271,6 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                                                 for k in range(len(X))]
 
     parallel, my_do_permutations, _ = parallel_func(_do_permutations, n_jobs,
-                                                    temp_folder=temp_folder,
                                                     verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
@@ -304,28 +300,58 @@ def ttest_1samp(X):
     return T
 
 
-def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
-                           connectivity, stat_fun, rng):
-    # new surrogate data with random sign flip
-    signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
-    X_copy *= signs
+def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
+                           seeds, buffer_size):
+    n_samp, n_vars = X.shape
 
-    # Recompute statistic on randomized data
-    T_obs_surr = stat_fun(X_copy)
-    _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                           connectivity)
+    # allocate space for output
+    max_cluster_sums = np.empty(len(seeds), dtype=np.double)
 
-    if len(perm_clusters_sums) > 0:
-        idx_max = np.argmax(np.abs(perm_clusters_sums))
-        return perm_clusters_sums[idx_max]  # get max with sign info
-    else:
-        return 0.0
+    if buffer_size is not None:
+        # allocate a buffer so we don't need to allocate memory in loop
+        X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
+
+    for seed_idx, seed in enumerate(seeds):
+        rng = np.random.RandomState(seed)
+        # new surrogate data with random sign flip
+        signs = np.sign(0.5 - rng.rand(n_samp))
+        signs = signs[:, np.newaxis]
+
+        if buffer_size is None:
+            # sign-flip data at once
+            X_flip = signs * X
+            T_obs_surr = stat_fun(X_flip)
+        else:
+            # only sign-flip a small data buffer, so we need less memory
+            T_obs_surr = np.empty(n_vars, dtype=np.double)
+
+            for pos in xrange(0, n_vars, buffer_size):
+                # number of variables for this loop
+                n_var_loop = min(pos + buffer_size, n_vars) - pos
+
+                X_flip_buffer[:, :] = signs * X[:, pos: pos + n_var_loop]
+
+                # apply stat_fun and store result
+                tmp = stat_fun(X_flip_buffer)
+                T_obs_surr[pos: pos + n_var_loop] = tmp[:n_var_loop]
+
+        # Find cluster on randomized stats
+        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                               connectivity)
+        if len(perm_clusters_sums) > 0:
+            # get max with sign info
+            idx_max = np.argmax(np.abs(perm_clusters_sums))
+            max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
+        else:
+            max_cluster_sums[seed_idx] = 0
+
+    return max_cluster_sums
 
 
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
                                    tail=0, stat_fun=ttest_1samp,
                                    connectivity=None, n_jobs=1,
-                                   verbose=5, seed=None):
+                                   verbose=5, seed=None, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -336,7 +362,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
 
     Parameters
     ----------
-    X: array
+    X: array, shape=(n_samples, n_variables)
         Array where the first dimension corresponds to the
         samples (observations). X[k] can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
@@ -359,7 +385,13 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
-
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option signifficantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -381,9 +413,13 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
-    X_copy = X.copy()
-    n_samples = X.shape[0]
-    shape_ones = tuple([1] * X[0].ndim)
+    if X.ndim > 2:
+        raise ValueError('X has to be 1D or 2D')
+    elif X.ndim == 1:
+        X = X[:, np.newaxis]
+
+    if buffer_size is not None and X.shape[1] <= buffer_size:
+        buffer_size = None  # don't use buffer for few variables
 
     if connectivity is not None:
         connectivity = connectivity.tocoo()
@@ -395,8 +431,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
 
-    parallel, my_one_1samp_permutation, _ = parallel_func(
-                                _one_1samp_permutation, n_jobs,
+    parallel, my_do_1samp_permutations, _ = parallel_func(
+                                _do_1samp_permutations, n_jobs,
                                 verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
@@ -405,12 +441,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         if seed is None:
             seeds = [None] * n_permutations
         else:
-            seeds = seed + np.arange(n_permutations)
-        H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones, X_copy,
-                                    threshold, tail, connectivity, stat_fun,
-                                    np.random.RandomState(s))
-                                    for s in seeds)
-        H0 = np.array(H0)
+            seeds = list(seed + np.arange(n_permutations))
+        H0 = parallel(my_do_1samp_permutations(X, threshold, tail,
+                      connectivity, stat_fun, s, buffer_size)
+                      for s in split_list(seeds, n_jobs))
+        H0 = np.concatenate(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
         return T_obs, clusters, cluster_pv, H0
