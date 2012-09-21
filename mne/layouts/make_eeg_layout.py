@@ -3,7 +3,7 @@ from ..fiff.constants import FIFF
 import numpy as np
 from math import pi
 
-def make_eeg_layout(info, output_file):
+def make_eeg_layout(info, output_file, prad=20, width=5, height=4):
     """
     Parameters
     ----------
@@ -11,6 +11,12 @@ def make_eeg_layout(info, output_file):
         Has info['ch_names'] and info['dig'] including EEG channels
     output_file : string
         Filename to save the layout file to.
+    prad: float
+        Viewport radius
+    width: float
+        Viewport width
+    height: float
+        Viewport height
     """
     radius, origin_head, origin_device = maxfilter.fit_sphere_to_headshape(info)
     hsp = [p['r'] for p in info['dig'] if p['kind'] == FIFF.FIFFV_POINT_EEG]
@@ -21,31 +27,30 @@ def make_eeg_layout(info, output_file):
     # Get rid of reference
     if not len(hsp) == len(names)+1:
       raise ValueError('Channel names don\'t match digitization values')
-
-    # Project onto unit sphere
     hsp = np.array(hsp)
     hsp = hsp[1:,:]
+
+    # Move points to origin
     hsp = hsp - origin_head/1e3
-    hsp = hsp / (np.sum(hsp**2,axis=-1)**(1./2)).reshape(-1,1)
 
-    lat = np.arccos(hsp[:,1])
-    lon = np.arctan(hsp[:,0] / hsp[:,2])
+    # Calculate angles
+    r = np.sum(hsp**2,axis=-1)**(1./2)
+    theta = np.arccos(hsp[:,1]/r)
+    phi = np.arctan2(hsp[:,0], hsp[:,2])
 
-#    # View from above (can't get it to work properly)
-#    lat0 = pi/2
-#    lon0 = 90
-#    c = np.arccos(np.sin(lat0)*np.sin(lat) + np.cos(lat0)*np.cos(lat)*np.cos(lon - lon0))
-#    kp = c / np.sin(c)
-#    x = 20*kp*np.cos(lat)*np.sin(lon - lon0)
-#    y = 20*kp*(np.cos(lat0)*np.sin(lat) - np.sin(lat0)*np.cos(lat)*np.cos(lon - lon0))
+    # Mark the points that might have caused bad angle estimates
+    iffy = np.nonzero(np.real_if_close(np.sum(hsp[:,:2]**2,axis=-1)**(1./2)))
+    theta[iffy] = 0
+    phi[iffy] = 0
+    r[iffy] = hsp[iffy,2]
 
-    # Uncomment these lines if we want a naive projection
-    x = 20*hsp[:,0]
-    y = 20*hsp[:,1]
+    # Do the azimuthal equidistant projection
+    xx = prad*(2.0*theta/M_PI)*cos(phi);
+    yy = prad*(2.0*theta/M_PI)*sin(phi);
 
-    outStr = '%8.02f %8.02f %8.02f %8.02f\n' % (x.min(), x.max(), y.min(), y.max())
+    outStr = '%8.02f %8.02f %8.02f %8.02f\n' % (x.min() - 0.6*w, x.max() + 0.6*w, y.min() - 0.6*h, y.max() + 0.6*h)
     for ii in range(hsp.shape[0]):
-      outStr = outStr + '%03.0f %8.02f %8.02f %8.02f %8.02f %s\n' % (ii, x[ii], y[ii], 5., 4., names[ii])
+      outStr = outStr + '%03.0f %8.02f %8.02f %8.02f %8.02f %s\n' % (ii, x[ii], y[ii], width, height, names[ii])
 
     f = open(output_file, 'w')
     f.write(outStr)
