@@ -4,6 +4,7 @@ from copy import deepcopy
 from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from nose.tools import assert_raises
 
 from mne.fiff import Raw, pick_types, pick_channels
 
@@ -13,6 +14,41 @@ fif_bad_marked_fname = op.join(op.dirname(__file__), 'data', 'test_withbads_raw.
 bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
 bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 
+
+def test_load_bad_channels():
+    """ Test reading/writing of bad channels """
+    
+    # Load correctly marked file (manually done in mne_process_raw)
+    raw_marked = Raw(fif_bad_marked_fname)
+    correct_bads = raw_marked.info['bads']
+    raw = Raw(fif_fname)
+    # Make sure it starts clean
+    assert_array_equal(raw.info['bads'], [])
+
+    # Test normal case
+    raw.load_bad_channels(bad_file_works)
+    # Write it out, read it in, and check
+    raw.save('foo_raw.fif')
+    raw_new = Raw('foo_raw.fif')
+    assert_array_equal(correct_bads, raw_new.info['bads'])
+    # Reset it
+    raw.info['bads'] = []
+    
+    # Test bad case
+    assert_raises(ValueError, raw.load_bad_channels, bad_file_wrong)
+
+    # Test forcing the bad case
+    raw.load_bad_channels(bad_file_wrong, force=True)
+    # write it out, read it in, and check
+    raw.save('foo_raw.fif')
+    raw_new = Raw('foo_raw.fif')
+    assert_array_equal(correct_bads, raw_new.info['bads'])
+    
+    # Check that bad channels are cleared
+    raw.load_bad_channels(None)
+    raw.save('foo_raw.fif')
+    raw_new = Raw('foo_raw.fif')
+    assert_array_equal([], raw_new.info['bads'])
 
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF)
@@ -188,39 +224,3 @@ def test_hilbert():
     assert_array_almost_equal(env, raw2._data[picks, :])
 
 
-def test_mark_bad_channels():
-    """ Test reading/writing of bad channels """
-    
-    # Load correctly marked file (manually done in mne_process_raw)
-    raw_marked = Raw(fif_bad_marked_fname)
-    correct_bads = raw_marked.info['bads']
-    raw = Raw(fif_fname)
-
-    # Test normal case
-    raw.mark_bad_channels(bad_file_works)
-    # Write it out, read it in, and check
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
-    assert_array_equal(correct_bads, raw_new.info['bads'])
-    raw.info['bads'] = []
-    
-    # Test bad case
-    errored = False
-    try:
-        raw.mark_bad_channels(bad_file_wrong)
-    except ValueError:
-        errored = True
-    if not errored: raise ValueError('raw.mark_bad_channels should have thrown an error but did not')
-    
-    # Test forcing the bad case
-    raw.mark_bad_channels(bad_file_wrong, force=True)
-    # write it out, read it in, and check
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
-    assert_array_equal(correct_bads, raw.info['bads'])
-    
-    # Check that bad channels are cleared
-    raw.mark_bad_channels(None)
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
-    assert_array_equal([], raw.info['bads'])

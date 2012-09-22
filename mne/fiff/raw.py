@@ -646,15 +646,17 @@ class Raw(object):
             indices.append(ind)
         return indices
     
-    def mark_bad_channels(self, bad_file=None, force=False):
+    def load_bad_channels(self, bad_file=None, force=False):
         """
-        Mark channels as bad from a text file
+        Mark channels as bad from a text file, in the style
+        (mostly) of the C function mne_mark_bad_channels
 
         Parameters
         ----------
         bad_file : string
             File name of the text file containing bad channels
-            If bad_file = None, 0, or [], bad channels are cleared
+            If bad_file = None, bad channels are cleared, but this
+            is more easily done directly as raw.info['bads'] = []
 
         force : boolean
             Whether or not to force bad channel marking (of those
@@ -662,29 +664,19 @@ class Raw(object):
             raising an error.
         """
 
-        if bad_file:
+        if not bad_file == None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             bad_names = filter(None, open(bad_file).read().splitlines())
-            isthere = [False] * len(bad_names)
-            for ci in range(len(bad_names)):
-                isthere[ci] = bad_names[ci] in names
+            names_there = [ci for ci in bad_names if ci in names]
+            count_diff = len(bad_names) - len(names_there)
 
-            if not all(isthere):
-                if force:
-                    self.info['bads'] = []
-                    count = 0
-                    for ci in range(len(bad_names)):
-                        if isthere[ci]:
-                            self.info['bads'].append(bad_names[ci])
-                            count = count + 1
-                    count = len(bad_names) - count
-
-                    warnings.warn('%d bad channels from:\n%s\nnot found in:\n%s' % (count, bad_file, self.info['filename']))
-                else:
+            if count_diff > 0:
+                if not force:
                     raise ValueError('Bad channels from:\n%s\n not found in:\n%s' % (bad_file, self.info['filename']))
-            else:
-                self.info['bads'] = bad_names
+                else:
+                    warnings.warn('%d bad channels from:\n%s\nnot found in:\n%s' % (count_diff, bad_file, self.info['filename']))
+            self.info['bads'] = names_there
         else:
             self.info['bads'] = []
 
