@@ -30,3 +30,4 @@ from . import stats
 from . import viz
 from . import preprocessing
 from . import simulation
+from . import layouts
