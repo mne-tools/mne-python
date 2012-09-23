@@ -4,7 +4,7 @@ from copy import deepcopy
 from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels
 
@@ -30,7 +30,7 @@ def test_load_bad_channels():
     # Write it out, read it in, and check
     raw.save('foo_raw.fif')
     raw_new = Raw('foo_raw.fif')
-    assert_array_equal(correct_bads, raw_new.info['bads'])
+    assert_equal(correct_bads, raw_new.info['bads'])
     # Reset it
     raw.info['bads'] = []
     
@@ -42,13 +42,13 @@ def test_load_bad_channels():
     # write it out, read it in, and check
     raw.save('foo_raw.fif')
     raw_new = Raw('foo_raw.fif')
-    assert_array_equal(correct_bads, raw_new.info['bads'])
+    assert_equal(correct_bads, raw_new.info['bads'])
     
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
     raw.save('foo_raw.fif')
     raw_new = Raw('foo_raw.fif')
-    assert_array_equal([], raw_new.info['bads'])
+    assert_equal([], raw_new.info['bads'])
 
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF)

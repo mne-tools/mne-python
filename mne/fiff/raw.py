@@ -664,7 +664,7 @@ class Raw(object):
             raising an error.
         """
 
-        if not bad_file == None:
+        if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
             bad_names = filter(None, open(bad_file).read().splitlines())
