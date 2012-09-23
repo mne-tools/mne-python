@@ -10,6 +10,12 @@ from mne import (read_events, write_events, make_fixed_length_events,
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
 
+fname_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve.eve')
+
+fname_old_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve-old-style.eve')
+
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
 
@@ -17,9 +23,22 @@ raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
 def test_io_events():
     """Test IO for events
     """
+    # Test binary fif IO
     events = read_events(fname)
     write_events('events.fif', events)
     events2 = read_events('events.fif')
+    assert_array_almost_equal(events, events2)
+
+    # Test new format text file IO
+    events = read_events(fname_txt)
+    write_events('events.eve', events)
+    events2 = read_events('events.eve')
+    assert_array_almost_equal(events, events2)
+
+    # Test old format text file IO
+    events = read_events(fname_old_txt)
+    write_events('events.eve', events)
+    events2 = read_events('events.eve')
     assert_array_almost_equal(events, events2)
 
     a = read_events('events.fif', include=1)
