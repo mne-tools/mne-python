@@ -202,7 +202,7 @@ def read_tag(fid, pos=None):
             elif tag.type == FIFF.FIFFT_USHORT:
                 tag.data = np.fromfile(fid, dtype=">H2", count=tag.size / 2)
             elif tag.type == FIFF.FIFFT_UINT:
-                tag.data = np.fromfile(fid, dtype=">I4", count=tag.size / 4)
+                tag.data = np.fromfile(fid, dtype=">u4", count=tag.size / 4)
             elif tag.type == FIFF.FIFFT_FLOAT:
                 tag.data = np.fromfile(fid, dtype=">f4", count=tag.size / 4)
             elif tag.type == FIFF.FIFFT_DOUBLE:
