@@ -569,7 +569,8 @@ class Raw(object):
         Parameters
         ----------
         fname : string
-            File name of the new dataset. Caveat! This has to be a new filename.
+            File name of the new dataset. Caveat! This has to be a new
+            filename.
 
         picks : list of int
             Indices of channels to include
@@ -643,7 +644,7 @@ class Raw(object):
             ind = int(time * self.info['sfreq'])
             indices.append(ind)
         return indices
-    
+
     def load_bad_channels(self, bad_file=None, force=False):
         """
         Mark channels as bad from a text file, in the style
@@ -658,7 +659,7 @@ class Raw(object):
 
         force : boolean
             Whether or not to force bad channel marking (of those
-            that exist) if channels are not found, instead of 
+            that exist) if channels are not found, instead of
             raising an error.
         """
 
@@ -671,13 +672,16 @@ class Raw(object):
 
             if count_diff > 0:
                 if not force:
-                    raise ValueError('Bad channels from:\n%s\n not found in:\n%s' % (bad_file, self.info['filename']))
+                    raise ValueError('Bad channels from:\n%s\n not found '
+                                     'in:\n%s' % (bad_file,
+                                                  self.info['filename']))
                 else:
-                    warnings.warn('%d bad channels from:\n%s\nnot found in:\n%s' % (count_diff, bad_file, self.info['filename']))
+                    warnings.warn('%d bad channels from:\n%s\nnot found '
+                                  'in:\n%s' % (count_diff, bad_file,
+                                               self.info['filename']))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
-
 
     def close(self):
         self.fid.close()

@@ -11,14 +11,15 @@ from mne.layouts import make_eeg_layout, Layout
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
-fif_bad_marked_fname = op.join(op.dirname(__file__), 'data', 'test_withbads_raw.fif')
+fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
+                               'test_withbads_raw.fif')
 bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
 bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 
 
 def test_load_bad_channels():
     """ Test reading/writing of bad channels """
-    
+
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
     correct_bads = raw_marked.info['bads']
@@ -34,7 +35,7 @@ def test_load_bad_channels():
     assert_equal(correct_bads, raw_new.info['bads'])
     # Reset it
     raw.info['bads'] = []
-    
+
     # Test bad case
     assert_raises(ValueError, raw.load_bad_channels, bad_file_wrong)
 
@@ -44,16 +45,16 @@ def test_load_bad_channels():
     raw.save('foo_raw.fif')
     raw_new = Raw('foo_raw.fif')
     assert_equal(correct_bads, raw_new.info['bads'])
-    
+
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
     raw.save('foo_raw.fif')
     raw_new = Raw('foo_raw.fif')
     assert_equal([], raw_new.info['bads'])
 
+
 def test_io_raw():
-    """Test IO for raw data (Neuromag + CTF)
-    """
+    """Test IO for raw data (Neuromag + CTF)"""
     for fname in [fif_fname, ctf_fname]:
         raw = Raw(fname)
 
@@ -223,5 +224,3 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
-
-
