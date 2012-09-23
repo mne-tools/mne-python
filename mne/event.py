@@ -8,6 +8,8 @@
 
 import warnings
 import numpy as np
+from os.path import splitext
+from string import join
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -59,12 +61,17 @@ def pick_events(events, include=None, exclude=None):
 
 
 def read_events(filename, include=None, exclude=None):
-    """Reads events from fif file
+    """Reads events from fif or text file
 
     Parameters
     ----------
     filename: string
-        name of the fif file
+        Name of the input file.
+        If the extension is .fif, events are read assuming
+        the file is in FIF format, otherwise (e.g., .eve,
+        .lst, .txt) events are read as coming from text.
+        Note that new format event files do not contain
+        the "time" column (used to be the second column).
     include: int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -79,33 +86,51 @@ def read_events(filename, include=None, exclude=None):
         The list of events
     """
 
-    fid, tree, _ = fiff_open(filename)
+    if splitext(filename)[1].lower() == '.fif':
+        fid, tree, _ = fiff_open(filename)
 
-    #   Find the desired block
-    events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
+        #   Find the desired block
+        events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
 
-    if len(events) == 0:
-        fid.close()
-        raise ValueError('Could not find event data')
-
-    events = events[0]
-
-    for d in events['directory']:
-        kind = d.kind
-        pos = d.pos
-        if kind == FIFF.FIFF_MNE_EVENT_LIST:
-            tag = read_tag(fid, pos)
-            event_list = tag.data
+        if len(events) == 0:
             fid.close()
-            break
-    else:
-        fid.close()
-        raise ValueError('Could not find any events')
+            raise ValueError('Could not find event data')
 
-    event_list = event_list.reshape(len(event_list) / 3, 3)
+        events = events[0]
+
+        for d in events['directory']:
+            kind = d.kind
+            pos = d.pos
+            if kind == FIFF.FIFF_MNE_EVENT_LIST:
+                tag = read_tag(fid, pos)
+                event_list = tag.data
+                fid.close()
+                break
+        else:
+            fid.close()
+            raise ValueError('Could not find any events')
+
+        event_list = event_list.reshape(len(event_list) / 3, 3)
+
+    else:
+        lines = open(filename).readlines()
+        if len(lines) == 0:
+            raise ValueError('No text lines found')
+        # Have to read this in as float64 then convert because old style
+        # eve/lst files had a second float column that will raise errors
+        lines = np.vstack(np.fromstring(lines[li].strip(), dtype='float64', \
+            sep=' ') for li in range(len(lines))).astype('uint32')
+
+        if len(lines[0]) == 4: # Old format eve/lst
+            goods = [0, 2, 3] # Omit "time" variable
+        elif len(lines[0]) == 3:
+            goods = [0, 1, 2]
+        else:
+            raise ValueError('Unknown number of columns in event text file')
+
+        event_list = lines[:,goods]
 
     event_list = pick_events(event_list, include, exclude)
-
     return event_list
 
 
@@ -115,19 +140,31 @@ def write_events(filename, event_list):
     Parameters
     ----------
     filename: string
-        name of the fif file
+        Name of the output file.
+        If the extension is .fif, events are written in
+        binary FIF format, otherwise (e.g., .eve, .lst,
+        .txt) events are written as plain text.
+        Note that new format event files do not contain
+        the "time" column (used to be the second column).
 
     events: array, shape (n_events, 3)
         The list of events
     """
-    #   Start writing...
-    fid = start_file(filename)
+    if splitext(filename)[1].lower() == '.fif':
+        #   Start writing...
+        fid = start_file(filename)
 
-    start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
-    end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
+        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
-    end_file(fid)
+        end_file(fid)
+    else:
+        out_string = join(['%6d %6d %3d\n' % tuple(event_list[ii,:]) \
+            for ii in range(event_list.shape[0])])
+        f = open(filename, 'w')
+        f.write(out_string)
+        f.close()
 
 
 def find_events(raw, stim_channel='STI 014', verbose=True):
