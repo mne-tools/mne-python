@@ -9,13 +9,14 @@ import numpy as np
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
+from warnings import warn
 
 
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
                       average, filter_length, n_jobs, ch_name,
-                      reject, bads, avg_ref, no_proj, event_id,
-                      exg_l_freq, exg_h_freq, tstart):
+                      reject, flat, bads, avg_ref, no_proj, event_id,
+                      exg_l_freq, exg_h_freq, tstart, qrs_threshold):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -68,6 +69,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     reject: dict
         Epoch rejection configuration (see Epochs)
 
+    flat: dict
+        Epoch flat configuration (see Epochs)
+
     bads: list
         List with (additional) bad channels
 
@@ -88,6 +92,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     tstart: float
         Start artifact detection after tstart seconds.
+
+    qrs_threshold: float
+        Between 0 and 1. qrs detection threshold (only for ECG)
 
     Returns
     -------
@@ -119,7 +126,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         print 'Running ECG SSP computation'
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
                            event_id=event_id, l_freq=exg_l_freq,
-                           h_freq=exg_h_freq, tstart=tstart)
+                           h_freq=exg_h_freq, tstart=tstart, qrs_threshold=qrs_threshold)
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
         events = find_eog_events(raw_event, event_id=event_id,
@@ -127,17 +134,32 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
 
+    # Check to make sure we actually got at least one useable event
+    if events.shape[0] < 1:
+        warn('No %s events found, returning None for projs' % mode)
+        return None, events
+
     print 'Computing projector'
 
     # Handler rejection parameters
-    if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
-        del reject['grad']
-    if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
-        del reject['mag']
-    if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
-        del reject['eeg']
-    if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
-        del reject['eog']
+    if reject is not None: # make sure they didn't pass None
+        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+            del reject['grad']
+        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+            del reject['mag']
+        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+            del reject['eeg']
+        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+            del reject['eog']
+    if flat is not None: # make sure they didn't pass None
+        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+            del flat['grad']
+        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+            del flat['mag']
+        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+            del flat['eeg']
+        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+            del flat['eog']
 
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=raw.info['bads'] + bads)
@@ -145,7 +167,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                n_jobs=n_jobs)
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None,
-                    picks=picks, reject=reject, proj=True)
+                    picks=picks, reject=reject, flat=flat, proj=True)
 
     if average:
         evoked = epochs.average()
@@ -169,9 +191,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), bads=[], avg_ref=False, no_proj=False,
+                     eog=250e-6), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0.):
+                     tstart=0., qrs_threshold=0.6):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -221,6 +243,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     reject: dict
         Epoch rejection configuration (see Epochs)
 
+    flat: dict
+        Epoch flat configuration (see Epochs)
+
     bads: list
         List with (additional) bad channels
 
@@ -242,6 +267,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     tstart: float
         Start artifact detection after tstart seconds.
 
+    qrs_threshold: float
+        Between 0 and 1. qrs detection threshold
+
     Returns
     -------
     proj : list
@@ -254,8 +282,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
-                        reject, bads, avg_ref, no_proj, event_id,
-                        ecg_l_freq, ecg_h_freq, tstart)
+                        reject, flat, bads, avg_ref, no_proj, event_id,
+                        ecg_l_freq, ecg_h_freq, tstart, qrs_threshold)
 
     return projs, ecg_events
 
@@ -264,7 +292,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=2048, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
-                     eog=np.inf), bads=[], avg_ref=False, no_proj=False,
+                     eog=np.inf), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=998, eog_l_freq=1, eog_h_freq=10, tstart=0.):
     """Compute SSP/PCA projections for EOG artifacts
 
@@ -315,6 +343,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     reject: dict
         Epoch rejection configuration (see Epochs)
 
+    flat: dict
+        Epoch flat configuration (see Epochs)
+
     bads: list
         List with (additional) bad channels
 
@@ -348,7 +379,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
-                        reject, bads, avg_ref, no_proj, event_id,
-                        eog_l_freq, eog_h_freq, tstart)
+                        reject, flat, bads, avg_ref, no_proj, event_id,
+                        eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6)
 
     return projs, eog_events
