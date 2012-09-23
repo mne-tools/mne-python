@@ -147,7 +147,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
         None will go to the end of the file
     duration: float
         Duration (in sec) to chunk data into for SSP
-        If duration <=0 or None, data will not be chunked
+        If duration is None, data will not be chunked
     n_grad: int
         Number of vectors for gradiometers
     n_mag: int
