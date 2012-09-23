@@ -63,9 +63,15 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         xlim for plots.
     proj : bool
         If true SSP projections are applied before display.
+
+    Returns:
+    --------
+    fig : Instance of matplotlib.figure.Figrue
+
     """
     import pylab as pl
     pl.clf()
+    fig = pl.figure()
     if picks is None:
         picks = range(evoked.info['nchan'])
     types = [channel_type(evoked.info, idx) for idx in picks]
@@ -114,6 +120,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         pass
     if show:
         pl.show()
+
+    return fig
 
 
 def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
@@ -170,7 +178,8 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
     return tfr_ch[0], extent
 
 
-def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
+def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim,
+                      vmin, vmax, colorbar, cmap):
     """ Helper function: plot time frequency representations on sensor layout
 
     Parameters
@@ -199,17 +208,36 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
 
     Returns
     -------
-    fig : matplotlib figure
+    fig : Instance of matplotlib.figure.Figrue
         images of induced power at sensor locations
     """
 
     import pylab as pl
+    if cmap == None:
+        cmap = pl.cm.jet
     ch_names = epochs.info['ch_names']
     pl.rcParams['axes.edgecolor'] = 'w'
+    pl.rcParams['axes.facecolor'] = 'k'
     fig = pl.figure(facecolor='k')
+    if colorbar:
+        sm = pl.cm.ScalarMappable(cmap=cmap,
+                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
+        sm.set_array(np.linspace(vmin, vmax))
+        ax = pl.axes([0, 0, 1.2, 1], axisbg='k')
+        cb = fig.colorbar(sm, ax=ax)
+        cbytick_obj = pl.getp(cb.ax.axes, 'yticklabels')
+        pl.setp(cbytick_obj, color='w')
     for idx, name in enumerate(layout.names):
         if name in ch_names:
             ax = pl.axes(layout.pos[idx], axisbg='k')
@@ -219,13 +247,13 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim):
             ax.imshow(tfr_data, extent=extent, aspect="auto", origin="lower")
             pl.xticks([], ())
             pl.yticks([], ())
-    pl.rcParams['axes.edgecolor'] = 'k'
+    # pl.rcParams['axes.edgecolor'] = 'k'
 
     return fig
 
 
 def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
-                    decim=1):
+                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None):
     """Plot induced power on sensor layout
 
     Parameters
@@ -254,29 +282,43 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
 
     Returns
     -------
-    fig : matplotlib figure
+    fig : Instance of matplotlib.figure.Figrue
         Images of induced power at sensor locations
 
     """
     if baseline is None:
         baseline = epochs.baseline
+    if vmin == None:
+        vmin = power.min()
+    if vmax == None:
+        vmax = power.max()
+
     # name = 'Induced Power'
     ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
-                            baseline=baseline, mode=mode)
-
+                            baseline=baseline, mode=mode, colorbar=colorbar,
+                            vmin=vmin, vmax=vmax, cmap=cmap)
     return ret
 
 
-def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
-                         mode='mean', decim=1):
+def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
+                         mode='mean', decim=1, colorbar=True, vmin=None,
+                         vmax=None, cmap=None):
     """Plot phase locking values on sensor layout
 
     Parameters
     ----------
-    
+
     epochs : instance of Epochs
         The epochs used to generate the phase locking value
     phase_lock : 3D-array
@@ -301,20 +343,32 @@ def plot_topo_phase_lock(epochs, phase_lock, freq, layout, baseline=None,
         power = [power - mean(power_baseline)] / std(power_baseline))
     decim : integer
         Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
 
     Returns
     -------
-    fig : matplotlib figure
+    fig : Instance of matplotlib.figure.Figrue
         Phase lock images at sensor locations
 
     """
     if baseline is None:
         baseline = epochs.baseline
+    if vmin == None:
+        vmin = phase.min()
+    if vmax == None:
+        vmax = phase.max()
 
     # name = 'Phase Locking Value'
-    ret = _plot_topo_imshow(epochs, phase_lock, freq, layout, decim=decim,
-                            baseline=baseline, mode=mode)
-
+    ret = _plot_topo_imshow(epochs, phase, freq, layout, decim=decim,
+                            baseline=baseline, mode=mode, colorbar=colorbar,
+                            vmin=vmin, vmax=vmax, cmap=cmap)
     return ret
 
 
