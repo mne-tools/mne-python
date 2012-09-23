@@ -196,13 +196,13 @@ def read_tag(fid, pos=None):
             if tag.type == FIFF.FIFFT_BYTE:
                 tag.data = np.fromfile(fid, dtype=">B1", count=tag.size)
             elif tag.type == FIFF.FIFFT_SHORT:
-                tag.data = np.fromfile(fid, dtype=">h2", count=tag.size / 2)
+                tag.data = np.fromfile(fid, dtype=">i2", count=tag.size / 2)
             elif tag.type == FIFF.FIFFT_INT:
                 tag.data = np.fromfile(fid, dtype=">i4", count=tag.size / 4)
             elif tag.type == FIFF.FIFFT_USHORT:
-                tag.data = np.fromfile(fid, dtype=">H2", count=tag.size / 2)
+                tag.data = np.fromfile(fid, dtype=">u2", count=tag.size / 2)
             elif tag.type == FIFF.FIFFT_UINT:
-                tag.data = np.fromfile(fid, dtype=">I4", count=tag.size / 4)
+                tag.data = np.fromfile(fid, dtype=">u4", count=tag.size / 4)
             elif tag.type == FIFF.FIFFT_FLOAT:
                 tag.data = np.fromfile(fid, dtype=">f4", count=tag.size / 4)
             elif tag.type == FIFF.FIFFT_DOUBLE:
@@ -211,7 +211,7 @@ def read_tag(fid, pos=None):
                 tag.data = np.fromfile(fid, dtype=">c", count=tag.size)
                 tag.data = ''.join(tag.data)
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
-                tag.data = np.fromfile(fid, dtype=">h2", count=tag.size / 2)
+                tag.data = np.fromfile(fid, dtype=">i2", count=tag.size / 2)
             elif tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
                 tag.data = np.fromfile(fid, dtype=">f4", count=tag.size / 4)
                 tag.data = tag.data[::2] + 1j * tag.data[1::2]
