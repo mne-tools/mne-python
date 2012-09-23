@@ -146,7 +146,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
         Time (in sec) to stop computing SSP
         None will go to the end of the file
     duration: float
-        Duration to chunk data into for SSP
+        Duration (in sec) to chunk data into for SSP
         If duration <=0 or None, data will not be chunked
     n_grad: int
         Number of vectors for gradiometers
@@ -164,7 +164,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2, n_e
     projs: list
         List of projection vectors
     """
-    if (not duration==None) and duration > 0:
+    if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration, picks=pick_types(raw.info, meg=True, eeg=True), reject=reject, flat=flat)
         data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
