@@ -224,5 +224,3 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
-
-
