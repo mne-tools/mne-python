@@ -305,7 +305,7 @@ class Raw(object):
                 self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
+            parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose=verbose)
 
             data_picks = data_in[picks, :]
             data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)

@@ -685,7 +685,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     # Compute nearest vertices in high dim mesh
     parallel, my_compute_nearest, _ = \
-                        parallel_func(_compute_nearest, n_jobs, verbose)
+                        parallel_func(_compute_nearest, n_jobs,
+                                      verbose=verbose)
     lhs, rhs, rr = [a.astype(np.float32) for a in [lhs, rhs, ico['rr']]]
     nearest = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
 
@@ -700,7 +701,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
 
     parallel, my_morph_buffer, _ = \
-                        parallel_func(_morph_buffer, n_jobs, verbose)
+                        parallel_func(_morph_buffer, n_jobs,
+                                      verbose=verbose)
 
     for hemi in [0, 1]:
         e = mesh_edges(tris[hemi])
