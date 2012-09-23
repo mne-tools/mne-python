@@ -118,7 +118,8 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('No text lines found')
         # Have to read this in as float64 then convert because old style
         # eve/lst files had a second float column that will raise errors
-        lines = np.vstack(np.fromstring(lines[li].strip(), dtype='float64', sep=' ') for li in range(len(lines))).astype('uint32')
+        lines = np.vstack(np.fromstring(lines[li].strip(), dtype='float64', \
+            sep=' ') for li in range(len(lines))).astype('uint32')
 
         if len(lines[0]) == 4: # Old format eve/lst
             goods = [0, 2, 3] # Omit "time" variable
@@ -159,7 +160,8 @@ def write_events(filename, event_list):
     
         end_file(fid)
     else:
-        out_string = join(['%6d %6d %3d\n' % tuple(event_list[ii,:]) for ii in range(event_list.shape[0])])
+        out_string = join(['%6d %6d %3d\n' % tuple(event_list[ii,:]) \
+            for ii in range(event_list.shape[0])])
         f = open(filename, 'w')
         f.write(out_string)
         f.close()
