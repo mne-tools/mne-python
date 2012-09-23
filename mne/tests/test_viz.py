@@ -1,7 +1,7 @@
 import os.path as op
 
 from mne import fiff
-from mne.layouts import Layout
+from mne.layouts import read_layout
 from mne.viz import plot_topo
 
 
@@ -16,7 +16,7 @@ def test_plot_topo():
     """Plot ERP topography
     """
 
-    layout = Layout('Vectorview-all')
+    layout = read_layout('Vectorview-all')
 
     # Show topography
     plot_topo(evoked, layout)

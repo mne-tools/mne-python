@@ -1,2 +1,1 @@
-from .layout import Layout
-from .make_eeg_layout import make_eeg_layout
+from .layout import Layout, make_eeg_layout, read_layout

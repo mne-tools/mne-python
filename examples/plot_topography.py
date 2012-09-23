@@ -14,7 +14,7 @@ print __doc__
 import pylab as pl
 
 from mne import fiff
-from mne.layouts import Layout
+from mne.layouts import read_layout
 from mne.viz import plot_topo
 from mne.datasets import sample
 data_path = sample.data_path('.')
@@ -24,7 +24,7 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 # Reading
 evoked = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
 
-layout = Layout('Vectorview-all')
+layout = read_layout('Vectorview-all')
 
 ###############################################################################
 # Show topography
