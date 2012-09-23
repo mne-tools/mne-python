@@ -142,7 +142,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     print 'Computing projector'
 
     # Handler rejection parameters
-    if type(reject) == dict: # make sure they didn't pass None
+    if reject is not None: # make sure they didn't pass None
         if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
             del reject['grad']
         if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
@@ -151,7 +151,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
             del reject['eeg']
         if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
             del reject['eog']
-    if type(flat) == dict: # make sure they didn't pass None
+    if flat is not None: # make sure they didn't pass None
         if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
             del flat['grad']
         if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
