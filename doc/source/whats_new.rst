@@ -13,6 +13,11 @@ Changelog
 
    - Read and visualize .dip files obtained with xfit or mne_dipole_fit by `Alex Gramfort`_
 
+API
+~~~
+
+   - Use mne.layout.read_layout instead of mne.layout.Layout to read a layout file (.lout)
+
 .. _changes_0_4:
 
 Version 0.4

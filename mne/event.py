@@ -233,3 +233,35 @@ def merge_events(events, ids, new_id):
     for i in ids:
         events_numbers[events_numbers == i] = new_id
     return events
+
+
+def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
+    """Make a set of events separated by a fixed duration
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        A raw object to use the data from
+    duration: float
+        The duration to separate events by
+    id : int
+        The id to use
+
+    Returns
+    -------
+    new_events: array
+        The new events
+    """
+    start = raw.time_to_index(start)
+    start = start[0] + raw.first_samp
+    if stop is not None:
+        stop = raw.time_to_index(stop)
+        stop = min([stop[0] + raw.fist_samp, raw.last_samp + 1])
+    else:
+        stop = raw.last_samp + 1
+    # Make sure we don't go out the end of the file:
+    stop -= np.ceil(raw.info['sfreq'] * duration)
+    ts = np.arange(start, stop, raw.info['sfreq'] * duration).astype(int)
+    n_events = len(ts)
+    events = np.c_[ts, np.zeros(n_events), id * np.ones(n_events)]
+    return events

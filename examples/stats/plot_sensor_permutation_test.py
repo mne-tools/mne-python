@@ -65,8 +65,8 @@ print "Sensors names : %s" % significant_sensors_names
 import pylab as pl
 
 # load sensor layout
-from mne.layouts import Layout
-layout = Layout('Vectorview-grad')
+from mne.layouts import read_layout
+layout = read_layout('Vectorview-grad')
 
 # Extract mask and indices of active sensors in layout
 idx_of_sensors = [layout.names.index(name)

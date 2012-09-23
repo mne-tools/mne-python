@@ -138,8 +138,6 @@ class Raw(object):
 
                 #  Do we have a skip pending?
                 if nskip > 0:
-                    import pdb
-                    pdb.set_trace()
                     rawdir.append(dict(ent=None, first=first_samp,
                                        last=first_samp + nskip * nsamp - 1,
                                        nsamp=nskip * nsamp))
@@ -571,7 +569,8 @@ class Raw(object):
         Parameters
         ----------
         fname : string
-            File name of the new dataset. Caveat! This has to be a new filename.
+            File name of the new dataset. Caveat! This has to be a new
+            filename.
 
         picks : list of int
             Indices of channels to include
@@ -680,6 +679,44 @@ class Raw(object):
         else:
             self.info['bads'] = []
 
+
+    def load_bad_channels(self, bad_file=None, force=False):
+        """
+        Mark channels as bad from a text file, in the style
+        (mostly) of the C function mne_mark_bad_channels
+
+        Parameters
+        ----------
+        bad_file : string
+            File name of the text file containing bad channels
+            If bad_file = None, bad channels are cleared, but this
+            is more easily done directly as raw.info['bads'] = []
+
+        force : boolean
+            Whether or not to force bad channel marking (of those
+            that exist) if channels are not found, instead of
+            raising an error.
+        """
+
+        if bad_file is not None:
+            # Check to make sure bad channels are there
+            names = frozenset(self.info['ch_names'])
+            bad_names = filter(None, open(bad_file).read().splitlines())
+            names_there = [ci for ci in bad_names if ci in names]
+            count_diff = len(bad_names) - len(names_there)
+
+            if count_diff > 0:
+                if not force:
+                    raise ValueError('Bad channels from:\n%s\n not found '
+                                     'in:\n%s' % (bad_file,
+                                                  self.info['filename']))
+                else:
+                    warnings.warn('%d bad channels from:\n%s\nnot found '
+                                  'in:\n%s' % (count_diff, bad_file,
+                                               self.info['filename']))
+            self.info['bads'] = names_there
+        else:
+            self.info['bads'] = []
 
     def close(self):
         self.fid.close()
