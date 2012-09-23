@@ -12,7 +12,7 @@ import numpy as np
 import fiff
 from .fiff import Evoked
 from .fiff.pick import pick_types, channel_indices_by_type
-from .fiff.proj import activate_proj, make_eeg_average_ref_proj
+from .fiff.proj import setup_proj
 from .baseline import rescale
 from .utils import check_random_state
 
@@ -75,10 +75,10 @@ class Epochs(object):
 
     proj : bool, optional
         Apply SSP projection vectors
-        
+
     verbose : None | bool
         Use verbose output. None defaults to raw.verbose.
-        
+
 
     Attributes
     ----------
@@ -114,7 +114,8 @@ class Epochs(object):
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True, verbose=None):
+                preload=False, reject=None, flat=None, proj=True,
+                verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -128,6 +129,7 @@ class Epochs(object):
         self.preload = preload
         self.reject = reject
         self.flat = flat
+        self.proj = proj
         self._bad_dropped = False
 
         # Handle measurement info
@@ -146,29 +148,7 @@ class Epochs(object):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        #   Set up projection
-        if self.info['projs'] is None or not proj:
-            print 'No projector specified for these data'
-            self.proj = None
-        else:
-            # Add EEG ref reference proj
-            eeg_sel = pick_types(self.info, meg=False, eeg=True)
-            if len(eeg_sel) > 0:
-                eeg_proj = make_eeg_average_ref_proj(self.info)
-                self.info['projs'].append(eeg_proj)
-
-            #   Create the projector
-            proj, nproj = fiff.proj.make_projector_info(self.info)
-            if nproj == 0:
-                print 'The projection vectors do not apply to these channels'
-                self.proj = None
-            else:
-                print ('Created an SSP operator (subspace dimension = %d)'
-                                                                    % nproj)
-                self.proj = proj
-
-            #   The projection items have been activated
-            self.info['projs'] = activate_proj(self.info['projs'], copy=False)
+        self._projector, self.info = setup_proj(self.info)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
@@ -229,8 +209,8 @@ class Epochs(object):
         self.info['nchan'] = len(idx)
         self.ch_names = self.info['ch_names']
 
-        if self.proj is not None:
-            self.proj = self.proj[idx][:, idx]
+        if self._projector is not None:
+            self._projector = self._projector[idx][:, idx]
 
         if self.preload:
             self._data = self._data[:, idx, :]
@@ -275,9 +255,9 @@ class Epochs(object):
             return None
         epoch, _ = self.raw[self.picks, start:stop]
 
-        if self.proj is not None:
+        if self.proj and self._projector is not None:
             print "SSP projectors applied..."
-            epoch = np.dot(self.proj, epoch)
+            epoch = np.dot(self._projector, epoch)
 
         # Run baseline correction
         epoch = rescale(epoch, self.times, self.baseline, 'mean',

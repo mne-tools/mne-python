@@ -47,6 +47,25 @@ def test_read_epochs():
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
 
 
+def test_epochs_proj():
+    """Test handling projection (apply proj in Raw or in Epochs)
+    """
+    exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+    this_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
+                                eog=True, exclude=exclude)
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=True)
+    epochs.average()
+    data = epochs.get_data()
+
+    raw_proj = fiff.Raw(raw_fname, proj=True)
+    epochs_no_proj = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=False)
+    epochs_no_proj.average()
+    data_no_proj = epochs_no_proj.get_data()
+    assert_array_almost_equal(data, data_no_proj, decimal=4)
+
+
 def test_evoked_arithmetic():
     """Arithmetic of evoked data"""
     epochs1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
