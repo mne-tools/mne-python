@@ -113,22 +113,20 @@ def read_events(filename, include=None, exclude=None):
         event_list = event_list.reshape(len(event_list) / 3, 3)
 
     else:
-        lines = open(filename).readlines()
-        if len(lines) == 0:
-            raise ValueError('No text lines found')
         # Have to read this in as float64 then convert because old style
         # eve/lst files had a second float column that will raise errors
-        lines = np.vstack(np.fromstring(lines[li].strip(), dtype='float64', \
-            sep=' ') for li in range(len(lines))).astype('uint32')
+        lines = np.loadtxt(filename, dtype=np.float64).astype(np.uint32)
+        if len(lines) == 0:
+            raise ValueError('No text lines found')
 
-        if len(lines[0]) == 4: # Old format eve/lst
-            goods = [0, 2, 3] # Omit "time" variable
+        if len(lines[0]) == 4:  # Old format eve/lst
+            goods = [0, 2, 3]  # Omit "time" variable
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
             raise ValueError('Unknown number of columns in event text file')
 
-        event_list = lines[:,goods]
+        event_list = lines[:, goods]
 
     event_list = pick_events(event_list, include, exclude)
     return event_list
@@ -160,10 +158,8 @@ def write_events(filename, event_list):
 
         end_file(fid)
     else:
-        out_string = join(['%6d %6d %3d\n' % tuple(event_list[ii,:]) \
-            for ii in range(event_list.shape[0])])
         f = open(filename, 'w')
-        f.write(out_string)
+        [f.write('%6d %6d %3d\n' % tuple(e)) for e in event_list]
         f.close()
 
 
