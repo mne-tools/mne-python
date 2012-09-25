@@ -129,7 +129,7 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
-    print event_list.shape
+
     event_list = pick_events(event_list, include, exclude)
     return event_list
 
