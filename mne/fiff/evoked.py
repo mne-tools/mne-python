@@ -17,7 +17,7 @@ from ..baseline import rescale
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
-
+from ..viz import plot_evoked 
 
 class Evoked(object):
     """Evoked data
@@ -324,6 +324,11 @@ class Evoked(object):
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
+
+    def plot(self, **kwargs):
+        """plot evoked reponses
+        """
+        plot_evoked(self, **kwargs)
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
