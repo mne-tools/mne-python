@@ -18,7 +18,9 @@ from ..baseline import rescale
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
+
 from ..viz import plot_evoked
+
 
 class Evoked(object):
     """Evoked data
