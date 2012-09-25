@@ -140,6 +140,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     from empty room data or time intervals before starting
     the stimulation.
 
+    Note: To speed up the computation you should consider preloading raw data
+    by setting preload=True when reading the Raw data.
+
     Parameters
     ----------
     raw : instance of Raw
