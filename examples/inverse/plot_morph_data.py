@@ -26,7 +26,7 @@ fname = data_path + '/MEG/sample/sample_audvis-meg'
 src_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 
 # Read input stc file
-stc_from = mne.SourceEstimate(fname)
+stc_from = mne.read_source_estimate(fname)
 # Morph
 stc_to = mne.morph_data(subject_from, subject_to, stc_from, n_jobs=1)
 

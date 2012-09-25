@@ -18,7 +18,7 @@ from mne.datasets import sample
 data_path = sample.data_path('..')
 fname = data_path + '/MEG/sample/sample_audvis-meg'
 
-stc = mne.SourceEstimate(fname)
+stc = mne.read_source_estimate(fname)
 
 n_vertices, n_samples = stc.data.shape
 print "stc data size: %s (nb of vertices) x %s (nb of samples)" % (
