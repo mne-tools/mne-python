@@ -118,18 +118,18 @@ def read_events(filename, include=None, exclude=None):
         if len(lines) == 0:
             raise ValueError('No text lines found')
 
-        if lines.ndim == 1: #  Special case for only one event
-            lines = np.expand_dims(lines,0)
+        if lines.ndim == 1:  # Special case for only one event
+            lines = lines[np.newaxis,:]
 
-        if len(lines[0]) == 4: #  Old format eve/lst
-            goods = [0, 2, 3]  #  Omit "time" variable
+        if len(lines[0]) == 4:  # Old format eve/lst
+            goods = [0, 2, 3]   # Omit "time" variable
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
-
+    print event_list.shape
     event_list = pick_events(event_list, include, exclude)
     return event_list
 
