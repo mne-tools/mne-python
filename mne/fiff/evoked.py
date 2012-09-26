@@ -334,8 +334,6 @@ class Evoked(object):
 
         Parameters
         ----------
-        evoked : instance of Evoked
-            The evoked data
         picks : None | array-like of int
             The indices of channels to plot. If None show all.
         unit : bool
@@ -350,8 +348,8 @@ class Evoked(object):
         proj : bool
             If true SSP projections are applied before display.
         """
-        plot_evoked(self, picks=None, unit=True, show=True,
-                    ylim=None, proj=False, xlim='tight')
+        plot_evoked(self, picks=picks, unit=unit, show=show,
+                    ylim=ylim, proj=proj, xlim=xlim)
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
