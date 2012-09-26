@@ -17,7 +17,7 @@ def select_source_in_label(src, label, random_state=None):
     ----------
     src : list of dict
         The source space
-    label : dict
+    label : Label
         the label (read with mne.read_label)
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
@@ -58,7 +58,7 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     ----------
     src : list of dict
         The source space
-    labels : list of dict
+    labels : list of Labels
         The labels
     stc_data : array (shape: len(labels) x n_times)
         The waveforms

@@ -294,8 +294,8 @@ def write_label(filename, label, verbose=True):
     ----------
     filename : string
         Path to label file to produce.
-    label : dict | Label
-        The label structure.
+    label : Label
+        The label object to save.
     """
     label = _aslabel(label)
     hemi = label.hemi
@@ -365,8 +365,8 @@ def label_sign_flip(label, src):
 
     Parameters
     ----------
-    label : dict
-        A label read with the read_label function
+    label : Label
+        A label
     src : list of dict
         The source space over which the label is defined
 
@@ -413,7 +413,7 @@ def stc_to_label(stc, src, smooth=5):
 
     Returns
     -------
-    labels : list of dict
+    labels : list of Labels
         The generated labels. One per hemisphere containing sources.
     """
     from scipy import sparse
@@ -546,13 +546,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
 
     Returns
     -------
-    labels : list
-        List with lables. Each label is a dictionary with keys:
-            comment     Comment with seed vertex and extent
-            hemi        Hemisphere of the label ('lh', or 'rh')
-            vertices    Vertex indices (0 based)
-            pos         Locations in millimeters
-            values      Distances in millimeters from seed
+    labels : list of Labels. The labels' ``comment`` attribute contains
+        information on the seed vertex and extent; the ``values``  attribute
+        contains distance from the seed in millimeters
+
     """
     if subjects_dir is None:
         if 'SUBJECTS_DIR' in os.environ:
