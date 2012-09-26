@@ -268,10 +268,6 @@ def read_label(filename):
     for i, line in enumerate(fid):
         data[:, i] = line.split()
 
-    vertices = np.array(data[0], dtype=np.int32)
-    pos = 1e-3 * data[1:4].T
-    values = data[4]
-
     basename = os.path.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
         hemi = 'lh'
@@ -282,8 +278,13 @@ def read_label(filename):
                          ' with lh.label or rh.label')
     fid.close()
 
-    label = Label(vertices, pos, values, hemi, comment=comment,
-                      filename=filename)
+    label = Label(vertices=np.array(data[0], dtype=np.int32),
+                  pos=1e-3 * data[1:4].T,
+                  values=data[4],
+                  hemi=hemi,
+                  comment=comment,
+                  filename=filename)
+
     return label
 
 
