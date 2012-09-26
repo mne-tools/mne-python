@@ -329,7 +329,7 @@ class Evoked(object):
         self.data = self.data[:, mask]
 
     def plot(self, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight'):
+             ylim=None, proj=False, xlim='tight'):
         """Plot evoked data
 
         Parameters
@@ -351,7 +351,7 @@ class Evoked(object):
             If true SSP projections are applied before display.
         """
         plot_evoked(self, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight')
+                    ylim=None, proj=False, xlim='tight')
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
