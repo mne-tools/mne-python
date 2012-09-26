@@ -120,7 +120,6 @@ class Epochs(object):
         self.event_id = event_id
         self.tmin = tmin
         self.tmax = tmax
-        self.picks = picks
         self.name = name
         self.keep_comp = keep_comp
         self.dest_comp = dest_comp
@@ -145,6 +144,8 @@ class Epochs(object):
 
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
+
+        self.picks = picks
 
         #   Set up projection
         if self.info['projs'] is None or not proj:
@@ -285,8 +286,7 @@ class Epochs(object):
         return epoch
 
     def _get_data_from_disk(self):
-        """Load all data from disk
-        """
+        """Load all data from disk"""
         n_events = len(self.events)
         data = list()
         n_reject = 0
@@ -302,8 +302,7 @@ class Epochs(object):
         return np.array(data), event_idx
 
     def _is_good_epoch(self, data):
-        """Determine if epoch is good
-        """
+        """Determine if epoch is good"""
         if data is None:
             return False
         n_times = len(self.times)

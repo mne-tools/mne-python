@@ -26,7 +26,6 @@ def channel_type(info, idx):
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
         Type of channel
     """
-
     kind = info['chs'][idx]['kind']
     if kind == FIFF.FIFFV_MEG_CH:
         if info['chs'][idx]['unit'] == FIFF.FIFF_UNIT_T_M:
@@ -47,6 +46,11 @@ def channel_type(info, idx):
         return 'ecg'
     elif kind == FIFF.FIFFV_MISC_CH:
         return 'misc'
+    elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
+                  FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
+                  FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
+                  FIFF.FIFFV_HPI_MOV]:
+        return 'chpi'  # channels relative to head position monitoring
     raise Exception('Unknown channel type')
 
 
