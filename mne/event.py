@@ -9,7 +9,6 @@
 import warnings
 import numpy as np
 from os.path import splitext
-from string import join
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -113,14 +112,17 @@ def read_events(filename, include=None, exclude=None):
         event_list = event_list.reshape(len(event_list) / 3, 3)
 
     else:
-        # Have to read this in as float64 then convert because old style
-        # eve/lst files had a second float column that will raise errors
+        #  Have to read this in as float64 then convert because old style
+        #  eve/lst files had a second float column that will raise errors
         lines = np.loadtxt(filename, dtype=np.float64).astype(np.uint32)
         if len(lines) == 0:
             raise ValueError('No text lines found')
 
+        if lines.ndim == 1:  # Special case for only one event
+            lines = lines[np.newaxis,:]
+
         if len(lines[0]) == 4:  # Old format eve/lst
-            goods = [0, 2, 3]  # Omit "time" variable
+            goods = [0, 2, 3]   # Omit "time" variable
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
