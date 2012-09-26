@@ -89,8 +89,10 @@ class Label(dict):
         self.comment = comment
 
         # also set dict entries (for backwards compatibility)
+        self._dep_warn = False
         self.update(vertices=vertices, pos=pos, values=values, hemi=hemi,
                     comment=comment)
+        self._dep_warn = True
 
         # name
         if name is None:
@@ -115,8 +117,9 @@ class Label(dict):
 
     def _update_attr_from_dict(self):
         "backwards compatibility"
-        warnings.warn('Dictionary-like usage of Label objects is deprecated '
-                      'and will be removed in v0.6.')
+        if self._dep_warn:
+            warnings.warn('Dictionary-like usage of Label objects is deprecated '
+                          'and will be removed in v0.6.')
         for key in ['vertices', 'pos', 'values', 'hemi', 'comment']:
             setattr(self, key, self.get(key, None))
 
