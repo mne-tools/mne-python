@@ -53,7 +53,7 @@ def test_apply_forward():
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
-    stc = SourceEstimate(stc_data, vertno, tstart=t_start, tstep=1.0 / sfreq)
+    stc = SourceEstimate(stc_data, vertno, tmin=t_start, tstep=1.0 / sfreq)
 
     gain_sum = np.sum(fwd['sol']['data'], axis=1)
 
