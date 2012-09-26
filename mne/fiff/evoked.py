@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -17,6 +18,8 @@ from ..baseline import rescale
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
+
+from ..viz import plot_evoked
 
 
 class Evoked(object):
@@ -324,6 +327,31 @@ class Evoked(object):
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
+
+    def plot(self, picks=None, unit=True, show=True,
+             ylim=None, proj=False, xlim='tight'):
+        """Plot evoked data
+
+        Parameters
+        ----------
+        evoked : instance of Evoked
+            The evoked data
+        picks : None | array-like of int
+            The indices of channels to plot. If None show all.
+        unit : bool
+            Scale plot with channel (SI) unit.
+        show : bool
+            Call pylab.show() as the end or not.
+        ylim : dict
+            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+            Valid keys are eeg, mag, grad
+        xlim : 'tight' | tuple | None
+            xlim for plots.
+        proj : bool
+            If true SSP projections are applied before display.
+        """
+        plot_evoked(self, picks=None, unit=True, show=True,
+                    ylim=None, proj=False, xlim='tight')
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
