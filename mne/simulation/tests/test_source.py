@@ -25,7 +25,7 @@ def test_generate_stc():
     mylabels = copy.deepcopy(labels)
 
     for i, label in enumerate(mylabels):
-        label['values'] = 2 * i * np.ones(len(label['values']))
+        label.values = 2 * i * np.ones(len(label.values))
 
     n_times = 10
     tmin = 0

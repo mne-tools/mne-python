@@ -18,6 +18,15 @@ src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 
 
+def assert_labels_equal(l0, l1, decimal=5):
+    for attr in ['comment', 'hemi']:
+        assert_true(getattr(l0, attr) == getattr(l1, attr))
+    for attr in ['vertices', 'pos', 'values']:
+        a0 = getattr(l0, attr)
+        a1 = getattr(l1, attr)
+        assert_array_almost_equal(a0, a1, decimal)
+
+
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
@@ -34,12 +43,7 @@ def test_label_io():
     label = read_label(label_fname)
     write_label('foo', label)
     label2 = read_label('foo-lh.label')
-
-    for key in label.keys():
-        if key in ['comment', 'hemi']:
-            assert_true(label[key] == label2[key])
-        else:
-            assert_array_almost_equal(label[key], label2[key], 5)
+    assert_labels_equal(label, label2)
 
 
 def test_stc_to_label():
@@ -52,11 +56,7 @@ def test_stc_to_label():
     labels2 = stc_to_label(stc, src=src, smooth=3)
     assert_true(len(labels1) == len(labels2))
     for l1, l2 in zip(labels1, labels2):
-        for key in l1.keys():
-            if key in ['comment', 'hemi']:
-                assert_true(l1[key] == l1[key])
-            else:
-                assert_array_almost_equal(l1[key], l2[key], 4)
+        assert_labels_equal(l1, l2, decimal=4)
 
 
 def test_grow_labels():
@@ -66,8 +66,8 @@ def test_grow_labels():
     labels = grow_labels('sample', seeds, 3, hemis)
 
     for label, seed, hemi in zip(labels, seeds, hemis):
-        assert(np.any(label['vertices'] == seed))
+        assert(np.any(label.vertices == seed))
         if hemi == 0:
-            assert(label['hemi'] == 'lh')
+            assert(label.hemi == 'lh')
         else:
-            assert(label['hemi'] == 'rh')
+            assert(label.hemi == 'rh')

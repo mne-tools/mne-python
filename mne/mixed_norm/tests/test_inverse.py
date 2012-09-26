@@ -45,4 +45,4 @@ def test_MxNE_inverse():
                      maxit=500, tol=1e-4, active_set_size=10)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][0] in label['vertices'])
+    assert_true(stc.vertno[1][0] in label.vertices)

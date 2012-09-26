@@ -7,6 +7,7 @@
 import numpy as np
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
+from ..label import _aslabel
 
 
 def select_source_in_label(src, label, random_state=None):
@@ -33,12 +34,14 @@ def select_source_in_label(src, label, random_state=None):
 
     rng = check_random_state(random_state)
 
-    if label['hemi'] == 'lh':
-        src_sel_lh = np.intersect1d(src[0]['vertno'], label['vertices'])
+    label = _aslabel(label)
+
+    if label.hemi == 'lh':
+        src_sel_lh = np.intersect1d(src[0]['vertno'], label.vertices)
         idx_select = rng.randint(0, len(src_sel_lh), 1)
         lh_vertno.append(src_sel_lh[idx_select][0])
     else:
-        src_sel_rh = np.intersect1d(src[1]['vertno'], label['vertices'])
+        src_sel_rh = np.intersect1d(src[1]['vertno'], label.vertices)
         idx_select = rng.randint(0, len(src_sel_rh), 1)
         rh_vertno.append(src_sel_rh[idx_select][0])
 
@@ -121,7 +124,7 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     ----------
     src : list of dict
         The source space
-    labels : list of dict
+    labels : list of Labels
         The labels
     stc_data : array (shape: len(labels) x n_times)
         The waveforms
@@ -141,17 +144,19 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
 
+    labels = map(_aslabel, labels)
+
     vertno = [[], []]
     stc_data_extended = [[], []]
     hemi_to_ind = {'lh': 0, 'rh': 1}
     for i, label in enumerate(labels):
-        hemi_ind = hemi_to_ind[label['hemi']]
+        hemi_ind = hemi_to_ind[label.hemi]
         src_sel = np.intersect1d(src[hemi_ind]['vertno'],
-                                 label['vertices'])
+                                 label.vertices)
         if value_fun is not None:
-            idx_sel = np.searchsorted(label['vertices'], src_sel)
+            idx_sel = np.searchsorted(label.vertices, src_sel)
             values_sel = np.array([value_fun(v) for v in
-                                   label['values'][idx_sel]])
+                                   label.values[idx_sel]])
 
             data = np.outer(values_sel, stc_data[i])
         else:
