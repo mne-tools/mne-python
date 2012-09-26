@@ -1,4 +1,5 @@
 import os.path as op
+import warnings
 
 from nose.tools import assert_true
 import numpy as np
@@ -58,25 +59,26 @@ def test_apply_forward():
     gain_sum = np.sum(fwd['sol']['data'], axis=1)
 
     # Evoked
-    evoked = Evoked(fname_evoked, setno=0)
-    evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+    with warnings.catch_warnings(record=True) as w:
+        evoked = Evoked(fname_evoked, setno=0)
+        evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+        assert_equal(len(w), 2)
+        data = evoked.data
+        times = evoked.times
 
-    data = evoked.data
-    times = evoked.times
+        # do some tests
+        assert_array_almost_equal(evoked.info['sfreq'], sfreq)
+        assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+        assert_array_almost_equal(times[0], t_start)
+        assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
-    # do some tests
-    assert_array_almost_equal(evoked.info['sfreq'], sfreq)
-    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-    assert_array_almost_equal(times[0], t_start)
-    assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+        # Raw
+        raw = Raw(fname_raw)
+        raw_proj = apply_forward_raw(fwd, stc, raw, start=start, stop=stop)
+        data, times = raw_proj[:, :]
 
-    # Raw
-    raw = Raw(fname_raw)
-    raw_proj = apply_forward_raw(fwd, stc, raw, start=start, stop=stop)
-    data, times = raw_proj[:, :]
-
-    # do some tests
-    assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
-    assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-    assert_array_almost_equal(times[0], t_start)
-    assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+        # do some tests
+        assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
+        assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
+        assert_array_almost_equal(times[0], t_start)
+        assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)

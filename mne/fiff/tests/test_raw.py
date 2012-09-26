@@ -1,5 +1,6 @@
 import os.path as op
 from copy import deepcopy
+import warnings
 
 from nose.tools import assert_true
 import numpy as np
@@ -40,11 +41,13 @@ def test_load_bad_channels():
     assert_raises(ValueError, raw.load_bad_channels, bad_file_wrong)
 
     # Test forcing the bad case
-    raw.load_bad_channels(bad_file_wrong, force=True)
-    # write it out, read it in, and check
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
-    assert_equal(correct_bads, raw_new.info['bads'])
+    with warnings.catch_warnings(record=True) as w:
+        raw.load_bad_channels(bad_file_wrong, force=True)
+        assert_equal(len(w), 1)
+        # write it out, read it in, and check
+        raw.save('foo_raw.fif')
+        raw_new = Raw('foo_raw.fif')
+        assert_equal(correct_bads, raw_new.info['bads'])
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
