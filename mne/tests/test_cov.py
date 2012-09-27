@@ -2,6 +2,7 @@ import os.path as op
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 
@@ -114,6 +115,17 @@ def test_cov_estimation_with_triggers():
     assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-5)
 
+    # cov with list of epochs with different projectors
+    epochs = [Epochs(raw, events, event_ids[0], tmin=-0.2, tmax=0,
+              baseline=(-0.2, -0.1), proj=True, reject=reject),
+              Epochs(raw, events, event_ids[0], tmin=-0.2, tmax=0,
+              baseline=(-0.2, -0.1), proj=False, reject=reject)]
+    # these should fail
+    assert_raises(ValueError, compute_covariance, epochs)
+    assert_raises(ValueError, compute_covariance, epochs, projs=None)
+    # these should work, but won't be equal to above
+    cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
+    cov = compute_covariance(epochs, projs=[])
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices

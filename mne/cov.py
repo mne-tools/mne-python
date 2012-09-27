@@ -241,7 +241,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
 
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
-                       proj=None):
+                       projs=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -272,7 +272,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Start time for baseline. If None start at first sample.
     tmax : float | None
         End time for baseline. If None end at last sample.
-    proj : list of projectors | None
+    projs : list of projectors | None
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
@@ -292,10 +292,15 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                           'matrix may be inaccurate')
 
     bads = epochs[0].info['bads']
-    if proj is None:
+    if projs is None:
         projs = cp.deepcopy(epochs[0].info['projs'])
+        # make sure Epochs are compatible
+        for epochs_t in epochs[1:]:
+            for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
+                if not proj_equal(proj_a, proj_b):
+                    raise ValueError('Epochs must have same projectors')
     else:
-        projs = cp.deepcopy(proj)
+        projs = cp.deepcopy(projs)
     ch_names = epochs[0].ch_names
 
     # make sure Epochs are compatible
@@ -304,10 +309,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             raise ValueError('Epochs must have same bad channels')
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
-        if proj is None:
-            for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
-                if not proj_equal(proj_a, proj_b):
-                    raise ValueError('Epochs must have same projectors')
 
     n_epoch_types = len(epochs)
     data = 0.0
