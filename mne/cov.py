@@ -274,7 +274,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         End time for baseline. If None end at last sample.
     proj : list of projectors | None
         List of projectors to use in covariance calculation, or None
-        to indicate that the projectors from the raw file should be
+        to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
 
     Returns
