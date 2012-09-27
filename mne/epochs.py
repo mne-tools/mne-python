@@ -76,10 +76,10 @@ class Epochs(object):
 
     proj : bool, optional
         Apply SSP projection vectors
-        
+
     verbose : None | bool
         Use verbose output. None defaults to raw.verbose.
-        
+
 
     Attributes
     ----------
@@ -117,9 +117,10 @@ class Epochs(object):
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False, reject=None, flat=None, proj=True, verbose=None):
         if type(raw) is not list:
-            self.raw = [self.raw]
-        else:
-            self.raw = raw
+            raw = [raw]
+        if type(events) is not list:
+            events = [events]
+        self.raw = raw
         self.verbose = raw[0].verbose if verbose is None else verbose
         self.event_id = event_id
         self.tmin = tmin
@@ -133,23 +134,23 @@ class Epochs(object):
         self.flat = flat
         self._bad_dropped = False
 
-        # setup epoch rejection
-        self._reject_setup()
-
-        if self.preload: # This hasn't been handled yet
-            raise ValueError('preload=True behavior undefined')
         # Handle measurement info
         self.info = cp.deepcopy(raw[0].info)
+
+        # setup epoch rejection
+        self._reject_setup()
 
         # check to make sure everything necessary matches before changing info
         for ri in range(len(raw)):
             if not raw[ri].info['nchan'] == self.info['nchan']:
-                raise ValueError('raw[%d][\'info\'] must match' % ri)
+                raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
+            if not raw[ri].info['bads'] == self.info['bads']:
+                raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
             if not raw[ri].info['sfreq'] == self.info['sfreq']:
-                raise ValueError('ra[%d][\'info\'] must match' % ri)
+                raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
             if not set(raw[ri].info['ch_names']) \
                        == set(self.info['ch_names']):
-                raise ValueError('raw[%d][\'info\'] must match' % ri)
+                raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
 
         # now modify (if necessary) based on picks
         if picks is not None:
@@ -158,7 +159,7 @@ class Epochs(object):
             self.info['nchan'] = len(picks)
         else:
             picks = range(len(self.info['ch_names']))
-        self.ch_names = raw.info['ch_names']
+        self.ch_names = self.info['ch_names']
 
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
@@ -166,23 +167,25 @@ class Epochs(object):
         self.picks = picks
 
         #   Set up projection
-        self.info['projs'] = [raw[ri].info['projs'] for ri in range(len(raw))]
+        del self.info['projs'] # Delete old, now-ambiguous key
+        self.info['projs_all'] = [raw[ri].info['projs'] for ri in range(len(raw))]
         self.proj = [None]*len(raw)
-        self.nproj = [None]*len(raw)
         if not proj:
             for ri in range(len(raw)):
                 if self.info['projs'][ri] is None:
                     print 'No projector specified for these data'
                     self.proj[ri] = None
                 else:
-                    # Add EEG ref reference proj
+                    #   Add EEG ref reference proj
                     eeg_sel = pick_types(self.info, meg=False, eeg=True)
                     if len(eeg_sel) > 0:
                         eeg_proj = make_eeg_average_ref_proj(self.info)
-                        self.info['projs'][ri].append(eeg_proj)
-        
-                    #   Create the projector
+                        self.info['projs_all'][ri].append(eeg_proj)
+
+                    #   Create the projector, temporarily adding 'projs'
+                    self.info['projs'] = self.info['projs_all'][ri]
                     proj, nproj = fiff.proj.make_projector_info(self.info)
+                    del self.info['projs']
                     if nproj == 0:
                         print 'The projection vectors do not apply to these channels'
                         self.proj[ri] = None
@@ -190,14 +193,14 @@ class Epochs(object):
                         print ('Created an SSP operator (subspace dimension = %d)'
                                                                             % nproj)
                         self.proj[ri] = proj
-        
+
                     #   The projection items have been activated
-                    self.info['projs'][ri] = activate_proj(self.info['projs'], copy=False)
+                    self.info['projs_all'][ri] = activate_proj(self.info['projs'], copy=False)
 
         #   Set up the CTF compensator
-        current_comp = [fiff.get_current_comp(self.info) \ 
+        current_comp = [fiff.get_current_comp(self.info) \
                             for ri in range(len(raw))]
-        for ri in range(len(raw))
+        for ri in range(len(raw)):
             if current_comp[ri] > 0:
                 print 'Current compensation grade : %d' % current_comp
 
@@ -205,20 +208,21 @@ class Epochs(object):
             dest_comp = current_comp
 
         for ri in range(len(raw)):
-            if current_comp != dest_comp:
-                raw[ri]['comp'] = fiff.raw[ri].make_compensator(raw[ri].info, 
+            if current_comp[ri] != dest_comp:
+                raw[ri]['comp'] = fiff.raw.make_compensator(raw[ri].info,
                                                  current_comp, dest_comp)
                 print 'Appropriate compensator added to change to grade %d.' % (
                                                                     dest_comp)
 
         # concatenate events from all epochs
-        self.events, self.idx_limits = self._concat_events(events)
+        events, self.idx_limits = self._concat_events(events)
+        self.events = events
 
         # select the desired events
         if event_id is not None:
             selected = np.logical_and(events[:, 1] == 0,
                                       events[:, 2] == event_id)
-            _pick_event_subset(np.nonzero(selected)[0])
+            self._pick_event_subset(np.nonzero(selected)[0])
 
         n_events = len(self.events)
 
@@ -243,34 +247,33 @@ class Epochs(object):
             self.events = np.atleast_2d(self.events[good_events, :])
             self._bad_dropped = True
 
-    def _concat_events(self, epochs):
+    def _concat_events(self, in_events):
         """Concatenate events from self.epochs
         """
-        idx_limits = np.zeros(len(epochs) + 1) # First limit is zero
-        events = cp.deepcopy(epochs[0].events)
-        idx_limits[1] = events.shape[0]
-        for ei in range(1,len(epochs)):
-            events = np.vstack((events, cp.deepcopy(epochs[ei].events)))
+        idx_limits = np.zeros(len(in_events) + 1) # First limit is zero
+        events = np.zeros((0,3))
+        for ei in range(len(in_events)):
+            events = np.vstack((events, cp.deepcopy(in_events[ei])))
             idx_limits[ei + 1] = events.shape[0]
         return events, idx_limits
 
-    def _idx_to_epoch_sidx(self, idx):
-        """Function to convert input index (idx) to epoch # (ei)
-        and (sub)index (sidx) within that epoch
+    def _idx_to_raw_sidx(self, idx):
+        """Function to convert input index (idx) to raw # (ri)
+        and (sub)index (sidx) within that raw
         """
         location = np.nonzero(self.idx_limits <= idx)[0]
         sidx = idx - self.idx_limits[location[-1]]
-        ei = location[-1]
-        return [ei, sidx]
-        
-    def _pick_event_subset(self, key)
-        """Update the idx_limits and events"""
-        for ri in range(len(raw)):
+        ri = location[-1]
+        return [ri, sidx]
+
+    def _pick_event_subset(self, key):
+        """Update the idx_limits and events simultaneously
+        key must be an integer array"""
+        for ri in range(len(self.raw)):
             inds = np.logical_and(np.less_equal(self.idx_limits[ri], key), \
                                   np.less(key, self.idx_limits[ri+1]))
-            idx_limits[ri+1] = length(inds)
-        idx_limits = np.cumsum(idx_limits)
-        self.events = self.events[key]
+            self.idx_limits[ri + 1] = np.sum(inds) + self.idx_limits[ri]
+        self.events = np.atleast_2d(self.events[key])
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -287,8 +290,9 @@ class Epochs(object):
         self.info['nchan'] = len(idx)
         self.ch_names = self.info['ch_names']
 
-        if self.proj is not None:
-            self.proj = self.proj[idx][:, idx]
+        for ri in range(len(self.raw)):
+            if self.proj[ri] is not None:
+                self.proj[ri] = self.proj[ri][idx][:, idx]
 
         if self.preload:
             self._data = self._data[:, idx, :]
@@ -310,14 +314,15 @@ class Epochs(object):
             if self._is_good_epoch(epoch):
                 good_events.append(idx)
 
-        self.events = np.atleast_2d(self.events[good_events])
+        self._pick_event_subset(good_events)
         self._bad_dropped = True
 
         print "%d bad epochs dropped" % (n_events - len(good_events))
 
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
-        sfreq = self.raw[0].info['sfreq']
+        ri, sidx = self._idx_to_raw_sidx(idx)
+        sfreq = self.raw[ri].info['sfreq']
 
         if self.events.ndim == 1:
             #single event
@@ -326,16 +331,16 @@ class Epochs(object):
             event_samp = self.events[idx, 0]
 
         # Read a data segment
-        first_samp = self.raw[0].first_samp
+        first_samp = self.raw[ri].first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
         if start < 0:
             return None
-        epoch, _ = self.raw[0][self.picks, start:stop]
+        epoch, _ = self.raw[ri][self.picks, start:stop]
 
-        if self.proj is not None:
+        if self.proj[ri] is not None:
             print "SSP projectors applied..."
-            epoch = np.dot(self.proj, epoch)
+            epoch = np.dot(self.proj[ri], epoch)
 
         # Run baseline correction
         epoch = rescale(epoch, self.times, self.baseline, 'mean',
@@ -440,18 +445,22 @@ class Epochs(object):
         """Return an Epochs object with a subset of epochs
         """
         if not self._bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will be "
-                          "inaccurate. Use drop_bad_epochs() or preload=True")
+            raise RuntimeError("Bad epochs have not been dropped, indexing "
+                               "will be inaccurate. Use drop_bad_epochs() or "
+                               "preload=True")
 
         epochs = cp.copy(self)  # XXX : should use deepcopy but breaks ...
-        epochs.events = np.atleast_2d(self.events[key])
+        # Need to make sure these actually refer to different arrays
+        epochs.events = cp.deepcopy(self.events)
+        epochs.idx_limits = cp.deepcopy(self.idx_limits)
+        epochs._pick_event_subset(np.array(range(len(epochs.events)), dtype='uint64')[key])
 
         if self.preload:
             if isinstance(key, slice):
-                epochs._data = self._data[key]
+                epochs._data = cp.deepcopy(self._data[key])
             else:
                 key = np.atleast_1d(key)
-                epochs._data = self._data[key]
+                epochs._data = cp.deepcopy(self._data[key])
         return epochs
 
     def average(self, keep_only_data_channels=True):
