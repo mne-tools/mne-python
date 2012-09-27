@@ -2,6 +2,7 @@ import os.path as op
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 
@@ -20,6 +21,7 @@ raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
 erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
                      'test_erm-cov.fif')
 
+raw = Raw(raw_fname, preload=True)
 
 def test_io_cov():
     """Test IO for noise covariance matrices
@@ -39,7 +41,6 @@ def test_io_cov():
 def test_cov_estimation_on_raw_segment():
     """Estimate raw on continuous recordings (typically empty room)
     """
-    raw = Raw(raw_fname)
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
@@ -67,7 +68,6 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Estimate raw with triggers
     """
-    raw = Raw(raw_fname)
     events = find_events(raw)
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -114,6 +114,17 @@ def test_cov_estimation_with_triggers():
     assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
             / linalg.norm(cov.data, ord='fro')) < 1e-5)
 
+    # cov with list of epochs with different projectors
+    epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
+              baseline=(-0.2, -0.1), proj=True, reject=reject),
+              Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
+              baseline=(-0.2, -0.1), proj=False, reject=reject)]
+    # these should fail
+    assert_raises(ValueError, compute_covariance, epochs)
+    assert_raises(ValueError, compute_covariance, epochs, projs=None)
+    # these should work, but won't be equal to above
+    cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
+    cov = compute_covariance(epochs, projs=[])
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices
@@ -134,7 +145,6 @@ def test_regularize_cov():
     """Test cov regularization
     """
     noise_cov = read_cov(cov_fname)
-    raw = Raw(raw_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
                                mag=0.1, grad=0.1, eeg=0.1, proj=True)
