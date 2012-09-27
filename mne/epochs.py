@@ -118,8 +118,6 @@ class Epochs(object):
                 preload=False, reject=None, flat=None, proj=True, verbose=None):
         if type(raw) is not list:
             raw = [raw]
-        if type(events) is not list:
-            events = [events]
         self.raw = raw
         self.verbose = raw[0].verbose if verbose is None else verbose
         self.event_id = event_id
@@ -215,14 +213,17 @@ class Epochs(object):
                                                                     dest_comp)
 
         # concatenate events from all epochs
-        events, self.idx_limits = self._concat_events(events)
-        self.events = events
+        self.replace_events(events)
+        events = self.events
 
         # select the desired events
         if event_id is not None:
             selected = np.logical_and(events[:, 1] == 0,
                                       events[:, 2] == event_id)
-            self._pick_event_subset(np.nonzero(selected)[0])
+            self.pick_event_subset(selected)
+
+        print event_id
+        print self.events
 
         n_events = len(self.events)
 
@@ -244,31 +245,38 @@ class Epochs(object):
 
         if self.preload:
             self._data, good_events = self._get_data_from_disk()
-            self.events = np.atleast_2d(self.events[good_events, :])
+            self.pick_event_subset(good_events)
             self._bad_dropped = True
 
-    def _concat_events(self, in_events):
-        """Concatenate events from self.epochs
+    def replace_events(self, new_events):
+        """Replace current events with new set of events.
         """
-        idx_limits = np.zeros(len(in_events) + 1) # First limit is zero
-        events = np.zeros((0,3))
-        for ei in range(len(in_events)):
-            events = np.vstack((events, cp.deepcopy(in_events[ei])))
+        if type(new_events) is not list:
+            new_events = [new_events]
+        if len(new_events) is not len(self.raw):
+            raise ValueError('new_events must be a list of the same length as '
+                             'the raw list (or not a list if raw is not a list)')
+        idx_limits = np.zeros(len(new_events) + 1, dtype='uint64') # First limit is zero
+        events = np.zeros((0,3), dtype='uint64')
+        for ei in range(len(new_events)):
+            events = np.vstack((events, cp.deepcopy(new_events[ei])))
             idx_limits[ei + 1] = events.shape[0]
-        return events, idx_limits
+        self.events = events
+        self.idx_limits = idx_limits
 
     def _idx_to_raw_sidx(self, idx):
         """Function to convert input index (idx) to raw # (ri)
         and (sub)index (sidx) within that raw
         """
-        location = np.nonzero(self.idx_limits <= idx)[0]
-        sidx = idx - self.idx_limits[location[-1]]
-        ri = location[-1]
-        return [ri, sidx]
+        ri = np.nonzero(self.idx_limits <= idx)[0][-1]
+        sidx = idx - self.idx_limits[ri]
+        return ri, sidx
 
-    def _pick_event_subset(self, key):
-        """Update the idx_limits and events simultaneously
-        key must be an integer array"""
+    def pick_event_subset(self, key):
+        """Choose a subset of events to keep from the originals
+        """
+        # Update the idx_limits and events simultaneously
+        key = np.array(range(len(self.events)), dtype='uint64')[key]
         for ri in range(len(self.raw)):
             inds = np.logical_and(np.less_equal(self.idx_limits[ri], key), \
                                   np.less(key, self.idx_limits[ri+1]))
@@ -314,7 +322,7 @@ class Epochs(object):
             if self._is_good_epoch(epoch):
                 good_events.append(idx)
 
-        self._pick_event_subset(good_events)
+        self.pick_event_subset(good_events)
         self._bad_dropped = True
 
         print "%d bad epochs dropped" % (n_events - len(good_events))
@@ -450,10 +458,10 @@ class Epochs(object):
                                "preload=True")
 
         epochs = cp.copy(self)  # XXX : should use deepcopy but breaks ...
-        # Need to make sure these actually refer to different arrays
+        # Ensure these actually refer to different arrays
         epochs.events = cp.deepcopy(self.events)
         epochs.idx_limits = cp.deepcopy(self.idx_limits)
-        epochs._pick_event_subset(np.array(range(len(epochs.events)), dtype='uint64')[key])
+        epochs.pick_event_subset(key)
 
         if self.preload:
             if isinstance(key, slice):
