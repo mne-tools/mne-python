@@ -33,7 +33,9 @@ def _zscore_channels(data, info, picks, exclude):
 
     for idxs in ch_type_idx:
         if idxs.shape[0]:
-            out[idxs, :] = zscore(data[idxs], 0)
+            # important: calculate zscores from flattend array.
+            # otherwise recomposition will fail.
+            out[idxs, :] = zscore(data[idxs], None)
 
     out = out[picks]
 
@@ -92,12 +94,13 @@ def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
 
     elif noise_cov == None:
         data = _zscore_channels(data, info, picks, exclude)
-        # data = data[picks]  #
+        # data = data[picks]  # bypass
 
     data = data.T  # sklearn expects column vectors / matrixes
 
     print ('\nCalculating signal decomposition.'
            '\n    Please be patient. This may take some time')
+
     ica = FastICA(n_components=n_components, whiten=True, *args, **kwargs)
     S = ica.fit(data).transform(data)
     A = ica.get_mixing_matrix()
@@ -106,7 +109,7 @@ def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
 
     if sort_method != None:
         from scipy.stats import kurtosis
-        sort_functions = {np.var: 'var', kurtosis: 'kurtosis'}
+        sort_functions = {'var': np.var, 'kurtosis': kurtosis}
         sort_func = sort_functions.get(sort_method, None)
         if sort_func != None:
             sorter = sort_func(A, 0)
