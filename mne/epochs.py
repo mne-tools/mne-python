@@ -22,11 +22,12 @@ class Epochs(object):
 
     Parameters
     ----------
-    raw : Raw object
-        A instance of Raw
+    raw : Raw object, or list
+        A instance of Raw, or a list of Raw instances
 
-    events : array, of shape [n_events, 3]
-        Returned by the read_events function
+    events : array, of shape [n_events, 3], or list
+        Returned by the read_events function, or a list of the same
+        length as the list of Raw instances
 
     event_id : int | None
         The id of the event to consider. If None all events are used.
@@ -116,6 +117,8 @@ class Epochs(object):
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False, reject=None, flat=None, proj=True, verbose=None):
         self.raw = raw
+        if type(raw) is not list:
+            self.raw = [self.raw]
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
         self.tmin = tmin
@@ -260,7 +263,7 @@ class Epochs(object):
 
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
-        sfreq = self.raw.info['sfreq']
+        sfreq = self.raw[0].info['sfreq']
 
         if self.events.ndim == 1:
             #single event
@@ -269,12 +272,12 @@ class Epochs(object):
             event_samp = self.events[idx, 0]
 
         # Read a data segment
-        first_samp = self.raw.first_samp
+        first_samp = self.raw[0].first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + len(self.times)
         if start < 0:
             return None
-        epoch, _ = self.raw[self.picks, start:stop]
+        epoch, _ = self.raw[0][self.picks, start:stop]
 
         if self.proj is not None:
             print "SSP projectors applied..."
