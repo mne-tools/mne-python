@@ -96,7 +96,7 @@ class Epochs(object):
         to making a new epochs object with different events)
         because it will likely cause indexing errors.
 
-    bad_log: list of lists
+    drop_log: list of lists
         This list (same length as events) contains the channel(s),
         if any, that caused an event in the original event list
         to be dropped by drop_bad_epochs().
@@ -143,7 +143,7 @@ class Epochs(object):
         self.reject = reject
         self.flat = flat
         self._bad_dropped = False
-        self.bad_log = None
+        self.drop_log = None
 
         # Handle measurement info
         self.info = cp.deepcopy(raw[0].info)
@@ -324,16 +324,16 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
-        bad_log = [None]*n_events
+        drop_log = [None]*n_events
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             is_good, offenders = self._is_good_epoch(epoch)
             if is_good:
                 good_events.append(idx)
             else:
-                bad_log[idx] = offenders
+                drop_log[idx] = offenders
 
-        self.bad_log = bad_log
+        self.drop_log = drop_log
         self._pick_event_subset(good_events)
         self._bad_dropped = True
 
