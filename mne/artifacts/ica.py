@@ -43,7 +43,7 @@ def _zscore_channels(data, info, picks, exclude):
 
 
 def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
-                  sort_method=None, meg=True, eeg=True, exclude=None,
+                  sort_method='kurtosis', meg=True, eeg=True, exclude=None,
                   *args, **kwargs):
     """ Run ICA decomposition on instance of Raw
     Paramerters
@@ -117,7 +117,8 @@ def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
             sorter = sort_func(S, 0)
             S = S[np.argsort(sorter), :]
         else:
-            print '\n    This is not a valid sorting function'
+            print ('\n    This is not a valid sorting function'
+                   '\n    --- No sort applied.')
 
     latent_sources = np.swapaxes(S, 0, 1)
     mixing_matrix = np.swapaxes(A, 0, 1)
