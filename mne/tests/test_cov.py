@@ -21,6 +21,7 @@ raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
 erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
                      'test_erm-cov.fif')
 
+raw = Raw(raw_fname, preload=True)
 
 def test_io_cov():
     """Test IO for noise covariance matrices
@@ -40,7 +41,6 @@ def test_io_cov():
 def test_cov_estimation_on_raw_segment():
     """Estimate raw on continuous recordings (typically empty room)
     """
-    raw = Raw(raw_fname)
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
@@ -116,9 +116,9 @@ def test_cov_estimation_with_triggers():
             / linalg.norm(cov.data, ord='fro')) < 1e-5)
 
     # cov with list of epochs with different projectors
-    epochs = [Epochs(raw, events, event_ids[0], tmin=-0.2, tmax=0,
+    epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
               baseline=(-0.2, -0.1), proj=True, reject=reject),
-              Epochs(raw, events, event_ids[0], tmin=-0.2, tmax=0,
+              Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
               baseline=(-0.2, -0.1), proj=False, reject=reject)]
     # these should fail
     assert_raises(ValueError, compute_covariance, epochs)
