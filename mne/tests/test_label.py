@@ -71,3 +71,14 @@ def test_grow_labels():
             assert(label.hemi == 'lh')
         else:
             assert(label.hemi == 'rh')
+
+
+def test_label_time_course():
+    """Test extracting label data from SourceEstimate"""
+    values, times, vertices = label_time_courses(label_fname, stc_fname)
+    stc = read_source_estimate(stc_fname)
+    label = read_label(label_fname)
+    lstc = stc.label_stc(label)
+    assert_array_almost_equal(lstc.data, values)
+    assert_array_almost_equal(lstc.times, times)
+    assert_array_almost_equal(lstc.vertno[0], vertices)
