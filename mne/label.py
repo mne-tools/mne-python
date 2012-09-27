@@ -28,6 +28,25 @@ class Label(dict):
     hemisphere.
 
 
+    Parameters
+    ----------
+
+    vertices : array (length N)
+        vertex indices (0 based)
+
+    pos : array (N by 3)
+        locations in meters
+
+    values : array (length N)
+        values at the vertices
+
+    hemi : 'lh' | 'rh'
+        Hemisphere to which the label applies.
+
+    comment, name, fpath : str
+        Kept as information but not used by the object itself
+
+
     Attributes
     ----------
 
@@ -57,7 +76,6 @@ class Label(dict):
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
                  filename=None):
         """
-
         Parameters
         ----------
 
@@ -189,6 +207,17 @@ class Label(dict):
 class BiHemiLabel(object):
     """
     Represents a freesurfer/mne label with vertices in both hemispheres.
+
+
+    Parameters
+    ----------
+
+    lh, rh : Label
+        Label objects representing the left and the right hemisphere,
+        respectively
+
+    name : None | str
+        name for the label
 
 
     Attributes

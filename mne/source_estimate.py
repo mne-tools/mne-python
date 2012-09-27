@@ -315,6 +315,31 @@ class SourceEstimate(object):
 
     Can be saved and loaded from .stc or .w files.
 
+
+    Parameters
+    ----------
+
+    data : array of shape [n_dipoles x n_times]
+        The data in source space
+
+    vertices : array | list of two arrays
+        vertex number corresponding to the data
+
+    tmin : scalar
+        time point of the first sample in data
+
+    tstep : scalar
+        time step between successive samples in data
+
+
+    .. note::
+        For backwards compatibility, the SourceEstimate can also be
+        initialized with a single argument, which can be ``None`` (an
+        attribute-less SourceEstimate object will be returned) or a path as
+        string, in which case the corresponding file(s) will be loaded. This
+        usage is deprecated and will be removed in v0.6.
+
+
     Attributes
     ----------
 
@@ -326,6 +351,7 @@ class SourceEstimate(object):
 
     vertno : list of array of shape [n_dipoles in each source space]
         The indices of the dipoles in the different source spaces
+
     """
     def __init__(self, data, vertices=None, tmin=None, tstep=None):
         """
@@ -343,13 +369,6 @@ class SourceEstimate(object):
 
         tstep : scalar
             time step between successive samples in data
-
-
-        .. note::
-            For backwards compatibility, the SourceEstimate can also be
-            initialized with a single argument, which can be ``None`` (an
-            attribute-less SourceEstimate object will be returned) or a path as
-            string, in which case the corresponding file(s) will be loaded.
 
         """
         if data is None:
