@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-import copy
+import copy as cp
 import os
 from math import floor, ceil
 import warnings
@@ -93,7 +93,7 @@ class Covariance(dict):
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
-        this_cov = copy.deepcopy(cov)
+        this_cov = cp.deepcopy(cov)
         this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) +
                             (self['data'] * self['nfree'])) / \
                                 (self['nfree'] + this_cov['nfree'])
@@ -198,7 +198,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     n_samples = 0
     mu = 0
 
-    info = copy.copy(raw.info)
+    info = cp.copy(raw.info)
     info['chs'] = [info['chs'][k] for k in picks]
     info['ch_names'] = [info['ch_names'][k] for k in picks]
     info['nchan'] = len(picks)
@@ -233,14 +233,15 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     #   Store structure for fif
     cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
                names=ch_names, data=data,
-               projs=copy.deepcopy(raw.info['projs']),
+               projs=cp.deepcopy(raw.info['projs']),
                bads=raw.info['bads'], nfree=n_samples, eig=eig,
                eigvec=eigvec)
 
     return cov
 
 
-def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
+def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
+                       proj=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -271,6 +272,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
         Start time for baseline. If None start at first sample.
     tmax : float | None
         End time for baseline. If None end at last sample.
+    proj : list of projectors | None
+        List of projectors to use in covariance calculation, or None
+        to indicate that the projectors from the epochs should be
+        inherited. If None, then projectors from all epochs must match.
 
     Returns
     -------
@@ -287,7 +292,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
                           'matrix may be inaccurate')
 
     bads = epochs[0].info['bads']
-    projs = epochs[0].info['projs']
+    if proj is None:
+        projs = cp.deepcopy(epochs[0].info['projs'])
+    else:
+        projs = cp.deepcopy(proj)
     ch_names = epochs[0].ch_names
 
     # make sure Epochs are compatible
@@ -296,9 +304,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
             raise ValueError('Epochs must have same bad channels')
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
-        for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
-            if not proj_equal(proj_a, proj_b):
-                raise ValueError('Epochs must have same projectors')
+        if proj is None:
+            for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
+                if not proj_equal(proj_a, proj_b):
+                    raise ValueError('Epochs must have same projectors')
 
     n_epoch_types = len(epochs)
     data = 0.0
@@ -347,9 +356,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None):
     eigvec = None
 
     cov.update(kind=1, diag=False, dim=len(data), names=ch_names,
-               data=data, projs=copy.deepcopy(epochs[0].info['projs']),
-               bads=epochs[0].info['bads'], nfree=n_samples_tot, eig=eig,
-               eigvec=eigvec)
+               data=data, projs=projs, bads=epochs[0].info['bads'],
+               nfree=n_samples_tot, eig=eig, eigvec=eigvec)
 
     print "Number of samples used : %d" % n_samples_tot
     print '[done]'
@@ -440,7 +448,7 @@ def prepare_noise_cov(noise_cov, info, ch_names):
 
     assert(len(C_meg_idx) + len(C_eeg_idx) == n_chan)
 
-    noise_cov = copy.deepcopy(noise_cov)
+    noise_cov = cp.deepcopy(noise_cov)
     noise_cov.update(data=C, eig=eig, eigvec=eigvec, dim=len(ch_names),
                      diag=False, names=ch_names)
 
@@ -567,7 +575,7 @@ def compute_whitener(noise_cov, info, picks=None):
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
-    noise_cov = copy.deepcopy(noise_cov)
+    noise_cov = cp.deepcopy(noise_cov)
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
     n_chan = len(ch_names)
 
