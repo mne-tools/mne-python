@@ -72,18 +72,21 @@ def test_reject_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0),
                         reject=reject, flat=flat)
-    data = epochs.get_data()
+    # this call must precede get_data() because that updates epochs.events
     n_events = len(epochs.events)
+    data = epochs.get_data()
     n_clean_epochs = len(data)
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
     assert_true(n_clean_epochs == 3)
+    assert_true(epochs.bad_log == [None, None, None, ['MEG 2443'], \
+                                  ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
 
 
 def test_preload_epochs():
-    """Test of epochs rejection
+    """Test of preloaded epochs rejection
     """
     epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax,
                         picks=picks, baseline=(None, 0), preload=True,
@@ -209,3 +212,132 @@ def test_bootstrap():
     n_events = len(epochs.events)
     assert_true(len(epochs2.events) == len(epochs.events))
     assert_true(epochs._data.shape == epochs2._data.shape)
+
+
+def test_multi_epochs():
+    """Test combining multiple raw files"""
+    """Arithmetic of evoked data"""
+    epochs1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked1 = epochs1.average()
+    epochs2 = Epochs(raw, events[4:8], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked2 = epochs2.average()
+    epochs = Epochs([raw,raw], [events[:4], events[4:8]], event_id, tmin, tmax,
+                        picks=picks, baseline=(None, 0))
+    evoked = epochs.average()
+    evoked_sum = evoked1 + evoked2
+    assert_array_equal(evoked.data, evoked_sum.data)
+    assert_array_equal(evoked.times, evoked_sum.times)
+    assert_true(evoked_sum.nave == (evoked1.nave + evoked2.nave))
+    evoked_diff = evoked1 - evoked1
+    assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+
+    """Test of epochs rejection
+    """
+    epochs = Epochs([raw,raw], [events,events], event_id, tmin, tmax,
+                        picks=picks, baseline=(None, 0),
+                        reject=reject, flat=flat)
+    # this call must precede get_data() because that updates epochs.events
+    n_events = len(epochs.events)
+    data = epochs.get_data()
+    n_clean_epochs = len(data)
+    # Should match
+    # mne_process_raw --raw test_raw.fif --projoff \
+    #   --saveavetag -ave --ave test.ave --filteroff
+    assert_true(n_events > n_clean_epochs)
+    assert_true(n_clean_epochs == 3*2)
+
+    """Test of indexing and slicing operations
+    """
+    epochs = Epochs([raw,raw], [events[:20],events[10:30]], event_id, tmin, tmax,
+                    picks=picks, baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
+
+    data_normal = epochs.get_data()
+
+    n_good_events = data_normal.shape[0]
+
+    # indices for slicing
+    start_index = 1
+    end_index = n_good_events - 1
+
+    assert((end_index - start_index) > 0)
+
+    for preload in [True, False]:
+        epochs2 = Epochs(raw, events[:20], event_id, tmin, tmax,
+                         picks=picks, baseline=(None, 0), preload=preload,
+                         reject=reject, flat=flat)
+
+        if not preload:
+            epochs2.drop_bad_epochs()
+
+        # using slicing
+        epochs2_sliced = epochs2[start_index:end_index]
+
+        data_epochs2_sliced = epochs2_sliced.get_data()
+        assert_array_equal(data_epochs2_sliced,
+                           data_normal[start_index:end_index])
+
+        # using indexing
+        pos = 0
+        for idx in range(start_index, end_index):
+            data = epochs2_sliced[pos].get_data()
+            assert_array_equal(data[0], data_normal[idx])
+            pos += 1
+
+        # using indexing with an int
+        data = epochs2[data_epochs2_sliced.shape[0]].get_data()
+        assert_array_equal(data, data_normal[[idx]])
+
+        # using indexing with an array
+        idx = np.random.randint(0, data_epochs2_sliced.shape[0], 10)
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+
+        # using indexing with a list of indices
+        idx = [0]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+        idx = [0, 1]
+        data = epochs2[idx].get_data()
+        assert_array_equal(data, data_normal[idx])
+
+    """Test of average obtained vs C code
+    """
+    c_evoked = fiff.Evoked(evoked_nf_name, setno=0)
+    epochs = Epochs([raw,raw], [events[:10],events[10:]], event_id, tmin, tmax,
+                        baseline=None, preload=True,
+                        reject=None, flat=None)
+    evoked = epochs.average()
+    sel = fiff.pick_channels(c_evoked.ch_names, evoked.ch_names)
+    evoked_data = evoked.data
+    c_evoked_data = c_evoked.data[sel]
+
+    assert_true(evoked.nave == c_evoked.nave)
+    assert_array_almost_equal(evoked_data, c_evoked_data, 10)
+    assert_array_almost_equal(evoked.times, c_evoked.times, 12)
+
+    """Test of crop of epochs
+    """
+    epochs = Epochs([raw,raw], [events[:2],events[2:5]], event_id, tmin, tmax,
+                    picks=picks, baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
+    data_normal = epochs.get_data()
+
+    epochs2 = Epochs(raw, events[:5], event_id, tmin, tmax,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+
+    # indices for slicing
+    tmin_window = tmin + 0.1
+    tmax_window = tmax - 0.1
+    tmask = (epochs.times >= tmin_window) & (epochs.times <= tmax_window)
+    assert_true(tmin_window > tmin)
+    assert_true(tmax_window < tmax)
+    epochs3 = epochs2.crop(tmin_window, tmax_window, copy=True)
+    data3 = epochs3.get_data()
+    epochs2.crop(tmin_window, tmax_window)
+    data2 = epochs2.get_data()
+    assert_array_equal(data2, data_normal[:, :, tmask])
+    assert_array_equal(data3, data_normal[:, :, tmask])

@@ -84,10 +84,22 @@ class Epochs(object):
     Attributes
     ----------
     info: dict
-        Measurement info
+        Measurement info, with 'projs' stored as a list
+        in 'projs_all' since they can vary across runs
 
     ch_names: list of string
         List of channels' names
+
+    events: array of int (n x 3)
+        Array of the events being used to parse epochs.
+        NOTE: Be wary of changing this directly (as opposed
+        to making a new epochs object with different events)
+        because it will likely cause indexing errors.
+
+    bad_log: list of lists
+        This list (same length as events) contains the channel(s),
+        if any, that caused an event in the original event list
+        to be dropped by drop_bad_epochs().
 
     Methods
     -------
@@ -100,7 +112,7 @@ class Epochs(object):
 
     drop_bad_epochs() : None
         Drop all epochs marked as bad. Should be used before indexing and
-        slicing operations.
+        slicing operations, and is done automatically by preload=True.
 
     Notes
     -----
@@ -131,6 +143,7 @@ class Epochs(object):
         self.reject = reject
         self.flat = flat
         self._bad_dropped = False
+        self.bad_log = None
 
         # Handle measurement info
         self.info = cp.deepcopy(raw[0].info)
@@ -165,35 +178,34 @@ class Epochs(object):
         self.picks = picks
 
         #   Set up projection
-        del self.info['projs'] # Delete old, now-ambiguous key
-        self.info['projs_all'] = [raw[ri].info['projs'] for ri in range(len(raw))]
+        self.info['projs_all'] = [cp.deepcopy(raw[ri].info['projs']) for ri in range(len(raw))]
         self.proj = [None]*len(raw)
-        if not proj:
-            for ri in range(len(raw)):
-                if self.info['projs'][ri] is None:
-                    print 'No projector specified for these data'
+        for ri in range(len(raw)):
+            if self.info['projs_all'][ri] is None or not proj:
+                print 'No projector specified for these data'
+                self.proj[ri] = None
+            else:
+                #   Add EEG ref reference proj
+                eeg_sel = pick_types(self.info, meg=False, eeg=True)
+                if len(eeg_sel) > 0:
+                    eeg_proj = make_eeg_average_ref_proj(self.info)
+                    self.info['projs_all'][ri].append(eeg_proj)
+
+                #   Create the projector, temporarily adding 'projs'
+                self.info['projs'] = self.info['projs_all'][ri]
+                r_proj, nproj = fiff.proj.make_projector_info(self.info)
+                if nproj == 0:
+                    print 'The projection vectors do not apply to these channels'
                     self.proj[ri] = None
                 else:
-                    #   Add EEG ref reference proj
-                    eeg_sel = pick_types(self.info, meg=False, eeg=True)
-                    if len(eeg_sel) > 0:
-                        eeg_proj = make_eeg_average_ref_proj(self.info)
-                        self.info['projs_all'][ri].append(eeg_proj)
+                    print ('Created an SSP operator (subspace dimension = %d)'
+                                                                        % nproj)
+                    self.proj[ri] = r_proj
 
-                    #   Create the projector, temporarily adding 'projs'
-                    self.info['projs'] = self.info['projs_all'][ri]
-                    proj, nproj = fiff.proj.make_projector_info(self.info)
-                    del self.info['projs']
-                    if nproj == 0:
-                        print 'The projection vectors do not apply to these channels'
-                        self.proj[ri] = None
-                    else:
-                        print ('Created an SSP operator (subspace dimension = %d)'
-                                                                            % nproj)
-                        self.proj[ri] = proj
+                #   The projection items have been activated
+                self.info['projs_all'][ri] = activate_proj(self.info['projs_all'][ri], copy=False)
 
-                    #   The projection items have been activated
-                    self.info['projs_all'][ri] = activate_proj(self.info['projs'], copy=False)
+        del self.info['projs'] # Delete old, now potentially ambiguous key
 
         #   Set up the CTF compensator
         current_comp = [fiff.get_current_comp(self.info) \
@@ -213,17 +225,14 @@ class Epochs(object):
                                                                     dest_comp)
 
         # concatenate events from all epochs
-        self.replace_events(events)
+        self._replace_events(events)
         events = self.events
 
-        # select the desired events
+        # select the desired events before preloading
         if event_id is not None:
             selected = np.logical_and(events[:, 1] == 0,
                                       events[:, 2] == event_id)
-            self.pick_event_subset(selected)
-
-        print event_id
-        print self.events
+            self._pick_event_subset(selected)
 
         n_events = len(self.events)
 
@@ -244,11 +253,9 @@ class Epochs(object):
         self._reject_setup()
 
         if self.preload:
-            self._data, good_events = self._get_data_from_disk()
-            self.pick_event_subset(good_events)
-            self._bad_dropped = True
+            self._data = self._get_data_from_disk()
 
-    def replace_events(self, new_events):
+    def _replace_events(self, new_events):
         """Replace current events with new set of events.
         """
         if type(new_events) is not list:
@@ -272,7 +279,7 @@ class Epochs(object):
         sidx = idx - self.idx_limits[ri]
         return ri, sidx
 
-    def pick_event_subset(self, key):
+    def _pick_event_subset(self, key):
         """Choose a subset of events to keep from the originals
         """
         # Update the idx_limits and events simultaneously
@@ -317,12 +324,17 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
+        bad_log = [None]*n_events
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
-            if self._is_good_epoch(epoch):
+            is_good, offenders = self._is_good_epoch(epoch)
+            if is_good:
                 good_events.append(idx)
+            else:
+                bad_log[idx] = offenders
 
-        self.pick_event_subset(good_events)
+        self.bad_log = bad_log
+        self._pick_event_subset(good_events)
         self._bad_dropped = True
 
         print "%d bad epochs dropped" % (n_events - len(good_events))
@@ -357,32 +369,25 @@ class Epochs(object):
 
     def _get_data_from_disk(self):
         """Load all data from disk"""
-        n_events = len(self.events)
-        data = list()
-        n_reject = 0
-        event_idx = list()
-        for k in range(n_events):
-            epoch = self._get_epoch_from_disk(k)
-            if self._is_good_epoch(epoch):
-                data.append(epoch)
-                event_idx.append(k)
-            else:
-                n_reject += 1
-        print "Rejecting %d epochs." % n_reject
-        return np.array(data), event_idx
+        # drop bad epochs first so we don't have to replicate checking here
+        self.drop_bad_epochs()
+        # note that events is automatically updated by drop_bad_epochs, too
+        data = [self._get_epoch_from_disk(k) for k in range(len(self.events))]
+        return np.array(data)
 
     def _is_good_epoch(self, data):
         """Determine if epoch is good"""
         if data is None:
-            return False
+            return False, ['NO_DATA']
         n_times = len(self.times)
         if data.shape[1] < n_times:
-            return False  # epoch is too short ie at the end of the data
+            # epoch is too short ie at the end of the data
+            return False, ['TOO_SHORT']
         if self.reject is None and self.flat is None:
-            return True
+            return True, None
         else:
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat)
+                            self.reject, self.flat, full_report=True)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -395,7 +400,7 @@ class Epochs(object):
         if self.preload:
             return self._data
         else:
-            data, _ = self._get_data_from_disk()
+            data = self._get_data_from_disk()
             return data
 
     def _reject_setup(self):
@@ -434,7 +439,8 @@ class Epochs(object):
                 raise StopIteration
             epoch = self._get_epoch_from_disk(self._current)
             self._current += 1
-            if not self._is_good_epoch(epoch):
+            is_good, _ = self._is_good_epoch(epoch)
+            if not is_good:
                 return self.next()
 
         return epoch
@@ -461,7 +467,7 @@ class Epochs(object):
         # Ensure these actually refer to different arrays
         epochs.events = cp.deepcopy(self.events)
         epochs.idx_limits = cp.deepcopy(self.idx_limits)
-        epochs.pick_event_subset(key)
+        epochs._pick_event_subset(key)
 
         if self.preload:
             if isinstance(key, slice):
@@ -570,10 +576,13 @@ class Epochs(object):
         return this_epochs
 
 
-def _is_good(e, ch_names, channel_type_idx, reject, flat):
+def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
     """Test if data segment e is good according to the criteria
-    defined in reject and flat.
+    defined in reject and flat. If full_report=True, it will give
+    True/False as well as a list of all offending channels.
     """
+    bad_list = list()
+    has_printed = False
     if reject is not None:
         for key, thresh in reject.iteritems():
             idx = channel_type_idx[key]
@@ -585,9 +594,15 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_max_delta]
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
-                    print '    Rejecting epoch based on %s : %s (%s > %s).' \
-                                % (name, ch_name, delta, thresh)
-                    return False
+                    if not has_printed:
+                        print '    Rejecting epoch based on %s : %s (%s > %s).' \
+                                    % (name, ch_name, delta, thresh)
+                        has_printed = True
+                    if not full_report:
+                        return False
+                    else:
+                        bad_list.append(ch_name)
+
     if flat is not None:
         for key, thresh in flat.iteritems():
             idx = channel_type_idx[key]
@@ -599,12 +614,24 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    print ('    Rejecting flat epoch based on '
-                           '%s : %s (%s < %s).' % (name, ch_name, delta,
-                                                   thresh))
-                    return False
+                    if not has_printed:
+                        print ('    Rejecting flat epoch based on '
+                               '%s : %s (%s < %s).' % (name, ch_name, delta,
+                                                       thresh))
+                        has_printed = True
+                    if not full_report:
+                        return False
+                    else:
+                        bad_list.append(ch_name)
 
-    return True
+    if not full_report:
+        return True
+    else:
+        if bad_list == []:
+            return True, None
+        else:
+            return False, bad_list
+
 
 
 def bootstrap(epochs, random_state=None):
