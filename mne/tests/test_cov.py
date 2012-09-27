@@ -68,7 +68,6 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Estimate raw with triggers
     """
-    raw = Raw(raw_fname)
     events = find_events(raw)
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -146,7 +145,6 @@ def test_regularize_cov():
     """Test cov regularization
     """
     noise_cov = read_cov(cov_fname)
-    raw = Raw(raw_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
                                mag=0.1, grad=0.1, eeg=0.1, proj=True)
