@@ -324,7 +324,7 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
-        drop_log = [None]*n_events
+        drop_log = [[]]*n_events
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             is_good, offenders = self._is_good_epoch(epoch)
@@ -631,7 +631,6 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
             return True, None
         else:
             return False, bad_list
-
 
 
 def bootstrap(epochs, random_state=None):
