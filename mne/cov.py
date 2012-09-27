@@ -296,7 +296,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         projs = cp.deepcopy(epochs[0].info['projs'])
     else:
         projs = cp.deepcopy(proj)
-    ch_names = cp.deepcopy(epochs[0].ch_names)
+    ch_names = epochs[0].ch_names
 
     # make sure Epochs are compatible
     for epochs_t in epochs[1:]:
