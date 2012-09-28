@@ -95,6 +95,9 @@ class Label(dict):
             Kept as information but not used by the object itself
 
         """
+        vertices = np.asarray(vertices)
+        values = np.asarray(values)
+        pos = np.asarray(pos)
         if not (len(vertices) == len(values) == len(pos)):
             err = ("vertices, values and pos need to have same length (number "
                    "of vertices)")
