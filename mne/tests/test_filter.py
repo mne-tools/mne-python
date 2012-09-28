@@ -1,7 +1,8 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter
+from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
+                       resample
 
 
 def test_filters():
@@ -29,3 +30,10 @@ def test_filters():
     n_edge_ignore = 1000
     assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
                               hp_oa[n_edge_ignore:-n_edge_ignore], 2)
+
+    # and since these are low-passed, downsampling/upsampling should be close
+    bp_up_dn = resample(resample(bp_oa, 2, 1), 1, 2)
+    assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
+                              bp_up_dn[n_edge_ignore:-n_edge_ignore], 2)
+
+

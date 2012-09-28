@@ -2,6 +2,7 @@ import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
 from scipy.signal import freqz
+from scipy.signal import resample as sp_resample
 
 from .utils import firwin2  # back port for old scipy
 
@@ -401,3 +402,71 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
     xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
 
     return xf
+
+
+def resample(x, up, down, npad=50, axis=0, window='flat'):
+    """Resample the array x.
+
+    Parameters
+    ----------
+    x : n-d array
+        Signal to resample
+    up : float
+        Factor to upsample by
+    down : float
+        Factor to downsample by
+    npad : integer
+        Number of samples to use at the beginning and end for padding
+    axis : integer
+        Axis of the array to operate on
+    window : string or tuple
+        See scipy.signal.resample for description
+
+    Returns
+    -------
+    xf : array
+        x filtered
+
+    Notes
+    -----
+    This uses (hopefully) intelligent edge padding and frequency-domain
+    windowing improve scipy.signal.resample's resampling.
+
+    Resampling arguments are broken into "up" and "down" components for future
+    compatibility in case we decide to use an upfirdn implementation. The
+    current implementation is functionally equivalent to passing
+    up=up/down and down=1.
+
+    """
+    # make sure our arithmetic will work
+    ratio = np.float(up) / np.float(down)
+
+    # add some padding at beginning and end to make scipy's FFT
+    # method work a little cleaner
+    pad_shape = np.array(x.shape, dtype='int64')
+    pad_shape[axis] = npad
+    x_len = x.shape[axis]
+    keep = np.zeros((x_len), dtype='bool')
+    # set the start pad to the first value
+    keep[0] = True
+    pad_start = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
+    # set the end pad to the last value
+    keep[0] = False
+    keep[-1] = True
+    pad_end = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
+    # do the padding
+    x_padded = np.concatenate((pad_start, x, pad_end), axis=axis)
+    new_len = ratio*x_padded.shape[axis]
+
+    # do the resampling using scipy's FFT-based resample function
+    # use of the 'flat' window is recommended for minimal ringing
+    y = sp_resample(x_padded, new_len, axis=axis, window=window)
+
+    # now let's trim it back to the correct size (if there was padding)
+    to_remove = np.round(ratio*npad)
+    if to_remove > 0:
+        keep = np.ones((new_len), dtype='bool')
+        keep[:to_remove] = False
+        keep[-to_remove:] = False
+        y = np.compress(keep, y, axis=axis)
+    return y
