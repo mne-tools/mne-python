@@ -5,47 +5,13 @@
 # License: BSD (3-clause)
 
 from sklearn.decomposition import FastICA
-import copy
 import numpy as np
 from ..cov import compute_whitener
-from ..fiff import pick_types
+from scipy.stats import kurtosis
 
 
-def _zscore_channels(data, info, picks, exclude):
-    """ Compute zscores for channels
-    """
-    from scipy.stats import zscore
-    pick_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
-    pick_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
-    pick_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
-
-    mag_idx = np.intersect1d(picks, pick_mag)
-    grad_idx = np.intersect1d(picks, pick_grad)
-    eeg_idx = np.intersect1d(picks, pick_eeg)
-
-    ch_type_idx = [mag_idx, grad_idx, eeg_idx]
-    # print mag_names, mag_idx, grad_names, grad_idx
-
-    ch_chan_types = reduce(lambda x, y: list(x) + list(y), ch_type_idx)
-    assert picks.tolist() == sorted(ch_chan_types)
-
-    out = np.zeros(data.shape)
-
-    for idxs in ch_type_idx:
-        if idxs.shape[0]:
-            # important: calculate zscores from flattend array.
-            # otherwise recomposition will fail.
-            out[idxs, :] = zscore(data[idxs], None)
-
-    out = out[picks]
-
-    return out
-
-
-def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
-                  sort_method='kurtosis', meg=True, eeg=True, exclude=None,
-                  *args, **kwargs):
-    """ Run ICA decomposition on instance of Raw
+class ICA(object):
+    """ MEG signal decomposition and denoising workflow
     Paramerters
     -----------
     raw : instance of Raw
@@ -64,69 +30,122 @@ def decompose_raw(raw, noise_cov, n_components=None, start=None, stop=None,
     sort_method : string
         function used to sort the sources and the mixing matrix.
         If None, the output will be left unsorted
-    meg : string, bool
-        selection of meg channels, passed to pick_types
-    eeg : bool
-        selection of eeg channels, passed to pick_types
-    exclude : list, string
-        channel names to be passe to picks
 
-    Return Values
-    -------------
-    latentent_sources : ndarray
-        time slices x n_components array
-    mix_matrix : ndarray
-        n_components x n_components
+    Attributes
+    ----------
+    raw : instance of Raw
+        raw object used for initializing the ica seed
+    n_components : integer
+        number of components to be extracted
+    comp_picks : ndrarray
+        components selection array
+    whitener : ndrarray
+        whiter used for preprocessing
+    seed : instance of FastICA
+        FastICA instance used to perform decomposition
+    sort_func : function
+        function used for sorting the components
     """
-    start = raw.first_samp if start == None else start
-    stop = raw.last_samp if stop == None else stop
-    info = copy.deepcopy(raw.info)
+    def __init__(self, raw, picks, noise_cov=None, start=None, stop=None,
+                 n_components=None, sort_method='kurtosis', exclude=None):
 
-    picks = pick_types(info, meg=meg, eeg=eeg, exclude=exclude)
+        self.raw = raw
+        self.n_components = n_components
+        self._cov = True if noise_cov != None else False
+        _n_comps = n_components if n_components != None else picks.shape[0]
 
-    data, _ = raw[:, start:stop]
-    del _
+        self.comp_picks = np.zeros(_n_comps, dtype=np.bool)
+        self.comp_picks.fill(True)
 
-    if noise_cov != None:
-        whitener, _ = compute_whitener(noise_cov, info, picks, exclude)
-        del _
-        data = np.dot(whitener, data[picks])
+        if noise_cov != None:
+            self.whitener, _ = compute_whitener(noise_cov, raw.info,
+                                                picks, exclude)
+            del _
 
-    elif noise_cov == None:
-        data = _zscore_channels(data, info, picks, exclude)
-        # data = data[picks]  # bypass
+        elif noise_cov == None:
+            if raw._preloaded:
+                self.raw_data = raw._data[picks]
+            else:
+                start = raw.first_samp if start == None else start
+                stop = raw.last_samp if stop == None else stop
+                self.raw_data = raw[picks, start:stop]
+            std_chan = np.std(self.raw_data, axis=1) ** -1
+            self.whitener = np.array([std_chan]).T
 
-    data = data.T  # sklearn expects column vectors / matrixes
+        self.seed = FastICA(n_components)
 
-    print ('\nCalculating signal decomposition.'
-           '\n    Please be patient. This may take some time')
-
-    ica = FastICA(n_components=n_components, whiten=True, *args, **kwargs)
-    S = ica.fit(data).transform(data)
-    A = ica.get_mixing_matrix()
-
-    assert np.allclose(data, np.dot(S, A.T))
-
-    if sort_method != None:
-        from scipy.stats import kurtosis
-        sort_functions = {'var': np.var, 'kurtosis': kurtosis}
-        sort_func = sort_functions.get(sort_method, None)
-        if sort_func != None:
-            sorter = sort_func(A, 0)
-            A = A[np.argsort(sorter), :]
-            sorter = sort_func(S, 0)
-            S = S[np.argsort(sorter), :]
-        else:
+        self.sort_func = None
+        if sort_method == 'var':
+            self.sort_func = np.var
+        elif sort_method == 'kurtosis':
+            self.sort_func = kurtosis
+        elif isinstance(sort_method, str):
             print ('\n    This is not a valid sorting function'
-                   '\n    --- No sort applied.')
+                   '\n    --- No sort will be applied.')
 
-    latent_sources = np.swapaxes(S, 0, 1)
-    mixing_matrix = np.swapaxes(A, 0, 1)
+        # if self.sort_func != None:
+    def __repr__(self):
+        out = 'ICA object.\n    %i components' % self.n_components
+        if self.n_selected == self.n_components:
+            nsel_msg = 'all'
+        else:
+            nsel_msg = str(self.n_selected)
+        out += ' (%s active)' % nsel_msg
+        if hasattr(self, 'raw_sources'):
+            out += ('\n    %i raw time slices' % self.n_selected)
+        return out
 
-    print '\nDone.'
+    def _sort(self, X):
+        sorter = self.sort_func(X, 1)
+        X_sorted = X[np.argsort(sorter)]
+        return X_sorted
 
-    return latent_sources, mixing_matrix  # ?, whitener
+    def fit_raw(self):
+        """ Run the ica decomposition for raw data
+        """
+        print ('\nComputing signal decomposition on raw data.'
+               '\n    Please be patient. This may take some time')
+        S = self.seed.fit_transform(self.raw_data.T)
+        A = self.seed.get_mixing_matrix()
+        self.raw_sources = self._sort(S)
+        self.raw_mixing = self._sort(A)
 
+    def fit_epochs(self, epochs, picks):
+        pass
 
-def recompose_raw(raw, picks, noise_cov):
-    pass
+    def denoise_raw(self, bads=[]):
+        """ Recompose raw data
+        Paramerters
+        -----------
+        bads : list-like
+            Indices for transient component deselection
+
+        Returns
+        -------
+        out : n pickked channels x n time slices ndrarray
+            denoised raw data
+        """
+        comp_picks = self.comp_picks.copy()
+        if bads != None:
+            comp_picks.put(bads, False)
+        w = self.whitener ** -1 if self._cov == False else self.whitener
+        out = np.dot(self.raw_sources[comp_picks, w])
+        return out
+
+    def denoise_epochs(self, bads=[]):
+        pass
+
+    def set_comps(self, comps, state=False):
+        """ Permanently set good and bad components
+        Paramerters
+        -----------
+        comps: list-like
+            indices for component selection
+        """
+        self.comp_picks.put(comps, state)
+
+    @property
+    def n_selected(self):
+        """ Return number of selected sources
+        """
+        return self.comp_picks.nonzero()[0].shape[0]
