@@ -410,7 +410,7 @@ def resample(x, up, down, npad=50, axis=0, window='flat'):
     Parameters
     ----------
     x : n-d array
-        Signal to filter
+        Signal to resample
     up : float
         Factor to upsample by
     down : float
