@@ -27,6 +27,12 @@ class Label(dict):
     Represents a freesurfer/mne label with vertices restricted to one
     hemisphere.
 
+    Labels can be combined with the ``+`` operator:
+     - Duplicate vertices are removed.
+     - If duplicate vertices have conflicting position values, an error is
+       raised.
+     - Values of duplicate vertices are summed.
+
 
     Parameters
     ----------
@@ -174,7 +180,8 @@ class Label(dict):
 
         # check for overlap
         duplicates = np.intersect1d(self.vertices, other.vertices)
-        if len(duplicates):
+        n_dup = len(duplicates)
+        if n_dup:
             self_dup = [np.where(self.vertices == d)[0][0] for d in duplicates]
             other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
@@ -184,21 +191,29 @@ class Label(dict):
 
             isnew = np.array([v not in duplicates for v in other.vertices])
 
-            other_vertices = other.vertices[isnew]
-            other_pos = other.pos[isnew]
-            other_values = other.values[isnew]
-        else:
-            other_vertices = other.vertices
-            other_pos = other.pos
-            other_values = other.values
+            vertices = np.hstack((self.vertices, other.vertices[isnew]))
+            pos = np.vstack((self.pos, other.pos[isnew]))
 
-        comment = " + ".join((self.comment, other.comment))
-        label = Label(np.hstack((self.vertices, other_vertices)),
-                      np.vstack((self.pos, other_pos)),
-                      np.hstack((self.values, other_values)),
-                      self.hemi,
-                      comment,
-                      name=' + '.join((self.name, other.name)))
+            # find position of other's vertices in new array
+            tgt_idx = [np.where(vertices == v)[0][0] for v in other.vertices]
+            n_self = len(self.values)
+            n_other = len(other.values)
+            new_len = n_self + n_other - n_dup
+            values = np.zeros(new_len, dtype=self.values.dtype)
+            values[:n_self] += self.values
+            values[tgt_idx] += other.values
+        else:
+            vertices = np.hstack((self.vertices, other.vertices))
+            pos = np.vstack((self.pos, other.pos))
+
+            values = np.hstack((self.values, other.values))
+
+        name0 = self.name if self.name else 'unnamed'
+        name1 = other.name if other.name else 'unnamed'
+
+        label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
+                      comment="%s\n+\n%s" % (self.comment, other.comment),
+                      name="%s + %s" % (name0, name1))
         return label
 
     def save(self, filename):
