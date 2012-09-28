@@ -4,7 +4,7 @@ from scipy.fftpack import fft, ifft
 from scipy.signal import freqz
 from scipy import signal
 
-#from .utils import firwin2  # back port for old scipy
+from .utils import firwin2  # back port for old scipy
 
 
 def is_power2(num):
