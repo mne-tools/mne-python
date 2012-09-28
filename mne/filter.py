@@ -443,7 +443,7 @@ def resample(x, up, down, npad=50, axis=0, window='flat'):
 
     # add some padding at beginning and end to make scipy's FFT
     # method work a little cleaner
-    pad_shape = np.array(x.shape, dtype='int')
+    pad_shape = np.array(x.shape, dtype=np.int)
     pad_shape[axis] = npad
     x_len = x.shape[axis]
     keep = np.zeros((x_len), dtype='bool')
