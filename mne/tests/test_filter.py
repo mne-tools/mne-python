@@ -32,8 +32,15 @@ def test_filters():
                               hp_oa[n_edge_ignore:-n_edge_ignore], 2)
 
     # and since these are low-passed, downsampling/upsampling should be close
+    n_resamp_ignore = 10
     bp_up_dn = resample(resample(bp_oa, 2, 1), 1, 2)
-    assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
-                              bp_up_dn[n_edge_ignore:-n_edge_ignore], 2)
-
+    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    # make sure we don't alias
+    t = np.array(range(Fs*sig_len_secs))/float(Fs)
+    # make sinusoid close to the Nyquist frequency
+    sig = np.sin(2*np.pi*Fs/2.2*t)
+    # signal should disappear with 2x downsampling
+    sig_gone = resample(sig,1,2)[n_resamp_ignore:-n_resamp_ignore]
+    assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
 
