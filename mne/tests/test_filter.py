@@ -34,6 +34,6 @@ def test_filters():
     # and since these are low-passed, downsampling/upsampling should be close
     bp_up_dn = resample(resample(bp_oa, 2, 1), 1, 2)
     assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
-                              hp_oa[n_edge_ignore:-n_edge_ignore], 2)
+                              bp_up_dn[n_edge_ignore:-n_edge_ignore], 2)
 
 
