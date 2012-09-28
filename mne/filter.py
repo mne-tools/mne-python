@@ -4,7 +4,7 @@ from scipy.fftpack import fft, ifft
 from scipy.signal import freqz
 from scipy import signal
 
-from .utils import firwin2  # back port for old scipy
+#from .utils import firwin2  # back port for old scipy
 
 
 def is_power2(num):
@@ -404,7 +404,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
     return xf
 
 
-def resample(x, up, down, npad=50, axis=0, window='bmn'):
+def resample(x, up, down, npad=100, axis=0, window='boxcar'):
     """Resample the array x.
 
     Parameters
@@ -430,7 +430,9 @@ def resample(x, up, down, npad=50, axis=0, window='bmn'):
     Notes
     -----
     This uses (hopefully) intelligent edge padding and frequency-domain
-    windowing improve scipy.signal.resample's resampling.
+    windowing improve scipy.signal.resample's resampling. Choices of
+    npad and window have important consequences, and these choices should
+    work well for most natural signals.
 
     Resampling arguments are broken into "up" and "down" components for future
     compatibility in case we decide to use an upfirdn implementation. The
