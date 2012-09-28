@@ -128,7 +128,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False, reject=None, flat=None, proj=True, verbose=None):
-        if type(raw) is not list:
+        if not isinstance(raw, list):
             raw = [raw]
         self.raw = raw
         self.verbose = raw[0].verbose if verbose is None else verbose
