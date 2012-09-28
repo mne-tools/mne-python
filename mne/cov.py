@@ -272,7 +272,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Start time for baseline. If None start at first sample.
     tmax : float | None
         End time for baseline. If None end at last sample.
-    projs : list of projectors | None
+    projs : list of Projection | None
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
@@ -318,6 +318,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False)
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
+
     for i, epochs_t in enumerate(epochs):
 
         tstart, tend = None, None
