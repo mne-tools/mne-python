@@ -8,6 +8,7 @@ import warnings
 import numpy as np
 from math import ceil, log
 from numpy.fft import irfft
+import hashlib
 
 # Following deprecated class copied from scikit-learn
 
@@ -265,3 +266,8 @@ def check_random_state(seed):
         return seed
     raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
                      ' instance' % seed)
+
+def array_hash(array):
+    """Calculate a hash string from a numpy array"""
+    return hashlib.sha1(array).hexdigest()
+
