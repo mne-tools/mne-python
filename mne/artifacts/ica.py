@@ -107,14 +107,15 @@ class ICA(object):
                '\n    Please be patient. This may take some time')
         S = self.seed.fit_transform(self.raw_data.T)
         A = self.seed.get_mixing_matrix()
-        self.raw_sources = self._sort(S)
-        self.raw_mixing = self._sort(A)
+        self.raw_sources = self._sort(S).T
+        self.raw_mixing = self._sort(A).T
 
     def fit_epochs(self, epochs, picks):
         pass
 
     def denoise_raw(self, bads=[]):
         """ Recompose raw data
+
         Paramerters
         -----------
         bads : list-like
@@ -129,14 +130,17 @@ class ICA(object):
         if bads != None:
             comp_picks.put(bads, False)
         w = self.whitener ** -1 if self._cov == False else self.whitener
-        out = np.dot(self.raw_sources[comp_picks, w])
-        return out
+        raw_sources = self.raw_sources.copy()
+        raw_sources.put(comp_picks, 0)
+        out = np.dot(raw_sources.T, w.T * self.raw_mixing)
+        return out.T
 
     def denoise_epochs(self, bads=[]):
         pass
 
     def set_comps(self, comps, state=False):
         """ Permanently set good and bad components
+
         Paramerters
         -----------
         comps: list-like
