@@ -14,6 +14,7 @@ from .tree import dir_tree_find
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
+from ..filter import resample
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
@@ -66,6 +67,7 @@ class Evoked(object):
 
     data : 2D array of shape [n_channels x n_times]
         Evoked response.
+
     """
 
     def __init__(self, fname, setno=None, baseline=None, proj=True):
@@ -350,6 +352,28 @@ class Evoked(object):
         """
         plot_evoked(self, picks=picks, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim)
+
+    def resample(self, sfreq, npad=100, window='boxcar'):
+        """Resample preloaded data
+
+        Parameters
+        ----------
+        sfreq: float
+            New sample rate to use
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+        """
+        o_sfreq = self.info['sfreq']
+        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        # adjust indirectly affected variables
+        self.info['sfreq'] = sfreq
+        self.times = np.array(range(self.data.shape[1])) / sfreq \
+                              + self.times[0]
+        self.first = int(self.times[0] * self.info['sfreq'])
+        self.last = len(self.times) + self.first - 1
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
