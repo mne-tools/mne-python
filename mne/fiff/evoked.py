@@ -68,11 +68,6 @@ class Evoked(object):
     data : 2D array of shape [n_channels x n_times]
         Evoked response.
 
-    Methods
-    -------
-    resample() : self, int, int, int, string or list
-        Resample data.
-
     """
 
     def __init__(self, fname, setno=None, baseline=None, proj=True):
@@ -358,30 +353,24 @@ class Evoked(object):
         plot_evoked(self, picks=picks, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim)
 
-    def resample(self, up, down, npad=None, window=None):
+    def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample preloaded data
 
         Parameters
         ----------
-        up: int
-            Factor to upsample by
-        tmax : int
-            Factor to downsample by
+        sfreq: float
+            New sample rate to use
         npad : int
             Amount to pad the start and end of the data. If None,
             a (hopefully) sensible choice is used.
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         """
-        if npad is None:
-            npad = 100
-        if window is None:
-            window = 'boxcar'
-
-        self.data = resample(self.data, up, down, npad, 1, window)
+        o_sfreq = self.info['sfreq']
+        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
         # adjust indirectly affected variables
-        self.info['sfreq'] = (self.info['sfreq']*up)/down
-        self.times = np.array(range(self.data.shape[1])) / self.info['sfreq'] \
+        self.info['sfreq'] = sfreq
+        self.times = np.array(range(self.data.shape[1])) / sfreq \
                               + self.times[0]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1

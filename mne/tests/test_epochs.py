@@ -208,12 +208,12 @@ def test_resample():
     times_normal = cp.deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
-    epochs.resample(2,1)
+    epochs.resample(sfreq_normal*2)
     data_up = cp.deepcopy(epochs.get_data())
     times_up = cp.deepcopy(epochs.times)
     sfreq_up = epochs.info['sfreq']
     # downsamply by 2, which should match
-    epochs.resample(1,2)
+    epochs.resample(sfreq_normal)
     data_new = cp.deepcopy(epochs.get_data())
     times_new = cp.deepcopy(epochs.times)
     sfreq_new = epochs.info['sfreq']

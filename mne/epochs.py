@@ -15,7 +15,7 @@ from .fiff.pick import pick_types, channel_indices_by_type
 from .fiff.proj import activate_proj, make_eeg_average_ref_proj
 from .baseline import rescale
 from .utils import check_random_state
-from filter import resample
+from .filter import resample
 
 
 class Epochs(object):
@@ -499,15 +499,13 @@ class Epochs(object):
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
-    def resample(self, up, down, npad=None, window=None):
+    def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample preloaded data
 
         Parameters
         ----------
-        up: int
-            Factor to upsample by
-        tmax : int
-            Factor to downsample by
+        sfreq: float
+            New sample rate to use
         npad : int
             Amount to pad the start and end of the data. If None,
             a (hopefully) sensible choice is used.
@@ -515,15 +513,11 @@ class Epochs(object):
             Window to use in resampling. See scipy.signal.resample.
         """
         if self.preload:
-            if npad is None:
-                npad = 100
-            if window is None:
-                window = 'boxcar'
-
-            self._data = resample(self._data, up, down, npad, 2, window)
+            o_sfreq = self.info['sfreq']
+            self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
             # adjust indirectly affected variables
-            self.info['sfreq'] = (self.info['sfreq']*up)/down
-            self.times = np.array(range(self._data.shape[2])) / self.info['sfreq'] \
+            self.info['sfreq'] = sfreq
+            self.times = np.array(range(self._data.shape[2])) / sfreq \
                                   + self.times[0]
         else:
             raise RuntimeError('Can only resample preloaded data')

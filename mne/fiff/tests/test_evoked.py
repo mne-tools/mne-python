@@ -30,7 +30,8 @@ def test_evoked_resample():
     """
     # upsample, write it out, read it in
     ave = read_evoked(fname)
-    ave.resample(2,1)
+    sfreq_normal = ave.info['sfreq']
+    ave.resample(2*sfreq_normal)
     write_evoked('evoked.fif', ave)
     ave_up = read_evoked('evoked.fif')
 
@@ -39,7 +40,7 @@ def test_evoked_resample():
 
     # and compare the original to the downsampled upsampled version
     ave_new = read_evoked('evoked.fif')
-    ave_new.resample(1,2)
+    ave_new.resample(sfreq_normal)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
