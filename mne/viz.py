@@ -2,6 +2,7 @@
 """
 
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Denis Engemann     <d.engemann@fz-juelich.de>
 #
 # License: Simplified BSD
 
@@ -442,7 +443,7 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(sources, start, stop, ncol=3, nrow=10):
+def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
     """ Create panel plots of ICA sources
     """
     import matplotlib.pylab as pl
@@ -450,6 +451,14 @@ def plot_ica_panel(sources, start, stop, ncol=3, nrow=10):
 
     n_components = sources.shape[0]
     hangover = n_components % ncol
+    nplots = nrow * ncol
+
+    if sources.shape[0] > nplots:
+        print ('Warning. More sources available than rows and cols specified.'
+               'Showing the first %i sources.' % nplots)
+        source_idx = np.arange(nplots)
+    if source_idx != None:
+        sources = sources.take(source_idx)
 
     fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
     fig.suptitle('MEG signal decomposition -- %i independent '
@@ -473,8 +482,8 @@ def plot_ica_panel(sources, start, stop, ncol=3, nrow=10):
 
         xtl = xs.get_xticklabels()
         ytl = xs.get_yticklabels()
-        if row < nrow - 2 or (row < nrow - 1 and (hangover == 0 or
-                            col <= hangover - 1)):
+        if row < nrow - 2 or (row < nrow - 1 and
+            (hangover == 0 or col <= hangover - 1)):
             pl.setp(xtl, visible=False)
         if col > 0 or row % 2 == 1:
             pl.setp(ytl, visible=False)
