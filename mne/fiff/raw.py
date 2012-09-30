@@ -30,21 +30,27 @@ class Raw(object):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the raw file
 
-    allow_maxshield: bool, (default False)
-        allow_maxshield if True XXX ???
+    allow_maxshield : bool, (default False)
+        allow_maxshield if True, allow loading of data that has been 
+        processed with Maxshield. Maxshield-processed data should generally
+        not be loaded directly, but should be processed using SSS first.
 
-    preload: bool or str (default False)
+    preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
-    verbose: bool
+    verbose : bool
         Use verbose output
+        
+    proj : bool
+        If True, set self.proj to true. With preload=True, this will cause
+        the projectors to be applied when loading the data.
 
     Attributes
     ----------
@@ -171,6 +177,7 @@ class Raw(object):
         self.cals = cals
         self.rawdir = rawdir
         self.comp = None
+        # XXX self.comp never changes!
         if verbose:
             print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                        self.first_samp, self.last_samp,
@@ -184,21 +191,9 @@ class Raw(object):
         self.proj = proj
         self._projector, self.info = setup_proj(self.info)
         self._projector_hash = _hash_projs(self.info['projs'], self._projector)
+        self._preloaded = False
         if preload:
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            if isinstance(preload, str):
-                # preload data using a memmap file
-                self._data = np.memmap(preload, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                self._data = np.empty((nchan, nsamp), dtype='float32')
-
-            self._data, self._times = read_raw_segment(self,
-                                                       data_buffer=self._data)
-            self._preloaded = True
-        else:
-            self._preloaded = False
+            self.reload(init=preload)
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -449,6 +444,47 @@ class Raw(object):
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
 
+    def reload(self, init=False):
+        """Reload raw data from disk.
+        This will reload all the data from disk. If self.proj=True, projection 
+        and compensation will be applied.
+
+
+        Parameters
+        ----------
+        init : bool or str (default False)
+            Initialization parameter. If True, the data will be preloaded into 
+            memory (fast, requires large amount of memory). If preload is a 
+            string, preload is the file name of a memory-mapped file which is 
+            used to store the data on the hard drive (slower, requires less 
+            memory). init=False is the same as init=True, but will throw a 
+            warning if the data has not previously been preloaded.
+        """
+        if (self._preloaded is not True) and not init:
+            UserWarning('Data was notpreviously preloaded, preloading now)')
+            init = True
+        if init:
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            if isinstance(init, str):
+                # preload data using a memmap file
+                self._data = np.memmap(init, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                self._data = np.empty((nchan, nsamp), dtype='float32')
+        self._data, self._times = read_raw_segment(self,
+                                                   data_buffer=self._data)
+        self._preloaded = True
+
+    def apply_projector(self):
+        """Apply projection vectors to preloaded data (or set them to be 
+        applied to data as it is read from disk)
+        """
+        self.proj = True
+        _update_projector(self)
+        if self._preloaded:
+            self._data = np.dot(self._projector, self._data)
+
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
                          n_jobs=1, verbose=5):
@@ -581,7 +617,6 @@ class Raw(object):
         else:
             self.info['projs'].extend(projs)
         _update_projector(self)
-        #self._projector, self.info = setup_proj(self.info)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False):
