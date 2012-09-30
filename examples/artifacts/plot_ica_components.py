@@ -2,6 +2,7 @@ import mne
 from mne.fiff import Raw
 # from mne.artifacts.ica import decompose_raw
 from mne.artifacts.ica import ICA
+from mne.viz import plot_ica_panel
 
 from mne.datasets import sample
 data_path = sample.data_path('examples/')
