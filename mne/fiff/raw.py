@@ -183,7 +183,7 @@ class Raw(object):
         self.verbose = verbose
         self.proj = proj
         self._projector, self.info = setup_proj(self.info)
-        self._projector_hash = calc_proj_hash(self.info, self._projector)
+        self._projector_hash = _hash_projs(self.info['projs'], self._projector)
         if preload:
             nchan = self.info['nchan']
             nsamp = self.last_samp - self.first_samp + 1
@@ -239,7 +239,7 @@ class Raw(object):
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
-            was_updated = update_projector(self)
+            was_updated = _update_projector(self)
             if was_updated:
                 raise RuntimeError('Changing projector after preloading data'
                                    'is not allowed')
@@ -580,7 +580,7 @@ class Raw(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
-        update_projector(self)
+        _update_projector(self)
         #self._projector, self.info = setup_proj(self.info)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
@@ -666,14 +666,18 @@ class Raw(object):
             indices.append(ind)
         return indices
 
-def update_projector(raw):
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+def _update_projector(raw):
     """Update hash new projector variables and
     update .projector if it is necessary
     """
-    new_hash = calc_proj_hash(raw.info, raw._projector)
+    new_hash = _hash_projs(raw.info['projs'], raw._projector)
     if not new_hash == raw._projector_hash:
         raw._projector, raw.info = setup_proj(raw.info)
-        raw._projector_hash = calc_proj_hash(raw.info, raw._projector)
+        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
         return True
     else:
         return False
@@ -686,13 +690,8 @@ def update_projector(raw):
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
 
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
-
-
-def calc_proj_hash(info, projector):
-    out_hash = [array_hash(p['data']['data']) for p in info['projs']]
+def _hash_projs(projs, projector):
+    out_hash = [array_hash(p['data']['data']) for p in projs]
     if projector is not None:
         out_hash.append(array_hash(projector))
     return out_hash
@@ -763,7 +762,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     else:
         data = None  # we will allocate it later, once we know the type
 
-    update_projector(raw)
+    _update_projector(raw)
     if raw.proj:
         mult = np.diag(raw.cals.ravel())
         if raw.comp is not None:
