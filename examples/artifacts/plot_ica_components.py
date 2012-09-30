@@ -1,0 +1,24 @@
+import mne
+from mne.fiff import Raw
+# from mne.artifacts.ica import decompose_raw
+from mne.artifacts.ica import ICA
+
+from mne.datasets import sample
+data_path = sample.data_path('examples/')
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+
+raw = Raw(raw_fname, preload=True)
+
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False)
+
+start, stop = raw.time_to_index(100, 115)
+
+
+ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
+          exclude=raw.info['bads'])
+
+ica.fit_raw()
+
+start, stop = raw.time_to_index(100, 101)
+
+plot_ica_panel(ica.raw_sources, start=start, stop=stop)
