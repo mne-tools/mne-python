@@ -18,7 +18,7 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types
-from .proj import setup_proj
+from .proj import setup_proj, deactivate_proj
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
@@ -619,7 +619,7 @@ class Raw(object):
         _update_projector(self)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False):
+             drop_small_buffer=False, proj_active=None):
         """Save raw data to file
 
         Parameters
@@ -643,6 +643,10 @@ class Raw(object):
         drop_small_buffer: bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
+            
+        proj_active: bool or None
+            If True/False, the data is saved with the projections set to 
+            active/inactive. If None, True/False is inferred from self.proj.
 
         """
         if fname == self.info['filename']:
@@ -653,6 +657,13 @@ class Raw(object):
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
+
+        # if proj is off, deactivate projs so data isn't saved with them on
+        # don't have to worry about activating them because they default to on
+        if proj_active is None:
+            proj_active = self.proj
+        if not proj_active:
+            self.info['projs'] = deactivate_proj(self.info['projs'])
 
         outfid, cals = start_writing_raw(fname, self.info, picks)
         #

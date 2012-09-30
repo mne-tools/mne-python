@@ -355,6 +355,23 @@ def activate_proj(projs, copy=True):
     return projs
 
 
+def deactivate_proj(projs, copy=True):
+    """Set all projections to inactive
+
+    Useful before saving raw data without projectors applied
+    """
+    if copy:
+        projs = deepcopy(projs)
+
+    #   Activate the projection items
+    for proj in projs:
+        proj['active'] = False
+
+    print '%d projection items deactivated' % len(projs)
+
+    return projs
+
+
 def make_eeg_average_ref_proj(info):
     """Create an EEG average reference SSP projection vector
 
