@@ -447,7 +447,6 @@ def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
     """ Create panel plots of ICA sources
     """
     import matplotlib.pylab as pl
-    ylims = sources.min(), sources.max()
 
     n_components = sources.shape[0]
     hangover = n_components % ncol
@@ -460,6 +459,8 @@ def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
     if source_idx != None:
         sources = sources.take(source_idx)
 
+    sources = sources[:, start:stop]
+    ylims = sources.min(), sources.max()
     fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
     fig.suptitle('MEG signal decomposition -- %i independent '
                  'components.' % n_components, size=16)
@@ -472,7 +473,7 @@ def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
         xs.grid(linestyle='-', color='gray', linewidth=.25)
         if idx < n_components:
             component = '[%i]' % (idx + 1)
-            xs.plot(sources[idx, start:stop], linewidth=0.5, color='red')
+            xs.plot(sources[idx], linewidth=0.5, color='red')
             xs.text(0.05, .95, component, transform=panel_axes[row, col].transAxes,
                     verticalalignment='top')
             pl.ylim(ylims)
