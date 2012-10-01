@@ -115,10 +115,10 @@ class Epochs(object):
         Return Epochs object with a subset of epochs (supports single
         index and python style slicing)
     """
-
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True, verbose=None):
+                preload=False, reject=None, flat=None, proj=True,
+                verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -517,8 +517,7 @@ class Epochs(object):
             self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
-            self.times = np.array(range(self._data.shape[2])) / sfreq \
-                                  + self.times[0]
+            self.times = np.arange(self._data.shape[2]) / sfreq + self.times[0]
         else:
             raise RuntimeError('Can only resample preloaded data')
 

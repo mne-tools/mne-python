@@ -25,13 +25,14 @@ def test_io_evoked():
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
 
+
 def test_evoked_resample():
     """Test for resampling of evoked data
     """
     # upsample, write it out, read it in
     ave = read_evoked(fname)
     sfreq_normal = ave.info['sfreq']
-    ave.resample(2*sfreq_normal)
+    ave.resample(2 * sfreq_normal)
     write_evoked('evoked.fif', ave)
     ave_up = read_evoked('evoked.fif')
 
@@ -51,5 +52,5 @@ def test_evoked_resample():
 
     # for the above to work, the upsampling just about had to, but
     # we'll add a couple extra checks anyway
-    assert_true(len(ave_up.times) == 2*len(ave_normal.times))
-    assert_true(ave_up.data.shape[1] == 2*ave_normal.data.shape[1])
+    assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
+    assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
