@@ -193,7 +193,7 @@ class Raw(object):
         self._projector_hash = _hash_projs(self.info['projs'], self._projector)
         self._preloaded = False
         if preload:
-            self.reload(init=preload)
+            self.reload_data_from_disk(init=preload)
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -444,11 +444,12 @@ class Raw(object):
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
 
-    def reload(self, init=False):
+    def reload_data_from_disk(self, init=False):
         """Reload raw data from disk.
 
-        This will reload all the data from disk. If self.proj=True, projection
-        and compensation will be applied.
+        This will reload all the data from disk. This will reset any changes
+        you have made to the data. If self.proj=True, projection and
+        compensation will be applied.
 
         Parameters
         ----------
