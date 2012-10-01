@@ -603,8 +603,9 @@ class Raw(object):
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
-        If Raw was created asking for projections to be applied
-        the projection matrix gets updated.
+        Updates the header to include new projectors. If projection was
+        requested on load (if raw.proj==True), the new projectors are applied
+        to the data.
 
         Parameters
         ----------
@@ -621,6 +622,9 @@ class Raw(object):
         else:
             self.info['projs'].extend(projs)
         _update_projector(self)
+
+        if self.proj:
+            self.apply_projector()
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj_active=None):
