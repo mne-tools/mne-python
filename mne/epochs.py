@@ -15,6 +15,7 @@ from .fiff.pick import pick_types, channel_indices_by_type
 from .fiff.proj import activate_proj, make_eeg_average_ref_proj
 from .baseline import rescale
 from .utils import check_random_state
+from .filter import resample
 
 
 class Epochs(object):
@@ -75,10 +76,10 @@ class Epochs(object):
 
     proj : bool, optional
         Apply SSP projection vectors
-        
+
     verbose : None | bool
         Use verbose output. None defaults to raw.verbose.
-        
+
 
     Attributes
     ----------
@@ -101,6 +102,9 @@ class Epochs(object):
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations.
 
+    resample() : self, int, int, int, string or list
+        Resample preloaded data.
+
     Notes
     -----
     For indexing and slicing:
@@ -111,10 +115,10 @@ class Epochs(object):
         Return Epochs object with a subset of epochs (supports single
         index and python style slicing)
     """
-
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True, verbose=None):
+                preload=False, reject=None, flat=None, proj=True,
+                verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -494,6 +498,29 @@ class Epochs(object):
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
+
+    def resample(self, sfreq, npad=100, window='boxcar'):
+        """Resample preloaded data
+
+        Parameters
+        ----------
+        sfreq: float
+            New sample rate to use
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+        """
+        if self.preload:
+            o_sfreq = self.info['sfreq']
+            self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
+            # adjust indirectly affected variables
+            self.info['sfreq'] = sfreq
+            self.times = (np.arange(self._data.shape[2], dtype=np.float) / sfreq
+                          + self.times[0])
+        else:
+            raise RuntimeError('Can only resample preloaded data')
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat):

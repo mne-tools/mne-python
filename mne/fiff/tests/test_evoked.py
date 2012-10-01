@@ -1,6 +1,7 @@
 import os.path as op
 
 from numpy.testing import assert_array_almost_equal, assert_equal
+from nose.tools import assert_true
 
 from mne.fiff import read_evoked, write_evoked
 
@@ -23,3 +24,33 @@ def test_io_evoked():
     assert_equal(ave.aspect_kind, ave2.aspect_kind)
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
+
+
+def test_evoked_resample():
+    """Test for resampling of evoked data
+    """
+    # upsample, write it out, read it in
+    ave = read_evoked(fname)
+    sfreq_normal = ave.info['sfreq']
+    ave.resample(2 * sfreq_normal)
+    write_evoked('evoked.fif', ave)
+    ave_up = read_evoked('evoked.fif')
+
+    # compare it to the original
+    ave_normal = read_evoked(fname)
+
+    # and compare the original to the downsampled upsampled version
+    ave_new = read_evoked('evoked.fif')
+    ave_new.resample(sfreq_normal)
+
+    assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
+    assert_array_almost_equal(ave_normal.times, ave_new.times)
+    assert_equal(ave_normal.nave, ave_new.nave)
+    assert_equal(ave_normal.aspect_kind, ave_new.aspect_kind)
+    assert_equal(ave_normal.last, ave_new.last)
+    assert_equal(ave_normal.first, ave_new.first)
+
+    # for the above to work, the upsampling just about had to, but
+    # we'll add a couple extra checks anyway
+    assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
+    assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
