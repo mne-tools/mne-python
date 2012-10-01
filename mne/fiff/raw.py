@@ -607,6 +607,10 @@ class Raw(object):
         requested on load (if raw.proj==True), the new projectors are applied
         to the data.
 
+        Note that if data was preloaded and you wish to remove the existing
+        projectors, data must be reloaded following this operation (since
+        this is the only way to un-apply the old projectors).
+
         Parameters
         ----------
         projs : list
