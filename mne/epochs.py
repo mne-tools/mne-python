@@ -517,7 +517,8 @@ class Epochs(object):
             self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
-            self.times = np.arange(self._data.shape[2]) / sfreq + self.times[0]
+            self.times = (np.arange(self._data.shape[2], dtype=np.float) / sfreq
+                          + self.times[0])
         else:
             raise RuntimeError('Can only resample preloaded data')
 

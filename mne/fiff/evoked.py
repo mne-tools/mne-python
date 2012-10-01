@@ -370,7 +370,8 @@ class Evoked(object):
         self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
-        self.times = np.arange(self.data.shape[1]) / sfreq + self.times[0]
+        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
+                      + self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
 
