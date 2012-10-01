@@ -34,7 +34,7 @@ class Raw(object):
         The name of the raw file
 
     allow_maxshield : bool, (default False)
-        allow_maxshield if True, allow loading of data that has been 
+        allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
         not be loaded directly, but should be processed using SSS first.
 
@@ -47,7 +47,7 @@ class Raw(object):
 
     verbose : bool
         Use verbose output
-        
+
     proj : bool
         If True, set self.proj to true. With preload=True, this will cause
         the projectors to be applied when loading the data.
@@ -446,22 +446,22 @@ class Raw(object):
 
     def reload(self, init=False):
         """Reload raw data from disk.
-        This will reload all the data from disk. If self.proj=True, projection 
-        and compensation will be applied.
 
+        This will reload all the data from disk. If self.proj=True, projection
+        and compensation will be applied.
 
         Parameters
         ----------
         init : bool or str (default False)
-            Initialization parameter. If True, the data will be preloaded into 
-            memory (fast, requires large amount of memory). If preload is a 
-            string, preload is the file name of a memory-mapped file which is 
-            used to store the data on the hard drive (slower, requires less 
-            memory). init=False is the same as init=True, but will throw a 
+            Initialization parameter. If True, the data will be preloaded into
+            memory (fast, requires large amount of memory). If preload is a
+            string, preload is the file name of a memory-mapped file which is
+            used to store the data on the hard drive (slower, requires less
+            memory). init=False is the same as init=True, but will throw a
             warning if the data has not previously been preloaded.
         """
         if (self._preloaded is not True) and not init:
-            UserWarning('Data was notpreviously preloaded, preloading now)')
+            warnings.warn('Data was notpreviously preloaded, preloading now')
             init = True
         if init:
             nchan = self.info['nchan']
@@ -477,8 +477,10 @@ class Raw(object):
         self._preloaded = True
 
     def apply_projector(self):
-        """Apply projection vectors to preloaded data (or set them to be 
-        applied to data as it is read from disk)
+        """Apply projection vectors
+
+        When data are preloaded is directly applied or they are set be
+        applied to data as it is read from disk.
         """
         self.proj = True
         _update_projector(self)
@@ -643,9 +645,9 @@ class Raw(object):
         drop_small_buffer: bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
-            
+
         proj_active: bool or None
-            If True/False, the data is saved with the projections set to 
+            If True/False, the data is saved with the projections set to
             active/inactive. If None, True/False is inferred from self.proj.
 
         """
@@ -716,6 +718,15 @@ class Raw(object):
     def ch_names(self):
         return self.info['ch_names']
 
+    def close(self):
+        self.fid.close()
+
+    def __repr__(self):
+        s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+                                       self.last_samp - self.first_samp + 1)
+        return "Raw (%s)" % s
+
+
 def _update_projector(raw):
     """Update hash new projector variables and
     update .projector if it is necessary
@@ -728,19 +739,13 @@ def _update_projector(raw):
     else:
         return False
 
-    def close(self):
-        self.fid.close()
-
-    def __repr__(self):
-        s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                       self.last_samp - self.first_samp + 1)
-        return "Raw (%s)" % s
 
 def _hash_projs(projs, projector):
     out_hash = [array_hash(p['data']['data']) for p in projs]
     if projector is not None:
         out_hash.append(array_hash(projector))
     return out_hash
+
 
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     verbose=False):

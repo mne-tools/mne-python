@@ -52,18 +52,18 @@ def test_epochs_proj():
     """
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
     this_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                                eog=True, exclude=exclude)
-    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                                 eog=True, exclude=exclude)
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
     epochs.average()
     data = epochs.get_data()
 
     raw_proj = fiff.Raw(raw_fname, proj=True)
-    epochs_no_proj = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=False)
+    epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
+                            picks=this_picks, baseline=(None, 0), proj=False)
     epochs_no_proj.average()
     data_no_proj = epochs_no_proj.get_data()
-    assert_array_almost_equal(data, data_no_proj, decimal=4)
+    assert_array_almost_equal(data, data_no_proj, decimal=8)
 
 
 def test_evoked_arithmetic():
@@ -102,7 +102,7 @@ def test_reject_epochs():
 
 
 def test_preload_epochs():
-    """Test of epochs rejection
+    """Test preload of epochs
     """
     epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax,
                         picks=picks, baseline=(None, 0), preload=True,
@@ -223,8 +223,6 @@ def test_bootstrap():
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
-    data_normal = epochs._data
     epochs2 = bootstrap(epochs, random_state=0)
-    n_events = len(epochs.events)
     assert_true(len(epochs2.events) == len(epochs.events))
     assert_true(epochs._data.shape == epochs2._data.shape)
