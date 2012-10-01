@@ -447,9 +447,10 @@ class Raw(object):
     def reload_data_from_disk(self, init=False):
         """Reload raw data from disk.
 
-        This will reload all the data from disk. This will reset any changes
-        you have made to the data. If self.proj=True, projection and
-        compensation will be applied.
+        This will reload all the raw data from disk, but will not change the
+        header information. This will only reset changes you have made to the
+        data (e.g., filtering, projection). If self.proj=True when this method
+        is called, projection and compensation will be applied after reloading.
 
         Parameters
         ----------
