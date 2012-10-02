@@ -75,6 +75,23 @@ def test_stc_arithmetic():
     assert_array_equal(stc.sqrt().data, np.sqrt(stc.data))
 
 
+def test_stc_methods():
+    """Test stc methods lh_data, rh_data and bin()
+    """
+    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
+    stc = read_source_estimate(fname)
+
+    # lh_data / rh_data
+    assert_array_equal(stc.lh_data, stc.data[:len(stc.lh_vertno)])
+    assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno):])
+
+    # bin
+    bin = stc.bin(.12)
+    a = np.array((1,), dtype=stc.data.dtype)
+    a[0] = np.mean(stc.data[0, stc.times < .12])
+    assert a[0] == bin.data[0, 0]
+
+
 def test_morph_data():
     """Test morphing of data
     """
