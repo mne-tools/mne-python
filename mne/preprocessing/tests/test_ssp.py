@@ -1,6 +1,7 @@
 import os.path as op
+import warnings
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 
 from ...fiff import Raw
 from ..ssp import compute_proj_ecg, compute_proj_eog
@@ -13,10 +14,12 @@ def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
     for average in [False, True]:
         raw = Raw(raw_fname, preload=True)
-        projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                         ch_name='MEG 1531', bads=['MEG 2443'],
-                                         average=average, avg_ref=True,
-                                         no_proj=True)
+        with warnings.catch_warnings(record=True) as w:
+            projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
+                                        ch_name='MEG 1531', bads=['MEG 2443'],
+                                        average=average, avg_ref=True,
+                                        no_proj=True)
+            assert_equal(len(w), 0 if average else 1)
         raw.close()
         assert_true(len(projs) == 7)
         #XXX: better tests

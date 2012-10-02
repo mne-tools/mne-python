@@ -35,7 +35,7 @@ or with pip::
 
 or for the latest development version (the most up to date)::
 
-    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev --user
 
 Workflow to contribute
 =========================

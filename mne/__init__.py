@@ -6,7 +6,7 @@ __version__ = '0.4.git'
 from .cov import read_cov, write_cov, Covariance, \
                  compute_raw_data_covariance, compute_covariance
 from .event import read_events, write_events, find_events, merge_events, \
-                   pick_events
+                   pick_events, make_fixed_length_events
 from .forward import read_forward_solution, apply_forward, apply_forward_raw
 from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              SourceEstimate, morph_data, \
@@ -21,7 +21,8 @@ from .label import label_time_courses, read_label, label_sign_flip, \
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
 from .proj import read_proj, write_proj, compute_proj_epochs, \
-                  compute_proj_evoked
+                  compute_proj_evoked, compute_proj_raw
+
 from .selection import read_selection
 from .dipole import read_dip
 from . import fiff
@@ -30,3 +31,4 @@ from . import stats
 from . import viz
 from . import preprocessing
 from . import simulation
+from . import layouts

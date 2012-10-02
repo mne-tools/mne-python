@@ -5,7 +5,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from mne.fiff import Raw, pick_types
-from mne import compute_proj_epochs, compute_proj_evoked
+from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
 from mne.proj import read_proj
 from mne import read_events, Epochs
@@ -68,3 +68,35 @@ def test_compute_proj():
 
     projs_evoked = compute_proj_evoked(evoked, n_grad=1, n_mag=1, n_eeg=0)
     # XXX : test something
+
+
+    # Test that the raw projectors work
+    for ii in (1, 2, 4, 8, 12, 24):
+        raw = Raw(raw_fname)
+        projs = compute_proj_raw(raw, duration=ii-0.1, n_grad=1, n_mag=1, n_eeg=0)
+
+        # test that you can compute the projection matrix
+        projs = activate_proj(projs)
+        proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
+
+        assert_true(nproj == 2)
+        assert_true(U.shape[1] == 2)
+
+        # test that you can save them
+        raw.info['projs'] += projs
+        raw.save('foo_%d_raw.fif' % ii)
+
+    # Test that purely continuous (no duration) raw projection works
+    raw = Raw(raw_fname)
+    projs = compute_proj_raw(raw, duration=None, n_grad=1, n_mag=1, n_eeg=0)
+
+    # test that you can compute the projection matrix
+    projs = activate_proj(projs)
+    proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
+
+    assert_true(nproj == 2)
+    assert_true(U.shape[1] == 2)
+
+    # test that you can save them
+    raw.info['projs'] += projs
+    raw.save('foo_rawproj_continuous_raw.fif')

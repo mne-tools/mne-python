@@ -454,7 +454,7 @@ def _write_one_source_space(fid, this):
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
 
-    if this['type'] != 'vol':
+    if this['type'] != 'vol' and this['use_tris'] is not None:
         #   Use triangulation
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE_TRI, this['nuse_tri'])
         write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES,

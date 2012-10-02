@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -13,10 +14,13 @@ from .tree import dir_tree_find
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
+from ..filter import resample
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
+
+from ..viz import plot_evoked
 
 
 class Evoked(object):
@@ -63,6 +67,7 @@ class Evoked(object):
 
     data : 2D array of shape [n_channels x n_times]
         Evoked response.
+
     """
 
     def __init__(self, fname, setno=None, baseline=None, proj=True):
@@ -324,6 +329,51 @@ class Evoked(object):
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
+
+    def plot(self, picks=None, unit=True, show=True,
+             ylim=None, proj=False, xlim='tight'):
+        """Plot evoked data
+
+        Parameters
+        ----------
+        picks : None | array-like of int
+            The indices of channels to plot. If None show all.
+        unit : bool
+            Scale plot with channel (SI) unit.
+        show : bool
+            Call pylab.show() as the end or not.
+        ylim : dict
+            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+            Valid keys are eeg, mag, grad
+        xlim : 'tight' | tuple | None
+            xlim for plots.
+        proj : bool
+            If true SSP projections are applied before display.
+        """
+        plot_evoked(self, picks=picks, unit=unit, show=show,
+                    ylim=ylim, proj=proj, xlim=xlim)
+
+    def resample(self, sfreq, npad=100, window='boxcar'):
+        """Resample preloaded data
+
+        Parameters
+        ----------
+        sfreq: float
+            New sample rate to use
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+        """
+        o_sfreq = self.info['sfreq']
+        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        # adjust indirectly affected variables
+        self.info['sfreq'] = sfreq
+        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
+                      + self.times[0])
+        self.first = int(self.times[0] * self.info['sfreq'])
+        self.last = len(self.times) + self.first - 1
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""

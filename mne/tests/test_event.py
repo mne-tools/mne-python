@@ -1,12 +1,26 @@
 import os.path as op
 
+from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne import read_events, write_events, find_events, fiff
+from mne import (read_events, write_events, make_fixed_length_events,
+                 find_events, fiff)
 
 
 fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
+
+fname_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve-1.fif')
+
+fname_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve.eve')
+
+fname_txt_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve-1.eve')
+
+fname_old_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-eve-old-style.eve')
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
@@ -15,11 +29,25 @@ raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
 def test_io_events():
     """Test IO for events
     """
-    events = read_events(fname)
+    # Test binary fif IO
+    events = read_events(fname)  # Use as the gold standard
     write_events('events.fif', events)
     events2 = read_events('events.fif')
     assert_array_almost_equal(events, events2)
 
+    # Test new format text file IO
+    write_events('events.eve', events)
+    events2 = read_events('events.eve')
+    assert_array_almost_equal(events, events2)
+
+    # Test old format text file IO
+    events2 = read_events(fname_old_txt)
+    assert_array_almost_equal(events, events2)
+    write_events('events.eve', events)
+    events2 = read_events('events.eve')
+    assert_array_almost_equal(events, events2)
+
+    # Test event selection
     a = read_events('events.fif', include=1)
     b = read_events('events.fif', include=[1])
     c = read_events('events.fif', exclude=[2, 3, 4, 5, 32])
@@ -27,6 +55,17 @@ def test_io_events():
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
+
+    # Test binary file IO for 1 event
+    events = read_events(fname_1)  # Use as the new gold standard
+    write_events('events.fif', events)
+    events2 = read_events('events.fif')
+    assert_array_almost_equal(events, events2)
+
+    # Test text file IO for 1 event
+    write_events('events.eve', events)
+    events2 = read_events('events.eve')
+    assert_array_almost_equal(events, events2)
 
 
 def test_find_events():
@@ -36,3 +75,11 @@ def test_find_events():
     raw = fiff.Raw(raw_fname)
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+
+
+def test_make_fixed_length_events():
+    """Test making events of a fixed length
+    """
+    raw = fiff.Raw(raw_fname)
+    events = make_fixed_length_events(raw, id=1)
+    assert_true(events.shape[1], 3)

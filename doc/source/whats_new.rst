@@ -13,6 +13,21 @@ Changelog
 
    - Read and visualize .dip files obtained with xfit or mne_dipole_fit by `Alex Gramfort`_
 
+   - Make EEG layout by `Eric Larson`_
+
+   - Ability to specify SSP projectors when computing covariance from raw by `Eric Larson`_
+
+   - Read and write txt based event files (.eve or .txt) by `Eric Larson`_
+
+   - Pass qrs threshold to preprocessing functions by `Eric Larson`_
+
+   - Compute SSP projections from continuous raw data by `Eric Larson`_
+
+API
+~~~
+
+   - Use mne.layout.read_layout instead of mne.layout.Layout to read a layout file (.lout)
+
 .. _changes_0_4:
 
 Version 0.4
@@ -153,3 +168,5 @@ of commits):
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
 .. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
+
+.. _Eric Larson: http://faculty.washington.edu/larsoner/
