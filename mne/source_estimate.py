@@ -572,10 +572,12 @@ class SourceEstimate(object):
     def sqrt(self):
         return self ** (0.5)
 
-    def bin(self, width, func=np.mean):
+    def bin(self, width, tstart=None, tstop=None, func=np.mean):
         """
         Returns a SourceEstimate object with data summarized over time in bins
-        of ``width`` seconds
+        of ``width`` seconds. This method is intended for visualization
+        only. No filter is applied to the data before binning, making the
+        method inappropriate as a tool for downsampling data.
 
 
         Parameters
@@ -588,11 +590,26 @@ class SourceEstimate(object):
             Function that is applied to summarize the data. Needs to accept a
             numpy.array as first input and an ``axis`` keyword argument.
 
+        tstart : scalar | None
+            Time point where the first bin starts. The default is the first
+            time point of the stc.
+
+        tstop : scalar | None
+            Last possible time point contained in a bin (if the last bin would
+            be shorter than width it is dropped). The default is the last time
+            point of the stc.
+
         """
-        times = np.arange(self.tmin, self.times[-1] + width, width)
+        if tstart is None:
+            tstart = self.tmin
+        if tstop is None:
+            tstop = self.times[-1]
+
+        times = np.arange(tstart, tstop + self.tstep, width)
         nv, _ = self.data.shape
-        data = np.empty((nv, len(times)), dtype=self.data.dtype)
-        for i in xrange(len(times) - 1):
+        nt = len(times) - 1
+        data = np.empty((nv, nt), dtype=self.data.dtype)
+        for i in xrange(nt):
             idx = (self.times >= times[i]) & (self.times < times[i + 1])
             data[:, i] = func(self.data[:, idx], axis=1)
 
