@@ -192,8 +192,18 @@ class Raw(object):
         self._projector, self.info = setup_proj(self.info)
         self._projector_hash = _hash_projs(self.info['projs'], self._projector)
         self._preloaded = False
+
         if preload:
-            self.reload_data_from_disk(init=preload)
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            if isinstance(preload, str):
+                # preload data using a memmap file
+                self._data = np.memmap(preload, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                self._data = np.empty((nchan, nsamp), dtype='float32')
+            _, self._times = read_raw_segment(self, data_buffer=self._data)
+            self._preloaded = True
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -443,40 +453,6 @@ class Raw(object):
                                 filter_length=filter_length,
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
-
-    def reload_data_from_disk(self, init=False):
-        """Reload raw data from disk.
-
-        This will reload all the raw data from disk, but will not change the
-        header information. This will only reset changes you have made to the
-        data (e.g., filtering, projection). If self.proj=True when this method
-        is called, projection and compensation will be applied after reloading.
-
-        Parameters
-        ----------
-        init : bool or str (default False)
-            Initialization parameter. If True, the data will be preloaded into
-            memory (fast, requires large amount of memory). If preload is a
-            string, preload is the file name of a memory-mapped file which is
-            used to store the data on the hard drive (slower, requires less
-            memory). init=False is the same as init=True, but will throw a
-            warning if the data has not previously been preloaded.
-        """
-        if (self._preloaded is not True) and not init:
-            warnings.warn('Data was notpreviously preloaded, preloading now')
-            init = True
-        if init:
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            if isinstance(init, str):
-                # preload data using a memmap file
-                self._data = np.memmap(init, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                self._data = np.empty((nchan, nsamp), dtype='float32')
-        self._data, self._times = read_raw_segment(self,
-                                                   data_buffer=self._data)
-        self._preloaded = True
 
     def apply_projector(self):
         """Apply projection vectors

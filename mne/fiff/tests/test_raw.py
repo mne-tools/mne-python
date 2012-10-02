@@ -138,22 +138,8 @@ def test_proj():
         projector = raw._projector
         data_proj_1 = np.dot(projector, data)
         data_proj_2, _ = raw[:, 0:2]
-        print data_proj_1.shape
-        print data_proj_2.shape
         assert_array_almost_equal(data_proj_1, data_proj_2)
         assert_array_almost_equal(data_proj_2, np.dot(projector, data_proj_2))
-    
-        # make sure the reload() function works
-        raw = Raw(fif_fname, preload=preload, proj=False)
-        data_orig, _ = raw[:, 0:2]
-        raw.apply_projector()
-        data_proj, _ = raw[:, 0:2]
-        projector = raw._projector
-        raw.proj = False
-        raw.reload()
-        data_reload, _ = raw[:, 0:2]
-        assert_array_almost_equal(data_proj, np.dot(projector, data_reload))
-        assert_array_almost_equal(data_orig, data_reload)
 
 
 def test_preload_modify():
