@@ -6,7 +6,8 @@
 
 import numpy as np
 
-from .. import Epochs, compute_proj_evoked, compute_proj_epochs
+from .. import Epochs, compute_proj_evoked, compute_proj_epochs, \
+    check_raw_compatibility
 from ..fiff import pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
 from warnings import warn
@@ -27,11 +28,12 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     mode: sting ('ECG', or 'EOG')
         What type of events to detect
 
-    raw: mne.fiff.Raw
-        Raw input file
+    raw: list, or instance of Raw
+        List of Raw input files or a single Raw input file
 
-    raw_event: mne.fiff.Raw or None
-        Raw file to use for event detection (if None, raw is used)
+    raw_event: list, instance of Raw, or None
+        List of Raw input files (or a single file) to use for
+        event detection (if None, raw is used)
 
     tmin: float
         Time before event in second
@@ -104,19 +106,24 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     events : ndarray
         Detected events
     """
-    if not raw._preloaded:
+    if not isinstance(raw, list):
+        raw = [raw]
+    # ensure these raw files can be combined later
+    check_raw_compatibility(raw)
+
+    if not np.all([raw[ri]._preloaded for ri in range(len(raw))]):
         raise ValueError('raw needs to be preloaded, '
                          'use preload=True in constructor')
 
     if no_proj:
         projs = []
     else:
-        projs = raw.info['projs']
-        print 'Including %d SSP projectors from raw file' % len(projs)
+        projs = raw[0].info['projs']
+        print 'Including %d SSP projectors from first raw file' % len(projs)
 
     if avg_ref:
         print 'Adding average EEG reference projection.'
-        eeg_proj = make_eeg_average_ref_proj(raw.info)
+        eeg_proj = make_eeg_average_ref_proj(raw[0].info)
         projs.append(eeg_proj)
 
     if raw_event is None:
@@ -124,18 +131,21 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     if mode == 'ECG':
         print 'Running ECG SSP computation'
-        events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
+        events = [find_ecg_events(raw_event[ri], ch_name=ch_name,
                            event_id=event_id, l_freq=exg_l_freq,
-                           h_freq=exg_h_freq, tstart=tstart, qrs_threshold=qrs_threshold)
+                           h_freq=exg_h_freq, tstart=tstart,
+                           qrs_threshold=qrs_threshold)[0]
+                           for ri in range(len(raw))]
     elif mode == 'EOG':
         print 'Running EOG SSP computation'
-        events = find_eog_events(raw_event, event_id=event_id,
+        events = [find_eog_events(raw_event[ri], event_id=event_id,
                            l_freq=exg_l_freq, h_freq=exg_h_freq)
+                           for ri in range(len(raw))]
     else:
         ValueError("mode must be 'ECG' or 'EOG'")
 
     # Check to make sure we actually got at least one useable event
-    if events.shape[0] < 1:
+    if np.all([events[ri].shape[0] < 1 for ri in range(len(raw))]):
         warn('No %s events found, returning None for projs' % mode)
         return None, events
 
@@ -143,28 +153,29 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     # Handler rejection parameters
     if reject is not None: # make sure they didn't pass None
-        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg='grad', eeg=False, eog=False)) == 0:
             del reject['grad']
-        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg='mag', eeg=False, eog=False)) == 0:
             del reject['mag']
-        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg=False, eeg=True, eog=False)) == 0:
             del reject['eeg']
-        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+        if len(pick_types(raw[0].info, meg=False, eeg=False, eog=True)) == 0:
             del reject['eog']
     if flat is not None: # make sure they didn't pass None
-        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg='grad', eeg=False, eog=False)) == 0:
             del flat['grad']
-        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg='mag', eeg=False, eog=False)) == 0:
             del flat['mag']
-        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+        if len(pick_types(raw[0].info, meg=False, eeg=True, eog=False)) == 0:
             del flat['eeg']
-        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+        if len(pick_types(raw[0].info, meg=False, eeg=False, eog=True)) == 0:
             del flat['eog']
 
-    picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
-                       exclude=raw.info['bads'] + bads)
-    raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-               n_jobs=n_jobs)
+    picks = pick_types(raw[0].info, meg=True, eeg=True, eog=True,
+                       exclude=raw[0].info['bads'] + bads)
+    for ri in range(len(raw)):
+        raw[ri].filter(l_freq, h_freq, picks=picks,
+                       filter_length=filter_length, n_jobs=n_jobs)
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None,
                     picks=picks, reject=reject, flat=flat, proj=True)
@@ -201,11 +212,12 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 
     Parameters
     ----------
-    raw: mne.fiff.Raw
-        Raw input file
+    raw: list, or instance of Raw
+        List of Raw input files or a single Raw input file
 
-    raw_event: mne.fiff.Raw or None
-        Raw file to use for event detection (if None, raw is used)
+    raw_event: list, instance of Raw, or None
+        List of Raw input files (or a single file) to use for
+        event detection (if None, raw is used)
 
     tmin: float
         Time before event in second
@@ -301,11 +313,12 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
 
     Parameters
     ----------
-    raw: mne.fiff.Raw
-        Raw input file
+    raw: list, or instance of Raw
+        List of Raw input files or a single Raw input file
 
-    raw_event: mne.fiff.Raw or None
-        Raw file to use for event detection (if None, raw is used)
+    raw_event: list, instance of Raw, or None
+        List of Raw input files (or a single file) to use for
+        event detection (if None, raw is used)
 
     tmin: float
         Time before event in second

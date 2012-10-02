@@ -152,16 +152,7 @@ class Epochs(object):
         self._reject_setup()
 
         # check to make sure everything necessary matches before changing info
-        for ri in range(len(raw)):
-            if not raw[ri].info['nchan'] == self.info['nchan']:
-                raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
-            if not raw[ri].info['bads'] == self.info['bads']:
-                raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
-            if not raw[ri].info['sfreq'] == self.info['sfreq']:
-                raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
-            if not set(raw[ri].info['ch_names']) \
-                       == set(self.info['ch_names']):
-                raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
+        check_raw_compatibility(raw)
 
         # now modify (if necessary) based on picks
         if picks is not None:
@@ -180,6 +171,7 @@ class Epochs(object):
         #   Set up projection
         self.info['projs_all'] = [cp.deepcopy(raw[ri].info['projs']) for ri in range(len(raw))]
         self.proj = [None]*len(raw)
+        del self.info['projs'] # Delete old, now potentially ambiguous key
         for ri in range(len(raw)):
             if self.info['projs_all'][ri] is None or not proj:
                 print 'No projector specified for these data'
@@ -192,8 +184,9 @@ class Epochs(object):
                     self.info['projs_all'][ri].append(eeg_proj)
 
                 #   Create the projector, temporarily adding 'projs'
-                self.info['projs'] = self.info['projs_all'][ri]
-                r_proj, nproj = fiff.proj.make_projector_info(self.info)
+                r_proj, nproj, _ = fiff.proj.make_projector(
+                                    self.info['projs_all'][ri],
+                                    self.info['ch_names'], self.info['bads'])
                 if nproj == 0:
                     print 'The projection vectors do not apply to these channels'
                     self.proj[ri] = None
@@ -204,8 +197,6 @@ class Epochs(object):
 
                 #   The projection items have been activated
                 self.info['projs_all'][ri] = activate_proj(self.info['projs_all'][ri], copy=False)
-
-        del self.info['projs'] # Delete old, now potentially ambiguous key
 
         #   Set up the CTF compensator
         current_comp = [fiff.get_current_comp(self.info) \
@@ -574,6 +565,21 @@ class Epochs(object):
         this_epochs.times = this_epochs.times[tmask]
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
+
+
+def check_raw_compatibility(raw):
+    """Check to make sure all instances of Raw
+    in the input list raw have compatible parameters"""
+    for ri in range(1,len(raw)):
+        if not raw[ri].info['nchan'] == raw[0].info['nchan']:
+            raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
+        if not raw[ri].info['bads'] == raw[0].info['bads']:
+            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
+        if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
+            raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
+        if not set(raw[ri].info['ch_names']) \
+                   == set(raw[0].info['ch_names']):
+            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
