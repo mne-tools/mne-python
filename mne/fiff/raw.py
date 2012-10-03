@@ -30,8 +30,9 @@ class Raw(object):
 
     Parameters
     ----------
-    fname : string
-        The name of the raw file
+    fnames: list, or string
+        A list of the raw files to treat as a Raw instance, or a single
+        raw file
 
     allow_maxshield : bool, (default False)
         allow_maxshield if True, allow loading of data that has been
@@ -70,9 +71,55 @@ class Raw(object):
         Apply or not the SSPs projections taken from info['projs']
         when accessing data.
     """
-    def __init__(self, fname, allow_maxshield=False, preload=False,
+    def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj=False):
-        #   Open the file
+
+
+        if not isinstance(fnames, list):
+            fnames = [fnames]
+
+        raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose,
+                                    proj) for fname in fnames]
+
+        check_raw_compatibility(raws)
+
+        # combine information from each raw file to construct self
+        self.first_samp = raws[0].first_samp # meta first sample
+        self._first_samps = [r.first_samp for r in raws]
+        self._last_samps = [r.last_samp for r in raws]
+        self._raw_lens = [r.last_samp - r.first_samp + 1 for r in raws]
+        self.last_samp = self.first_samp + sum(self._raw_lens) - 1
+        self.cals = raws[0].cals
+        self.rawdirs = [r.rawdir for r in raws]
+        self.proj = None
+        self.comp = None
+        self.fids = [r.fid for r in raws]
+        self.info = copy.deepcopy(raws[0].info)
+        self.verbose = verbose
+        self.info['filenames'] = fnames
+        self.proj = proj
+        self._projector = raws[0]._projector
+        self._projector_hash = raws[0]._projector_hash
+
+        if preload:
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            if isinstance(preload, str):
+                # preload data using a memmap file
+                self._data = np.memmap(preload, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                self._data = np.empty((nchan, nsamp), dtype='float32')
+
+            self._data, self._times = read_raw_segment(self,
+                                                       data_buffer=self._data)
+            self._preloaded = True
+        else:
+            self._preloaded = False
+
+
+    def _read_raw_file(self, fname, allow_maxshield, preload, verbose, proj):
+        """Read in header information from a raw file"""
         if verbose:
             print 'Opening raw data file %s...' % fname
         fid, tree, _ = fiff_open(fname)
@@ -119,7 +166,8 @@ class Raw(object):
             first_skip = int(tag.data)
             first += 1
 
-        self.first_samp = first_samp
+        raw = _RawShell()
+        raw.first_samp = first_samp
 
         #   Go through the remaining tags in the directory
         rawdir = list()
@@ -149,7 +197,7 @@ class Raw(object):
                 #  Do we have an initial skip pending?
                 if first_skip > 0:
                     first_samp += nsamp * first_skip
-                    self.first_samp = first_samp
+                    raw.first_samp = first_samp
                     first_skip = 0
 
                 #  Do we have a skip pending?
@@ -166,7 +214,7 @@ class Raw(object):
                                    nsamp=nsamp))
                 first_samp += nsamp
 
-        self.last_samp = first_samp - 1
+        raw.last_samp = first_samp - 1
 
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])
@@ -174,36 +222,24 @@ class Raw(object):
             cals[k] = info['chs'][k]['range'] * \
                       info['chs'][k]['cal']
 
-        self.cals = cals
-        self.rawdir = rawdir
-        self.comp = None
-        # XXX self.comp never changes!
+        raw.cals = cals
+        raw.rawdir = rawdir
+        raw.comp = None
+        # XXX raw.comp never changes!
         if verbose:
             print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                       self.first_samp, self.last_samp,
-                       float(self.first_samp) / info['sfreq'],
-                       float(self.last_samp) / info['sfreq'])
+                       raw.first_samp, raw.last_samp,
+                       float(raw.first_samp) / info['sfreq'],
+                       float(raw.last_samp) / info['sfreq'])
             print 'Ready.'
 
-        self.fid = fid
-        self.info = info
-        self.verbose = verbose
-        self.proj = proj
-        self._projector, self.info = setup_proj(self.info)
-        self._projector_hash = _hash_projs(self.info['projs'], self._projector)
-        self._preloaded = False
-
-        if preload:
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            if isinstance(preload, str):
-                # preload data using a memmap file
-                self._data = np.memmap(preload, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                self._data = np.empty((nchan, nsamp), dtype='float32')
-            _, self._times = read_raw_segment(self, data_buffer=self._data)
-            self._preloaded = True
+        raw.fid = fid
+        raw.info = info
+        raw.verbose = verbose
+        raw.proj = proj
+        raw._projector, raw.info = setup_proj(raw.info)
+        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
+        return raw
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -763,6 +799,18 @@ class Raw(object):
             return False
 
 
+class _RawShell():
+    """Used for creating a temporary raw object"""
+    def __init__(self):
+        self.first_samp = None
+        self.last_samp = None
+        self.cals = None
+        self.rawdir = None
+        self.proj = None
+        self._projector = None
+        self._projector_hash = None
+
+
 def _hash_projs(projs, projector):
     out_hash = [array_hash(p['data']['data']) for p in projs]
     if projector is not None:
@@ -805,14 +853,12 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         returns the time values corresponding to the samples
     """
     if stop is None:
-        stop = raw.last_samp + 1
+        stop = raw.last_samp - raw.first_samp + 1
 
     #  Initial checks
-    start = int(start + raw.first_samp)
-    stop = int(stop + raw.first_samp)
-
-    if stop >= raw.last_samp:
-        stop = raw.last_samp + 1
+    start = int(start)
+    stop = int(stop)
+    stop = min([stop, raw.last_samp - raw.first_samp + 1])
 
     if start >= stop:
         raise ValueError('No data in this range')
@@ -824,7 +870,6 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     #  Initialize the data and calibration vector
     nchan = raw.info['nchan']
-    dest = 0
 
     n_sel_channels = nchan if sel is None else len(sel)
     idx = slice(None, None, None) if sel is None else sel
@@ -849,76 +894,107 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     do_debug = False
     # do_debug = True
 
-    for this in raw.rawdir:
 
-        #  Do we need this buffer
-        if this['last'] >= start:
-            if this['ent'] is None:
-                #  Take the easy route: skip is translated to zeros
-                if do_debug:
-                    print 'S'
-                one = np.zeros((n_sel_channels, this['nsamp']))
-            else:
-                tag = read_tag(raw.fid, this['ent'].pos)
 
-                # decide what datatype to use
-                if np.isrealobj(tag.data):
-                    dtype = np.float
-                else:
-                    dtype = np.complex64
+    # deal with having multiple files accessed by the raw object
+    cumul_lens = np.cumsum(np.concatenate(([0], np.array(raw._raw_lens, dtype='int'))))
+    files_used = np.logical_and(np.less(start, cumul_lens[1:]),
+                                np.greater_equal(stop - 1, cumul_lens[:-1] - 1))
 
-                one = tag.data.reshape(this['nsamp'], nchan).astype(dtype).T
-                if mult is not None:  # use proj + calibration factors in mult
-                    one = np.dot(mult, one)
-                    one = one[idx]
-                else:  # apply just the calibration factors
-                    one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
+    first_file_used = False
+    s_off = 0
+    dest = 0
+    for fi in np.nonzero(files_used)[0]:
+        start_loc = raw._first_samps[fi]
+        # first iteration (only) could start in the middle somewhere
+        if not first_file_used:
+            first_file_used = True
+            start_loc += start - cumul_lens[fi]
+        stop_loc = np.min([stop - 1 - s_off + raw._first_samps[fi],
+                           raw._last_samps[fi]])
+        if start_loc < raw._first_samps[fi]:
+            raise ValueError('Bad figuring')
+        if stop_loc > raw._last_samps[fi]:
+            raise ValueError('Bad figuring')
+        if stop_loc < start_loc:
+            raise ValueError('Bad figuring')
+        len_loc = stop_loc - start_loc + 1
 
-            #  The picking logic is a bit complicated
-            if stop - 1 > this['last'] and start < this['first']:
-                #    We need the whole buffer
-                first_pick = 0
-                last_pick = this['nsamp']
-                if do_debug:
-                    print 'W'
+        for this in raw.rawdirs[fi]:
 
-            elif start >= this['first']:
-                first_pick = start - this['first']
-                if stop - 1 <= this['last']:
-                    #   Something from the middle
-                    last_pick = this['nsamp'] + stop - this['last'] - 1
+            #  Do we need this buffer
+            if this['last'] >= start_loc:
+                if this['ent'] is None:
+                    #  Take the easy route: skip is translated to zeros
                     if do_debug:
-                        print 'M'
+                        print 'S'
+                    one = np.zeros((n_sel_channels, this['nsamp']))
                 else:
-                    #   From the middle to the end
+                    tag = read_tag(raw.fids[fi], this['ent'].pos)
+
+                    # decide what datatype to use
+                    if np.isrealobj(tag.data):
+                        dtype = np.float
+                    else:
+                        dtype = np.complex64
+
+                    one = tag.data.reshape(this['nsamp'], nchan).astype(dtype).T
+                    if mult is not None:  # use proj + calibration factors in mult
+                        one = np.dot(mult, one)
+                        one = one[idx]
+                    else:  # apply just the calibration factors
+                        one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
+
+                #  The picking logic is a bit complicated
+                if stop_loc > this['last'] and start_loc < this['first']:
+                    #    We need the whole buffer
+                    first_pick = 0
                     last_pick = this['nsamp']
                     if do_debug:
-                        print 'E'
-            else:
-                #    From the beginning to the middle
-                first_pick = 0
-                last_pick = stop - this['first']
-                if do_debug:
-                    print 'B'
+                        print 'W'
 
-            #   Now we are ready to pick
-            picksamp = last_pick - first_pick
-            if picksamp > 0:
-                if data is None:
-                    # if not already done, allocate array with right type
-                    data = np.empty(data_shape, dtype=dtype)
-                data[:, dest:(dest + picksamp)] = one[:, first_pick:last_pick]
-                dest += picksamp
+                elif start_loc >= this['first']:
+                    first_pick = start_loc - this['first']
+                    if stop_loc <= this['last']:
+                        #   Something from the middle
+                        last_pick = this['nsamp'] + stop_loc - this['last']
+                        if do_debug:
+                            print 'M'
+                    else:
+                        #   From the middle to the end
+                        last_pick = this['nsamp']
+                        if do_debug:
+                            print 'E'
+                else:
+                    #    From the beginning to the middle
+                    first_pick = 0
+                    last_pick = stop_loc - this['first'] + 1
+                    if do_debug:
+                        print 'B'
 
-        #   Done?
-        if this['last'] >= stop - 1:
-            if verbose:
-                print ' [done]'
-            break
+                #   Now we are ready to pick
+                picksamp = last_pick - first_pick
+                if picksamp > 0:
+                    if data is None:
+                        # if not already done, allocate array with right type
+                        data = np.empty(data_shape, dtype=dtype)
+                    data[:, dest:(dest + picksamp)] = \
+                        one[:, first_pick:last_pick]
+                    dest += picksamp
 
-    times = (np.arange(start, stop) - raw.first_samp) / raw.info['sfreq']
+            #   Done?
+            if this['last'] >= stop_loc:
+                break
 
-    raw.fid.seek(0, 0)  # Go back to beginning of the file
+        raw.fids[fi].seek(0, 0)  # Go back to beginning of the file
+        s_off += len_loc
+        # double-check our math
+        if not s_off == dest:
+            raise ValueError('Incorrect file reading')
+
+    if verbose:
+        print ' [done]'
+    times = np.arange(start, stop + 1) / raw.info['sfreq']
 
     return data, times
 
@@ -1080,3 +1156,22 @@ def finish_writing_raw(fid):
 def _envelope(x):
     """ Compute envelope signal """
     return np.abs(hilbert(x))
+
+
+def check_raw_compatibility(raw):
+    """Check to make sure all instances of Raw
+    in the input list raw have compatible parameters"""
+    for ri in range(1,len(raw)):
+        if not raw[ri].info['nchan'] == raw[0].info['nchan']:
+            raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
+        if not raw[ri].info['bads'] == raw[0].info['bads']:
+            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
+        if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
+            raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
+        if not set(raw[ri].info['ch_names']) \
+                   == set(raw[0].info['ch_names']):
+            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
+        if not all(raw[ri].cals == raw[0].cals):
+            raise ValueError('raw[%d].cals must match' % ri)
+        if not raw[ri]._projector_hash == raw[0]._projector_hash:
+            raise ValueError('raw[%d] projectors must match')
