@@ -23,6 +23,7 @@ erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
 
 raw = Raw(raw_fname, preload=True)
 
+
 def test_io_cov():
     """Test IO for noise covariance matrices
     """
@@ -125,6 +126,7 @@ def test_cov_estimation_with_triggers():
     # these should work, but won't be equal to above
     cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
     cov = compute_covariance(epochs, projs=[])
+
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices
