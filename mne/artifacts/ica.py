@@ -100,7 +100,7 @@ class ICA(object):
         elif smethod == 'kurtosis':
             sort_func = kurtosis
         elif smethod == 'back':
-            sort_func = lambda x: x
+            sort_func = lambda x, y: self.source_ids
             sort_func.__name__ = 'unsorted'
         elif callable(smethod):
             args = getargspec(smethod).args
