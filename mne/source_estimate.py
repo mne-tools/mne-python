@@ -315,10 +315,8 @@ class SourceEstimate(object):
 
     Can be saved and loaded from .stc or .w files.
 
-
     Parameters
     ----------
-
     data : array of shape [n_dipoles x n_times]
         The data in source space
 
@@ -331,7 +329,6 @@ class SourceEstimate(object):
     tstep : scalar
         time step between successive samples in data
 
-
     .. note::
         For backwards compatibility, the SourceEstimate can also be
         initialized with a single argument, which can be ``None`` (an
@@ -339,10 +336,8 @@ class SourceEstimate(object):
         string, in which case the corresponding file(s) will be loaded. This
         usage is deprecated and will be removed in v0.6.
 
-
     Attributes
     ----------
-
     data : array of shape [n_dipoles x n_times]
         The data in source space
 
@@ -354,23 +349,6 @@ class SourceEstimate(object):
 
     """
     def __init__(self, data, vertices=None, tmin=None, tstep=None):
-        """
-        Parameters
-        ----------
-
-        data : array of shape [n_dipoles x n_times]
-            The data in source space
-
-        vertices : array | list of two arrays
-            vertex number corresponding to the data
-
-        tmin : scalar
-            time point of the first sample in data
-
-        tstep : scalar
-            time step between successive samples in data
-
-        """
         if data is None:
             warnings.warn('Constructing a SourceEstimate object with no '
                           'attributes is deprecated and will stop working in '
@@ -573,16 +551,14 @@ class SourceEstimate(object):
         return self ** (0.5)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
-        """
-        Returns a SourceEstimate object with data summarized over time in bins
-        of ``width`` seconds. This method is intended for visualization
+        """Returns a SourceEstimate object with data summarized over time bins
+
+        Time bins of ``width`` seconds. This method is intended for visualization
         only. No filter is applied to the data before binning, making the
         method inappropriate as a tool for downsampling data.
 
-
         Parameters
         ----------
-
         width : scalar
             Width of the individual bins in seconds.
 
@@ -598,7 +574,6 @@ class SourceEstimate(object):
             Last possible time point contained in a bin (if the last bin would
             be shorter than width it is dropped). The default is the last time
             point of the stc.
-
         """
         if tstart is None:
             tstart = self.tmin
@@ -644,18 +619,17 @@ class SourceEstimate(object):
         return vertices, values
 
     def label_stc(self, label):
-        """
-        Returns a SourceEstimate object containing the time course of
+        """Returns a SourceEstimate object restricted to a label
+
+        SourceEstimate contains the time course of
         activation of all sources inside the label.
 
         Parameters
         ----------
-
         label : Label | BiHemiLabel
             The label (as created for example by mne.read_label). If the label
             does not match any sources in the SourceEstimate, a ValueError is
             raised.
-
         """
         if not self.is_surface():
             raise NotImplementedError

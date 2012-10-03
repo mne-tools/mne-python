@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os
+import copy as cp
 import numpy as np
 from scipy import linalg
 import warnings
@@ -23,9 +24,7 @@ def _aslabel(label):
 
 
 class Label(dict):
-    """
-    Represents a freesurfer/mne label with vertices restricted to one
-    hemisphere.
+    """An freesurfer/MNE label with vertices restricted to one hemisphere
 
     Labels can be combined with the ``+`` operator:
      - Duplicate vertices are removed.
@@ -33,10 +32,8 @@ class Label(dict):
        raised.
      - Values of duplicate vertices are summed.
 
-
     Parameters
     ----------
-
     vertices : array (length N)
         vertex indices (0 based)
 
@@ -55,7 +52,6 @@ class Label(dict):
 
     Attributes
     ----------
-
     comment : str
         Comment from the first line of the label file
 
@@ -74,33 +70,14 @@ class Label(dict):
     vertices : array, len = n_pos
         Vertex indices (0 based)
 
-
-    For backwards compatibility, the following attributes are stored as dictionary
-    entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
+    Notes
+    -----
+    For backwards compatibility, the following attributes are stored as
+    dictionary entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
 
     """
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
                  filename=None):
-        """
-        Parameters
-        ----------
-
-        vertices : array (length N)
-            vertex indices (0 based)
-
-        pos : array (N by 3)
-            locations in meters
-
-        values : array (length N)
-            values at the vertices
-
-        hemi : 'lh' | 'rh'
-            Hemisphere to which the label applies.
-
-        comment, name, fpath : str
-            Kept as information but not used by the object itself
-
-        """
         vertices = np.asarray(vertices)
         values = np.asarray(values)
         pos = np.asarray(pos)
@@ -122,17 +99,15 @@ class Label(dict):
         self._dep_warn = True
 
         # name
-        if name is None:
-            if filename is not None:
-                name = os.path.basename(filename[:-6])
+        if name is None and filename is not None:
+            name = os.path.basename(filename[:-6])
         self.name = name
         self.filename = filename
 
     def __repr__(self):
-        temp = "<Label %s, %s: %i vertices>"
         name = repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return temp % (name, self.hemi, n_vert)
+        return "<Label %s, %s: %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         return len(self.vertices)
@@ -145,8 +120,8 @@ class Label(dict):
     def _update_attr_from_dict(self):
         "backwards compatibility"
         if self._dep_warn:
-            warnings.warn('Dictionary-like usage of Label objects is deprecated '
-                          'and will be removed in v0.6.')
+            warnings.warn('Dictionary-like usage of Label objects is '
+                          'deprecated and will be removed in v0.6.')
         for key in ['vertices', 'pos', 'values', 'hemi', 'comment']:
             setattr(self, key, self.get(key, None))
 
@@ -171,9 +146,9 @@ class Label(dict):
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
                 if self.hemi == 'lh':
-                    lh, rh = self, other
+                    lh, rh = cp.deepcopy(self), cp.deepcopy(other)
                 else:
-                    lh, rh = other, self
+                    lh, rh = cp.deepcopy(other), cp.deepcopy(self)
                 return BiHemiLabel(lh, rh, name=name)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
@@ -205,7 +180,6 @@ class Label(dict):
         else:
             vertices = np.hstack((self.vertices, other.vertices))
             pos = np.vstack((self.pos, other.pos))
-
             values = np.hstack((self.values, other.values))
 
         name0 = self.name if self.name else 'unnamed'
@@ -221,15 +195,11 @@ class Label(dict):
         write_label(filename, self)
 
 
-
 class BiHemiLabel(object):
-    """
-    Represents a freesurfer/mne label with vertices in both hemispheres.
-
+    """A freesurfer/MNE label with vertices in both hemispheres
 
     Parameters
     ----------
-
     lh, rh : Label
         Label objects representing the left and the right hemisphere,
         respectively
@@ -237,10 +207,8 @@ class BiHemiLabel(object):
     name : None | str
         name for the label
 
-
     Attributes
     ----------
-
     lh, rh : Label
         Labels for the left and right hemisphere, respectively
 
@@ -249,19 +217,8 @@ class BiHemiLabel(object):
 
     """
     hemi = 'both'
+
     def __init__(self, lh, rh, name=None):
-        """
-        Parameters
-        ----------
-
-        lh, rh : Label
-            Label objects representing the left and the right hemisphere,
-            respectively
-
-        name : None | str
-            name for the label
-
-        """
         self.lh = lh
         self.rh = rh
         self.name = name
@@ -292,7 +249,6 @@ class BiHemiLabel(object):
         return BiHemiLabel(lh, rh, name=name)
 
 
-
 def read_label(filename):
     """Read FreeSurfer Label file
 
@@ -304,12 +260,11 @@ def read_label(filename):
     Returns
     -------
     label : Label
-        Label object with attributes:
+        Instance of Label object with attributes:
             comment        comment from the first line of the label file
             vertices       vertex indices (0 based, column 1)
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
-
     """
     fid = open(filename, 'r')
     comment = fid.readline().replace('\n', '')[1:]
@@ -329,11 +284,8 @@ def read_label(filename):
     fid.close()
 
     label = Label(vertices=np.array(data[0], dtype=np.int32),
-                  pos=1e-3 * data[1:4].T,
-                  values=data[4],
-                  hemi=hemi,
-                  comment=comment,
-                  filename=filename)
+                  pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
+                  comment=comment, filename=filename)
 
     return label
 
