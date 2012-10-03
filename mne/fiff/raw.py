@@ -250,7 +250,6 @@ class Raw(object):
             raise RuntimeError("Unable to access raw data (need both channels "
                                "and time)")
 
-        time_slice = item[1]
         if isinstance(item[0], slice):
             start = item[0].start if item[0].start is not None else 0
             nchan = self.info['nchan']
@@ -260,11 +259,18 @@ class Raw(object):
         else:
             sel = item[0]
 
-        start, stop, step = time_slice.start, time_slice.stop, \
-                            time_slice.step
+        if isinstance(item[1], slice):
+            time_slice = item[1]
+            start, stop, step = time_slice.start, time_slice.stop, \
+                                time_slice.step
+        elif isinstance(item[1], int):
+            start, stop, step = item[1], item[1] + 1, 1
+        else:
+            raise ValueError('Must pass int or slice to __getitem__')
+
         if start is None:
             start = 0
-        if step is not None:
+        if (step is not None) and (step is not 1):
             raise ValueError('step needs to be 1 : %d given' % step)
 
         if isinstance(sel, int):
