@@ -43,6 +43,8 @@ class ICA(object):
         FastICA instance used to perform decomposition
     source_ids : np.ndrarray
         array of source ids for sorting-book-keeping
+    sorted_by : str
+        flag informing about the active
     """
     def __init__(self, raw, picks, noise_cov=None, start=None, stop=None,
                  n_components=None, exclude=None):
@@ -55,6 +57,7 @@ class ICA(object):
         self.comp_picks = np.zeros(_n_comps, dtype=np.bool)
         self.comp_picks.fill(True)
         self.source_ids = np.arange(n_components)
+        self.sorted_by = 'unsorted'
 
         if noise_cov != None:
             self.whitener, _ = compute_whitener(noise_cov, raw.info,
@@ -96,6 +99,9 @@ class ICA(object):
             sort_func = skew
         elif smethod == 'kurtosis':
             sort_func = kurtosis
+        elif smethod == 'back':
+            sort_func = lambda x: x
+            sort_func.__name__ = 'unsorted'
         elif callable(smethod):
             args = getargspec(smethod).args
             if len(args) > 1:
@@ -107,6 +113,8 @@ class ICA(object):
                            'an axis argument' % smethod.__name__)
         elif isinstance(smethod, str):
             ValueError('%s is not a valid sorting option' % smethod.__name__)
+
+        self.sorted_by = sort_func.__name__
 
         if sources == 'raw':
             S = self.raw_sources
