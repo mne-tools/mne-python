@@ -146,6 +146,7 @@ class Epochs(object):
             self.ch_names = raw.info['ch_names']
         else:
             self.ch_names = [raw.info['ch_names'][k] for k in picks]
+        self.picks = picks
 
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")

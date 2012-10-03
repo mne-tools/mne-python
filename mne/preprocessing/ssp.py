@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import copy as cp
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import pick_types, make_eeg_average_ref_proj
@@ -111,7 +112,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if no_proj:
         projs = []
     else:
-        projs = raw.info['projs']
+        projs = cp.deepcopy(raw.info['projs'])
         print 'Including %d SSP projectors from raw file' % len(projs)
 
     if avg_ref:
