@@ -443,10 +443,18 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
+def plot_ica_panel(ica, start, stop, target='raw', source_idx=None, ncol=3,
+                   nrow=10):
     """ Create panel plots of ICA sources
     """
     import matplotlib.pylab as pl
+
+    if target == 'raw':
+        sources = ica.raw_sources.copy()
+    elif target == 'epochs':
+        return NotImplemented
+    else:
+        raise ValueError('%s is not a valid target.' % str(target))
 
     n_components = sources.shape[0]
     hangover = n_components % ncol
@@ -457,7 +465,7 @@ def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
                'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
     if source_idx != None:
-        sources = sources.take(source_idx)
+        sources = sources[source_idx, :]
 
     sources = sources[:, start:stop]
     ylims = sources.min(), sources.max()
@@ -472,7 +480,7 @@ def plot_ica_panel(sources, start, stop, source_idx=None, ncol=3, nrow=10):
         xs = panel_axes[row, col]
         xs.grid(linestyle='-', color='gray', linewidth=.25)
         if idx < n_components:
-            component = '[%i]' % (idx + 1)
+            component = '[%i]' % (ica.source_ids[idx] + 1)
             xs.plot(sources[idx], linewidth=0.5, color='red')
             xs.text(0.05, .95, component, transform=panel_axes[row, col].transAxes,
                     verticalalignment='top')
