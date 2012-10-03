@@ -18,10 +18,11 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types
+from .proj import setup_proj, deactivate_proj
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
-from ..utils import deprecated
+from ..utils import deprecated, array_hash
 
 
 class Raw(object):
@@ -29,21 +30,27 @@ class Raw(object):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the raw file
 
-    allow_maxshield: bool, (default False)
-        allow_maxshield if True XXX ???
+    allow_maxshield : bool, (default False)
+        allow_maxshield if True, allow loading of data that has been
+        processed with Maxshield. Maxshield-processed data should generally
+        not be loaded directly, but should be processed using SSS first.
 
-    preload: bool or str (default False)
+    preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
 
-    verbose: bool
+    verbose : bool
         Use verbose output
+
+    proj : bool
+        If True, set self.proj to true. With preload=True, this will cause
+        the projectors to be applied when loading the data.
 
     Attributes
     ----------
@@ -52,10 +59,19 @@ class Raw(object):
 
     ch_names: list of string
         List of channels' names
-    """
 
+    verbose : bool
+        Use verbose output.
+
+    preload : bool
+        Are data preloaded from disk?
+
+    proj : bool
+        Apply or not the SSPs projections taken from info['projs']
+        when accessing data.
+    """
     def __init__(self, fname, allow_maxshield=False, preload=False,
-                 verbose=True):
+                 verbose=True, proj=False):
         #   Open the file
         if verbose:
             print 'Opening raw data file %s...' % fname
@@ -160,8 +176,8 @@ class Raw(object):
 
         self.cals = cals
         self.rawdir = rawdir
-        self.proj = None
         self.comp = None
+        # XXX self.comp never changes!
         if verbose:
             print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                        self.first_samp, self.last_samp,
@@ -172,6 +188,10 @@ class Raw(object):
         self.fid = fid
         self.info = info
         self.verbose = verbose
+        self.proj = proj
+        self._projector, self.info = setup_proj(self.info)
+        self._projector_hash = _hash_projs(self.info['projs'], self._projector)
+        self._preloaded = False
 
         if preload:
             nchan = self.info['nchan']
@@ -182,12 +202,8 @@ class Raw(object):
                                        shape=(nchan, nsamp))
             else:
                 self._data = np.empty((nchan, nsamp), dtype='float32')
-
-            self._data, self._times = read_raw_segment(self,
-                                                       data_buffer=self._data)
+            _, self._times = read_raw_segment(self, data_buffer=self._data)
             self._preloaded = True
-        else:
-            self._preloaded = False
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -227,10 +243,15 @@ class Raw(object):
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
-            return self._data[sel, start:stop], self._times[start:stop]
+            data, times = self._data[sel, start:stop], self._times[start:stop]
+            was_updated = _update_projector(self)
+            if was_updated:
+                raise RuntimeError('Changing projector after preloading data'
+                                   'is not allowed')
         else:
-            return read_raw_segment(self, start=start, stop=stop, sel=sel,
-                                    verbose=self.verbose)
+            data, times = read_raw_segment(self, start=start, stop=stop,
+                                           sel=sel, verbose=self.verbose)
+        return data, times
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
@@ -433,6 +454,17 @@ class Raw(object):
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
 
+    def apply_projector(self):
+        """Apply projection vectors
+
+        When data are preloaded is directly applied or they are set be
+        applied to data as it is read from disk.
+        """
+        self.proj = True
+        _update_projector(self)
+        if self._preloaded:
+            self._data = np.dot(self._projector, self._data)
+
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
                          n_jobs=1, verbose=5):
@@ -547,6 +579,14 @@ class Raw(object):
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
+        Updates the header to include new projectors. If projection was
+        requested on load (if raw.proj==True), the new projectors are applied
+        to the data.
+
+        Note that if data was preloaded and you wish to remove the existing
+        projectors, data must be reloaded following this operation (since
+        this is the only way to un-apply the old projectors).
+
         Parameters
         ----------
         projs : list
@@ -561,9 +601,13 @@ class Raw(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
+        _update_projector(self)
+
+        if self.proj:
+            self.apply_projector()
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False):
+             drop_small_buffer=False, proj_active=None):
         """Save raw data to file
 
         Parameters
@@ -588,6 +632,10 @@ class Raw(object):
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
 
+        proj_active: bool or None
+            If True/False, the data is saved with the projections set to
+            active/inactive. If None, True/False is inferred from self.proj.
+
         """
         if fname == self.info['filename']:
             raise ValueError('You cannot save data to the same file.'
@@ -597,6 +645,13 @@ class Raw(object):
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
+
+        # if proj is off, deactivate projs so data isn't saved with them on
+        # don't have to worry about activating them because they default to on
+        if proj_active is None:
+            proj_active = self.proj
+        if not proj_active:
+            self.info['projs'] = deactivate_proj(self.info['projs'])
 
         outfid, cals = start_writing_raw(fname, self.info, picks)
         #
@@ -645,6 +700,10 @@ class Raw(object):
             indices.append(ind)
         return indices
 
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
     def load_bad_channels(self, bad_file=None, force=False):
         """
         Mark channels as bad from a text file, in the style
@@ -691,9 +750,25 @@ class Raw(object):
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
 
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
+
+def _update_projector(raw):
+    """Update hash new projector variables and
+    update .projector if it is necessary
+    """
+    new_hash = _hash_projs(raw.info['projs'], raw._projector)
+    if not new_hash == raw._projector_hash:
+        raw._projector, raw.info = setup_proj(raw.info)
+        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
+        return True
+    else:
+        return False
+
+
+def _hash_projs(projs, projector):
+    out_hash = [array_hash(p['data']['data']) for p in projs]
+    if projector is not None:
+        out_hash.append(array_hash(projector))
+    return out_hash
 
 
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
@@ -729,9 +804,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     times: array, [samples]
         returns the time values corresponding to the samples
-
     """
-
     if stop is None:
         stop = raw.last_samp + 1
 
@@ -753,54 +826,29 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     #  Initialize the data and calibration vector
     nchan = raw.info['nchan']
     dest = 0
-    cal = np.diag(raw.cals.ravel())
 
-    if sel is None:
-        data_shape = (nchan, stop - start)
-        if data_buffer is not None:
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data = data_buffer
-        else:
-            data = None  # we will allocate it later, once we know the type
-        if raw.proj is None and raw.comp is None:
-            mult = None
-        else:
-            if raw.proj is None:
-                mult = raw.comp * cal
-            elif raw.comp is None:
-                mult = raw.proj * cal
-            else:
-                mult = raw.proj * raw.comp * cal
-
+    n_sel_channels = nchan if sel is None else len(sel)
+    idx = slice(None, None, None) if sel is None else sel
+    data_shape = (n_sel_channels, stop - start)
+    if data_buffer is not None:
+        if data_buffer.shape != data_shape:
+            raise ValueError('data_buffer has incorrect shape')
+        data = data_buffer
     else:
-        data_shape = (len(sel), stop - start)
-        if data_buffer is not None:
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data = data_buffer
-        else:
-            data = None  # we will allocate it later, once we know the type
-        if raw.proj is None and raw.comp is None:
-            mult = None
-            cal = np.diag(raw.cals[sel].ravel())
-        else:
-            if raw.proj is None:
-                mult = raw.comp[sel, :] * cal
-            elif raw.comp is None:
-                mult = raw.proj[sel, :] * cal
-            else:
-                mult = raw.proj[sel, :] * raw.comp * cal
+        data = None  # we will allocate it later, once we know the type
+
+    _update_projector(raw)
+    if raw.proj:
+        mult = np.diag(raw.cals.ravel())
+        if raw.comp is not None:
+            mult = np.dot(raw.comp[idx, :], mult)
+        if raw._projector is not None:
+            mult = np.dot(raw._projector, mult)
+    else:
+        mult = None
 
     do_debug = False
     # do_debug = True
-    if cal is not None:
-        from scipy import sparse
-        cal = sparse.csr_matrix(cal)
-
-    if mult is not None:
-        from scipy import sparse
-        mult = sparse.csr_matrix(mult)
 
     for this in raw.rawdir:
 
@@ -810,10 +858,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 #  Take the easy route: skip is translated to zeros
                 if do_debug:
                     print 'S'
-                if sel is None:
-                    one = np.zeros((nchan, this['nsamp']))
-                else:
-                    one = np.zeros((len(sel), this['nsamp']))
+                one = np.zeros((n_sel_channels, this['nsamp']))
             else:
                 tag = read_tag(raw.fid, this['ent'].pos)
 
@@ -823,19 +868,12 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 else:
                     dtype = np.complex64
 
-                #   Depending on the state of the projection and selection
-                #   we proceed a little bit differently
-                if mult is None:
-                    if sel is None:
-                        one = cal * tag.data.reshape(this['nsamp'],
-                                                     nchan).astype(dtype).T
-                    else:
-                        one = tag.data.reshape(this['nsamp'],
-                                               nchan).astype(dtype).T
-                        one = cal * one[sel, :]
-                else:
-                    one = mult * tag.data.reshape(this['nsamp'],
-                                                  nchan).astype(dtype).T
+                one = tag.data.reshape(this['nsamp'], nchan).astype(dtype).T
+                if mult is not None:  # use proj + calibration factors in mult
+                    one = np.dot(mult, one)
+                    one = one[idx]
+                else:  # apply just the calibration factors
+                    one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
 
             #  The picking logic is a bit complicated
             if stop - 1 > this['last'] and start < this['first']:

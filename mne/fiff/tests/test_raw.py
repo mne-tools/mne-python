@@ -156,6 +156,36 @@ def test_getitem():
         assert_array_equal(times, times1)
 
 
+def test_proj():
+    """Test getitem with and without proj
+    """
+    for proj in [True, False]:
+        raw = Raw(fif_fname, preload=False, proj=proj)
+        data, times = raw[0:2, :]
+        data1, times1 = raw[0:2]
+        assert_array_equal(data, data1)
+        assert_array_equal(times, times1)
+
+        projs = raw.info['projs']
+        raw.info['projs'] = []
+        raw.add_proj(projs)
+        data1, times1 = raw[[0, 1]]
+        assert_array_equal(data, data1)
+        assert_array_equal(times, times1)
+
+    # test apply_proj() with and without preload
+    for preload in [True, False]:
+        raw = Raw(fif_fname, preload=preload, proj=False)
+        # Use all sensors and a couple time points so projection works
+        data, times = raw[:, 0:2]
+        raw.apply_projector()
+        projector = raw._projector
+        data_proj_1 = np.dot(projector, data)
+        data_proj_2, _ = raw[:, 0:2]
+        assert_array_almost_equal(data_proj_1, data_proj_2)
+        assert_array_almost_equal(data_proj_2, np.dot(projector, data_proj_2))
+
+
 def test_preload_modify():
     """ Test preloading and modifying data
     """

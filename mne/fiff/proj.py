@@ -355,6 +355,23 @@ def activate_proj(projs, copy=True):
     return projs
 
 
+def deactivate_proj(projs, copy=True):
+    """Set all projections to inactive
+
+    Useful before saving raw data without projectors applied
+    """
+    if copy:
+        projs = deepcopy(projs)
+
+    #   Activate the projection items
+    for proj in projs:
+        proj['active'] = False
+
+    print '%d projection items deactivated' % len(projs)
+
+    return projs
+
+
 def make_eeg_average_ref_proj(info):
     """Create an EEG average reference SSP projection vector
 
@@ -382,3 +399,40 @@ def make_eeg_average_ref_proj(info):
     eeg_proj = Projection(active=True, data=eeg_proj_data,
                     desc='Average EEG reference', kind=1)
     return eeg_proj
+
+
+def setup_proj(info):
+    """Set up projection for Raw and Epochs
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info
+
+    Returns
+    -------
+    projector : array of shape [n_channels, n_channels]
+        The projection operator to apply to the data
+
+    info : dict
+        The modified measurement info (Warning: info is modified inplace)
+    """
+    # Add EEG ref reference proj
+    eeg_sel = pick_types(info, meg=False, eeg=True)
+    if len(eeg_sel) > 0:
+        eeg_proj = make_eeg_average_ref_proj(info)
+        info['projs'].append(eeg_proj)
+
+    #   Create the projector
+    projector, nproj = make_projector_info(info)
+    if nproj == 0:
+        print 'The projection vectors do not apply to these channels'
+        projector = None
+    else:
+        print ('Created an SSP operator (subspace dimension = %d)'
+                                                            % nproj)
+
+    #   The projection items have been activated
+    info['projs'] = activate_proj(info['projs'], copy=False)
+
+    return projector, info
