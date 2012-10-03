@@ -714,8 +714,7 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
 
 
 def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
-    """
-    Project source space currents to sensor space using a forward operator.
+    """Project source space currents to sensor space using a forward operator
 
     The sensor space data is computed for all channels present in fwd. Use
     pick_channels_forward or pick_types_forward to restrict the solution to a
@@ -760,7 +759,6 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
 
     # store sensor data in Raw object using the template
     raw = deepcopy(raw_template)
-
     raw._preloaded = True
     raw._data = data
     raw._times = times
@@ -771,5 +769,8 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
 
     # fill the measurement info
     raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
+
+    raw.info['projs'] = []
+    raw._update_projector()
 
     return raw

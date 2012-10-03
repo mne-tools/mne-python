@@ -244,9 +244,9 @@ class Raw(object):
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
-            was_updated = _update_projector(self)
+            was_updated = self._update_projector()
             if was_updated:
-                raise RuntimeError('Changing projector after preloading data'
+                raise RuntimeError('Changing projector after preloading data '
                                    'is not allowed')
         else:
             data, times = read_raw_segment(self, start=start, stop=stop,
@@ -461,7 +461,7 @@ class Raw(object):
         applied to data as it is read from disk.
         """
         self.proj = True
-        _update_projector(self)
+        self._update_projector()
         if self._preloaded:
             self._data = np.dot(self._projector, self._data)
 
@@ -601,7 +601,7 @@ class Raw(object):
             self.info['projs'] = projs
         else:
             self.info['projs'].extend(projs)
-        _update_projector(self)
+        self._update_projector()
 
         if self.proj:
             self.apply_projector()
@@ -750,18 +750,17 @@ class Raw(object):
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
 
-
-def _update_projector(raw):
-    """Update hash new projector variables and
-    update .projector if it is necessary
-    """
-    new_hash = _hash_projs(raw.info['projs'], raw._projector)
-    if not new_hash == raw._projector_hash:
-        raw._projector, raw.info = setup_proj(raw.info)
-        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
-        return True
-    else:
-        return False
+    def _update_projector(self):
+        """Update hash new projector variables and
+        update ._projector if it is necessary
+        """
+        new_hash = _hash_projs(self.info['projs'], self._projector)
+        if not new_hash == self._projector_hash:
+            self._projector, self.info = setup_proj(self.info)
+            self._projector_hash = _hash_projs(self.info['projs'], self._projector)
+            return True
+        else:
+            return False
 
 
 def _hash_projs(projs, projector):
@@ -837,7 +836,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     else:
         data = None  # we will allocate it later, once we know the type
 
-    _update_projector(raw)
+    raw._update_projector()
     if raw.proj:
         mult = np.diag(raw.cals.ravel())
         if raw.comp is not None:
