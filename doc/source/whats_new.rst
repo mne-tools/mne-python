@@ -23,6 +23,8 @@ Changelog
 
    - Compute SSP projections from continuous raw data by `Eric Larson`_
 
+   - Support for applied SSP projections when loading Raw by `Eric Larson`_ and `Alex Gramfort`_
+
 API
 ~~~
 
