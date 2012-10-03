@@ -269,7 +269,7 @@ def test_multiple_files():
     n_times = len(raw._times)
     assert_true(raw[:, :][0].shape[1]*2 == raw_mult_pre[:, :][0].shape[1])
     assert_true(raw_mult_pre[:, :][0].shape[1] == len(raw_mult_pre._times))
-    for ti in range(n_times):
+    for ti in range(0,n_times,999): # let's do a subset of points for speed
         assert_array_equal(raw[:, ti][0], raw_mult[:, ti][0])
         assert_array_equal(raw[:, ti][0], raw_mult[:, ti + n_times][0])
         assert_array_equal(raw[:, ti][0], raw_mult_pre[:, ti][0])
