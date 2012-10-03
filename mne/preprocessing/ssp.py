@@ -164,10 +164,15 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=raw.info['bads'] + bads)
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-               n_jobs=n_jobs)
+               n_jobs=n_jobs, verbose=False)
 
-    epochs = Epochs(raw, events, None, tmin, tmax, baseline=None,
+    epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
+
+    epochs.drop_bad_epochs()
+    if epochs.events.shape[0] < 1:
+        warn('No good epochs found, returning None for projs')
+        return None, events
 
     if average:
         evoked = epochs.average()
@@ -175,7 +180,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                                         n_eeg=n_eeg)
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
-                                        n_eeg=n_eeg)
+                                        n_eeg=n_eeg, n_jobs=n_jobs)
 
     for p in ev_projs:
         p['desc'] = mode + "-" + p['desc']
