@@ -20,6 +20,8 @@ ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
 
 ica.fit_raw()
 
-start, stop = raw.time_to_index(100, 101)
+start_ica, stop_ica = raw.time_to_index(100, 103)
 
-plot_ica_panel(ica.raw_sources, start=start, stop=stop)
+ica.sort_sources(smethod='skew')
+
+plot_ica_panel(ica, start=start_ica, stop=stop_ica)
