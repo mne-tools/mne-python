@@ -1,5 +1,4 @@
 import os.path as op
-import copy
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -7,6 +6,7 @@ from nose.tools import assert_true
 
 from mne.datasets import sample
 from mne import read_label, read_forward_solution
+from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
@@ -22,10 +22,14 @@ labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
 
 def test_generate_stc():
     """ Test generation of source estimate """
-    mylabels = copy.deepcopy(labels)
-
-    for i, label in enumerate(mylabels):
-        label['values'] = 2 * i * np.ones(len(label['values']))
+    mylabels = []
+    for i, label in enumerate(labels):
+        new_label = Label(vertices=label.vertices,
+                          pos=label.pos,
+                          values=2 * i * np.ones(len(label.values)),
+                          hemi=label.hemi,
+                          comment=label.comment)
+        mylabels.append(new_label)
 
     n_times = 10
     tmin = 0

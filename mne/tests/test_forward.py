@@ -7,8 +7,8 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 
 from mne.datasets import sample
 from mne.fiff import Raw, Evoked, pick_types_forward
-from mne.minimum_norm.inverse import _make_stc
 from mne import read_forward_solution, apply_forward, apply_forward_raw
+from mne import SourceEstimate
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -54,7 +54,7 @@ def test_apply_forward():
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
-    stc = _make_stc(stc_data, t_start, 1.0 / sfreq, vertno)
+    stc = SourceEstimate(stc_data, vertno, tmin=t_start, tstep=1.0 / sfreq)
 
     gain_sum = np.sum(fwd['sol']['data'], axis=1)
 

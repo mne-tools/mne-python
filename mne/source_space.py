@@ -5,6 +5,7 @@
 
 import numpy as np
 
+from .label import _aslabel
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
@@ -354,19 +355,20 @@ def label_src_vertno_sel(label, src):
     src_sel : array of int (len(idx) = len(vertno[0]) + len(vertno[1]))
         Indices of the selected vertices in sourse space
     """
+    label = _aslabel(label)
 
     if src[0]['type'] != 'surf':
         return Exception('Label are only supported with surface source spaces')
 
     vertno = [src[0]['vertno'], src[1]['vertno']]
 
-    if label['hemi'] == 'lh':
-        vertno_sel = np.intersect1d(vertno[0], label['vertices'])
+    if label.hemi == 'lh':
+        vertno_sel = np.intersect1d(vertno[0], label.vertices)
         src_sel = np.searchsorted(vertno[0], vertno_sel)
         vertno[0] = vertno_sel
         vertno[1] = np.array([])
-    elif label['hemi'] == 'rh':
-        vertno_sel = np.intersect1d(vertno[1], label['vertices'])
+    elif label.hemi == 'rh':
+        vertno_sel = np.intersect1d(vertno[1], label.vertices)
         src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
         vertno[0] = np.array([])
         vertno[1] = vertno_sel

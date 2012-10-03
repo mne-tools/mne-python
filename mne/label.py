@@ -4,11 +4,249 @@
 # License: BSD (3-clause)
 
 import os
+import copy as cp
 import numpy as np
 from scipy import linalg
+import warnings
 
 from .source_estimate import read_stc, mesh_edges, mesh_dist
 from .surface import read_surface
+
+
+def _aslabel(label):
+    "For maintaining backwards-compatibility: convert dict to Label"
+    if hasattr(label, 'hemi'):
+        return label
+    else:
+        warnings.warn('Representing labels as dicts is deprecated and will be '
+                      'removed in v0.6. Use Label objects.')
+        return Label(**label)
+
+
+class Label(dict):
+    """An freesurfer/MNE label with vertices restricted to one hemisphere
+
+    Labels can be combined with the ``+`` operator:
+     - Duplicate vertices are removed.
+     - If duplicate vertices have conflicting position values, an error is
+       raised.
+     - Values of duplicate vertices are summed.
+
+    Parameters
+    ----------
+    vertices : array (length N)
+        vertex indices (0 based)
+
+    pos : array (N by 3)
+        locations in meters
+
+    values : array (length N)
+        values at the vertices
+
+    hemi : 'lh' | 'rh'
+        Hemisphere to which the label applies.
+
+    comment, name, fpath : str
+        Kept as information but not used by the object itself
+
+
+    Attributes
+    ----------
+    comment : str
+        Comment from the first line of the label file
+
+    hemi : 'lh' | 'rh'
+        Hemisphere
+
+    name : None | str
+        A name for the label. It is OK to change that attribute manually.
+
+    pos : array, shape = (n_pos, 3)
+        Locations in meters
+
+    values : array, len = n_pos
+        Values at the vertices
+
+    vertices : array, len = n_pos
+        Vertex indices (0 based)
+
+    Notes
+    -----
+    For backwards compatibility, the following attributes are stored as
+    dictionary entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
+
+    """
+    def __init__(self, vertices, pos, values, hemi, comment="", name=None,
+                 filename=None):
+        vertices = np.asarray(vertices)
+        values = np.asarray(values)
+        pos = np.asarray(pos)
+        if not (len(vertices) == len(values) == len(pos)):
+            err = ("vertices, values and pos need to have same length (number "
+                   "of vertices)")
+            raise ValueError(err)
+
+        self.vertices = vertices
+        self.pos = pos
+        self.values = values
+        self.hemi = hemi
+        self.comment = comment
+
+        # also set dict entries (for backwards compatibility)
+        self._dep_warn = False
+        self.update(vertices=vertices, pos=pos, values=values, hemi=hemi,
+                    comment=comment)
+        self._dep_warn = True
+
+        # name
+        if name is None and filename is not None:
+            name = os.path.basename(filename[:-6])
+        self.name = name
+        self.filename = filename
+
+    def __repr__(self):
+        name = repr(self.name) if self.name is not None else "unnamed"
+        n_vert = len(self)
+        return "<Label %s, %s: %i vertices>" % (name, self.hemi, n_vert)
+
+    def __len__(self):
+        return len(self.vertices)
+
+    def __getitem__(self, key):
+        warnings.warn('Dictionary-like usage of Label objects is deprecated '
+                      'and will be removed in v0.6. Use attributes.')
+        return super(Label, self).__getitem__(key)
+
+    def _update_attr_from_dict(self):
+        "backwards compatibility"
+        if self._dep_warn:
+            warnings.warn('Dictionary-like usage of Label objects is '
+                          'deprecated and will be removed in v0.6.')
+        for key in ['vertices', 'pos', 'values', 'hemi', 'comment']:
+            setattr(self, key, self.get(key, None))
+
+    def __setitem__(self, key, value):
+        super(Label, self).__setitem__(key, value)
+        self._update_attr_from_dict()
+
+    def set(self, key, value):
+        "Deprecated. Create a new Label."
+        super(Label, self).set(key, value)
+        self._update_attr_from_dict()
+
+    def update(self, **D):
+        "Deprecated. Create a new Label."
+        super(Label, self).update(D)
+        self._update_attr_from_dict()
+
+    def __add__(self, other):
+        if isinstance(other, BiHemiLabel):
+            return other + self
+        elif isinstance(other, Label):
+            if self.hemi != other.hemi:
+                name = '%s + %s' % (self.name, other.name)
+                if self.hemi == 'lh':
+                    lh, rh = cp.deepcopy(self), cp.deepcopy(other)
+                else:
+                    lh, rh = cp.deepcopy(other), cp.deepcopy(self)
+                return BiHemiLabel(lh, rh, name=name)
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        # check for overlap
+        duplicates = np.intersect1d(self.vertices, other.vertices)
+        n_dup = len(duplicates)
+        if n_dup:
+            self_dup = [np.where(self.vertices == d)[0][0] for d in duplicates]
+            other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
+            if not np.all(self.pos[self_dup] == other.pos[other_dup]):
+                err = ("Labels %r and %r: vertices overlap but differ in "
+                       "position values" % (self.name, other.name))
+                raise ValueError(err)
+
+            isnew = np.array([v not in duplicates for v in other.vertices])
+
+            vertices = np.hstack((self.vertices, other.vertices[isnew]))
+            pos = np.vstack((self.pos, other.pos[isnew]))
+
+            # find position of other's vertices in new array
+            tgt_idx = [np.where(vertices == v)[0][0] for v in other.vertices]
+            n_self = len(self.values)
+            n_other = len(other.values)
+            new_len = n_self + n_other - n_dup
+            values = np.zeros(new_len, dtype=self.values.dtype)
+            values[:n_self] += self.values
+            values[tgt_idx] += other.values
+        else:
+            vertices = np.hstack((self.vertices, other.vertices))
+            pos = np.vstack((self.pos, other.pos))
+            values = np.hstack((self.values, other.values))
+
+        name0 = self.name if self.name else 'unnamed'
+        name1 = other.name if other.name else 'unnamed'
+
+        label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
+                      comment="%s\n+\n%s" % (self.comment, other.comment),
+                      name="%s + %s" % (name0, name1))
+        return label
+
+    def save(self, filename):
+        "calls write_label to write the label to disk"
+        write_label(filename, self)
+
+
+class BiHemiLabel(object):
+    """A freesurfer/MNE label with vertices in both hemispheres
+
+    Parameters
+    ----------
+    lh, rh : Label
+        Label objects representing the left and the right hemisphere,
+        respectively
+
+    name : None | str
+        name for the label
+
+    Attributes
+    ----------
+    lh, rh : Label
+        Labels for the left and right hemisphere, respectively
+
+    name : None | str
+        A name for the label. It is OK to change that attribute manually.
+
+    """
+    hemi = 'both'
+
+    def __init__(self, lh, rh, name=None):
+        self.lh = lh
+        self.rh = rh
+        self.name = name
+
+    def __repr__(self):
+        temp = "<BiHemiLabel %s, lh: %i vertices;  rh: %i vertices>"
+        name = repr(self.name) if self.name is not None else "unnamed"
+        return temp % (name, len(self.lh), len(self.rh))
+
+    def __len__(self):
+        return len(self.lh) + len(self.rh)
+
+    def __add__(self, other):
+        if isinstance(other, Label):
+            if other.hemi == 'lh':
+                lh = self.lh + other
+                rh = self.rh
+            else:
+                lh = self.lh
+                rh = self.rh + other
+        elif isinstance(other, BiHemiLabel):
+            lh = self.lh + other.lh
+            rh = self.rh + other.rh
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        name = '%s + %s' % (self.name, other.name)
+        return BiHemiLabel(lh, rh, name=name)
 
 
 def read_label(filename):
@@ -21,67 +259,70 @@ def read_label(filename):
 
     Returns
     -------
-    label : dict
-        Label dictionaries with keys:
+    label : Label
+        Instance of Label object with attributes:
             comment        comment from the first line of the label file
             vertices       vertex indices (0 based, column 1)
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
-
     """
     fid = open(filename, 'r')
-    comment = fid.readline().replace('\n', '')
+    comment = fid.readline().replace('\n', '')[1:]
     nv = int(fid.readline())
     data = np.empty((5, nv))
     for i, line in enumerate(fid):
         data[:, i] = line.split()
 
-    label = dict()
-    label['comment'] = comment[1:]
-    label['vertices'] = np.array(data[0], dtype=np.int32)
-    label['pos'] = 1e-3 * data[1:4].T
-    label['values'] = data[4]
-
     basename = os.path.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
-        label['hemi'] = 'lh'
+        hemi = 'lh'
     elif basename.endswith('rh.label') or basename.startswith('rh.'):
-        label['hemi'] = 'rh'
+        hemi = 'rh'
     else:
         raise ValueError('Cannot find which hemisphere it is. File should end'
                          ' with lh.label or rh.label')
     fid.close()
 
+    label = Label(vertices=np.array(data[0], dtype=np.int32),
+                  pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
+                  comment=comment, filename=filename)
+
     return label
 
 
-def write_label(filename, label):
+def write_label(filename, label, verbose=True):
     """Write a FreeSurfer label
 
     Parameters
     ----------
     filename : string
         Path to label file to produce.
-    label : dict
-        The label structure.
+    label : Label
+        The label object to save.
     """
-    if not filename.endswith('lh.label') or not filename.endswith('rh.label'):
-        filename += '-' + label['hemi'] + '.label'
+    label = _aslabel(label)
+    hemi = label.hemi
+    path_head, name = os.path.split(filename)
+    if name.endswith('.label'):
+        name = name[:-6]
+    if not (name.startswith(hemi) or name.endswith(hemi)):
+        name += '-' + hemi
+    filename = os.path.join(path_head, name) + '.label'
 
-    print 'Saving label to : %s' % filename
+    if verbose:
+        print 'Saving label to : %s' % filename
 
     fid = open(filename, 'wb')
-    n_vertices = len(label['vertices'])
+    n_vertices = len(label.vertices)
     data = np.zeros((n_vertices, 5), dtype=np.float)
-    data[:, 0] = label['vertices']
-    data[:, 1:4] = 1e3 * label['pos']
-    data[:, 4] = label['values']
-    fid.write("#%s\n" % label['comment'])
+    data[:, 0] = label.vertices
+    data[:, 1:4] = 1e3 * label.pos
+    data[:, 4] = label.values
+    fid.write("#%s\n" % label.comment)
     fid.write("%d\n" % n_vertices)
     for d in data:
         fid.write("%d %f %f %f %f\n" % tuple(d))
 
-    print '[done]'
     return label
 
 
@@ -109,7 +350,7 @@ def label_time_courses(labelfile, stcfile):
     stc = read_stc(stcfile)
     lab = read_label(labelfile)
 
-    vertices = np.intersect1d(stc['vertices'], lab['vertices'])
+    vertices = np.intersect1d(stc['vertices'], lab.vertices)
     idx = [k for k in range(len(stc['vertices']))
                    if stc['vertices'][k] in vertices]
 
@@ -127,8 +368,8 @@ def label_sign_flip(label, src):
 
     Parameters
     ----------
-    label : dict
-        A label read with the read_label function
+    label : Label
+        A label
     src : list of dict
         The source space over which the label is defined
 
@@ -140,15 +381,17 @@ def label_sign_flip(label, src):
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
 
+    label = _aslabel(label)
+
     lh_vertno = src[0]['vertno']
     rh_vertno = src[1]['vertno']
 
     # get source orientations
-    if label['hemi'] == 'lh':
-        vertno_sel = np.intersect1d(lh_vertno, label['vertices'])
+    if label.hemi == 'lh':
+        vertno_sel = np.intersect1d(lh_vertno, label.vertices)
         ori = src[0]['nn'][vertno_sel]
-    elif label['hemi'] == 'rh':
-        vertno_sel = np.intersect1d(rh_vertno, label['vertices'])
+    elif label.hemi == 'rh':
+        vertno_sel = np.intersect1d(rh_vertno, label.vertices)
         ori = src[1]['nn'][vertno_sel]
     else:
         raise Exception("Unknown hemisphere type")
@@ -168,19 +411,18 @@ def stc_to_label(stc, src, smooth=5):
     stc : SourceEstimate
         The source estimates
     src : list of dict or string
-        The source space over which are defined the source estimates.
+        The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
 
     Returns
     -------
-    labels : list of dict
+    labels : list of Labels
         The generated labels. One per hemisphere containing sources.
     """
     from scipy import sparse
 
     if not stc.is_surface():
-        raise ValueError('SourceEstimate should be surface source '
-                         'estimates')
+        raise ValueError('SourceEstimate should be surface source estimates')
 
     if isinstance(src, str):
         if 'SUBJECTS_DIR' in os.environ:
@@ -220,12 +462,12 @@ def stc_to_label(stc, src, smooth=5):
             data1 = e_use * np.ones(len(idx_use))
             idx_use = np.where(data1)[0]
 
-        label = dict()
-        label['comment'] = 'Label from stc'
-        label['vertices'] = idx_use
-        label['pos'] = this_rr[idx_use]
-        label['values'] = np.ones(len(idx_use))
-        label['hemi'] = hemi
+        label = Label(vertices=idx_use,
+                      pos=this_rr[idx_use],
+                      values=np.ones(len(idx_use)),
+                      hemi=hemi,
+                      comment='Label from stc')
+
         labels.append(label)
 
     return labels
@@ -307,13 +549,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
 
     Returns
     -------
-    labels : list
-        List with lables. Each label is a dictionary with keys:
-            comment     Comment with seed vertex and extent
-            hemi        Hemisphere of the label ('lh', or 'rh')
-            vertices    Vertex indices (0 based)
-            pos         Locations in millimeters
-            values      Distances in millimeters from seed
+    labels : list of Labels. The labels' ``comment`` attribute contains
+        information on the seed vertex and extent; the ``values``  attribute
+        contains distance from the seed in millimeters
+
     """
     if subjects_dir is None:
         if 'SUBJECTS_DIR' in os.environ:
@@ -359,14 +598,12 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
 
         # create a label
-        label = dict()
-        label['comment'] = 'Circular label: seed=%d, extent=%0.1fmm' %\
-                           (seed, extent)
-        label['vertices'] = label_verts
-        label['pos'] = vert[hemi][label_verts]
-        label['values'] = label_dist
-        label['hemi'] = hemi
-
+        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
+        label = Label(vertices=label_verts,
+                      pos=vert[hemi][label_verts],
+                      values=label_dist,
+                      hemi=hemi,
+                      comment=comment)
         labels.append(label)
 
     return labels

@@ -10,7 +10,7 @@ from mne.datasets import sample
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
-from mne.source_estimate import SourceEstimate
+from mne.source_estimate import read_source_estimate
 from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
                       apply_inverse_raw, apply_inverse_epochs, \
@@ -158,7 +158,7 @@ def test_inverse_operator_volume():
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
     stc.save('tmp-vl.stc')
-    stc2 = SourceEstimate('tmp-vl.stc')
+    stc2 = read_source_estimate('tmp-vl.stc')
     assert_true(np.all(stc.data > 0))
     assert_true(np.all(stc.data < 35))
     assert_array_almost_equal(stc.data, stc2.data)
