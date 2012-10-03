@@ -74,7 +74,6 @@ class Raw(object):
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj=False):
 
-
         if not isinstance(fnames, list):
             fnames = [fnames]
 
@@ -785,7 +784,7 @@ class Raw(object):
             self.info['bads'] = []
 
     def close(self):
-        self.fid.close()
+        [f.close() for f in self.fids]
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
