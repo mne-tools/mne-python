@@ -169,7 +169,7 @@ class Epochs(object):
         self.picks = picks
 
         #   Set up projection
-        self.info['projs_all'] = [cp.deepcopy(raw[ri].info['projs']) for ri in range(len(raw))]
+        self.info['projs_all'] = [cp.deepcopy(r.info['projs']) for r in raw]
         self.proj = [None]*len(raw)
         del self.info['projs'] # Delete old, now potentially ambiguous key
         for ri in range(len(raw)):
