@@ -22,8 +22,8 @@ class Epochs(object):
 
     Parameters
     ----------
-    raw : Raw object, or list
-        A instance of Raw, or a list of Raw instances
+    raw : instance of Raw, or list
+        A Raw file to use, or a list of Raw files
 
     events : array, of shape [n_events, 3], or list
         Returned by the read_events function, or a list of the same
@@ -171,7 +171,8 @@ class Epochs(object):
         #   Set up projection
         self.info['projs_all'] = [cp.deepcopy(r.info['projs']) for r in raw]
         self.proj = [None]*len(raw)
-        del self.info['projs'] # Delete old, now potentially ambiguous key
+         # Leave potentially ambiguous key b/c other functions require it
+        self.info['projs'] = []
         for ri in range(len(raw)):
             if self.info['projs_all'][ri] is None or not proj:
                 print 'No projector specified for these data'

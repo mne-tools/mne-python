@@ -71,7 +71,7 @@ def test_compute_proj():
 
 
     # Test that the raw projectors work
-    for ii in (1, 2, 4, 8, 12, 24):
+    for ii in (1, 4, 12, 24):
         raw = Raw(raw_fname)
         projs = compute_proj_raw(raw, duration=ii-0.1, n_grad=1, n_mag=1, n_eeg=0)
 
@@ -100,3 +100,14 @@ def test_compute_proj():
     # test that you can save them
     raw.info['projs'] += projs
     raw.save('foo_rawproj_continuous_raw.fif')
+
+    # Test that continuous multi-file raw projection works
+    raw = [Raw(raw_fname), Raw(raw_fname)]
+    for dur in [None, 1]:
+        projs = compute_proj_raw(raw[0], duration=dur, n_grad=1, n_mag=1, n_eeg=0)
+        projs = activate_proj(projs)
+        proj, _, _ = make_projector(projs, epochs.ch_names, bads=[])
+        projs = compute_proj_raw(raw, duration=dur, n_grad=1, n_mag=1, n_eeg=0)
+        projs = activate_proj(projs)
+        proj_mult, _, _ = make_projector(projs, epochs.ch_names, bads=[])
+        assert_array_almost_equal(proj, proj_mult)
