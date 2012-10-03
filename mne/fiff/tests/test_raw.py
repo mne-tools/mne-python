@@ -257,3 +257,20 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
+
+
+def test_multiple_files():
+    """Test loading multiple files simultaneously"""
+    raw = Raw(fif_fname, preload=True)
+    raw_mult_pre = Raw([fif_fname, fif_fname], preload=True)
+    raw_mult = Raw([fif_fname, fif_fname], preload=True)
+    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
+    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
+    n_times = len(raw._times)
+    assert_true(raw[:, :][0].shape[1]*2 == raw_mult_pre[:, :][0].shape[1])
+    assert_true(raw_mult_pre[:, :][0].shape[1] == len(raw_mult_pre._times))
+    for ti in range(n_times):
+        assert_array_equal(raw[:, ti][0], raw_mult[:, ti][0])
+        assert_array_equal(raw[:, ti][0], raw_mult[:, ti + n_times][0])
+        assert_array_equal(raw[:, ti][0], raw_mult_pre[:, ti][0])
+        assert_array_equal(raw[:, ti][0], raw_mult_pre[:, ti + n_times][0])

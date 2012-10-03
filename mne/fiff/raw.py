@@ -994,7 +994,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     if verbose:
         print ' [done]'
-    times = np.arange(start, stop + 1) / raw.info['sfreq']
+    times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times
 
