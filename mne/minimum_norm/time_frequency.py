@@ -9,12 +9,13 @@ import numpy as np
 from scipy import linalg, signal, fftpack
 
 from ..fiff.constants import FIFF
+from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
                                         _psd_from_mt_adaptive, _mt_spectra
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
-                     _make_stc, _pick_channels_inverse_operator, _check_method
+                     _pick_channels_inverse_operator, _check_method
 from ..parallel import parallel_func
 
 
@@ -93,8 +94,9 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
                         verbose=True, copy=False)
 
+        tmin = epochs.times[0]
         tstep = float(decim) / Fs
-        stc = _make_stc(power, epochs.times[0], tstep, vertno)
+        stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep)
         stcs[name] = stc
 
         print '[done]'
@@ -429,7 +431,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     psd = 10 * np.log10(psd)
 
-    stc = _make_stc(psd, fmin * 1e-3, fstep * 1e-3, vertno)
+    stc = SourceEstimate(psd, vertices=vertno, tmin=fmin * 1e-3,
+                         tstep=fstep * 1e-3)
     return stc
 
 

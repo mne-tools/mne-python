@@ -122,6 +122,6 @@ def test_lcmv_raw():
     # make sure we get an stc with vertices only in the lh
     vertno = [forward['src'][0]['vertno'], forward['src'][1]['vertno']]
     assert_true(len(stc.vertno[0]) == len(np.intersect1d(vertno[0],
-                                                         label['vertices'])))
+                                                         label.vertices)))
     assert_true(len(stc.vertno[1]) == 0)
     # TODO: test more things

@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..source_estimate import SourceEstimate
-from ..minimum_norm.inverse import combine_xyz, _make_stc, _prepare_forward
+from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient
 from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf
@@ -72,7 +72,8 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep):
     lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
     rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points]
                                              - n_lh_points]
-    stc = _make_stc(X, tmin, tstep, [lh_vertno, rh_vertno])
+    vertices = [lh_vertno, rh_vertno]
+    stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
     return stc
 
 

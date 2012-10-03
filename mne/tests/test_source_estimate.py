@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.datasets import sample
 from mne import stats
-from mne import read_stc, write_stc, SourceEstimate, morph_data
+from mne import read_stc, write_stc, read_source_estimate, morph_data
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity
 
@@ -37,11 +37,11 @@ def test_io_w():
     w_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis-meg-oct-6-fwd-sensmap')
 
-    src = SourceEstimate(w_fname)
+    src = read_source_estimate(w_fname)
 
     src.save('tmp', ftype='w')
 
-    src2 = SourceEstimate('tmp-lh.w')
+    src2 = read_source_estimate('tmp-lh.w')
 
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
@@ -52,7 +52,7 @@ def test_stc_arithmetic():
     """Test arithmetic for STC files
     """
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc = SourceEstimate(fname)
+    stc = read_source_estimate(fname)
     data = stc.data.copy()
 
     out = list()
@@ -75,13 +75,30 @@ def test_stc_arithmetic():
     assert_array_equal(stc.sqrt().data, np.sqrt(stc.data))
 
 
+def test_stc_methods():
+    """Test stc methods lh_data, rh_data and bin()
+    """
+    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
+    stc = read_source_estimate(fname)
+
+    # lh_data / rh_data
+    assert_array_equal(stc.lh_data, stc.data[:len(stc.lh_vertno)])
+    assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno):])
+
+    # bin
+    bin = stc.bin(.12)
+    a = np.array((1,), dtype=stc.data.dtype)
+    a[0] = np.mean(stc.data[0, stc.times < .12])
+    assert a[0] == bin.data[0, 0]
+
+
 def test_morph_data():
     """Test morphing of data
     """
     subject_from = 'sample'
     subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc_from = SourceEstimate(fname)
+    stc_from = read_source_estimate(fname)
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to = morph_data(subject_from, subject_to, stc_from,
                             grade=3, smooth=12, buffer_size=1000)

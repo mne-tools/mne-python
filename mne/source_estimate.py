@@ -10,12 +10,13 @@ from math import ceil
 import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix
+import warnings
 
 from .parallel import parallel_func
 
 
 def read_stc(filename):
-    """Read an STC file
+    """Read an STC file and return as dict
 
     STC files contain activations or source reconstructions
 
@@ -32,6 +33,11 @@ def read_stc(filename):
            tstep          Time between frames in seconds
            vertices       vertex indices (0 based)
            data           The data matrix (nvert * ntime)
+
+    See Also
+    --------
+    read_source_estimate
+
     """
     fid = open(filename, 'rb')
 
@@ -119,7 +125,7 @@ def _read_3(fid):
 
 
 def read_w(filename):
-    """Read a w file
+    """Read a w file and return as dict
 
     w files contain activations or source reconstructions for a single time
     point
@@ -189,6 +195,12 @@ def write_w(filename, vertices, data):
         Vertex indices (0 based)
     data: 1D array
         The data array (nvert)
+
+
+    See Also
+    --------
+    read_source_estimate
+
     """
 
     assert(len(vertices) == len(data))
@@ -212,67 +224,173 @@ def write_w(filename, vertices, data):
     fid.close()
 
 
+def read_source_estimate(fname):
+    """Returns a SourceEstimate object.
+
+    Parameters
+    ----------
+    The single argument ``fname`` should provide the path to (a) source-estimate
+    file(s) as string.
+
+     - for volume source estimates, ``fname`` should provide the path to a
+       single file named '*-vl.stc`
+     - for surface source estimates, ``fname`` should either provide the
+       path to the file corresponding to a single hemisphere ('*-lh.stc',
+       '*-rh.stc') or only specify the asterisk part in these patterns. In any
+       case, the function expects files for both hemisphere with names
+       following this pattern.
+     - for single time point .w files, ``fname`` should follow the same
+       pattern as for surface estimates, except that files are named
+       '*-lh.w' and '*-rh.w'.
+
+    See Also
+    --------
+    read_stc, read_w
+
+    """
+    fname_arg = fname
+
+    # make sure corresponding file(s) can be found
+    ftype = None
+    if os.path.exists(fname):
+        if fname.endswith('-vl.stc'):
+            ftype = 'volume'
+        elif fname.endswith('.stc'):
+            ftype = 'surface'
+            if fname.endswith(('-lh.stc', '-rh.stc')):
+                fname = fname[:-7]
+            else:
+                err = ("Invalid .stc filename: %r; needs to end with "
+                       "hemisphere tag ('...-lh.stc' or '...-rh.stc')"
+                       % fname)
+                raise IOError(err)
+        elif fname.endswith('.w'):
+            ftype = 'w'
+            if fname.endswith(('-lh.w', '-rh.w')):
+                fname = fname[:-5]
+            else:
+                err = ("Invalid .w filename: %r; needs to end with "
+                       "hemisphere tag ('...-lh.w' or '...-rh.w')"
+                       % fname)
+                raise IOError(err)
+
+    if ftype is not 'volume':
+        stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
+        w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
+        if all(stc_exist) and (ftype is not 'w'):
+            ftype = 'surface'
+        elif all(w_exist):
+            ftype = 'w'
+        elif any(stc_exist) or any(w_exist):
+            raise IOError("Hemisphere missing for %r" % fname_arg)
+        else:
+            raise IOError("SourceEstimate File(s) not found for: %r" % fname_arg)
+
+    # read the files
+    if ftype == 'volume':  # volume source space
+        kwargs = read_stc(fname)
+    elif ftype == 'surface': # stc file with surface source spaces
+        lh = read_stc(fname + '-lh.stc')
+        rh = read_stc(fname + '-rh.stc')
+        assert lh['tmin'] == rh['tmin']
+        assert lh['tstep'] == rh['tstep']
+        kwargs = lh.copy()
+        kwargs['data'] = np.r_[lh['data'], rh['data']]
+        kwargs['vertices'] = [lh['vertices'], rh['vertices']]
+    elif ftype == 'w': # w file with surface source spaces
+        lh = read_w(fname + '-lh.w')
+        rh = read_w(fname + '-rh.w')
+        kwargs = lh.copy()
+        kwargs['data'] = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
+        kwargs['vertices'] = [lh['vertices'], rh['vertices']]
+        # w files only have a single time point
+        kwargs['tmin'] = 0.0
+        kwargs['tstep'] = 1.0
+
+    return SourceEstimate(**kwargs)
+
+
 class SourceEstimate(object):
     """SourceEstimate container
 
     Can be saved and loaded from .stc or .w files.
 
-    Attributes
+
+    Parameters
     ----------
+
     data : array of shape [n_dipoles x n_times]
         The data in source space
+
+    vertices : array | list of two arrays
+        vertex number corresponding to the data
+
+    tmin : scalar
+        time point of the first sample in data
+
+    tstep : scalar
+        time step between successive samples in data
+
+
+    .. note::
+        For backwards compatibility, the SourceEstimate can also be
+        initialized with a single argument, which can be ``None`` (an
+        attribute-less SourceEstimate object will be returned) or a path as
+        string, in which case the corresponding file(s) will be loaded. This
+        usage is deprecated and will be removed in v0.6.
+
+
+    Attributes
+    ----------
+
+    data : array of shape [n_dipoles x n_times]
+        The data in source space
+
     times : array of shape [n_times]
         The time vector
+
     vertno : list of array of shape [n_dipoles in each source space]
         The indices of the dipoles in the different source spaces
+
     """
-    def __init__(self, fname):
-        if fname is not None:
-            if fname.endswith('-vl.stc'):  # volumne source space
-                vl = read_stc(fname)
-                self.data = vl['data']
-                self.tmin = vl['tmin']
-                self.tstep = vl['tstep']
-                self.times = self.tmin + (self.tstep *
-                                          np.arange(self.data.shape[1]))
-                self.vertno = [vl['vertices']]
-            elif (fname.endswith('.stc') or os.path.exists(fname + '-lh.stc')
-                  or os.path.exists(fname + '-rh.stc')):
-                # stc file with surface source spaces
+    def __init__(self, data, vertices=None, tmin=None, tstep=None):
+        """
+        Parameters
+        ----------
 
-                if fname.endswith('-lh.stc') or fname.endswith('-rh.stc'):
-                    fname = fname[:-7]
-                lh = read_stc(fname + '-lh.stc')
-                rh = read_stc(fname + '-rh.stc')
-                self.data = np.r_[lh['data'], rh['data']]
-                assert lh['tmin'] == rh['tmin']
-                assert lh['tstep'] == rh['tstep']
-                self.tmin = lh['tmin']
-                self.tstep = lh['tstep']
-                self.times = self.tmin + (self.tstep *
-                                          np.arange(self.data.shape[1]))
-                self.vertno = [lh['vertices'], rh['vertices']]
-            elif (fname.endswith('.w') or os.path.exists(fname + '-lh.w')
-                  or os.path.exists(fname + '-rh.w')):
-                # w file with surface source spaces
+        data : array of shape [n_dipoles x n_times]
+            The data in source space
 
-                if fname.endswith('-lh.w') or fname.endswith('-rh.w'):
-                    fname = fname[:-5]
-                lh = read_w(fname + '-lh.w')
-                rh = read_w(fname + '-rh.w')
-                self.data = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
+        vertices : array | list of two arrays
+            vertex number corresponding to the data
 
-                # w files only have a single time point
-                self.tmin = 0.0
-                self.tstep = 1.0
-                self.times = np.array([0.0])
-                self.vertno = [lh['vertices'], rh['vertices']]
-            else:
-                raise ValueError('file type not supported')
+        tmin : scalar
+            time point of the first sample in data
 
-    def _init_times(self):
-        """create self.times"""
-        self.times = self.tmin + self.tstep * np.arange(self.data.shape[1])
+        tstep : scalar
+            time step between successive samples in data
+
+        """
+        if data is None:
+            warnings.warn('Constructing a SourceEstimate object with no '
+                          'attributes is deprecated and will stop working in '
+                          'v0.6. Use the proper constructor.')
+            return
+        elif isinstance(data, basestring):
+            warnings.warn('Constructing a SourceEstimate object with a '
+                          'filename is deprecated and will stop working in '
+                          'v0.6. Use read_source_estimate().')
+            se = read_source_estimate(data)
+            data = se.data
+            tmin = se.tmin
+            tstep = se.tstep
+            vertices = se.vertno
+
+        self.data = data
+        self.tmin = tmin
+        self.tstep = tstep
+        self.times = tmin + (tstep * np.arange(data.shape[1]))
+        self.vertno = vertices
 
     def save(self, fname, ftype='stc'):
         """Save the source estimates to a file
@@ -337,9 +455,9 @@ class SourceEstimate(object):
         Parameters
         ----------
         tmin : float or None
-            The first time point in seconds. It None the first present is used.
+            The first time point in seconds. If None the first present is used.
         tmax : float or None
-            The last time point in seconds. It None the last present is used.
+            The last time point in seconds. If None the last present is used.
         """
         mask = np.ones(len(self.times), dtype=np.bool)
         if tmin is not None:
@@ -349,6 +467,14 @@ class SourceEstimate(object):
         self.times = self.times[mask]
         self.data = self.data[:, mask]
         self.tmin = self.times[0]
+
+    @property
+    def lh_data(self):
+        return self.data[:len(self.lh_vertno)]
+
+    @property
+    def rh_data(self):
+        return self.data[len(self.lh_vertno):]
 
     @property
     def lh_vertno(self):
@@ -445,6 +571,116 @@ class SourceEstimate(object):
 
     def sqrt(self):
         return self ** (0.5)
+
+    def bin(self, width, tstart=None, tstop=None, func=np.mean):
+        """
+        Returns a SourceEstimate object with data summarized over time in bins
+        of ``width`` seconds. This method is intended for visualization
+        only. No filter is applied to the data before binning, making the
+        method inappropriate as a tool for downsampling data.
+
+
+        Parameters
+        ----------
+
+        width : scalar
+            Width of the individual bins in seconds.
+
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
+
+        tstart : scalar | None
+            Time point where the first bin starts. The default is the first
+            time point of the stc.
+
+        tstop : scalar | None
+            Last possible time point contained in a bin (if the last bin would
+            be shorter than width it is dropped). The default is the last time
+            point of the stc.
+
+        """
+        if tstart is None:
+            tstart = self.tmin
+        if tstop is None:
+            tstop = self.times[-1]
+
+        times = np.arange(tstart, tstop + self.tstep, width)
+        nv, _ = self.data.shape
+        nt = len(times) - 1
+        data = np.empty((nv, nt), dtype=self.data.dtype)
+        for i in xrange(nt):
+            idx = (self.times >= times[i]) & (self.times < times[i + 1])
+            data[:, i] = func(self.data[:, idx], axis=1)
+
+        tmin = times[0] + width / 2.
+        stc = SourceEstimate(data, vertices=self.vertno, tmin=tmin, tstep=width)
+        return stc
+
+    def _hemilabel_stc(self, label):
+        is_surface = self.is_surface()
+
+        # find applicable SourceEstimate vertices
+        if is_surface:
+            if label.hemi == 'lh':
+                stc_vertices = self.vertno[0]
+            else:
+                stc_vertices = self.vertno[1]
+        else:
+            stc_vertices = self.vertno[0]
+
+        # find index of the Label's vertices
+        idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
+
+        # find output vertices
+        vertices = stc_vertices[idx]
+
+        # find data
+        if is_surface and (label.hemi == 'rh'):
+            values = self.data[idx + len(self.vertno[0])]
+        else:
+            values = self.data[idx]
+
+        return vertices, values
+
+    def label_stc(self, label):
+        """
+        Returns a SourceEstimate object containing the time course of
+        activation of all sources inside the label.
+
+        Parameters
+        ----------
+
+        label : Label | BiHemiLabel
+            The label (as created for example by mne.read_label). If the label
+            does not match any sources in the SourceEstimate, a ValueError is
+            raised.
+
+        """
+        if not self.is_surface():
+            raise NotImplementedError
+
+        if label.hemi == 'both':
+            lh_vert, lh_val = self._hemilabel_stc(label.lh)
+            rh_vert, rh_val = self._hemilabel_stc(label.rh)
+            vertices = [lh_vert, rh_vert]
+            values = np.vstack((lh_val, rh_val))
+        elif label.hemi == 'lh':
+            lh_vert, values = self._hemilabel_stc(label)
+            vertices = [lh_vert, np.array([])]
+        elif label.hemi == 'rh':
+            rh_vert, values = self._hemilabel_stc(label)
+            vertices = [np.array([]), rh_vert]
+        else:
+            raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
+
+        if sum(map(len, vertices)) == 0:
+            raise ValueError('No vertices match the label in the stc file')
+
+        label_stc = SourceEstimate(values, vertices=vertices,
+                                   tmin=self.tmin, tstep=self.tstep)
+        return label_stc
+
 
 ###############################################################################
 # Morphing
