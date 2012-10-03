@@ -296,6 +296,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         projs = cp.deepcopy(epochs[0].info['projs'])
         # make sure Epochs are compatible
         for epochs_t in epochs[1:]:
+            if epochs_t.proj != epochs[0].proj:
+                raise ValueError('Epochs must agree on the use of projections')
             for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
                 if not proj_equal(proj_a, proj_b):
                     raise ValueError('Epochs must have same projectors')
