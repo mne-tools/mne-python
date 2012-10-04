@@ -127,7 +127,8 @@ class Epochs(object):
 
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True, verbose=None):
+                preload=False, reject=None, flat=None, proj=True,
+                verbose=None):
         if not isinstance(raw, list):
             raw = [raw]
         self.raw = raw
@@ -170,7 +171,7 @@ class Epochs(object):
 
         #   Set up projection
         self.info['projs_all'] = [cp.deepcopy(r.info['projs']) for r in raw]
-        self.proj = [None]*len(raw)
+        self.proj = [None] * len(raw)
          # Leave potentially ambiguous key b/c other functions require it
         self.info['projs'] = []
         for ri in range(len(raw)):
@@ -197,7 +198,8 @@ class Epochs(object):
                     self.proj[ri] = r_proj
 
                 #   The projection items have been activated
-                self.info['projs_all'][ri] = activate_proj(self.info['projs_all'][ri], copy=False)
+                self.info['projs_all'][ri] = \
+                    activate_proj(self.info['projs_all'][ri], copy=False)
 
         #   Set up the CTF compensator
         current_comp = [fiff.get_current_comp(self.info) \
@@ -213,8 +215,8 @@ class Epochs(object):
             if current_comp[ri] != dest_comp:
                 raw[ri]['comp'] = fiff.raw.make_compensator(raw[ri].info,
                                                  current_comp, dest_comp)
-                print 'Appropriate compensator added to change to grade %d.' % (
-                                                                    dest_comp)
+                print 'Appropriate compensator added to change to grade %d.' \
+                        % (dest_comp)
 
         # concatenate events from all epochs
         self._replace_events(events)
@@ -254,9 +256,9 @@ class Epochs(object):
             new_events = [new_events]
         if len(new_events) is not len(self.raw):
             raise ValueError('new_events must be a list of the same length as '
-                             'the raw list (or not a list if raw is not a list)')
-        idx_limits = np.zeros(len(new_events) + 1, dtype='uint64') # First limit is zero
-        events = np.zeros((0,3), dtype='uint64')
+                           'the raw list (or not a list if raw is not a list)')
+        idx_limits = np.zeros(len(new_events) + 1, dtype='uint64')  # First = 0
+        events = np.zeros((0, 3), dtype='uint64')
         for ei in range(len(new_events)):
             events = np.vstack((events, cp.deepcopy(new_events[ei])))
             idx_limits[ei + 1] = events.shape[0]
@@ -278,7 +280,7 @@ class Epochs(object):
         key = np.array(range(len(self.events)), dtype='uint64')[key]
         for ri in range(len(self.raw)):
             inds = np.logical_and(np.less_equal(self.idx_limits[ri], key), \
-                                  np.less(key, self.idx_limits[ri+1]))
+                                  np.less(key, self.idx_limits[ri + 1]))
             self.idx_limits[ri + 1] = np.sum(inds) + self.idx_limits[ri]
         self.events = np.atleast_2d(self.events[key])
 
@@ -316,7 +318,7 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
-        drop_log = [[]]*n_events
+        drop_log = [[]] * n_events
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             is_good, offenders = self._is_good_epoch(epoch)
@@ -571,7 +573,7 @@ class Epochs(object):
 def check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
-    for ri in range(1,len(raw)):
+    for ri in range(1, len(raw)):
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
         if not raw[ri].info['bads'] == raw[0].info['bads']:
