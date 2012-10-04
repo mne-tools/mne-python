@@ -8,6 +8,7 @@ from scipy import linalg
 from . import fiff, Epochs
 from .fiff.pick import pick_types
 from .event import make_fixed_length_events
+from .parallel import parallel_func
 
 
 def read_proj(fname):
@@ -85,7 +86,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
     return projs
 
 
-def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2):
+def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
+                        verbose=False):
     """Compute SSP (spatial space projection) vectors on Epochs
 
     Parameters
@@ -98,13 +100,21 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2):
         Number of vectors for gradiometers
     n_eeg: int
         Number of vectors for gradiometers
+    n_jobs: int
+        Number of jobs to use to compute covariance
+    verbose: bool
+        If True, be verbose in parallelization
 
     Returns
     -------
     projs: list
         List of projection vectors
     """
-    data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
+    if n_jobs > 1:
+        parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
+        data = sum(parallel(p_fun(e, e.T) for e in epochs))
+    else:
+        data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
     event_id = epochs.event_id
     if event_id is None:
         event_id = 0
@@ -137,7 +147,7 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
 
 
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None):
+                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=False):
     """Compute SSP (spatial space projection) vectors on Raw
 
     Parameters
@@ -162,6 +172,10 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch rejection configuration (see Epochs)
     flat : dict
         Epoch flat configuration (see Epochs)
+    n_jobs: int
+        Number of jobs to use to compute covariance
+    verbose: bool
+        If True, be verbose in parallelization
 
     Returns
     -------
@@ -173,7 +187,11 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
                         picks=pick_types(raw.info, meg=True, eeg=True),
                         reject=reject, flat=flat)
-        data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
+        if n_jobs > 1:
+            parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
+            data = sum(parallel(p_fun(e, e.T) for e in epochs))
+        else:
+            data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
         if not stop:
             stop = (raw.last_samp - raw.first_samp + 1) / raw.info['sfreq']
     else:

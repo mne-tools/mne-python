@@ -2,7 +2,7 @@ import os.path as op
 from nose.tools import assert_true
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
@@ -15,12 +15,11 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 
-
 def test_compute_proj():
     """Test SSP computation"""
     event_id, tmin, tmax = 1, -0.2, 0.3
 
-    raw = Raw(raw_fname)
+    raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
     exclude = []
     bad_ch = 'MEG 2443'
@@ -30,7 +29,7 @@ def test_compute_proj():
                         baseline=None, proj=False)
 
     evoked = epochs.average()
-    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0)
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1)
 
     projs2 = read_proj(proj_fname)
 
@@ -69,11 +68,17 @@ def test_compute_proj():
     projs_evoked = compute_proj_evoked(evoked, n_grad=1, n_mag=1, n_eeg=0)
     # XXX : test something
 
+    # test parallelization
+    projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
+    projs = activate_proj(projs)
+    proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
+    assert_array_equal(proj, proj_par)
 
     # Test that the raw projectors work
     for ii in (1, 2, 4, 8, 12, 24):
         raw = Raw(raw_fname)
-        projs = compute_proj_raw(raw, duration=ii-0.1, n_grad=1, n_mag=1, n_eeg=0)
+        projs = compute_proj_raw(raw, duration=ii-0.1, n_grad=1, n_mag=1,
+                                 n_eeg=0)
 
         # test that you can compute the projection matrix
         projs = activate_proj(projs)
