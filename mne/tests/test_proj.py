@@ -60,7 +60,8 @@ def test_compute_proj():
     assert_true(U.shape[1] == 2)
 
     # test that you can save them
-    epochs.info['projs'] += projs
+    for p in epochs.info['projs_all']:
+        p += projs
     evoked = epochs.average()
     evoked.save('foo.fif')
 

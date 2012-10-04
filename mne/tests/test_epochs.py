@@ -223,8 +223,8 @@ def test_multi_epochs():
     epochs2 = Epochs(raw, events[4:8], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
     evoked2 = epochs2.average()
-    epochs = Epochs([raw,raw], [events[:4], events[4:8]], event_id, tmin, tmax,
-                        picks=picks, baseline=(None, 0))
+    epochs = Epochs([raw, raw], [events[:4], events[4:8]], event_id, tmin,
+                    tmax, picks=picks, baseline=(None, 0))
     evoked = epochs.average()
     evoked_sum = evoked1 + evoked2
     assert_array_equal(evoked.data, evoked_sum.data)
@@ -235,7 +235,7 @@ def test_multi_epochs():
 
     """Test of epochs rejection
     """
-    epochs = Epochs([raw,raw], [events,events], event_id, tmin, tmax,
+    epochs = Epochs([raw, raw], [events, events], event_id, tmin, tmax,
                         picks=picks, baseline=(None, 0),
                         reject=reject, flat=flat)
     # this call must precede get_data() because that updates epochs.events
@@ -246,12 +246,12 @@ def test_multi_epochs():
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
-    assert_true(n_clean_epochs == 3*2)
+    assert_true(n_clean_epochs == 3 * 2)
 
     """Test of indexing and slicing operations
     """
-    epochs = Epochs([raw,raw], [events[:20],events[10:30]], event_id, tmin, tmax,
-                    picks=picks, baseline=(None, 0), preload=False,
+    epochs = Epochs([raw, raw], [events[:20], events[10:30]], event_id, tmin,
+                    tmax, picks=picks, baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
 
     data_normal = epochs.get_data()
@@ -306,9 +306,9 @@ def test_multi_epochs():
     """Test of average obtained vs C code
     """
     c_evoked = fiff.Evoked(evoked_nf_name, setno=0)
-    epochs = Epochs([raw,raw], [events[:10],events[10:]], event_id, tmin, tmax,
-                        baseline=None, preload=True,
-                        reject=None, flat=None)
+    epochs = Epochs([raw, raw], [events[:10], events[10:]], event_id, tmin,
+                    tmax, baseline=None, preload=True,
+                    reject=None, flat=None)
     evoked = epochs.average()
     sel = fiff.pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
@@ -320,8 +320,8 @@ def test_multi_epochs():
 
     """Test of crop of epochs
     """
-    epochs = Epochs([raw,raw], [events[:2],events[2:5]], event_id, tmin, tmax,
-                    picks=picks, baseline=(None, 0), preload=False,
+    epochs = Epochs([raw, raw], [events[:2], events[2:5]], event_id, tmin,
+                    tmax, picks=picks, baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
     data_normal = epochs.get_data()
 

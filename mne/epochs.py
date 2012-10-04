@@ -106,9 +106,10 @@ class Epochs(object):
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
-    average() : self
+    average() : self, bool, instance of projs
         Return Evoked object containing averaged epochs as a
-        2D array [n_channels x n_times].
+        2D array [n_channels x n_times]. If projs is not None, use the projs
+        variable (instead of the first projector in 'projs_all') in Evoked
 
     drop_bad_epochs() : None
         Drop all epochs marked as bad. Should be used before indexing and
@@ -173,7 +174,7 @@ class Epochs(object):
         self.info['projs_all'] = [cp.deepcopy(r.info['projs']) for r in raw]
         self.proj = [None] * len(raw)
          # Leave potentially ambiguous key b/c other functions require it
-        self.info['projs'] = []
+        self.info['projs'] = self.info['projs_all'][0]
         for ri in range(len(raw)):
             if self.info['projs_all'][ri] is None or not proj:
                 print 'No projector specified for these data'
@@ -185,7 +186,6 @@ class Epochs(object):
                     eeg_proj = make_eeg_average_ref_proj(self.info)
                     self.info['projs_all'][ri].append(eeg_proj)
 
-                #   Create the projector, temporarily adding 'projs'
                 r_proj, nproj, _ = fiff.proj.make_projector(
                                     self.info['projs_all'][ri],
                                     self.info['ch_names'], self.info['bads'])
@@ -471,14 +471,18 @@ class Epochs(object):
                 epochs._data = cp.deepcopy(self._data[key])
         return epochs
 
-    def average(self, keep_only_data_channels=True):
+    def average(self, keep_only_data_channels=True, projs=None):
         """Compute average of epochs
 
         Parameters
         ----------
-        keep_only_data_channels: bool
+        keep_only_data_channels : bool
             If False, all channels with be kept. Otherwise
             only MEG and EEG channels are kept.
+
+        projs : instance of projs or None
+            If None, the first set of projectors from 'projs_all' will be used
+            when creating the Evoked instance. Otherwise, projs is used.
 
         Returns
         -------
@@ -487,6 +491,11 @@ class Epochs(object):
         """
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
+        if projs is None:
+            evoked.info['projs'] = self.info['projs_all'][0]
+        else:
+            evoked.info['projs'] = projs
+        del evoked.info['projs_all']
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
