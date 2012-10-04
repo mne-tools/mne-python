@@ -7,13 +7,16 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, concat_raw
+from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
 from mne.layouts import make_eeg_layout, Layout
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
 fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
                                'test_withbads_raw.fif')
+sp_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split_raw.fif')
+sp_1_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split-1_raw.fif')
+sp_2_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split-2_raw.fif')
 bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
 bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 
@@ -21,6 +24,21 @@ bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 def test_multiple_files():
     """Test loading multiple files simultaneously"""
 
+    # test concatenation of file split by "mne_process_raw --raw test_raw.fif
+    # --split 10 --save test_raw_split.fif --projoff --filteroff"
+    raw = Raw(fif_fname, preload=True)
+    raw1 = Raw(sp_fname)
+    raw2 = Raw(sp_1_fname)
+    raw3 = Raw(sp_2_fname)
+    all_raw_1 = concatenate_raws([raw1, raw2, raw3], preload=True)
+    raw1 = Raw(sp_fname)
+    all_raw_2 = concatenate_raws([raw1, raw2, raw3], preload=False)
+    assert_true(raw.first_samp == all_raw_1.first_samp)
+    assert_true(raw.last_samp == all_raw_1.last_samp)
+    assert_array_almost_equal(raw[:,:][0], all_raw_1[:,:][0])
+    assert_array_almost_equal(raw[:,:][0], all_raw_2[:,:][0])
+
+    # test various methods of combining files
     n_combos = 9
     raw_combos = [None]*n_combos
 
@@ -36,31 +54,31 @@ def test_multiple_files():
 
     # with all data preloaded, result should be preloaded
     raw_combos[3] = Raw(fif_fname, preload=True)
-    raw_combos[3].concat(Raw(fif_fname, preload=True))
+    raw_combos[3].append(Raw(fif_fname, preload=True))
     assert_true(raw_combos[0]._preloaded==True)
 
     # with any data not preloaded, don't set result as preloaded
-    raw_combos[4] = concat_raw([Raw(fif_fname, preload=True),
-                                Raw(fif_fname, preload=False)])
+    raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
+                                      Raw(fif_fname, preload=False)])
     assert_true(raw_combos[1]._preloaded==False)
 
     # user should be able to force data to be preloaded upon concat
-    raw_combos[5] = concat_raw([Raw(fif_fname, preload=False),
-                               Raw(fif_fname, preload=True)],
-                              preload=True)
+    raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=True)],
+                                      preload=True)
     assert_true(raw_combos[2]._preloaded==True)
 
-    raw_combos[6] = concat_raw([Raw(fif_fname, preload=False),
-                               Raw(fif_fname, preload=True)],
-                              preload='memmap3.dat')
+    raw_combos[6] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=True)],
+                                      preload='memmap3.dat')
 
-    raw_combos[7] = concat_raw([Raw(fif_fname, preload=True),
-                               Raw(fif_fname, preload=True)],
-                              preload='memmap4.dat')
+    raw_combos[7] = concatenate_raws([Raw(fif_fname, preload=True),
+                                      Raw(fif_fname, preload=True)],
+                                      preload='memmap4.dat')
 
-    raw_combos[8] = concat_raw([Raw(fif_fname, preload=False),
-                               Raw(fif_fname, preload=False)],
-                              preload='memmap5.dat')
+    raw_combos[8] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=False)],
+                                      preload='memmap5.dat')
 
     # make sure that all our data match
     times = range(0,2*n_times,999)
@@ -68,9 +86,9 @@ def test_multiple_files():
     times.extend([n_times - 1, n_times, 2*n_times - 1])
     for ti in times: # let's do a subset of points for speed
         orig = raw[:, ti % n_times][0]
-        for ii in range(n_combos):
+        for raw_combo in raw_combos:
             # these are almost_equals because of possible dtype differences
-            assert_array_almost_equal(orig, raw_combos[ii][:, ti][0])
+            assert_array_almost_equal(orig, raw_combo[:, ti][0])
 
 
 def test_load_bad_channels():

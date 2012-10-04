@@ -788,7 +788,7 @@ class Raw(object):
         else:
             self.info['bads'] = []
 
-    def concat(self, raws, preload=None):
+    def append(self, raws, preload=None):
         """Concatenate raw instances as if they were continuous
 
         Parameters
@@ -1263,14 +1263,14 @@ def check_raw_compatibility(raw):
             raise ValueError('raw[%d] projectors must match')
 
 
-def concat_raw(raws, preload=None):
-    """Concatenate raw instances as if they were continuous
+def concatenate_raws(raws, preload=None):
+    """Concatenate raw instances as if they were continuous. Note that raws[0]
+    is modified in-place to achieve the concatenation.
 
     Parameters
     ----------
     raws : list
-        list of Raw instances to concatenate (in order). The first Raw file in
-        the list gets the others concatenated to it.
+        list of Raw instances to concatenate (in order).
 
     preload : bool, or None
         If None, preload status is inferred using the preload status of the
@@ -1282,5 +1282,5 @@ def concat_raw(raws, preload=None):
     raw : instance of Raw
         The result of the concatenation (first Raw instance passed in)
     """
-    raws[0].concat(raws[1:], preload)
+    raws[0].append(raws[1:], preload)
     return raws[0]
