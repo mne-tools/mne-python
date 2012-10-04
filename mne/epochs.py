@@ -89,6 +89,11 @@ class Epochs(object):
     ch_names: list of string
         List of channels' names
 
+    drop_log: list of lists
+        This list (same length as events) contains the channel(s),
+        if any, that caused an event in the original event list
+        to be dropped by drop_bad_epochs().
+
     Methods
     -------
     get_data() : self
@@ -100,7 +105,7 @@ class Epochs(object):
 
     drop_bad_epochs() : None
         Drop all epochs marked as bad. Should be used before indexing and
-        slicing operations.
+        slicing operations, and is done automatically by preload=True.
 
     resample() : self, int, int, int, string or list
         Resample preloaded data.
@@ -133,6 +138,7 @@ class Epochs(object):
         self.flat = flat
         self.proj = proj
         self._bad_dropped = False
+        self.drop_log = None
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
@@ -193,9 +199,7 @@ class Epochs(object):
         self._reject_setup()
 
         if self.preload:
-            self._data, good_events = self._get_data_from_disk()
-            self.events = np.atleast_2d(self.events[good_events, :])
-            self._bad_dropped = True
+            self._data = self._get_data_from_disk()
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -230,11 +234,16 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
+        drop_log = [[]]*n_events
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
-            if self._is_good_epoch(epoch):
+            is_good, offenders = self._is_good_epoch(epoch)
+            if is_good:
                 good_events.append(idx)
+            else:
+                drop_log[idx] = offenders
 
+        self.drop_log = drop_log
         self.events = np.atleast_2d(self.events[good_events])
         self._bad_dropped = True
 
@@ -269,32 +278,25 @@ class Epochs(object):
 
     def _get_data_from_disk(self):
         """Load all data from disk"""
-        n_events = len(self.events)
-        data = list()
-        n_reject = 0
-        event_idx = list()
-        for k in range(n_events):
-            epoch = self._get_epoch_from_disk(k)
-            if self._is_good_epoch(epoch):
-                data.append(epoch)
-                event_idx.append(k)
-            else:
-                n_reject += 1
-        print "Rejecting %d epochs." % n_reject
-        return np.array(data), event_idx
+        # drop bad epochs first so we don't have to replicate checking here
+        self.drop_bad_epochs()
+        # note that events is automatically updated by drop_bad_epochs, too
+        data = [self._get_epoch_from_disk(k) for k in range(len(self.events))]
+        return np.array(data)
 
     def _is_good_epoch(self, data):
         """Determine if epoch is good"""
         if data is None:
-            return False
+            return False, ['NO_DATA']
         n_times = len(self.times)
         if data.shape[1] < n_times:
-            return False  # epoch is too short ie at the end of the data
+            # epoch is too short ie at the end of the data
+            return False, ['TOO_SHORT']
         if self.reject is None and self.flat is None:
-            return True
+            return True, None
         else:
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat)
+                            self.reject, self.flat, full_report=True)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -307,7 +309,7 @@ class Epochs(object):
         if self.preload:
             return self._data
         else:
-            data, _ = self._get_data_from_disk()
+            data = self._get_data_from_disk()
             return data
 
     def _reject_setup(self):
@@ -346,7 +348,8 @@ class Epochs(object):
                 raise StopIteration
             epoch = self._get_epoch_from_disk(self._current)
             self._current += 1
-            if not self._is_good_epoch(epoch):
+            is_good, _ = self._is_good_epoch(epoch)
+            if not is_good:
                 return self.next()
 
         return epoch
@@ -501,10 +504,13 @@ class Epochs(object):
             raise RuntimeError('Can only resample preloaded data')
 
 
-def _is_good(e, ch_names, channel_type_idx, reject, flat):
+def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
     """Test if data segment e is good according to the criteria
-    defined in reject and flat.
+    defined in reject and flat. If full_report=True, it will give
+    True/False as well as a list of all offending channels.
     """
+    bad_list = list()
+    has_printed = False
     if reject is not None:
         for key, thresh in reject.iteritems():
             idx = channel_type_idx[key]
@@ -516,9 +522,15 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_max_delta]
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
-                    print '    Rejecting epoch based on %s : %s (%s > %s).' \
-                                % (name, ch_name, delta, thresh)
-                    return False
+                    if not has_printed:
+                        print '    Rejecting epoch based on %s : %s (%s > %s).' \
+                                    % (name, ch_name, delta, thresh)
+                        has_printed = True
+                    if not full_report:
+                        return False
+                    else:
+                        bad_list.append(ch_name)
+
     if flat is not None:
         for key, thresh in flat.iteritems():
             idx = channel_type_idx[key]
@@ -530,12 +542,23 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    print ('    Rejecting flat epoch based on '
-                           '%s : %s (%s < %s).' % (name, ch_name, delta,
-                                                   thresh))
-                    return False
+                    if not has_printed:
+                        print ('    Rejecting flat epoch based on '
+                               '%s : %s (%s < %s).' % (name, ch_name, delta,
+                                                       thresh))
+                        has_printed = True
+                    if not full_report:
+                        return False
+                    else:
+                        bad_list.append(ch_name)
 
-    return True
+    if not full_report:
+        return True
+    else:
+        if bad_list == []:
+            return True, None
+        else:
+            return False, bad_list
 
 
 def bootstrap(epochs, random_state=None):

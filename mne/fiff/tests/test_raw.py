@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels
+from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
 from mne.layouts import make_eeg_layout, Layout
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
@@ -16,6 +16,99 @@ fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
                                'test_withbads_raw.fif')
 bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
 bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
+
+
+def test_multiple_files():
+    """Test loading multiple files simultaneously"""
+
+    # split file
+    raw = Raw(fif_fname, preload=True)
+    split_size = 10.  # in seconds
+    sfreq = raw.info['sfreq']
+    nsamp = (raw.last_samp - raw.first_samp)
+    tmins = np.round(np.arange(0., nsamp, split_size * sfreq))
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+
+    # going in revere order so the last fname is the first file (need it later)
+    raws = [None] * len(tmins)
+    for ri in range(len(tmins) - 1, -1, -1):
+        fname = 'test_raw_split-%d_raw.fif' % ri
+        raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
+        raws[ri] = Raw(fname)
+
+    # test concatenation of split file
+    all_raw_1 = concatenate_raws(raws, preload=False)
+    print (raw.first_samp, all_raw_1.first_samp)
+    print (raw.last_samp, all_raw_1.last_samp)
+    assert_true(raw.first_samp == all_raw_1.first_samp)
+    assert_true(raw.last_samp == all_raw_1.last_samp)
+    assert_array_almost_equal(raw[:, :][0], all_raw_1[:, :][0])
+    raws[0] = Raw(fname)
+    all_raw_2 = concatenate_raws(raws, preload=True)
+    assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
+
+    # test various methods of combining files
+    n_combos = 9
+    raw_combos = [None] * n_combos
+
+    raw = Raw(fif_fname, preload=True)
+    raw_combos[0] = Raw([fif_fname, fif_fname], preload=True)
+    raw_combos[1] = Raw([fif_fname, fif_fname], preload=False)
+    raw_combos[2] = Raw([fif_fname, fif_fname], preload='memmap8.dat')
+    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
+    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
+    n_times = len(raw._times)
+    assert_true(raw[:, :][0].shape[1] * 2 == raw_combos[0][:, :][0].shape[1])
+    assert_true(raw_combos[0][:, :][0].shape[1] == len(raw_combos[0]._times))
+
+    # with all data preloaded, result should be preloaded
+    raw_combos[3] = Raw(fif_fname, preload=True)
+    raw_combos[3].append(Raw(fif_fname, preload=True))
+    assert_true(raw_combos[0]._preloaded == True)
+
+    # with any data not preloaded, don't set result as preloaded
+    raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
+                                      Raw(fif_fname, preload=False)])
+    assert_true(raw_combos[1]._preloaded == False)
+
+    # user should be able to force data to be preloaded upon concat
+    raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=True)],
+                                      preload=True)
+    assert_true(raw_combos[2]._preloaded == True)
+
+    raw_combos[6] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=True)],
+                                      preload='memmap3.dat')
+
+    raw_combos[7] = concatenate_raws([Raw(fif_fname, preload=True),
+                                      Raw(fif_fname, preload=True)],
+                                      preload='memmap4.dat')
+
+    raw_combos[8] = concatenate_raws([Raw(fif_fname, preload=False),
+                                      Raw(fif_fname, preload=False)],
+                                      preload='memmap5.dat')
+
+    # make sure that all our data match
+    times = range(0, 2 * n_times, 999)
+    # add potentially problematic points
+    times.extend([n_times - 1, n_times, 2 * n_times - 1])
+    for ti in times:  # let's do a subset of points for speed
+        orig = raw[:, ti % n_times][0]
+        for raw_combo in raw_combos:
+            # these are almost_equals because of possible dtype differences
+            assert_array_almost_equal(orig, raw_combo[:, ti][0])
+
+    # deal with different projectors
+    raw.add_proj([], remove_existing=True)
+    # this shoud append, but the projectors shouldn't match
+    raw.append(Raw(fif_fname, preload=True))
+    # which means it should throw an error here
+    assert_raises(RuntimeError, raw.apply_projector)
+    # and here
+    assert_raises(ValueError, raw.add_proj, [])
 
 
 def test_load_bad_channels():
@@ -142,7 +235,7 @@ def test_getitem():
     """Test getitem/indexing of Raw
     """
     for preload in [False, True, 'memmap.dat']:
-        raw = Raw(fif_fname, preload=False)
+        raw = Raw(fif_fname, preload=preload)
         data, times = raw[0, :]
         data1, times1 = raw[0]
         assert_array_equal(data, data1)
@@ -179,7 +272,7 @@ def test_proj():
         # Use all sensors and a couple time points so projection works
         data, times = raw[:, 0:2]
         raw.apply_projector()
-        projector = raw._projector
+        projector = raw._projectors[0]
         data_proj_1 = np.dot(projector, data)
         data_proj_2, _ = raw[:, 0:2]
         assert_array_almost_equal(data_proj_1, data_proj_2)
@@ -257,20 +350,3 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
-
-
-def test_multiple_files():
-    """Test loading multiple files simultaneously"""
-    raw = Raw(fif_fname, preload=True)
-    raw_mult_pre = Raw([fif_fname, fif_fname], preload=True)
-    raw_mult = Raw([fif_fname, fif_fname], preload=True)
-    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
-    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
-    n_times = len(raw._times)
-    assert_true(raw[:, :][0].shape[1]*2 == raw_mult_pre[:, :][0].shape[1])
-    assert_true(raw_mult_pre[:, :][0].shape[1] == len(raw_mult_pre._times))
-    for ti in range(0,n_times,999): # let's do a subset of points for speed
-        assert_array_equal(raw[:, ti][0], raw_mult[:, ti][0])
-        assert_array_equal(raw[:, ti][0], raw_mult[:, ti + n_times][0])
-        assert_array_equal(raw[:, ti][0], raw_mult_pre[:, ti][0])
-        assert_array_equal(raw[:, ti][0], raw_mult_pre[:, ti + n_times][0])

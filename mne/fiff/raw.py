@@ -80,14 +80,14 @@ class Raw(object):
         raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose,
                                     proj) for fname in fnames]
 
-        check_raw_compatibility(raws)
+        _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
-        self.first_samp = raws[0].first_samp # meta first sample
+        self.first_samp = raws[0].first_samp  # meta first sample
         self._first_samps = [r.first_samp for r in raws]
         self._last_samps = [r.last_samp for r in raws]
-        self._raw_lens = [r.last_samp - r.first_samp + 1 for r in raws]
-        self.last_samp = self.first_samp + sum(self._raw_lens) - 1
+        self._raw_lengths = [r.last_samp - r.first_samp + 1 for r in raws]
+        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
         self.proj = None
@@ -97,25 +97,27 @@ class Raw(object):
         self.verbose = verbose
         self.info['filenames'] = fnames
         self.proj = proj
-        self._projector = raws[0]._projector
-        self._projector_hash = raws[0]._projector_hash
+        self._projectors = [r._projectors[0] for r in raws]
+        self._projector_hashes = [r._projector_hashes[0] for r in raws]
+
+        self._projs_match = True
+        if not all(ph == self._projector_hashes[0]
+                   for ph in self._projector_hashes):
+            self.projs_match = False
 
         if preload:
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            if isinstance(preload, str):
-                # preload data using a memmap file
-                self._data = np.memmap(preload, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                self._data = np.empty((nchan, nsamp), dtype='float32')
-
-            self._data, self._times = read_raw_segment(self,
-                                                       data_buffer=self._data)
+            self._preload_data(preload)
             self._preloaded = True
         else:
             self._preloaded = False
 
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        nchan = self.info['nchan']
+        nsamp = self.last_samp - self.first_samp + 1
+        self._data = _alloc_data_buffer(self, nchan, nsamp, preload)
+        self._data, self._times = read_raw_segment(self,
+                                                   data_buffer=self._data)
 
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose, proj):
         """Read in header information from a raw file"""
@@ -236,8 +238,11 @@ class Raw(object):
         raw.info = info
         raw.verbose = verbose
         raw.proj = proj
-        raw._projector, raw.info = setup_proj(raw.info)
-        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
+        out = setup_proj(raw.info)
+        raw._projectors = [out[0]]
+        raw.info = out[1]
+        raw._projector_hashes = [_hash_projs(raw.info['projs'],
+                                             raw._projectors[0])]
         return raw
 
     def _parse_get_set_params(self, item):
@@ -286,7 +291,7 @@ class Raw(object):
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
             was_updated = self._update_projector()
-            if was_updated:
+            if was_updated and self.proj:
                 raise RuntimeError('Changing projector after preloading data '
                                    'is not allowed')
         else:
@@ -504,7 +509,11 @@ class Raw(object):
         self.proj = True
         self._update_projector()
         if self._preloaded:
-            self._data = np.dot(self._projector, self._data)
+            if self._projs_match:
+                self._data = np.dot(self._projectors[0], self._data)
+            else:
+                raise RuntimeError('Cannot apply projectors to preloaded data '
+                                   'if they do not match')
 
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
@@ -624,10 +633,6 @@ class Raw(object):
         requested on load (if raw.proj==True), the new projectors are applied
         to the data.
 
-        Note that if data was preloaded and you wish to remove the existing
-        projectors, data must be reloaded following this operation (since
-        this is the only way to un-apply the old projectors).
-
         Parameters
         ----------
         projs : list
@@ -636,19 +641,27 @@ class Raw(object):
         remove_existing : bool
             Remove the projection vectors currently in the file
         """
-        projs = copy.deepcopy(projs)
 
-        if remove_existing:
-            self.info['projs'] = projs
+        if self._projs_match:
+            projs = copy.deepcopy(projs)
+
+            if remove_existing:
+                if self.proj and self._preloaded:
+                    raise ValueError('Cannot remove projectors from preloaded data'
+                                     ' that have had projectors applied')
+                self.info['projs'] = projs
+            else:
+                self.info['projs'].extend(projs)
+            self._update_projector()
+
+            if self.proj:
+                self.apply_projector()
         else:
-            self.info['projs'].extend(projs)
-        self._update_projector()
-
-        if self.proj:
-            self.apply_projector()
+            raise ValueError('Cannot add projectors when projectors from '
+                             'raw files do not match')
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=None):
+             drop_small_buffer=False, proj_active=None, projs=None):
         """Save raw data to file
 
         Parameters
@@ -663,7 +676,7 @@ class Raw(object):
         tmin : float
             Time in seconds of first sample to save
 
-        tmax : int
+        tmax : float
             Time in seconds of last sample to save
 
         buffer_size_sec : float
@@ -677,8 +690,11 @@ class Raw(object):
             If True/False, the data is saved with the projections set to
             active/inactive. If None, True/False is inferred from self.proj.
 
+        projs : list of Projection or None
+            If not None, it will replace raw.info['projs'].
+
         """
-        if fname == self.info['filename']:
+        if any([fname == f for f in self.info['filenames']]):
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
@@ -686,6 +702,10 @@ class Raw(object):
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
+
+        if projs is not None:
+            self.info = copy.deepcopy(self.info)
+            self.info['projs'] = projs
 
         # if proj is off, deactivate projs so data isn't saved with them on
         # don't have to worry about activating them because they default to on
@@ -774,14 +794,91 @@ class Raw(object):
                 if not force:
                     raise ValueError('Bad channels from:\n%s\n not found '
                                      'in:\n%s' % (bad_file,
-                                                  self.info['filename']))
+                                                  self.info['filenames'][0]))
                 else:
                     warnings.warn('%d bad channels from:\n%s\nnot found '
                                   'in:\n%s' % (count_diff, bad_file,
-                                               self.info['filename']))
+                                               self.info['filenames'][0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
+
+    def append(self, raws, preload=None):
+        """Concatenate raw instances as if they were continuous
+
+        Parameters
+        ----------
+        raws : list, or Raw instance
+            list of Raw instances to concatenate to the current instance
+            (in order), or a single raw instance to concatenate
+
+        preload : bool, str, or None (default None)
+            Preload data into memory for data manipulation and faster indexing.
+            If True, the data will be preloaded into memory (fast, requires
+            large amount of memory). If preload is a string, preload is the
+            file name of a memory-mapped file which is used to store the data
+            on the hard drive (slower, requires less memory). If preload is
+            None, preload=True or False is inferred using the preload status
+            of the raw files passed in.
+        """
+        if not isinstance(raws, list):
+            raws = [raws]
+
+        _check_raw_compatibility(raws)
+        if self._projs_match:
+            for r in raws:
+                if not all(ph == self._projector_hashes[0]
+                   for ph in r._projector_hashes):
+                       self._projs_match = False
+
+        # deal with preloading data first (while files are separate)
+        all_preloaded = self._preloaded and all(r._preloaded for r in raws)
+        if preload is None:
+            if all_preloaded:
+                preload = True
+            else:
+                preload = False
+
+        if preload is False:
+            if self._preloaded:
+                self._data = None
+                self._times = None
+            self._preloaded = False
+        else:
+            # do the concatenation ourselves since preload might be a string
+            nchan = self.info['nchan']
+            c_ns = [self.last_samp - self.first_samp + 1]
+            c_ns += [r.last_samp - r.first_samp + 1 for r in raws]
+            c_ns = np.cumsum(np.array(c_ns, dtype='int'))
+            nsamp = c_ns[-1]
+            _data = _alloc_data_buffer(self, nchan, nsamp, preload)
+
+            if not self._preloaded:
+                _data[:, 0:c_ns[0]] = read_raw_segment(self)[0]
+            else:
+                _data[:, 0:c_ns[0]] = self._data
+            for ri in range(len(raws)):
+                if not r._preloaded:
+                    _data[:, c_ns[ri]:c_ns[ri + 1]] = \
+                                                  read_raw_segment(raws[ri])[0]
+                else:
+                    _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
+
+            self._data = _data
+            stop = self.last_samp - self.first_samp + 1
+            self._times = np.arange(0, stop) / self.info['sfreq']
+            self._preloaded = True
+
+        # now combine information from each raw file to construct new self
+        for r in raws:
+            self._first_samps += r._first_samps
+            self._last_samps += r._last_samps
+            self._raw_lengths += r._raw_lengths
+            self._projector_hashes += r._projector_hashes
+            self.rawdirs += r.rawdirs
+            self.fids += r.fids
+            self.info['filenames'] += r.info['filenames']
+        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
     def close(self):
         [f.close() for f in self.fids]
@@ -793,12 +890,14 @@ class Raw(object):
 
     def _update_projector(self):
         """Update hash new projector variables and
-        update ._projector if it is necessary
+        update ._projectors if it is necessary
         """
-        new_hash = _hash_projs(self.info['projs'], self._projector)
-        if not new_hash == self._projector_hash:
-            self._projector, self.info = setup_proj(self.info)
-            self._projector_hash = _hash_projs(self.info['projs'], self._projector)
+
+        new_hash = _hash_projs(self.info['projs'], self._projectors[0])
+        if not new_hash == self._projector_hashes[0]:
+            self._projectors[0], self.info = setup_proj(self.info)
+            self._projector_hashes[0] = _hash_projs(self.info['projs'],
+                                               self._projectors[0])
             return True
         else:
             return False
@@ -812,8 +911,8 @@ class _RawShell():
         self.cals = None
         self.rawdir = None
         self.proj = None
-        self._projector = None
-        self._projector_hash = None
+        self._projectors = None
+        self._projector_hashes = None
 
 
 def _hash_projs(projs, projector):
@@ -888,23 +987,24 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     raw._update_projector()
     if raw.proj:
-        mult = np.diag(raw.cals.ravel())
-        if raw.comp is not None:
-            mult = np.dot(raw.comp[idx, :], mult)
-        if raw._projector is not None:
-            mult = np.dot(raw._projector, mult)
+        mult = list()
+        for ri in range(len(raw._raw_lengths)):
+            mult.append(np.diag(raw.cals.ravel()))
+            if raw.comp is not None:
+                mult[ri] = np.dot(raw.comp[idx, :], mult[ri])
+            if raw._projectors[0] is not None:
+                mult[ri] = np.dot(raw._projectors[0], mult[ri])
     else:
         mult = None
 
     do_debug = False
     # do_debug = True
 
-
-
     # deal with having multiple files accessed by the raw object
-    cumul_lens = np.cumsum(np.concatenate(([0], np.array(raw._raw_lens, dtype='int'))))
+    cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths, dtype='int')))
+    cumul_lens = np.cumsum(cumul_lens)
     files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                np.greater_equal(stop - 1, cumul_lens[:-1] - 1))
+                                np.greater_equal(stop - 1, cumul_lens[:-1]))
 
     first_file_used = False
     s_off = 0
@@ -915,14 +1015,14 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         if not first_file_used:
             first_file_used = True
             start_loc += start - cumul_lens[fi]
-        stop_loc = np.min([stop - 1 - s_off + raw._first_samps[fi],
+        stop_loc = np.min([stop - 1 - cumul_lens[fi] + raw._first_samps[fi],
                            raw._last_samps[fi]])
         if start_loc < raw._first_samps[fi]:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         if stop_loc > raw._last_samps[fi]:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         if stop_loc < start_loc:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         len_loc = stop_loc - start_loc + 1
 
         for this in raw.rawdirs[fi]:
@@ -943,9 +1043,10 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                     else:
                         dtype = np.complex64
 
-                    one = tag.data.reshape(this['nsamp'], nchan).astype(dtype).T
-                    if mult is not None:  # use proj + calibration factors in mult
-                        one = np.dot(mult, one)
+                    one = tag.data.reshape(this['nsamp'],
+                                           nchan).astype(dtype).T
+                    if mult is not None:  # use proj + cal factors in mult
+                        one = np.dot(mult[fi], one)
                         one = one[idx]
                     else:  # apply just the calibration factors
                         one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
@@ -1163,10 +1264,10 @@ def _envelope(x):
     return np.abs(hilbert(x))
 
 
-def check_raw_compatibility(raw):
+def _check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
-    for ri in range(1,len(raw)):
+    for ri in range(1, len(raw)):
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
         if not raw[ri].info['bads'] == raw[0].info['bads']:
@@ -1178,5 +1279,37 @@ def check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)
-        if not raw[ri]._projector_hash == raw[0]._projector_hash:
-            raise ValueError('raw[%d] projectors must match')
+
+
+def _alloc_data_buffer(raw, nchan, nsamp, preload):
+    """Allocate a data buffer for preloading"""
+    if isinstance(preload, str):
+        # preload data using a memmap file
+        _data = np.memmap(preload, mode='w+', dtype='float32',
+                          shape=(nchan, nsamp))
+    else:
+        _data = np.empty((nchan, nsamp), dtype='float32')
+    return _data
+
+
+def concatenate_raws(raws, preload=None):
+    """Concatenate raw instances as if they were continuous. Note that raws[0]
+    is modified in-place to achieve the concatenation.
+
+    Parameters
+    ----------
+    raws : list
+        list of Raw instances to concatenate (in order).
+
+    preload : bool, or None
+        If None, preload status is inferred using the preload status of the
+        raw files passed in. True or False sets the resulting raw file to
+        have or not have data preloaded.
+
+    Returns
+    -------
+    raw : instance of Raw
+        The result of the concatenation (first Raw instance passed in)
+    """
+    raws[0].append(raws[1:], preload)
+    return raws[0]

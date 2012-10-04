@@ -92,14 +92,16 @@ def test_reject_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0),
                         reject=reject, flat=flat)
-    data = epochs.get_data()
     n_events = len(epochs.events)
+    data = epochs.get_data()
     n_clean_epochs = len(data)
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
     assert_true(n_clean_epochs == 3)
+    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'], \
+                                  ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
 
 
 def test_preload_epochs():
