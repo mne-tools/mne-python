@@ -101,21 +101,25 @@ class Raw(object):
         self._projector_hash = raws[0]._projector_hash
 
         if preload:
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            if isinstance(preload, str):
-                # preload data using a memmap file
-                self._data = np.memmap(preload, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                self._data = np.empty((nchan, nsamp), dtype='float32')
-
-            self._data, self._times = read_raw_segment(self,
-                                                       data_buffer=self._data)
+            self._preload_data(preload)
             self._preloaded = True
         else:
             self._preloaded = False
 
+
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        nchan = self.info['nchan']
+        nsamp = self.last_samp - self.first_samp + 1
+        if isinstance(preload, str):
+            # preload data using a memmap file
+            self._data = np.memmap(preload, mode='w+', dtype='float32',
+                                   shape=(nchan, nsamp))
+        else:
+            self._data = np.empty((nchan, nsamp), dtype='float32')
+
+        self._data, self._times = read_raw_segment(self,
+                                                   data_buffer=self._data)
 
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose, proj):
         """Read in header information from a raw file"""
@@ -284,6 +288,7 @@ class Raw(object):
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
+            print self._data.shape
             data, times = self._data[sel, start:stop], self._times[start:stop]
             was_updated = self._update_projector()
             if was_updated:
@@ -678,7 +683,7 @@ class Raw(object):
             active/inactive. If None, True/False is inferred from self.proj.
 
         """
-        if fname == self.info['filename']:
+        if any([fname == f for f in self.info['filenames']]):
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
@@ -774,14 +779,90 @@ class Raw(object):
                 if not force:
                     raise ValueError('Bad channels from:\n%s\n not found '
                                      'in:\n%s' % (bad_file,
-                                                  self.info['filename']))
+                                                  self.info['filenames'][0]))
                 else:
                     warnings.warn('%d bad channels from:\n%s\nnot found '
                                   'in:\n%s' % (count_diff, bad_file,
-                                               self.info['filename']))
+                                               self.info['filenames'][0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
+
+    def concat(self, raws, preload=None):
+        """Concatenate raw instances as if they were continuous
+
+        Parameters
+        ----------
+        raws : list, or Raw instance
+            list of Raw instances to concatenate to the current instance
+            (in order), or a single raw instance to concatenate
+
+        preload : bool, str, or None (default None)
+            Preload data into memory for data manipulation and faster indexing.
+            If True, the data will be preloaded into memory (fast, requires
+            large amount of memory). If preload is a string, preload is the
+            file name of a memory-mapped file which is used to store the data
+            on the hard drive (slower, requires less memory). If preload is
+            None, preload=True or False is inferred using the preload status
+            of the raw files passed in.
+        """
+        if not isinstance(raws, list):
+            raws = [raws]
+
+        check_raw_compatibility(raws)
+
+        # deal with preloading data first (while files are separate)
+        all_preloaded = self._preloaded and all(r._preloaded for r in raws)
+        if preload is None:
+            if all_preloaded:
+                preload = True
+            else:
+                preload = False
+
+        if preload is False:
+            if self._preloaded:
+                self._data = None
+                self._times = None
+            self._preloaded = False
+        else:
+            # do the concatenation ourselves since preload might be a string
+            nchan = self.info['nchan']
+            c_ns = [self.last_samp - self.first_samp +1]
+            c_ns.extend([r.last_samp - r.first_samp + 1 for r in raws])
+            c_ns = np.cumsum(np.array(c_ns, dtype='int'))
+            nsamp = c_ns[-1]
+            if isinstance(preload, str):
+                # preload data using a memmap file
+                _data = np.memmap(preload, mode='w+', dtype='float32',
+                                       shape=(nchan, nsamp))
+            else:
+                _data = np.empty((nchan, nsamp), dtype='float32')
+
+            if not self._preloaded:
+                _data[:, 0:c_ns[0]] = read_raw_segment(self)[0]
+            else:
+                _data[:, 0:c_ns[0]] = self._data
+            for ri in range(len(raws)):
+                if not r._preloaded:
+                    _data[:, c_ns[ri]:c_ns[ri + 1]] = \
+                                                  read_raw_segment(raws[ri])[0]
+                else:
+                    _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
+
+            self._data = _data
+            stop = self.last_samp - self.first_samp + 1
+            self._times = np.arange(0, stop) / self.info['sfreq']
+            self._preloaded = True
+
+        # now combine information from each raw file to construct new self
+        for r in raws:
+            self._first_samps.extend(r._first_samps)
+            self._last_samps.extend(r._last_samps)
+            self._raw_lens.extend(r._raw_lens)
+            self.rawdirs.extend(r.rawdirs)
+            self.fids.extend(r.fids)
+            self.info['filenames'].extend(r.info['filenames'])
+        self.last_samp = self.first_samp + sum(self._raw_lens) - 1
 
     def close(self):
         [f.close() for f in self.fids]
@@ -904,7 +985,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     # deal with having multiple files accessed by the raw object
     cumul_lens = np.cumsum(np.concatenate(([0], np.array(raw._raw_lens, dtype='int'))))
     files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                np.greater_equal(stop - 1, cumul_lens[:-1] - 1))
+                                np.greater_equal(stop - 1, cumul_lens[:-1]))
 
     first_file_used = False
     s_off = 0
@@ -915,14 +996,14 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         if not first_file_used:
             first_file_used = True
             start_loc += start - cumul_lens[fi]
-        stop_loc = np.min([stop - 1 - s_off + raw._first_samps[fi],
+        stop_loc = np.min([stop - 1 - cumul_lens[fi] + raw._first_samps[fi],
                            raw._last_samps[fi]])
         if start_loc < raw._first_samps[fi]:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         if stop_loc > raw._last_samps[fi]:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         if stop_loc < start_loc:
-            raise ValueError('Bad figuring')
+            raise ValueError('Bad array indexing, could be a bug')
         len_loc = stop_loc - start_loc + 1
 
         for this in raw.rawdirs[fi]:
@@ -1180,3 +1261,26 @@ def check_raw_compatibility(raw):
             raise ValueError('raw[%d].cals must match' % ri)
         if not raw[ri]._projector_hash == raw[0]._projector_hash:
             raise ValueError('raw[%d] projectors must match')
+
+
+def concat_raw(raws, preload=None):
+    """Concatenate raw instances as if they were continuous
+
+    Parameters
+    ----------
+    raws : list
+        list of Raw instances to concatenate (in order). The first Raw file in
+        the list gets the others concatenated to it.
+
+    preload : bool, or None
+        If None, preload status is inferred using the preload status of the
+        raw files passed in. True or False sets the resulting raw file to
+        have or not have data preloaded.
+
+    Returns
+    -------
+    raw : instance of Raw
+        The result of the concatenation (first Raw instance passed in)
+    """
+    raws[0].concat(raws[1:], preload)
+    return raws[0]

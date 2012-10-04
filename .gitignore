@@ -18,7 +18,7 @@ events.eve
 foo-lh.label
 foo.lout
 foobar.lout
-memmap.dat
+memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
