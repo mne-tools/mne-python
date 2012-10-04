@@ -200,6 +200,8 @@ class Epochs(object):
                 #   The projection items have been activated
                 self.info['projs_all'][ri] = \
                     activate_proj(self.info['projs_all'][ri], copy=False)
+                self.info['projs'] = \
+                    activate_proj(self.info['projs'], copy=False)
 
         #   Set up the CTF compensator
         current_comp = [fiff.get_current_comp(self.info) \
