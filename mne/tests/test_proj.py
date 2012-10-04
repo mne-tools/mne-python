@@ -91,17 +91,6 @@ def test_compute_proj():
         raw.info['projs'] += projs
         raw.save('foo_%d_raw.fif' % ii)
 
-    # test parallelization
-    raw = Raw(raw_fname)
-    projs = compute_proj_raw(raw, duration=1, n_grad=1, n_mag=1, n_eeg=0,
-                             n_jobs=2)
-    proj, _, _ = make_projector(projs, epochs.ch_names, bads=[])
-    raw = Raw(raw_fname)
-    projs = compute_proj_raw(raw, duration=1, n_grad=1, n_mag=1, n_eeg=0,
-                             n_jobs=1)
-    proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
-    assert_array_equal(proj, proj_par)
-
     # Test that purely continuous (no duration) raw projection works
     raw = Raw(raw_fname)
     projs = compute_proj_raw(raw, duration=None, n_grad=1, n_mag=1, n_eeg=0)
