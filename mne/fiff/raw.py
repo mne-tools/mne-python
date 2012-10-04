@@ -83,7 +83,7 @@ class Raw(object):
         check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
-        self.first_samp = raws[0].first_samp # meta first sample
+        self.first_samp = raws[0].first_samp  # meta first sample
         self._first_samps = [r.first_samp for r in raws]
         self._last_samps = [r.last_samp for r in raws]
         self._raw_lens = [r.last_samp - r.first_samp + 1 for r in raws]
@@ -105,7 +105,6 @@ class Raw(object):
             self._preloaded = True
         else:
             self._preloaded = False
-
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -827,7 +826,7 @@ class Raw(object):
         else:
             # do the concatenation ourselves since preload might be a string
             nchan = self.info['nchan']
-            c_ns = [self.last_samp - self.first_samp +1]
+            c_ns = [self.last_samp - self.first_samp + 1]
             c_ns.extend([r.last_samp - r.first_samp + 1 for r in raws])
             c_ns = np.cumsum(np.array(c_ns, dtype='int'))
             nsamp = c_ns[-1]
@@ -879,7 +878,8 @@ class Raw(object):
         new_hash = _hash_projs(self.info['projs'], self._projector)
         if not new_hash == self._projector_hash:
             self._projector, self.info = setup_proj(self.info)
-            self._projector_hash = _hash_projs(self.info['projs'], self._projector)
+            self._projector_hash = _hash_projs(self.info['projs'],
+                                               self._projector)
             return True
         else:
             return False
@@ -980,10 +980,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     do_debug = False
     # do_debug = True
 
-
-
     # deal with having multiple files accessed by the raw object
-    cumul_lens = np.cumsum(np.concatenate(([0], np.array(raw._raw_lens, dtype='int'))))
+    cumul_lens = np.concatenate(([0], np.array(raw._raw_lens, dtype='int')))
+    cumul_lens = np.cumsum(cumul_lens)
     files_used = np.logical_and(np.less(start, cumul_lens[1:]),
                                 np.greater_equal(stop - 1, cumul_lens[:-1]))
 
@@ -1024,8 +1023,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                     else:
                         dtype = np.complex64
 
-                    one = tag.data.reshape(this['nsamp'], nchan).astype(dtype).T
-                    if mult is not None:  # use proj + calibration factors in mult
+                    one = tag.data.reshape(this['nsamp'],
+                                           nchan).astype(dtype).T
+                    if mult is not None:  # use proj + cal factors in mult
                         one = np.dot(mult, one)
                         one = one[idx]
                     else:  # apply just the calibration factors
@@ -1247,7 +1247,7 @@ def _envelope(x):
 def check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
-    for ri in range(1,len(raw)):
+    for ri in range(1, len(raw)):
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
         if not raw[ri].info['bads'] == raw[0].info['bads']:

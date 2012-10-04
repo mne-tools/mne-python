@@ -35,12 +35,12 @@ def test_multiple_files():
     all_raw_2 = concatenate_raws([raw1, raw2, raw3], preload=False)
     assert_true(raw.first_samp == all_raw_1.first_samp)
     assert_true(raw.last_samp == all_raw_1.last_samp)
-    assert_array_almost_equal(raw[:,:][0], all_raw_1[:,:][0])
-    assert_array_almost_equal(raw[:,:][0], all_raw_2[:,:][0])
+    assert_array_almost_equal(raw[:, :][0], all_raw_1[:, :][0])
+    assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
 
     # test various methods of combining files
     n_combos = 9
-    raw_combos = [None]*n_combos
+    raw_combos = [None] * n_combos
 
     raw = Raw(fif_fname, preload=True)
     raw_combos[0] = Raw([fif_fname, fif_fname], preload=True)
@@ -49,24 +49,24 @@ def test_multiple_files():
     assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
     assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
     n_times = len(raw._times)
-    assert_true(raw[:, :][0].shape[1]*2 == raw_combos[0][:, :][0].shape[1])
+    assert_true(raw[:, :][0].shape[1] * 2 == raw_combos[0][:, :][0].shape[1])
     assert_true(raw_combos[0][:, :][0].shape[1] == len(raw_combos[0]._times))
 
     # with all data preloaded, result should be preloaded
     raw_combos[3] = Raw(fif_fname, preload=True)
     raw_combos[3].append(Raw(fif_fname, preload=True))
-    assert_true(raw_combos[0]._preloaded==True)
+    assert_true(raw_combos[0]._preloaded == True)
 
     # with any data not preloaded, don't set result as preloaded
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=False)])
-    assert_true(raw_combos[1]._preloaded==False)
+    assert_true(raw_combos[1]._preloaded == False)
 
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
                                       Raw(fif_fname, preload=True)],
                                       preload=True)
-    assert_true(raw_combos[2]._preloaded==True)
+    assert_true(raw_combos[2]._preloaded == True)
 
     raw_combos[6] = concatenate_raws([Raw(fif_fname, preload=False),
                                       Raw(fif_fname, preload=True)],
@@ -81,10 +81,10 @@ def test_multiple_files():
                                       preload='memmap5.dat')
 
     # make sure that all our data match
-    times = range(0,2*n_times,999)
+    times = range(0, 2 * n_times, 999)
     # add potentially problematic points
-    times.extend([n_times - 1, n_times, 2*n_times - 1])
-    for ti in times: # let's do a subset of points for speed
+    times.extend([n_times - 1, n_times, 2 * n_times - 1])
+    for ti in times:  # let's do a subset of points for speed
         orig = raw[:, ti % n_times][0]
         for raw_combo in raw_combos:
             # these are almost_equals because of possible dtype differences
@@ -330,4 +330,3 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
-
