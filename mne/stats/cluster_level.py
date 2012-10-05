@@ -35,7 +35,7 @@ def _get_components(x_in, connectivity):
     return components
 
 
-def _find_clusters(x, threshold, tail=0, connectivity=None):
+def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
@@ -51,6 +51,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Defaut is None, i.e, no connectivity.
+
+    by_sign : bool
+        When doing a two-tailed test (tail == 0), if True only points with
+        the same sign will be clustered together. This value is ignored for
+        one-tailed tests.
 
     Returns
     -------
@@ -68,11 +73,26 @@ def _find_clusters(x, threshold, tail=0, connectivity=None):
 
     if tail == -1:
         x_in = x < threshold
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
     elif tail == 1:
         x_in = x > threshold
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
     else:
-        x_in = np.abs(x) > threshold
+        if not by_sign:
+            x_in = np.abs(x) > threshold
+            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+        else:
+            x_in = x > threshold
+            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+            x_in = x < threshold
+            out = _find_clusters_1dir(x, x_in, connectivity)
+            clusters.extend(out[0])
+            np.concatenate((sums, out[1]))
 
+    return clusters, sums
+
+
+def _find_clusters_1dir(x, x_in, connectivity):
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
 
