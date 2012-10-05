@@ -124,8 +124,7 @@ def _pval_from_histogram(T, H0, tail):
     elif tail == 1:  # low tail
         pval = np.array([np.sum(H0 >= t) for t in T])
     elif tail == 0:  # both tails
-        pval = np.array([np.sum(H0 >= abs(t)) for t in T])
-        pval += np.array([np.sum(H0 <= -abs(t)) for t in T])
+        pval = np.array([np.sum(abs(H0) >= abs(t)) for t in T])
 
     pval = (pval + 1.0) / (H0.size + 1.0)  # the init data is one resampling
     return pval
@@ -228,6 +227,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
+        # XXX need to add code to make it a full perm test when possible
         if seed is None:
             seeds = [None] * n_permutations
         else:
@@ -254,8 +254,13 @@ def ttest_1samp(X):
 
 def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
                            connectivity, stat_fun, rng):
-    # new surrogate data with random sign flip
-    signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
+    if isinstance(rng, np.random.mtrand.RandomState):
+        # new surrogate data with random sign flip
+        signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
+    else:
+        # new surrogate data with specific sign flip
+        signs = 2 * np.fromiter(np.binary_repr(rng, n_samples),
+                                dtype=int)[:,np.newaxis] - 1
     X_copy *= signs
 
     # Recompute statistic on randomized data
@@ -307,6 +312,9 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
+        Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
+        two-tailed tests], this value will be ignored since an exact test
+        (full permutation test) will be performed.
 
 
     Returns
@@ -349,13 +357,21 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
     if len(clusters) > 0:
-        if seed is None:
-            seeds = [None] * n_permutations
+        # check to see if we can do an exact test
+        # note for a two-tailed test, we can exploit symmetry to just do half
+        max_perms = 2 ** (n_samples - (tail == 0))
+        if max_perms <= n_permutations:
+            # omit first perm b/c accounted for in _pval_from_histogram
+            seeds = np.arange(1,max_perms)
         else:
-            seeds = seed + np.arange(n_permutations)
+            if seed is None:
+                seeds = [None] * n_permutations
+            else:
+                seeds = seed + np.arange(n_permutations)
+            seeds = [np.random.RandomState(s) for s in seeds]
+
         H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones, X_copy,
-                                    threshold, tail, connectivity, stat_fun,
-                                    np.random.RandomState(s))
+                                    threshold, tail, connectivity, stat_fun, s)
                                     for s in seeds)
         H0 = np.array(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
