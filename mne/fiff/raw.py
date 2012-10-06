@@ -97,8 +97,13 @@ class Raw(object):
         self.verbose = verbose
         self.info['filenames'] = fnames
         self.proj = proj
-        self._projector = raws[0]._projector
-        self._projector_hash = raws[0]._projector_hash
+        self._projectors = [r._projectors[0] for r in raws]
+        self._projector_hashes = [r._projector_hashes[0] for r in raws]
+
+        self._projs_match = True
+        if not all(ph == self._projector_hashes[0]
+                   for ph in self._projector_hashes):
+            self.projs_match = False
 
         if preload:
             self._preload_data(preload)
@@ -239,8 +244,11 @@ class Raw(object):
         raw.info = info
         raw.verbose = verbose
         raw.proj = proj
-        raw._projector, raw.info = setup_proj(raw.info)
-        raw._projector_hash = _hash_projs(raw.info['projs'], raw._projector)
+        out = setup_proj(raw.info)
+        raw._projectors = [out[0]]
+        raw.info = out[1]
+        raw._projector_hashes = [_hash_projs(raw.info['projs'], 
+                                             raw._projectors[0])]
         return raw
 
     def _parse_get_set_params(self, item):
@@ -287,10 +295,9 @@ class Raw(object):
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
-            print self._data.shape
             data, times = self._data[sel, start:stop], self._times[start:stop]
             was_updated = self._update_projector()
-            if was_updated:
+            if was_updated and self.proj:
                 raise RuntimeError('Changing projector after preloading data '
                                    'is not allowed')
         else:
@@ -508,7 +515,11 @@ class Raw(object):
         self.proj = True
         self._update_projector()
         if self._preloaded:
-            self._data = np.dot(self._projector, self._data)
+            if self._projs_match:
+                self._data = np.dot(self._projectors[0], self._data)
+            else:
+                raise RuntimeError('Cannot apply projectors to preloaded data '
+                                   'if they do not match')
 
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
@@ -628,10 +639,6 @@ class Raw(object):
         requested on load (if raw.proj==True), the new projectors are applied
         to the data.
 
-        Note that if data was preloaded and you wish to remove the existing
-        projectors, data must be reloaded following this operation (since
-        this is the only way to un-apply the old projectors).
-
         Parameters
         ----------
         projs : list
@@ -640,19 +647,27 @@ class Raw(object):
         remove_existing : bool
             Remove the projection vectors currently in the file
         """
-        projs = copy.deepcopy(projs)
 
-        if remove_existing:
-            self.info['projs'] = projs
+        if self._projs_match:
+            projs = copy.deepcopy(projs)
+    
+            if remove_existing:
+                if self.proj and self._preloaded:
+                    raise ValueError('Cannot remove projectors from preloaded data'
+                                     ' that have had projectors applied')
+                self.info['projs'] = projs
+            else:
+                self.info['projs'].extend(projs)
+            self._update_projector()
+    
+            if self.proj:
+                self.apply_projector()
         else:
-            self.info['projs'].extend(projs)
-        self._update_projector()
-
-        if self.proj:
-            self.apply_projector()
+            raise ValueError('Cannot add projectors when projectors from '
+                             'raw files do not match')
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=None):
+             drop_small_buffer=False, proj_active=None, projs_replace=None):
         """Save raw data to file
 
         Parameters
@@ -680,6 +695,9 @@ class Raw(object):
         proj_active: bool or None
             If True/False, the data is saved with the projections set to
             active/inactive. If None, True/False is inferred from self.proj.
+            
+        projs_replace : projs
+            If not None, raw.info['projs'] will be replaced by projs_replace.
 
         """
         if any([fname == f for f in self.info['filenames']]):
@@ -690,6 +708,9 @@ class Raw(object):
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
+
+        if projs_replace is not None:
+            self.info['projs'] = projs_replace
 
         # if proj is off, deactivate projs so data isn't saved with them on
         # don't have to worry about activating them because they default to on
@@ -809,7 +830,12 @@ class Raw(object):
             raws = [raws]
 
         check_raw_compatibility(raws)
-
+        if self._projs_match:
+            for r in raws:
+                if not all(ph == self._projector_hashes[0]
+                   for ph in r._projector_hashes):
+                       self._projs_match = False
+        
         # deal with preloading data first (while files are separate)
         all_preloaded = self._preloaded and all(r._preloaded for r in raws)
         if preload is None:
@@ -858,6 +884,7 @@ class Raw(object):
             self._first_samps.extend(r._first_samps)
             self._last_samps.extend(r._last_samps)
             self._raw_lens.extend(r._raw_lens)
+            self._projector_hashes.extend(r._projector_hashes)
             self.rawdirs.extend(r.rawdirs)
             self.fids.extend(r.fids)
             self.info['filenames'].extend(r.info['filenames'])
@@ -873,13 +900,14 @@ class Raw(object):
 
     def _update_projector(self):
         """Update hash new projector variables and
-        update ._projector if it is necessary
+        update ._projectors if it is necessary
         """
-        new_hash = _hash_projs(self.info['projs'], self._projector)
-        if not new_hash == self._projector_hash:
-            self._projector, self.info = setup_proj(self.info)
-            self._projector_hash = _hash_projs(self.info['projs'],
-                                               self._projector)
+
+        new_hash = _hash_projs(self.info['projs'], self._projectors[0])
+        if not new_hash == self._projector_hashes[0]:
+            self._projectors[0], self.info = setup_proj(self.info)
+            self._projector_hashes[0] = _hash_projs(self.info['projs'],
+                                               self._projectors[0])
             return True
         else:
             return False
@@ -893,8 +921,8 @@ class _RawShell():
         self.cals = None
         self.rawdir = None
         self.proj = None
-        self._projector = None
-        self._projector_hash = None
+        self._projectors = None
+        self._projector_hashes = None
 
 
 def _hash_projs(projs, projector):
@@ -969,11 +997,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     raw._update_projector()
     if raw.proj:
-        mult = np.diag(raw.cals.ravel())
-        if raw.comp is not None:
-            mult = np.dot(raw.comp[idx, :], mult)
-        if raw._projector is not None:
-            mult = np.dot(raw._projector, mult)
+        mult = list()
+        for ri in range(len(raw._raw_lens)):
+            mult.append(np.diag(raw.cals.ravel()))
+            if raw.comp is not None:
+                mult[ri] = np.dot(raw.comp[idx, :], mult[ri])
+            if raw._projectors[0] is not None:
+                mult[ri] = np.dot(raw._projectors[0], mult[ri])
     else:
         mult = None
 
@@ -1026,7 +1056,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                     one = tag.data.reshape(this['nsamp'],
                                            nchan).astype(dtype).T
                     if mult is not None:  # use proj + cal factors in mult
-                        one = np.dot(mult, one)
+                        one = np.dot(mult[fi], one)
                         one = one[idx]
                     else:  # apply just the calibration factors
                         one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
@@ -1259,8 +1289,6 @@ def check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)
-        if not raw[ri]._projector_hash == raw[0]._projector_hash:
-            raise ValueError('raw[%d] projectors must match')
 
 
 def concatenate_raws(raws, preload=None):

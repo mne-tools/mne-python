@@ -90,6 +90,15 @@ def test_multiple_files():
             # these are almost_equals because of possible dtype differences
             assert_array_almost_equal(orig, raw_combo[:, ti][0])
 
+    # deal with different projectors
+    raw.add_proj([], remove_existing=True)
+    # this shoud append, but the projectors shouldn't match
+    raw.append(Raw(fif_fname, preload=True))
+    # which means it should throw an error here
+    assert_raises(RuntimeError, raw.apply_projector)
+    # and here
+    assert_raises(ValueError, raw.add_proj, [])
+
 
 def test_load_bad_channels():
     """ Test reading/writing of bad channels """
@@ -252,7 +261,7 @@ def test_proj():
         # Use all sensors and a couple time points so projection works
         data, times = raw[:, 0:2]
         raw.apply_projector()
-        projector = raw._projector
+        projector = raw._projectors[0]
         data_proj_1 = np.dot(projector, data)
         data_proj_2, _ = raw[:, 0:2]
         assert_array_almost_equal(data_proj_1, data_proj_2)
