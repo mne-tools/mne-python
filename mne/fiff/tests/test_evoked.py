@@ -54,3 +54,18 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
     assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+
+def test_io_multi_evoked():
+    """Test IO for multiple evoked datasets
+    """
+    aves = read_evoked(fname, [0, 1, 2, 3])
+    write_evoked('evoked.fif', aves)
+    aves2 = read_evoked('evoked.fif', [0, 1, 2, 3])
+    for [ave, ave2] in zip(aves, aves2):
+        assert_array_almost_equal(ave.data, ave2.data)
+        assert_array_almost_equal(ave.times, ave2.times)
+        assert_equal(ave.nave, ave2.nave)
+        assert_equal(ave.aspect_kind, ave2.aspect_kind)
+        assert_equal(ave.last, ave2.last)
+        assert_equal(ave.first, ave2.first)

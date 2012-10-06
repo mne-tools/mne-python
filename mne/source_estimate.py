@@ -56,13 +56,13 @@ def read_stc(filename):
     stc['tstep'] /= 1000.0
 
     # read number of vertices/sources
-    vertices_n = int(np.fromfile(fid, dtype=">I4", count=1))
+    vertices_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
     # read the source vector
-    stc['vertices'] = np.fromfile(fid, dtype=">I4", count=vertices_n)
+    stc['vertices'] = np.fromfile(fid, dtype=">u4", count=vertices_n)
 
     # read the number of timepts
-    data_n = int(np.fromfile(fid, dtype=">I4", count=1))
+    data_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
     if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
         raise ValueError('incorrect stc file size')
@@ -99,12 +99,12 @@ def write_stc(filename, tmin, tstep, vertices, data):
     # write sampling rate in ms
     fid.write(np.array(1000 * tstep, dtype='>f4').tostring())
     # write number of vertices
-    fid.write(np.array(vertices.shape[0], dtype='>I4').tostring())
+    fid.write(np.array(vertices.shape[0], dtype='>u4').tostring())
     # write the vertex indices
-    fid.write(np.array(vertices, dtype='>I4').tostring())
+    fid.write(np.array(vertices, dtype='>u4').tostring())
 
     # write the number of timepts
-    fid.write(np.array(data.shape[1], dtype='>I4').tostring())
+    fid.write(np.array(data.shape[1], dtype='>u4').tostring())
     #
     # write the data
     #
