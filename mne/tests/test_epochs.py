@@ -3,7 +3,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 import copy as cp
@@ -84,6 +84,25 @@ def test_evoked_arithmetic():
     assert_true(evoked_sum.nave == (evoked1.nave + evoked2.nave))
     evoked_diff = evoked1 - evoked1
     assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+
+
+def test_evoked_stderr():
+    """Test calculation and read/write of standard error
+    """
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0))
+    evoked = [epochs.average(), epochs.stderr()]
+    fiff.write_evoked('evoked.fif', evoked)
+    evoked2 = fiff.read_evoked('evoked.fif', [0, 1])
+    assert_true(evoked2[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+    assert_true(evoked2[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+    for ave, ave2 in zip(evoked, evoked2):
+        assert_array_almost_equal(ave.data, ave2.data)
+        assert_array_almost_equal(ave.times, ave2.times)
+        assert_equal(ave.nave, ave2.nave)
+        assert_equal(ave.aspect_kind, ave2.aspect_kind)
+        assert_equal(ave.last, ave2.last)
+        assert_equal(ave.first, ave2.first)
 
 
 def test_reject_epochs():
@@ -219,6 +238,7 @@ def test_crop():
     assert_array_equal(data2, data_normal[:, :, tmask])
     assert_array_equal(data3, data_normal[:, :, tmask])
 
+
 def test_resample():
     """Test of resample of epochs
     """
@@ -229,7 +249,7 @@ def test_resample():
     times_normal = cp.deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
-    epochs.resample(sfreq_normal*2)
+    epochs.resample(sfreq_normal * 2)
     data_up = cp.deepcopy(epochs.get_data())
     times_up = cp.deepcopy(epochs.times)
     sfreq_up = epochs.info['sfreq']
@@ -239,13 +259,14 @@ def test_resample():
     times_new = cp.deepcopy(epochs.times)
     sfreq_new = epochs.info['sfreq']
 
-    assert_true(data_up.shape[2] == 2*data_normal.shape[2])
-    assert_true(sfreq_up == 2*sfreq_normal)
+    assert_true(data_up.shape[2] == 2 * data_normal.shape[2])
+    assert_true(sfreq_up == 2 * sfreq_normal)
     assert_true(sfreq_new == sfreq_normal)
-    assert_true(len(times_up) == 2*len(times_normal))
+    assert_true(len(times_up) == 2 * len(times_normal))
     assert_array_almost_equal(times_new, times_normal, 10)
-    assert_true(data_up.shape[2] == 2*data_normal.shape[2])
+    assert_true(data_up.shape[2] == 2 * data_normal.shape[2])
     assert_array_almost_equal(data_new, data_normal, 2)
+
 
 def test_bootstrap():
     """Test of bootstrapping of epochs
