@@ -40,8 +40,6 @@ def test_multiple_files():
 
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=False)
-    print (raw.first_samp, all_raw_1.first_samp)
-    print (raw.last_samp, all_raw_1.last_samp)
     assert_true(raw.first_samp == all_raw_1.first_samp)
     assert_true(raw.last_samp == all_raw_1.last_samp)
     assert_array_almost_equal(raw[:, :][0], all_raw_1[:, :][0])
