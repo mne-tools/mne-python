@@ -104,7 +104,7 @@ class Epochs(object):
         2D array [n_channels x n_times].
 
     stderr() : self
-        Return Evoked object containing standard error ovr epochs as a
+        Return Evoked object containing standard deviation over epochs as a
         2D array [n_channels x n_times].
 
     drop_bad_epochs() : None
@@ -385,7 +385,7 @@ class Epochs(object):
                 epochs._data = self._data[key]
         return epochs
 
-    def average(self, keep_only_data_channels=True, _do_stderr=False):
+    def average(self, keep_only_data_channels=True):
         """Compute average of epochs
 
         Parameters
@@ -399,13 +399,55 @@ class Epochs(object):
         evoked : Evoked instance
             The averaged epochs
         """
+        return self._compute_mean_or_std(keep_only_data_channels, 'ave')
+
+    def std(self, keep_only_data_channels=True):
+        """Compute standard deviation over epochs
+
+        Parameters
+        ----------
+        keep_only_data_channels: bool
+            If False, all channels with be kept. Otherwise
+            only MEG and EEG channels are kept.
+
+        Returns
+        -------
+        evoked : Evoked instance
+            The stdandard deviation over epochs
+        """
+        return self._compute_mean_or_std(keep_only_data_channels, 'std')
+
+    def stderr(self, keep_only_data_channels=True):
+        """Compute standard error over epochs
+
+        Parameters
+        ----------
+        keep_only_data_channels: bool
+            If False, all channels with be kept. Otherwise
+            only MEG and EEG channels are kept.
+
+        Returns
+        -------
+        evoked : Evoked instance
+            The stdandard error over epochs
+        """
+        evoked = self._compute_mean_or_std(keep_only_data_channels, 'std')
+        evoked.data = evoked.data / np.sqrt(evoked.nave)
+        return evoked
+
+    def _compute_mean_or_std(self, keep_only_data_channels, mode='ave'):
+        """Compute the mean or std over epochs and return Evoked"""
+        if mode == 'std':
+            _do_std = True
+        else:
+            _do_std = False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
             n_events = len(self.events)
-            if not _do_stderr:
+            if not _do_std:
                 data = np.mean(self._data, axis=0)
             else:
                 data = np.std(self._data, axis=0)
@@ -419,7 +461,7 @@ class Epochs(object):
             data /= n_events
             # convert to stderr if requested, could do in one pass but do in
             # two (slower) in case there are large numbers
-            if _do_stderr:
+            if _do_std:
                 data_mean = cp.copy(data)
                 data[:, :] = 0
                 for e in self:
@@ -429,7 +471,7 @@ class Epochs(object):
         evoked.data = data
         evoked.times = self.times.copy()
         evoked.comment = self.name
-        if not _do_stderr:
+        if not _do_std:
             evoked.aspect_kind = np.array([FIFF.FIFFV_ASPECT_AVERAGE])
         else:
             evoked.aspect_kind = np.array([FIFF.FIFFV_ASPECT_STD_ERR])
@@ -451,22 +493,6 @@ class Epochs(object):
             evoked.info['nchan'] = len(data_picks)
             evoked.data = evoked.data[data_picks]
         return evoked
-
-    def stderr(self, keep_only_data_channels=True):
-        """Compute standard error over epochs
-
-        Parameters
-        ----------
-        keep_only_data_channels: bool
-            If False, all channels with be kept. Otherwise
-            only MEG and EEG channels are kept.
-
-        Returns
-        -------
-        evoked : Evoked instance
-            The stdandard error over epochs
-        """
-        return self.average(keep_only_data_channels, True)
 
     def crop(self, tmin=None, tmax=None, copy=False):
         """Crops a time interval from epochs object.
