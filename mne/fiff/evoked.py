@@ -405,9 +405,8 @@ def read_evoked(fname, setno=0, baseline=None):
 
     Returns
     -------
-    data: dict, or list of dicts
-        The evoked dataset. If setnos was a list, data is a liste of
-        Evoked instances.
+    evoked : instance of Evoked or list of Evoked
+        The evoked datasets
     """
     if isinstance(setno, list):
         return [Evoked(fname, s, baseline=baseline) for s in setno]
@@ -423,7 +422,7 @@ def write_evoked(fname, evoked):
     fname : string
         The file name.
 
-    evoked : Evoked instance, or list of Evoked
+    evoked : instance of Evoked, or list of Evoked
         The evoked dataset to save, or a list of evoked datasets to save
         in one file. Note that the measurement info from the first evoked
         instance is used, so be sure that information matches.
