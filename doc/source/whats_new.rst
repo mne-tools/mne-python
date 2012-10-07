@@ -25,6 +25,8 @@ Changelog
 
    - Support for applied SSP projections when loading Raw by `Eric Larson`_ and `Alex Gramfort`_
 
+   - Support for loading Raw stored in different fif files by `Eric Larson`_
+
 API
 ~~~
 
