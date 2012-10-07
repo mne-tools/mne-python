@@ -460,18 +460,20 @@ def plot_ica_panel(ica, start, stop, target='raw', source_idx=None, ncol=3,
     hangover = n_components % ncol
     nplots = nrow * ncol
 
-    if sources.shape[0] > nplots:
-        print ('Warning. More sources available than rows and cols specified.'
+    if source_idx != None:
+        sources = sources[source_idx]
+    if source_idx == None:
+        source_idx = np.arange(ica.n_components)
+    elif source_idx.shape > 30:
+        print ('More sources selected than rows and cols specified.'
                'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
-    if source_idx != None:
-        sources = sources[source_idx, :]
 
     sources = sources[:, start:stop]
     ylims = sources.min(), sources.max()
     fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
-    fig.suptitle('MEG signal decomposition -- %i independent '
-                 'components.' % n_components, size=16)
+    fig.suptitle('MEG signal decomposition'
+                 ' -- %i components.' % n_components, size=16)
 
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 
@@ -480,9 +482,10 @@ def plot_ica_panel(ica, start, stop, target='raw', source_idx=None, ncol=3,
         xs = panel_axes[row, col]
         xs.grid(linestyle='-', color='gray', linewidth=.25)
         if idx < n_components:
-            component = '[%i]' % (ica.source_ids[idx] + 1)
+            component = '[%i]' % (ica.source_ids[idx])
             xs.plot(sources[idx], linewidth=0.5, color='red')
-            xs.text(0.05, .95, component, transform=panel_axes[row, col].transAxes,
+            xs.text(0.05, .95, component,
+                    transform=panel_axes[row, col].transAxes,
                     verticalalignment='top')
             pl.ylim(ylims)
         else:
@@ -502,3 +505,4 @@ def plot_ica_panel(ica, start, stop, target='raw', source_idx=None, ncol=3,
         pl.setp(xtl, rotation=90.)
 
     return fig
+
