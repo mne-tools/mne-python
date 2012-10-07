@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
-from mne.layouts import make_eeg_layout, Layout
+
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')

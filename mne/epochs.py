@@ -234,7 +234,7 @@ class Epochs(object):
 
         good_events = []
         n_events = len(self.events)
-        drop_log = [[]]*n_events
+        drop_log = [[] for _ in range(n_events)]
         for idx in range(n_events):
             epoch = self._get_epoch_from_disk(idx)
             is_good, offenders = self._is_good_epoch(epoch)
@@ -246,7 +246,6 @@ class Epochs(object):
         self.drop_log = drop_log
         self.events = np.atleast_2d(self.events[good_events])
         self._bad_dropped = True
-
         print "%d bad epochs dropped" % (n_events - len(good_events))
 
     def _get_epoch_from_disk(self, idx):

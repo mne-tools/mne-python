@@ -647,8 +647,8 @@ class Raw(object):
 
             if remove_existing:
                 if self.proj and self._preloaded:
-                    raise ValueError('Cannot remove projectors from preloaded data'
-                                     ' that have had projectors applied')
+                    raise ValueError('Cannot remove projectors from preloaded '
+                                     'data that have had projectors applied')
                 self.info['projs'] = projs
             else:
                 self.info['projs'].extend(projs)
@@ -828,8 +828,8 @@ class Raw(object):
         if self._projs_match:
             for r in raws:
                 if not all(ph == self._projector_hashes[0]
-                   for ph in r._projector_hashes):
-                       self._projs_match = False
+                           for ph in r._projector_hashes):
+                    self._projs_match = False
 
         # deal with preloading data first (while files are separate)
         all_preloaded = self._preloaded and all(r._preloaded for r in raws)
