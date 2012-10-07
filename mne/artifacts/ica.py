@@ -28,6 +28,8 @@ class ICA(object):
         starting time slice
     stop : integer
         final time slice
+    exlude : list
+        names of channels to exclude used for computing the whitener.
 
     Attributes
     ----------
@@ -35,8 +37,6 @@ class ICA(object):
         raw object used for initializing the ica seed
     n_components : integer
         number of components to be extracted
-    comp_picks : ndrarray
-        components selection array
     whitener : ndrarray
         whiter used for preprocessing
     seed : instance of FastICA
@@ -52,10 +52,6 @@ class ICA(object):
         self.raw = raw
         self.n_components = n_components
         self._cov = True if noise_cov != None else False
-        _n_comps = n_components if n_components != None else picks.shape[0]
-
-        self.comp_picks = np.zeros(_n_comps, dtype=np.bool)
-        self.comp_picks.fill(True)
         self.source_ids = np.arange(n_components)
         self.sorted_by = 'unsorted'
 
@@ -84,13 +80,17 @@ class ICA(object):
             nsel_msg = str(self.n_selected)
         out += ' (%s active)' % nsel_msg
         if hasattr(self, 'raw_sources'):
-            out += ('\n    %i raw time slices' % self.n_selected)
+            n_samples = self.raw_sources.shape[1]
+            out += ('\n    %i raw time slices' % n_samples)
+        out += '\n    sorted by %s' % self.sorted_by
         return out
 
-    def sort_sources(self, sources='raw', smethod='kurtosis'):
+    def sort_sources(self, sources='raw', smethod='skew', inplace=True):
         """
         Paramerters
         -----------
+        sources : str
+            string for selecting the sources
         sort_method : string
             function used to sort the sources and the mixing matrix.
             If None, the output will be left unsorted
@@ -112,7 +112,7 @@ class ICA(object):
                            'The function needs an array and'
                            'an axis argument' % smethod.__name__)
         elif isinstance(smethod, str):
-            ValueError('%s is not a valid sorting option' % smethod.__name__)
+            ValueError('%s is not a valid sorting option' % smethod)
 
         self.sorted_by = sort_func.__name__
 
@@ -129,13 +129,17 @@ class ICA(object):
         self.source_ids = self.source_ids[sort_args]
 
         if sources == 'raw':
-            self.raw_sources = S
-            self.raw_mixing = A
+            if inplace:
+                self.raw_sources = S
+                self.raw_mixing = A
         else:
             # A = self.epochs_sources
             return NotImplemented  # not implemented
 
-    def fit_raw(self, smethod='kurtosis'):
+        if not inplace:
+            return S, A
+
+    def fit_raw(self, smethod='skew'):
         """ Run the ica decomposition for raw data
         Paramerters
         -----------
@@ -161,7 +165,7 @@ class ICA(object):
     def fit_epochs(self, epochs, picks):
         pass
 
-    def denoise_raw(self, bads=[]):
+    def denoise_raw(self, bads=[], make_raw=False):
         """ Recompose raw data
 
         Paramerters
@@ -174,27 +178,30 @@ class ICA(object):
         out : n pickked channels x n time slices ndrarray
             denoised raw data
         """
-        comp_picks = self.comp_picks.copy()
+        w = self.whitener
+        if self._cov == False:
+            w **= -1
+        if self.sorted_by != 'unsorted':
+            raw_sources, raw_mixing = self.sort_sources(smethod='back',
+                                                        inplace=False)
+        else:
+            raw_sources = self.raw_sources.copy()
+            raw_mixing = self.raw_mixing.copy()
         if bads != None:
-            comp_picks.put(bads, False)
-        w = self.whitener ** -1 if self._cov == False else self.whitener
-        raw_sources = self.raw_sources.copy()
-        raw_sources.put(comp_picks, 0)
-        out = np.dot(raw_sources.T, w.T * self.raw_mixing)
-        return out.T
+            source_ids = self.source_ids.tolist()
+            bads_idx = [source_ids.index(bad) for bad in bads]
+            raw_sources[bads_idx, :] = 0
+        out = np.dot(raw_sources.T, w.T * raw_mixing).T
+
+        if make_raw == True:
+            raw = self.raw.copy()
+            raw._data[self.picks] = out
+            return raw
+
+        return out
 
     def denoise_epochs(self, bads=[]):
         pass
-
-    def set_comps(self, comps, state=False):
-        """ Permanently set good and bad components
-
-        Paramerters
-        -----------
-        comps: list-like
-            indices for component selection
-        """
-        self.comp_picks.put(comps, state)
 
     @property
     def n_selected(self):
