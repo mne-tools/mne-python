@@ -264,46 +264,7 @@ class Evoked(object):
         fname : string
             Name of the file where to save the data.
         """
-
-        # Create the file and save the essentials
-        fid = start_file(fname)
-
-        start_block(fid, FIFF.FIFFB_MEAS)
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
-
-        # Write measurement info
-        write_meas_info(fid, self.info)
-
-        # One or more evoked data sets
-        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        start_block(fid, FIFF.FIFFB_EVOKED)
-
-        # Comment is optional
-        if len(self.comment) > 0:
-            write_string(fid, FIFF.FIFF_COMMENT, self.comment)
-
-        # First and last sample
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, self.first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, self.last)
-
-        # The epoch itself
-        start_block(fid, FIFF.FIFFB_ASPECT)
-
-        write_int(fid, FIFF.FIFF_ASPECT_KIND, self.aspect_kind)
-        write_int(fid, FIFF.FIFF_NAVE, self.nave)
-
-        decal = np.zeros((self.info['nchan'], self.info['nchan']))
-        for k in range(self.info['nchan']):
-            decal[k, k] = 1.0 / self.info['chs'][k]['cal']
-
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, self.data))
-        end_block(fid, FIFF.FIFFB_ASPECT)
-        end_block(fid, FIFF.FIFFB_EVOKED)
-        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
+        write_evoked(fname, self)
 
     def __repr__(self):
         s = "comment : %s" % self.comment
@@ -358,7 +319,7 @@ class Evoked(object):
 
         Parameters
         ----------
-        sfreq: float
+        sfreq : float
             New sample rate to use
         npad : int
             Amount to pad the start and end of the data. If None,
@@ -426,14 +387,14 @@ def read_evoked(fname, setno=0, baseline=None):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The file name.
 
-    setno: int
-        The index of the evoked dataset to read. FIF
+    setno : int, or list of int
+        The index or list of indices of the evoked dataset to read. FIF
         file can contain multiple datasets.
 
-    baseline: None (default) or tuple of length 2
+    baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -444,21 +405,70 @@ def read_evoked(fname, setno=0, baseline=None):
 
     Returns
     -------
-    data: dict
-        The evoked dataset
+    evoked : instance of Evoked or list of Evoked
+        The evoked datasets
     """
-    return Evoked(fname, setno, baseline=baseline)
+    if isinstance(setno, list):
+        return [Evoked(fname, s, baseline=baseline) for s in setno]
+    else:
+        return Evoked(fname, setno, baseline=baseline)
 
 
-def write_evoked(name, evoked):
+def write_evoked(fname, evoked):
     """Write an evoked dataset to a file
 
     Parameters
     ----------
-    name: string
+    fname : string
         The file name.
 
-    evoked: object of type Evoked
-        The evoked dataset to save
+    evoked : instance of Evoked, or list of Evoked
+        The evoked dataset to save, or a list of evoked datasets to save
+        in one file. Note that the measurement info from the first evoked
+        instance is used, so be sure that information matches.
     """
-    evoked.save(name)
+
+    if not isinstance(evoked, list):
+        evoked = [evoked]
+
+    # Create the file and save the essentials
+    fid = start_file(fname)
+
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if evoked[0].info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
+
+    # Write measurement info
+    write_meas_info(fid, evoked[0].info)
+
+    # One or more evoked data sets
+    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    for e in evoked:
+        start_block(fid, FIFF.FIFFB_EVOKED)
+
+        # Comment is optional
+        if len(e.comment) > 0:
+            write_string(fid, FIFF.FIFF_COMMENT, e.comment)
+
+        # First and last sample
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
+        write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
+
+        # The epoch itself
+        start_block(fid, FIFF.FIFFB_ASPECT)
+
+        write_int(fid, FIFF.FIFF_ASPECT_KIND, e.aspect_kind)
+        write_int(fid, FIFF.FIFF_NAVE, e.nave)
+
+        decal = np.zeros((e.info['nchan'], e.info['nchan']))
+        for k in range(e.info['nchan']):
+            decal[k, k] = 1.0 / e.info['chs'][k]['cal']
+
+        write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, e.data))
+        end_block(fid, FIFF.FIFFB_ASPECT)
+        end_block(fid, FIFF.FIFFB_EVOKED)
+
+    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)

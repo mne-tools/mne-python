@@ -49,7 +49,7 @@ def test_compute_proj():
             p1_data = p1_data[:, mask]
             p2_data = p2_data[:, mask]
         corr = np.corrcoef(p1_data, p2_data)[0, 1]
-        assert_array_almost_equal(corr, 1.0, 7)
+        assert_array_almost_equal(corr, 1.0, 5)
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
