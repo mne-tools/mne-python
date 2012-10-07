@@ -489,7 +489,7 @@ def _write_one_source_space(fid, this):
     # #   Patch-related information
     # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST)
     # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST)
-
+    #
     # if tag1 is None or tag2 is None:
     #     res['nearest'] = None
     #     res['nearest_dist'] = None
@@ -500,3 +500,17 @@ def _write_one_source_space(fid, this):
     # res['pinfo'] = patch_info(res['nearest'])
     # if res['pinfo'] is not None:
     #     print 'Patch information added...',
+    #
+    # #   Distances
+    # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
+    # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT)
+    # if tag1 is None or tag2 is None:
+    #     res['dist'] = None
+    #     res['dist_limit'] = None
+    # else:
+    #     res['dist'] = tag1.data
+    #     res['dist_limit'] = tag2.data
+    #    #   Add the upper triangle
+    #     res['dist'] = res['dist'] + res['dist'].T
+    # if (res['dist'] is not None) and verbose:
+    #     print 'Distance information added...',
