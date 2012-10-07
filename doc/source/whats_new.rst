@@ -27,6 +27,8 @@ Changelog
 
    - Support for loading Raw stored in different fif files by `Eric Larson`_
 
+   - IO of many Evoked in a single fif file + compute Epochs.standard_error by `Eric Larson`_ and `Alex Gramfort`_
+
 API
 ~~~
 
