@@ -354,7 +354,7 @@ class Evoked(object):
 def merge_evoked(all_evoked):
     """Merge/concat evoked data
 
-    Data should have the same channels and the time instants.
+    Data should have the same channels and the same time instants.
 
     Parameters
     ----------

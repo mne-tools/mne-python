@@ -86,12 +86,12 @@ def test_evoked_arithmetic():
     assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
 
 
-def test_evoked_stderr():
+def test_evoked_standard_error():
     """Test calculation and read/write of standard error
     """
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
-    evoked = [epochs.average(), epochs.stderr()]
+    evoked = [epochs.average(), epochs.standard_error()]
     fiff.write_evoked('evoked.fif', evoked)
     evoked2 = fiff.read_evoked('evoked.fif', [0, 1])
     assert_true(evoked2[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
