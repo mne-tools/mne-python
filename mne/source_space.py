@@ -52,7 +52,7 @@ def patch_info(nearest):
     return pinfo
 
 
-def read_source_spaces_from_tree(fid, tree, add_geom=False):
+def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=True):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -66,6 +66,9 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
     add_geom: bool, optional (default False)
         Add geometry information to the surfaces
 
+    verbose:
+        If True print status messages
+
     Returns
     -------
     src: list
@@ -78,20 +81,23 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
 
     src = list()
     for s in spaces:
-        print '    Reading a source space...',
-        this = _read_one_source_space(fid, s)
-        print '[done]'
+        if verbose:
+            print '    Reading a source space...',
+        this = _read_one_source_space(fid, s, verbose=verbose)
+        if verbose:
+            print '[done]'
         if add_geom:
-            complete_source_space_info(this)
+            complete_source_space_info(this, verbose=verbose)
 
         src.append(this)
 
-    print '    %d source spaces read' % len(spaces)
+    if verbose:
+        print '    %d source spaces read' % len(spaces)
 
     return src
 
 
-def read_source_spaces(fname, add_geom=False):
+def read_source_spaces(fname, add_geom=False, verbose=True):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -108,10 +114,11 @@ def read_source_spaces(fname, add_geom=False):
         The list of source spaces
     """
     fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                        verbose=verbose)
 
 
-def _read_one_source_space(fid, this):
+def _read_one_source_space(fid, this, verbose=True):
     """Read one source space
     """
     FIFF_BEM_SURF_NTRI = 3104
@@ -164,7 +171,7 @@ def _read_one_source_space(fid, this):
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
         if tag is not None:
             res['interpolator'] = tag.data
-        else:
+        elif verbose:
             print "Interpolation matrix for MRI not found."
 
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
@@ -279,17 +286,32 @@ def _read_one_source_space(fid, this):
         res['nearest_dist'] = tag2.data.T
 
     res['pinfo'] = patch_info(res['nearest'])
-    if res['pinfo'] is not None:
+    if (res['pinfo'] is not None) and verbose:
         print 'Patch information added...',
+
+    #   Distances
+    tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
+    tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT)
+    if tag1 is None or tag2 is None:
+        res['dist'] = None
+        res['dist_limit'] = None
+    else:
+        res['dist'] = tag1.data
+        res['dist_limit'] = tag2.data
+        #   Add the upper triangle
+        res['dist'] = res['dist'] + res['dist'].T
+    if (res['dist'] is not None) and verbose:
+        print 'Distance information added...',
 
     return res
 
 
-def complete_source_space_info(this):
+def complete_source_space_info(this, verbose=True):
     """Add more info on surface
     """
     #   Main triangulation
-    print '    Completing triangulation info...',
+    if verbose:
+        print '    Completing triangulation info...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -299,10 +321,12 @@ def complete_source_space_info(this):
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
     this['tri_nn'] /= size[:, None]
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     #   Selected triangles
-    print '    Completing selection triangulation info...',
+    if verbose:
+        print '    Completing selection triangulation info...',
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0], :]
         r2 = this['rr'][this['use_tris'][:, 1], :]
@@ -311,8 +335,8 @@ def complete_source_space_info(this):
         this['use_tri_nn'] = np.cross((r2 - r1), (r3 - r1))
         this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
                                        ) / 2.0
-
-    print '[done]'
+    if verbose:
+        print '[done]'
 
 
 def find_source_space_hemi(src):

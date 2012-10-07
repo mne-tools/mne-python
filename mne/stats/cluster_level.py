@@ -280,7 +280,7 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
     else:
         # new surrogate data with specific sign flip
         signs = 2 * np.fromiter(np.binary_repr(rng, n_samples),
-                                dtype=int)[:,np.newaxis] - 1
+                                dtype=int)[:,None] - 1
     X_copy *= signs
 
     # Recompute statistic on randomized data
@@ -402,3 +402,43 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
 
 
 permutation_cluster_1samp_test.__test__ = False
+
+
+def stat_fun_ttest_no_p(X):
+    """t-test with no p-value calculation
+
+    Notes
+    -----
+    One can use the conversion:
+        threshold = -stats.distributions.t.ppf(p_thresh, n_samples)
+    to converting a desired p-value threshold to t-value threshold
+
+    that for two-tailed tests, p_thresh should be divided by 2"""
+    return np.mean(X, axis=0) \
+        / np.sqrt(np.var(X, axis=0, ddof=1) / X.shape[0])
+
+
+def spatio_temporal_cluster_test(X, threshold=None, tail=0, stat_fun=None,
+                                 connectivity=None, n_permutations=1024,
+                                 n_jobs=1, seed=0, verbose=5):
+
+    n_samples, n_times, n_vertices = X.shape
+
+    if stat_fun is None:
+        stat_fun = stat_fun_ttest_no_p
+
+    if threshold is None:
+        p_thresh = 0.05 / (1 + (tail == 0))
+        threshold = -stats.distributions.t.ppf(p_thresh, n_samples)
+        if np.sign(tail) < 0:
+            threshold = -threshold
+
+    # make it contiguous
+    X = np.ascontiguousarray(X.reshape(n_samples, -1))
+
+    # do the heavy lifting
+    out = permutation_cluster_1samp_test(X, threshold=threshold,
+              stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
+              connectivity=connectivity, n_jobs=n_jobs, seed=seed,
+              verbose=verbose)
+    return out

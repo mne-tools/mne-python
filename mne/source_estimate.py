@@ -935,7 +935,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     return stc_to
 
 
-def spatio_temporal_src_connectivity(src, n_times):
+def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
     """Compute connectivity for a source space activation over time
 
     Parameters
@@ -945,6 +945,14 @@ def spatio_temporal_src_connectivity(src, n_times):
 
     n_times : int
         Number of time instants
+
+    dist : float, or None
+        Maximal geodesic distance (in m) between vertices in the source space
+        to consider neighbors. If None, immediate neighbors are extracted from
+        an ico surface.
+
+    verbose : bool
+        If True, display status messages.
 
     Returns
     -------
@@ -956,23 +964,47 @@ def spatio_temporal_src_connectivity(src, n_times):
         during time 2, etc.
 
     """
-    if src[0]['use_tris'] is None:
-        raise Exception("The source space does not appear to be an ico "
-                        "surface. Connectivity cannot be extracted from "
-                        "non-ico source spaces.")
-    lh_tris = np.searchsorted(np.unique(src[0]['use_tris']),
-                              src[0]['use_tris'])
-    rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
-                              src[1]['use_tris'])
-    tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
-    return spatio_temporal_tris_connectivity(tris, n_times)
+    if dist is None:
+        if src[0]['use_tris'] is None:
+            raise Exception("The source space does not appear to be an ico "
+                            "surface. Connectivity cannot be extracted from "
+                            "non-ico source spaces.")
+        lh_tris = np.searchsorted(np.unique(src[0]['use_tris']),
+                                  src[0]['use_tris'])
+        rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
+                                  src[1]['use_tris'])
+        tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
+        return spatio_temporal_tris_connectivity(tris, n_times, verbose)
+    else:  # use distances computed and saved in the source space file
+        return spatio_temporal_dist_connectivity(src, n_times, dist, verbose)
 
 
-def spatio_temporal_tris_connectivity(tris, n_times):
+def spatio_temporal_tris_connectivity(tris, n_times, verbose=True):
     """Compute connectivity from triangles and time instants"""
     edges = mesh_edges(tris).tocoo()
+    return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
+
+
+def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
+    """Compute connectivity from distances in src and time instants"""
+    if src[0]['dist'] is None:
+        raise RuntimeError('src must have distances included, consider using\n'
+                           'mne_add_patch_info with --dist argument')
+    edges = sparse.block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
+                              for s in src])
+    edges.data[:] = np.less_equal(edges.data, dist)
+    # clean it up and put it in coo format
+    edges = edges.tocsr()
+    edges.eliminate_zeros()
+    edges = edges.tocoo()
+    return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
+
+
+def _get_connectivity_from_edges(edges, n_times, verbose=True):
+    """Given edges sparse matrix, create connectivity matrix"""
     n_vertices = edges.shape[0]
-    print "-- number of connected vertices : %d" % n_vertices
+    if verbose:
+        print "-- number of connected vertices : %d" % n_vertices
     nnz = edges.col.size
     aux = n_vertices * np.arange(n_times)[:, None] * np.ones((1, nnz), np.int)
     col = (edges.col[None, :] + aux).ravel()
@@ -991,13 +1023,13 @@ def spatio_temporal_tris_connectivity(tris, n_times):
     return connectivity
 
 
-def _get_ico_tris(grade):
+def _get_ico_tris(grade, verbose=True):
     """Get triangles for ico surface."""
     mne_root = os.environ.get('MNE_ROOT')
     if mne_root is None:
         raise Exception('Please set MNE_ROOT environment variable.')
     ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
-    surfaces = read_bem_surfaces(ico_file_name)
+    surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
     for s in surfaces:
         if s['id'] == (9000 + grade):
             ico = s
