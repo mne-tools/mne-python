@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -545,6 +546,35 @@ class Epochs(object):
                           / sfreq + self.times[0])
         else:
             raise RuntimeError('Can only resample preloaded data')
+
+    def as_data_frame(self, frame=True):
+        """Get the epochs as Pandas panel of data frames
+
+        Parameters
+        ----------
+        frame : boolean
+            If frame, data frame will be returned with a hierarchical
+            epochs * time-slices index, else a panel object of
+            channels * time-slices data frames for each epoch.
+
+        Returns
+        -------
+        out : depending on arguments
+            data frame object or panel object
+
+        """
+        import pandas as pd
+        data = self.get_data()
+        epoch_ids = ["Epoch %i" % (i + 1) for i in np.arange(data.shape[0])]
+
+        out = pd.Panel(data=data, items=epoch_ids, major_axis=self.ch_names)
+        if frame:
+            out = out.swapaxes(0, 1).to_frame()
+            out.index.names = ["epochs", "tsl"]
+        else:
+            out.swapaxes(1, 2)
+
+        return out
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
