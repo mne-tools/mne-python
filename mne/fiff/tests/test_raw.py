@@ -14,9 +14,6 @@ fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
 fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
                                'test_withbads_raw.fif')
-sp_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split_raw.fif')
-sp_1_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split-1_raw.fif')
-sp_2_fname = op.join(op.dirname(__file__), 'data', 'test_raw_split-2_raw.fif')
 bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
 bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 
@@ -24,18 +21,32 @@ bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 def test_multiple_files():
     """Test loading multiple files simultaneously"""
 
-    # test concatenation of file split by "mne_process_raw --raw test_raw.fif
-    # --split 10 --save test_raw_split.fif --projoff --filteroff"
+    # split file
     raw = Raw(fif_fname, preload=True)
-    raw1 = Raw(sp_fname)
-    raw2 = Raw(sp_1_fname)
-    raw3 = Raw(sp_2_fname)
-    all_raw_1 = concatenate_raws([raw1, raw2, raw3], preload=True)
-    raw1 = Raw(sp_fname)
-    all_raw_2 = concatenate_raws([raw1, raw2, raw3], preload=False)
+    split_size = 10.  # in seconds
+    sfreq = raw.info['sfreq']
+    nsamp = (raw.last_samp - raw.first_samp)
+    tmins = np.round(np.arange(0., nsamp, split_size * sfreq))
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+
+    # going in revere order so the last fname is the first file (need it later)
+    raws = [None] * len(tmins)
+    for ri in range(len(tmins) - 1, -1, -1):
+        fname = 'test_raw_split-%d_raw.fif' % ri
+        raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
+        raws[ri] = Raw(fname)
+
+    # test concatenation of split file
+    all_raw_1 = concatenate_raws(raws, preload=False)
+    print (raw.first_samp, all_raw_1.first_samp)
+    print (raw.last_samp, all_raw_1.last_samp)
     assert_true(raw.first_samp == all_raw_1.first_samp)
     assert_true(raw.last_samp == all_raw_1.last_samp)
     assert_array_almost_equal(raw[:, :][0], all_raw_1[:, :][0])
+    raws[0] = Raw(fname)
+    all_raw_2 = concatenate_raws(raws, preload=True)
     assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
 
     # test various methods of combining files

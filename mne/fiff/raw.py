@@ -80,14 +80,14 @@ class Raw(object):
         raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose,
                                     proj) for fname in fnames]
 
-        check_raw_compatibility(raws)
+        _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
         self.first_samp = raws[0].first_samp  # meta first sample
         self._first_samps = [r.first_samp for r in raws]
         self._last_samps = [r.last_samp for r in raws]
-        self._raw_lens = [r.last_samp - r.first_samp + 1 for r in raws]
-        self.last_samp = self.first_samp + sum(self._raw_lens) - 1
+        self._raw_lengths = [r.last_samp - r.first_samp + 1 for r in raws]
+        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
         self.proj = None
@@ -115,13 +115,7 @@ class Raw(object):
         """This function actually preloads the data"""
         nchan = self.info['nchan']
         nsamp = self.last_samp - self.first_samp + 1
-        if isinstance(preload, str):
-            # preload data using a memmap file
-            self._data = np.memmap(preload, mode='w+', dtype='float32',
-                                   shape=(nchan, nsamp))
-        else:
-            self._data = np.empty((nchan, nsamp), dtype='float32')
-
+        self._data = _alloc_data_buffer(self, nchan, nsamp, preload)
         self._data, self._times = read_raw_segment(self,
                                                    data_buffer=self._data)
 
@@ -247,7 +241,7 @@ class Raw(object):
         out = setup_proj(raw.info)
         raw._projectors = [out[0]]
         raw.info = out[1]
-        raw._projector_hashes = [_hash_projs(raw.info['projs'], 
+        raw._projector_hashes = [_hash_projs(raw.info['projs'],
                                              raw._projectors[0])]
         return raw
 
@@ -650,7 +644,7 @@ class Raw(object):
 
         if self._projs_match:
             projs = copy.deepcopy(projs)
-    
+
             if remove_existing:
                 if self.proj and self._preloaded:
                     raise ValueError('Cannot remove projectors from preloaded data'
@@ -659,7 +653,7 @@ class Raw(object):
             else:
                 self.info['projs'].extend(projs)
             self._update_projector()
-    
+
             if self.proj:
                 self.apply_projector()
         else:
@@ -667,7 +661,7 @@ class Raw(object):
                              'raw files do not match')
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=None, projs_replace=None):
+             drop_small_buffer=False, proj_active=None, projs=None):
         """Save raw data to file
 
         Parameters
@@ -682,7 +676,7 @@ class Raw(object):
         tmin : float
             Time in seconds of first sample to save
 
-        tmax : int
+        tmax : float
             Time in seconds of last sample to save
 
         buffer_size_sec : float
@@ -695,9 +689,9 @@ class Raw(object):
         proj_active: bool or None
             If True/False, the data is saved with the projections set to
             active/inactive. If None, True/False is inferred from self.proj.
-            
-        projs_replace : projs
-            If not None, raw.info['projs'] will be replaced by projs_replace.
+
+        projs : list of Projection or None
+            If not None, it will replace raw.info['projs'].
 
         """
         if any([fname == f for f in self.info['filenames']]):
@@ -709,8 +703,9 @@ class Raw(object):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
 
-        if projs_replace is not None:
-            self.info['projs'] = projs_replace
+        if projs is not None:
+            self.info = copy.deepcopy(self.info)
+            self.info['projs'] = projs
 
         # if proj is off, deactivate projs so data isn't saved with them on
         # don't have to worry about activating them because they default to on
@@ -829,13 +824,13 @@ class Raw(object):
         if not isinstance(raws, list):
             raws = [raws]
 
-        check_raw_compatibility(raws)
+        _check_raw_compatibility(raws)
         if self._projs_match:
             for r in raws:
                 if not all(ph == self._projector_hashes[0]
                    for ph in r._projector_hashes):
                        self._projs_match = False
-        
+
         # deal with preloading data first (while files are separate)
         all_preloaded = self._preloaded and all(r._preloaded for r in raws)
         if preload is None:
@@ -853,15 +848,10 @@ class Raw(object):
             # do the concatenation ourselves since preload might be a string
             nchan = self.info['nchan']
             c_ns = [self.last_samp - self.first_samp + 1]
-            c_ns.extend([r.last_samp - r.first_samp + 1 for r in raws])
+            c_ns += [r.last_samp - r.first_samp + 1 for r in raws]
             c_ns = np.cumsum(np.array(c_ns, dtype='int'))
             nsamp = c_ns[-1]
-            if isinstance(preload, str):
-                # preload data using a memmap file
-                _data = np.memmap(preload, mode='w+', dtype='float32',
-                                       shape=(nchan, nsamp))
-            else:
-                _data = np.empty((nchan, nsamp), dtype='float32')
+            _data = _alloc_data_buffer(self, nchan, nsamp, preload)
 
             if not self._preloaded:
                 _data[:, 0:c_ns[0]] = read_raw_segment(self)[0]
@@ -881,14 +871,14 @@ class Raw(object):
 
         # now combine information from each raw file to construct new self
         for r in raws:
-            self._first_samps.extend(r._first_samps)
-            self._last_samps.extend(r._last_samps)
-            self._raw_lens.extend(r._raw_lens)
-            self._projector_hashes.extend(r._projector_hashes)
-            self.rawdirs.extend(r.rawdirs)
-            self.fids.extend(r.fids)
-            self.info['filenames'].extend(r.info['filenames'])
-        self.last_samp = self.first_samp + sum(self._raw_lens) - 1
+            self._first_samps += r._first_samps
+            self._last_samps += r._last_samps
+            self._raw_lengths += r._raw_lengths
+            self._projector_hashes += r._projector_hashes
+            self.rawdirs += r.rawdirs
+            self.fids += r.fids
+            self.info['filenames'] += r.info['filenames']
+        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
     def close(self):
         [f.close() for f in self.fids]
@@ -998,7 +988,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     raw._update_projector()
     if raw.proj:
         mult = list()
-        for ri in range(len(raw._raw_lens)):
+        for ri in range(len(raw._raw_lengths)):
             mult.append(np.diag(raw.cals.ravel()))
             if raw.comp is not None:
                 mult[ri] = np.dot(raw.comp[idx, :], mult[ri])
@@ -1011,7 +1001,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     # do_debug = True
 
     # deal with having multiple files accessed by the raw object
-    cumul_lens = np.concatenate(([0], np.array(raw._raw_lens, dtype='int')))
+    cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths, dtype='int')))
     cumul_lens = np.cumsum(cumul_lens)
     files_used = np.logical_and(np.less(start, cumul_lens[1:]),
                                 np.greater_equal(stop - 1, cumul_lens[:-1]))
@@ -1274,7 +1264,7 @@ def _envelope(x):
     return np.abs(hilbert(x))
 
 
-def check_raw_compatibility(raw):
+def _check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
     for ri in range(1, len(raw)):
@@ -1289,6 +1279,17 @@ def check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)
+
+
+def _alloc_data_buffer(raw, nchan, nsamp, preload):
+    """Allocate a data buffer for preloading"""
+    if isinstance(preload, str):
+        # preload data using a memmap file
+        _data = np.memmap(preload, mode='w+', dtype='float32',
+                          shape=(nchan, nsamp))
+    else:
+        _data = np.empty((nchan, nsamp), dtype='float32')
+    return _data
 
 
 def concatenate_raws(raws, preload=None):
