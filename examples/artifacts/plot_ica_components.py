@@ -10,9 +10,10 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
 
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False)
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False,
+                            exclude=raw.info['bads'])
 
-start, stop = raw.time_to_index(100, 115)
+start, stop = raw.time_to_index(100, 160)
 
 
 ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
@@ -21,7 +22,5 @@ ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
 ica.fit_raw()
 
 start_ica, stop_ica = raw.time_to_index(100, 103)
-
-ica.sort_sources(smethod='skew')
 
 plot_ica_panel(ica, start=start_ica, stop=stop_ica)
