@@ -47,12 +47,10 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True, stim=False,
 epochs_den = mne.Epochs(raw_den, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
 
-ev_den = epochs_den.average()
-
+epochs_den.average().plot()
 
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
 
-ev = epochs.average()
-
+ev = epochs.average().plot()
