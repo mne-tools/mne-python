@@ -32,7 +32,7 @@ plot_ica_panel(ica, start=start_ica, stop=stop_ica)
 # sign and order of components is non deterministic.
 # However a distinct cardiac and one EOG component should be visible
 
-raw_den = ica.denoise_raw(bads=[16, 8], make_raw=True)
+raw_den = ica.denoise_raw(bads=[16, 23], make_raw=True)
 
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
