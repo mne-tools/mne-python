@@ -519,12 +519,12 @@ class Epochs(object):
         """
         import pandas as pd
         data = self.get_data()
-        epoch_ids = ["Epoch %i" % (i + 1) for i in np.arange(data.shape[0])]
+        epoch_ids = ["epoch %i" % (i + 1) for i in np.arange(data.shape[0])]
 
         out = pd.Panel(data=data, items=epoch_ids, major_axis=self.ch_names)
         if frame:
             out = out.swapaxes(0, 1).to_frame()
-            out.index.names = ["epochs", "tsl"]
+            out.index.names = ["epochs", "time slices"]
         else:
             out.swapaxes(1, 2)
 
