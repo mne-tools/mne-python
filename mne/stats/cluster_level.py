@@ -57,10 +57,9 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                     # for all neighboring vertices
                     bud1 = bud1[r[bud1]]
                     if bud1.size > 0:
-                        #bud1 = bud1(isin(s(bud1),neighborCell{s(ind)}));
-                        bud1 = np.any(np.equal(neighbors[s[ind]], s[bud1]),
-                                      axis=1)
-                        t_inds += bud1
+                        bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
+                                            assume_unique=True)]
+                        t_inds = np.concatenate((t_inds, bud1))
                         r[bud1] = False
                 else:
                     sel1 = bud1[r[bud1]]
@@ -70,7 +69,6 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                                      tborder[t[ind] + 1] + 1)
                     bud1 = bud1[r[bud1]]
                     if bud1.size > 0:
-                        #bud1 = bud1(isin(s(bud1),neighborCell{s(ind)}));
                         bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
                                             assume_unique=True)]
                         buddies = np.concatenate((sel1, bud1))
@@ -165,12 +163,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             x_in = np.abs(x) > threshold
             clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
         else:
-            x_in = x > threshold
-            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
             x_in = x < -threshold
+            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+            x_in = x > threshold
             out = _find_clusters_1dir(x, x_in, connectivity)
             clusters.extend(out[0])
-            np.concatenate((sums, out[1]))
+            sums = np.concatenate((sums, out[1]))
 
     return clusters, sums
 
@@ -234,7 +232,7 @@ def _pval_from_histogram(T, H0, tail):
         pval = np.array([np.sum(H0 <= t) for t in T])
     elif tail == 1:  # low tail
         pval = np.array([np.sum(H0 >= t) for t in T])
-    elif tail == 0:  # both tails
+    else:  # both tails
         pval = np.array([np.sum(abs(H0) >= abs(t)) for t in T])
 
     pval = (pval + 1.0) / (H0.size + 1.0)  # the init data is one resampling
@@ -325,7 +323,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     T_obs = stat_fun(*X)
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity, max_tstep)
+                                             connectivity)
 
     # make list of indices for random data split
     splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
