@@ -22,9 +22,9 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
     if not n_times == int(n_times):
         raise ValueError('x_in.size must be multiple of connectivity.shape[0]')
     n_times = int(n_times)
-    s = np.where(x_in)[0]
-    t = s / n_vertices
-    s = s % n_vertices
+    orig_nos = np.where(x_in)[0]
+    t = orig_nos / n_vertices
+    s = orig_nos % n_vertices
 
     tborder = np.zeros((n_times + 1 + max_tstep, 1), dtype=int)
     for ii in range(n_times):
@@ -79,7 +79,8 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                 icount += 1
             next_ind = np.where(r)[0]
             clusters[c_count] = np.zeros((n_tot), dtype=bool)
-            clusters[c_count][t_inds] = True
+            # re-reference cluster indices appropriately
+            clusters[c_count][orig_nos[t_inds]] = True
             c_count += 1
         clusters = clusters[:c_count]
     else:
@@ -163,12 +164,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             x_in = np.abs(x) > threshold
             clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
         else:
-            x_in = x < -threshold
-            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
             x_in = x > threshold
-            out = _find_clusters_1dir(x, x_in, connectivity)
-            clusters.extend(out[0])
-            sums = np.concatenate((sums, out[1]))
+            clusters_pos, sums_pos = _find_clusters_1dir(x, x_in, connectivity)
+            x_in = x < -threshold
+            clusters_neg, sums_neg = _find_clusters_1dir(x, x_in, connectivity)
+            clusters = clusters_pos + clusters_neg
+            sums = np.concatenate((sums_pos, sums_neg))
 
     return clusters, sums
 
@@ -469,16 +470,16 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     shape_ones = tuple([1] * X[0].ndim)
 
     if connectivity is not None:
-        if connectivity.shape[0] == X.shape[1]:
+        if connectivity.shape[0] == X.shape[1]:  # use global algorithm
             connectivity = connectivity.tocoo()
         else:  # use temporal adjacency algorithm
             n_times = X.shape[1] / float(connectivity.shape[0])
-            print n_times
             if not round(n_times) == n_times:
                 raise ValueError('connectivity must be of the correct size')
-            connectivity = connectivity.tolil()
-            connectivity = [connectivity.getrow(ci).nonzero()[1]
-                         for ci in range(connectivity.shape[0])]
+            connectivity = connectivity.tocsr()
+            connectivity = [connectivity.indices[connectivity.indptr[i]:
+                            connectivity.indptr[i+1]] for i in
+                            range(len(connectivity.indptr)-1)]
 
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
