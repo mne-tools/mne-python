@@ -26,32 +26,29 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
     t = orig_nos / n_vertices
     s = orig_nos % n_vertices
 
-    tborder = np.zeros((n_times + 1 + max_tstep, 1), dtype=int)
+    tborder = np.zeros((n_times + 1, 1), dtype=int)
     for ii in range(n_times):
         temp = np.where(np.less_equal(t, ii))[0]
         if temp.size > 0:
-            tborder[ii + 1] = temp[-1]
+            tborder[ii + 1] = temp[-1] + 1
         else:
             tborder[ii + 1] = tborder[ii]
-    tborder[-(max_tstep + 1):-1] = tborder[n_times]
-    tborder[-1] = tborder[n_times]
 
     r = np.ones(t.shape, dtype=bool)
-    c_count = 0  # Count of clusters
-    clusters = [None] * t.size
+    clusters = list()
     next_ind = np.array([0])
     if s.size > 0:
         while next_ind.size > 0:
-            # Put first point in a cluster, adjust tborder/remaining
+            # Put first point in a cluster, adjust remaining
             t_inds = np.array([next_ind[0]])
             r[next_ind[0]] = False
             icount = 1  # Count of nodes in the current cluster
             # Look for significant values at the next time point,
-            # same sensor, not placed yet, same sign, and add those
+            # same sensor, not placed yet, and add those
             while icount <= t_inds.size:
                 ind = t_inds[icount - 1]
                 bud1 = np.arange(tborder[max(t[ind] - max_tstep, 0)],
-                                 tborder[t[ind] + 1 + max_tstep] + 1)
+                                 tborder[min(t[ind] + max_tstep + 1, n_times)])
                 if use_box:
                     # Look at previous and next time points (based on maxTst)
                     # for all neighboring vertices
@@ -65,8 +62,7 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                     sel1 = bud1[r[bud1]]
                     sel1 = sel1[np.equal(s[ind], s[sel1])]
                     # Look at current time point across other vertices
-                    bud1 = np.arange(tborder[t[ind]],
-                                     tborder[t[ind] + 1] + 1)
+                    bud1 = np.arange(tborder[t[ind]], tborder[t[ind] + 1])
                     bud1 = bud1[r[bud1]]
                     if bud1.size > 0:
                         bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
@@ -78,13 +74,9 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                     r[buddies] = False
                 icount += 1
             next_ind = np.where(r)[0]
-            clusters[c_count] = np.zeros((n_tot), dtype=bool)
-            # re-reference cluster indices appropriately
-            clusters[c_count][orig_nos[t_inds]] = True
-            c_count += 1
-        clusters = clusters[:c_count]
-    else:
-        return []
+            clust = np.zeros((n_tot), dtype=bool)
+            clust[orig_nos[t_inds]] = True
+            clusters.append(clust)
 
     return clusters
 
