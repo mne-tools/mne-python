@@ -83,8 +83,8 @@ class ICA(object):
         if self.sorted_by == 'unsorted':
             sorted_by = self.sorted_by
         else:
-            sorted_by = 'sorted by %s' % self.sorted_by
-        out += '\n     %s' % sorted_by
+            sorted_by = '    sorted by %s' % self.sorted_by
+        out += '\n    %s' % sorted_by
         return out
 
     def sort_sources(self, sources='raw', smethod='skew', inplace=True):
