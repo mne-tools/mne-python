@@ -938,7 +938,7 @@ class RawFromMerge(Raw):
                       info['chs'][k]['cal']
 
         self.cals = raw.cals
-        self.rawdir = raw.rawdir
+        self.rawdirs = raw.rawdirs
         self.proj = raw.proj
         self.comp = raw.comp
 
@@ -953,6 +953,11 @@ class RawFromMerge(Raw):
         self._preloaded = True
         self._times = np.arange(self.first_samp,
             self.last_samp + 1) / info['sfreq']
+
+        for name, value in raw.__dict__.items():
+            if name not in self.__dict__:
+                setattr(self, name, value)
+
         del raw
 
 
