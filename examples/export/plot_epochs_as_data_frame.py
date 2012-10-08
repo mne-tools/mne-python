@@ -92,12 +92,12 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = Raw(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False,
-                            exclude=raw.info['bads'])
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=True, eog=True,
+                            stim=False, exclude=raw.info['bads'])
 
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
-reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
+reject = dict(grad=4000e-13, eog=150e-6)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
@@ -107,13 +107,13 @@ epochs_df = epochs.as_data_frame()
 meg_chs = [c for c in epochs.ch_names if c.startswith("MEG")]
 
 #display some channels
-epochs_df.ix['epoch 11', :4].head(20) * 1e12
+epochs_df.ix['epoch 11', :4].head(20)
 
 # plot single epoch
 epochs_df.ix['epoch 11'].plot(legend=False, xlim=(0, 105), title='epoch 11')
 
 # split accroding to timeslices
-grouped_tsl = epochs_df[meg_chs].groupby(level='tsl')
+grouped_tsl = epochs_df[meg_chs].groupby(level='time slices')
 
 # then apply mean to each group and create a plot
 grouped_tsl.mean().plot(legend=0, title='MEG average', xlim=(0, 105))
@@ -126,7 +126,7 @@ grouped_tsl.apply(lambda x: rolling_mean(x.mean(), 10)).plot(legend=False,
                                                              xlim=(0, 105))
 
 # apply individual functions to channels
-grouped_tsl.agg({"MEG 0113": np.mean, "MEG 0213": np.median}) * 1e12
+grouped_tsl.agg({"MEG 0113": np.mean, "MEG 0213": np.median})
 
 # investigate epochs
 grouped_epochs = epochs_df[meg_chs].groupby(level='epochs')
@@ -136,7 +136,7 @@ subgroup = grouped_epochs.max().ix['epoch 1':'epoch 12']
 subgroup.plot(kind='barh', legend=0)
 
 # create string table for dumping into file.
-result_table = (subgroup * 1e12).to_string()
+result_table = subgroup.to_string()
 
 # investigate a specific channel's std across epochs
 chn = "MEG 0113"
