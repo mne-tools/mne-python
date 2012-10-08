@@ -1,9 +1,9 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal
 from nose.tools import assert_true
-
+import mne.stats as mnestats
 from mne.stats.cluster_level import permutation_cluster_test, \
-                            permutation_cluster_1samp_test
+                                    permutation_cluster_1samp_test
 from scipy import stats, linalg, sparse
 
 noiselevel = 20
@@ -82,25 +82,49 @@ def test_cluster_permutation_t_test_with_connectivity():
         assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
         assert_true(np.all(a[b]))
 
-    """
     # test spatio-temporal with no time connectivity (repeat spatial pattern)
     connectivity_2 = sparse.coo_matrix(linalg.block_diag(connectivity.todense(),
                                                          connectivity.todense()))
     condition1_2 = np.concatenate((condition1,
                                    condition1), axis=1)
-    print connectivity_2.shape
-    print condition1_2.shape
 
     out_connectivity_2 = permutation_cluster_1samp_test(condition1_2,
                                n_permutations=500, connectivity=connectivity_2,
                                verbose=0)
-    split_0 = len(out[0])
-    split_1 = len(out[1])
-    assert_array_equal(out[0], out_connectivity_2[0][:split_0])
-    for a, b in zip(out_connectivity_2[1][:split_1], out[1]):
-        assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
-        assert_true(np.all(a[b]))
-     """
+    # make sure we were operating on the same values
+    split = len(out[0])
+    assert_array_equal(out[0], out_connectivity_2[0][:split])
+    assert_array_equal(out[0], out_connectivity_2[0][split:])
+
+    # make sure we really got 2x the number of original clusters
+    n_clust_orig = len(out[1])
+    assert_true(len(out_connectivity_2[1]) == 2 * n_clust_orig)
+
+    # Make sure that we got the old ones back
+    n_pts = condition1.shape[1]
+    data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
+    data_2 = set([np.sum(out_connectivity_2[0][a[:n_pts]]) for a in
+        out_connectivity_2[1][:]])
+    assert_true(len(data_1.intersection(data_2)) == len(data_1))
+
+    # now use the other algorithm
+    condition1_3 = np.reshape(condition1_2, (40, 350, 2))
+    out_connectivity_3 = mnestats.spatio_temporal_cluster_test(condition1_3,
+                               n_permutations=500, connectivity=connectivity,
+                               verbose=0, max_tstep=0, threshold=1.67)
+    # make sure we were operating on the same values
+    split = len(out[0])
+    assert_array_equal(out[0], out_connectivity_3[0][:split])
+    assert_array_equal(out[0], out_connectivity_3[0][split:])
+
+    # make sure we really got 2x the number of original clusters
+    assert_true(len(out_connectivity_3[1]) == 2 * n_clust_orig)
+
+    # Make sure that we got the old ones back
+    data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
+    data_2 = set([np.sum(out_connectivity_3[0][a[:n_pts]]) for a in
+        out_connectivity_2[1][:]])
+    assert_true(len(data_1.intersection(data_2)) == len(data_1))
 
 
 def ttest_1samp(X):

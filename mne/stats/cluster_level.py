@@ -3,6 +3,7 @@
 
 # Author: Thorsten Kranz <thorstenkranz@gmail.com>
 #         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 
@@ -39,18 +40,18 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
     next_ind = np.array([0])
     if s.size > 0:
         while next_ind.size > 0:
-            # Put first point in a cluster, adjust remaining
+            # put first point in a cluster, adjust remaining
             t_inds = np.array([next_ind[0]])
             r[next_ind[0]] = False
-            icount = 1  # Count of nodes in the current cluster
-            # Look for significant values at the next time point,
+            icount = 1  # count of nodes in the current cluster
+            # look for significant values at the next time point,
             # same sensor, not placed yet, and add those
             while icount <= t_inds.size:
                 ind = t_inds[icount - 1]
                 bud1 = np.arange(tborder[max(t[ind] - max_tstep, 0)],
                                  tborder[min(t[ind] + max_tstep + 1, n_times)])
                 if use_box:
-                    # Look at previous and next time points (based on maxTst)
+                    # look at previous and next time points (using max_tstep)
                     # for all neighboring vertices
                     bud1 = bud1[r[bud1]]
                     if bud1.size > 0:
@@ -61,7 +62,7 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                 else:
                     sel1 = bud1[r[bud1]]
                     sel1 = sel1[np.equal(s[ind], s[sel1])]
-                    # Look at current time point across other vertices
+                    # look at current time point across other vertices
                     bud1 = np.arange(tborder[t[ind]], tborder[t[ind] + 1])
                     bud1 = bud1[r[bud1]]
                     if bud1.size > 0:
@@ -147,26 +148,29 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
 
     if tail == -1:
         x_in = x < threshold
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep)
     elif tail == 1:
         x_in = x > threshold
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep)
     else:
         if not by_sign:
             x_in = np.abs(x) > threshold
-            clusters, sums = _find_clusters_1dir(x, x_in, connectivity)
+            clusters, sums = _find_clusters_1dir(x, x_in, connectivity,
+                                                 max_tstep)
         else:
             x_in = x > threshold
-            clusters_pos, sums_pos = _find_clusters_1dir(x, x_in, connectivity)
+            clusters_pos, sums_pos = _find_clusters_1dir(x, x_in, connectivity,
+                                                         max_tstep)
             x_in = x < -threshold
-            clusters_neg, sums_neg = _find_clusters_1dir(x, x_in, connectivity)
+            clusters_neg, sums_neg = _find_clusters_1dir(x, x_in, connectivity,
+                                                         max_tstep)
             clusters = clusters_pos + clusters_neg
             sums = np.concatenate((sums_pos, sums_neg))
 
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity):
+def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -203,7 +207,7 @@ def _find_clusters_1dir(x, x_in, connectivity):
                     sums.append(np.sum(x[c]))
             sums = np.array(sums)
         elif isinstance(connectivity, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, connectivity)
+            clusters = _get_clusters_st(x_in, connectivity, max_tstep)
             sums = np.array([np.sum(x[c]) for c in clusters])
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
@@ -380,8 +384,9 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
 
     # Recompute statistic on randomized data
     T_obs_surr = stat_fun(X_copy)
-    _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                           connectivity, max_tstep)
+    _, perm_clusters_sums = _find_clusters(x=T_obs_surr, threshold=threshold,
+                                           tail=tail, max_tstep=max_tstep,
+                                           connectivity=connectivity)
 
     if len(perm_clusters_sums) > 0:
         idx_max = np.argmax(np.abs(perm_clusters_sums))
@@ -468,7 +473,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
             n_times = X.shape[1] / float(connectivity.shape[0])
             if not round(n_times) == n_times:
                 raise ValueError('connectivity must be of the correct size')
-            connectivity = connectivity.tocsr()
+            # we claim to only use upper triangular part... not true here
+            connectivity = (connectivity + connectivity.transpose()).tocsr()
             connectivity = [connectivity.indices[connectivity.indptr[i]:
                             connectivity.indptr[i+1]] for i in
                             range(len(connectivity.indptr)-1)]
@@ -478,7 +484,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
     T_obs = stat_fun(X)
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity)
+                                             connectivity, max_tstep=max_tstep)
 
     parallel, my_one_1samp_permutation, _ = parallel_func(
                                 _one_1samp_permutation, n_jobs, verbose)
@@ -519,7 +525,6 @@ permutation_cluster_1samp_test.__test__ = False
 def spatio_temporal_cluster_test(X, threshold=None, tail=0, stat_fun=None,
                                  connectivity=None, n_permutations=1024,
                                  n_jobs=1, seed=0, max_tstep=1, verbose=5):
-
     n_samples, n_times, n_vertices = X.shape
 
     if stat_fun is None:
