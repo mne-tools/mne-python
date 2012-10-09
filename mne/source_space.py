@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import os
 
 from .label import _aslabel
 from .fiff.constants import FIFF
@@ -514,3 +515,90 @@ def _write_one_source_space(fid, this):
     #     res['dist'] = res['dist'] + res['dist'].T
     # if (res['dist'] is not None) and verbose:
     #     print 'Distance information added...',
+
+
+def vertex_to_mni(vertices, hemi, src=None, xfm_file=None, verbose=False):
+    """Convert the array of vertices for a hemisphere to MNI coordinates
+
+    Parameters
+    ----------
+    vertices : int, or list of int
+        Vertex number(s) to convert
+    hemi : int
+        Hemisphere the vertices belong to
+    src : string, list, or None
+        Filename for the source space, or a loaded source space (list). If
+        None, the fsaverage source space will be loaded.
+    xfm_file : string or None
+        Filename for the transformation. If None, the path to the
+        transformation will attempted to be inferred from src.
+
+    Returns
+    -------
+    coordinates : n_vertices x 3 array of float
+        The MNI coordinates (in mm) of the vertices
+    """
+
+    if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
+        vertices = [vertices]
+
+    if src is None:
+        src = os.path.join(os.getenv('SUBJECTS_DIR'), 'fsaverage', 'bem',
+                           'fsaverage-5-src.fif')
+
+    if xfm_file is None:
+        if isinstance(src, str):
+            xfm_file = os.path.join(os.path.split(src)[0], '..', 'mri',
+                                    'transforms', 'talairach.xfm')
+        else:
+            raise ValueError('If src is a list, xfm_file must be specified')
+
+    if isinstance(src, str):
+        src = read_source_spaces(src, verbose=verbose)
+
+    # take point locations in RAS space and convert to MNI coordinates
+    xfm = _freesurfer_read_talxfm(xfm_file, verbose=verbose)
+    mni = np.dot(xfm, np.concatenate((src[hemi]['rr'][vertices, :].T,
+                                      np.ones((1, len(vertices))))))
+    coordinates = 1000 * mni[:3, :].T
+    return coordinates
+
+
+def _freesurfer_read_talxfm(fname, verbose=False):
+    """Read MNI transform from FreeSurfer talairach.xfm file
+
+    Adapted from freesurfer m-files.
+    """
+
+    fread = open(fname, 'r')
+
+    if verbose:
+        print '...Reading FreeSurfer talairach.xfm file:\n%s' % fname
+
+    # read lines until we get the string 'Linear_Transform', which precedes
+    # the data transformation matrix
+    got_it = False
+    comp = 'Linear_Transform'
+    for line in fread:
+        if line[:len(comp)] == comp:
+            # we have the right line, so don't read any more
+            got_it = True
+            break
+
+    if got_it:
+        xfm = np.zeros((0, 4))
+        # read the transformation matrix (3x4)
+        for ii, line in enumerate(fread):
+            digs = [float(s) for s in line.strip('\n;').split()]
+            xfm = np.concatenate((xfm, np.array(digs, ndmin=2)), axis=0)
+            if ii == 2:
+                break
+        xfm = np.concatenate((xfm, np.array([0., 0., 0., 1.], ndmin=2)),
+                             axis=0)
+        fread.close()
+    else:
+        fread.close()
+        raise ValueError('failed to find \'Linear_Transform\' string in xfm '
+                         'file:\n%s' % fname)
+
+    return xfm
