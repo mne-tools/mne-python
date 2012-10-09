@@ -34,17 +34,18 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
     v = np.where(x_in)[0]
     t, s = divmod(v, n_vertices)
 
-    tborder = np.zeros((n_times + 1, 1), dtype=int)
+    t_border = np.zeros((n_times + 1, 1), dtype=int)
     for ii in range(n_times):
         temp = np.where(np.less_equal(t, ii))[0]
         if temp.size > 0:
-            tborder[ii + 1] = temp[-1] + 1
+            t_border[ii + 1] = temp[-1] + 1
         else:
-            tborder[ii + 1] = tborder[ii]
+            t_border[ii + 1] = t_border[ii]
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
     next_ind = 0
+    inds = np.arange(t_border[0], t_border[n_times])
     if s.size > 0:
         while next_ind is not None:
             # put first point in a cluster, adjust remaining
@@ -55,25 +56,25 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
             # same sensor, not placed yet, and add those
             while icount <= len(t_inds):
                 ind = t_inds[icount - 1]
-                bud1 = np.arange(tborder[max(t[ind] - max_tstep, 0)],
-                                 tborder[min(t[ind] + max_tstep + 1, n_times)])
+                buddies = inds[t_border[max(t[ind] - max_tstep, 0)]: \
+                               t_border[min(t[ind] + max_tstep + 1, n_times)]]
                 if use_box:
                     # look at previous and next time points (using max_tstep)
                     # for all neighboring vertices
-                    bud1 = bud1[r[bud1]]
-                    bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
-                                        assume_unique=True)]
+                    buddies = buddies[r[buddies]]
+                    buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                                              assume_unique=True)]
                 else:
-                    sel1 = bud1[r[bud1]]
-                    sel1 = sel1[np.equal(s[ind], s[sel1])]
+                    selves = buddies[r[buddies]]
+                    selves = selves[s[ind] == s[selves]]
                     # look at current time point across other vertices
-                    bud1 = np.arange(tborder[t[ind]], tborder[t[ind] + 1])
-                    bud1 = bud1[r[bud1]]
-                    bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
-                                        assume_unique=True)]
-                    bud1 = np.concatenate((sel1, bud1))
-                t_inds += bud1.tolist()
-                r[bud1] = False
+                    buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
+                    buddies = buddies[r[buddies]]
+                    buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                                              assume_unique=True)]
+                    buddies = np.concatenate((selves, buddies))
+                t_inds += buddies.tolist()
+                r[buddies] = False
                 icount += 1
             next_ind = np.where(r)[0]
             next_ind = next_ind[0] if next_ind.size > 0 else None
