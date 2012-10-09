@@ -24,15 +24,15 @@ ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
 ica.fit_raw()
 
 # setup reasonable time window for inspection
-start_ica, stop_ica = raw.time_to_index(100, 103)
+start_plot, stop_plot = raw.time_to_index(100, 103)
 
 # plot components
-plot_ica_panel(ica, start=start_ica, stop=stop_ica)
+plot_ica_panel(ica, start=start_plot, stop=stop_plot)
 
 # sign and order of components is non deterministic.
 # However a distinct cardiac and one EOG component should be visible
 
-raw_den = ica.denoise_raw(bads=[10, 24], make_raw=True)
+raw_den = ica.denoise_raw(bads=[17, 19], make_raw=True)
 
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
@@ -50,4 +50,4 @@ epochs_den.average().plot()
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
 
-ev = epochs.average().plot()
+epochs.average().plot()
