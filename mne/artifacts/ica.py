@@ -55,29 +55,30 @@ class ICA(object):
         self.raw = raw
         self.n_components = n_components
         self._cov = True if noise_cov != None else False
-        self.source_ids = np.arange(n_components)
+        self.source_ids = (np.arange(n_components) if n_components
+                           else np.arange(picks.shape[0]))
         self.sorted_by = 'unsorted'
         self.picks = picks
 
         if raw._preloaded:
-            self.raw_data = raw._data.copy()
+            self.raw_data = raw._data[picks].copy()
         else:
             start = raw.first_samp if start == None else start
             stop = raw.last_samp if stop == None else stop
-            self.raw_data = copy(raw[:, start:stop][0])
+            self.raw_data = copy(raw[picks, start:stop][0])
 
         if noise_cov != None:
-            self.pre_whitener, _ = compute_whitener(noise_cov, raw.info,
-                                                    picks, exclude)
+            assert self.raw_data.shape[0] == noise_cov.data.shape[0]
+            self.pre_whitener, _ = compute_whitener(noise_cov, self.raw.info,
+                                                    self.picks)
             del _
 
-            self.raw_data = np.dot(self.pre_whitener,
-                                   self.raw_data[self.picks])
+            self.raw_data = np.dot(self.pre_whitener, self.raw_data)
 
         elif noise_cov == None:  # use standardization as whitener
-            std_chan = np.std(self.raw_data[self.picks], axis=1) ** -1
+            std_chan = np.std(self.raw_data, axis=1) ** -1
             self.pre_whitener = np.array([std_chan]).T
-            self.raw_data[self.picks] *= self.pre_whitener
+            self.raw_data *= self.pre_whitener
 
         self.seed = FastICA(n_components)
 
@@ -166,7 +167,7 @@ class ICA(object):
         """
         print ('\nComputing signal decomposition on raw data.'
                '\n    Please be patient. This may take some time')
-        S = self.seed.fit_transform(self.raw_data[self.picks].T)
+        S = self.seed.fit_transform(self.raw_data.T)
         A = self.seed.get_mixing_matrix()
         self.raw_sources = S.T
         self.raw_mixing = A.T
@@ -174,8 +175,30 @@ class ICA(object):
 
         return self
 
-    def fit_epochs(self, epochs, picks):
-        pass
+    def fit_epochs(self, epochs, smethod='skew'):
+        """ Run the ica decomposition for epochs
+        Paramerters
+        -----------
+        epochs : instance of Epochs
+        sort_method : string
+            function used to sort the sources and the mixing matrix.
+            If None, the output will be left unsorted
+
+        Returns
+        -------
+        self : instance of ICA
+            returns the instance for chaining
+        """
+        data = np.hstack(epochs.get_data())
+        print ('\nComputing signal decomposition on raw data.'
+               '\n    Please be patient. This may take some time')
+        S = self.seed.fit_transform(data.T)
+        A = self.seed.get_mixing_matrix()
+        self.raw_sources = S.T
+        self.raw_mixing = A.T
+        self.sort_sources(sources='raw', smethod=smethod)
+
+        return self
 
     def denoise_raw(self, bads=[], make_raw=False):
         """ Recompose raw data
@@ -201,6 +224,7 @@ class ICA(object):
             raw_mixing = self.raw_mixing.copy()
         pre_whitener = self.pre_whitener
         if self._cov == False:  # revert standardization
+            # pass
             pre_whitener **= -1
             raw_mixing *= pre_whitener.T
         else:
@@ -215,10 +239,11 @@ class ICA(object):
 
         if make_raw == True:
             data = self.raw_data.copy()
-            data[self.picks] = out
-            return RawFromMerge(self.raw, data)
+            data = out
+            return RawFromMerge(self.raw, data, picks=self.picks)
 
         return out
 
     def denoise_epochs(self, bads=[]):
         pass
+
