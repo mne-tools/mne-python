@@ -8,10 +8,10 @@
 from math import floor, ceil
 import copy
 import warnings
-from copy import deepcopy
 
 import numpy as np
 from scipy.signal import hilbert
+from copy import deepcopy
 
 from .constants import FIFF
 from .open import fiff_open
@@ -904,27 +904,8 @@ class Raw(object):
             return False
 
 
-class _RawShell():
-    """Used for creating a temporary raw object"""
-    def __init__(self):
-        self.first_samp = None
-        self.last_samp = None
-        self.cals = None
-        self.rawdir = None
-        self.proj = None
-        self._projectors = None
-        self._projector_hashes = None
-
-
-def _hash_projs(projs, projector):
-    out_hash = [array_hash(p['data']['data']) for p in projs]
-    if projector is not None:
-        out_hash.append(array_hash(projector))
-    return out_hash
-
-
 class RawFromMerge(Raw):
-    """ Initializes new raw instance from exisiting instance and custom data
+    """ Initializes new raw instance from exisiting raw and custom data
     Paramerters
     -----------
     raw : instance of mne.fiff.Raw
@@ -936,20 +917,23 @@ class RawFromMerge(Raw):
     ----------
         See __doc__ of mne.fiff.Raw
     """
-    def __init__(self, raw, data, info=None):
+    def __init__(self, raw, data, picks=None, info=None):
 
         print 'Initializing raw object from merge with custom data.'
-
-        ntsl = (raw.last_samp - raw.first_samp) + 1
-        nchan = len(raw.ch_names)
-        assert (nchan, ntsl) == data.shape
 
         raw = deepcopy(raw)
         if info == None:
             info = raw.info
-
         self.info = info
-        self._data = data
+
+        self._preload_data(True)
+        self._preloaded = True
+        if picks == None:
+            picks = np.arange(self._data.shape[0])
+        self._data[picks] = data
+
+        assert self._data.shape == data.shape
+
         self.first_samp, self.last_samp = raw.first_samp, raw.last_samp
         cals = np.zeros(info['nchan'])
         for k in range(info['nchan']):
@@ -978,6 +962,25 @@ class RawFromMerge(Raw):
                 setattr(self, name, value)
 
         del raw
+
+
+class _RawShell():
+    """Used for creating a temporary raw object"""
+    def __init__(self):
+        self.first_samp = None
+        self.last_samp = None
+        self.cals = None
+        self.rawdir = None
+        self.proj = None
+        self._projectors = None
+        self._projector_hashes = None
+
+
+def _hash_projs(projs, projector):
+    out_hash = [array_hash(p['data']['data']) for p in projs]
+    if projector is not None:
+        out_hash.append(array_hash(projector))
+    return out_hash
 
 
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
