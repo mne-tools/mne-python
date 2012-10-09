@@ -10,11 +10,13 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
 
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False, stim=False,
-                            exclude=raw.info['bads'])
+picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+                            stim=False, exclude=raw.info['bads'])
 
 # 1 minute exposure should be sufficient for artifact detection
 start, stop = raw.time_to_index(100, 160)
+
+# data_cov = mne.compute_raw_data_covariance(raw, picks=picks)
 
 # setup ica seed
 ica = ICA(raw, picks, noise_cov=None, n_components=25, start=start, stop=stop,
@@ -32,7 +34,7 @@ plot_ica_panel(ica, start=start_plot, stop=stop_plot)
 # sign and order of components is non deterministic.
 # However a distinct cardiac and one EOG component should be visible
 
-raw_den = ica.denoise_raw(bads=[17, 19], make_raw=True)
+raw_den = ica.denoise_raw(bads=[], make_raw=True)
 
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
@@ -41,13 +43,15 @@ reject = None
 
 events = mne.find_events(raw_den, stim_channel='STI 014')
 
-epochs_den = mne.Epochs(raw_den, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=False, reject=reject)
-
-epochs_den.average().plot()
-
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
 
 epochs.average().plot()
+
+
+epochs_den = mne.Epochs(raw_den, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=baseline, preload=False, reject=reject)
+
+epochs_den.average().plot()
+
