@@ -9,7 +9,8 @@ import numpy as np
 from inspect import getargspec
 from ..cov import compute_whitener
 from scipy.stats import kurtosis, skew
-# from copy import deepcopy
+from scipy import linalg
+from copy import copy
 from ..fiff.raw import RawFromMerge
 
 
@@ -30,7 +31,7 @@ class ICA(object):
         starting time slice
     stop : integer
         final time slice
-    exlude : list
+    1exlude : list
         names of channels to exclude used for computing the whitener.
 
     Attributes
@@ -58,33 +59,42 @@ class ICA(object):
         self.sorted_by = 'unsorted'
         self.picks = picks
 
+        if raw._preloaded:
+            self.raw_data = raw._data.copy()
+        else:
+            start = raw.first_samp if start == None else start
+            stop = raw.last_samp if stop == None else stop
+            self.raw_data = copy(raw[:, start:stop][0])
+
         if noise_cov != None:
-            self.whitener, _ = compute_whitener(noise_cov, raw.info,
-                                                picks, exclude)
+            self.pre_whitener, _ = compute_whitener(noise_cov, raw.info,
+                                                    picks, exclude)
             del _
 
+            self.raw_data = np.dot(self.pre_whitener,
+                                   self.raw_data[self.picks])
+
         elif noise_cov == None:
-            if raw._preloaded:
-                self.raw_data = raw._data
-            else:
-                start = raw.first_samp if start == None else start
-                stop = raw.last_samp if stop == None else stop
-                self.raw_data = raw[:, start:stop]
             std_chan = np.std(self.raw_data[self.picks], axis=1) ** -1
-            self.whitener = np.array([std_chan]).T
+            self.pre_whitener = np.array([std_chan]).T
+            self.raw_data[self.picks] *= self.pre_whitener
 
         self.seed = FastICA(n_components)
 
     def __repr__(self):
         out = 'ICA decomposition.\n    %i components' % self.n_components
+
         if hasattr(self, 'raw_sources'):
             n_samples = self.raw_sources.shape[1]
             out += ('\n    %i raw time slices' % n_samples)
+
         if self.sorted_by == 'unsorted':
             sorted_by = self.sorted_by
+
         else:
             sorted_by = '    sorted by %s' % self.sorted_by
         out += '\n    %s' % sorted_by
+
         return out
 
     def sort_sources(self, sources='raw', smethod='skew', inplace=True):
@@ -183,20 +193,25 @@ class ICA(object):
         out : depends on input arguments
             denoised raw data as ndarray or as instance of Raw
         """
-        w = self.whitener
-        if self._cov == False:
-            w **= -1
         if self.sorted_by != 'unsorted':
             raw_sources, raw_mixing = self.sort_sources(smethod='back',
                                                         inplace=False)
         else:
             raw_sources = self.raw_sources.copy()
             raw_mixing = self.raw_mixing.copy()
+        pre_whitener = self.pre_whitener
+        if self._cov == False:
+            pre_whitener **= -1
+            raw_mixing *= pre_whitener.T
+        else:
+            raw_mixing = np.dot(pre_whitener, linalg.pinv(raw_mixing))
+
         if bads != None:
             source_ids = self.source_ids.tolist()
             bads_idx = [source_ids.index(bad) for bad in bads]
             raw_sources[bads_idx, :] = 0
-        out = np.dot(raw_sources.T, w.T * raw_mixing).T
+
+        out = np.dot(raw_sources.T, raw_mixing).T
 
         if make_raw == True:
             data = self.raw_data.copy()
@@ -207,59 +222,3 @@ class ICA(object):
 
     def denoise_epochs(self, bads=[]):
         pass
-
-    # @property
-    # def n_selected(self):
-    #     """ Return number of selected sources
-    #     """
-    #     return self.comp_picks.nonzero()[0].shape[0]
-
-
-# class RawFromMerge(Raw):
-#     """ Initializes new raw instance from exisiting instance and custom data
-#     Paramerters
-#     -----------
-#     raw : instance of mne.fiff.Raw
-#         existing raw instance
-#     data : instance of numpy.core.ndarray
-#         processed data matching the data contained by raw
-
-#     Attributes
-#     ----------
-#         See __doc__ of mne.fiff.Raw
-#     """
-#     def __init__(self, raw, data):
-
-#         print 'Initializing raw object from merge with custom data.'
-
-#         ntsl = (raw.last_samp - raw.first_samp) + 1
-#         nchan = len(raw.ch_names)
-#         assert (nchan, ntsl) == data.shape
-
-#         raw = deepcopy(raw)
-#         info = raw.info
-#         self.info = info
-#         self._data = data
-#         self.first_samp, self.last_samp = raw.first_samp, raw.last_samp
-#         cals = np.zeros(info['nchan'])
-#         for k in range(info['nchan']):
-#             cals[k] = info['chs'][k]['range'] * \
-#                       info['chs'][k]['cal']
-
-#         self.cals = raw.cals
-#         self.rawdir = raw.rawdir
-#         self.proj = raw.proj
-#         self.comp = raw.comp
-
-#         self.verbose = True
-#         if self.verbose:
-#             print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-#                        self.first_samp, self.last_samp,
-#                        float(self.first_samp) / info['sfreq'],
-#                        float(self.last_samp) / info['sfreq'])
-#             print 'Ready.'
-#         self.fid = None
-#         self._preloaded = True
-#         self._times = np.arange(self.first_samp,
-#             self.last_samp + 1) / info['sfreq']
-#         del raw
