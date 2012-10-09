@@ -15,8 +15,17 @@ from ..parallel import parallel_func
 
 
 def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
-    """Directly calculate connectivity based on knowledge
-    that time points are adjacent"""
+    """Directly calculate connectivity based on knowledge that time points are
+    only connected to adjacent neighbors for data organized as time x space.
+
+    This algorithm time increases linearly with the number of time points,
+    compared to with the square for the standard (graph) algorithm.
+
+    Note that it's possible an even faster algorithm could create clusters for
+    each time point (using the standard graph method), then combine these
+    clusters across time points in some reasonable way. This could then be used
+    to extend to time x space x frequency datasets, for example. This has not
+    been implemented yet."""
     n_tot = x_in.size
     n_vertices = len(neighbors)
     n_times = n_tot / float(n_vertices)
@@ -395,10 +404,10 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
         return 0.0
 
 
-def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
+def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
-                                   connectivity=None, n_jobs=1,
-                                   verbose=5, seed=None, max_tstep=1):
+                                   connectivity=None, verbose=5, n_jobs=1,
+                                   seed=None, max_tstep=1):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -422,15 +431,15 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         If tail is -1, the statistic is thresholded below threshold.
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
+    stat_fun : function
+        Function used to compute the statistical map
     connectivity : sparse matrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Defaut is None, i.e, no connectivity.
-    max_tstep : int
-        When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of time steps between vertices to be considered
-        neighbors. This is not used for full or None connectivity matrices.
+        (n_vertices). Defaut is None, i.e, no connectivity. Use square
+        n_vertices matrix for datasets with a large temporal extent to save on
+        memory and computation time.
     verbose : int
         If > 0, print some text during computation.
     n_jobs : int
@@ -440,6 +449,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
         Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
         two-tailed tests], this value will be ignored since an exact test
         (full permutation test) will be performed.
+    max_tstep : int
+        When connectivity is a n_vertices x n_vertices matrix, specify the
+        maximum number of time steps between vertices to be considered
+        neighbors. This is not used for full or None connectivity matrices.
 
 
     Returns
@@ -522,9 +535,59 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1000,
 permutation_cluster_1samp_test.__test__ = False
 
 
-def spatio_temporal_cluster_test(X, threshold=None, tail=0, stat_fun=None,
-                                 connectivity=None, n_permutations=1024,
-                                 n_jobs=1, seed=0, max_tstep=1, verbose=5):
+def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
+                                 tail=0, stat_fun=ttest_1samp_no_p,
+                                 connectivity=None, verbose=5, n_jobs=1,
+                                 seed=None, max_tstep=1, partitions=None):
+    """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
+
+    This function provides a convenient wrapper for data organized in the form
+    observations x space x time) to use permutation_cluster_1samp_test.
+
+    Parameters
+    ----------
+    X: array
+        Array of shape observations x time x vertices.
+    threshold: float, or None
+        If threshold is None, it will choose a t-threshold equivalent to
+        p < 0.05 for the given number of (within-subject) observations.
+    n_permutations: int
+        See permutation_cluster_1samp_test.
+    tail : -1 or 0 or 1 (default = 0)
+        See permutation_cluster_1samp_test.
+    stat_fun : function
+        See permutation_cluster_1samp_test.
+    connectivity : sparse matrix or None
+        See permutation_cluster_1samp_test.
+    verbose : int
+        See permutation_cluster_1samp_test.
+    n_jobs : int
+        See permutation_cluster_1samp_test.
+    seed : int or None
+        See permutation_cluster_1samp_test.
+    max_tstep : int
+        See permutation_cluster_1samp_test.
+
+    Returns
+    -------
+    T_obs : array of shape [n_tests]
+        T-statistic observerd for all variables
+    clusters: list of tuples
+        Each tuple is a pair of indices (begin/end of cluster)
+    cluster_pv: array
+        P-value for each cluster
+    H0 : array of shape [n_permutations]
+        Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    Reference:
+    Cluster permutation algorithm as described in
+    Maris/Oostenveld (2007),
+    "Nonparametric statistical testing of EEG- and MEG-data"
+    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
+    doi:10.1016/j.jneumeth.2007.03.024
+    """
     n_samples, n_times, n_vertices = X.shape
 
     if stat_fun is None:
