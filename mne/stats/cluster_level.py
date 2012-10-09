@@ -26,15 +26,13 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
     clusters across time points in some reasonable way. This could then be used
     to extend to time x space x frequency datasets, for example. This has not
     been implemented yet."""
-    n_tot = x_in.size
     n_vertices = len(neighbors)
-    n_times = n_tot / float(n_vertices)
-    if not n_times == int(n_times):
+    n_tot = x_in.size
+    n_times, junk = divmod(n_tot, n_vertices)
+    if not junk == 0:
         raise ValueError('x_in.size must be multiple of connectivity.shape[0]')
-    n_times = int(n_times)
-    orig_nos = np.where(x_in)[0]
-    t = orig_nos / n_vertices
-    s = orig_nos % n_vertices
+    v = np.where(x_in)[0]
+    t, s = divmod(v, n_vertices)
 
     tborder = np.zeros((n_times + 1, 1), dtype=int)
     for ii in range(n_times):
@@ -46,16 +44,16 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
-    next_ind = np.array([0])
+    next_ind = 0
     if s.size > 0:
-        while next_ind.size > 0:
+        while next_ind is not None:
             # put first point in a cluster, adjust remaining
-            t_inds = np.array([next_ind[0]])
-            r[next_ind[0]] = False
+            t_inds = [next_ind]
+            r[next_ind] = False
             icount = 1  # count of nodes in the current cluster
             # look for significant values at the next time point,
             # same sensor, not placed yet, and add those
-            while icount <= t_inds.size:
+            while icount <= len(t_inds):
                 ind = t_inds[icount - 1]
                 bud1 = np.arange(tborder[max(t[ind] - max_tstep, 0)],
                                  tborder[min(t[ind] + max_tstep + 1, n_times)])
@@ -63,29 +61,24 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                     # look at previous and next time points (using max_tstep)
                     # for all neighboring vertices
                     bud1 = bud1[r[bud1]]
-                    if bud1.size > 0:
-                        bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
-                                            assume_unique=True)]
-                        t_inds = np.concatenate((t_inds, bud1))
-                        r[bud1] = False
+                    bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
+                                        assume_unique=True)]
                 else:
                     sel1 = bud1[r[bud1]]
                     sel1 = sel1[np.equal(s[ind], s[sel1])]
                     # look at current time point across other vertices
                     bud1 = np.arange(tborder[t[ind]], tborder[t[ind] + 1])
                     bud1 = bud1[r[bud1]]
-                    if bud1.size > 0:
-                        bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
-                                            assume_unique=True)]
-                        buddies = np.concatenate((sel1, bud1))
-                    else:
-                        buddies = sel1
-                    t_inds = np.concatenate((t_inds, buddies))
-                    r[buddies] = False
+                    bud1 = bud1[np.in1d(s[bud1], neighbors[s[ind]],
+                                        assume_unique=True)]
+                    bud1 = np.concatenate((sel1, bud1))
+                t_inds += bud1.tolist()
+                r[bud1] = False
                 icount += 1
             next_ind = np.where(r)[0]
+            next_ind = next_ind[0] if next_ind.size > 0 else None
             clust = np.zeros((n_tot), dtype=bool)
-            clust[orig_nos[t_inds]] = True
+            clust[v[t_inds]] = True
             clusters.append(clust)
 
     return clusters
@@ -114,15 +107,15 @@ def _get_components(x_in, connectivity):
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
-                   max_tstep=1):
+                   max_tstep=1, include=None, partitions=None):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
     Parameters
     ----------
-    x: 1D array
+    x : 1D array
         Data
-    threshold: float
+    threshold : float
         Where to threshold the statistic. Should be negative for tail == -1,
         and positive for tail == 0 or 1.
     tail : -1 | 0 | 1
@@ -140,6 +133,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     max_tstep : int
         If connectivity is a list, this defines the maximal number of time
         steps permitted for elements to be considered temporal neighbors.
+    include : 1D bool array or None
+        Mask to apply to the data of points to cluster. If None, all points
+        are used.
+    partitions : array of int or None
+        An array (same size as X) of integers indicating which points belong
+        to each partition.
 
     Returns
     -------
@@ -155,31 +154,80 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
 
     x = np.asanyarray(x)
 
-    if tail == -1:
-        x_in = x < threshold
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep)
-    elif tail == 1:
-        x_in = x > threshold
+    clusters = list()
+    sums = list()
+    if tail == 0:
+        if not by_sign:
+            if include is None:
+                x_in = np.abs(x) > threshold
+            else:
+                x_in = np.logical_and(np.abs(x) > threshold, include)
+
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+                                            partitions)
+            clusters += out[0]
+            sums.append(out[1])
+        else:
+            if include is None:
+                x_in = x > threshold
+            else:
+                x_in = np.logical_and(x > threshold, include)
+
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+                                            partitions)
+            clusters += out[0]
+            sums.append(out[1])
+
+            if include is None:
+                x_in = x < -threshold
+            else:
+                x_in = np.logical_and(x < -threshold, include)
+
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+                                            partitions)
+            clusters += out[0]
+            sums.append(out[1])
+    else:
+        if tail == -1:
+            if include is None:
+                x_in = x < threshold
+            else:
+                x_in = np.logical_and(x < threshold, include)
+        else:  # tail == 1
+            if include is None:
+                x_in = x > threshold
+            else:
+                x_in = np.logical_and(x > threshold, include)
+
+        out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+                                        partitions)
+        clusters += out[0]
+        sums.append(out[1])
+
+    sums = np.concatenate(sums)
+    return clusters, sums
+
+
+def _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep, partitions):
+    """Deal with partitions, and pass the work to _find_clusters_1dir
+    """
+    if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep)
     else:
-        if not by_sign:
-            x_in = np.abs(x) > threshold
-            clusters, sums = _find_clusters_1dir(x, x_in, connectivity,
-                                                 max_tstep)
-        else:
-            x_in = x > threshold
-            clusters_pos, sums_pos = _find_clusters_1dir(x, x_in, connectivity,
-                                                         max_tstep)
-            x_in = x < -threshold
-            clusters_neg, sums_neg = _find_clusters_1dir(x, x_in, connectivity,
-                                                         max_tstep)
-            clusters = clusters_pos + clusters_neg
-            sums = np.concatenate((sums_pos, sums_neg))
-
+        # cluster each partition separately
+        clusters = list()
+        sums = list()
+        for p in range(np.max(partitions) + 1):
+            x_i = np.logical_and(x_in, partitions == p)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_tstep)
+            clusters += out[0]
+            sums.append(out[1])
+        sums = np.concatenate(sums)
     return clusters, sums
 
 
 def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
+    """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
 
@@ -376,7 +424,8 @@ def ttest_1samp_no_p(X):
 
 
 def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
-                           connectivity, stat_fun, max_tstep, rng):
+                           connectivity, stat_fun, max_tstep, include,
+                           partitions, rng):
     if isinstance(rng, np.random.mtrand.RandomState):
         # new surrogate data with random sign flip
         signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
@@ -395,7 +444,9 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
     T_obs_surr = stat_fun(X_copy)
     _, perm_clusters_sums = _find_clusters(x=T_obs_surr, threshold=threshold,
                                            tail=tail, max_tstep=max_tstep,
-                                           connectivity=connectivity)
+                                           connectivity=connectivity,
+                                           partitions=partitions,
+                                           include=include)
 
     if len(perm_clusters_sums) > 0:
         idx_max = np.argmax(np.abs(perm_clusters_sums))
@@ -407,7 +458,8 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
                                    connectivity=None, verbose=5, n_jobs=1,
-                                   seed=None, max_tstep=1):
+                                   seed=None, max_tstep=1, partitions=None,
+                                   exclude=None, step_down_p=0):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -453,7 +505,20 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of time steps between vertices to be considered
         neighbors. This is not used for full or None connectivity matrices.
-
+    partitions : array of int or None
+        An array (same size as X) of integers indicating which points belong
+        to each partition. If data can be broken up into disjoint sets
+        (e.g., hemipsheres), this can speed up computation.
+    exclude : boolean array or None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as X. If None,
+        no points are excluded.
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
 
     Returns
     -------
@@ -489,15 +554,27 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
             # we claim to only use upper triangular part... not true here
             connectivity = (connectivity + connectivity.transpose()).tocsr()
             connectivity = [connectivity.indices[connectivity.indptr[i]:
-                            connectivity.indptr[i+1]] for i in
-                            range(len(connectivity.indptr)-1)]
+                            connectivity.indptr[i + 1]] for i in
+                            range(len(connectivity.indptr) - 1)]
+
+    # do some checks
+    if (partitions is not None) and not partitions.size == X.shape[1]:
+        raise ValueError('partitions must be the same shape as X[1]')
+    if (exclude is not None) and not exclude.size == X.shape[1]:
+        raise ValueError('exclude must be the same shape as X[1]')
 
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
+    if exclude is not None:
+        include = np.logical_not(exclude)
+    else:
+        include = None
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity, max_tstep=max_tstep)
+                                             connectivity, max_tstep=max_tstep,
+                                             include=include,
+                                             partitions=partitions)
 
     parallel, my_one_1samp_permutation, _ = parallel_func(
                                 _one_1samp_permutation, n_jobs, verbose)
@@ -520,12 +597,46 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                 seeds = seed + np.arange(n_permutations)
             seeds = [np.random.RandomState(s) for s in seeds]
 
-        H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones, X_copy,
-                                               threshold, tail, connectivity,
-                                               stat_fun, max_tstep,
-                                               s) for s in seeds)
-        H0 = np.array(H0)
-        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+        # Step 3: repeat permutations for stetp-down-in-jumps procedure
+        smallest_p = -1
+        clusters_kept = 0
+        step_down_include = None  # start out including all points
+        step_down_iteration = 0
+        while smallest_p < step_down_p:
+            # actually do the clustering for each partition
+            if include is not None:
+                if step_down_include is not None:
+                    this_include = np.logical_and(include, step_down_include)
+                else:
+                    this_include = include
+            else:
+                this_include = step_down_include
+            H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones,
+                                                   X_copy, threshold, tail,
+                                                   connectivity, stat_fun,
+                                                   max_tstep, this_include,
+                                                   partitions, s)
+                                                   for s in seeds)
+            H0 = np.array(H0)
+            cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+
+            # sort them by significance; for backward compat, don't sort the
+            # clusters themselves
+            inds = np.argsort(cluster_pv)
+            ord_pv = cluster_pv[inds]
+            smallest_p = ord_pv[clusters_kept]
+            step_down_include = np.ones(X.shape[1], dtype=bool)
+            under = np.where(cluster_pv < step_down_p)[0]
+            for ci in under:
+                step_down_include[clusters[ci]] = False
+            step_down_iteration += 1
+            if verbose > 0 and step_down_p > 0:
+                extra_text = 'additional ' if step_down_iteration > 1 else ''
+                new_count = under.size - clusters_kept
+                plural = '' if new_count == 1 else 's'
+                print 'Step-down-in-jumps iteration %i found %i %scluster%s'\
+                    % (step_down_iteration, new_count, extra_text, plural)
+            clusters_kept += under.size
 
         return T_obs, clusters, cluster_pv, H0
     else:
@@ -538,7 +649,9 @@ permutation_cluster_1samp_test.__test__ = False
 def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  tail=0, stat_fun=ttest_1samp_no_p,
                                  connectivity=None, verbose=5, n_jobs=1,
-                                 seed=None, max_tstep=1, partitions=None):
+                                 seed=None, max_tstep=1,
+                                 spatial_partitions=None,
+                                 spatial_exclude=None, step_down_p=0):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -566,6 +679,15 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     seed : int or None
         See permutation_cluster_1samp_test.
     max_tstep : int
+        See permutation_cluster_1samp_test.
+    partitions : list of int or None
+        See permutation_cluster_1samp_test.
+    spatial_partitions : list of int or None
+        List of spatial indices that divide disjoint sets (e.g., hemispheres).
+        For fsaverage (2 hemispheres @ 10242 vertices), this would be [10242].
+    spatial_exclude : list of int or None
+        List of spatial indices to exclude from clustering.
+    step_down_p : float
         See permutation_cluster_1samp_test.
 
     Returns
@@ -599,6 +721,22 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
         if np.sign(tail) < 0:
             threshold = -threshold
 
+    # convert spatial_exclude before passing on if necessary
+    if spatial_exclude is not None:
+        exclude = st_mask_from_s_inds(n_times, n_vertices,
+                                              spatial_exclude, True)
+    else:
+        exclude = None
+
+    # convert spatial partitions before passing on if necessary
+    if spatial_partitions is not None:
+        partitions = np.zeros((1, n_vertices), dtype=int)
+        partitions[0, spatial_partitions] = 1
+        partitions = partitions.cumsum() * np.ones((n_times, 1), dtype=int)
+        partitions = partitions.ravel()
+    else:
+        partitions = None
+
     # make it contiguous
     X = np.ascontiguousarray(X.reshape(n_samples, -1))
 
@@ -606,5 +744,40 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     out = permutation_cluster_1samp_test(X, threshold=threshold,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_tstep=max_tstep, verbose=verbose)
+              max_tstep=max_tstep, verbose=verbose, partitions=partitions,
+              exclude=exclude, step_down_p=step_down_p)
     return out
+
+
+spatio_temporal_cluster_test.__test__ = False
+
+
+def st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
+    """This function returns a boolean mask vector to apply to a spatio-
+    temporal connectivity matrix (n_times * n_vertices square) to include (or
+    exclude) certain spatial coordinates. This is useful for excluding certain
+    regions from analysis (e.g., medial wall vertices).
+
+    Parameters
+    ----------
+    n_times : int
+        Number of time points
+    n_vertices : int
+        Number of spatial points
+    vertices : list or array of int
+        Vertex numbers to set
+    set_as : bool
+        If True, all points except "vertices" are set to False (inclusion).
+        If False, all points except "vertices" are set to True (exclusion).
+
+    Returns
+    -------
+    mask : array of bool
+        A (n_times * n_vertices) array of boolean values for masking
+    """
+    mask = np.zeros((n_times, n_vertices), dtype=bool)
+    mask[:, vertices] = True
+    mask = mask.ravel()
+    if set_as is False:
+        mask = np.logical_not(mask)
+    return mask
