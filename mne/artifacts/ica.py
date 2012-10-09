@@ -74,7 +74,7 @@ class ICA(object):
             self.raw_data = np.dot(self.pre_whitener,
                                    self.raw_data[self.picks])
 
-        elif noise_cov == None:
+        elif noise_cov == None:  # use standardization as whitener
             std_chan = np.std(self.raw_data[self.picks], axis=1) ** -1
             self.pre_whitener = np.array([std_chan]).T
             self.raw_data[self.picks] *= self.pre_whitener
@@ -200,11 +200,11 @@ class ICA(object):
             raw_sources = self.raw_sources.copy()
             raw_mixing = self.raw_mixing.copy()
         pre_whitener = self.pre_whitener
-        if self._cov == False:
+        if self._cov == False:  # revert standardization
             pre_whitener **= -1
             raw_mixing *= pre_whitener.T
         else:
-            raw_mixing = np.dot(pre_whitener, linalg.pinv(raw_mixing))
+            raw_mixing = np.dot(raw_mixing, linalg.pinv(pre_whitener))
 
         if bads != None:
             source_ids = self.source_ids.tolist()
