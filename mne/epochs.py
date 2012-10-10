@@ -9,6 +9,7 @@ import copy as cp
 import warnings
 
 import numpy as np
+from copy import deepcopy
 
 import fiff
 from .fiff import Evoked, FIFF
@@ -593,6 +594,26 @@ class Epochs(object):
             out.swapaxes(1, 2)
 
         return out
+
+
+class EpochsFromMerge(Epochs):
+    """ New instance from merge with processed data
+    """
+    def __init__(self, epochs, data):
+
+        epochs = deepcopy(epochs)
+
+        ntsl = epochs.times.shape[0]
+        neps = epochs.events.shape[0]
+        nchan = len(epochs.ch_names)
+
+        assert (neps, nchan, ntsl) == data.shape
+        self._data = data
+        self.preload = True
+
+        for name, value in epochs.__dict__.items():
+            if name not in self.__dict__:
+                setattr(self, name, value)
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):

@@ -38,6 +38,8 @@ start_plot, stop_plot = 0, 1000
 plot_ica_panel(ica, start=start_plot, stop=stop_plot)
 
 # sign and order of components is non deterministic.
-# However a distinct cardiac and one EOG component should be visible
+# However a distinct cardiac component should be visible
 
-epochs_data_den = ica.denoise_epochs(bads=[], copy=True)
+epochs_den = ica.denoise_epochs(bads=[], copy=True)
+
+epochs_den.average().plot()
