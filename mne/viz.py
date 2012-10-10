@@ -443,26 +443,21 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(ica, start, stop, target='raw', source_idx=None, ncol=3,
+def plot_ica_panel(ica, start, stop, source_idx=None, ncol=3,
                    nrow=10):
     """ Create panel plots of ICA sources
     """
     import matplotlib.pylab as pl
 
-    if target == 'raw':
-        sources = ica.raw_sources.copy()
-    elif target == 'epochs':
-        return NotImplemented
-    else:
-        raise ValueError('%s is not a valid target.' % str(target))
+    sources = ica.sources.copy()
 
-    n_components = sources.shape[0]
+    n_components = ica.n_components
     hangover = n_components % ncol
     nplots = nrow * ncol
 
-    if source_idx != None:
+    if source_idx is not None:
         sources = sources[source_idx]
-    if source_idx == None:
+    if source_idx is None:
         source_idx = np.arange(ica.n_components)
     elif source_idx.shape > 30:
         print ('More sources selected than rows and cols specified.'

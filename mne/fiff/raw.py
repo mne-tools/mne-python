@@ -932,6 +932,7 @@ class RawFromMerge(Raw):
                        float(self.first_samp) / info['sfreq'],
                        float(self.last_samp) / info['sfreq'])
             print 'Ready.'
+
         self.fid = None
         self._preloaded = True
         self._times = np.arange(self.first_samp,
@@ -946,12 +947,9 @@ class RawFromMerge(Raw):
 
         self._data = raw._data
         assert self._data[picks].shape == data.shape
-        self._preloaded = True
         if picks == None:
             picks = np.arange(self._data.shape[0])
         self._data[picks] = data
-
-        del raw
 
 
 class _RawShell():
