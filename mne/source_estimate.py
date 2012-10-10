@@ -655,6 +655,92 @@ class SourceEstimate(object):
                                    tmin=self.tmin, tstep=self.tstep)
         return label_stc
 
+    def center_of_mass(self, surf=None, restrict_vertices=False):
+        """Return the vertex on a given surface that is at the center of mass
+        of  the activity in stc. Note that all activity must occur in a single
+        hemisphere, otherwise an error is returned. The "mass" of each point in
+        space for computing the spatial center of mass is computed by summing
+        across time, and vice-versa for each point in time in computing the
+        temporal center of mass. This is useful for quantifying spatio-temporal
+        cluster locations, especially when combined with the function
+        mne.source_space.vertex_to_mni().
+
+        Parameters
+        ----------
+        surf : string, surface, or None
+            The surface or filename of the surface to operate on. Should be a
+            spherical surface file for the subject stc is based on. If None,
+            it is assumed that fsaverage's spherical surface should be used.
+
+        restrict_vertices : bool, or array of int
+            If True, returned vertex will one from stc. Otherwise, it could be
+            any vertex from surf. If an array of int, the returned vertex will
+            come from that array. For most accuruate estimates, do not restrict
+            vertices.
+
+        Returns
+        -------
+        vertex : int
+            Vertex of the spatial center of mass for the inferred hemisphere,
+            with each vertex weighted by the sum of the stc across time. For a
+            boolean stc, then, this would be weighted purely by the duration
+            each vertex was active.
+
+        hemi : int
+            Hemisphere the vertex was taken from.
+
+        t : float
+            Time of the temporal center of mass (weighted by the sum across
+            source vertices).
+
+        References:
+            Used in Larson and Lee, "The cortical dynamics underlying effective
+            switching of auditory spatial attention", NeuroImage 2012.
+        """
+
+        if not self.is_surface():
+            raise ValueError('Finding COM must be done on surface')
+
+        values = np.sum(self.data, axis=1)  # sum across time
+        vert_inds = [np.arange(len(self.vertno[0])),
+                     np.arange(len(self.vertno[1])) + len(self.vertno[0])]
+        hemi = np.where(np.array([np.sum(values[vi]) for vi in vert_inds]))[0]
+        if not len(hemi) == 1:
+            raise ValueError('Could not infer hemisphere')
+
+        values = values[vert_inds[hemi]]
+
+        if surf is None:  # assume fsaverage
+            hemis = ['lh', 'rh']
+            surf = os.path.join(os.getenv('SUBJECTS_DIR'), 'fsaverage',
+                                'surf', hemis[hemi] + '.sphere')
+            print surf
+
+        if isinstance(surf, str):  # read in surface
+            surf = read_surface(surf)
+
+        if restrict_vertices is False:
+            restrict_vertices = np.arange(surf[0].shape[0])
+        elif restrict_vertices is True:
+            restrict_vertices = self.vertno[hemi]
+
+        if np.any(self.data < 0):
+            raise ValueError('Cannot compute COM with negative values')
+
+        pos = surf[0][self.vertno[hemi], :].T
+        c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
+
+        # Find the vertex closest to the COM
+        vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] - \
+            c_o_m) ** 2, axis=1)))
+        vertex = restrict_vertices[vertex]
+
+        # do time center of mass by using the values across space
+        masses = np.sum(self.data, axis=0).astype(float)
+        t_ind = np.sum(masses * np.arange(self.data.shape[1])) / np.sum(masses)
+        t = self.tmin + self.tstep * t_ind
+        return vertex, hemi, t
+
 
 ###############################################################################
 # Morphing
