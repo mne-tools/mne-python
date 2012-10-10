@@ -116,7 +116,7 @@ def _get_components(x_in, connectivity):
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
-                   max_tstep=1, include=None, partitions=None):
+                   max_tstep=1, include=None, partitions=None, t_power=1):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
@@ -148,6 +148,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     partitions : array of int or None
         An array (same size as X) of integers indicating which points belong
         to each partition.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that t_power == 0 will give a
+        count of nodes in each cluster, t_power == 1 will weigh each node by
+        its statistical score.
 
     Returns
     -------
@@ -173,7 +178,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
                 x_in = np.logical_and(np.abs(x) > threshold, include)
 
             out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
-                                            partitions)
+                                            partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
         else:
@@ -183,7 +188,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
                 x_in = np.logical_and(x > threshold, include)
 
             out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
-                                            partitions)
+                                            partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
 
@@ -193,7 +198,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
                 x_in = np.logical_and(x < -threshold, include)
 
             out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
-                                            partitions)
+                                            partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
     else:
@@ -209,7 +214,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
                 x_in = np.logical_and(x > threshold, include)
 
         out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
-                                        partitions)
+                                        partitions, t_power)
         clusters += out[0]
         sums.append(out[1])
 
@@ -217,25 +222,27 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     return clusters, sums
 
 
-def _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep, partitions):
+def _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep, partitions,
+                              t_power):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep)
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep,
+                                             t_power)
     else:
         # cluster each partition separately
         clusters = list()
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_tstep)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_tstep, t_power)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
+def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -245,7 +252,8 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
             if len(clusters) == 0:
                 sums = []
             else:
-                sums = ndimage.measurements.sum(x, labels,
+                sums = ndimage.measurements.sum(np.sign(x) * abs(x) ** t_power,
+                                                labels,
                                                 index=range(1, n_labels + 1))
         else:
             clusters = list()
@@ -253,7 +261,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
             for l in range(1, n_labels + 1):
                 c = labels == l
                 clusters.append(c)
-                sums[l - 1] = np.sum(x[c])
+                sums[l - 1] = np.sum(np.sign(x[c]) * x[c] ** t_power)
     else:
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
@@ -267,7 +275,8 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
             clusters = _get_clusters_st(x_in, connectivity, max_tstep)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
-        sums = np.array([np.sum(x[c]) for c in clusters])
+        sums = np.array([np.sum(np.sign(x[c]) * x[c] ** t_power)
+                        for c in clusters])
 
     return clusters, np.atleast_1d(sums)
 
@@ -438,7 +447,7 @@ def ttest_1samp_no_p(X):
 
 def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
                            connectivity, stat_fun, max_tstep, include,
-                           partitions, rng):
+                           partitions, t_power, rng):
     if isinstance(rng, np.random.mtrand.RandomState):
         # new surrogate data with random sign flip
         signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
@@ -459,7 +468,7 @@ def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
                                            tail=tail, max_tstep=max_tstep,
                                            connectivity=connectivity,
                                            partitions=partitions,
-                                           include=include)
+                                           include=include, t_power=t_power)
 
     if len(perm_clusters_sums) > 0:
         idx_max = np.argmax(np.abs(perm_clusters_sums))
@@ -472,7 +481,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
                                    connectivity=None, verbose=5, n_jobs=1,
                                    seed=None, max_tstep=1, partitions=None,
-                                   exclude=None, step_down_p=0):
+                                   exclude=None, step_down_p=0, t_power=1):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -532,6 +541,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         step-down test (since no clusters will be smaller than this value).
         Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
         but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that t_power == 0 will give a
+        count of nodes in each cluster, t_power == 1 will weigh each node by
+        its statistical score.
 
     Returns
     -------
@@ -587,7 +601,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity, max_tstep=max_tstep,
                                              include=include,
-                                             partitions=partitions)
+                                             partitions=partitions,
+                                             t_power=t_power)
     # convert clusters to old format
     if connectivity is not None:
         clusters = _clusters_to_bool(clusters, X.shape[1])
@@ -631,7 +646,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                                    X_copy, threshold, tail,
                                                    connectivity, stat_fun,
                                                    max_tstep, this_include,
-                                                   partitions, s)
+                                                   partitions, t_power, s)
                                                    for s in seeds)
             H0 = np.array(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
@@ -667,7 +682,8 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  connectivity=None, verbose=5, n_jobs=1,
                                  seed=None, max_tstep=1,
                                  spatial_partitions=None,
-                                 spatial_exclude=None, step_down_p=0):
+                                 spatial_exclude=None, step_down_p=0,
+                                 t_power=1):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -704,6 +720,8 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
     step_down_p : float
+        See permutation_cluster_1samp_test.
+    t_power : float
         See permutation_cluster_1samp_test.
 
     Returns
@@ -761,7 +779,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
               max_tstep=max_tstep, verbose=verbose, partitions=partitions,
-              exclude=exclude, step_down_p=step_down_p)
+              exclude=exclude, step_down_p=step_down_p, t_power=t_power)
     return out
 
 
