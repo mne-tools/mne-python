@@ -76,8 +76,12 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                 t_inds += buddies.tolist()
                 r[buddies] = False
                 icount += 1
-            next_ind = np.where(r)[0]
-            next_ind = next_ind[0] if next_ind.size > 0 else None
+            # this is equivalent to np.where(r)[0] for these purposes, but it's
+            # a little bit faster. Unfortunately there's no way to tell numpy
+            # just to find the first instance (to save checking every one):
+            next_ind = np.argmax(r)
+            if next_ind == 0:
+                next_ind = None
             clusters.append(v[t_inds])
 
     return clusters
