@@ -327,7 +327,7 @@ def _one_permutation(X_full, slices, stat_fun, tail, threshold, connectivity,
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
                              connectivity=None, n_jobs=1,
-                             verbose=5, seed=None):
+                             verbose=5, seed=None, out_type=0):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -362,13 +362,19 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
+    out_type : int
+        For arrays with connectivity, this sets the output format for clusters.
+        If 0, it will pass back a list of boolean arrays.
+        If 1, it will pass back a list of lists, where each list is the
+        set of vertices in a given cluster. Note that the latter may use far
+        less memory for large datasets.
 
     Returns
     -------
     T_obs : array of shape [n_tests]
         T-statistic observerd for all variables
-    clusters: list of tuples
-        Each tuple is a pair of indices (begin/end of cluster)
+    clusters : list
+        List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
     H0 : array of shape [n_permutations]
@@ -396,7 +402,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
     # convert clusters to old format
-    if connectivity is not None:
+    if connectivity is not None and out_type == 0:
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
     # make list of indices for random data split
@@ -481,7 +487,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
                                    connectivity=None, verbose=5, n_jobs=1,
                                    seed=None, max_tstep=1, partitions=None,
-                                   exclude=None, step_down_p=0, t_power=1):
+                                   exclude=None, step_down_p=0, t_power=1,
+                                   out_type=0):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -546,14 +553,20 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         summing (sign will be retained). Note that t_power == 0 will give a
         count of nodes in each cluster, t_power == 1 will weigh each node by
         its statistical score.
+    out_type : int
+        For arrays with connectivity, this sets the output format for clusters.
+        If 0, it will pass back a list of boolean arrays.
+        If 1, it will pass back a list of lists, where each list is the
+        set of vertices in a given cluster. Note that the latter may use far
+        less memory for large datasets.
 
     Returns
     -------
     T_obs : array of shape [n_tests]
         T-statistic observerd for all variables
-    clusters: list of tuples
-        Each tuple is a pair of indices (begin/end of cluster)
-    cluster_pv: array
+    clusters : list
+        List type defined by out_type above.
+    cluster_pv : array
         P-value for each cluster
     H0 : array of shape [n_permutations]
         Max cluster level stats observed under permutation.
@@ -604,7 +617,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                              partitions=partitions,
                                              t_power=t_power)
     # convert clusters to old format
-    if connectivity is not None:
+    if connectivity is not None and out_type == 0:
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
     parallel, my_one_1samp_permutation, _ = parallel_func(
@@ -683,7 +696,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  seed=None, max_tstep=1,
                                  spatial_partitions=None,
                                  spatial_exclude=None, step_down_p=0,
-                                 t_power=1):
+                                 t_power=1, out_type=1):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -723,13 +736,15 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
         See permutation_cluster_1samp_test.
     t_power : float
         See permutation_cluster_1samp_test.
+    out_type : int
+        See permutation_cluster_1samp_test.
 
     Returns
     -------
     T_obs : array of shape [n_tests]
         T-statistic observerd for all variables
-    clusters: list of tuples
-        Each tuple is a pair of indices (begin/end of cluster)
+    clusters : list
+        List type defined by out_type above.
     cluster_pv: array
         P-value for each cluster
     H0 : array of shape [n_permutations]
@@ -779,7 +794,8 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
               max_tstep=max_tstep, verbose=verbose, partitions=partitions,
-              exclude=exclude, step_down_p=step_down_p, t_power=t_power)
+              exclude=exclude, step_down_p=step_down_p, t_power=t_power,
+              out_type=out_type)
     return out
 
 
