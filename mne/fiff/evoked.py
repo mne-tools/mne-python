@@ -314,6 +314,18 @@ class Evoked(object):
         plot_evoked(self, picks=picks, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim)
 
+    def to_nitime(self, picks=None):
+        """ Export Evoded object to NiTime
+        """
+        from nitime import TimeSeries
+
+        if picks is None:
+            picks = np.arange(self.data.shape[0])
+
+        evoked_ts = TimeSeries(self.data[picks], sampling_rate=self.info['sfreq'])
+
+        return evoked_ts
+
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample preloaded data
 

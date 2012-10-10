@@ -895,6 +895,28 @@ class Raw(object):
 
         return new
 
+    def to_nitime(self, start=None, stop=None, picks=None, copy=True):
+        """ Raw data as nitime TimeSeries
+        """
+        from nitime import TimeSeries
+
+        if self._preloaded is not True:
+            data, _ = self[:, start:stop]
+            start_time = (start, self.info['sfreq'])
+        else:
+            data = self._data
+
+        if copy:
+            data = data.copy()
+            start_time = self.first_samp
+
+        if picks is None:
+            picks = np.arange(data.shape[0])
+
+        raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
+                            t0=start_time)
+        return raw_ts
+
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)

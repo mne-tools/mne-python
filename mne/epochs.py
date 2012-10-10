@@ -603,6 +603,20 @@ class Epochs(object):
 
         return out
 
+    def to_nitime(self):
+        """ Export epochs as nitime TimeSeries
+        """
+        from nitme import TimeSeries
+
+        if not self.preload:
+            data = self.get_data()
+        else:
+            data = self._data
+
+        epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'])
+
+        return epochs_ts
+
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
     """Test if data segment e is good according to the criteria
