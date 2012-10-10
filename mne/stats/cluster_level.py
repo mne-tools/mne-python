@@ -78,9 +78,7 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
                 icount += 1
             next_ind = np.where(r)[0]
             next_ind = next_ind[0] if next_ind.size > 0 else None
-            clust = np.zeros((n_tot), dtype=bool)
-            clust[v[t_inds]] = True
-            clusters.append(clust)
+            clusters.append(v[t_inds])
 
     return clusters
 
@@ -103,8 +101,14 @@ def _get_components(x_in, connectivity):
     data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
     _, components = cs_graph_components(connectivity)
+    labels = np.unique(components)
+    clusters = list()
+    for l in labels:
+        c = np.where(components == l)[0]
+        if np.any(x_in[c]):
+            clusters.append(c)
     # print "-- number of components : %d" % np.unique(components).size
-    return components
+    return clusters
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
@@ -254,23 +258,22 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep):
             return [], np.empty(0)
 
         if isinstance(connectivity, sparse.spmatrix):
-            components = _get_components(x_in, connectivity)
-            labels = np.unique(components)
-            clusters = list()
-            sums = list()
-            for l in labels:
-                c = (components == l)
-                if np.any(x_in[c]):
-                    clusters.append(c)
-                    sums.append(np.sum(x[c]))
-            sums = np.array(sums)
+            clusters = _get_components(x_in, connectivity)
         elif isinstance(connectivity, list):  # use temporal adjacency
             clusters = _get_clusters_st(x_in, connectivity, max_tstep)
-            sums = np.array([np.sum(x[c]) for c in clusters])
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
+        sums = np.array([np.sum(x[c]) for c in clusters])
 
     return clusters, np.atleast_1d(sums)
+
+
+def _clusters_to_bool(components, n_tot):
+    """Convert to the old format of clusters, which were bool arrays"""
+    for ci, c in enumerate(components):
+        components[ci] = np.zeros((n_tot), dtype=bool)
+        components[ci][c] = True
+    return components
 
 
 def _pval_from_histogram(T, H0, tail):
@@ -379,6 +382,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
+    # convert clusters to old format
+    if connectivity is not None:
+        clusters = _clusters_to_bool(clusters, X.shape[1])
 
     # make list of indices for random data split
     splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
@@ -416,10 +422,12 @@ def ttest_1samp_no_p(X):
     Notes
     -----
     One can use the conversion:
-        threshold = -stats.distributions.t.ppf(p_thresh, n_samples)
-    to converting a desired p-value threshold to t-value threshold
 
-    that for two-tailed tests, p_thresh should be divided by 2"""
+        threshold = -scipy.stats.distributions.t.ppf(p_thresh, n_samples)
+
+    to convert a desired p-value threshold to t-value threshold. Don't forget
+    that for two-tailed tests, p_thresh in the above should be divided by 2
+    """
     return np.mean(X, axis=0) \
         / np.sqrt(np.var(X, axis=0, ddof=1) / X.shape[0])
 
@@ -576,6 +584,9 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                              connectivity, max_tstep=max_tstep,
                                              include=include,
                                              partitions=partitions)
+    # convert clusters to old format
+    if connectivity is not None:
+        clusters = _clusters_to_bool(clusters, X.shape[1])
 
     parallel, my_one_1samp_permutation, _ = parallel_func(
                                 _one_1samp_permutation, n_jobs, verbose)
