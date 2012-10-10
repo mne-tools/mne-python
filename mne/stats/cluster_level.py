@@ -252,8 +252,8 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
             if len(clusters) == 0:
                 sums = []
             else:
-                sums = ndimage.measurements.sum(np.sign(x) * abs(x) ** t_power,
-                                                labels,
+                sums = ndimage.measurements.sum(np.sign(x) *
+                                                np.abs(x) ** t_power, labels,
                                                 index=range(1, n_labels + 1))
         else:
             clusters = list()
@@ -261,7 +261,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
             for l in range(1, n_labels + 1):
                 c = labels == l
                 clusters.append(c)
-                sums[l - 1] = np.sum(np.sign(x[c]) * x[c] ** t_power)
+                sums[l - 1] = np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
     else:
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
@@ -275,7 +275,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
             clusters = _get_clusters_st(x_in, connectivity, max_tstep)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
-        sums = np.array([np.sum(np.sign(x[c]) * x[c] ** t_power)
+        sums = np.array([np.sum(np.sign(x[c]) * np.abs(x[c]) ** t_power)
                         for c in clusters])
 
     return clusters, np.atleast_1d(sums)
