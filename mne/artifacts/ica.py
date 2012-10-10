@@ -11,6 +11,7 @@ from scipy.stats import kurtosis, skew
 from scipy import linalg
 from copy import copy
 from ..fiff.raw import RawFromMerge
+from ..epochs import EpochsFromMerge
 
 
 class ICA(object):
@@ -173,7 +174,7 @@ class ICA(object):
 
         self._raw._data[self.picks] = denoised
 
-    def denoise_epochs(self, bads=[]):
+    def denoise_epochs(self, bads=[], copy=True):
         """ Recompose epochs
 
         Paramerters
@@ -195,9 +196,15 @@ class ICA(object):
 
         denoised = self._denoise(bads)
         neps = self._epochs.events.shape[0]
-        denoised = np.array(np.split(denoised), neps, 1)
+        denoised = np.array(np.split(denoised, neps, 1))
 
-        return denoised
+        if copy:
+            return EpochsFromMerge(self._epochs, denoised)
+        else:
+            self._epochs._data = denoised
+            self._epochs._preload = True
+
+            return self._epochs
         #TODO  alternative epochs constructor to restore epochs object
 
     def sort_sources(self, sort_method, inplace=True):
