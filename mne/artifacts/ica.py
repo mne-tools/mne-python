@@ -4,34 +4,36 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 from inspect import getargspec
-from ..cov import compute_whitener
+from copy import copy
+import numpy as np
 from scipy.stats import kurtosis, skew
 from scipy import linalg
-from copy import copy
+
+from ..cov import compute_whitener
 from ..fiff.raw import RawFromMerge
 from ..epochs import EpochsFromMerge
 
 
 class ICA(object):
-    """ MEG signal decomposition and denoising workflow
+    """MEG signal decomposition and denoising workflow
+
     Paramerters
     -----------
     noise_cov : ndarray
         noise covariance used for whitening
     n_components : integer
-        number of components to extract. If none, no dimension
-        reduciton will be applied.
+        number of components to be extracted. If None, no dimensionality
+        reduction will be applied.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the FastICA estimation.
+        As the estimation is non-deterministic it can be useful to
+        fix the seed to have reproducible results.
 
     Attributes
     ----------
-    n_components : integer
-        number of components to be extracted
     pre_whitener : ndrarray | instance of mne.cov.Covariance
         whiter used for preprocessing
-    seed : instance of FastICA
-        FastICA instance used to perform decomposition
     source_ids : np.ndrarray
         array of source ids for sorting-book-keeping
     sorted_by : str
@@ -39,15 +41,14 @@ class ICA(object):
     last_fit : str
         flag informing about which type was last fit.
     """
-
-    def __init__(self, noise_cov=None, n_components=None):
+    def __init__(self, noise_cov=None, n_components=None, random_state=None):
         from sklearn.decomposition import FastICA
-
         self.noise_cov = noise_cov
-        self.seed = FastICA(n_components)
+        self._fast_ica = FastICA(n_components, random_state=random_state)
         self.n_components = n_components
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
+        self.sources = None
 
     def __repr__(self):
         out = 'ICA '
@@ -58,24 +59,23 @@ class ICA(object):
         else:
             msg = '(epochs decomposition, '
 
-        if hasattr(self, 'sources'):
-            n_samples = self.sources.shape[1]
-        else:
-            n_samples = 0
-        out += msg + '%i components)' % self.n_components
-        out += ('\n    %i time slices' % n_samples)
+        out += msg + '%i components' % self.n_components
+
+        if self.last_fit != 'unfitted':
+            out += (', %i time slices' % self.sources.shape[1])
 
         if self.sorted_by == 'unsorted':
             sorted_by = self.sorted_by
         else:
             sorted_by = 'sorted by %s' % self.sorted_by
-        out += '\n    %s' % sorted_by
+        out += ', %s)' % sorted_by
 
         return out
 
     def fit_raw(self, raw, picks, start=None, stop=None,
                 sort_method='skew'):
-        """ Run the ica decomposition for raw data
+        """Run the ica decomposition for raw data
+
         Paramerters
         -----------
         raw : instance of mne.fiff.Raw
@@ -101,12 +101,9 @@ class ICA(object):
         self.source_ids = (np.arange(self.n_components) if self.n_components
                            is not None else np.arange(picks.shape[0]))
 
-        if raw._preloaded:
-            data = raw._data[picks].copy()
-        else:
-            start = raw.first_samp if start is None else start
-            stop = raw.last_samp if stop is None else stop
-            data = copy(raw[picks, start:stop][0])
+        start = raw.first_samp if start is None else start
+        stop = raw.last_samp if stop is None else stop
+        data = raw[picks, start:stop][0]
 
         data, self.pre_whitener = self._pre_whiten(data, picks)
 
@@ -119,10 +116,13 @@ class ICA(object):
         return self
 
     def fit_epochs(self, epochs, picks=None, sort_method='skew'):
-        """ Run the ica decomposition for epochs
+        """Run the ica decomposition for epochs
+
         Paramerters
         -----------
         epochs : instance of Epochs
+            The epochs. The ICA is estimated on the concatenated epochs.
+
         sort_method : string
             function used to sort the sources and the mixing matrix.
             If None, the output will be left unsorted
@@ -144,11 +144,10 @@ class ICA(object):
         self._fit_data(data, sort_method=sort_method)
         self.last_fit = 'epochs'
         self._epochs = epochs
-
         return self
 
     def denoise_raw(self, bads=[], copy=True):
-        """ Recompose raw data
+        """Recompose raw data
 
         Paramerters
         -----------
@@ -175,7 +174,7 @@ class ICA(object):
         self._raw._data[self.picks] = denoised
 
     def denoise_epochs(self, bads=[], copy=True):
-        """ Recompose epochs
+        """Recompose epochs
 
         Paramerters
         -----------
@@ -208,7 +207,8 @@ class ICA(object):
         #TODO  alternative epochs constructor to restore epochs object
 
     def sort_sources(self, sort_method, inplace=True):
-        """
+        """Sort sources accoroding to criteria such as skewness or kurtosis
+
         Paramerters
         -----------
         sources : str
@@ -217,6 +217,9 @@ class ICA(object):
             function used to sort the sources and the mixing matrix.
             If None, the output will be left unsorted
         """
+        if self.sources is None:
+            print ('No sources availble. First fit ica decomposition first.')
+
         if sort_method == 'skew':
             sort_func = skew
         elif sort_method == 'kurtosis':
@@ -238,25 +241,21 @@ class ICA(object):
 
         self.sorted_by = sort_func.__name__
 
-        try:
-            sort_args = np.argsort(sort_func(self.sources, 1))
+        sort_args = np.argsort(sort_func(self.sources, 1))
 
-            S = self.sources[sort_args]
-            A = self.mixing[sort_args]
-            ID = self.source_ids[sort_args]
+        S = self.sources[sort_args]
+        A = self.mixing[sort_args]
+        ID = self.source_ids[sort_args]
 
-            if inplace:
-                self.sources = S
-                self.mixing = A
-                self.source_ids = ID
-            else:
-                return S, A, ID
-        except:
-            print ('No sources availble. First fit ica decomposition please.')
+        if inplace:
+            self.sources = S
+            self.mixing = A
+            self.source_ids = ID
+
+        return S, A, ID
 
     def _pre_whiten(self, data, picks):
-        """ Helper function
-        """
+        """Helper function"""
         if self.noise_cov is not None:
             assert data.shape[0] == self.noise_cov.data.shape[0]
             pre_whitener, _ = compute_whitener(self.noise_cov, self.raw.info,
@@ -273,15 +272,13 @@ class ICA(object):
         return data, pre_whitener
 
     def _fit_data(self, data, sort_method):
-        """ Helper function
-        """
-        self.sources = self.seed.fit_transform(data.T).T
-        self.mixing = self.seed.get_mixing_matrix().T
+        """Helper function"""
+        self.sources = self._fast_ica.fit_transform(data.T).T
+        self.mixing = self._fast_ica.get_mixing_matrix().T
         self.sort_sources(sort_method=sort_method)
 
     def _denoise(self, bads):
-        """ Helper function
-        """
+        """Helper function"""
         if self.sorted_by != 'unsorted':
             sources, mixing, ids = self.sort_sources(sort_method='back',
                                                      inplace=False)
@@ -292,7 +289,6 @@ class ICA(object):
 
         pre_whitener = self.pre_whitener
         if self.noise_cov is None:  # revert standardization
-            # pass
             pre_whitener **= -1
             mixing *= pre_whitener.T
         else:
@@ -301,9 +297,8 @@ class ICA(object):
         if bads is not None:
             ids = ids.tolist()
             bads_idx = [ids.index(bad) for bad in bads]
-            sources[bads_idx, :] = 0
+            sources[bads_idx, :] = 0.
 
         out = np.dot(sources.T, mixing).T
 
         return out
-

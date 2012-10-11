@@ -445,9 +445,11 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
 
 def plot_ica_panel(ica, start, stop, source_idx=None, ncol=3,
                    nrow=10):
-    """ Create panel plots of ICA sources
+    """Create panel plots of ICA sources
+
+    XXX : add docstring
     """
-    import matplotlib.pylab as pl
+    import pylab as pl
 
     sources = ica.sources.copy()
 
