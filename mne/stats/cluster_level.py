@@ -497,6 +497,7 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
         if isinstance(rng, np.random.mtrand.RandomState):
             # new surrogate data with random sign flip
             signs = np.sign(0.5 - rng.rand(n_samp))
+            signs = signs[:, np.newaxis]
         elif isinstance(rng, np.ndarray):
             # new surrogate data with specified sign flip
             if not rng.size == n_samp:
@@ -506,7 +507,6 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
                 raise ValueError('signs from rng must be +/- 1')
         else:
             raise ValueError('rng must be a RandomState or str')
-        signs = signs[:, np.newaxis]
         X *= signs
 
         # Recompute statistic on randomized data
