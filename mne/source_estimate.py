@@ -13,6 +13,7 @@ from scipy.sparse import csr_matrix
 import warnings
 
 from .parallel import parallel_func
+from .surface import read_surface
 
 
 def read_stc(filename):
@@ -229,8 +230,8 @@ def read_source_estimate(fname):
 
     Parameters
     ----------
-    The single argument ``fname`` should provide the path to (a) source-estimate
-    file(s) as string.
+    The single argument ``fname`` should provide the path to (a)
+    source-estimate file(s) as string.
 
      - for volume source estimates, ``fname`` should provide the path to a
        single file named '*-vl.stc`
@@ -289,7 +290,7 @@ def read_source_estimate(fname):
     # read the files
     if ftype == 'volume':  # volume source space
         kwargs = read_stc(fname)
-    elif ftype == 'surface': # stc file with surface source spaces
+    elif ftype == 'surface':  # stc file with surface source spaces
         lh = read_stc(fname + '-lh.stc')
         rh = read_stc(fname + '-rh.stc')
         assert lh['tmin'] == rh['tmin']
@@ -297,7 +298,7 @@ def read_source_estimate(fname):
         kwargs = lh.copy()
         kwargs['data'] = np.r_[lh['data'], rh['data']]
         kwargs['vertices'] = [lh['vertices'], rh['vertices']]
-    elif ftype == 'w': # w file with surface source spaces
+    elif ftype == 'w':  # w file with surface source spaces
         lh = read_w(fname + '-lh.w')
         rh = read_w(fname + '-rh.w')
         kwargs = lh.copy()
@@ -553,9 +554,9 @@ class SourceEstimate(object):
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
         """Returns a SourceEstimate object with data summarized over time bins
 
-        Time bins of ``width`` seconds. This method is intended for visualization
-        only. No filter is applied to the data before binning, making the
-        method inappropriate as a tool for downsampling data.
+        Time bins of ``width`` seconds. This method is intended for
+        visualization only. No filter is applied to the data before binning,
+        making the method inappropriate as a tool for downsampling data.
 
         Parameters
         ----------
@@ -589,7 +590,8 @@ class SourceEstimate(object):
             data[:, i] = func(self.data[:, idx], axis=1)
 
         tmin = times[0] + width / 2.
-        stc = SourceEstimate(data, vertices=self.vertno, tmin=tmin, tstep=width)
+        stc = SourceEstimate(data, vertices=self.vertno,
+                             tmin=tmin, tstep=width)
         return stc
 
     def _hemilabel_stc(self, label):
@@ -741,7 +743,6 @@ class SourceEstimate(object):
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
 
-
 ###############################################################################
 # Morphing
 
@@ -749,7 +750,7 @@ from .fiff.constants import FIFF
 from .fiff.tag import find_tag
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
-from .surface import read_bem_surfaces, read_surface
+from .surface import read_bem_surfaces
 
 
 def read_morph_map(subject_from, subject_to, subjects_dir=None):
@@ -1027,7 +1028,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
     Parameters
     ----------
     src : source space
-        The source space.
+        The source space
 
     n_times : int
         Number of time instants
@@ -1076,7 +1077,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using\n'
                            'mne_add_patch_info with --dist argument')
-    edges = sparse.block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
+    edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
                               for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)
     # clean it up and put it in coo format
@@ -1084,6 +1085,21 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
     edges.eliminate_zeros()
     edges = edges.tocoo()
     return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
+
+
+def sparse_block_diag(mats, format=None, dtype=None):
+    """An implementation of scipy.sparse.block_diag since old versions of
+    scipy don't have it"""
+    try:
+        return sparse.block_diag(mats, format=format, dtype=dtype)
+    except AttributeError:
+        nmat = len(mats)
+        rows = []
+        for ia, a in enumerate(mats):
+            row = [None] * nmat
+            row[ia] = a
+            rows.append(row)
+        return sparse.bmat(rows, format=format, dtype=dtype)
 
 
 def _get_connectivity_from_edges(edges, n_times, verbose=True):
