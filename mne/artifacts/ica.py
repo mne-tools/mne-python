@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 from inspect import getargspec
-from copy import copy
 import numpy as np
 from scipy.stats import kurtosis, skew
 from scipy import linalg
@@ -144,6 +143,7 @@ class ICA(object):
         self._fit_data(data, sort_method=sort_method)
         self.last_fit = 'epochs'
         self._epochs = epochs
+
         return self
 
     def denoise_raw(self, bads=[], copy=True):
@@ -204,7 +204,6 @@ class ICA(object):
             self._epochs._preload = True
 
             return self._epochs
-        #TODO  alternative epochs constructor to restore epochs object
 
     def sort_sources(self, sort_method, inplace=True):
         """Sort sources accoroding to criteria such as skewness or kurtosis
@@ -219,6 +218,7 @@ class ICA(object):
         """
         if self.sources is None:
             print ('No sources availble. First fit ica decomposition first.')
+            return
 
         if sort_method == 'skew':
             sort_func = skew
