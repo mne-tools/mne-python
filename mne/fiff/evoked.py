@@ -316,11 +316,15 @@ class Evoked(object):
 
     def to_nitime(self, picks=None):
         """ Export Evoded object to NiTime
+        Parameters
+        ----------
+        pcicks : array-like
+            fancy-index to subset the channels
+        Retruns
+        -------
+        epochs_ts : instance of nitime.TimeSeries
         """
         from nitime import TimeSeries
-
-        if picks is None:
-            picks = np.arange(self.data.shape[0])
 
         evoked_ts = TimeSeries(self.data[picks], sampling_rate=self.info['sfreq'])
 

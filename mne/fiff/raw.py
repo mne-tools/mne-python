@@ -897,6 +897,21 @@ class Raw(object):
 
     def to_nitime(self, start=None, stop=None, picks=None, copy=True):
         """ Raw data as nitime TimeSeries
+        
+        Parameters
+        ----------
+        start : int
+            data-extraction start index
+        stop : int
+            data-extraction stop index
+        picks : array-like
+            channel selection fancy index
+        copy : boolean
+            whether to copy the raw data or not.
+
+        Retruns
+        -------
+        raw_ts : instance of nitime.TimeSeries
         """
         from nitime import TimeSeries
 

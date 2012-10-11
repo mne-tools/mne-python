@@ -605,8 +605,12 @@ class Epochs(object):
 
     def to_nitime(self):
         """ Export epochs as nitime TimeSeries
+
+        Retruns
+        -------
+        isntance of nitime.TimeSeries
         """
-        from nitme import TimeSeries
+        from nitime import TimeSeries
 
         if not self.preload:
             data = self.get_data()
