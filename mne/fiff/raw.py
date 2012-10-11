@@ -925,9 +925,6 @@ class Raw(object):
             data = data.copy()
             start_time = self.first_samp
 
-        if picks is None:
-            picks = np.arange(data.shape[0])
-
         raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
                             t0=start_time)
         return raw_ts
