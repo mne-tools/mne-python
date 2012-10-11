@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Author: Thorsten Kranz <thorstenkranz@gmail.com>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Eric Larson <larson.eric.d@gmail.com>
+# Authors: Thorsten Kranz <thorstenkranz@gmail.com>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 
@@ -12,6 +13,7 @@ from scipy import stats, sparse, ndimage
 
 from .parametric import f_oneway
 from ..parallel import parallel_func
+from ..utils import split_list
 
 
 def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
@@ -310,18 +312,36 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _one_permutation(X_full, slices, stat_fun, tail, threshold, connectivity,
-                     rng):
-    rng.shuffle(X_full)
-    X_shuffle_list = [X_full[s] for s in slices]
-    T_obs_surr = stat_fun(*X_shuffle_list)
-    _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                           connectivity)
+def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
+                     seeds, sample_shape):
 
-    if len(perm_clusters_sums) > 0:
-        return np.max(perm_clusters_sums)
-    else:
-        return 0
+    n_samp, n_vars = X_full.shape
+
+    # allocate space for output
+    max_cluster_sums = np.empty(len(seeds), dtype=np.double)
+
+    for seed_idx, seed in enumerate(seeds):
+        # shuffle sample indices
+        rng = np.random.RandomState(seed)
+        idx_shuffled = np.arange(n_samp)
+        rng.shuffle(idx_shuffled)
+        idx_shuffle_list = [idx_shuffled[s] for s in slices]
+
+        # shuffle all data at once
+        X_shuffle_list = [X_full[idx, :] for idx in idx_shuffle_list]
+        T_obs_surr = stat_fun(*X_shuffle_list)
+
+        # The stat should have the same shape as the samples
+        T_obs_surr.shape = sample_shape
+
+        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
+                                               connectivity)
+        if len(perm_clusters_sums) > 0:
+            max_cluster_sums[seed_idx] = np.max(perm_clusters_sums)
+        else:
+            max_cluster_sums[seed_idx] = 0
+
+    return max_cluster_sums
 
 
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
@@ -389,6 +409,12 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+
+    # flatten the last dimensions if data is high dimensional
+    sample_shape = X[0].shape[1:]
+    if X[0].ndim > 2:
+        X = [np.reshape(x, (x.shape[0], -1)) for x in X]
+
     X_full = np.concatenate(X, axis=0)
     n_samples_per_condition = [x.shape[0] for x in X]
 
@@ -398,9 +424,18 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
+    if verbose:
+        print 'stat_fun(H1): min=%f max=%f' % (np.min(T_obs), np.max(T_obs))
+
+    # The stat should have the same shape as the samples
+    T_obs.shape = sample_shape
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
+
+    if verbose:
+        print 'Found %d clusters' % len(clusters)
+
     # convert clusters to old format
     if connectivity is not None and out_type == 0:
         clusters = _clusters_to_bool(clusters, X.shape[1])
@@ -410,8 +445,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                 for k in range(len(X))]
 
-    parallel, my_one_permutation, _ = parallel_func(_one_permutation, n_jobs,
-                                                 verbose)
+    parallel, my_do_permutations, _ = parallel_func(_do_permutations, n_jobs,
+                                                 verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -420,11 +455,11 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         if seed is None:
             seeds = [None] * n_permutations
         else:
-            seeds = seed + np.arange(n_permutations)
-        H0 = parallel(my_one_permutation(X_full, slices, stat_fun, tail,
-                            threshold, connectivity, np.random.RandomState(s))
-                                for s in seeds)
-        H0 = np.array(H0)
+            seeds = list(seed + np.arange(n_permutations))
+        H0 = parallel(my_do_permutations(X_full, slices, stat_fun, tail,
+                            threshold, connectivity, s, sample_shape)
+                            for s in split_list(seeds, n_jobs))
+        H0 = np.concatenate(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
         return T_obs, clusters, cluster_pv, H0
     else:
@@ -451,36 +486,51 @@ def ttest_1samp_no_p(X):
         / np.sqrt(np.var(X, axis=0, ddof=1) / X.shape[0])
 
 
-def _one_1samp_permutation(n_samples, shape_ones, X_copy, threshold, tail,
-                           connectivity, stat_fun, max_tstep, include,
-                           partitions, t_power, rng):
-    if isinstance(rng, np.random.mtrand.RandomState):
-        # new surrogate data with random sign flip
-        signs = np.sign(0.5 - rng.rand(n_samples, *shape_ones))
-    elif isinstance(rng, np.ndarray):
-        # new surrogate data with specified sign flip
-        if not rng.size == n_samples:
-            raise ValueError('rng string must be n_samples long')
-        signs = 2 * rng[:, None].astype(int) - 1
-        if not np.all(np.equal(np.abs(signs), 1)):
-            raise ValueError('signs from rng must be +/- 1')
-    else:
-        raise ValueError('rng must be a RandomState or str')
-    X_copy *= signs
+def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
+                           max_tstep, include, partitions, t_power, seeds,
+                           sample_shape):
+    n_samp, n_vars = X.shape
+    # allocate space for output
+    max_cluster_sums = np.empty(len(seeds), dtype=np.double)
 
-    # Recompute statistic on randomized data
-    T_obs_surr = stat_fun(X_copy)
-    _, perm_clusters_sums = _find_clusters(x=T_obs_surr, threshold=threshold,
-                                           tail=tail, max_tstep=max_tstep,
-                                           connectivity=connectivity,
-                                           partitions=partitions,
-                                           include=include, t_power=t_power)
+    for seed_idx, rng in enumerate(seeds):
+        if isinstance(rng, np.random.mtrand.RandomState):
+            # new surrogate data with random sign flip
+            signs = np.sign(0.5 - rng.rand(n_samp))
+        elif isinstance(rng, np.ndarray):
+            # new surrogate data with specified sign flip
+            if not rng.size == n_samp:
+                raise ValueError('rng string must be n_samples long')
+            signs = 2 * rng[:, None].astype(int) - 1
+            if not np.all(np.equal(np.abs(signs), 1)):
+                raise ValueError('signs from rng must be +/- 1')
+        else:
+            raise ValueError('rng must be a RandomState or str')
+        signs = signs[:, np.newaxis]
+        X *= signs
 
-    if len(perm_clusters_sums) > 0:
-        idx_max = np.argmax(np.abs(perm_clusters_sums))
-        return perm_clusters_sums[idx_max]  # get max with sign info
-    else:
-        return 0.0
+        # Recompute statistic on randomized data
+        T_obs_surr = stat_fun(X)
+
+        # Set X back to previous state (trade memory efficiency for CPU use)
+        X *= signs
+        T_obs_surr.shape = sample_shape
+
+        # Find cluster on randomized stats
+        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
+                                               tail=tail, max_tstep=max_tstep,
+                                               connectivity=connectivity,
+                                               partitions=partitions,
+                                               include=include,
+                                               t_power=t_power)
+        if len(perm_clusters_sums) > 0:
+            # get max with sign info
+            idx_max = np.argmax(np.abs(perm_clusters_sums))
+            max_cluster_sums[seed_idx] = perm_clusters_sums[idx_max]
+        else:
+            max_cluster_sums[seed_idx] = 0
+
+    return max_cluster_sums
 
 
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
@@ -499,7 +549,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
 
     Parameters
     ----------
-    X: array
+    X: array, shape=(n_samples, n_variables)
         Array where the first dimension corresponds to the
         samples (observations). X[k] can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
@@ -580,9 +630,14 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
-    X_copy = X.copy()
+    if X.ndim == 1:
+        X = X[:, np.newaxis]
     n_samples = X.shape[0]
-    shape_ones = tuple([1] * X[0].ndim)
+
+    # flatten the last dimensions if data is high dimensional
+    sample_shape = X.shape[1:]
+    if X.ndim > 2:
+        X = np.reshape(X, (X.shape[0], -1))
 
     if connectivity is not None:
         if connectivity.shape[0] == X.shape[1]:  # use global algorithm
@@ -606,6 +661,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
+
+    # The stat should have the same shape as the samples
+    T_obs.shape = sample_shape
+
     if exclude is not None:
         include = np.logical_not(exclude)
     else:
@@ -620,8 +679,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     if connectivity is not None and out_type == 0:
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
-    parallel, my_one_1samp_permutation, _ = parallel_func(
-                                _one_1samp_permutation, n_jobs, verbose)
+    parallel, my_do_1samp_permutations, _ = parallel_func(
+                               _do_1samp_permutations, n_jobs, verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -638,7 +697,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
             if seed is None:
                 seeds = [None] * n_permutations
             else:
-                seeds = seed + np.arange(n_permutations)
+                seeds = list(seed + np.arange(n_permutations))
             seeds = [np.random.RandomState(s) for s in seeds]
 
         # Step 3: repeat permutations for stetp-down-in-jumps procedure
@@ -655,13 +714,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                     this_include = include
             else:
                 this_include = step_down_include
-            H0 = parallel(my_one_1samp_permutation(n_samples, shape_ones,
-                                                   X_copy, threshold, tail,
-                                                   connectivity, stat_fun,
-                                                   max_tstep, this_include,
-                                                   partitions, t_power, s)
-                                                   for s in seeds)
-            H0 = np.array(H0)
+            H0 = parallel(my_do_1samp_permutations(X, threshold, tail,
+                          connectivity, stat_fun, max_tstep, this_include,
+                          partitions, t_power, s, sample_shape)
+                          for s in split_list(seeds, n_jobs))
+            H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
             # sort them by significance; for backward compat, don't sort the

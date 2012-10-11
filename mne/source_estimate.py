@@ -675,10 +675,10 @@ class SourceEstimate(object):
             it is assumed that fsaverage's spherical surface should be used.
 
         restrict_vertices : bool, or array of int
-            If True, returned vertex will one from stc. Otherwise, it could be
-            any vertex from surf. If an array of int, the returned vertex will
-            come from that array. For most accuruate estimates, do not restrict
-            vertices.
+            If True, returned vertex will be one from stc. Otherwise, it could
+            be any vertex from surf. If an array of int, the returned vertex
+            will come from that array. For most accuruate estimates, do not
+            restrict vertices.
 
         Returns
         -------

@@ -267,7 +267,16 @@ def check_random_state(seed):
     raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
                      ' instance' % seed)
 
+
 def array_hash(array):
     """Calculate a hash string from a numpy array"""
     return hashlib.sha1(array).hexdigest()
 
+
+def split_list(l, n):
+    """split list in n (approx) equal pieces"""
+    n = int(n)
+    sz = len(l) / n
+    for i in range(n - 1):
+        yield l[i * sz:(i + 1) * sz]
+    yield l[(n - 1) * sz:]
