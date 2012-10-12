@@ -226,7 +226,7 @@ class Label(dict):
         stc = morph_data(subject, subject, stc, grade=grade, smooth=smooth,
                          subjects_dir=subjects_dir, n_jobs=n_jobs,
                          verbose=verbose)
-        inds = np.nonzero(stc.data)[1]
+        inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))
         if self.hemi == 'lh':
