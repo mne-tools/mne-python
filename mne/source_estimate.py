@@ -709,6 +709,7 @@ class SourceEstimate(object):
         hemi = np.where(np.array([np.sum(values[vi]) for vi in vert_inds]))[0]
         if not len(hemi) == 1:
             raise ValueError('Could not infer hemisphere')
+        hemi = hemi[0]
 
         values = values[vert_inds[hemi]]
 
