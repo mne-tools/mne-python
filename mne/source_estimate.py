@@ -753,7 +753,8 @@ from .fiff.tree import dir_tree_find
 from .surface import read_bem_surfaces
 
 
-def read_morph_map(subject_from, subject_to, subjects_dir=None):
+def read_morph_map(subject_from, subject_to, subjects_dir=None,
+                   verbose=True):
     """Read morph map generated with mne_make_morph_maps
 
     Parameters
@@ -764,6 +765,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None):
         Name of the subject on which to morph as named in the SUBJECTS_DIR
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    verbose : bool
+        Display messages
 
     Returns
     -------
@@ -807,11 +810,13 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None):
                 if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     left_map = tag.data
-                    print '    Left-hemisphere map read.'
+                    if verbose:
+                        print '    Left-hemisphere map read.'
                 elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     right_map = tag.data
-                    print '    Right-hemisphere map read.'
+                    if verbose:
+                        print '    Right-hemisphere map read.'
 
     fid.close()
     if left_map is None:
@@ -879,7 +884,8 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
+def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
+                  verbose=True):
     n_iter = 100  # max nb of smoothing iterations
     for k in range(n_iter):
         e_use = e[:, idx_use]
@@ -895,7 +901,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
         data = data[idx_use, :] / data1[idx_use][:, None]
 
     data[idx_use, :] /= data1[idx_use][:, None]
-    print '    %d smooth iterations done.' % (k + 1)
+    if verbose:
+        print '    %d smooth iterations done.' % (k + 1)
     data_morphed = maps[nearest, :] * data
     return data_morphed
 
@@ -970,7 +977,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
                                  'icos.fif')
 
-    surfaces = read_bem_surfaces(ico_file_name)
+    surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
 
     for s in surfaces:
         if s['id'] == (9000 + grade):
@@ -987,7 +994,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     nearest = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
 
     # morph the data
-    maps = read_morph_map(subject_from, subject_to, subjects_dir)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir,
+                          verbose=verbose)
 
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
     rh_data = stc_from.data[-len(stc_from.rh_vertno):]
@@ -1009,15 +1017,25 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             continue
         data_morphed[hemi] = np.concatenate(
                     parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                   n_vertices, nearest[hemi], maps[hemi])
+                                   n_vertices, nearest[hemi], maps[hemi],
+                                   verbose)
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
     stc_to = copy.deepcopy(stc_from)
     stc_to.vertno = [nearest[0], nearest[1]]
-    stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
+    if data_morphed[0] is None:
+        if data_morphed[1] is None:
+            stc_to.data = np.r_[[], []]
+        else:
+            stc_to.data = data_morphed[1]
+    elif data_morphed[1] is None:
+        stc_to.data = data_morphed[0]
+    else:
+        stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
 
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     return stc_to
 
