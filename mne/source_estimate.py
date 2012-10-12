@@ -716,7 +716,6 @@ class SourceEstimate(object):
             hemis = ['lh', 'rh']
             surf = os.path.join(os.getenv('SUBJECTS_DIR'), 'fsaverage',
                                 'surf', hemis[hemi] + '.sphere')
-            print surf
 
         if isinstance(surf, str):  # read in surface
             surf = read_surface(surf)
