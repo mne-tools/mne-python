@@ -135,7 +135,7 @@ def test_cluster_permutation_t_test_with_connectivity():
     condition1_3 = np.reshape(condition1_2, (40, 350, 2))
     out_connectivity_3 = mnestats.spatio_temporal_cluster_test(condition1_3,
                                n_permutations=500, connectivity=connectivity,
-                               verbose=0, max_tstep=0, threshold=1.67)
+                               verbose=0, max_step=0, threshold=1.67)
     # make sure we were operating on the same values
     split = len(out[0])
     assert_array_equal(out[0], out_connectivity_3[0][:split])
