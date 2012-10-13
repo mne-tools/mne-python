@@ -174,7 +174,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             else:
                 x_in = np.logical_and(np.abs(x) > threshold, include)
 
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
                                             partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
@@ -184,7 +184,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             else:
                 x_in = np.logical_and(x > threshold, include)
 
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
                                             partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
@@ -194,7 +194,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             else:
                 x_in = np.logical_and(x < -threshold, include)
 
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
                                             partitions, t_power)
             clusters += out[0]
             sums.append(out[1])
@@ -210,7 +210,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
             else:
                 x_in = np.logical_and(x > threshold, include)
 
-        out = _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep,
+        out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
                                         partitions, t_power)
         clusters += out[0]
         sums.append(out[1])
@@ -219,12 +219,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     return clusters, sums
 
 
-def _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep, partitions,
+def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
                               t_power):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_tstep,
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
                                              t_power)
     else:
         # cluster each partition separately
@@ -232,14 +232,14 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_tstep, partitions,
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_tstep, t_power)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -277,7 +277,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_tstep, t_power):
         if isinstance(connectivity, sparse.spmatrix):
             clusters = _get_components(x_in, connectivity)
         elif isinstance(connectivity, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, connectivity, max_tstep)
+            clusters = _get_clusters_st(x_in, connectivity, max_step)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
