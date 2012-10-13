@@ -23,9 +23,9 @@ class deprecated(object):
     and the docstring. Note: to use this with the default value for extra, put
     in an empty of parentheses:
 
-    >>> from sklearn.utils import deprecated
+    >>> from mne.utils import deprecated_func
     >>> deprecated() # doctest: +ELLIPSIS
-    <sklearn.utils.deprecated object at ...>
+    <mne.utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass
@@ -33,6 +33,9 @@ class deprecated(object):
 
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
+
+    # scikit-learn will not import on all platforms b/c it can be
+    # sklearn or scikits.learn, so a self-contained example is used above
 
     def __init__(self, extra=''):
         """
@@ -94,6 +97,10 @@ class deprecated(object):
             newdoc = "%s\n\n%s" % (newdoc, olddoc)
         return newdoc
 
+
+@deprecated
+def deprecated_func():
+    pass
 
 ###############################################################################
 # Back porting firwin2 for older scipy
