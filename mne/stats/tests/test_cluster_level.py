@@ -96,10 +96,11 @@ def test_cluster_permutation_t_test_with_connectivity():
     except ImportError:
         return
 
-    out = permutation_cluster_1samp_test(condition1_1d, n_permutations=500)
+    out = permutation_cluster_1samp_test(condition1_1d, n_permutations=500,
+                                         verbose=False)
     connectivity = grid_to_graph(1, condition1_1d.shape[1])
     out_connectivity = permutation_cluster_1samp_test(condition1_1d,
-                             n_permutations=500, connectivity=connectivity)
+                  n_permutations=500, connectivity=connectivity, verbose=False)
     assert_array_equal(out[0], out_connectivity[0])
     for a, b in zip(out_connectivity[1], out[1]):
         assert_true(np.sum(out[0][a]) == np.sum(out[0][b]))
@@ -107,13 +108,13 @@ def test_cluster_permutation_t_test_with_connectivity():
 
     # test spatio-temporal with no time connectivity (repeat spatial pattern)
     connectivity_2 = sparse.coo_matrix(
-        linalg.block_diag(connectivity.todense(), connectivity.todense()))
+        linalg.block_diag(connectivity.asfptype().todense(),
+                          connectivity.asfptype().todense()))
     condition1_2 = np.concatenate((condition1_1d,
                                    condition1_1d), axis=1)
 
     out_connectivity_2 = permutation_cluster_1samp_test(condition1_2,
-                               n_permutations=500, connectivity=connectivity_2,
-                               verbose=0)
+                    n_permutations=500, connectivity=connectivity_2, verbose=0)
     # make sure we were operating on the same values
     split = len(out[0])
     assert_array_equal(out[0], out_connectivity_2[0][:split])

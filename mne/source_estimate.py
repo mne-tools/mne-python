@@ -787,7 +787,10 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
                                                   subject_from)
         if not os.path.exists(name):
-            raise ValueError('The requested morph map does not exist')
+            raise ValueError('The requested morph map does not exist\n' +
+                             'Perhaps you need to run the MNE tool:\n' +
+                             '  mne_make_morph_maps --from %s --to %s'
+                             % (subject_from, subject_to))
 
     fid, tree, _ = fiff_open(name)
 
@@ -1052,9 +1055,9 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
         Number of time instants
 
     dist : float, or None
-        Maximal geodesic distance (in m) between vertices in the source space
-        to consider neighbors. If None, immediate neighbors are extracted from
-        an ico surface.
+        Maximal geodesic distance (in m) between vertices in the
+        source space to consider neighbors. If None, immediate neighbors
+        are extracted from an ico surface.
 
     verbose : bool
         If True, display status messages.
@@ -1085,13 +1088,53 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
 
 
 def spatio_temporal_tris_connectivity(tris, n_times, verbose=True):
-    """Compute connectivity from triangles and time instants"""
+    """Compute connectivity from triangles and time instants
+
+    Parameters
+    ----------
+    tris : array
+        N x 3 array defining triangles.
+    n_times : int
+        Number of time points
+    verbose : bool
+        Display some status messages
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatio-temporal
+        graph structure. If N is the number of vertices in the
+        source space, the N first nodes in the graph are the
+        vertices are time 1, the nodes from 2 to 2N are the vertices
+        during time 2, etc.
+    """
     edges = mesh_edges(tris).tocoo()
     return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
 
 
 def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
-    """Compute connectivity from distances in src and time instants"""
+    """Compute connectivity from distances in a source space and time instants
+
+    Parameters
+    ----------
+    src : source space
+        The source space must have distances between vertices computed, such
+        that src['dist'] exists and is useful. This can be obtained using MNE
+        with a call to mne_add_patch_info with the --dist option.
+    n_times : int
+        Number of time points
+    verbose : bool
+        Display some status messages
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatio-temporal
+        graph structure. If N is the number of vertices in the
+        source space, the N first nodes in the graph are the
+        vertices are time 1, the nodes from 2 to 2N are the vertices
+        during time 2, etc.
+    """
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using\n'
                            'mne_add_patch_info with --dist argument')
@@ -1107,7 +1150,24 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
 
 def sparse_block_diag(mats, format=None, dtype=None):
     """An implementation of scipy.sparse.block_diag since old versions of
-    scipy don't have it"""
+    scipy don't have it. Forms a sparse matrix by stacking matrices in block
+    diagonal form.
+
+    Parameters
+    ----------
+    A, B, ... : sequence of matrices
+        Input matrices.
+    format : str, optional
+        The sparse format of the result (e.g. "csr"). If not given, the
+        matrix is returned in "coo" format.
+    dtype : dtype specifier, optional
+        The data-type of the output matrix. If not given, the dtype is
+        determined from that of blocks.
+
+    Returns
+    -------
+    res : sparse matrix
+    """
     try:
         return sparse.block_diag(mats, format=format, dtype=dtype)
     except AttributeError:

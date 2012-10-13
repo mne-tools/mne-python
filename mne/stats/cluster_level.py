@@ -16,7 +16,7 @@ from ..parallel import parallel_func
 from ..utils import split_list
 
 
-def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
+def _get_clusters_st(x_in, neighbors, max_tstep=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -58,23 +58,17 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1, use_box=False):
             # same sensor, not placed yet, and add those
             while icount <= len(t_inds):
                 ind = t_inds[icount - 1]
-                buddies = inds[t_border[max(t[ind] - max_tstep, 0)]: \
-                               t_border[min(t[ind] + max_tstep + 1, n_times)]]
-                if use_box:
-                    # look at previous and next time points (using max_tstep)
-                    # for all neighboring vertices
-                    buddies = buddies[r[buddies]]
-                    buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                              assume_unique=True)]
-                else:
-                    selves = buddies[r[buddies]]
-                    selves = selves[s[ind] == s[selves]]
-                    # look at current time point across other vertices
-                    buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
-                    buddies = buddies[r[buddies]]
-                    buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
-                                              assume_unique=True)]
-                    buddies = np.concatenate((selves, buddies))
+                selves = inds[t_border[max(t[ind] - max_tstep, 0)]:
+                              t_border[min(t[ind] + max_tstep + 1, n_times)]]
+                selves = selves[r[selves]]
+                selves = selves[s[ind] == s[selves]]
+
+                # look at current time point across other vertices
+                buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
+                buddies = buddies[r[buddies]]
+                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                                          assume_unique=True)]
+                buddies = np.concatenate((selves, buddies))
                 t_inds += buddies.tolist()
                 r[buddies] = False
                 icount += 1
@@ -153,7 +147,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     t_power : float
         Power to raise the statistical values (usually t-values) by before
         summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weigh each node by
+        count of nodes in each cluster, t_power == 1 will weight each node by
         its statistical score.
 
     Returns
@@ -358,7 +352,7 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
                              connectivity=None, n_jobs=1,
-                             verbose=5, seed=None, out_type=0):
+                             verbose=5, seed=None, out_type='mask'):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -393,10 +387,10 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
-    out_type : int
+    out_type : str
         For arrays with connectivity, this sets the output format for clusters.
-        If 0, it will pass back a list of boolean arrays.
-        If 1, it will pass back a list of lists, where each list is the
+        If 'mask', it will pass back a list of boolean mask arrays.
+        If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
         less memory for large datasets.
 
@@ -420,6 +414,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+
+    if not out_type in ['mask', 'indices']:
+        raise ValueError('out_type must be either \'mask\' or \'indices\'')
 
     # flatten the last dimensions if data is high dimensional
     sample_shape = X[0].shape[1:]
@@ -448,7 +445,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         print 'Found %d clusters' % len(clusters)
 
     # convert clusters to old format
-    if connectivity is not None and out_type == 0:
+    if connectivity is not None and out_type == 'mask':
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
     # make list of indices for random data split
@@ -549,7 +546,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    connectivity=None, verbose=5, n_jobs=1,
                                    seed=None, max_tstep=1, partitions=None,
                                    exclude=None, step_down_p=0, t_power=1,
-                                   out_type=0):
+                                   out_type='mask'):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -614,10 +611,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         summing (sign will be retained). Note that t_power == 0 will give a
         count of nodes in each cluster, t_power == 1 will weigh each node by
         its statistical score.
-    out_type : int
+    out_type : str
         For arrays with connectivity, this sets the output format for clusters.
-        If 0, it will pass back a list of boolean arrays.
-        If 1, it will pass back a list of lists, where each list is the
+        If 'mask', it will pass back a list of boolean mask arrays.
+        If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
         less memory for large datasets.
 
@@ -641,6 +638,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+
+    if not out_type in ['mask', 'indices']:
+        raise ValueError('out_type must be either \'mask\' or \'indices\'')
+
     if X.ndim == 1:
         X = X[:, np.newaxis]
     n_samples = X.shape[0]
@@ -687,7 +688,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                              partitions=partitions,
                                              t_power=t_power)
     # convert clusters to old format
-    if connectivity is not None and out_type == 0:
+    if connectivity is not None and out_type == 'mask':
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
     parallel, my_do_1samp_permutations, _ = parallel_func(
@@ -764,7 +765,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  seed=None, max_tstep=1,
                                  spatial_partitions=None,
                                  spatial_exclude=None, step_down_p=0,
-                                 t_power=1, out_type=1):
+                                 t_power=1, out_type='indices'):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -804,7 +805,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
         See permutation_cluster_1samp_test.
     t_power : float
         See permutation_cluster_1samp_test.
-    out_type : int
+    out_type : str
         See permutation_cluster_1samp_test.
 
     Returns
