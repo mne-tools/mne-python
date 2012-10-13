@@ -228,37 +228,23 @@ class Epochs(object):
             self._data = self._data[:, idx, :]
 
     def drop_bad_epochs(self):
-        """Drop bad epochs.
+        """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
 
-        Warning: Operation is slow since all epochs have to be read from disk
+        .. Warning:: Operation is slow since all epochs have to be read from disk.
+            To avoid reading epochs form disk multiple times, initialize
+            Epochs object with preload=True.
+
         """
-        if self._bad_dropped:
-            return
-
-        good_events = []
-        n_events = len(self.events)
-        drop_log = [[] for _ in range(n_events)]
-        for idx in range(n_events):
-            epoch = self._get_epoch_from_disk(idx)
-            is_good, offenders = self._is_good_epoch(epoch)
-            if is_good:
-                good_events.append(idx)
-            else:
-                drop_log[idx] = offenders
-
-        self.drop_log = drop_log
-        self.events = np.atleast_2d(self.events[good_events])
-        self._bad_dropped = True
-        print "%d bad epochs dropped" % (n_events - len(good_events))
+        self._get_data_from_disk(out=False)
 
     def _get_epoch_from_disk(self, idx):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
 
         if self.events.ndim == 1:
-            #single event
+            # single event
             event_samp = self.events[0]
         else:
             event_samp = self.events[idx, 0]
@@ -280,13 +266,45 @@ class Epochs(object):
                         verbose=self.verbose, copy=False)
         return epoch
 
-    def _get_data_from_disk(self):
-        """Load all data from disk"""
-        # drop bad epochs first so we don't have to replicate checking here
-        self.drop_bad_epochs()
-        # note that events is automatically updated by drop_bad_epochs, too
-        data = [self._get_epoch_from_disk(k) for k in range(len(self.events))]
-        return np.array(data)
+    def _get_data_from_disk(self, out=True):
+        """Load all data from disk
+
+        Parameters
+        ----------
+        out : bool
+            Return the data. Setting this to False is used to reject bad
+            epochs without caching all the data, which saves memory.
+
+        """
+        if self._bad_dropped:
+            if not out:
+                return
+            epochs = map(self._get_epoch_from_disk, xrange(len(self.events)))
+        else:
+            good_events = []
+            epochs = []
+            n_events = len(self.events)
+            drop_log = [[] for _ in range(n_events)]
+
+            for idx in xrange(n_events):
+                epoch = self._get_epoch_from_disk(idx)
+                is_good, offenders = self._is_good_epoch(epoch)
+                if is_good:
+                    good_events.append(idx)
+                    if out:
+                        epochs.append(epoch)
+                else:
+                    drop_log[idx] = offenders
+
+            self.drop_log = drop_log
+            self.events = np.atleast_2d(self.events[good_events])
+            self._bad_dropped = True
+            print "%d bad epochs dropped" % (n_events - len(good_events))
+            if not out:
+                return
+
+        data = np.array(epochs)
+        return data
 
     def _is_good_epoch(self, data):
         """Determine if epoch is good"""
@@ -455,7 +473,7 @@ class Epochs(object):
         evoked.times = self.times.copy()
         evoked.comment = self.name
         evoked.nave = n_events
-        evoked.first = - int(np.sum(self.times < 0))
+        evoked.first = -int(np.sum(self.times < 0))
         evoked.last = int(np.sum(self.times > 0))
         if not _do_std:
             evoked.aspect_kind = np.array([FIFF.FIFFV_ASPECT_AVERAGE])
