@@ -443,7 +443,7 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(ica, start, stop, source_idx=None, ncol=3,
+def plot_ica_panel(sources, start, stop, n_components, source_idx=None, ncol=3,
                    nrow=10):
     """Create panel plots of ICA sources
 
@@ -451,16 +451,13 @@ def plot_ica_panel(ica, start, stop, source_idx=None, ncol=3,
     """
     import pylab as pl
 
-    sources = ica.sources.copy()
-
-    n_components = ica.n_components
     hangover = n_components % ncol
     nplots = nrow * ncol
 
     if source_idx is not None:
         sources = sources[source_idx]
     if source_idx is None:
-        source_idx = np.arange(ica.n_components)
+        source_idx = np.arange(n_components)
     elif source_idx.shape > 30:
         print ('More sources selected than rows and cols specified.'
                'Showing the first %i sources.' % nplots)
@@ -479,7 +476,7 @@ def plot_ica_panel(ica, start, stop, source_idx=None, ncol=3,
         xs = panel_axes[row, col]
         xs.grid(linestyle='-', color='gray', linewidth=.25)
         if idx < n_components:
-            component = '[%i]' % (ica.source_ids[idx])
+            component = '[%i]' % idx
             xs.plot(sources[idx], linewidth=0.5, color='red')
             xs.text(0.05, .95, component,
                     transform=panel_axes[row, col].transAxes,
