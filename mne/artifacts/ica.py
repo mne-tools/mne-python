@@ -45,7 +45,6 @@ class ICA(object):
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
         self._channs = None
-        self._last_sort = [None]
 
     def __repr__(self):
         out = 'ICA '
@@ -212,10 +211,10 @@ class ICA(object):
                              'Please fit raw data first.')
 
         picks = self._check_picks(raw, picks)
-        if sort_method not in (None, self._last_sort[0]):
+        if sort_method not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_method = self._last_sort[0]
+            sort_method = self.sorted_by
 
         sources = self.get_sources_raw(raw, picks=picks, start=start,
                                        stop=stop, sort_method=sort_method)
@@ -257,10 +256,10 @@ class ICA(object):
         elif picks == 'previous':
             picks = self._check_picks(epochs, picks)
 
-        if sort_method not in (None, self._last_sort[0]):
+        if sort_method not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_method = self._last_sort[0]
+            sort_method = self.sorted_by
 
         sources = self.get_sources_epochs(epochs)
         recomposed = self._pick_sources(sources, bads, picks)
@@ -313,10 +312,9 @@ class ICA(object):
 
         sort_args = np.argsort(sort_func(sources, 1))
         self._sort_idx = self._sort_idx[sort_args]
-        self.sorted_by = sort_func.__name__
+        self.sorted_by = (sort_func.__name__ if not callable(sort_method)
+                          else sort_method)
         # append to sort buffer
-        self._last_sort.append(self.sorted_by)
-        self._last_sort.pop(0)  # remove last sort
         print '\n    sources reordered by %s' % self.sorted_by
 
         return sources[sort_args]
