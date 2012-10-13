@@ -119,8 +119,14 @@ def test_spatio_temporal_tris_connectivity():
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     components = stats.cluster_level._get_components(np.array(x), connectivity)
-    assert_array_equal(components,
-                       [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1])
+    # _get_components works differently now...
+    old_fmt = [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1]
+    new_fmt = np.array(old_fmt)
+    new_fmt = [np.nonzero(new_fmt == v)[0]
+               for v in np.unique(new_fmt[new_fmt >= 0])]
+    assert_true(len(new_fmt), len(components))
+    for c, n in zip(components, new_fmt):
+        assert_array_equal(c, n)
 
 
 def test_spatio_temporal_src_connectivity():

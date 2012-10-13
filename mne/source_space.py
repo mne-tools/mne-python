@@ -570,7 +570,7 @@ def _freesurfer_read_talxfm(fname, verbose=False):
     Adapted from freesurfer m-files.
     """
 
-    fread = open(fname, 'r')
+    fid = open(fname, 'r')
 
     if verbose:
         print '...Reading FreeSurfer talairach.xfm file:\n%s' % fname
@@ -579,25 +579,25 @@ def _freesurfer_read_talxfm(fname, verbose=False):
     # the data transformation matrix
     got_it = False
     comp = 'Linear_Transform'
-    for line in fread:
+    for line in fid:
         if line[:len(comp)] == comp:
             # we have the right line, so don't read any more
             got_it = True
             break
 
     if got_it:
-        xfm = np.zeros((0, 4))
+        xfm = list()
         # read the transformation matrix (3x4)
-        for ii, line in enumerate(fread):
+        for ii, line in enumerate(fid):
             digs = [float(s) for s in line.strip('\n;').split()]
-            xfm = np.concatenate((xfm, np.array(digs, ndmin=2)), axis=0)
+            xfm.append(digs)
             if ii == 2:
                 break
-        xfm = np.concatenate((xfm, np.array([0., 0., 0., 1.], ndmin=2)),
-                             axis=0)
-        fread.close()
+        xfm.append([0., 0., 0., 1.])
+        xfm = np.array(xfm)
+        fid.close()
     else:
-        fread.close()
+        fid.close()
         raise ValueError('failed to find \'Linear_Transform\' string in xfm '
                          'file:\n%s' % fname)
 
