@@ -552,7 +552,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if method != "MNE":
             psd *= noise_norm ** 2
 
-        stc = _make_stc(psd, fmin, fstep, vertno)
+        stc = SourceEstimate(psd, tmin=fmin, tstep=fstep, vertices=vertno)
 
         # we return a generator object for "stream processing"
         yield stc
