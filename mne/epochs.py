@@ -566,6 +566,11 @@ class Epochs(object):
         else:
             raise RuntimeError('Can only resample preloaded data')
 
+    def copy(self):
+        """ Return copy of Epochs instance
+        """
+        return deepcopy(self)
+
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
 
@@ -594,26 +599,6 @@ class Epochs(object):
             out.swapaxes(1, 2)
 
         return out
-
-
-class EpochsFromMerge(Epochs):
-    """ New instance from merge with processed data
-    """
-    def __init__(self, epochs, data):
-
-        epochs = deepcopy(epochs)
-
-        ntsl = epochs.times.shape[0]
-        neps = epochs.events.shape[0]
-        nchan = len(epochs.ch_names)
-
-        assert (neps, nchan, ntsl) == data.shape
-        self._data = data
-        self.preload = True
-
-        for name, value in epochs.__dict__.items():
-            if name not in self.__dict__:
-                setattr(self, name, value)
 
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):

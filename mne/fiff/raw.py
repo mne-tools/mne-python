@@ -882,6 +882,31 @@ class Raw(object):
     def close(self):
         [f.close() for f in self.fids]
 
+    def copy(self, fname=None):
+        """ Return copy of Raw instance
+        Parameters
+        ----------
+        fname : str | None
+            If data not preloaded in memory a string will open a corresponding
+            memory map. else in thie case np.empty will be used.
+        """
+        if self._preloaded:
+            new = deepcopy(self)
+        else:
+            if isinstance(fname, str):
+                preload = fname
+            else:
+                preload = True
+            nchan = self.info['nchan']
+            nsamp = self.last_samp - self.first_samp + 1
+            data = _alloc_data_buffer(self, nchan, nsamp, preload)
+            data, times = read_raw_segment(self, data_buffer=data)
+            new = deepcopy(self)
+            new._data = data
+            new._times = times
+
+        return new
+
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)
