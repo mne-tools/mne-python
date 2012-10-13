@@ -843,8 +843,8 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
 
     # convert spatial_exclude before passing on if necessary
     if spatial_exclude is not None:
-        exclude = st_mask_from_s_inds(n_times, n_vertices,
-                                              spatial_exclude, True)
+        exclude = _st_mask_from_s_inds(n_times, n_vertices,
+                                       spatial_exclude, True)
     else:
         exclude = None
 
@@ -873,7 +873,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
 spatio_temporal_cluster_test.__test__ = False
 
 
-def st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
+def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     """This function returns a boolean mask vector to apply to a spatio-
     temporal connectivity matrix (n_times * n_vertices square) to include (or
     exclude) certain spatial coordinates. This is useful for excluding certain
