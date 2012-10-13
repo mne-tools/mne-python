@@ -410,7 +410,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         if not is_fixed_orient(fwd):
             print '    Changing to fixed-orientation forward solution...'
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
-            fwd['sol']['data'] *= fix_rot
+            # newer versions of numpy require explicit casting here, so *= no
+            # longer works
+            fwd['sol']['data'] = (fwd['sol']['data']
+                                  * fix_rot).astype('float32')
             fwd['sol']['ncol'] = fwd['nsource']
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
 
