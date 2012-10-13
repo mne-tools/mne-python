@@ -16,7 +16,7 @@ from ..parallel import parallel_func
 from ..utils import split_list
 
 
-def _get_clusters_st(x_in, neighbors, max_tstep=1):
+def _get_clusters_st(x_in, neighbors, max_step=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -58,8 +58,8 @@ def _get_clusters_st(x_in, neighbors, max_tstep=1):
             # same sensor, not placed yet, and add those
             while icount <= len(t_inds):
                 ind = t_inds[icount - 1]
-                selves = inds[t_border[max(t[ind] - max_tstep, 0)]:
-                              t_border[min(t[ind] + max_tstep + 1, n_times)]]
+                selves = inds[t_border[max(t[ind] - max_step, 0)]:
+                              t_border[min(t[ind] + max_step + 1, n_times)]]
                 selves = selves[r[selves]]
                 selves = selves[s[ind] == s[selves]]
 
@@ -112,7 +112,7 @@ def _get_components(x_in, connectivity):
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
-                   max_tstep=1, include=None, partitions=None, t_power=1):
+                   max_step=1, include=None, partitions=None, t_power=1):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
@@ -135,9 +135,10 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
         When doing a two-tailed test (tail == 0), if True only points with
         the same sign will be clustered together. This value is ignored for
         one-tailed tests.
-    max_tstep : int
-        If connectivity is a list, this defines the maximal number of time
-        steps permitted for elements to be considered temporal neighbors.
+    max_step : int
+        If connectivity is a list, this defines the maximal number of steps
+        between vertices along the second dimension (typically time) to be
+        considered connected.
     include : 1D bool array or None
         Mask to apply to the data of points to cluster. If None, all points
         are used.
@@ -495,7 +496,7 @@ def ttest_1samp_no_p(X):
 
 
 def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
-                           max_tstep, include, partitions, t_power, seeds,
+                           max_step, include, partitions, t_power, seeds,
                            sample_shape):
     n_samp, n_vars = X.shape
     # allocate space for output
@@ -526,7 +527,7 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
 
         # Find cluster on randomized stats
         _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
-                                               tail=tail, max_tstep=max_tstep,
+                                               tail=tail, max_step=max_step,
                                                connectivity=connectivity,
                                                partitions=partitions,
                                                include=include,
@@ -544,7 +545,7 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
                                    connectivity=None, verbose=5, n_jobs=1,
-                                   seed=None, max_tstep=1, partitions=None,
+                                   seed=None, max_step=1, partitions=None,
                                    exclude=None, step_down_p=0, t_power=1,
                                    out_type='mask'):
     """Non-parametric cluster-level 1 sample T-test
@@ -588,10 +589,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
         two-tailed tests], this value will be ignored since an exact test
         (full permutation test) will be performed.
-    max_tstep : int
+    max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
-        maximum number of time steps between vertices to be considered
-        neighbors. This is not used for full or None connectivity matrices.
+        maximum number of steps between vertices along the second dimension
+        (typically time) to be considered connected. This is not used for full
+        or None connectivity matrices.
     partitions : array of int or None
         An array (same size as X) of integers indicating which points belong
         to each partition. If data can be broken up into disjoint sets
@@ -683,7 +685,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         include = None
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity, max_tstep=max_tstep,
+                                             connectivity, max_step=max_step,
                                              include=include,
                                              partitions=partitions,
                                              t_power=t_power)
@@ -727,7 +729,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
             else:
                 this_include = step_down_include
             H0 = parallel(my_do_1samp_permutations(X, threshold, tail,
-                          connectivity, stat_fun, max_tstep, this_include,
+                          connectivity, stat_fun, max_step, this_include,
                           partitions, t_power, s, sample_shape)
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
@@ -762,7 +764,7 @@ permutation_cluster_1samp_test.__test__ = False
 def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  tail=0, stat_fun=ttest_1samp_no_p,
                                  connectivity=None, verbose=5, n_jobs=1,
-                                 seed=None, max_tstep=1,
+                                 seed=None, max_step=1,
                                  spatial_partitions=None,
                                  spatial_exclude=None, step_down_p=0,
                                  t_power=1, out_type='indices'):
@@ -792,7 +794,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
         See permutation_cluster_1samp_test.
     seed : int or None
         See permutation_cluster_1samp_test.
-    max_tstep : int
+    max_step : int
         See permutation_cluster_1samp_test.
     partitions : list of int or None
         See permutation_cluster_1samp_test.
@@ -862,7 +864,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     out = permutation_cluster_1samp_test(X, threshold=threshold,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_tstep=max_tstep, verbose=verbose, partitions=partitions,
+              max_step=max_step, verbose=verbose, partitions=partitions,
               exclude=exclude, step_down_p=step_down_p, t_power=t_power,
               out_type=out_type)
     return out
