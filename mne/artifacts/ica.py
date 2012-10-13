@@ -91,11 +91,10 @@ class ICA(object):
         self._sort_idx = (np.arange(self.n_components) if self.n_components
                            is not None else np.arange(picks.shape[0]))
 
-        data = self._get_raw_data(raw, picks, start, stop)
+        data, self.pre_whitener = self._get_raw_data(raw, picks, start, stop)
 
-        data, self.pre_whitener = self._pre_whiten(data, picks)
-
-        self._fit_data(data)
+        self._fast_ica.fit(data.T)
+        self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'raw'
         self._channs = np.array(raw.ch_names)[picks]
 
@@ -116,7 +115,6 @@ class ICA(object):
         self : instance of ICA
             returns the instance for chaining
         """
-        data = self._get_epochs_data(epochs)  # TODO preload
         if picks is None:
             picks = epochs.picks
         self._sort_idx = (np.arange(self.n_components) if self.n_components
@@ -125,10 +123,11 @@ class ICA(object):
         print ('\nComputing signal decomposition on epochs.'
                '\n    Please be patient. This may take some time')
 
-        data, self.pre_whitener = self._pre_whiten(data, picks=epochs.picks)
-        self._fit_data(data)
+        data, self.pre_whitener = self._get_epochs_data(epochs, picks)
+        self._fast_ica.fit(data.T)
+        self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'epochs'
-        self._channs = np.array(epochs.ch_names)[picks]
+        self._channs = np.array(epochs.ch_names)
 
         return self
 
@@ -155,9 +154,8 @@ class ICA(object):
             return
 
         picks = self._check_picks(raw, picks)
-        data = self._get_raw_data(raw, picks, start, stop)
-        whitened, _ = self._pre_whiten(data, picks)
-        raw_sources = self._get_sources(whitened)
+        data, _ = self._get_raw_data(raw, picks, start, stop)
+        raw_sources = self._fast_ica.transform(data.T).T
 
         return self.sort_sources(raw_sources, sort_method=sort_method)
 
@@ -167,10 +165,6 @@ class ICA(object):
         -----------
         raw : instance of Raw
             Raw object to draw sources from
-        start : integer
-            starting time slice
-        stop : integer
-            final time slice
         picks : array-like
             channels to be included
         sort_method : str | function
@@ -184,9 +178,8 @@ class ICA(object):
             return
 
         picks = self._check_picks(epochs, picks)
-        data = self._get_raw_data(epochs, picks)
-        whitened, _ = self._pre_whiten(data, picks)
-        epochs_sources = self._get_sources(whitened)
+        data, _ = self._get_epochs_data(epochs, picks)
+        epochs_sources = self._fast_ica.transform(data.T).T
 
         return self.sort_sources(epochs_sources, sort_method=sort_method)
 
@@ -219,15 +212,15 @@ class ICA(object):
                              'Please fit raw data first.')
 
         picks = self._check_picks(raw, picks)
-        sources = self.get_sources_raw(raw, picks=picks, start=start,
-                                       stop=stop, sort_method=sort_method)
-        if self._last_sort[0] not in (None, sort_method):
+        if sort_method not in (None, self._last_sort[0]):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_func = self._get_sort_method(sort_method)
-            sources = np.argsort(sort_func(sources, 1))
+            sort_method = self._last_sort[0]
 
+        sources = self.get_sources_raw(raw, picks=picks, start=start,
+                                       stop=stop, sort_method=sort_method)
         recomposed = self._pick_sources(sources, bads, picks)
+
         if copy is True:
             raw = raw.copy()
 
@@ -264,25 +257,19 @@ class ICA(object):
         elif picks == 'previous':
             picks = self._check_picks(epochs, picks)
 
-        if self.last_fit != 'epochs':
-            raise ValueError('Currently no epochs fitted.'
-                             'Please fit epochs first.')
-
-        sources = self.get_sources_epochs(epochs)
-
-        if self._last_sort[0] not in (None, sort_method):
+        if sort_method not in (None, self._last_sort[0]):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_func = self._get_sort_method(sort_method)
-            sources = np.argsort(sort_func(sources, 1))
+            sort_method = self._last_sort[0]
 
+        sources = self.get_sources_epochs(epochs)
         recomposed = self._pick_sources(sources, bads, picks)
 
         if copy is True:
             epochs = epochs.copy()
 
-        epochs._data = recomposed
-        epochs._preload = True
+        epochs._data = np.array(np.split(recomposed, len(epochs.events), 1))
+        epochs.preload = True
 
         return epochs
 
@@ -305,7 +292,24 @@ class ICA(object):
             print ('No fit availble. Please first fit ica decomposition.')
             return
 
-        sort_func = self._get_sort_method(sort_method)
+        if sort_method == 'skew':
+            sort_func = skew
+        elif sort_method == 'kurtosis':
+            sort_func = kurtosis
+        elif sort_method == 'unsorted':
+            sort_func = lambda x, y: self.source_ids
+            sort_func.__name__ = 'unsorted'
+        elif callable(sort_method):
+            args = getargspec(sort_method).args
+            if len(args) > 1:
+                if args[:2] == ['a', 'axis']:
+                    sort_func = sort_method
+            else:
+                ValueError('%s is not a valid function.'
+                           'The function needs an array and'
+                           'an axis argument' % sort_method.__name__)
+        elif isinstance(sort_method, str):
+            ValueError('%s is not a valid sorting option' % sort_method)
 
         sort_args = np.argsort(sort_func(sources, 1))
         self._sort_idx = self._sort_idx[sort_args]
@@ -316,19 +320,6 @@ class ICA(object):
         print '\n    sources reordered by %s' % self.sorted_by
 
         return sources[sort_args]
-
-    def _check_picks(self, pickable, picks):
-        """Helper function"""
-        out = None
-        if picks is not None:
-            if picks is 'previous':
-                out = np.in1d(np.array(pickable.ch_names), self._channs)
-            elif np.array(pickable.ch_names)[picks].tolist() != self.ch_names:
-                raise ValueError('Channel picks have to match '
-                                 'the previous fit.')
-            else:
-                out = picks
-        return out
 
     def _pre_whiten(self, data, picks):
         """Helper function"""
@@ -351,22 +342,12 @@ class ICA(object):
         """Helper function"""
         start = 0 if start is None else start
         stop = raw.last_samp if stop is None else stop
-        return raw[picks, start:stop][0]
+        return self._pre_whiten(raw[picks, start:stop][0], picks)
 
-    def _get_epochs_data(self, epochs):
+    def _get_epochs_data(self, epochs, picks):
         """Helper function"""
-        data = epochs._data if epochs.preloaded else epochs.get_data()
-        return np.hstack(data)
-
-    def _fit_data(self, data):
-        """Helper function"""
-        self._fast_ica.fit(data.T)
-        self.mixing = self._fast_ica.get_mixing_matrix().T
-
-    def _get_sources(self, data):
-        """ Helper function """
-        sources = self._fast_ica.transform(data.T).T
-        return sources
+        data = epochs._data if epochs.preload else epochs.get_data()
+        return self._pre_whiten(np.hstack(data), picks)
 
     def _pick_sources(self, sources, bads, picks):
         """Helper function"""
@@ -386,28 +367,18 @@ class ICA(object):
 
         return out
 
-    def _get_sort_method(self, sort_method):
+    def _check_picks(self, pickable, picks):
         """Helper function"""
-        if sort_method == 'skew':
-            sort_func = skew
-        elif sort_method == 'kurtosis':
-            sort_func = kurtosis
-        elif sort_method == 'unsorted':
-            sort_func = lambda x, y: self.source_ids
-            sort_func.__name__ = 'unsorted'
-        elif callable(sort_method):
-            args = getargspec(sort_method).args
-            if len(args) > 1:
-                if args[:2] == ['a', 'axis']:
-                    sort_func = sort_method
+        out = None
+        if picks is not None:
+            if picks is 'previous':
+                out = np.in1d(np.array(pickable.ch_names), self._channs)
+            elif np.array(pickable.ch_names)[picks].tolist() != self.ch_names:
+                raise ValueError('Channel picks have to match '
+                                 'the previous fit.')
             else:
-                ValueError('%s is not a valid function.'
-                           'The function needs an array and'
-                           'an axis argument' % sort_method.__name__)
-        elif isinstance(sort_method, str):
-            ValueError('%s is not a valid sorting option' % sort_method)
-
-        return sort_func
+                out = picks
+        return out
 
     @property
     def ch_names(self):
