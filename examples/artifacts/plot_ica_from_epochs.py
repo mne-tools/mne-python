@@ -32,8 +32,6 @@ start, stop = raw.time_to_index(100, 160)
 ica = ICA(noise_cov=None, n_components=25, random_state=0)
 print ica
 
-# fit sources from raw
-ica.epochs_raw(raw, picks=picks)
 
 # get epochs
 tmin, tmax, event_id = -0.2, 0.5, 1
@@ -45,6 +43,9 @@ events = mne.find_events(raw, stim_channel='STI 014')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
+
+# fit sources from epochs
+ica.decompose_epochs(epochs, picks=picks)
 
 # get sources from epochs
 sources = ica.get_sources_epochs(epochs)
