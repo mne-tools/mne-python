@@ -48,7 +48,6 @@ start_plot, stop_plot = raw.time_to_index(100, 103)
 # # plot components
 plot_ica_panel(sources, start=0, stop=stop_plot - start_plot, n_components=25)
 
-
 # TODO example broke somehow...
 # Find the component that correlates the most with the ECG channel
 # As we don't have an ECG channel with take one can correlates a lot
@@ -68,8 +67,7 @@ plot_ica_panel(sources, start=0, stop=stop_plot - start_plot, n_components=25)
 # however a distinct cardiac and one EOG component should be visible.
 
 # raw_ica = ica.denoise_raw(bads=[ecg_component_idx], copy=True)
-raw_ica = ica.pick_sources_raw(raw, bads=[0, 1], copy=True)
-
+raw_ica = ica.pick_sources_raw(raw, bads=[0, 1], sort_method='kurtosis', copy=True)
 
 ###############################################################################
 # Show MEG data
