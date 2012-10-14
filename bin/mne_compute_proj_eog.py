@@ -155,10 +155,11 @@ if __name__ == '__main__':
     else:
         raw_event = raw
 
+    flat = None  # XXX : not exposed to the user
     projs, events = mne.preprocessing.compute_proj_eog(raw, raw_event,
                             tmin, tmax, n_grad, n_mag, n_eeg,
                             l_freq, h_freq, average, filter_length,
-                            n_jobs, reject, bads,
+                            n_jobs, reject, flat, bads,
                             avg_ref, no_proj, event_id,
                             eog_l_freq, eog_h_freq, tstart)
 
