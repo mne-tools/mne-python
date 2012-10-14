@@ -16,7 +16,7 @@ from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              spatio_temporal_dist_connectivity, \
                              save_stc_as_volume
 from .surface import read_bem_surfaces, read_surface, write_bem_surface
-from .source_space import read_source_spaces
+from .source_space import read_source_spaces, vertex_to_mni
 from .epochs import Epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels

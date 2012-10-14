@@ -15,6 +15,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans
+from .surface import read_surface
 
 
 def patch_info(nearest):
@@ -517,21 +518,18 @@ def _write_one_source_space(fid, this):
     #     print 'Distance information added...',
 
 
-def vertex_to_mni(vertices, hemi, src=None, xfm_file=None, verbose=False):
+def vertex_to_mni(vertices, hemis, subject=None, verbose=False):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
     ----------
     vertices : int, or list of int
         Vertex number(s) to convert
-    hemi : int
-        Hemisphere the vertices belong to
-    src : string, list, or None
-        Filename for the source space, or a loaded source space (list). If
-        None, the fsaverage source space will be loaded.
-    xfm_file : string or None
-        Filename for the transformation. If None, the path to the
-        transformation will attempted to be inferred from src.
+    hemis : int, or list of int
+        Hemisphere(s) the vertices belong to
+    subject : string, or None
+        Name of the subject to load surfaces from. If None, the fsaverage
+        surfaces will be used.
 
     Returns
     -------
@@ -542,26 +540,26 @@ def vertex_to_mni(vertices, hemi, src=None, xfm_file=None, verbose=False):
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
 
-    if src is None:
-        src = os.path.join(os.getenv('SUBJECTS_DIR'), 'fsaverage', 'bem',
-                           'fsaverage-5-src.fif')
+    if not isinstance(hemis, list) and not isinstance(hemis, np.ndarray):
+        hemis = [hemis] * len(vertices)
 
-    if xfm_file is None:
-        if isinstance(src, str):
-            xfm_file = os.path.join(os.path.split(src)[0], '..', 'mri',
-                                    'transforms', 'talairach.xfm')
-        else:
-            raise ValueError('If src is a list, xfm_file must be specified')
+    if not len(hemis) == len(vertices):
+        raise ValueError('hemi and vertices must match in length')
 
-    if isinstance(src, str):
-        src = read_source_spaces(src, verbose=verbose)
+    if subject is None:
+        subject = 'fsaverage'
+
+    surfs = [os.path.join(os.getenv('SUBJECTS_DIR'), subject, 'surf',
+                          '%s.white' % h) for h in ['lh', 'rh']]
+    rr = [read_surface(s)[0] for s in surfs]
+    xfm_file = os.path.join(os.path.join(os.getenv('SUBJECTS_DIR'), subject,
+                            'mri', 'transforms', 'talairach.xfm'))
 
     # take point locations in RAS space and convert to MNI coordinates
     xfm = _freesurfer_read_talxfm(xfm_file, verbose=verbose)
-    mni = np.dot(xfm, np.concatenate((src[hemi]['rr'][vertices, :].T,
-                                      np.ones((1, len(vertices))))))
-    coordinates = 1000 * mni[:3, :].T
-    return coordinates
+    data = np.array([np.concatenate((rr[h][v, :], [1]))
+                     for h, v in zip(hemis, vertices)]).T
+    return np.dot(xfm, data).T
 
 
 def _freesurfer_read_talxfm(fname, verbose=False):
@@ -593,7 +591,7 @@ def _freesurfer_read_talxfm(fname, verbose=False):
             xfm.append(digs)
             if ii == 2:
                 break
-        xfm.append([0., 0., 0., 1.])
+        # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
         xfm = np.array(xfm)
         fid.close()
     else:
