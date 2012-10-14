@@ -1,5 +1,5 @@
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -76,7 +76,7 @@ def test_stc_arithmetic():
 
 
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data and bin()
+    """Test stc methods lh_data, rh_data, bin(), and center_of_mass()
     """
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc = read_source_estimate(fname)
@@ -90,6 +90,14 @@ def test_stc_methods():
     a = np.array((1,), dtype=stc.data.dtype)
     a[0] = np.mean(stc.data[0, stc.times < .12])
     assert a[0] == bin.data[0, 0]
+
+    assert_raises(ValueError, stc.center_of_mass)
+    stc.lh_data[:] = 0
+    vertex, hemi, t = stc.center_of_mass()
+    assert_true(hemi == 1)
+    # XXX Should design a fool-proof test case, but here were the results:
+    assert_true(vertex == 42865)
+    assert_true(np.round(t, 3) == 0.123)
 
 
 def test_morph_data():
@@ -130,7 +138,7 @@ def test_spatio_temporal_tris_connectivity():
 
 
 def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity from source spaaces"""
+    """Test spatio-temporal connectivity from source spaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
