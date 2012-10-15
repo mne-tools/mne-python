@@ -33,7 +33,6 @@ start, stop = raw.time_to_index(100, 160)
 ica = ICA(noise_cov=None, n_components=25, random_state=0)
 print ica
 
-
 # get epochs
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
@@ -55,7 +54,7 @@ sources = ica.get_sources_epochs(epochs)
 start_plot, stop_plot = 0, 1000
 
 # plot components for epoch of interest
-plot_ica_panel(sources[3], start=start_plot, stop=stop_plot, n_components=25)
+plot_ica_panel(sources[13], start=start_plot, stop=stop_plot, n_components=25)
 
 # A distinct cardiac component should be visible
 epochs_ica = ica.pick_sources_epochs(epochs, exclude=[24], copy=True)
