@@ -227,7 +227,6 @@ class ICA(object):
                                        stop=stop, sort_method=sort_method)
         recomposed = self._pick_sources(sources, exclude,
                                         include)
-
         if copy is True:
             raw = raw.copy()
 
@@ -266,7 +265,6 @@ class ICA(object):
             sort_method = self.sorted_by
 
         sources = self.get_sources_epochs(epochs)
-
         if copy is True:
             epochs = epochs.copy()
 
@@ -349,12 +347,10 @@ class ICA(object):
         """Helper function"""
         data = epochs._data if epochs.preload else epochs.get_data()
         data, pre_whitener = self._pre_whiten(np.hstack(data), picks)
-        # data = np.array(np.split(data, len(epochs.events), 1))
         return data, pre_whitener
 
     def _pick_sources(self, sources, exclude, include):
         """Helper function"""
-
         mixing = self.mixing.copy()
         pre_whitener = self.pre_whitener.copy()
         if self.noise_cov is None:  # revert standardization
@@ -375,7 +371,7 @@ class ICA(object):
         out = None
         if picks is None:
             out = np.in1d(np.array(pickable.ch_names), self.ch_names)
-        elif not np.in1d(pickable.ch_names, self.ch_names).all():
+        elif not np.in1d(pickable.ch_names, self.ch_names)[picks].all():
             raise ValueError('Channel picks have to match '
                              'the previous fit.')
         else:
