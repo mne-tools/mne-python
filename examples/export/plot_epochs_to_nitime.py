@@ -15,6 +15,7 @@ for further signal processing and data analysis.
 
 print __doc__
 
+import numpy as np
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -32,13 +33,26 @@ events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                             exclude=exclude)
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+                    reject=dict(grad=4000e-13, eog=150e-6))
 
-epochs_ts = epochs.to_nitime()
 
+epochs_ts = epochs.to_nitime(picks=np.arange(20), concatenated=True)
+
+
+###############################################################################
+from nitime.analysis import MTCoherenceAnalyzer
+from nitime.viz import drawmatrix_channels
+
+C = MTCoherenceAnalyzer(epochs_ts)
+
+freq_idx = np.where((C.frequencies > 10) * (C.frequencies < 30))[0]
+
+coh = np.mean(C.coherence[:, :, freq_idx], -1)  # Averaging on the last dimension
+fig = drawmatrix_channels(coh, epochs.ch_names, size=[.2, .2], color_anchor=0,
+                          title='MTCoherenceAnalyzer')

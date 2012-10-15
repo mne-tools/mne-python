@@ -603,8 +603,20 @@ class Epochs(object):
 
         return out
 
-    def to_nitime(self, copy=True):
+    def to_nitime(self, picks=None, epochs_idx=None, concatenated=False, copy=True):
         """ Export epochs as nitime TimeSeries
+
+        Parameters
+        ----------
+        picks : array-like
+            indices for exporting subsets of the epochs channels
+        epochs_idx : slice or array-like
+            epochs index for single or selective epochs exports
+        concatenated : boolean
+            if True export concatenated 2D array which might be required by some
+            nitime functions.
+        copy : boolean
+            if True exports copy of epochs data
 
         Returns
         -------
@@ -621,8 +633,18 @@ class Epochs(object):
         if copy is True:
             data = data.copy()
 
+        if picks is None:
+            picks = self.picks
+
+        if epochs_idx is None:
+            epochs_idx = slice(len(self.events))
+
+        data = data[epochs_idx, picks, :]
+        if concatenated is True:
+            data = np.hstack(data).copy()
+
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'])
-        epochs_ts.ch_names = self.ch_names
+        epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
         # epochs_ts.metadata['lowpass'] = self.info['lowpass']
         # epochs_ts.metadata['highpass'] = self.info['highpass']
 
