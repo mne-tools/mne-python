@@ -83,7 +83,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     return clusters
 
 
-def _get_components(x_in, connectivity):
+def _get_components(x_in, connectivity, return_list=True):
     """get connected components from a mask and a connectivity matrix"""
     try:
         from sklearn.utils._csgraph import cs_graph_components
@@ -101,14 +101,17 @@ def _get_components(x_in, connectivity):
     data = np.concatenate((data, np.ones(len(idx), dtype=data.dtype)))
     connectivity = sparse.coo_matrix((data, (row, col)), shape=shape)
     _, components = cs_graph_components(connectivity)
-    labels = np.unique(components)
-    clusters = list()
-    for l in labels:
-        c = np.where(components == l)[0]
-        if np.any(x_in[c]):
-            clusters.append(c)
-    # print "-- number of components : %d" % np.unique(components).size
-    return clusters
+    if return_list:
+        labels = np.unique(components)
+        clusters = list()
+        for l in labels:
+            c = np.where(components == l)[0]
+            if np.any(x_in[c]):
+                clusters.append(c)
+        # print "-- number of components : %d" % np.unique(components).size
+        return clusters
+    else:
+        return components
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
@@ -547,9 +550,9 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
                                    connectivity=None, verbose=5, n_jobs=1,
-                                   seed=None, max_step=1, partitions=None,
-                                   exclude=None, step_down_p=0, t_power=1,
-                                   out_type='mask'):
+                                   seed=None, max_step=1, exclude=None,
+                                   step_down_p=0, t_power=1, out_type='mask',
+                                   check_disjoint=False):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -596,10 +599,6 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         maximum number of steps between vertices along the second dimension
         (typically time) to be considered connected. This is not used for full
         or None connectivity matrices.
-    partitions : array of int or None
-        An array (same size as X) of integers indicating which points belong
-        to each partition. If data can be broken up into disjoint sets
-        (e.g., hemipsheres), this can speed up computation.
     exclude : boolean array or None
         Mask to apply to the data to exclude certain points from clustering
         (e.g., medial wall vertices). Should be the same shape as X. If None,
@@ -623,6 +622,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         less memory for large datasets, but it will only allow for direct
         access to multi-dimensionl (e.g., sensors x time) data if the array is
         flattened---otherwise numpy.unravel_index can be used.
+    check_disjoint : bool
+        If True, the connectivity matrix (or list) will be examined to
+        determine of it can be separated into disjoint sets. In some cases
+        (usually with connectivity as a list and many "time" points), this
+        can lead to faster clustering, but results should be identical.
 
     Returns
     -------
@@ -660,6 +664,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     if connectivity is not None:
         if connectivity.shape[0] == X.shape[1]:  # use global algorithm
             connectivity = connectivity.tocoo()
+            n_times = None
         else:  # use temporal adjacency algorithm
             n_times = X.shape[1] / float(connectivity.shape[0])
             if not round(n_times) == n_times:
@@ -670,9 +675,6 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                             connectivity.indptr[i + 1]] for i in
                             range(len(connectivity.indptr) - 1)]
 
-    # do some checks
-    if (partitions is not None) and not partitions.size == X.shape[1]:
-        raise ValueError('partitions must be the same shape as X[1]')
     if (exclude is not None) and not exclude.size == X.shape[1]:
         raise ValueError('exclude must be the same shape as X[1]')
 
@@ -687,6 +689,13 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         include = np.logical_not(exclude)
     else:
         include = None
+
+    # determine if connectivity itself can be separated into disjoint sets
+    if check_disjoint is True and connectivity is not None:
+        partitions = _get_partitions_from_connectivity(connectivity, n_times,
+                                                       verbose)
+    else:
+        partitions = None
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity, max_step=max_step,
@@ -769,9 +778,9 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
                                  tail=0, stat_fun=ttest_1samp_no_p,
                                  connectivity=None, verbose=5, n_jobs=1,
                                  seed=None, max_step=1,
-                                 spatial_partitions=None,
                                  spatial_exclude=None, step_down_p=0,
-                                 t_power=1, out_type='indices'):
+                                 t_power=1, out_type='indices',
+                                 check_disjoint=False):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -800,11 +809,6 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
         See permutation_cluster_1samp_test.
     max_step : int
         See permutation_cluster_1samp_test.
-    partitions : list of int or None
-        See permutation_cluster_1samp_test.
-    spatial_partitions : list of int or None
-        List of spatial indices that divide disjoint sets (e.g., hemispheres).
-        For fsaverage (2 hemispheres @ 10242 vertices), this would be [10242].
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
     step_down_p : float
@@ -812,6 +816,8 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     t_power : float
         See permutation_cluster_1samp_test.
     out_type : str
+        See permutation_cluster_1samp_test.
+    check_disjoint : bool
         See permutation_cluster_1samp_test.
 
     Returns
@@ -852,15 +858,6 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     else:
         exclude = None
 
-    # convert spatial partitions before passing on if necessary
-    if spatial_partitions is not None:
-        partitions = np.zeros((1, n_vertices), dtype=int)
-        partitions[0, spatial_partitions] = 1
-        partitions = partitions.cumsum() * np.ones((n_times, 1), dtype=int)
-        partitions = partitions.ravel()
-    else:
-        partitions = None
-
     # make it contiguous
     X = np.ascontiguousarray(X.reshape(n_samples, -1))
 
@@ -868,9 +865,9 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     out = permutation_cluster_1samp_test(X, threshold=threshold,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_step=max_step, verbose=verbose, partitions=partitions,
-              exclude=exclude, step_down_p=step_down_p, t_power=t_power,
-              out_type=out_type)
+              max_step=max_step, verbose=verbose, exclude=exclude,
+              step_down_p=step_down_p, t_power=t_power, out_type=out_type,
+              check_disjoint=check_disjoint)
     return out
 
 
@@ -906,3 +903,34 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     if set_as is False:
         mask = np.logical_not(mask)
     return mask
+
+
+def _get_partitions_from_connectivity(connectivity, n_times, verbose):
+    """Use indices to specify disjoint subsets (e.g., hemispheres) based on
+    connectivity"""
+    if isinstance(connectivity, list):
+        test = np.ones(len(connectivity))
+        test_conn = np.zeros((len(connectivity), len(connectivity)),
+                             dtype='bool')
+        for vi in range(len(connectivity)):
+            test_conn[connectivity[vi], vi] = True
+        test_conn = sparse.coo_matrix(test_conn, dtype='float')
+    else:
+        test = np.ones(connectivity.shape[0])
+        test_conn = connectivity
+
+    part_clusts, _ = _find_clusters(test, 0, 1, test_conn)
+    if len(part_clusts) > 1:
+        if verbose:
+            print '%i disjoint connectivity sets found' % len(part_clusts)
+        partitions = np.zeros(len(test), dtype='int')
+        for ii, pc in enumerate(part_clusts):
+            partitions[pc] = ii
+        if isinstance(connectivity, list):
+            partitions = np.tile(partitions, n_times)
+    else:
+        if verbose:
+            print 'No disjoint connectivity sets found'
+        partitions = None
+
+    return partitions
