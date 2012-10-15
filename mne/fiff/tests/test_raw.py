@@ -227,6 +227,12 @@ def test_io_complex():
         n_samp = raw2_data.shape[1]
         assert_array_almost_equal(raw2_data[:, :n_samp],
                                   raw_cp._data[picks, :n_samp])
+        # with preloading
+        raw2 = Raw('raw.fif', preload=True)
+        raw2_data, _ = raw2[picks, :]
+        n_samp = raw2_data.shape[1]
+        assert_array_almost_equal(raw2_data[:, :n_samp],
+                                  raw_cp._data[picks, :n_samp])
 
 
 def test_getitem():

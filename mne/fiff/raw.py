@@ -107,17 +107,20 @@ class Raw(object):
 
         if preload:
             self._preload_data(preload)
-            self._preloaded = True
         else:
             self._preloaded = False
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
-        nchan = self.info['nchan']
-        nsamp = self.last_samp - self.first_samp + 1
-        self._data = _alloc_data_buffer(self, nchan, nsamp, preload)
+        if isinstance(preload, basestring):
+            # we will use a memmap: preload is a filename
+            data_buffer = preload
+        else:
+            data_buffer = None
+
         self._data, self._times = read_raw_segment(self,
-                                                   data_buffer=self._data)
+                                                   data_buffer=data_buffer)
+        self._preloaded = True
 
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose, proj):
         """Read in header information from a raw file"""
@@ -851,16 +854,26 @@ class Raw(object):
             c_ns += [r.last_samp - r.first_samp + 1 for r in raws]
             c_ns = np.cumsum(np.array(c_ns, dtype='int'))
             nsamp = c_ns[-1]
-            _data = _alloc_data_buffer(self, nchan, nsamp, preload)
 
             if not self._preloaded:
-                _data[:, 0:c_ns[0]] = read_raw_segment(self)[0]
+                this_data = read_raw_segment(self)[0]
             else:
-                _data[:, 0:c_ns[0]] = self._data
+                this_data = self._data
+
+            # allocate the buffer
+            if isinstance(preload, basestring):
+                _data = np.memmap(preload, mode='w+', dtype=this_data.dtype,
+                                  shape=(nchan, nsamp))
+            else:
+                _data = np.empty((nchan, nsamp), dtype=this_data.dtype)
+
+            _data[:, 0:c_ns[0]] = this_data
+
             for ri in range(len(raws)):
                 if not r._preloaded:
-                    _data[:, c_ns[ri]:c_ns[ri + 1]] = \
-                                                  read_raw_segment(raws[ri])[0]
+                    # read the data directly into the buffer
+                    data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
+                    read_raw_segment(raws[ri], data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
 
@@ -942,8 +955,10 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     sel: array, optional
         Indices of channels to select
 
-    data_buffer: array, optional
-        numpy array to fill with data read, must have the correct shape
+    data_buffer: array or str, optional
+        numpy array to fill with data read, must have the correct shape.
+        If str, a np.memmap with the correct data type will be used
+        to store the data.
 
     verbose: bool
         Use verbose output
@@ -978,7 +993,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     n_sel_channels = nchan if sel is None else len(sel)
     idx = slice(None, None, None) if sel is None else sel
     data_shape = (n_sel_channels, stop - start)
-    if data_buffer is not None:
+    if isinstance(data_buffer, np.ndarray):
         if data_buffer.shape != data_shape:
             raise ValueError('data_buffer has incorrect shape')
         data = data_buffer
@@ -1083,7 +1098,12 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 if picksamp > 0:
                     if data is None:
                         # if not already done, allocate array with right type
-                        data = np.empty(data_shape, dtype=dtype)
+                        if isinstance(data_buffer, basestring):
+                            # use a memmap
+                            data = np.memmap(data_buffer, mode='w+',
+                                             dtype=dtype, shape=data_shape)
+                        else:
+                            data = np.empty(data_shape, dtype=dtype)
                     data[:, dest:(dest + picksamp)] = \
                         one[:, first_pick:last_pick]
                     dest += picksamp
@@ -1279,17 +1299,6 @@ def _check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)
-
-
-def _alloc_data_buffer(raw, nchan, nsamp, preload):
-    """Allocate a data buffer for preloading"""
-    if isinstance(preload, str):
-        # preload data using a memmap file
-        _data = np.memmap(preload, mode='w+', dtype='float32',
-                          shape=(nchan, nsamp))
-    else:
-        _data = np.empty((nchan, nsamp), dtype='float32')
-    return _data
 
 
 def concatenate_raws(raws, preload=None):
