@@ -393,8 +393,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         If 'mask', it will pass back a list of boolean mask arrays.
         If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets, but it will not allow for direct access
-        to multi-dimensionl (e.g., sensors x time) data, unless the array is
+        less memory for large datasets, but it will only allow for direct
+        access to multi-dimensional (e.g., sensors x time) data if the array is
         flattened.
 
     Returns
@@ -620,8 +620,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         If 'mask', it will pass back a list of boolean mask arrays.
         If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets, but it will not allow for direct access
-        to multi-dimensionl (e.g., sensors x time) data, unless the array is
+        less memory for large datasets, but it will only allow for direct
+        access to multi-dimensionl (e.g., sensors x time) data if the array is
         flattened.
 
     Returns
