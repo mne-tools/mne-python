@@ -938,10 +938,9 @@ def _compute_nearest(xhs, rr):
 
 
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=0):
+               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=0,
+               mne_root=None):
     """Morph a source estimate from one subject to another
-
-    The functions requires to set MNE_ROOT and SUBJECTS_DIR variables.
 
     Parameters
     ----------
@@ -968,10 +967,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     buffer_size : int
         Morph data in chunks of `buffer_size` time instants.
         Saves memory when morphing long time intervals.
-    n_jobs: int
+    n_jobs : int
         Number of jobs to run in parallel
-    verbose: int
+    verbose : int
         Verbosity level.
+    mne_root : str, or None
+        Root directory for MNE. If None, the environment variable MNE_ROOT
+        is used. mne_root is only used for computation of vertices to use
+        (i.e., when "grade" is an integer).
 
     Returns
     -------
@@ -989,15 +992,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         else:
             raise ValueError('SUBJECTS_DIR environment variable not set')
 
-    tris = list()
-    surf_path_from = os.path.join(subjects_dir, subject_from, 'surf')
-    tris.append(read_surface(os.path.join(surf_path_from, 'lh.sphere.reg'))[1])
-    tris.append(read_surface(os.path.join(surf_path_from, 'rh.sphere.reg'))[1])
+    spheres_from = [os.path.join(subjects_dir, subject_from, 'surf',
+                                 xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    tris = [read_surface(s)[1] for s in spheres_from]
 
-    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'lh.sphere.reg')
-    lhs = read_surface(sphere)[0]
-    sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
-    rhs = read_surface(sphere)[0]
+    spheres_to = [os.path.join(subjects_dir, subject_to, 'surf',
+                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
 
     if grade is not None:  # fill a subset of vertices
         if isinstance(grade, list):
@@ -1007,7 +1008,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             nearest = grade
         else:
             # find which vertices to use in "to mesh"
-            ico = _get_ico_tris(grade, verbose=False, return_surf=True)
+            ico = _get_ico_tris(grade, verbose=False, return_surf=True,
+                                mne_root=mne_root)
             lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
             rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
 
@@ -1229,11 +1231,12 @@ def _get_connectivity_from_edges(edges, n_times, verbose=True):
     return connectivity
 
 
-def _get_ico_tris(grade, verbose=True, return_surf=False):
+def _get_ico_tris(grade, verbose=True, return_surf=False, mne_root=None):
     """Get triangles for ico surface."""
-    mne_root = os.environ.get('MNE_ROOT')
     if mne_root is None:
-        raise Exception('Please set MNE_ROOT environment variable.')
+        mne_root = os.environ.get('MNE_ROOT')
+        if mne_root is None:
+            raise Exception('Please set MNE_ROOT environment variable.')
     ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
     surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
     for s in surfaces:
