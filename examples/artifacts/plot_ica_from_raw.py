@@ -29,17 +29,20 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
+# setup ica seed
+# Sign and order of components is non deterministic.
+# setting the random state to 0 helps stabilizing the solution.
+ica = ICA(noise_cov=None, n_components=25, random_state=0)
+print ica
+
 # 1 minute exposure should be sufficient for artifact detection
 # however rejection pefromance significantly improves when using
 # the entire data range
 start, stop = raw.time_to_index(100, 160)
 
-# setup ica seed
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
-print ica
 
 # decompose sources for raw data
-ica.decompose_raw(raw, start=None, stop=None, picks=picks)
+ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
 sources = ica.get_sources_raw(raw, picks=picks, start=start, stop=stop)
 
 # # setup reasonable time window for inspection
@@ -48,43 +51,42 @@ start_plot, stop_plot = raw.time_to_index(100, 103)
 # # plot components
 plot_ica_panel(sources, start=0, stop=stop_plot - start_plot, n_components=25)
 
-# TODO example broke somehow...
 # Find the component that correlates the most with the ECG channel
 # As we don't have an ECG channel with take one can correlates a lot
 # 'MEG 1531'
-# ecg, times = raw[raw.ch_names.index('MEG 1531'), start:stop]
-# ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.)
-# sources_corr = sources.copy()
-# sources_corr /= np.sqrt(np.sum(sources_corr ** 2, axis=1))[:, np.newaxis]
-# ecg_component_idx = np.argmax(np.dot(sources_corr, ecg.T))
+ecg, times = raw[raw.ch_names.index('MEG 1531'), start:stop]
+ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.)
+sources_corr = sources.copy()
+sources_corr /= np.sqrt(np.sum(sources_corr ** 2, axis=1))[:, np.newaxis]
+ecg_component_idx = np.argmax(np.dot(sources_corr, ecg.T))
 
+# plot the component that correlates most with the ecg
+pl.plot(times, sources[ecg_component_idx])
+pl.title('ICA source matching ECG')
+pl.show()
 
-# pl.plot(times, ica.sources[ecg_component_idx])
-# pl.title('ICA source matching ECG')
-# pl.show()
-
-# Sign and order of components is non deterministic.
-# however a distinct cardiac and one EOG component should be visible.
-
-# raw_ica = ica.denoise_raw(bads=[ecg_component_idx], copy=True)
-raw_ica = ica.pick_sources_raw(raw, bads=[0, 1], sort_method='kurtosis', copy=True)
+# In addition a distinct cardiac and one EOG component should be visible (0 and 1).
+raw_ica = ica.pick_sources_raw(raw, bads=[ecg_component_idx, 0, 1],
+                               sort_method='skew', copy=True)
 
 ###############################################################################
 # Show MEG data
 
-data, times = raw[picks, start_plot:stop_plot]
-ica_data, _ = raw_ica[picks, start_plot:stop_plot]
+start_compare, stop_compare = raw.time_to_index(100, 106)
+
+data, times = raw[picks, start_compare:stop_compare]
+ica_data, _ = raw_ica[picks, start_compare:stop_compare]
 
 pl.close('all')
 pl.plot(times, data.T)
 pl.xlabel('time (s)')
-pl.xlim(100, 103)
+pl.xlim(100, 106)
 pl.ylabel('Raw MEG data (T)')
 
 pl.figure()
 pl.plot(times, ica_data.T)
 pl.xlabel('time (s)')
-pl.xlim(100, 103)
+pl.xlim(100, 106)
 pl.ylabel('Denoised MEG data (T)')
 pl.show()
 

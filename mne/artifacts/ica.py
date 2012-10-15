@@ -247,8 +247,8 @@ class ICA(object):
 
         Returns
         -------
-        denoised : depends on input arguments
-            denoised raw data as ndarray or as instance of Raw
+        epochs : instance of Epochs
+            epochs with selected ica components removed
         """
 
         if picks == None:
@@ -296,7 +296,7 @@ class ICA(object):
         elif sort_method == 'kurtosis':
             sort_func = kurtosis
         elif sort_method == 'unsorted':
-            sort_func = lambda x, y: self.source_ids
+            sort_func = lambda x, y: self._sort_idx
             sort_func.__name__ = 'unsorted'
         elif callable(sort_method):
             args = getargspec(sort_method).args
@@ -314,7 +314,6 @@ class ICA(object):
         self._sort_idx = self._sort_idx[sort_args]
         self.sorted_by = (sort_func.__name__ if not callable(sort_method)
                           else sort_method)
-        # append to sort buffer
         print '\n    sources reordered by %s' % self.sorted_by
 
         return sources[sort_args]
