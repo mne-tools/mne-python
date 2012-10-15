@@ -395,7 +395,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         set of vertices in a given cluster. Note that the latter may use far
         less memory for large datasets, but it will only allow for direct
         access to multi-dimensional (e.g., sensors x time) data if the array is
-        flattened.
+        flattened---otherwise numpy.unravel_index can be used.
 
     Returns
     -------
@@ -622,7 +622,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         set of vertices in a given cluster. Note that the latter may use far
         less memory for large datasets, but it will only allow for direct
         access to multi-dimensionl (e.g., sensors x time) data if the array is
-        flattened.
+        flattened---otherwise numpy.unravel_index can be used.
 
     Returns
     -------

@@ -9,7 +9,7 @@ import copy
 from math import ceil
 import numpy as np
 from scipy import sparse
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
 from .parallel import parallel_func
@@ -657,7 +657,8 @@ class SourceEstimate(object):
                                    tmin=self.tmin, tstep=self.tstep)
         return label_stc
 
-    def center_of_mass(self, surf=None, restrict_vertices=False):
+    def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
+                       subject_path=None):
         """Return the vertex on a given surface that is at the center of mass
         of  the activity in stc. Note that all activity must occur in a single
         hemisphere, otherwise an error is returned. The "mass" of each point in
@@ -669,16 +670,24 @@ class SourceEstimate(object):
 
         Parameters
         ----------
-        surf : string, surface, or None
-            The surface or filename of the surface to operate on. Should be a
-            spherical surface file for the subject stc is based on. If None,
-            it is assumed that fsaverage's spherical surface should be used.
+        subject : string
+            The subject the stc is defined for.
+
+        hemi : int, or None
+            Calculate the center of mass for the left (0) or right (1)
+            hemisphere. If None, one of the hemispheres must be all zeroes,
+            and the center of mass will be calculated for the other
+            hemisphere (useful for getting COM for clusters).
 
         restrict_vertices : bool, or array of int
             If True, returned vertex will be one from stc. Otherwise, it could
             be any vertex from surf. If an array of int, the returned vertex
             will come from that array. For most accuruate estimates, do not
             restrict vertices.
+
+        subject_path : str, or None
+            Path to the SUBJECTS_DIR. If None, the path is obtained by using
+            the environment variable SUBJECTS_DIR.
 
         Returns
         -------
@@ -706,17 +715,22 @@ class SourceEstimate(object):
         values = np.sum(self.data, axis=1)  # sum across time
         vert_inds = [np.arange(len(self.vertno[0])),
                      np.arange(len(self.vertno[1])) + len(self.vertno[0])]
-        hemi = np.where(np.array([np.sum(values[vi]) for vi in vert_inds]))[0]
-        if not len(hemi) == 1:
-            raise ValueError('Could not infer hemisphere')
-        hemi = hemi[0]
+        if hemi is None:
+            hemi = np.where(np.array([np.sum(values[vi])
+                            for vi in vert_inds]))[0]
+            if not len(hemi) == 1:
+                raise ValueError('Could not infer hemisphere')
+            hemi = hemi[0]
+        if not hemi in [0, 1]:
+            raise ValueError('hemi must be 0 or 1')
+        if subject_path is None:
+            subject_path = os.getenv('SUBJECTS_DIR')
 
         values = values[vert_inds[hemi]]
 
-        if surf is None:  # assume fsaverage
-            hemis = ['lh', 'rh']
-            surf = os.path.join(os.getenv('SUBJECTS_DIR'), 'fsaverage',
-                                'surf', hemis[hemi] + '.sphere')
+        hemis = ['lh', 'rh']
+        surf = os.path.join(subject_path, subject, 'surf',
+                            hemis[hemi] + '.sphere')
 
         if isinstance(surf, str):  # read in surface
             surf = read_surface(surf)
@@ -889,6 +903,10 @@ def mesh_dist(tris, vert):
 
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   verbose=True):
+    # idx_use starts as the vertices from the original subject's data
+    # nearest are the vertices from the new subject's data to map to,
+    # based on the mapping in "maps"
+
     n_iter = 100  # max nb of smoothing iterations
     for k in range(n_iter):
         e_use = e[:, idx_use]
@@ -933,8 +951,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Name of the subject on which to morph as named in the SUBJECTS_DIR
     stc_from : SourceEstimate
         Source estimates for subject "from" to morph
-    grade : int
-        Resolution of the icosahedral mesh (typically 5)
+    grade : int, list (of two arrays), or None
+        Resolution of the icosahedral mesh (typically 5). If None, all
+        vertices will be used (potentially filling the surface). If a list,
+        then values will be morphed to the set of vertices specified in
+        in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+        grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
+        standard grade 5 source space) can be substantially faster than
+        computing vertex locations.
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
@@ -954,7 +978,6 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate
         Source estimate for the destination subject.
     """
-    from scipy import sparse
 
     if not stc_from.is_surface():
         raise ValueError('Morphing is only possible with surface source '
@@ -976,25 +999,28 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     sphere = os.path.join(subjects_dir, subject_to, 'surf', 'rh.sphere.reg')
     rhs = read_surface(sphere)[0]
 
-    # find which vertices to use in "to mesh"
-    ico_file_name = os.path.join(os.environ['MNE_ROOT'], 'share', 'mne',
-                                 'icos.fif')
+    if grade is not None:  # fill a subset of vertices
+        if isinstance(grade, list):
+            if not len(grade) == 2:
+                raise ValueError('grade as a list must have two elements '
+                                 '(arrays of output vertices)')
+            nearest = grade
+        else:
+            # find which vertices to use in "to mesh"
+            ico = _get_ico_tris(grade, verbose=False, return_surf=True)
+            lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
+            rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
 
-    surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
-
-    for s in surfaces:
-        if s['id'] == (9000 + grade):
-            ico = s
-            break
-
-    lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
-    rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
-
-    # Compute nearest vertices in high dim mesh
-    parallel, my_compute_nearest, _ = \
-                        parallel_func(_compute_nearest, n_jobs, verbose)
-    lhs, rhs, rr = [a.astype(np.float32) for a in [lhs, rhs, ico['rr']]]
-    nearest = parallel(my_compute_nearest(xhs, rr) for xhs in [lhs, rhs])
+            # Compute nearest vertices in high dim mesh
+            parallel, my_compute_nearest, _ = \
+                                parallel_func(_compute_nearest, n_jobs,
+                                              verbose)
+            lhs, rhs, rr = [a.astype(np.float32)
+                            for a in [lhs, rhs, ico['rr']]]
+            nearest = parallel(my_compute_nearest(xhs, rr)
+                               for xhs in [lhs, rhs])
+    else:  # potentially fill the surface
+        nearest = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
 
     # morph the data
     maps = read_morph_map(subject_from, subject_to, subjects_dir,
@@ -1203,7 +1229,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=True):
     return connectivity
 
 
-def _get_ico_tris(grade, verbose=True):
+def _get_ico_tris(grade, verbose=True, return_surf=False):
     """Get triangles for ico surface."""
     mne_root = os.environ.get('MNE_ROOT')
     if mne_root is None:
@@ -1214,7 +1240,11 @@ def _get_ico_tris(grade, verbose=True):
         if s['id'] == (9000 + grade):
             ico = s
             break
-    return ico['tris']
+
+    if not return_surf:
+        return ico['tris']
+    else:
+        return ico
 
 
 def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):

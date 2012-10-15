@@ -195,7 +195,7 @@ class Label(dict):
         "calls write_label to write the label to disk"
         write_label(filename, self)
 
-    def smooth(self, subject='fsaverage', grade=5, smooth=2,
+    def smooth(self, subject, smooth=2, grade=None,
                subjects_dir=None, n_jobs=1, verbose=True):
         """Smooth the label. Useful for filling in labels made in a
         decimated source space for display.
@@ -203,12 +203,15 @@ class Label(dict):
         Parameters
         ----------
         subject : str
-            The name of the subject used. Defaults to 'fsaverage'.
-        grade : int
-            Resolution of the icosahedral mesh (typically 5).
+            The name of the subject used.
         smooth : int
             Number of iterations for the smoothing of the surface data.
-            Cannot be None here since not all vertices are used.
+            Cannot be None here since not all vertices are used. For a
+            grade of 5 (e.g., fsaverage), a smoothing of 2 will fill a
+            label.
+        grade : int, or None
+            Resolution of the icosahedral mesh to smooth to. To fill a
+            label for display, use None.
         subjects_dir : string
             See morph_data.
         n_jobs: int
