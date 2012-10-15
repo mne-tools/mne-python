@@ -44,7 +44,7 @@ class ICA(object):
         self.n_components = n_components
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
-        self._channs = None
+        self.ch_names = None
 
     def __repr__(self):
         out = 'ICA '
@@ -95,7 +95,7 @@ class ICA(object):
         self._fast_ica.fit(data.T)
         self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'raw'
-        self._channs = np.array(raw.ch_names)[picks]
+        self.ch_names = np.array(raw.ch_names)[picks].tolist()
 
         return self
 
@@ -126,7 +126,7 @@ class ICA(object):
         self._fast_ica.fit(data.T)
         self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'epochs'
-        self._channs = np.array(epochs.ch_names)
+        self.ch_names = epochs.ch_names
 
         return self
 
@@ -158,7 +158,7 @@ class ICA(object):
 
         return self.sort_sources(raw_sources, sort_method=sort_method)
 
-    def get_sources_epochs(self, epochs, picks='previous', sort_method='skew'):
+    def get_sources_epochs(self, epochs, picks=None, sort_method='skew'):
         """ Uncover raw sources
         Paramerters
         -----------
@@ -171,6 +171,11 @@ class ICA(object):
             'kurtosis', 'unsorted' or a custom function that takes an
             array and an axis argument.
 
+        Returns
+        -------
+        epochs_sources : ndarray
+            epochs x sources x timeslices array
+
         """
         if self.last_fit is 'unfitted':
             print ('No fit availble. Please first fit ica decomposition.')
@@ -178,11 +183,13 @@ class ICA(object):
 
         picks = self._check_picks(epochs, picks)
         data, _ = self._get_epochs_data(epochs, picks)
-        epochs_sources = self._fast_ica.transform(data.T).T
+        sources = self._fast_ica.transform(data.T).T
+        sources = self.sort_sources(sources, sort_method=sort_method)
+        epochs_sources = np.array(np.split(sources, len(epochs.events), 1))
 
-        return self.sort_sources(epochs_sources, sort_method=sort_method)
+        return epochs_sources
 
-    def pick_sources_raw(self, raw, bads=[], picks='previous', start=None, stop=None,
+    def pick_sources_raw(self, raw, exclude=[], include=None, start=None, stop=None,
                          copy=True, sort_method='skew'):
         """Recompose raw data
 
@@ -190,9 +197,9 @@ class ICA(object):
         -----------
         raw : instance of Raw
             raw object to pick to remove ica components from
-        bads : list-like
+        exclude : list-like
             Indices for transient component deselection
-        picks : array-like
+        include : array-like
             use channel subset as specified
         copy: boolean
             modify raw instance in place or return modified copy
@@ -210,24 +217,25 @@ class ICA(object):
             raise ValueError('Currently no raw data fitted.'
                              'Please fit raw data first.')
 
-        picks = self._check_picks(raw, picks)
+        include = self._check_picks(raw, include)
         if sort_method not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
             sort_method = self.sorted_by
 
-        sources = self.get_sources_raw(raw, picks=picks, start=start,
+        sources = self.get_sources_raw(raw, picks=include, start=start,
                                        stop=stop, sort_method=sort_method)
-        recomposed = self._pick_sources(sources, bads, picks)
+        recomposed = self._pick_sources(sources, exclude,
+                                        include)
 
         if copy is True:
             raw = raw.copy()
 
-        raw[picks, start:stop] = recomposed
+        raw[include, start:stop] = recomposed
 
         return raw
 
-    def pick_sources_epochs(self, epochs, bads=[], picks='previous', copy=True,
+    def pick_sources_epochs(self, epochs, exclude=[], include=None, copy=True,
                             sort_method='skew'):
         """Recompose epochs
 
@@ -235,7 +243,7 @@ class ICA(object):
         -----------
         epochs : instance of Epochs
             epochs object to pick to remove ica components from
-        bads : list-like
+        exclude : list-like
             Indices for transient component deselection
         copy : boolean
             Either return denoised data as nd array or newly instantiated
@@ -251,23 +259,19 @@ class ICA(object):
             epochs with selected ica components removed
         """
 
-        if picks == None:
-            picks = epochs.picks
-        elif picks == 'previous':
-            picks = self._check_picks(epochs, picks)
-
+        include = self._check_picks(epochs, include)
         if sort_method not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
             sort_method = self.sorted_by
 
         sources = self.get_sources_epochs(epochs)
-        recomposed = self._pick_sources(sources, bads, picks)
 
         if copy is True:
             epochs = epochs.copy()
 
-        epochs._data = np.array(np.split(recomposed, len(epochs.events), 1))
+        recomposed = self._pick_sources(sources.swapaxes(0, 1), exclude, include)
+        epochs._data = recomposed.swapaxes(0, 1)
         epochs.preload = True
 
         return epochs
@@ -331,7 +335,7 @@ class ICA(object):
             pre_whitener = np.array([std_chan]).T
             data *= pre_whitener
         else:
-            raise ValueError('This is not a valid valur for noise_cov')
+            raise ValueError('This is not a valid value for noise_cov')
 
         return data, pre_whitener
 
@@ -344,9 +348,11 @@ class ICA(object):
     def _get_epochs_data(self, epochs, picks):
         """Helper function"""
         data = epochs._data if epochs.preload else epochs.get_data()
-        return self._pre_whiten(np.hstack(data), picks)
+        data, pre_whitener = self._pre_whiten(np.hstack(data), picks)
+        # data = np.array(np.split(data, len(epochs.events), 1))
+        return data, pre_whitener
 
-    def _pick_sources(self, sources, bads, picks):
+    def _pick_sources(self, sources, exclude, include):
         """Helper function"""
 
         mixing = self.mixing.copy()
@@ -357,8 +363,8 @@ class ICA(object):
         else:
             mixing = np.dot(mixing, linalg.pinv(pre_whitener))
 
-        if bads not in (None, []):
-            sources[bads, :] = 0.
+        if exclude not in (None, []):
+            sources[exclude, :] = 0.
 
         out = np.dot(sources.T, mixing).T
 
@@ -367,20 +373,12 @@ class ICA(object):
     def _check_picks(self, pickable, picks):
         """Helper function"""
         out = None
-        if picks is not None:
-            if picks is 'previous':
-                out = np.in1d(np.array(pickable.ch_names), self._channs)
-            elif np.array(pickable.ch_names)[picks].tolist() != self.ch_names:
-                raise ValueError('Channel picks have to match '
-                                 'the previous fit.')
-            else:
-                out = picks
-        return out
-
-    @property
-    def ch_names(self):
-        """ Channel names information"""
-        if self._channs is None:
-            return 'No channel names specified'
+        if picks is None:
+            out = np.in1d(np.array(pickable.ch_names), self.ch_names)
+        elif not np.in1d(pickable.ch_names, self.ch_names).all():
+            raise ValueError('Channel picks have to match '
+                             'the previous fit.')
         else:
-            return self._channs.tolist()
+            out = picks
+
+        return out
