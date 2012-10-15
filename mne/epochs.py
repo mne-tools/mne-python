@@ -603,12 +603,13 @@ class Epochs(object):
 
         return out
 
-    def to_nitime(self):
+    def to_nitime(self, copy=True):
         """ Export epochs as nitime TimeSeries
 
-        Retruns
+        Returns
         -------
-        isntance of nitime.TimeSeries
+        epochs_ts : instance of nitime.TimeSeries
+            The Epochs as nitime TimeSeries object
         """
         from nitime import TimeSeries
 
@@ -617,7 +618,13 @@ class Epochs(object):
         else:
             data = self._data
 
+        if copy is True:
+            data = data.copy()
+
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'])
+        epochs_ts.ch_names = self.ch_names
+        # epochs_ts.metadata['lowpass'] = self.info['lowpass']
+        # epochs_ts.metadata['highpass'] = self.info['highpass']
 
         return epochs_ts
 

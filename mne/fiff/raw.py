@@ -747,11 +747,22 @@ class Raw(object):
         finish_writing_raw(outfid)
 
     def time_to_index(self, *args):
+        """ Convert time to indices
+        """
         indices = []
         for time in args:
             ind = int(time * self.info['sfreq'])
             indices.append(ind)
         return indices
+
+    def index_to_time(self, *args):
+        """ Convert indices to time
+        """
+        times = []
+        for index in args:
+            time = index / self.info['sfreq']
+            times.append(time)
+        return times
 
     @property
     def ch_names(self):
@@ -897,7 +908,7 @@ class Raw(object):
 
     def to_nitime(self, start=None, stop=None, picks=None, copy=True):
         """ Raw data as nitime TimeSeries
-        
+
         Parameters
         ----------
         start : int
@@ -909,7 +920,7 @@ class Raw(object):
         copy : boolean
             whether to copy the raw data or not.
 
-        Retruns
+        Returns
         -------
         raw_ts : instance of nitime.TimeSeries
         """
@@ -923,10 +934,13 @@ class Raw(object):
 
         if copy:
             data = data.copy()
-            start_time = self.first_samp
+            start_time = self.index_to_time(self.first_samp)
 
         raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
                             t0=start_time)
+
+        raw_ts.ch_names = np.array(self.ch_names)[picks].tolist()
+
         return raw_ts
 
     def __repr__(self):
