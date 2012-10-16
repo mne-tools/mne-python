@@ -396,9 +396,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         If 'mask', it will pass back a list of boolean mask arrays.
         If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets, but it will only allow for direct
-        access to multi-dimensional (e.g., sensors x time) data if the array is
-        flattened---otherwise numpy.unravel_index can be used.
+        less memory for large datasets.
 
     Returns
     -------
@@ -440,9 +438,6 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     T_obs = stat_fun(*X)
     if verbose:
         print 'stat_fun(H1): min=%f max=%f' % (np.min(T_obs), np.max(T_obs))
-
-    # The stat should have the same shape as the samples
-    T_obs.shape = sample_shape
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
@@ -619,9 +614,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         If 'mask', it will pass back a list of boolean mask arrays.
         If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
-        less memory for large datasets, but it will only allow for direct
-        access to multi-dimensionl (e.g., sensors x time) data if the array is
-        flattened---otherwise numpy.unravel_index can be used.
+        less memory for large datasets.
     check_disjoint : bool
         If True, the connectivity matrix (or list) will be examined to
         determine of it can be separated into disjoint sets. In some cases
@@ -681,9 +674,6 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
-
-    # The stat should have the same shape as the samples
-    T_obs.shape = sample_shape
 
     if exclude is not None:
         include = np.logical_not(exclude)
