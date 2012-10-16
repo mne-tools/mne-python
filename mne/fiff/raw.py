@@ -90,7 +90,6 @@ class Raw(object):
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
-        self.proj = None
         self.comp = None
         self.fids = [r.fid for r in raws]
         self.info = copy.deepcopy(raws[0].info)
