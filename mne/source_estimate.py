@@ -1233,10 +1233,9 @@ def _get_connectivity_from_edges(edges, n_times, verbose=True):
 
 def _get_ico_tris(grade, verbose=True, return_surf=False, mne_root=None):
     """Get triangles for ico surface."""
+    mne_root = os.environ.get('MNE_ROOT', mne_root)
     if mne_root is None:
-        mne_root = os.environ.get('MNE_ROOT')
-        if mne_root is None:
-            raise Exception('Please set MNE_ROOT environment variable.')
+        raise Exception('Please set MNE_ROOT environment variable.')
     ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
     surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
     for s in surfaces:
