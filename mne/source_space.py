@@ -518,7 +518,7 @@ def _write_one_source_space(fid, this):
     #     print 'Distance information added...',
 
 
-def vertex_to_mni(vertices, hemis, subject=None, verbose=False):
+def vertex_to_mni(vertices, hemis, subject, verbose=False):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
@@ -527,9 +527,8 @@ def vertex_to_mni(vertices, hemis, subject=None, verbose=False):
         Vertex number(s) to convert
     hemis : int, or list of int
         Hemisphere(s) the vertices belong to
-    subject : string, or None
-        Name of the subject to load surfaces from. If None, the fsaverage
-        surfaces will be used.
+    subject : string
+        Name of the subject to load surfaces from.
 
     Returns
     -------
