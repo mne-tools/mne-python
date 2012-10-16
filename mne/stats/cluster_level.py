@@ -612,7 +612,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     t_power : float
         Power to raise the statistical values (usually t-values) by before
         summing (sign will be retained). Note that t_power == 0 will give a
-        count of nodes in each cluster, t_power == 1 will weigh each node by
+        count of nodes in each cluster, t_power == 1 will weight each node by
         its statistical score.
     out_type : str
         For arrays with connectivity, this sets the output format for clusters.
