@@ -235,7 +235,6 @@ class Raw(object):
                        raw.first_samp, raw.last_samp,
                        float(raw.first_samp) / info['sfreq'],
                        float(raw.last_samp) / info['sfreq'])
-            print 'Ready.'
 
         raw.fid = fid
         raw.info = info
@@ -246,6 +245,9 @@ class Raw(object):
         raw.info = out[1]
         raw._projector_hashes = [_hash_projs(raw.info['projs'],
                                              raw._projectors[0])]
+        if verbose:
+            print 'Ready.'
+
         return raw
 
     def _parse_get_set_params(self, item):
@@ -750,10 +752,11 @@ class Raw(object):
                                             and (len(times) < buffer_size)):
                 print 'Skipping data chunk due to small buffer ... [done]\n'
                 break
-
-            print 'Writing ... ',
+            if self.verbose:
+                print 'Writing ... ',
             write_raw_buffer(outfid, data, cals)
-            print '[done]'
+            if self.verbose:
+                print '[done]'
 
         finish_writing_raw(outfid)
 
