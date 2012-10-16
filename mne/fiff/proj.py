@@ -363,7 +363,7 @@ def deactivate_proj(projs, copy=True):
     if copy:
         projs = deepcopy(projs)
 
-    #   Activate the projection items
+    #   Deactivate the projection items
     for proj in projs:
         proj['active'] = False
 
