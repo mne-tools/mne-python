@@ -9,6 +9,7 @@ import numpy as np
 from scipy.stats import kurtosis, skew
 from scipy import linalg
 from ..cov import compute_whitener
+from copy import deepcopy
 
 
 class ICA(object):
@@ -87,6 +88,7 @@ class ICA(object):
         print ('\nComputing signal decomposition on raw data.'
                '\n    Please be patient. This may take some time')
 
+        self.ch_names = np.array(raw.ch_names)[picks].tolist()
         self._sort_idx = (np.arange(self.n_components) if self.n_components
                            is not None else np.arange(picks.shape[0]))
 
@@ -95,7 +97,6 @@ class ICA(object):
         self._fast_ica.fit(data.T)
         self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'raw'
-        self.ch_names = np.array(raw.ch_names)[picks].tolist()
 
         return self
 
@@ -116,6 +117,7 @@ class ICA(object):
         """
         if picks is None:
             picks = epochs.picks
+        self.ch_names = np.array(epochs.ch_names)[picks].tolist()
         self._sort_idx = (np.arange(self.n_components) if self.n_components
                            is not None else np.arange(self.picks.shape[0]))
 
@@ -126,7 +128,6 @@ class ICA(object):
         self._fast_ica.fit(data.T)
         self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'epochs'
-        self.ch_names = epochs.ch_names
 
         return self
 
@@ -227,6 +228,10 @@ class ICA(object):
                                        stop=stop, sort_method=sort_method)
         recomposed = self._pick_sources(sources, exclude,
                                         include)
+        if not raw._preloaded:
+            raw._preload_data(True)
+            raw._preloaded = True
+
         if copy is True:
             raw = raw.copy()
 
@@ -320,11 +325,17 @@ class ICA(object):
 
         return sources[sort_args]
 
-    def _pre_whiten(self, data, picks):
+    def _pre_whiten(self, data, info, picks):
         """Helper function"""
-        if self.noise_cov is not None:
-            assert data.shape[0] == self.noise_cov.data.shape[0]
-            pre_whitener, _ = compute_whitener(self.noise_cov, self.raw.info,
+        if hasattr(self.noise_cov, 'data'):
+            # pick cov
+            ncov = deepcopy(self.noise_cov)
+            if not ncov.ch_names == self.ch_names:
+                ncov['data'] = ncov.data[picks][:, picks]
+            # check whether cov matches channels
+            assert data.shape[0] == ncov.data.shape[0]
+
+            pre_whitener, _ = compute_whitener(ncov, info,
                                                picks)
             data = np.dot(pre_whitener, data)
 
@@ -340,20 +351,21 @@ class ICA(object):
     def _get_raw_data(self, raw, picks, start, stop):
         """Helper function"""
         start = 0 if start is None else start
-        stop = raw.last_samp if stop is None else stop
-        return self._pre_whiten(raw[picks, start:stop][0], picks)
+        stop = (raw.last_samp - raw.first_samp) + 1 if stop is None else stop
+        return self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
 
     def _get_epochs_data(self, epochs, picks):
         """Helper function"""
         data = epochs._data if epochs.preload else epochs.get_data()
-        data, pre_whitener = self._pre_whiten(np.hstack(data), picks)
+        data, pre_whitener = self._pre_whiten(np.hstack(data), epochs.info,
+                                              picks)
         return data, pre_whitener
 
     def _pick_sources(self, sources, exclude, include):
         """Helper function"""
         mixing = self.mixing.copy()
         pre_whitener = self.pre_whitener.copy()
-        if self.noise_cov is None:  # revert standardization
+        if not hasattr(self.noise_cov, 'data'):  # revert standardization
             pre_whitener **= -1
             mixing *= pre_whitener.T
         else:
@@ -370,7 +382,9 @@ class ICA(object):
         """Helper function"""
         out = None
         if picks is None:
-            out = np.in1d(np.array(pickable.ch_names), self.ch_names)
+            intersect = np.intersect1d(np.array(pickable.ch_names),
+                                       self.ch_names)
+            out = np.where(intersect)[0]
         elif not np.in1d(pickable.ch_names, self.ch_names)[picks].all():
             raise ValueError('Channel picks have to match '
                              'the previous fit.')
