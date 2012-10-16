@@ -102,13 +102,13 @@ Read and plot a segment of raw data
 
     >>> start, stop = raw.time_to_index(100, 115)  # 100 s to 115 s data segment
     >>> data, times = raw[:, start:stop]
-    Reading 21465 ... 23716  =    142.953 ...   157.945 secs...  [done]
+    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...  [done]
     >>> print data.shape
     (376, 2252)
     >>> print times.shape
     (2252,)
     >>> data, times = raw[2:20:3, start:stop]  # take some Magnetometers
-    Reading 21465 ... 23716  =    142.953 ...   157.945 secs...  [done]
+    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...  [done]
 
 .. figure:: _images/plot_read_and_write_raw_data.png
     :alt: Raw data
@@ -117,6 +117,7 @@ Save a segment of 150s of raw data (MEG only):
 
     >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True)
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks) # doctest: +ELLIPSIS
+    5 projection items deactivated
     Reading ...
 
 Define and read epochs
@@ -125,7 +126,7 @@ Define and read epochs
 First extract events:
 
     >>> events = mne.find_events(raw, stim_channel='STI 014')
-    Reading 6450 ... 48149  =     42.956 ...   320.665 secs...  [done]
+    Reading 0 ... 41699  =      0.000 ...   277.709 secs...  [done]
     319 events found
     Events id: [ 1  2  3  4  5 32]
     >>> print events[:5]
@@ -172,7 +173,7 @@ Read epochs:
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
     Adding average EEG reference projection.
     Created an SSP operator (subspace dimension = 4)
-    5 projection items activated
+    6 projection items activated
     72 matching events found
     >>> print epochs
     Epochs (n_events : 72 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
@@ -180,7 +181,7 @@ Read epochs:
 Get single epochs:
 
     >>> epochs_data = epochs.get_data() # doctest: +ELLIPSIS
-    Reading 7162 ...
+    Reading ...
     >>> print epochs_data.shape
     (55, 365, 106)
 
@@ -313,7 +314,7 @@ Compute inverse solution during the first 15s:
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
         Computing noise-normalization factors (dSPM)... [done]
     Picked 305 channels from the data
-    Computing inverse... Reading 6450 ... 8701  =     42.956 ...    57.947 secs...  [done]
+    Computing inverse... Reading 0 ... 2251  =      0.000 ...    14.991 secs...  [done]
     (eigenleads need to be weighted)... combining the current components... [done]
 
 Save result in stc files:
