@@ -658,7 +658,7 @@ class SourceEstimate(object):
         return label_stc
 
     def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
-                       subject_path=None):
+                       subjects_dir=None):
         """Return the vertex on a given surface that is at the center of mass
         of  the activity in stc. Note that all activity must occur in a single
         hemisphere, otherwise an error is returned. The "mass" of each point in
@@ -685,7 +685,7 @@ class SourceEstimate(object):
             will come from that array. For most accuruate estimates, do not
             restrict vertices.
 
-        subject_path : str, or None
+        subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
 
@@ -723,13 +723,14 @@ class SourceEstimate(object):
             hemi = hemi[0]
         if not hemi in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
-        if subject_path is None:
-            subject_path = os.getenv('SUBJECTS_DIR')
+        subjects_dir = os.environ.get('SUBJECTS_DIR', subjects_dir)
+        if subjects_dir is None:
+            raise ValueError('Please set SUBJECTS_DIR environment variable')
 
         values = values[vert_inds[hemi]]
 
         hemis = ['lh', 'rh']
-        surf = os.path.join(subject_path, subject, 'surf',
+        surf = os.path.join(subjects_dir, subject, 'surf',
                             hemis[hemi] + '.sphere')
 
         if isinstance(surf, str):  # read in surface
