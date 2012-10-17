@@ -380,14 +380,10 @@ class ICA(object):
 
     def _check_picks(self, pickable, picks):
         """Helper function"""
-        out = None
         if picks is None:
             intersect = np.intersect1d(np.array(pickable.ch_names),
                                        self.ch_names)
             out = np.where(intersect)[0]
-        elif not np.in1d(pickable.ch_names, self.ch_names)[picks].all():
-            raise ValueError('Channel picks have to match '
-                             'the previous fit.')
         else:
             out = picks
 
