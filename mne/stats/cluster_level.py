@@ -340,9 +340,6 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
         X_shuffle_list = [X_full[idx, :] for idx in idx_shuffle_list]
         T_obs_surr = stat_fun(*X_shuffle_list)
 
-        # The stat should have the same shape as the samples
-        T_obs_surr.shape = sample_shape
-
         _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
                                                connectivity)
         if len(perm_clusters_sums) > 0:
