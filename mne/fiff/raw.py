@@ -18,11 +18,11 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types
-from .proj import setup_proj, deactivate_proj
+from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
-from ..utils import deprecated, array_hash
+from ..utils import deprecated
 
 
 class Raw(object):
@@ -49,36 +49,34 @@ class Raw(object):
     verbose : bool
         Use verbose output
 
-    proj : bool
-        If True, set self.proj to true. With preload=True, this will cause
-        the projectors to be applied when loading the data.
+    proj_active : bool
+        Apply the signal space projection (SSP) operators present in
+        the file to the data. Note: Once the projectors have been
+        applied, they can no longer be removed. It is usually not
+        recommended to apply the projectors at this point as they are
+        applied automatically later on (e.g. when computing inverse
+        solutions).
 
     Attributes
     ----------
-    info: dict
+    info : dict
         Measurement info
 
-    ch_names: list of string
+    ch_names : list of string
         List of channels' names
 
-    verbose : bool
-        Use verbose output.
-
-    preload : bool
-        Are data preloaded from disk?
-
-    proj : bool
-        Apply or not the SSPs projections taken from info['projs']
-        when accessing data.
-    """
+    projs : list of projectors
+        The signal space projectors. Note: Do not manipulate this list
+        directly, use the add_proj and del_proj methods.
+   """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=True, proj=False):
+                 verbose=True, proj_active=False):
 
         if not isinstance(fnames, list):
             fnames = [fnames]
 
-        raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose,
-                                    proj) for fname in fnames]
+        raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose)
+                for fname in fnames]
 
         _check_raw_compatibility(raws)
 
@@ -95,19 +93,16 @@ class Raw(object):
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.info['filenames'] = fnames
-        self.proj = proj
-        self._projectors = [r._projectors[0] for r in raws]
-        self._projector_hashes = [r._projector_hashes[0] for r in raws]
-
-        self._projs_match = True
-        if not all(ph == self._projector_hashes[0]
-                   for ph in self._projector_hashes):
-            self.projs_match = False
 
         if preload:
             self._preload_data(preload)
         else:
             self._preloaded = False
+
+        # setup the SSP projector
+        self._projector = None
+        if proj_active:
+            self.apply_projector()
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -121,7 +116,7 @@ class Raw(object):
                                                    data_buffer=data_buffer)
         self._preloaded = True
 
-    def _read_raw_file(self, fname, allow_maxshield, preload, verbose, proj):
+    def _read_raw_file(self, fname, allow_maxshield, preload, verbose):
         """Read in header information from a raw file"""
         if verbose:
             print 'Opening raw data file %s...' % fname
@@ -238,12 +233,7 @@ class Raw(object):
         raw.fid = fid
         raw.info = info
         raw.verbose = verbose
-        raw.proj = proj
-        out = setup_proj(raw.info)
-        raw._projectors = [out[0]]
-        raw.info = out[1]
-        raw._projector_hashes = [_hash_projs(raw.info['projs'],
-                                             raw._projectors[0])]
+
         if verbose:
             print 'Ready.'
 
@@ -294,13 +284,10 @@ class Raw(object):
         sel, start, stop = self._parse_get_set_params(item)
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
-            was_updated = self._update_projector()
-            if was_updated and self.proj:
-                raise RuntimeError('Changing projector after preloading data '
-                                   'is not allowed')
         else:
             data, times = read_raw_segment(self, start=start, stop=stop,
-                                           sel=sel, verbose=self.verbose)
+                                           sel=sel, proj=self._projector,
+                                           verbose=self.verbose)
         return data, times
 
     def __setitem__(self, item, value):
@@ -505,19 +492,18 @@ class Raw(object):
                                 h_trans_bandwidth=h_trans_bandwidth)
 
     def apply_projector(self):
-        """Apply projection vectors
+        """Apply the signal space projection (SSP) operators to the data.
 
-        When data are preloaded is directly applied or they are set be
-        applied to data as it is read from disk.
-        """
-        self.proj = True
-        self._update_projector()
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              this point, as they are applied automatically later on (e.g. when
+              computing inverse solutions).
+       """
+        self._projector, self.info = setup_proj(self.info)
+        activate_proj(self.info['projs'], copy=False)
+
         if self._preloaded:
-            if self._projs_match:
-                self._data = np.dot(self._projectors[0], self._data)
-            else:
-                raise RuntimeError('Cannot apply projectors to preloaded data '
-                                   'if they do not match')
+            self._data = np.dot(self._projector, self._data)
 
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
@@ -633,10 +619,6 @@ class Raw(object):
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
-        Updates the header to include new projectors. If projection was
-        requested on load (if raw.proj==True), the new projectors are applied
-        to the data.
-
         Parameters
         ----------
         projs : list
@@ -645,27 +627,37 @@ class Raw(object):
         remove_existing : bool
             Remove the projection vectors currently in the file
         """
+        # mark proj as inactive, as they have not been applied
+        projs = deactivate_proj(projs, copy=True)
 
-        if self._projs_match:
-            projs = copy.deepcopy(projs)
-
-            if remove_existing:
-                if self.proj and self._preloaded:
-                    raise ValueError('Cannot remove projectors from preloaded '
-                                     'data that have had projectors applied')
-                self.info['projs'] = projs
-            else:
-                self.info['projs'].extend(projs)
-            self._update_projector()
-
-            if self.proj:
-                self.apply_projector()
+        if remove_existing:
+            # we cannot remove the proj if they are active
+            if any(p['active'] for p in self.info['projs']):
+                raise ValueError('Cannot remove projectors that have '
+                                 'already been applied')
+            self.info['projs'] = projs
         else:
-            raise ValueError('Cannot add projectors when projectors from '
-                             'raw files do not match')
+            self.info['projs'].extend(projs)
+
+    def del_proj(self, idx):
+        """Remove SSP projection vector
+
+        Note: The projection vector can only be removed if it is inactive
+              (has not been applied to the data).
+
+        Parameters:
+        -----------
+        idx : int
+            Index of the projector to remove
+        """
+        if self.info['projs'][idx]['active']:
+            raise ValueError('Cannot remove projectors that have already '
+                             'been applied')
+
+        self.info['projs'].pop(idx)
 
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=None, projs=None):
+             drop_small_buffer=False, proj_active=False):
         """Save raw data to file
 
         Parameters
@@ -690,12 +682,10 @@ class Raw(object):
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
 
-        proj_active: bool or None
-            If True/False, the data is saved with the projections set to
-            active/inactive. If None, True/False is inferred from self.proj.
-
-        projs : list of Projection or None
-            If not None, it will replace raw.info['projs'].
+        proj_active: bool
+            If True the data is saved with the projections applied (active).
+            Note: If apply_projector() was used to apply the projectons,
+            the projectons will be active even if proj_active is False.
 
         """
         if any([fname == f for f in self.info['filenames']]):
@@ -707,18 +697,15 @@ class Raw(object):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
 
-        if projs is not None:
-            self.info = copy.deepcopy(self.info)
-            self.info['projs'] = projs
+        if proj_active:
+            info = copy.deepcopy(self.info)
+            proj, info = setup_proj(info)
+            activate_proj(info['projs'], copy=False)
+        else:
+            info = self.info
+            proj = None
 
-        # if proj is off, deactivate projs so data isn't saved with them on
-        # don't have to worry about activating them because they default to on
-        if proj_active is None:
-            proj_active = self.proj
-        if not proj_active:
-            self.info['projs'] = deactivate_proj(self.info['projs'])
-
-        outfid, cals = start_writing_raw(fname, self.info, picks)
+        outfid, cals = start_writing_raw(fname, info, picks)
         #
         #   Set up the reading parameters
         #
@@ -747,6 +734,9 @@ class Raw(object):
             else:
                 data, times = self[picks, first:last]
 
+            if proj is not None:
+                data = np.dot(proj, data)
+
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
                 print 'Skipping data chunk due to small buffer ... [done]\n'
@@ -769,6 +759,10 @@ class Raw(object):
     @property
     def ch_names(self):
         return self.info['ch_names']
+
+    @property
+    def projs(self):
+        return self.info['projs']
 
     def load_bad_channels(self, bad_file=None, force=False):
         """
@@ -829,12 +823,10 @@ class Raw(object):
         if not isinstance(raws, list):
             raws = [raws]
 
-        _check_raw_compatibility(raws)
-        if self._projs_match:
-            for r in raws:
-                if not all(ph == self._projector_hashes[0]
-                           for ph in r._projector_hashes):
-                    self._projs_match = False
+        # make sure the raws are compatible
+        all_raws = [self]
+        all_raws += raws
+        _check_raw_compatibility(all_raws)
 
         # deal with preloading data first (while files are separate)
         all_preloaded = self._preloaded and all(r._preloaded for r in raws)
@@ -889,7 +881,6 @@ class Raw(object):
             self._first_samps += r._first_samps
             self._last_samps += r._last_samps
             self._raw_lengths += r._raw_lengths
-            self._projector_hashes += r._projector_hashes
             self.rawdirs += r.rawdirs
             self.fids += r.fids
             self.info['filenames'] += r.info['filenames']
@@ -903,20 +894,6 @@ class Raw(object):
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
 
-    def _update_projector(self):
-        """Update hash new projector variables and
-        update ._projectors if it is necessary
-        """
-
-        new_hash = _hash_projs(self.info['projs'], self._projectors[0])
-        if not new_hash == self._projector_hashes[0]:
-            self._projectors[0], self.info = setup_proj(self.info)
-            self._projector_hashes[0] = _hash_projs(self.info['projs'],
-                                               self._projectors[0])
-            return True
-        else:
-            return False
-
 
 class _RawShell():
     """Used for creating a temporary raw object"""
@@ -925,20 +902,11 @@ class _RawShell():
         self.last_samp = None
         self.cals = None
         self.rawdir = None
-        self.proj = None
-        self._projectors = None
-        self._projector_hashes = None
-
-
-def _hash_projs(projs, projector):
-    out_hash = [array_hash(p['data']['data']) for p in projs]
-    if projector is not None:
-        out_hash.append(array_hash(projector))
-    return out_hash
+        self._projector = None
 
 
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
-    verbose=False):
+    verbose=False, proj=None):
     """Read a chunck of raw data
 
     Parameters
@@ -964,6 +932,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     verbose: bool
         Use verbose output
+
+    proj: array
+        SSP operator to apply to the data
 
     Returns
     -------
@@ -1002,15 +973,13 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     else:
         data = None  # we will allocate it later, once we know the type
 
-    raw._update_projector()
-    if raw.proj:
+    if proj is not None:
         mult = list()
         for ri in range(len(raw._raw_lengths)):
             mult.append(np.diag(raw.cals.ravel()))
             if raw.comp is not None:
                 mult[ri] = np.dot(raw.comp[idx, :], mult[ri])
-            if raw._projectors[0] is not None:
-                mult[ri] = np.dot(raw._projectors[0], mult[ri])
+            mult[ri] = np.dot(proj, mult[ri])
     else:
         mult = None
 
@@ -1301,6 +1270,11 @@ def _check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)
+        if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
+            raise ValueError('SSP projectors in raw files must be the same')
+        if not all(proj_equal(p1, p2) for p1, p2 in
+                   zip(raw[0].info['projs'], raw[ri].info['projs'])):
+            raise ValueError('SSP projectors in raw files must be the same')
 
 
 def concatenate_raws(raws, preload=None):
