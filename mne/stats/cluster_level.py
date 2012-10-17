@@ -322,9 +322,9 @@ def _pval_from_histogram(T, H0, tail):
 
 
 def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
-                     seeds, sample_shape):
+                     seeds):
 
-    n_samp, n_vars = X_full.shape
+    n_samp = X_full.shape[0]
 
     # allocate space for output
     max_cluster_sums = np.empty(len(seeds), dtype=np.double)
@@ -342,6 +342,9 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
 
         _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
                                                connectivity)
+
+        # Here we won't bother reshaping T_obs (leave flattened)
+
         if len(perm_clusters_sums) > 0:
             max_cluster_sums[seed_idx] = np.max(perm_clusters_sums)
         else:
@@ -438,7 +441,6 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
-
     if verbose:
         print 'Found %d clusters' % len(clusters)
 
@@ -446,13 +448,17 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     if connectivity is not None and out_type == 'mask':
         clusters = _clusters_to_bool(clusters, X.shape[1])
 
+    # The clusters and stat should have the same shape as the samples
+    clusters = _reshape_clusters(clusters, sample_shape)
+    T_obs.shape = sample_shape
+
     # make list of indices for random data split
     splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
     slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                 for k in range(len(X))]
 
     parallel, my_do_permutations, _ = parallel_func(_do_permutations, n_jobs,
-                                                 verbose=verbose)
+                                                    verbose=verbose)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -463,7 +469,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         else:
             seeds = list(seed + np.arange(n_permutations))
         H0 = parallel(my_do_permutations(X_full, slices, stat_fun, tail,
-                            threshold, connectivity, s, sample_shape)
+                            threshold, connectivity, s)
                             for s in split_list(seeds, n_jobs))
         H0 = np.concatenate(H0)
         cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
@@ -493,9 +499,9 @@ def ttest_1samp_no_p(X):
 
 
 def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
-                           max_step, include, partitions, t_power, seeds,
-                           sample_shape):
-    n_samp, n_vars = X.shape
+                           max_step, include, partitions, t_power, seeds):
+    n_samp = X.shape[0]
+
     # allocate space for output
     max_cluster_sums = np.empty(len(seeds), dtype=np.double)
 
@@ -520,6 +526,8 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
 
         # Set X back to previous state (trade memory efficiency for CPU use)
         X *= signs
+
+        # Here we won't bother reshaping T_obs (leave flattened)
 
         # Find cluster on randomized stats
         _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
@@ -688,9 +696,14 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                              include=include,
                                              partitions=partitions,
                                              t_power=t_power)
+
     # convert clusters to old format
     if connectivity is not None and out_type == 'mask':
         clusters = _clusters_to_bool(clusters, X.shape[1])
+
+    # The clusters and stat should have the same shape as the samples
+    clusters = _reshape_clusters(clusters, sample_shape)
+    T_obs.shape = sample_shape
 
     parallel, my_do_1samp_permutations, _ = parallel_func(
                                _do_1samp_permutations, n_jobs, verbose=verbose)
@@ -729,7 +742,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                 this_include = step_down_include
             H0 = parallel(my_do_1samp_permutations(X, threshold, tail,
                           connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, s, sample_shape)
+                          partitions, t_power, s)
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
@@ -760,13 +773,11 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
 permutation_cluster_1samp_test.__test__ = False
 
 
-def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
-                                 tail=0, stat_fun=ttest_1samp_no_p,
-                                 connectivity=None, verbose=5, n_jobs=1,
-                                 seed=None, max_step=1,
-                                 spatial_exclude=None, step_down_p=0,
-                                 t_power=1, out_type='indices',
-                                 check_disjoint=False):
+def spatio_temporal_cluster_1samp_test(X, threshold=None,
+        n_permutations=1024, tail=0, stat_fun=ttest_1samp_no_p,
+        connectivity=None, verbose=5, n_jobs=1, seed=None, max_step=1,
+        spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
+        check_disjoint=False):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -844,9 +855,6 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     else:
         exclude = None
 
-    # make it contiguous
-    X = np.ascontiguousarray(X.reshape(n_samples, -1))
-
     # do the heavy lifting
     out = permutation_cluster_1samp_test(X, threshold=threshold,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
@@ -857,7 +865,7 @@ def spatio_temporal_cluster_test(X, threshold=None, n_permutations=1024,
     return out
 
 
-spatio_temporal_cluster_test.__test__ = False
+spatio_temporal_cluster_1samp_test.__test__ = False
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
@@ -920,3 +928,14 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose):
         partitions = None
 
     return partitions
+
+
+def _reshape_clusters(clusters, sample_shape):
+    """Reshape cluster masks or indices to be of the correct shape"""
+    # format of the bool mask and indices are ndarrays
+    if len(clusters) > 0 and isinstance(clusters[0], np.ndarray):
+        if clusters[0].dtype == bool:  # format of mask
+            clusters = [c.reshape(sample_shape) for c in clusters]
+        else:  # format of indices
+            clusters = [np.unravel_index(c, sample_shape) for c in clusters]
+    return clusters
