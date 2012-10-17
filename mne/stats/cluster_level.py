@@ -523,7 +523,6 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
 
         # Set X back to previous state (trade memory efficiency for CPU use)
         X *= signs
-        T_obs_surr.shape = sample_shape
 
         # Find cluster on randomized stats
         _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
