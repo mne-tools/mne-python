@@ -26,6 +26,19 @@ class ICA(object):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
+    algorithm : {'parallel', 'deflation'}
+        Apply parallel or deflational algorithm for FastICA
+    fun : string or function, optional. Default: 'logcosh'
+        The functional form of the G function used in the
+        approximation to neg-entropy. Could be either 'logcosh', 'exp',
+        or 'cube'.
+        You can also provide your own function. It should return a tuple
+        containing the value of the function, and of its derivative, in the
+        point.
+    fun_args: dictionary, optional
+        Arguments to send to the functional form.
+        If empty and if fun='logcosh', fun_args will take value
+        {'alpha' : 1.0}
 
     Attributes
     ----------
@@ -38,10 +51,12 @@ class ICA(object):
     ch_names : list-like
         ch_names resulting from initial picking
     """
-    def __init__(self, noise_cov=None, n_components=None, random_state=None):
+    def __init__(self, noise_cov=None, n_components=None, random_state=None,
+                 algorithm='parallel', fun='logcos', fun_args=None):
         from sklearn.decomposition import FastICA  # to avoid strong dependency
         self.noise_cov = noise_cov
-        self._fast_ica = FastICA(n_components, random_state=random_state)
+        self._fast_ica = FastICA(n_components, random_state=random_state,
+                                 algorithm=algorithm, fun=fun, fun_args=fun_args)
         self.n_components = n_components
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
@@ -57,7 +72,8 @@ class ICA(object):
         else:
             msg = '(epochs decomposition, '
 
-        out += msg + '%i components' % self.n_components
+        out += (msg + '%s components' % str(self.n_components) if
+                self.n_components else 'no dimension reduction')
 
         if self.sorted_by == 'unsorted':
             sorted_by = self.sorted_by
@@ -293,15 +309,17 @@ class ICA(object):
 
         Paramerters
         -----------
-        sources : str
-            string for selecting the sources
+        sources : ndarray
+            previously reconstructed sources
         sort_func : function
             function used for sorting the sources. It should take an
             array and an axis argument.
         """
         sdim = 1 if sources.ndim > 2 else 0
-        if sources.shape[sdim] != self.n_components:
-            raise ValueError('Sources have to match the number of components')
+        if self.n_components is not None:
+            if sources.shape[sdim] != self.n_components:
+                raise ValueError('Sources have to match the number'
+                                 ' of components')
 
         if self.last_fit is 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA '

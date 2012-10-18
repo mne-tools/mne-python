@@ -40,7 +40,7 @@ reject = None
 
 events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=False, reject=reject)
+                    baseline=baseline, preload=True, reject=reject)
 
 # fit sources from epochs or from raw (both works for epochs)
 picks = mne.fiff.pick_types(epochs.info, meg=True, eeg=False)
@@ -56,7 +56,7 @@ start_plot, stop_plot = 0, 1000
 plot_ica_panel(sources[13], start=start_plot, stop=stop_plot, n_components=25)
 
 # A distinct cardiac component should be visible
-epochs_ica = ica.pick_sources_epochs(epochs, exclude=[24], copy=True)
+epochs_ica = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
 
 # plot original epochs
 pl.figure()
