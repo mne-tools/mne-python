@@ -70,7 +70,7 @@ pl.title('ICA source matching ECG')
 # In addition a distinct cardiac and one EOG component
 # should be visible (0 and 1).
 raw_ica = ica.pick_sources_raw(raw, exclude=[ecg_component_idx, 0, 1],
-                               sort_method='skew', copy=True)
+                               copy=True)
 
 ###############################################################################
 # Show MEG data

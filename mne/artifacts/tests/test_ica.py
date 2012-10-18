@@ -4,7 +4,9 @@
 
 import os.path as op
 from nose.tools import assert_true
-from numpy.testing import assert_array_almost_equal
+import numpy as np
+from numpy.testing import assert_array_almost_equal, assert_array_equal
+from scipy import stats
 
 from mne import fiff, Epochs, read_events, cov
 from mne.artifacts import ICA
@@ -50,15 +52,20 @@ def test_ica_raw():
     ica_cov.get_sources_raw(raw, picks=picks)
     assert_true(sources.shape[0] == ica.n_components)
 
-    raw2 = ica.pick_sources_raw(raw, exclude=[], sort_method='kurtosis',
+    raw2 = ica.pick_sources_raw(raw, exclude=[], sort_func=stats.kurtosis,
                                 copy=True)
     assert_array_almost_equal(raw2._data, raw._data)
+
+    initial_sort = ica._sort_idx
+    sources = ica.sort_sources(sources, stats.kurtosis)
+    sources = ica.sort_sources(sources, stats.skew)
+    assert_array_equal(initial_sort, ica._sort_idx)
 
 
 def test_pick_sources_epochs_from_raw():
     """Test epochs sources selection using raw fit."""
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[],
-                                      sort_method='kurtosis', copy=True)
+                                      sort_func=stats.kurtosis, copy=True)
     assert_array_almost_equal(epochs2._data, epochs._data)
 
 
@@ -74,5 +81,10 @@ def test_ica_epochs():
     assert_true(sources.shape[1] == ica.n_components)
 
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[],
-                                      sort_method='kurtosis', copy=True)
+                                      sort_func=stats.kurtosis, copy=True)
     assert_array_almost_equal(epochs2._data, epochs._data)
+
+    initial_sort = ica._sort_idx
+    sources = ica.sort_sources(sources, stats.kurtosis)
+    sources = ica.sort_sources(sources, stats.skew)
+    assert_array_equal(initial_sort, ica._sort_idx)
