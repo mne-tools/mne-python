@@ -1152,7 +1152,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
         with a call to mne_add_patch_info with the --dist option.
     n_times : int
         Number of time points
-    dist : float, or None
+    dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
     verbose : bool
