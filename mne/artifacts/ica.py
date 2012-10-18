@@ -5,12 +5,10 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-from inspect import getargspec
 
 import numpy as np
-from scipy.stats import kurtosis, skew
+from scipy import stats
 from scipy import linalg
-
 from ..cov import compute_whitener
 
 
@@ -138,7 +136,7 @@ class ICA(object):
         return self
 
     def get_sources_raw(self, raw, picks=None, start=None, stop=None,
-                        sort_method='skew'):
+                        sort_func=stats.skew):
         """Estimate raw sources given the unmixing matrix
 
         Paramerters
@@ -152,9 +150,8 @@ class ICA(object):
         picks : array-like | None
             channels to be included. If None the channels used during
             ICA estimation will be used.
-        sort_method : str | function
-            method used for sorting the sources. Options are 'skew',
-            'kurtosis', 'unsorted' or a custom function that takes an
+        sort_func : function
+            function used for sorting the sources. It should take an
             array and an axis argument.
         """
         if self.mixing is None:
@@ -164,9 +161,9 @@ class ICA(object):
         picks = self._check_picks(raw, picks)
         data, _ = self._get_raw_data(raw, picks, start, stop)
         raw_sources = self._fast_ica.transform(data.T).T
-        return self.sort_sources(raw_sources, sort_method=sort_method)
+        return self.sort_sources(raw_sources, sort_func=sort_func)
 
-    def get_sources_epochs(self, epochs, picks=None, sort_method='skew'):
+    def get_sources_epochs(self, epochs, picks=None, sort_func=stats.skew):
         """Estimate epochs sources given the unmixing matrix
 
         Paramerters
@@ -175,9 +172,8 @@ class ICA(object):
             Raw object to draw sources from
         picks : array-like
             channels to be included
-        sort_method : str | function
-            method used for sorting the sources. Options are 'skew',
-            'kurtosis', 'unsorted' or a custom function that takes an
+        sort_func : function
+            function used for sorting the sources. It should take an
             array and an axis argument.
 
         Returns
@@ -192,12 +188,12 @@ class ICA(object):
         picks = self._check_picks(epochs, picks)
         data, _ = self._get_epochs_data(epochs, picks)
         sources = self._fast_ica.transform(data.T).T
-        sources = self.sort_sources(sources, sort_method=sort_method)
+        sources = self.sort_sources(sources, sort_func=sort_func)
         epochs_sources = np.array(np.split(sources, len(epochs.events), 1))
         return epochs_sources
 
     def pick_sources_raw(self, raw, include=None, exclude=[], start=None,
-                         stop=None, copy=True, sort_method='skew'):
+                         stop=None, copy=True, sort_func=stats.skew):
         """Recompose raw data including or excluding some sources
 
         Paramerters
@@ -214,9 +210,8 @@ class ICA(object):
             The first time index to exclude
         copy: bool
             modify raw instance in place or return modified copy
-        sort_method : str | function
-            method used for sorting the sources. Options are 'skew',
-            'kurtosis', 'unsorted' or a custom function that takes an
+        sort_func : function
+            function used for sorting the sources. It should take an
             array and an axis argument.
 
         Returns
@@ -234,13 +229,14 @@ class ICA(object):
                              'Please fit raw data first.')
 
         include = self._check_picks(raw, include)
-        if sort_method not in (None, self.sorted_by):
+        if sort_func not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_method = self.sorted_by
+            sort_func = self.sorted_by
 
+        print '    ... restoring signals from selected sources'
         sources = self.get_sources_raw(raw, picks=include, start=start,
-                                       stop=stop, sort_method=sort_method)
+                                       stop=stop, sort_func=sort_func)
         recomposed = self._pick_sources(sources, include, exclude)
 
         if copy is True:
@@ -251,7 +247,7 @@ class ICA(object):
         return raw
 
     def pick_sources_epochs(self, epochs, include=None, exclude=[], copy=True,
-                            sort_method='skew'):
+                            sort_func=stats.skew):
         """Recompose epochs
 
         Paramerters
@@ -264,9 +260,8 @@ class ICA(object):
             The source indices to remove.
         copy : bool
             Modify Epochs instance in place or return modified copy
-        sort_method : str | function
-            method used for sorting the sources. Options are 'skew',
-            'kurtosis', 'unsorted' or a custom function that takes an
+        sort_func : function | str
+            function used for sorting the sources. It should take an
             array and an axis argument.
 
         Returns
@@ -275,12 +270,13 @@ class ICA(object):
             epochs with selected ica components removed
         """
         include = self._check_picks(epochs, include)
-        if sort_method not in (None, self.sorted_by):
+        if sort_func not in (None, self.sorted_by):
             print ('\n    Sort method demanded is different from last sort'
                    '\n    ... reordering the sources accorodingly')
-            sort_method = self.sorted_by
+            sort_func = self.sorted_by
 
-        sources = self.get_sources_epochs(epochs)
+        print '    ... restoring signals from selected sources'
+        sources = self.get_sources_epochs(epochs, sort_func=sort_func)
 
         if copy is True:
             epochs = epochs.copy()
@@ -292,51 +288,33 @@ class ICA(object):
 
         return epochs
 
-    def sort_sources(self, sources, sort_method='skew'):
+    def sort_sources(self, sources, sort_func=stats.skew):
         """Sort sources accoroding to criteria such as skewness or kurtosis
 
         Paramerters
         -----------
         sources : str
             string for selecting the sources
-        sort_method : str | function
-            method used for sorting the sources. Options are 'skew',
-            'kurtosis', 'unsorted' or a custom function that takes an
+        sort_func : function
+            function used for sorting the sources. It should take an
             array and an axis argument.
         """
-        if sources.shape[0] != self.n_components:
+        sdim = 1 if sources.ndim > 2 else 0
+        if sources.shape[sdim] != self.n_components:
             raise ValueError('Sources have to match the number of components')
 
         if self.last_fit is 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        if sort_method == 'skew':
-            sort_func = skew
-        elif sort_method == 'kurtosis':
-            sort_func = kurtosis
-        elif sort_method == 'unsorted':
-            sort_func = lambda x, y: self._sort_idx
-            sort_func.__name__ = 'unsorted'
-        elif callable(sort_method):
-            args = getargspec(sort_method).args
-            if len(args) > 1:
-                if args[:2] == ['a', 'axis']:
-                    sort_func = sort_method
-            else:
-                ValueError('%s is not a valid function.'
-                           'The function needs an array and'
-                           'an axis argument' % sort_method.__name__)
-        elif isinstance(sort_method, str):
-            ValueError('%s is not a valid sorting option' % sort_method)
-
-        sort_args = np.argsort(sort_func(sources, 1))
+        sort_args = np.argsort(sort_func(sources, 1 + sdim))
+        if sdim:
+            sort_args = sort_args[0]
         self._sort_idx = self._sort_idx[sort_args]
-        self.sorted_by = (sort_func.__name__ if not callable(sort_method)
-                          else sort_method)
+        self.sorted_by = sort_func
         print '    Sources reordered by %s' % self.sorted_by
 
-        return sources[sort_args]
+        return sources[:, sort_args] if sdim else sources[sort_args]
 
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
@@ -347,10 +325,8 @@ class ICA(object):
         else:  # pick cov
             ncov = deepcopy(self.noise_cov)
             if ncov.ch_names != self.ch_names:
-                ncov['data'] = ncov.data[picks][:, picks]
-            # check whether cov matches channels
+                    ncov['data'] = ncov.data[picks][:, picks]
             assert data.shape[0] == ncov.data.shape[0]
-
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = np.dot(pre_whitener, data)
 
@@ -373,7 +349,7 @@ class ICA(object):
         """Helper function"""
         mixing = self.mixing.copy()
         pre_whitener = self.pre_whitener.copy()
-        if not hasattr(self.noise_cov, 'data'):  # revert standardization
+        if self.noise_cov is None:  # revert standardization
             pre_whitener **= -1
             mixing *= pre_whitener.T
         else:

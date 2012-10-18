@@ -446,8 +446,27 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
 def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, ncol=3,
                    nrow=10):
     """Create panel plots of ICA sources
+    Parameters
+    ----------
+    sources : ndarray
+        sources as drawn from ica.get_sources
+    start : int
+        x-axis start index
+    stop : int
+        x-axis stop index
+    n_components : int
+        number of components fitted
+    source_idx : array-like
+        indices for subsetting the sources
+    ncol : int
+        number of panel-columns
+    nrow : int
+        number of panel-rows
 
-    XXX : add docstring
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+
     """
     import pylab as pl
 
