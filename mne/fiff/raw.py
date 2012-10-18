@@ -64,10 +64,6 @@ class Raw(object):
 
     ch_names : list of string
         List of channels' names
-
-    projs : list of projectors
-        The signal space projectors. Note: Do not manipulate this list
-        directly, use the add_proj and del_proj methods.
    """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
@@ -759,10 +755,6 @@ class Raw(object):
     @property
     def ch_names(self):
         return self.info['ch_names']
-
-    @property
-    def projs(self):
-        return self.info['projs']
 
     def load_bad_channels(self, bad_file=None, force=False):
         """
