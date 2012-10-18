@@ -23,9 +23,9 @@ class deprecated(object):
     and the docstring. Note: to use this with the default value for extra, put
     in an empty of parentheses:
 
-    >>> from sklearn.utils import deprecated
+    >>> from mne.utils import deprecated_func
     >>> deprecated() # doctest: +ELLIPSIS
-    <sklearn.utils.deprecated object at ...>
+    <mne.utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass
@@ -33,6 +33,9 @@ class deprecated(object):
 
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
+
+    # scikit-learn will not import on all platforms b/c it can be
+    # sklearn or scikits.learn, so a self-contained example is used above
 
     def __init__(self, extra=''):
         """
@@ -94,6 +97,10 @@ class deprecated(object):
             newdoc = "%s\n\n%s" % (newdoc, olddoc)
         return newdoc
 
+
+@deprecated
+def deprecated_func():
+    pass
 
 ###############################################################################
 # Back porting firwin2 for older scipy
@@ -267,7 +274,16 @@ def check_random_state(seed):
     raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
                      ' instance' % seed)
 
+
 def array_hash(array):
     """Calculate a hash string from a numpy array"""
     return hashlib.sha1(array).hexdigest()
 
+
+def split_list(l, n):
+    """split list in n (approx) equal pieces"""
+    n = int(n)
+    sz = len(l) / n
+    for i in range(n - 1):
+        yield l[i * sz:(i + 1) * sz]
+    yield l[(n - 1) * sz:]

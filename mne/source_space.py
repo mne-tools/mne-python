@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import os
 
 from .label import _aslabel
 from .fiff.constants import FIFF
@@ -14,6 +15,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans
+from .surface import read_surface
 
 
 def patch_info(nearest):
@@ -52,7 +54,7 @@ def patch_info(nearest):
     return pinfo
 
 
-def read_source_spaces_from_tree(fid, tree, add_geom=False):
+def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=True):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -66,6 +68,9 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
     add_geom: bool, optional (default False)
         Add geometry information to the surfaces
 
+    verbose:
+        If True print status messages
+
     Returns
     -------
     src: list
@@ -78,20 +83,23 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False):
 
     src = list()
     for s in spaces:
-        print '    Reading a source space...',
-        this = _read_one_source_space(fid, s)
-        print '[done]'
+        if verbose:
+            print '    Reading a source space...',
+        this = _read_one_source_space(fid, s, verbose=verbose)
+        if verbose:
+            print '[done]'
         if add_geom:
-            complete_source_space_info(this)
+            complete_source_space_info(this, verbose=verbose)
 
         src.append(this)
 
-    print '    %d source spaces read' % len(spaces)
+    if verbose:
+        print '    %d source spaces read' % len(spaces)
 
     return src
 
 
-def read_source_spaces(fname, add_geom=False):
+def read_source_spaces(fname, add_geom=False, verbose=True):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -108,10 +116,11 @@ def read_source_spaces(fname, add_geom=False):
         The list of source spaces
     """
     fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                        verbose=verbose)
 
 
-def _read_one_source_space(fid, this):
+def _read_one_source_space(fid, this, verbose=True):
     """Read one source space
     """
     FIFF_BEM_SURF_NTRI = 3104
@@ -164,7 +173,7 @@ def _read_one_source_space(fid, this):
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
         if tag is not None:
             res['interpolator'] = tag.data
-        else:
+        elif verbose:
             print "Interpolation matrix for MRI not found."
 
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
@@ -279,17 +288,32 @@ def _read_one_source_space(fid, this):
         res['nearest_dist'] = tag2.data.T
 
     res['pinfo'] = patch_info(res['nearest'])
-    if res['pinfo'] is not None:
+    if (res['pinfo'] is not None) and verbose:
         print 'Patch information added...',
+
+    #   Distances
+    tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
+    tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT)
+    if tag1 is None or tag2 is None:
+        res['dist'] = None
+        res['dist_limit'] = None
+    else:
+        res['dist'] = tag1.data
+        res['dist_limit'] = tag2.data
+        #   Add the upper triangle
+        res['dist'] = res['dist'] + res['dist'].T
+    if (res['dist'] is not None) and verbose:
+        print 'Distance information added...',
 
     return res
 
 
-def complete_source_space_info(this):
+def complete_source_space_info(this, verbose=True):
     """Add more info on surface
     """
     #   Main triangulation
-    print '    Completing triangulation info...',
+    if verbose:
+        print '    Completing triangulation info...',
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -299,10 +323,12 @@ def complete_source_space_info(this):
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
     this['tri_nn'] /= size[:, None]
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     #   Selected triangles
-    print '    Completing selection triangulation info...',
+    if verbose:
+        print '    Completing selection triangulation info...',
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0], :]
         r2 = this['rr'][this['use_tris'][:, 1], :]
@@ -311,8 +337,8 @@ def complete_source_space_info(this):
         this['use_tri_nn'] = np.cross((r2 - r1), (r3 - r1))
         this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
                                        ) / 2.0
-
-    print '[done]'
+    if verbose:
+        print '[done]'
 
 
 def find_source_space_hemi(src):
@@ -465,7 +491,7 @@ def _write_one_source_space(fid, this):
     # #   Patch-related information
     # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST)
     # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST)
-
+    #
     # if tag1 is None or tag2 is None:
     #     res['nearest'] = None
     #     res['nearest_dist'] = None
@@ -476,3 +502,100 @@ def _write_one_source_space(fid, this):
     # res['pinfo'] = patch_info(res['nearest'])
     # if res['pinfo'] is not None:
     #     print 'Patch information added...',
+    #
+    # #   Distances
+    # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
+    # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT)
+    # if tag1 is None or tag2 is None:
+    #     res['dist'] = None
+    #     res['dist_limit'] = None
+    # else:
+    #     res['dist'] = tag1.data
+    #     res['dist_limit'] = tag2.data
+    #    #   Add the upper triangle
+    #     res['dist'] = res['dist'] + res['dist'].T
+    # if (res['dist'] is not None) and verbose:
+    #     print 'Distance information added...',
+
+
+def vertex_to_mni(vertices, hemis, subject, verbose=False):
+    """Convert the array of vertices for a hemisphere to MNI coordinates
+
+    Parameters
+    ----------
+    vertices : int, or list of int
+        Vertex number(s) to convert
+    hemis : int, or list of int
+        Hemisphere(s) the vertices belong to
+    subject : string
+        Name of the subject to load surfaces from.
+
+    Returns
+    -------
+    coordinates : n_vertices x 3 array of float
+        The MNI coordinates (in mm) of the vertices
+    """
+
+    if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
+        vertices = [vertices]
+
+    if not isinstance(hemis, list) and not isinstance(hemis, np.ndarray):
+        hemis = [hemis] * len(vertices)
+
+    if not len(hemis) == len(vertices):
+        raise ValueError('hemi and vertices must match in length')
+
+    if subject is None:
+        subject = 'fsaverage'
+
+    surfs = [os.path.join(os.getenv('SUBJECTS_DIR'), subject, 'surf',
+                          '%s.white' % h) for h in ['lh', 'rh']]
+    rr = [read_surface(s)[0] for s in surfs]
+    xfm_file = os.path.join(os.path.join(os.getenv('SUBJECTS_DIR'), subject,
+                            'mri', 'transforms', 'talairach.xfm'))
+
+    # take point locations in RAS space and convert to MNI coordinates
+    xfm = _freesurfer_read_talxfm(xfm_file, verbose=verbose)
+    data = np.array([np.concatenate((rr[h][v, :], [1]))
+                     for h, v in zip(hemis, vertices)]).T
+    return np.dot(xfm, data).T
+
+
+def _freesurfer_read_talxfm(fname, verbose=False):
+    """Read MNI transform from FreeSurfer talairach.xfm file
+
+    Adapted from freesurfer m-files.
+    """
+
+    fid = open(fname, 'r')
+
+    if verbose:
+        print '...Reading FreeSurfer talairach.xfm file:\n%s' % fname
+
+    # read lines until we get the string 'Linear_Transform', which precedes
+    # the data transformation matrix
+    got_it = False
+    comp = 'Linear_Transform'
+    for line in fid:
+        if line[:len(comp)] == comp:
+            # we have the right line, so don't read any more
+            got_it = True
+            break
+
+    if got_it:
+        xfm = list()
+        # read the transformation matrix (3x4)
+        for ii, line in enumerate(fid):
+            digs = [float(s) for s in line.strip('\n;').split()]
+            xfm.append(digs)
+            if ii == 2:
+                break
+        # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
+        xfm = np.array(xfm)
+        fid.close()
+    else:
+        fid.close()
+        raise ValueError('failed to find \'Linear_Transform\' string in xfm '
+                         'file:\n%s' % fname)
+
+    return xfm

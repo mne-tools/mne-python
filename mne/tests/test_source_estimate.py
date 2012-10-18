@@ -1,11 +1,11 @@
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.datasets import sample
-from mne import stats
+from mne import stats, SourceEstimate
 from mne import read_stc, write_stc, read_source_estimate, morph_data
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity
@@ -76,7 +76,7 @@ def test_stc_arithmetic():
 
 
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data and bin()
+    """Test stc methods lh_data, rh_data, bin(), and center_of_mass()
     """
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc = read_source_estimate(fname)
@@ -91,6 +91,14 @@ def test_stc_methods():
     a[0] = np.mean(stc.data[0, stc.times < .12])
     assert a[0] == bin.data[0, 0]
 
+    assert_raises(ValueError, stc.center_of_mass, 'sample')
+    stc.lh_data[:] = 0
+    vertex, hemi, t = stc.center_of_mass('sample')
+    assert_true(hemi == 1)
+    # XXX Should design a fool-proof test case, but here were the results:
+    assert_true(vertex == 92717)
+    assert_true(np.round(t, 3) == 0.123)
+
 
 def test_morph_data():
     """Test morphing of data
@@ -100,17 +108,43 @@ def test_morph_data():
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc_from = read_source_estimate(fname)
     stc_from.crop(0.09, 0.1)  # for faster computation
-    stc_to = morph_data(subject_from, subject_to, stc_from,
+    # After running this:
+    #    stc_from.save('%s_audvis-meg-cropped' % subject_from)
+    # this was run from a command line:
+    #    mne_make_movie --stcin sample_audvis-meg-cropped-lh.stc
+    #        --subject sample --morph fsaverage --smooth 12 --morphgrade 3
+    #        --stc fsaverage_audvis-meg-cropped
+    # XXX These files should eventually be moved to the sample dataset and
+    # removed from mne/fiff/tests/data/
+    fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                    'fsaverage_audvis-meg-cropped')
+    stc_to = read_source_estimate(fname)
+    stc_to1 = morph_data(subject_from, subject_to, stc_from,
                             grade=3, smooth=12, buffer_size=1000)
-    stc_to.save('%s_audvis-meg' % subject_to)
-
+    stc_to1.save('%s_audvis-meg' % subject_to)
     stc_to2 = morph_data(subject_from, subject_to, stc_from,
                             grade=3, smooth=12, buffer_size=3)
-    assert_array_almost_equal(stc_to.data, stc_to2.data)
+    # indexing silliness here due to mne_make_movie's indexing oddities
+    assert_array_almost_equal(stc_to.data, stc_to1.data[:, 0][:, None], 5)
+    assert_array_almost_equal(stc_to1.data, stc_to2.data)
 
     mean_from = stc_from.data.mean(axis=0)
-    mean_to = stc_to.data.mean(axis=0)
+    mean_to = stc_to1.data.mean(axis=0)
     assert_true(np.corrcoef(mean_to, mean_from).min() > 0.999)
+
+    # test two new types of morphing:
+    # 1) make sure we can fill by morphing
+    stc_to5 = morph_data(subject_from, subject_to, stc_from,
+                            grade=None, smooth=12, buffer_size=3)
+    assert_true(stc_to5.data.shape[0] == 163842 + 163842)
+
+    # 2) make sure we can specify vertices
+    vertices = [np.arange(10242), np.arange(10242)]
+    stc_to3 = morph_data(subject_from, subject_to, stc_from,
+                            grade=vertices, smooth=12, buffer_size=3)
+    stc_to4 = morph_data(subject_from, subject_to, stc_from,
+                            grade=5, smooth=12, buffer_size=3)
+    assert_array_almost_equal(stc_to3.data, stc_to4.data)
 
 
 def test_spatio_temporal_tris_connectivity():
@@ -119,12 +153,18 @@ def test_spatio_temporal_tris_connectivity():
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
     x = [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
     components = stats.cluster_level._get_components(np.array(x), connectivity)
-    assert_array_equal(components,
-                       [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1])
+    # _get_components works differently now...
+    old_fmt = [0, 0, -2, -2, -2, -2, 0, -2, -2, -2, -2, 1]
+    new_fmt = np.array(old_fmt)
+    new_fmt = [np.nonzero(new_fmt == v)[0]
+               for v in np.unique(new_fmt[new_fmt >= 0])]
+    assert_true(len(new_fmt), len(components))
+    for c, n in zip(components, new_fmt):
+        assert_array_equal(c, n)
 
 
 def test_spatio_temporal_src_connectivity():
-    """Test spatio-temporal connectivity from source spaaces"""
+    """Test spatio-temporal connectivity from source spaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
     src = [dict(), dict()]
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
@@ -132,3 +172,10 @@ def test_spatio_temporal_src_connectivity():
     src[1]['use_tris'] = np.array([[0, 1, 2]])
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
+    # add test for dist connectivity
+    src[0]['dist'] = np.ones((3, 3)) - np.eye(3)
+    src[1]['dist'] = np.ones((3, 3)) - np.eye(3)
+    src[0]['vertno'] = [0, 1, 2]
+    src[1]['vertno'] = [0, 1, 2]
+    connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
+    assert_array_equal(connectivity.todense(), connectivity3.todense())
