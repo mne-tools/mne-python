@@ -9,7 +9,8 @@ import numpy as np
 from scipy import linalg
 import warnings
 
-from .source_estimate import read_stc, mesh_edges, mesh_dist
+from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
+                             SourceEstimate
 from .surface import read_surface
 
 
@@ -193,6 +194,48 @@ class Label(dict):
     def save(self, filename):
         "calls write_label to write the label to disk"
         write_label(filename, self)
+
+    def smooth(self, subject, smooth=2, grade=None,
+               subjects_dir=None, n_jobs=1, verbose=True):
+        """Smooth the label. Useful for filling in labels made in a
+        decimated source space for display.
+
+        Parameters
+        ----------
+        subject : str
+            The name of the subject used.
+        smooth : int
+            Number of iterations for the smoothing of the surface data.
+            Cannot be None here since not all vertices are used. For a
+            grade of 5 (e.g., fsaverage), a smoothing of 2 will fill a
+            label.
+        grade : int, or None
+            Resolution of the icosahedral mesh to smooth to. To fill a
+            label for display, use None.
+        subjects_dir : string
+            See morph_data.
+        n_jobs: int
+            See morph_data.
+        verbose: int
+            See morph_data.
+        """
+
+        if self.hemi == 'lh':
+            vertices = [self.vertices, []]
+        else:
+            vertices = [[], self.vertices]
+        data = self.values[:, np.newaxis]
+        stc = SourceEstimate(data, vertices, tmin=1, tstep=1)
+        stc = morph_data(subject, subject, stc, grade=grade, smooth=smooth,
+                         subjects_dir=subjects_dir, n_jobs=n_jobs,
+                         verbose=verbose)
+        inds = np.nonzero(stc.data)[0]
+        self.values = stc.data[inds, :].ravel()
+        self.pos = np.zeros((len(inds), 3))
+        if self.hemi == 'lh':
+            self.vertices = stc.vertno[0][inds]
+        else:
+            self.vertices = stc.vertno[1][inds]
 
 
 class BiHemiLabel(object):

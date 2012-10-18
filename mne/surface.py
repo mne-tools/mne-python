@@ -29,16 +29,19 @@ FIFF_BEM_COORD_FRAME = 3112  # The coordinate frame of the mode
 FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
 
 
-def read_bem_surfaces(fname, add_geom=False):
+def read_bem_surfaces(fname, add_geom=False, verbose=True):
     """Read the BEM surfaces from a FIF file
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the file containing the surfaces
 
-    add_geom: bool, optional (default False)
+    add_geom : bool, optional (default False)
         If True add geometry information to the surfaces
+
+    verbose : bool
+        If True display status messages
 
     Returns
     -------
@@ -70,7 +73,8 @@ def read_bem_surfaces(fname, add_geom=False):
         fid.close()
         raise ValueError('BEM surface data not found')
 
-    print '    %d BEM surfaces found' % len(bemsurf)
+    if verbose:
+        print '    %d BEM surfaces found' % len(bemsurf)
     #
     #   Coordinate frame possibly at the top level
     #
@@ -82,14 +86,17 @@ def read_bem_surfaces(fname, add_geom=False):
     #
     surf = []
     for bsurf in bemsurf:
-        print '    Reading a surface...',
+        if verbose:
+            print '    Reading a surface...',
         this = _read_bem_surface(fid, bsurf, coord_frame)
-        print '[done]'
+        if verbose:
+            print '[done]'
         if add_geom:
             _complete_surface_info(this)
         surf.append(this)
 
-    print '    %d BEM surfaces read' % len(surf)
+    if verbose:
+        print '    %d BEM surfaces read' % len(surf)
 
     fid.close()
 
