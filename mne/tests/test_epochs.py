@@ -59,7 +59,7 @@ def test_epochs_proj():
     epochs.average()
     data = epochs.get_data()
 
-    raw_proj = fiff.Raw(raw_fname, proj=True)
+    raw_proj = fiff.Raw(raw_fname, proj_active=True)
     epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
                             picks=this_picks, baseline=(None, 0), proj=False)
     epochs_no_proj.average()

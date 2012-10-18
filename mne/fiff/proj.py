@@ -417,9 +417,10 @@ def setup_proj(info):
     info : dict
         The modified measurement info (Warning: info is modified inplace)
     """
-    # Add EEG ref reference proj
+    # Add EEG ref reference proj if necessary
+    proj_desc = [p['desc'] for p in info['projs']]
     eeg_sel = pick_types(info, meg=False, eeg=True)
-    if len(eeg_sel) > 0:
+    if len(eeg_sel) > 0 and 'Average EEG reference' not in proj_desc:
         eeg_proj = make_eeg_average_ref_proj(info)
         info['projs'].append(eeg_proj)
 
