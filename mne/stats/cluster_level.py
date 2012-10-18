@@ -793,7 +793,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
-    observations x space x time) to use permutation_cluster_1samp_test.
+    (observations x space x time) to use permutation_cluster_1samp_test.
 
     Parameters
     ----------
