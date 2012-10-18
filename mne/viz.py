@@ -443,13 +443,16 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(sources, start, stop, n_components, source_idx=None, ncol=3,
+def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, ncol=3,
                    nrow=10):
     """Create panel plots of ICA sources
 
     XXX : add docstring
     """
     import pylab as pl
+
+    if n_components is None:
+        n_components = len(sources)
 
     hangover = n_components % ncol
     nplots = nrow * ncol
