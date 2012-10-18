@@ -133,7 +133,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
         be symmetric and only the upper triangular half is used.
         If connectivity is a list, it is assumed that each entry stores the
         indices of the spatial neighbors in a spatio-temporal dataset x.
-        Defaut is None, i.e, no connectivity.
+        Defaut is None, i.e, a regular lattice connectivity.
     by_sign : bool
         When doing a two-tailed test (tail == 0), if True only points with
         the same sign will be clustered together. This value is ignored for
@@ -385,7 +385,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     connectivity : sparse matrix.
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
-        Defaut is None, i.e, no connectivity.
+        Defaut is None, i.e, a regular lattice connectivity.
     verbose : int
         If > 0, print some text during computation.
     n_jobs : int
@@ -589,9 +589,9 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Defaut is None, i.e, no connectivity. Use square
-        n_vertices matrix for datasets with a large temporal extent to save on
-        memory and computation time.
+        (n_vertices). Defaut is None, i.e, a regular lattice connectivity.
+        Use square n_vertices matrix for datasets with a large temporal
+        extent to save on memory and computation time.
     verbose : int
         If > 0, print some text during computation.
     n_jobs : int
