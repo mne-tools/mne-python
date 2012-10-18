@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+    # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -315,14 +315,14 @@ class Evoked(object):
                     ylim=ylim, proj=proj, xlim=xlim)
 
     def to_nitime(self, picks=None):
-        """ Export Evoded object to NiTime
+        """ Export Evoked object to NiTime
         Parameters
         ----------
-        pcicks : array-like
+        picks : array-like
             fancy-index to subset the channels
         Retruns
         -------
-        epochs_ts : instance of nitime.TimeSeries
+        evoked_ts : instance of nitime.TimeSeries
         """
         from nitime import TimeSeries
 

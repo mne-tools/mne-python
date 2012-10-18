@@ -643,10 +643,10 @@ class Epochs(object):
         if concatenated is True:
             data = np.hstack(data).copy()
 
-        epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'])
+        offset = self.raw.time_to_index(abs(self.tmin))
+        t0 = self.raw.index_to_time(self.events[0, 0] - offset)[0]
+        epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
-        # epochs_ts.metadata['lowpass'] = self.info['lowpass']
-        # epochs_ts.metadata['highpass'] = self.info['highpass']
 
         return epochs_ts
 

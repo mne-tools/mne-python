@@ -395,3 +395,30 @@ def test_copy():
     assert_array_equal(data, copied_data)
     assert_equal(sorted(raw.__dict__.keys()),
                  sorted(copied.__dict__.keys()))
+
+
+def test_to_nitime():
+    """ Test nitime export """
+    raw = Raw(fif_fname, preload=True)
+    picks_meg = pick_types(raw.info, meg=True)
+    picks = picks_meg[:4]
+    raw_ts = raw.to_nitime(picks=picks)
+    assert_true(raw_ts.data.shape[0], len(picks))
+
+    raw = Raw(fif_fname, preload=False)
+    picks_meg = pick_types(raw.info, meg=True)
+    picks = picks_meg[:4]
+    raw_ts = raw.to_nitime(picks=picks)
+    assert_true(raw_ts.data.shape[0], len(picks))
+
+    raw = Raw(fif_fname, preload=True)
+    picks_meg = pick_types(raw.info, meg=True)
+    picks = picks_meg[:4]
+    raw_ts = raw.to_nitime(picks=picks, copy=False)
+    assert_true(raw_ts.data.shape[0], len(picks))
+
+    raw = Raw(fif_fname, preload=False)
+    picks_meg = pick_types(raw.info, meg=True)
+    picks = picks_meg[:4]
+    raw_ts = raw.to_nitime(picks=picks, copy=False)
+    assert_true(raw_ts.data.shape[0], len(picks))

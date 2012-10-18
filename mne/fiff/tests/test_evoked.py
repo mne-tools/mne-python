@@ -69,3 +69,14 @@ def test_io_multi_evoked():
         assert_equal(ave.aspect_kind, ave2.aspect_kind)
         assert_equal(ave.last, ave2.last)
         assert_equal(ave.first, ave2.first)
+
+
+def test_to_nitime():
+    """ Test to_nitime """
+    aves = read_evoked(fname, [0, 1, 2, 3])
+    evoked_ts = aves[0].to_nitime()
+    assert_true(evoked_ts.shape, aves[0].data.shape)
+
+    aves = read_evoked(fname, [0, 1, 2, 3])
+    evoked_ts = aves[0].to_nitime(picks=[1, 2])
+    assert_true(evoked_ts.shape, aves[0].data.shape)

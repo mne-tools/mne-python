@@ -1,4 +1,5 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -294,3 +295,26 @@ def test_epochs_copy():
     data = epochs.get_data()
     copied_data = copied.get_data()
     assert_array_equal(data, copied_data)
+
+
+def test_to_nitime():
+    """Test test_to_nitime"""
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+
+    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                 concatenated=True, copy=True)
+    assert_true(epochs_ts.ch_names, epochs.ch_names)
+
+    epochs_ts = epochs.to_nitime(picks=[0, 3], epochs_idx=None,
+                                 concatenated=True, copy=True)
+    assert_true(epochs_ts.ch_names, epochs.ch_names)
+
+    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                 concatenated=False, copy=False)
+    assert_true(epochs_ts.ch_names, epochs.ch_names)
+
+    epochs_ts = epochs.to_nitime(picks=[0, 3], epochs_idx=None,
+                                 concatenated=False, copy=False)
+    assert_true(epochs_ts.ch_names, epochs.ch_names)

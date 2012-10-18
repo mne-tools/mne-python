@@ -926,16 +926,14 @@ class Raw(object):
         """
         from nitime import TimeSeries
 
-        if self._preloaded is not True:
+        if not self._preloaded:
             data, _ = self[:, start:stop]
-            start_time = (start, self.info['sfreq'])
         else:
             data = self._data
-
         if copy:
             data = data.copy()
-            start_time = self.index_to_time(self.first_samp)
 
+        start_time = self.index_to_time(self.first_samp)
         raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
                             t0=start_time)
 
