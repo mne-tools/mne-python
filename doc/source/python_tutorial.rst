@@ -117,7 +117,6 @@ Save a segment of 150s of raw data (MEG only):
 
     >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True)
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks) # doctest: +ELLIPSIS
-    5 projection items deactivated
     Reading ...
 
 Define and read epochs
@@ -171,9 +170,8 @@ Define peak-to-peak rejection parameters for gradiometers, magnetometers and EOG
 Read epochs:
 
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
-    Adding average EEG reference projection.
     Created an SSP operator (subspace dimension = 4)
-    6 projection items activated
+    4 projection items activated
     72 matching events found
     >>> print epochs
     Epochs (n_events : 72 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))

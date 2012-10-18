@@ -2,10 +2,9 @@ import os.path as op
 from copy import deepcopy
 import warnings
 
-from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_raises, assert_equal
+from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
 
@@ -99,14 +98,9 @@ def test_multiple_files():
             # these are almost_equals because of possible dtype differences
             assert_array_almost_equal(orig, raw_combo[:, ti][0])
 
-    # deal with different projectors
+    # verify that combining raws with different projectors throws an exception
     raw.add_proj([], remove_existing=True)
-    # this shoud append, but the projectors shouldn't match
-    raw.append(Raw(fif_fname, preload=True))
-    # which means it should throw an error here
-    assert_raises(RuntimeError, raw.apply_projector)
-    # and here
-    assert_raises(ValueError, raw.add_proj, [])
+    assert_raises(ValueError, raw.append, Raw(fif_fname, preload=True))
 
 
 def test_load_bad_channels():
@@ -254,33 +248,61 @@ def test_getitem():
 
 
 def test_proj():
-    """Test getitem with and without proj
+    """Test SSP proj operations
     """
-    for proj in [True, False]:
-        raw = Raw(fif_fname, preload=False, proj=proj)
+    for proj_active in [True, False]:
+        raw = Raw(fif_fname, preload=False, proj_active=proj_active)
+        assert_true(all(p['active'] == proj_active for p in raw.info['projs']))
+
         data, times = raw[0:2, :]
         data1, times1 = raw[0:2]
         assert_array_equal(data, data1)
         assert_array_equal(times, times1)
 
-        projs = raw.info['projs']
-        raw.info['projs'] = []
-        raw.add_proj(projs)
-        data1, times1 = raw[[0, 1]]
-        assert_array_equal(data, data1)
-        assert_array_equal(times, times1)
+        # test adding / deleting proj
+        if proj_active:
+            assert_raises(ValueError, raw.add_proj, [],
+                          {'remove_existing': True})
+            assert_raises(ValueError, raw.del_proj, 0)
+        else:
+            projs = deepcopy(raw.info['projs'])
+            n_proj = len(raw.info['projs'])
+            raw.del_proj(0)
+            assert_true(len(raw.info['projs']) == n_proj - 1)
+            raw.add_proj(projs, remove_existing=False)
+            assert_true(len(raw.info['projs']) == 2 * n_proj - 1)
+            raw.add_proj(projs, remove_existing=True)
+            assert_true(len(raw.info['projs']) == n_proj)
 
     # test apply_proj() with and without preload
     for preload in [True, False]:
-        raw = Raw(fif_fname, preload=preload, proj=False)
-        # Use all sensors and a couple time points so projection works
+        raw = Raw(fif_fname, preload=preload, proj_active=False)
         data, times = raw[:, 0:2]
         raw.apply_projector()
-        projector = raw._projectors[0]
-        data_proj_1 = np.dot(projector, data)
+        data_proj_1 = np.dot(raw._projector, data)
+
+        # load the file again without proj
+        raw = Raw(fif_fname, preload=preload, proj_active=False)
+
+        # write the file with proj. activated, make sure proj has been applied
+        raw.save('raw.fif', proj_active=True)
+        raw2 = Raw('raw.fif', proj_active=False)
+        data_proj_2, _ = raw2[:, 0:2]
+        assert_array_almost_equal(data_proj_1, data_proj_2)
+        assert_true(all(p['active'] for p in raw2.info['projs']))
+
+        # read orig file with proj. active
+        raw2 = Raw(fif_fname, preload=preload, proj_active=True)
+        data_proj_2, _ = raw2[:, 0:2]
+        assert_array_almost_equal(data_proj_1, data_proj_2)
+        assert_true(all(p['active'] for p in raw2.info['projs']))
+
+        # test that apply_projector works
+        raw.apply_projector()
         data_proj_2, _ = raw[:, 0:2]
         assert_array_almost_equal(data_proj_1, data_proj_2)
-        assert_array_almost_equal(data_proj_2, np.dot(projector, data_proj_2))
+        assert_array_almost_equal(data_proj_2,
+                                  np.dot(raw._projector, data_proj_2))
 
 
 def test_preload_modify():
