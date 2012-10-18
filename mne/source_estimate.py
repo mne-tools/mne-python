@@ -1187,7 +1187,7 @@ def sparse_block_diag(mats, format=None, dtype=None):
 
     Parameters
     ----------
-    A, B, ... : sequence of matrices
+    mats : list of matrices
         Input matrices.
     format : str, optional
         The sparse format of the result (e.g. "csr"). If not given, the
