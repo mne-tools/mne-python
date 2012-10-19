@@ -168,9 +168,6 @@ class ICA(object):
             starting time slice
         stop : integer
             final time slice
-        picks : array-like | None
-            channels to be included. If None the channels used during
-            ICA estimation will be used.
         sort_func : function
             function used for sorting the sources. It should take an
             array and an axis argument.
@@ -190,8 +187,8 @@ class ICA(object):
 
         Paramerters
         -----------
-        raw : instance of Raw
-            Raw object to draw sources from
+        epochs : instance of Epochs
+            Epochs object to draw sources from
         sort_func : function
             function used for sorting the sources. It should take an
             array and an axis argument.
@@ -213,7 +210,7 @@ class ICA(object):
         return epochs_sources
 
     def pick_sources_raw(self, raw, include=None, exclude=[], start=None,
-                         stop=None, copy=True, sort_func=stats.skew):
+                         stop=None, copy=True):
         """Recompose raw data including or excluding some sources
 
         Paramerters
@@ -248,14 +245,13 @@ class ICA(object):
             raise ValueError('Currently no raw data fitted.'
                              'Please fit raw data first.')
 
-        if sort_func not in (None, self.sorted_by):
-            print ('\n    Sort method defmanded is different from last sort'
-                   '\n    ... reordering the sources accorodingly')
-            sort_func = self.sorted_by
+        if self.sorted_by == 'unsorted':
+            raise ValueError('Currently no sources reconstructed.'
+                             'Please inspect sources first.')
 
         print '    ... restoring signals from selected sources'
         sources = self.get_sources_raw(raw, start=start, stop=stop,
-                                       sort_func=sort_func)
+                                       sort_func=self.sorted_by)
         recomposed = self._pick_sources(sources, include, exclude)
 
         if copy is True:
@@ -265,8 +261,7 @@ class ICA(object):
 
         return raw
 
-    def pick_sources_epochs(self, epochs, include=None, exclude=[], copy=True,
-                            sort_func=stats.skew):
+    def pick_sources_epochs(self, epochs, include=None, exclude=[], copy=True):
         """Recompose epochs
 
         Paramerters
@@ -288,14 +283,11 @@ class ICA(object):
         epochs : instance of Epochs
             epochs with selected ica components removed
         """
-        # include = self._check_picks(epochs, include)  # get the right picks
-        if sort_func not in (None, self.sorted_by):
-            print ('\n    Sort method demanded is different from last sort'
-                   '\n    ... reordering the sources accorodingly')
-            sort_func = self.sorted_by
+        if self.sorted_by == 'unsorted':
+            raise ValueError('Currently no sources reconstructed.'
+                             'Please inspect sources first.')
 
-        print '    ... restoring signals from selected sources'
-        sources = self.get_sources_epochs(epochs, sort_func=sort_func)
+        sources = self.get_sources_epochs(epochs, sort_func=self.sorted_by)
 
         if copy is True:
             epochs = epochs.copy()
@@ -322,6 +314,7 @@ class ICA(object):
         if sort_func is None:  # return sources
             return sources
 
+        # select the appropriate dimension depending on input array
         sdim = 1 if sources.ndim > 2 else 0
         if self.n_components is not None:
             if sources.shape[sdim] != self.n_components:
@@ -335,9 +328,13 @@ class ICA(object):
         sort_args = np.argsort(sort_func(sources, 1 + sdim))
         if sdim:
             sort_args = sort_args[0]
-        self._sort_idx = self._sort_idx[sort_args]
+        print sort_args
+        if sort_func not in (self.sorted_by,):
+            self._sort_idx = self._sort_idx[sort_args]
+            print '    Sources reordered by %s' % sort_func
+
         self.sorted_by = sort_func
-        print '    Sources reordered by %s' % self.sorted_by
+        print self._sort_idx
 
         return sources[:, sort_args] if sdim else sources[sort_args]
 
@@ -387,7 +384,8 @@ class ICA(object):
             sources[exclude, :] = 0.  # just exclude
 
         # restore initial sort, then mix back the souces
-        restore_idx = np.argsort(self._sort_idx)
+        restore_idx = np.argsort(self._sort_idx.copy())
+        print restore_idx
         # print self._sort_idx[restore_idx]
         out = np.dot(sources[restore_idx].T, mixing).T
 
