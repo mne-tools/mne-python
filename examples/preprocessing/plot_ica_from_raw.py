@@ -45,7 +45,7 @@ start, stop = raw.time_to_index(100, 160)
 
 # decompose sources for raw data
 ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
-sources = ica.get_sources_raw(raw, picks=picks, start=start, stop=stop)
+sources = ica.get_sources_raw(raw, start=start, stop=stop)
 
 # setup reasonable time window for inspection
 start_plot, stop_plot = raw.time_to_index(100, 103)
@@ -69,8 +69,8 @@ pl.title('ICA source matching ECG')
 
 # In addition a distinct cardiac and one EOG component
 # should be visible (0 and 1).
-raw_ica = ica.pick_sources_raw(raw, exclude=[ecg_component_idx, 0, 1],
-                               copy=True)
+raw_ica = ica.pick_sources_raw(raw, include=None,
+                               exclude=[ecg_component_idx, 0, 1], copy=True)
 
 ###############################################################################
 # Show MEG data
