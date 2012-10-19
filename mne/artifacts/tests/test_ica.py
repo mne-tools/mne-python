@@ -46,10 +46,10 @@ def test_ica_raw():
     ica_cov.decompose_raw(raw, picks=picks)
     print ica  # to test repr
 
-    sources = ica.get_sources_raw(raw, picks=picks)
+    sources = ica.get_sources_raw(raw)
     assert_true(sources.shape[0] == ica.n_components)
 
-    ica_cov.get_sources_raw(raw, picks=picks)
+    ica_cov.get_sources_raw(raw)
     assert_true(sources.shape[0] == ica.n_components)
 
     raw2 = ica.pick_sources_raw(raw, exclude=[], sort_func=stats.kurtosis,
@@ -74,10 +74,10 @@ def test_ica_epochs():
     ica.decompose_epochs(epochs, picks=picks)
     ica_cov.decompose_epochs(epochs, picks=picks)
 
-    sources = ica.get_sources_epochs(epochs, picks=picks)
+    sources = ica.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
 
-    sources = ica_cov.get_sources_epochs(epochs, picks=picks)
+    sources = ica_cov.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
 
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[],
