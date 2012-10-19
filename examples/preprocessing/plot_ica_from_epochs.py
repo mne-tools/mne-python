@@ -50,7 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 start, stop = raw.time_to_index(100, 160)
 
 # fit sources from epochs or from raw (both works for epochs)
-ica.decompose_raw(raw, picks=picks, start=start, stop=stop)
+ica.decompose_epochs(epochs)
 
 
 # get sources from epochs
@@ -63,7 +63,7 @@ start_plot, stop_plot = 0, 1000
 plot_ica_panel(sources[13], start=start_plot, stop=stop_plot, n_components=25)
 
 # A distinct cardiac component should be visible
-epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=[],
+epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=[24],
                                      copy=True)
 
 # plot original epochs

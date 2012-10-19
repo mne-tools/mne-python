@@ -227,9 +227,6 @@ class ICA(object):
             The first time index to exclude
         copy: bool
             modify raw instance in place or return modified copy
-        sort_func : function
-            function used for sorting the sources. It should take an
-            array and an axis argument.
 
         Returns
         -------
@@ -274,9 +271,6 @@ class ICA(object):
             The source indices to remove.
         copy : bool
             Modify Epochs instance in place or return modified copy
-        sort_func : function | str
-            function used for sorting the sources. It should take an
-            array and an axis argument.
 
         Returns
         -------
@@ -328,26 +322,25 @@ class ICA(object):
         sort_args = np.argsort(sort_func(sources, 1 + sdim))
         if sdim:
             sort_args = sort_args[0]
-        print sort_args
         if sort_func not in (self.sorted_by,):
             self._sort_idx = self._sort_idx[sort_args]
             print '    Sources reordered by %s' % sort_func
 
         self.sorted_by = sort_func
-        print self._sort_idx
 
         return sources[:, sort_args] if sdim else sources[sort_args]
 
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
         if self.noise_cov is None:  # use standardization as whitener
-            std_chan = np.std(data, axis=1) ** -1
-            pre_whitener = np.array([std_chan]).T
+            pre_whitener = np.std(data) ** -1
+            # std_chan = np.std(data, axis=1) ** -1
+            # pre_whitener = np.array([std_chan]).T
             data *= pre_whitener
         else:  # pick cov
             ncov = deepcopy(self.noise_cov)
             if ncov.ch_names != self.ch_names:
-                    ncov['data'] = ncov.data[picks][:, picks]
+                ncov['data'] = ncov.data[picks][:, picks]
             assert data.shape[0] == ncov.data.shape[0]
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = np.dot(pre_whitener, data)
@@ -373,7 +366,8 @@ class ICA(object):
         pre_whitener = self.pre_whitener.copy()
         if self.noise_cov is None:  # revert standardization
             pre_whitener **= -1
-            mixing *= pre_whitener.T
+            mixing *= pre_whitener
+            # mixing *= pre_whitener.T
         else:
             mixing = np.dot(mixing, linalg.pinv(pre_whitener))
 
@@ -385,7 +379,7 @@ class ICA(object):
 
         # restore initial sort, then mix back the souces
         restore_idx = np.argsort(self._sort_idx.copy())
-        print restore_idx
+        # print restore_idx
         # print self._sort_idx[restore_idx]
         out = np.dot(sources[restore_idx].T, mixing).T
 
