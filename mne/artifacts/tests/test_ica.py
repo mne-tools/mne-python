@@ -53,6 +53,9 @@ def test_ica_raw():
     assert_true(sources.shape[0] == ica.n_components)
 
     raw2 = ica.pick_sources_raw(raw, exclude=[], copy=True)
+    raw2 = ica.pick_sources_raw(raw, exclude=[1, 2], copy=True)
+    raw2 = ica.pick_sources_raw(raw, include=[1, 2],
+                                exclude=[], copy=True)
     assert_array_almost_equal(raw2._data, raw._data)
 
     initial_sort = ica._sort_idx
@@ -74,8 +77,8 @@ def test_pick_sources_epochs_from_raw():
 
 def test_ica_epochs():
     """Test ICA epochs"""
-    ica.decompose_epochs(epochs, picks=picks)
-    ica_cov.decompose_epochs(epochs, picks=picks)
+    ica.decompose_epochs(epochs)
+    ica_cov.decompose_epochs(epochs)
 
     sources = ica.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
@@ -84,6 +87,9 @@ def test_ica_epochs():
     assert_true(sources.shape[1] == ica.n_components)
 
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
+    epochs2 = ica.pick_sources_epochs(epochs, exclude=[0], copy=True)
+    epochs2 = ica.pick_sources_epochs(epochs, include=[0],
+                                      exclude=[], copy=True)
     assert_array_almost_equal(epochs2._data, epochs._data)
 
     initial_sort = ica._sort_idx
