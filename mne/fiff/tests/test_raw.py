@@ -376,3 +376,22 @@ def test_hilbert():
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])
+
+
+def test_copy():
+    """ Test Raw copy"""
+    raw = Raw(fif_fname, preload=True)
+    data, _ = raw[:, :]
+    copied = raw.copy()
+    copied_data, _ = copied[:, :]
+    assert_array_equal(data, copied_data)
+    assert_equal(sorted(raw.__dict__.keys()),
+                 sorted(copied.__dict__.keys()))
+
+    raw = Raw(fif_fname, preload=False)
+    data, _ = raw[:, :]
+    copied = raw.copy()
+    copied_data, _ = copied[:, :]
+    assert_array_equal(data, copied_data)
+    assert_equal(sorted(raw.__dict__.keys()),
+                 sorted(copied.__dict__.keys()))

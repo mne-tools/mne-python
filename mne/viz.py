@@ -1,7 +1,8 @@
 """Functions to plot M/EEG data e.g. topographies
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: Simplified BSD
 
@@ -440,3 +441,84 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     viewer = SurfaceViewer(src, stc.data, stc.times, n_smooth=200)
     viewer.configure_traits()
     return viewer
+
+
+def plot_ica_panel(sources, start=None, stop=None, n_components=None,
+                   source_idx=None, ncol=3, nrow=10):
+    """Create panel plots of ICA sources
+
+    Parameters
+    ----------
+    sources : ndarray
+        sources as drawn from ica.get_sources
+    start : int
+        x-axis start index. If None from the beginning.
+    stop : int
+        x-axis stop index. If None to the end.
+    n_components : int
+        number of components fitted
+    source_idx : array-like
+        indices for subsetting the sources
+    ncol : int
+        number of panel-columns
+    nrow : int
+        number of panel-rows
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+    import pylab as pl
+
+    if n_components is None:
+        n_components = len(sources)
+
+    hangover = n_components % ncol
+    nplots = nrow * ncol
+
+    if source_idx is not None:
+        sources = sources[source_idx]
+    if source_idx is None:
+        source_idx = np.arange(n_components)
+    elif source_idx.shape > 30:
+        print ('More sources selected than rows and cols specified.'
+               'Showing the first %i sources.' % nplots)
+        source_idx = np.arange(nplots)
+
+    sources = sources[:, start:stop]
+    ylims = sources.min(), sources.max()
+    fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
+    fig.suptitle('MEG signal decomposition'
+                 ' -- %i components.' % n_components, size=16)
+
+    pl.subplots_adjust(wspace=0.05, hspace=0.05)
+
+    iter_plots = ((row, col) for row in range(nrow) for col in range(ncol))
+
+    for idx, (row, col) in enumerate(iter_plots):
+        xs = panel_axes[row, col]
+        xs.grid(linestyle='-', color='gray', linewidth=.25)
+        if idx < n_components:
+            component = '[%i]' % idx
+            xs.plot(sources[idx], linewidth=0.5, color='red')
+            xs.text(0.05, .95, component,
+                    transform=panel_axes[row, col].transAxes,
+                    verticalalignment='top')
+            pl.ylim(ylims)
+        else:
+            # Make extra subplots invisible
+            pl.setp(xs, visible=False)
+
+        xtl = xs.get_xticklabels()
+        ytl = xs.get_yticklabels()
+        if row < nrow - 2 or (row < nrow - 1 and
+                              (hangover == 0 or col <= hangover - 1)):
+            pl.setp(xtl, visible=False)
+        if (col > 0) or (row % 2 == 1):
+            pl.setp(ytl, visible=False)
+        if (col == ncol - 1) and (row % 2 == 1):
+            xs.yaxis.tick_right()
+
+        pl.setp(xtl, rotation=90.)
+
+    return fig

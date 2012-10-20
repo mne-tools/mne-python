@@ -9,6 +9,7 @@ import copy as cp
 import warnings
 
 import numpy as np
+from copy import deepcopy
 
 import fiff
 from .fiff import Evoked, FIFF
@@ -564,6 +565,14 @@ class Epochs(object):
                           / sfreq + self.times[0])
         else:
             raise RuntimeError('Can only resample preloaded data')
+
+    def copy(self):
+        """ Return copy of Epochs instance
+        """
+        raw = self.raw.copy()
+        new = deepcopy(self)
+        new.raw = raw
+        return new
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames

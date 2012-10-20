@@ -11,6 +11,7 @@ import warnings
 
 import numpy as np
 from scipy.signal import hilbert
+from copy import deepcopy
 
 from .constants import FIFF
 from .open import fiff_open
@@ -880,6 +881,19 @@ class Raw(object):
 
     def close(self):
         [f.close() for f in self.fids]
+
+    def copy(self):
+        """ Return copy of Raw instance
+        """
+        new = deepcopy(self)
+        if self._preloaded:
+            new.fids = []
+        else:
+            new.fids = [open(fname, "rb") for fname in self.info['filenames']]
+            for new_fid, this_fid in zip(new.fids, self.fids):
+                new_fid.seek(this_fid.tell())
+
+        return new
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
