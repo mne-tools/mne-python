@@ -10,15 +10,21 @@ import numpy as np
 from scipy import stats
 from scipy import linalg
 from ..cov import compute_whitener
+from ..fiff import pick_types
 
 
 class ICA(object):
-    """MEG signal decomposition and denoising workflow
+    """M/EEG signal decomposition using Independant Component Analysis (ICA)
+
+    This object can be used to estimate ICA components and then
+    remove some from Raw or Epochs for data exploration or artifact
+    correction.
 
     Parameters
     ----------
-    noise_cov : instance of mne.cov.Covariance
-        Noise covariance used for whitening
+    noise_cov : None | instance of mne.cov.Covariance
+        Noise covariance used for whitening. If None, channels are just
+        z-scored.
     n_components : int
         Number of components to be extracted. If None, no dimensionality
         reduction will be applied.
@@ -53,10 +59,15 @@ class ICA(object):
     """
     def __init__(self, noise_cov=None, n_components=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None):
-        from sklearn.decomposition import FastICA  # to avoid strong dependency
+        try:
+            from sklearn.decomposition import FastICA  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the scikit-learn package is missing and '
+                            'required for ICA')
         self.noise_cov = noise_cov
         self._fast_ica = FastICA(n_components, random_state=random_state,
-                                 algorithm=algorithm, fun=fun, fun_args=fun_args)
+                                 algorithm=algorithm, fun=fun,
+                                 fun_args=fun_args)
         self.n_components = n_components
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
@@ -83,7 +94,7 @@ class ICA(object):
 
         return out
 
-    def decompose_raw(self, raw, picks, start=None, stop=None):
+    def decompose_raw(self, raw, picks=None, start=None, stop=None):
         """Run the ica decomposition on raw data
 
         Parameters
@@ -92,12 +103,13 @@ class ICA(object):
             Raw measurments to be decomposed.
         picks : array-like
             Channels to be included. This selecetion remains throught the
-            initialized ICA session.
+            initialized ICA session. If None only good data channels are used.
         start : int
-            first sample to include (first is 0). If omitted, defaults to the first
-            sample in data.
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
         stop : int
-            First sample to not include. If omitted, data is included to the end.
+            First sample to not include. If omitted, data is included to the
+            end.
 
         Returns
         -------
@@ -106,6 +118,10 @@ class ICA(object):
         """
         print ('Computing signal decomposition on raw data. '
                'Please be patient, this may take some time')
+
+        if picks is None:  # just use good data channels
+            picks = pick_types(raw.info, meg=True, eeg=True,
+                               exclude=raw.info['bads'])
 
         self.ch_names = [raw.ch_names[k] for k in picks]
         if self.n_components is not None:
@@ -140,11 +156,11 @@ class ICA(object):
         print ('Computing signal decomposition on epochs. '
                'Please be patient, this may take some time')
 
-        if picks is None:  # just use epochs channel structure
-            picks = epochs.picks
-            self.ch_names = epochs.ch_names
-        else:  # further pick channels at own risk
-            self.ch_names = [epochs.ch_names[k] for k in picks]
+        if picks is None:  # just use epochs good data channels
+            picks = pick_types(epochs.info, meg=True, eeg=True,
+                               exclude=epochs.info['bads'])
+
+        self.ch_names = [epochs.ch_names[k] for k in picks]
 
         if self.n_components is not None:
             self._sort_idx = np.arange(self.n_components)
@@ -166,14 +182,19 @@ class ICA(object):
         raw : instance of Raw
             Raw object to draw sources from
         start : int
-            First sample to include (first is 0). If omitted, defaults to the first
-            sample in data.
+            First sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
         stop : int
             First sample to not include.
             If omitted, data is included to the end.
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
+
+        Returns
+        -------
+        sources : array, shape = (n_components, n_times)
+            The ICA sources time series.
         """
         if self.mixing is None:
             raise RuntimeError('No fit available. Please first fit ICA '
@@ -256,9 +277,9 @@ class ICA(object):
 
         if copy is True:
             raw = raw.copy()
+
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         raw[picks, start:stop] = recomposed
-
         return raw
 
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
@@ -308,12 +329,18 @@ class ICA(object):
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
+
+        Returns
+        -------
+        sorted_sources: ndarray
+            The reorderd sources.
         """
         if sort_func is None:  # return sources
             return sources
 
         # select the appropriate dimension depending on input array
         sdim = 1 if sources.ndim > 2 else 0
+
         if self.n_components is not None:
             if sources.shape[sdim] != self.n_components:
                 raise ValueError('Sources have to match the number'
@@ -355,10 +382,8 @@ class ICA(object):
 
     def _get_epochs_data(self, epochs, picks):
         """Helper function"""
-        data = epochs._data if epochs.preload else epochs.get_data()
-        data, pre_whitener = self._pre_whiten(np.hstack(data), epochs.info,
-                                              picks)
-        return data, pre_whitener
+        return self._pre_whiten(np.hstack(epochs.get_data()), epochs.info,
+                                picks)
 
     def _pick_sources(self, sources, include, exclude):
         """Helper function"""

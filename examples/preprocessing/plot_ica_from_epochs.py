@@ -48,11 +48,8 @@ ica.decompose_epochs(epochs)
 # get sources from epochs
 sources = ica.get_sources_epochs(epochs)
 
-# setup reasonable time window for inspection
-start_plot, stop_plot = 0, 1000
-
-# plot components for epoch of interest
-plot_ica_panel(sources[13], start=start_plot, stop=stop_plot, n_components=25)
+# plot components for one epoch of interest
+plot_ica_panel(sources[13], n_components=25)
 
 # A distinct cardiac component should be visible at index 24
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=[24],
