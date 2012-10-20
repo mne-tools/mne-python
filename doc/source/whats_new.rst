@@ -29,6 +29,8 @@ Changelog
 
    - IO of many Evoked in a single fif file + compute Epochs.standard_error by `Eric Larson`_ and `Alex Gramfort`_
 
+   - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
+
 API
 ~~~
 
@@ -176,3 +178,5 @@ of commits):
 .. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
 
 .. _Eric Larson: http://faculty.washington.edu/larsoner/
+
+.. _Denis Engemann: https://github.com/dengemann

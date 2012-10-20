@@ -20,6 +20,9 @@ Classes reference
    mne.Epochs
    mne.Covariance
    mne.SourceEstimate
+   mne.Label
+   mne.BiHemiLabel
+   mne.artifacts.ICA
 
 Functions reference
 ===================
@@ -123,6 +126,22 @@ Functions reference
    permutation_cluster_1samp_test
    fdr_correction
    bonferroni_correction
+
+.. automodule:: mne.viz
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.viz
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   plot_evoked
+   plot_cov
+   plot_topo
+   plot_sparse_source_estimates
+   plot_ica_panel
 
 .. automodule:: mne.artifacts
  :no-members:
