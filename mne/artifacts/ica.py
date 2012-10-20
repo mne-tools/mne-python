@@ -15,12 +15,12 @@ from ..cov import compute_whitener
 class ICA(object):
     """MEG signal decomposition and denoising workflow
 
-    Paramerters
-    -----------
+    Parameters
+    ----------
     noise_cov : instance of mne.cov.Covariance
-        noise covariance used for whitening
-    n_components : integer
-        number of components to be extracted. If None, no dimensionality
+        Noise covariance used for whitening
+    n_components : int
+        Number of components to be extracted. If None, no dimensionality
         reduction will be applied.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
@@ -42,14 +42,14 @@ class ICA(object):
 
     Attributes
     ----------
-    pre_whitener : ndrarray | instance of mne.cov.Covariance
-        whitener used for preprocessing
+    pre_whitener : instance of np.float | instance of mne.cov.Covariance
+        Whitener used for preprocessing.
     sorted_by : str
-        flag informing about the active
+        Flag informing about the active.
     last_fit : str
-        flag informing about which type was last fit.
+        Flag informing about which type was last fit.
     ch_names : list-like
-        ch_names resulting from initial picking
+        Channel names resulting from initial picking.
     """
     def __init__(self, noise_cov=None, n_components=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None):
@@ -86,22 +86,23 @@ class ICA(object):
     def decompose_raw(self, raw, picks, start=None, stop=None):
         """Run the ica decomposition on raw data
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         raw : instance of mne.fiff.Raw
-            raw measurments to be decomposed
-        start : integer
-            starting time index
-        stop : integer
-            first time index to ignore.
+            Raw measurments to be decomposed.
         picks : array-like
-            channels to be included. This selecetion remains throught the
-            initialized ica session.
+            Channels to be included. This selecetion remains throught the
+            initialized ICA session.
+        start : int
+            first sample to include (first is 0). If omitted, defaults to the first
+            sample in data.
+        stop : int
+            First sample to not include. If omitted, data is included to the end.
 
         Returns
         -------
         self : instance of ICA
-            returns the instance for chaining
+            Returns the modified instance.
         """
         print ('Computing signal decomposition on raw data. '
                'Please be patient, this may take some time')
@@ -122,19 +123,19 @@ class ICA(object):
     def decompose_epochs(self, epochs, picks=None):
         """Run the ica decomposition on epochs
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         epochs : instance of Epochs
             The epochs. The ICA is estimated on the concatenated epochs.
         picks : array-like
-            channels to be included relative to the channels already picked
-            (epochs.picks). This selecetion remains throught the
-            initialized ica session.
+            Channels to be included relative to the channels already picked on
+            epochs-initialization. This selecetion remains throught the
+            initialized ICA session.
 
         Returns
         -------
         self : instance of ICA
-            returns the instance for chaining
+            Returns the modified instance.
         """
         print ('Computing signal decomposition on epochs. '
                'Please be patient, this may take some time')
@@ -160,16 +161,18 @@ class ICA(object):
                         sort_func=stats.skew):
         """Estimate raw sources given the unmixing matrix
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         raw : instance of Raw
             Raw object to draw sources from
-        start : integer
-            starting time slice
-        stop : integer
-            final time slice
+        start : int
+            First sample to include (first is 0). If omitted, defaults to the first
+            sample in data.
+        stop : int
+            First sample to not include.
+            If omitted, data is included to the end.
         sort_func : function
-            function used for sorting the sources. It should take an
+            Function used for sorting the sources. It should take an
             array and an axis argument.
         """
         if self.mixing is None:
@@ -185,8 +188,8 @@ class ICA(object):
     def get_sources_epochs(self, epochs, sort_func=stats.skew):
         """Estimate epochs sources given the unmixing matrix
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         epochs : instance of Epochs
             Epochs object to draw sources from
         sort_func : function
@@ -209,24 +212,24 @@ class ICA(object):
         epochs_sources = np.array(np.split(sources, len(epochs.events), 1))
         return epochs_sources
 
-    def pick_sources_raw(self, raw, include=None, exclude=[], start=None,
+    def pick_sources_raw(self, raw, include=None, exclude=None, start=None,
                          stop=None, copy=True):
         """Recompose raw data including or excluding some sources
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         raw : instance of Raw
-            raw object to pick to remove ica components from
-        include : array-like | None
+            Raw object to pick to remove ica components from.
+        include : list-like | None
             The source indices to use. If None all are used.
-        exclude : list-like
-            The source indices to remove.
+        exclude : list-like | None
+            The source indices to remove. If None  all are used.
         start : int | None
-            The first time index to include
+            The first time index to include.
         stop : int | None
-            The first time index to exclude
+            The first time index to exclude.
         copy: bool
-            modify raw instance in place or return modified copy
+            modify raw instance in place or return modified copy.
 
         Returns
         -------
@@ -258,24 +261,25 @@ class ICA(object):
 
         return raw
 
-    def pick_sources_epochs(self, epochs, include=None, exclude=[], copy=True):
+    def pick_sources_epochs(self, epochs, include=None, exclude=None,
+                            copy=True):
         """Recompose epochs
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         epochs : instance of Epochs
             epochs object to pick to remove ica components from
-        include : array-like | None
+        include : list-like | None
             The source indices to use. If None all are used.
-        exclude : list-like
-            The source indices to remove.
+        exclude : list-like | None
+            The source indices to remove. If None  all are used.
         copy : bool
-            Modify Epochs instance in place or return modified copy
+            Modify Epochs instance in place or return modified copy.
 
         Returns
         -------
         epochs : instance of Epochs
-            epochs with selected ica components removed
+            Epochs with selected ica components removed.
         """
         if self.sorted_by == 'unsorted':
             raise ValueError('Currently no sources reconstructed.'
@@ -297,12 +301,12 @@ class ICA(object):
     def sort_sources(self, sources, sort_func=stats.skew):
         """Sort sources accoroding to criteria such as skewness or kurtosis
 
-        Paramerters
-        -----------
+        Parameters
+        ----------
         sources : ndarray
-            previously reconstructed sources
+            Previously reconstructed sources
         sort_func : function
-            function used for sorting the sources. It should take an
+            Function used for sorting the sources. It should take an
             array and an axis argument.
         """
         if sort_func is None:  # return sources
@@ -334,8 +338,6 @@ class ICA(object):
         """Helper function"""
         if self.noise_cov is None:  # use standardization as whitener
             pre_whitener = np.std(data) ** -1
-            # std_chan = np.std(data, axis=1) ** -1
-            # pre_whitener = np.array([std_chan]).T
             data *= pre_whitener
         else:  # pick cov
             ncov = deepcopy(self.noise_cov)
@@ -349,8 +351,6 @@ class ICA(object):
 
     def _get_raw_data(self, raw, picks, start, stop):
         """Helper function"""
-        start = 0 if start is None else start
-        stop = (raw.last_samp - raw.first_samp) + 1 if stop is None else stop
         return self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
 
     def _get_epochs_data(self, epochs, picks):
@@ -367,7 +367,6 @@ class ICA(object):
         if self.noise_cov is None:  # revert standardization
             pre_whitener **= -1
             mixing *= pre_whitener
-            # mixing *= pre_whitener.T
         else:
             mixing = np.dot(mixing, linalg.pinv(pre_whitener))
 
@@ -379,8 +378,6 @@ class ICA(object):
 
         # restore initial sort, then mix back the souces
         restore_idx = np.argsort(self._sort_idx.copy())
-        # print restore_idx
-        # print self._sort_idx[restore_idx]
         out = np.dot(sources[restore_idx].T, mixing).T
 
         return out

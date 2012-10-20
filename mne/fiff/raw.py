@@ -888,20 +888,20 @@ class Raw(object):
         ----------
         fname : str | None
             If data not preloaded in memory a string will open a corresponding
-            memory map. else in thie case np.empty will be used.
+            memory map. Else in this case np.empty will be used.
         """
+        new = deepcopy(self)
         if self._preloaded:
-            new = deepcopy(self)
+            new.fids = [open(fname, "rb") for fname in self.info['fnames']]
+            for new_fid, this_fid in zip(new.fids, self.fids):
+                new_fid.seek(this_fid.tell())
         else:
-            if isinstance(fname, str):
-                preload = fname
-            else:
-                preload = True
+            preload = fname if isinstance(fname, str) else True
             nchan = self.info['nchan']
             nsamp = self.last_samp - self.first_samp + 1
             data = _alloc_data_buffer(self, nchan, nsamp, preload)
             data, times = read_raw_segment(self, data_buffer=data)
-            new = deepcopy(self)
+            new.fids = []
             new._data = data
             new._times = times
 
@@ -911,70 +911,6 @@ class Raw(object):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
-
-
-class RawFromMerge(Raw):
-    """ Initializes new raw instance from exisiting raw and custom data
-    Paramerters
-    -----------
-    raw : instance of mne.fiff.Raw
-        existing raw instance
-    data : instance of numpy.core.ndarray
-        processed data matching the data contained by raw
-
-    Attributes
-    ----------
-        See __doc__ of mne.fiff.Raw
-    """
-    def __init__(self, raw, data, picks=None, info=None):
-
-        print 'Initializing raw object from merge with custom data.'
-
-        if not raw._preloaded:
-            raw._preload_data(True)
-            raw._preloaded = True
-
-        raw = deepcopy(raw)
-        if info == None:
-            info = raw.info
-        self.info = info
-
-        cals = np.zeros(info['nchan'])
-        for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * \
-                      info['chs'][k]['cal']
-
-        self.cals = raw.cals
-        self.rawdirs = raw.rawdirs
-        self.proj = raw.proj
-        self.comp = raw.comp
-
-        self.first_samp, self.last_samp = raw.first_samp, raw.last_samp
-        self.verbose = True
-        if self.verbose:
-            print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                       self.first_samp, self.last_samp,
-                       float(self.first_samp) / info['sfreq'],
-                       float(self.last_samp) / info['sfreq'])
-            print 'Ready.'
-
-        self.fid = None
-        self._preloaded = True
-        self._times = np.arange(self.first_samp,
-            self.last_samp + 1) / info['sfreq']
-
-        for name, value in raw.__dict__.items():
-            if name not in self.__dict__:
-                setattr(self, name, value)
-
-        if picks == None:
-            picks = np.arange(len(raw.ch_names))
-
-        self._data = raw._data
-        assert self._data[picks].shape == data.shape
-        if picks == None:
-            picks = np.arange(self._data.shape[0])
-        self._data[picks] = data
 
 
 class _RawShell():
