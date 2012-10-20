@@ -53,7 +53,7 @@ print raw_ts.sampling_interval
 print raw_ts.metadata.keys()
 
 # index at certain time
-print raw_ts.at(52.5)
+print raw_ts.at(110.5)
 
 # get channel names (attribute added during export)
 print raw_ts.ch_names[:3]

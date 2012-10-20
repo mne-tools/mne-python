@@ -318,8 +318,9 @@ class Evoked(object):
         """ Export Evoked object to NiTime
         Parameters
         ----------
-        picks : array-like
-            Indices of channels to apply
+        picks : array-like | None
+            Indices of channels to apply. If None, all channels will be
+            exported.
 
         Retruns
         -------

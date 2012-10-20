@@ -603,7 +603,7 @@ class Epochs(object):
 
         return out
 
-    def to_nitime(self, picks=None, epochs_idx=None, concatenated=False,
+    def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
                   copy=True):
         """ Export epochs as nitime TimeSeries
 
@@ -611,13 +611,13 @@ class Epochs(object):
         ----------
         picks : array-like | None
             Indices for exporting subsets of the epochs channels. If None
-            all good channels will be used
+            all good channels will be used.
         epochs_idx : slice | array-like | None
             Epochs index for single or selective epochs exports. If None, all
             epochs will be used.
-        concatenated : boolean
-            If True export concatenated 2D array which might be required by
-            some nitime functions.
+        collapse : boolean
+            If True export epochs and time slices will be collapsed to 2D array.
+            This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
 
@@ -632,17 +632,17 @@ class Epochs(object):
             raise Exception('the nitime package is missing')
 
         if picks is None:
-            picks = pick_types(self.raw.info, include=self.ch_names,
-                               exclude=self.raw.info['bads'])
+            picks = pick_types(self.info, include=self.ch_names,
+                               exclude=self.info['bads'])
         if epochs_idx is None:
             epochs_idx = slice(len(self.events))
 
-        data = self.get_data()[epochs_idx, picks, :]
+        data = self.get_data()[epochs_idx, picks]
 
         if copy is True:
             data = data.copy()
 
-        if concatenated is True:  # collapes epochs and timeslices
+        if collapse is True:
             data = np.hstack(data).copy()
 
         offset = self.raw.time_to_index(abs(self.tmin))

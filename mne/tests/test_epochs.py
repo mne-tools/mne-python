@@ -304,17 +304,17 @@ def test_epochs_to_nitime():
                     reject=reject, flat=flat)
 
     epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                 concatenated=True, copy=True)
+                                 collapse=True, copy=True)
     assert_true(epochs_ts.ch_names, epochs.ch_names)
 
     epochs_ts = epochs.to_nitime(picks=[0, 3], epochs_idx=None,
-                                 concatenated=True, copy=True)
+                                 collapse=True, copy=True)
     assert_true(epochs_ts.ch_names, epochs.ch_names)
 
     epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                 concatenated=False, copy=False)
+                                 collapse=False, copy=False)
     assert_true(epochs_ts.ch_names, epochs.ch_names)
 
     epochs_ts = epochs.to_nitime(picks=[0, 3], epochs_idx=None,
-                                 concatenated=False, copy=False)
+                                 collapse=False, copy=False)
     assert_true(epochs_ts.ch_names, epochs.ch_names)

@@ -909,13 +909,15 @@ class Raw(object):
 
         Parameters
         ----------
-        start : int
-            data-extraction start index
-        stop : int
-            data-extraction stop index
-        picks : array-like
-            Indices of channels to apply
-        copy : boolean
+        start : int | None
+            Data-extraction start index. If None, data will be exported from
+            the first sample.
+        stop : int | None
+            Data-extraction stop index. If None, data will be exported to the
+            last index.
+        picks : array-like | None
+            Indices of channels to apply. If None, all channels will be exported.
+        copy : boolean | None
             Whether to copy the raw data or not.
 
         Returns
@@ -927,15 +929,13 @@ class Raw(object):
         except ImportError:
             raise Exception('the nitime package is missing')
 
-        if not self._preloaded:
-            data, _ = self[:, start:stop]
-        else:
-            data = self._data
+        data, _ = self[picks, start:stop]
         if copy:
             data = data.copy()
 
-        start_time = self.index_to_time(self.first_samp)
-        raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
+        start_time = self.index_to_time(self.first_samp if start is None
+                                        else start)
+        raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
                             t0=start_time)
 
         raw_ts.ch_names = [self.ch_names[k] for k in picks]

@@ -42,7 +42,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
 
-epochs_ts = epochs.to_nitime(picks=np.arange(20), concatenated=True)
+epochs_ts = epochs.to_nitime(picks=np.arange(20), collapse=True)
 
 ###############################################################################
 # Now use nitime's OO-interface to compute coherence between sensors
@@ -56,7 +56,7 @@ C = MTCoherenceAnalyzer(epochs_ts)
 # confine analysis to 10 - 20 Hz
 freq_idx = np.where((C.frequencies > 10) * (C.frequencies < 30))[0]
 
-# compute average coherency
+# compute average coherence
 coh = np.mean(C.coherence[:, :, freq_idx], -1)  # Averaging on last dimension
 fig = drawmatrix_channels(coh, epochs.ch_names, color_anchor=0,
                           title='MEG gradiometer coherence')
