@@ -924,7 +924,11 @@ class Raw(object):
         -------
         raw_ts : instance of nitime.TimeSeries
         """
-        from nitime import TimeSeries
+        try:
+            from nitime import TimeSeries  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the nitime package is missing and '
+                            'required for ICA')
 
         if not self._preloaded:
             data, _ = self[:, start:stop]

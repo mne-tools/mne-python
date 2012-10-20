@@ -623,7 +623,11 @@ class Epochs(object):
         epochs_ts : instance of nitime.TimeSeries
             The Epochs as nitime TimeSeries object
         """
-        from nitime import TimeSeries
+        try:
+            from nitime import TimeSeries  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the nitime package is missing and '
+                            'required for ICA')
 
         if not self.preload:
             data = self.get_data()
