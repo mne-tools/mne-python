@@ -916,9 +916,9 @@ class Raw(object):
         stop : int
             data-extraction stop index
         picks : array-like
-            channel selection fancy index
+            Indices of channels to apply
         copy : boolean
-            whether to copy the raw data or not.
+            Whether to copy the raw data or not.
 
         Returns
         -------

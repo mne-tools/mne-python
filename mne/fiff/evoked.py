@@ -319,7 +319,8 @@ class Evoked(object):
         Parameters
         ----------
         picks : array-like
-            fancy-index to subset the channels
+            Indices of channels to apply
+
         Retruns
         -------
         evoked_ts : instance of nitime.TimeSeries
