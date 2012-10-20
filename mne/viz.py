@@ -443,17 +443,18 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
-def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, ncol=3,
-                   nrow=10):
+def plot_ica_panel(sources, start=None, stop=None, n_components=None,
+                   source_idx=None, ncol=3, nrow=10):
     """Create panel plots of ICA sources
+
     Parameters
     ----------
     sources : ndarray
         sources as drawn from ica.get_sources
     start : int
-        x-axis start index
+        x-axis start index. If None from the beginning.
     stop : int
-        x-axis stop index
+        x-axis stop index. If None to the end.
     n_components : int
         number of components fitted
     source_idx : array-like
@@ -466,7 +467,6 @@ def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, nco
     Returns
     -------
     fig : instance of pyplot.Figure
-
     """
     import pylab as pl
 
@@ -494,6 +494,7 @@ def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, nco
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 
     iter_plots = ((row, col) for row in range(nrow) for col in range(ncol))
+
     for idx, (row, col) in enumerate(iter_plots):
         xs = panel_axes[row, col]
         xs.grid(linestyle='-', color='gray', linewidth=.25)
@@ -511,11 +512,11 @@ def plot_ica_panel(sources, start, stop, n_components=None, source_idx=None, nco
         xtl = xs.get_xticklabels()
         ytl = xs.get_yticklabels()
         if row < nrow - 2 or (row < nrow - 1 and
-            (hangover == 0 or col <= hangover - 1)):
+                              (hangover == 0 or col <= hangover - 1)):
             pl.setp(xtl, visible=False)
-        if col > 0 or row % 2 == 1:
+        if (col > 0) or (row % 2 == 1):
             pl.setp(ytl, visible=False)
-        if col == ncol - 1 and row % 2 == 1:
+        if (col == ncol - 1) and (row % 2 == 1):
             xs.yaxis.tick_right()
 
         pl.setp(xtl, rotation=90.)
