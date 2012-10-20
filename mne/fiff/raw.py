@@ -901,6 +901,63 @@ class Raw(object):
         return "Raw (%s)" % s
 
 
+class RawFromMerge(Raw):
+    """ Initializes new raw instance from exisiting raw and custom data
+    Paramerters
+    -----------
+    raw : instance of mne.fiff.Raw
+        existing raw instance
+    data : instance of numpy.core.ndarray
+        processed data matching the data contained by raw
+
+    Attributes
+    ----------
+        See __doc__ of mne.fiff.Raw
+    """
+    def __init__(self, raw, data, info=None):
+
+        print 'Initializing raw object from merge with custom data.'
+
+        ntsl = (raw.last_samp - raw.first_samp) + 1
+        nchan = len(raw.ch_names)
+        assert (nchan, ntsl) == data.shape
+
+        raw = deepcopy(raw)
+        if info == None:
+            info = raw.info
+
+        self.info = info
+        self._data = data
+        self.first_samp, self.last_samp = raw.first_samp, raw.last_samp
+        cals = np.zeros(info['nchan'])
+        for k in range(info['nchan']):
+            cals[k] = info['chs'][k]['range'] * \
+                      info['chs'][k]['cal']
+
+        self.cals = raw.cals
+        self.rawdirs = raw.rawdirs
+        self.proj = raw.proj
+        self.comp = raw.comp
+
+        self.verbose = True
+        if self.verbose:
+            print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
+                       self.first_samp, self.last_samp,
+                       float(self.first_samp) / info['sfreq'],
+                       float(self.last_samp) / info['sfreq'])
+            print 'Ready.'
+        self.fid = None
+        self._preloaded = True
+        self._times = np.arange(self.first_samp,
+            self.last_samp + 1) / info['sfreq']
+
+        for name, value in raw.__dict__.items():
+            if name not in self.__dict__:
+                setattr(self, name, value)
+
+        del raw
+
+
 class _RawShell():
     """Used for creating a temporary raw object"""
     def __init__(self):
