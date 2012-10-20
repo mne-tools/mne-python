@@ -747,8 +747,7 @@ class Raw(object):
         finish_writing_raw(outfid)
 
     def time_to_index(self, *args):
-        """ Convert time to indices
-        """
+        """Convert time to indices"""
         indices = []
         for time in args:
             ind = int(time * self.info['sfreq'])
@@ -756,8 +755,7 @@ class Raw(object):
         return indices
 
     def index_to_time(self, *args):
-        """ Convert indices to time
-        """
+        """Convert indices to time"""
         times = []
         for index in args:
             time = index / self.info['sfreq']
@@ -940,7 +938,7 @@ class Raw(object):
         raw_ts = TimeSeries(data[picks], sampling_rate=self.info['sfreq'],
                             t0=start_time)
 
-        raw_ts.ch_names = np.array(self.ch_names)[picks].tolist()
+        raw_ts.ch_names = [self.ch_names[k] for k in picks]
 
         return raw_ts
 

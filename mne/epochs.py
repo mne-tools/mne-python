@@ -233,8 +233,8 @@ class Epochs(object):
 
         Should be used before slicing operations.
 
-        .. Warning:: Operation is slow since all epochs have to be read from disk.
-            To avoid reading epochs form disk multiple times, initialize
+        .. Warning:: Operation is slow since all epochs have to be read from
+            disk. To avoid reading epochs form disk multiple times, initialize
             Epochs object with preload=True.
 
         """
@@ -603,7 +603,8 @@ class Epochs(object):
 
         return out
 
-    def to_nitime(self, picks=None, epochs_idx=None, concatenated=False, copy=True):
+    def to_nitime(self, picks=None, epochs_idx=None, concatenated=False,
+                  copy=True):
         """ Export epochs as nitime TimeSeries
 
         Parameters
@@ -615,8 +616,8 @@ class Epochs(object):
             Epochs index for single or selective epochs exports. If None, all
             epochs will be used.
         concatenated : boolean
-            If True export concatenated 2D array which might be required by some
-            nitime functions.
+            If True export concatenated 2D array which might be required by
+            some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
 
@@ -671,8 +672,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
                     if not has_printed:
-                        print '    Rejecting epoch based on %s : %s (%s > %s).' \
-                                    % (name, ch_name, delta, thresh)
+                        print('    Rejecting epoch based on %s : %s (%s > %s).'
+                                    % (name, ch_name, delta, thresh))
                         has_printed = True
                     if not full_report:
                         return False
