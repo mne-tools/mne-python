@@ -43,13 +43,7 @@ def test_ica_raw():
     """Test ICA on raw"""
     print ica  # to test repr
     ica.decompose_raw(raw, picks=picks)
-    ica_cov.decompose_raw(raw, picks=picks)
-    print ica  # to test repr
-
     sources = ica.get_sources_raw(raw)
-    assert_true(sources.shape[0] == ica.n_components)
-
-    ica_cov.get_sources_raw(raw)
     assert_true(sources.shape[0] == ica.n_components)
 
     raw2 = ica.pick_sources_raw(raw, exclude=[], copy=True)
@@ -68,6 +62,28 @@ def test_ica_raw():
     assert_array_equal(initial_sort, ica._sort_idx)
     assert_array_equal(sources, sources_3)
 
+    ica_cov.decompose_raw(raw, picks=picks)
+    print ica  # to test repr
+
+    ica_cov.get_sources_raw(raw)
+    assert_true(sources.shape[0] == ica.n_components)
+
+    raw2 = ica_cov.pick_sources_raw(raw, exclude=[], copy=True)
+    raw2 = ica_cov.pick_sources_raw(raw, exclude=[1, 2], copy=True)
+    raw2 = ica_cov.pick_sources_raw(raw, include=[1, 2],
+                                exclude=[], copy=True)
+    assert_array_almost_equal(raw2._data, raw._data)
+
+    initial_sort = ica_cov._sort_idx
+    sources_2 = ica_cov.sort_sources(sources, stats.kurtosis)
+    sources_3 = ica_cov.sort_sources(sources_2, stats.skew)
+    assert_array_equal(initial_sort, ica_cov._sort_idx)
+    assert_array_equal(sources, sources_3)
+
+    sources_3 = ica_cov.sort_sources(sources_3, stats.skew)
+    assert_array_equal(initial_sort, ica_cov._sort_idx)
+    assert_array_equal(sources, sources_3)
+
 
 def test_pick_sources_epochs_from_raw():
     """Test epochs sources selection using raw fit."""
@@ -78,12 +94,8 @@ def test_pick_sources_epochs_from_raw():
 def test_ica_epochs():
     """Test ICA epochs"""
     ica.decompose_epochs(epochs)
-    ica_cov.decompose_epochs(epochs)
 
     sources = ica.get_sources_epochs(epochs)
-    assert_true(sources.shape[1] == ica.n_components)
-
-    sources = ica_cov.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
 
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
@@ -100,4 +112,25 @@ def test_ica_epochs():
 
     sources_3 = ica.sort_sources(sources_3, stats.skew)
     assert_array_equal(initial_sort, ica._sort_idx)
+    assert_array_equal(sources, sources_3)
+
+    ica_cov.decompose_epochs(epochs)
+
+    sources = ica_cov.get_sources_epochs(epochs)
+    assert_true(sources.shape[1] == ica.n_components)
+
+    epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[], copy=True)
+    epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[0], copy=True)
+    epochs2 = ica_cov.pick_sources_epochs(epochs, include=[0],
+                                      exclude=[], copy=True)
+    assert_array_almost_equal(epochs2._data, epochs._data)
+
+    initial_sort = ica_cov._sort_idx
+    sources_2 = ica_cov.sort_sources(sources, stats.kurtosis)
+    sources_3 = ica_cov.sort_sources(sources_2, stats.skew)
+    assert_array_equal(initial_sort, ica_cov._sort_idx)
+    assert_array_equal(sources, sources_3)
+
+    sources_3 = ica_cov.sort_sources(sources_3, stats.skew)
+    assert_array_equal(initial_sort, ica_cov._sort_idx)
     assert_array_equal(sources, sources_3)
