@@ -608,15 +608,17 @@ class Epochs(object):
 
         Parameters
         ----------
-        picks : array-like
-            indices for exporting subsets of the epochs channels
-        epochs_idx : slice or array-like
-            epochs index for single or selective epochs exports
+        picks : array-like | None
+            Indices for exporting subsets of the epochs channels. If None
+            all good channels will be used
+        epochs_idx : slice | array-like | None
+            Epochs index for single or selective epochs exports. If None, all
+            epochs will be used.
         concatenated : boolean
-            if True export concatenated 2D array which might be required by some
+            If True export concatenated 2D array which might be required by some
             nitime functions.
         copy : boolean
-            if True exports copy of epochs data
+            If True exports copy of epochs data.
 
         Returns
         -------
@@ -628,22 +630,18 @@ class Epochs(object):
         except ImportError:
             raise Exception('the nitime package is missing')
 
-        if not self.preload:
-            data = self.get_data()
-        else:
-            data = self._data
+        if picks is None:
+            picks = pick_types(self.raw.info, include=self.ch_names,
+                               exclude=self.raw.info['bads'])
+        if epochs_idx is None:
+            epochs_idx = slice(len(self.events))
+
+        data = self.get_data()[epochs_idx, picks, :]
 
         if copy is True:
             data = data.copy()
 
-        if picks is None:
-            picks = self.picks
-
-        if epochs_idx is None:
-            epochs_idx = slice(len(self.events))
-
-        data = data[epochs_idx, picks, :]
-        if concatenated is True:
+        if concatenated is True:  # collapes epochs and timeslices
             data = np.hstack(data).copy()
 
         offset = self.raw.time_to_index(abs(self.tmin))
