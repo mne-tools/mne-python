@@ -1,4 +1,4 @@
-    # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -329,7 +329,8 @@ class Evoked(object):
         except ImportError:
             raise Exception('the nitime package is missing')
 
-        evoked_ts = TimeSeries(self.data[picks], sampling_rate=self.info['sfreq'])
+        evoked_ts = TimeSeries(self.data[picks],
+                               sampling_rate=self.info['sfreq'])
 
         return evoked_ts
 
