@@ -125,41 +125,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
 
 
 def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
-    """Helper function: plot time frequency representation for single channel
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    tfr : 3D-array
-        Results from induced_power, either power or phase_lock
-    ch_name : string
-        Channel name to select channel
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    baseline: tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-    decim : integer
-        Increment for selecting each nth time slice
-
-    Returns
-    =======
-    tfr_ch : 2D array
-        Time frequency representation of power for the selected channel
-    extent : tuple
-        Plotting parameters -- tmin, tmax, lower and upper frequency
-    """
+    """Helper function: plot tfr for single channel """
     if ch_name not in epochs.info['ch_names']:
         raise ValueError('"%s" is not a valid channel name' % ch_name)
     # Milli seconds
@@ -180,74 +146,34 @@ def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
 
 def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim,
                       vmin, vmax, colorbar, cmap):
-    """ Helper function: plot time frequency representations on sensor layout
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    tfr : 3D-array
-        Return value from time_frequency.induced_power, wither power
-        or phase_lock
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout: instance of Layout
-        System specific sensor positions
-    baseline: tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-    decim : integer
-        Increment for selecting each nth time slice
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        minimum value mapped to lowermost color
-    vmax : float
-        minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
-        Colors to be mapped to the values
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figrue
-        images of induced power at sensor locations
-    """
+    """ Helper function: plot tfr on sensor layout """
 
     import pylab as pl
     if cmap == None:
         cmap = pl.cm.jet
     ch_names = epochs.info['ch_names']
-    pl.rcParams['axes.edgecolor'] = 'w'
     pl.rcParams['axes.facecolor'] = 'k'
     fig = pl.figure(facecolor='k')
+    pos = layout.pos.copy()
     if colorbar:
+        pos[:, :2] *= .945
+        pl.rcParams['axes.edgecolor'] = 'k'
         sm = pl.cm.ScalarMappable(cmap=cmap,
                                   norm=pl.normalize(vmin=vmin, vmax=vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = pl.axes([0, 0, 1.2, 1], axisbg='k')
+        ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
         cb = fig.colorbar(sm, ax=ax)
+        pl.rcParams['axes.edgecolor'] = 'w'
         cbytick_obj = pl.getp(cb.ax.axes, 'yticklabels')
         pl.setp(cbytick_obj, color='w')
     for idx, name in enumerate(layout.names):
         if name in ch_names:
-            ax = pl.axes(layout.pos[idx], axisbg='k')
-            # tfr, ch_name, epochs, is_power, freq,
+            ax = pl.axes(pos[idx], axisbg='k')
             tfr_data, extent = _prepare_tfr_plot(epochs, tfr, name, freq,
                                                  baseline, mode, decim)
             ax.imshow(tfr_data, extent=extent, aspect="auto", origin="lower")
             pl.xticks([], ())
             pl.yticks([], ())
-    # pl.rcParams['axes.edgecolor'] = 'k'
 
     return fig
 

@@ -56,7 +56,7 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
 ###############################################################################
 # Prepare topography plots, set baseline correction parameters
 
-layout = Layout('Vectorview-all')
+layout = mne.layouts.read_layout('Vectorview-all')
 
 baseline = (None, 0)  # set the baseline for induced power
 
@@ -65,19 +65,21 @@ mode = 'ratio'  # set mode for baseline rescaling
 ###############################################################################
 # Show topography of power (be patient, this may take some time)
 
+pl.figure()
 plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
                 mode=mode, decim=decim)
 title = 'Induced power - MNE sample data'
-pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
+pl.figtext(0.03, 0.9, title, color='w', fontsize=18)
 pl.show()
 
 
 ###############################################################################
 # Show topography of phase_locking value (be patient, this may take some time)
 
+pl.figure()
 plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
                      baseline=baseline, mode=mode, decim=decim)
 
 title = 'Phase locking value - MNE sample data'
-pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
+pl.figtext(0.03, 0.9, title, color='w', fontsize=18)
 pl.show()
