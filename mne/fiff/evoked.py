@@ -327,8 +327,7 @@ class Evoked(object):
         try:
             from nitime import TimeSeries  # to avoid strong dependency
         except ImportError:
-            raise Exception('the nitime package is missing and '
-                            'required for ICA')
+            raise Exception('the nitime package is missing')
 
         evoked_ts = TimeSeries(self.data[picks], sampling_rate=self.info['sfreq'])
 

@@ -626,8 +626,7 @@ class Epochs(object):
         try:
             from nitime import TimeSeries  # to avoid strong dependency
         except ImportError:
-            raise Exception('the nitime package is missing and '
-                            'required for ICA')
+            raise Exception('the nitime package is missing')
 
         if not self.preload:
             data = self.get_data()
