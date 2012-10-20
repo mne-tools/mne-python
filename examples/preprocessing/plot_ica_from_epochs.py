@@ -27,8 +27,6 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
-start, stop = raw.time_to_index(100, 160)
-
 # setup ica seed
 ica = ICA(noise_cov=None, n_components=25, random_state=0)
 print ica
@@ -40,18 +38,12 @@ baseline = (None, 0)
 reject = None
 
 events = mne.find_events(raw, stim_channel='STI 014')
-# subev = events[10][None]
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
-# 1 minute exposure should be sufficient for artifact detection
-# however rejection pefromance significantly improves when using
-# the entire data range
-start, stop = raw.time_to_index(100, 160)
 
 # fit sources from epochs or from raw (both works for epochs)
 ica.decompose_epochs(epochs)
-
 
 # get sources from epochs
 sources = ica.get_sources_epochs(epochs)
@@ -62,7 +54,7 @@ start_plot, stop_plot = 0, 1000
 # plot components for epoch of interest
 plot_ica_panel(sources[13], start=start_plot, stop=stop_plot, n_components=25)
 
-# A distinct cardiac component should be visible
+# A distinct cardiac component should be visible at index 24
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=[24],
                                      copy=True)
 
