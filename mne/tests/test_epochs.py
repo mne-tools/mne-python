@@ -297,7 +297,7 @@ def test_epochs_copy():
     assert_array_equal(data, copied_data)
 
 
-def test_to_nitime():
+def test_epochs_to_nitime():
     """Test test_to_nitime"""
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,

@@ -1,3 +1,8 @@
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Denis Engemann <d.engemann@fz-juelich.de>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 from copy import deepcopy
 import warnings
@@ -378,7 +383,7 @@ def test_hilbert():
     assert_array_almost_equal(env, raw2._data[picks, :])
 
 
-def test_copy():
+def test_raw_copy():
     """ Test Raw copy"""
     raw = Raw(fif_fname, preload=True)
     data, _ = raw[:, :]
@@ -397,7 +402,7 @@ def test_copy():
                  sorted(copied.__dict__.keys()))
 
 
-def test_to_nitime():
+def test_raw_to_nitime():
     """ Test nitime export """
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True)

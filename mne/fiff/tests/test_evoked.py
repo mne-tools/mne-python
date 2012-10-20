@@ -1,3 +1,8 @@
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Denis Engemann <d.engemann@fz-juelich.de>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 
 from numpy.testing import assert_array_almost_equal, assert_equal
@@ -71,7 +76,7 @@ def test_io_multi_evoked():
         assert_equal(ave.first, ave2.first)
 
 
-def test_to_nitime():
+def test_evoked_to_nitime():
     """ Test to_nitime """
     aves = read_evoked(fname, [0, 1, 2, 3])
     evoked_ts = aves[0].to_nitime()
