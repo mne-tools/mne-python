@@ -277,3 +277,20 @@ def test_bootstrap():
     epochs2 = bootstrap(epochs, random_state=0)
     assert_true(len(epochs2.events) == len(epochs.events))
     assert_true(epochs._data.shape == epochs2._data.shape)
+
+
+def test_epochs_copy():
+    """ Test copy epochs """
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+    copied = epochs.copy()
+    assert_array_equal(epochs._data, copied._data)
+
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
+    copied = epochs.copy()
+    data = epochs.get_data()
+    copied_data = copied.get_data()
+    assert_array_equal(data, copied_data)

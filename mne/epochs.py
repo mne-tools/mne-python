@@ -569,7 +569,10 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
-        return deepcopy(self)
+        raw = self.raw.copy()
+        new = deepcopy(self)
+        new.raw = raw
+        return new
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames

@@ -56,7 +56,8 @@ plot_ica_panel(sources, start=0, stop=stop_plot - start_plot)
 # Find the component that correlates the most with the ECG channel
 # As we don't have an ECG channel with take one can correlates a lot
 # 'MEG 1531'
-ecg, times = raw[raw.ch_names.index('MEG 1531'), start:stop]
+affected_idx = raw.ch_names.index('MEG 1531')
+ecg, times = raw[affected_idx, start:stop]
 ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.)
 sources_corr = sources.copy()
 sources_corr /= np.sqrt(np.sum(sources_corr ** 2, axis=1))[:, np.newaxis]
@@ -92,5 +93,22 @@ pl.plot(times, ica_data.T)
 pl.xlabel('time (s)')
 pl.xlim(100, 106)
 pl.ylabel('Denoised MEG data (T)')
+pl.ylim(y0, y1)
+pl.show()
+
+################################################################################
+# Compare the affected channel before and after ICA cleaning/
+
+# plot the component that correlates most with the ecg
+pl.figure()
+pl.plot(times, data[affected_idx])
+pl.title('Affected channel MEG 1531 before cleaning.')
+y0, y1 = pl.ylim()
+
+
+# plot the component that correlates most with the ecg
+pl.figure()
+pl.plot(times, ica_data[affected_idx])
+pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()

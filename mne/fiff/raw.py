@@ -882,28 +882,16 @@ class Raw(object):
     def close(self):
         [f.close() for f in self.fids]
 
-    def copy(self, fname=None):
+    def copy(self):
         """ Return copy of Raw instance
-        Parameters
-        ----------
-        fname : str | None
-            If data not preloaded in memory a string will open a corresponding
-            memory map. Else in this case np.empty will be used.
         """
         new = deepcopy(self)
         if self._preloaded:
-            new.fids = [open(fname, "rb") for fname in self.info['fnames']]
+            new.fids = []
+        else:
+            new.fids = [open(fname, "rb") for fname in self.info['filenames']]
             for new_fid, this_fid in zip(new.fids, self.fids):
                 new_fid.seek(this_fid.tell())
-        else:
-            preload = fname if isinstance(fname, str) else True
-            nchan = self.info['nchan']
-            nsamp = self.last_samp - self.first_samp + 1
-            data = _alloc_data_buffer(self, nchan, nsamp, preload)
-            data, times = read_raw_segment(self, data_buffer=data)
-            new.fids = []
-            new._data = data
-            new._times = times
 
         return new
 
