@@ -124,28 +124,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
     return fig
 
 
-def _prepare_tfr_plot(epochs, tfr, ch_name, freq, baseline, mode, decim):
-    """Helper function: plot tfr for single channel """
-    if ch_name not in epochs.info['ch_names']:
-        raise ValueError('"%s" is not a valid channel name' % ch_name)
-    # Milli seconds
-    times = epochs.times
-    times = 1e3 * times
-    tmin = 1e3 * epochs.tmin
-    tmax = 1e3 * epochs.tmax
-    ch_idx = epochs.info["ch_names"].index(ch_name)
-    # channel selcetion
-    tfr_ch = tfr[ch_idx:(ch_idx + 1)].copy()
-    # baseline corrections
-    tfr_ch = rescale(tfr_ch, times, baseline, mode)
-    # plot_data = 20 * np.log10(tfr[0]) if dB else tfr_ch[0]
-    extent = (tmin, tmax, freq[0], freq[-1])
-
-    return tfr_ch[0], extent
-
-
-def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim,
-                      vmin, vmax, colorbar, cmap):
+def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
+                      vmin, vmax, colorbar, cmap, layout_scale):
     """ Helper function: plot tfr on sensor layout """
 
     import pylab as pl
@@ -155,23 +135,25 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim,
     pl.rcParams['axes.facecolor'] = 'k'
     fig = pl.figure(facecolor='k')
     pos = layout.pos.copy()
+    tmin = 1e3 * epochs.tmin
+    tmax = 1e3 * epochs.tmax
     if colorbar:
-        pos[:, :2] *= .945
+        pos[:, :2] *= layout_scale
         pl.rcParams['axes.edgecolor'] = 'k'
         sm = pl.cm.ScalarMappable(cmap=cmap,
                                   norm=pl.normalize(vmin=vmin, vmax=vmax))
         sm.set_array(np.linspace(vmin, vmax))
         ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
         cb = fig.colorbar(sm, ax=ax)
-        pl.rcParams['axes.edgecolor'] = 'w'
         cbytick_obj = pl.getp(cb.ax.axes, 'yticklabels')
         pl.setp(cbytick_obj, color='w')
+    pl.rcParams['axes.edgecolor'] = 'w'
     for idx, name in enumerate(layout.names):
         if name in ch_names:
             ax = pl.axes(pos[idx], axisbg='k')
-            tfr_data, extent = _prepare_tfr_plot(epochs, tfr, name, freq,
-                                                 baseline, mode, decim)
-            ax.imshow(tfr_data, extent=extent, aspect="auto", origin="lower")
+            ch_idx = epochs.info["ch_names"].index(name)
+            extent = (tmin, tmax, freq[0], freq[-1])
+            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower")
             pl.xticks([], ())
             pl.yticks([], ())
 
@@ -179,7 +161,8 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, baseline, mode, decim,
 
 
 def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
-                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None):
+                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
+                    layout_scale=0.945):
     """Plot induced power on sensor layout
 
     Parameters
@@ -216,7 +199,9 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         minimum value mapped to upppermost color
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values
-
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas
     Returns
     -------
     fig : Instance of matplotlib.figure.Figrue
@@ -225,21 +210,22 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     """
     if baseline is None:
         baseline = epochs.baseline
-    if vmin == None:
+
+    power = rescale(power.copy(), epochs.times * 1e3, baseline, mode)
+    if vmin is None:
         vmin = power.min()
-    if vmax == None:
+    if vmax is None:
         vmax = power.max()
 
-    # name = 'Induced Power'
     ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
-                            baseline=baseline, mode=mode, colorbar=colorbar,
-                            vmin=vmin, vmax=vmax, cmap=cmap)
+                            colorbar=colorbar, vmin=vmin, vmax=vmax,
+                            cmap=cmap, layout_scale=layout_scale)
     return ret
 
 
 def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
                          mode='mean', decim=1, colorbar=True, vmin=None,
-                         vmax=None, cmap=None):
+                         vmax=None, cmap=None, layout_scale=0.945):
     """Plot phase locking values on sensor layout
 
     Parameters
@@ -277,6 +263,9 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         minimum value mapped to upppermost color
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas.
 
     Returns
     -------
@@ -286,15 +275,15 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
     """
     if baseline is None:
         baseline = epochs.baseline
-    if vmin == None:
+    phase = rescale(phase.copy(), epochs.times * 1e3, baseline, mode)
+    if vmin is None:
         vmin = phase.min()
-    if vmax == None:
+    if vmax is None:
         vmax = phase.max()
-
-    # name = 'Phase Locking Value'
     ret = _plot_topo_imshow(epochs, phase, freq, layout, decim=decim,
-                            baseline=baseline, mode=mode, colorbar=colorbar,
-                            vmin=vmin, vmax=vmax, cmap=cmap)
+                        colorbar=colorbar, vmin=vmin, vmax=vmax,
+                        cmap=cmap, layout_scale=layout_scale)
+
     return ret
 
 
