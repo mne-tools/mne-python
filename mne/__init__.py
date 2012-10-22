@@ -35,3 +35,4 @@ from . import viz
 from . import preprocessing
 from . import simulation
 from . import layouts
+from . import datasets
