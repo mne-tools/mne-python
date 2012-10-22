@@ -100,7 +100,7 @@ Look at the channels in raw:
 
 Read and plot a segment of raw data
 
-    >>> start, stop = raw.time_to_index(100, 115)  # 100 s to 115 s data segment
+    >>> start, stop = raw.time_as_index([100, 115])  # 100 s to 115 s data segment
     >>> data, times = raw[:, start:stop]
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...  [done]
     >>> print data.shape
@@ -303,7 +303,7 @@ Now, let's compute dSPM on a raw file within a label:
 Compute inverse solution during the first 15s:
 
     >>> from mne.minimum_norm import apply_inverse_raw
-    >>> start, stop = raw.time_to_index(0, 15)  # read the first 15s of data
+    >>> start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
     >>> stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label, start, stop)
     Preparing the inverse operator for use...
         Scaled noise and source covariance from nave = 1 to nave = 1

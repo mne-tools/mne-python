@@ -604,7 +604,7 @@ class Epochs(object):
         return out
 
     def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
-                  copy=True):
+                  copy=True, use_first_samp=False):
         """ Export epochs as nitime TimeSeries
 
         Parameters
@@ -620,6 +620,9 @@ class Epochs(object):
             This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
 
         Returns
         -------
@@ -645,8 +648,8 @@ class Epochs(object):
         if collapse is True:
             data = np.hstack(data).copy()
 
-        offset = self.raw.time_to_index(abs(self.tmin))
-        t0 = self.raw.index_to_time(self.events[0, 0] - offset)[0]
+        offset = self.raw.time_as_index(abs(self.tmin), use_first_samp)
+        t0 = self.raw.index_as_time(self.events[0, 0] - offset)[0]
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 

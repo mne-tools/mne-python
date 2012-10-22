@@ -65,7 +65,7 @@ class Raw(object):
 
     ch_names : list of string
         List of channels' names
-   """
+    """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
 
@@ -746,6 +746,7 @@ class Raw(object):
 
         finish_writing_raw(outfid)
 
+    @deprecated('time_to_index is deprecated please use time_as_index instead')
     def time_to_index(self, *args):
         """Convert time to indices"""
         indices = []
@@ -754,12 +755,50 @@ class Raw(object):
             indices.append(ind)
         return indices
 
-    def index_to_time(self, *args):
-        """Convert indices to time"""
-        times = []
-        for index in args:
-            time = index / self.info['sfreq']
-            times.append(time)
+    def time_as_index(self, times, use_first_samp=False):
+        """Convert time to indices
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_first_samp: boolean
+            If True, time is treated as relative to the session onset, else
+            as relative to the recording onset.
+
+        Returns
+        -------
+        index : list
+            Indices corresponding to the times supplied.
+        """
+        if type(times) in (int, float):
+            times = [times]
+
+        offset = self.first_samp if use_first_samp else 0
+        index = [int(t * self.info['sfreq']) + offset for t in times]
+
+        return index
+
+    def index_as_time(self, index, use_first_samp=False):
+        """Convert time to indices
+        Parameters
+        ----------
+        index : list-like | int
+            List of ints or int representing points in time.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
+
+        Returns
+        -------
+        times : list
+            Times corresponding to the index supplied.
+        """
+        if isinstance(index, int):
+            index = [index]
+
+        offset = self.first_samp if use_first_samp else 0
+        times = [(idx + offset) / self.info['sfreq'] for idx in index]
+
         return times
 
     @property
@@ -904,7 +943,8 @@ class Raw(object):
 
         return new
 
-    def to_nitime(self, start=None, stop=None, picks=None, copy=True):
+    def to_nitime(self, start=None, stop=None, use_first_samp=False, picks=None,
+                  copy=True):
         """ Raw data as nitime TimeSeries
 
         Parameters
@@ -915,6 +955,9 @@ class Raw(object):
         stop : int | None
             Data-extraction stop index. If None, data will be exported to the
             last index.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
         picks : array-like | None
             Indices of channels to apply. If None, all channels will be exported.
         copy : boolean | None
@@ -933,8 +976,7 @@ class Raw(object):
         if copy:
             data = data.copy()
 
-        start_time = self.index_to_time(self.first_samp if start is None
-                                        else start)
+        start_time = self.index_as_time(start if start else 0, use_first_samp)
         raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
                             t0=start_time)
 

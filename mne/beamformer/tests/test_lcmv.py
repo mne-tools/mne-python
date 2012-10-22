@@ -104,7 +104,7 @@ def test_lcmv_raw():
     noise_cov = mne.cov.regularize(noise_cov, raw.info,
                                    mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
-    start, stop = raw.time_to_index(tmin, tmax)
+    start, stop = raw.time_as_index([tmin, tmax])
 
     # use only the left-temporal MEG channels for LCMV
     picks = mne.fiff.pick_types(raw.info, meg=True, exclude=raw.info['bads'],

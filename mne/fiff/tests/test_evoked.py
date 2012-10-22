@@ -80,8 +80,9 @@ def test_evoked_to_nitime():
     """ Test to_nitime """
     aves = read_evoked(fname, [0, 1, 2, 3])
     evoked_ts = aves[0].to_nitime()
-    assert_true(evoked_ts.shape, aves[0].data.shape)
+    assert_equal(evoked_ts.data, aves[0].data)
 
+    picks2 = [1, 2]
     aves = read_evoked(fname, [0, 1, 2, 3])
-    evoked_ts = aves[0].to_nitime(picks=[1, 2])
-    assert_true(evoked_ts.shape, aves[0].data.shape)
+    evoked_ts = aves[0].to_nitime(picks=picks2)
+    assert_equal(evoked_ts.data, aves[0].data[picks2])

@@ -31,8 +31,8 @@ raw = Raw(raw_fname)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
-# pick times
-start, stop = raw.time_to_index(100, 115)
+# pick times relative to the onset of the MEG measurement.
+start, stop = raw.time_as_index([100, 115], use_first_samp=False)
 
 # export to nitime using a copy of the data
 raw_ts = raw.to_nitime(start=start, stop=stop, picks=picks, copy=True)

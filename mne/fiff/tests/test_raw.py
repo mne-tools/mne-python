@@ -157,7 +157,7 @@ def test_io_raw():
                                             if ch_names[k][0] == 'M']
         n_channels = 100
         meg_channels_idx = meg_channels_idx[:n_channels]
-        start, stop = raw.time_to_index(0, 5)
+        start, stop = raw.time_as_index([0, 5])
         data, times = raw[meg_channels_idx, start:(stop + 1)]
         meg_ch_names = [ch_names[k] for k in meg_channels_idx]
 
@@ -208,7 +208,7 @@ def test_io_complex():
 
     raw = Raw(fif_fname, preload=True)
     picks = np.arange(5)
-    start, stop = raw.time_to_index(0, 5)
+    start, stop = raw.time_as_index([0, 5])
 
     data_orig, _ = raw[picks, start:stop]
 
@@ -408,22 +408,41 @@ def test_raw_to_nitime():
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
-    assert_true(raw_ts.data.shape[0], len(picks))
+    assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
-    assert_true(raw_ts.data.shape[0], len(picks))
+    assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_true(raw_ts.data.shape[0], len(picks))
+    assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_true(raw_ts.data.shape[0], len(picks))
+    assert_true(raw_ts.data.shape[0] == len(picks))
+
+
+def test_raw_index_as_time():
+    """ Test index as time conversion"""
+    raw = Raw(fif_fname, preload=True)
+    t0 = raw.index_as_time([0], True)[0]
+    t1 = raw.index_as_time([100], False)[0]
+    t2 = raw.index_as_time([100], True)[0]
+    assert_true((t2 - t1) == t0)
+
+
+
+def test_raw_time_as_index():
+    """ Test index as time conversion"""
+    raw = Raw(fif_fname, preload=True)
+    first_samp = raw.time_as_index([0], True)[0]
+    assert_true(raw.first_samp == first_samp)
+
+

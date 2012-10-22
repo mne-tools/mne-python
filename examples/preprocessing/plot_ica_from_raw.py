@@ -41,14 +41,14 @@ print ica
 # 1 minute exposure should be sufficient for artifact detection
 # however rejection pefromance significantly improves when using
 # the entire data range
-start, stop = raw.time_to_index(100, 160)
+start, stop = raw.time_as_index([100, 160])
 
 # decompose sources for raw data
 ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
 sources = ica.get_sources_raw(raw, start=start, stop=stop)
 
 # setup reasonable time window for inspection
-start_plot, stop_plot = raw.time_to_index(100, 103)
+start_plot, stop_plot = raw.time_as_index([100, 103])
 
 # plot components
 plot_ica_panel(sources, start=0, stop=stop_plot - start_plot)
@@ -76,7 +76,7 @@ raw_ica = ica.pick_sources_raw(raw, include=None,
 ###############################################################################
 # Show MEG data
 
-start_compare, stop_compare = raw.time_to_index(100, 106)
+start_compare, stop_compare = raw.time_as_index([100, 106])
 
 data, times = raw[picks, start_compare:stop_compare]
 ica_data, _ = raw_ica[picks, start_compare:stop_compare]
