@@ -438,7 +438,6 @@ def test_raw_index_as_time():
     assert_true((t2 - t1) == t0)
 
 
-
 def test_raw_time_as_index():
     """ Test index as time conversion"""
     raw = Raw(fif_fname, preload=True)
