@@ -136,7 +136,6 @@ def test_morph_data():
                                      smooth=12)
     stc_to3 = morph_data_precomputed(subject_from, subject_to,
                                      stc_from, vertices_to, morph_mat)
-    # indexing silliness here due to mne_make_movie's indexing oddities
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
     mean_from = stc_from.data.mean(axis=0)

@@ -987,7 +987,6 @@ def _get_subject_sphere_tris(subject, subjects_dir):
     return tris
 
 
-
 def _get_subjects_dir(subjects_dir):
     """Safely use subjects_dir input to return SUBJECTS_DIR"""
     if subjects_dir is None:
