@@ -1,20 +1,24 @@
-"""Functions to plot M/EEG data e.g. topographies
-"""
-
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
+
+"""Functions to plot M/EEG data e.g. topographies
+"""
 
 from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
+from .baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
+
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
+          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
 def plot_topo(evoked, layout):
@@ -59,9 +63,15 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         xlim for plots.
     proj : bool
         If true SSP projections are applied before display.
+
+    Returns:
+    --------
+    fig : Instance of matplotlib.figure.Figrue
+
     """
     import pylab as pl
     pl.clf()
+    fig = pl.figure()
     if picks is None:
         picks = range(evoked.info['nchan'])
     types = [channel_type(evoked.info, idx) for idx in picks]
@@ -73,7 +83,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
             channel_types.append(t)
 
     counter = 1
-    times = 1e3 * evoked.times  # time in miliseconds
+    times = 1e3 * evoked.times  # time in milliseconds
     for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
                            [1e6, 1e13, 1e15],
                            ['EEG', 'Gradiometers', 'Magnetometers'],
@@ -111,19 +121,180 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
     if show:
         pl.show()
 
+    return fig
 
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
-          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+
+def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
+                      vmin, vmax, colorbar, cmap, layout_scale):
+    """ Helper function: plot tfr on sensor layout """
+
+    import pylab as pl
+    if cmap == None:
+        cmap = pl.cm.jet
+    ch_names = epochs.info['ch_names']
+    pl.rcParams['axes.facecolor'] = 'k'
+    fig = pl.figure(facecolor='k')
+    pos = layout.pos.copy()
+    tmin = 1e3 * epochs.tmin
+    tmax = 1e3 * epochs.tmax
+    if colorbar:
+        pos[:, :2] *= layout_scale
+        pl.rcParams['axes.edgecolor'] = 'k'
+        sm = pl.cm.ScalarMappable(cmap=cmap,
+                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
+        sm.set_array(np.linspace(vmin, vmax))
+        ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+        cb = fig.colorbar(sm, ax=ax)
+        cbytick_obj = pl.getp(cb.ax.axes, 'yticklabels')
+        pl.setp(cbytick_obj, color='w')
+    pl.rcParams['axes.edgecolor'] = 'w'
+    for idx, name in enumerate(layout.names):
+        if name in ch_names:
+            ax = pl.axes(pos[idx], axisbg='k')
+            ch_idx = epochs.info["ch_names"].index(name)
+            extent = (tmin, tmax, freq[0], freq[-1])
+            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower")
+            pl.xticks([], ())
+            pl.yticks([], ())
+
+    return fig
+
+
+def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
+                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
+                    layout_scale=0.945):
+    """Plot induced power on sensor layout
+
+    Parameters
+    ----------
+
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    power : 3D-array
+        First return value from mne.time_frequency.induced_power
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figrue
+        Images of induced power at sensor locations
+
+    """
+    if baseline is None:
+        baseline = epochs.baseline
+
+    power = rescale(power.copy(), epochs.times * 1e3, baseline, mode)
+    if vmin is None:
+        vmin = power.min()
+    if vmax is None:
+        vmax = power.max()
+
+    ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
+                            colorbar=colorbar, vmin=vmin, vmax=vmax,
+                            cmap=cmap, layout_scale=layout_scale)
+    return ret
+
+
+def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
+                         mode='mean', decim=1, colorbar=True, vmin=None,
+                         vmax=None, cmap=None, layout_scale=0.945):
+    """Plot phase locking values on sensor layout
+
+    Parameters
+    ----------
+
+    epochs : instance of Epochs
+        The epochs used to generate the phase locking value
+    phase_lock : 3D-array
+        Phase locking value, second return value from
+        mne.time_frequency.induced_power
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
+    baseline: tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    decim : integer
+        Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figrue
+        Phase lock images at sensor locations
+
+    """
+    if baseline is None:
+        baseline = epochs.baseline
+    phase = rescale(phase.copy(), epochs.times * 1e3, baseline, mode)
+    if vmin is None:
+        vmin = phase.min()
+    if vmax is None:
+        vmax = phase.max()
+    ret = _plot_topo_imshow(epochs, phase, freq, layout, decim=decim,
+                        colorbar=colorbar, vmin=vmin, vmax=vmax,
+                        cmap=cmap, layout_scale=layout_scale)
+
+    return ret
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
-                                fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
-                                brain_color=(0.7, ) * 3, show=True,
-                                high_resolution=False, fig_name=None,
-                                fig_number=None, labels=None,
-                                modes=['cone', 'sphere'],
-                                scale_factors=[1, 0.6],
-                                **kwargs):
+                                 fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
+                                 brain_color=(0.7, ) * 3, show=True,
+                                 high_resolution=False, fig_name=None,
+                                 fig_number=None, labels=None,
+                                 modes=['cone', 'sphere'],
+                                 scale_factors=[1, 0.6],
+                                 **kwargs):
     """Plot source estimates obtained with sparse solver
 
     Active dipoles are represented in a "Glass" brain.
@@ -157,7 +328,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     labels: ndarray or list of ndarrays
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
-        the same color. labels should be a list of ndarrays when
+        the same color. Labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
     kwargs: kwargs
         kwargs pass to mlab.triangular_mesh
@@ -208,8 +379,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     mlab.clf()
     f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                            use_faces, color=brain_color, opacity=opacity,
-                            **kwargs)
+                                   use_faces, color=brain_color,
+                                   opacity=opacity, **kwargs)
 
     import pylab as pl
     # Show time courses
@@ -222,7 +393,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     if labels is not None:
         colors = [colors.next() for _ in
-                        range(np.unique(np.concatenate(labels).ravel()).size)]
+                  range(np.unique(np.concatenate(labels).ravel()).size)]
 
     for v in unique_vertnos:
         # get indices of stcs it belongs to
@@ -294,11 +465,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
     sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
     idx_eeg = [ch_names.index(info_ch_names[c])
-                    for c in sel_eeg if info_ch_names[c] in ch_names]
+               for c in sel_eeg if info_ch_names[c] in ch_names]
     idx_mag = [ch_names.index(info_ch_names[c])
-                    for c in sel_mag if info_ch_names[c] in ch_names]
+               for c in sel_mag if info_ch_names[c] in ch_names]
     idx_grad = [ch_names.index(info_ch_names[c])
-                    for c in sel_grad if info_ch_names[c] in ch_names]
+                for c in sel_grad if info_ch_names[c] in ch_names]
 
     idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
                  (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
