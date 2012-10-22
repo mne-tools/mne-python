@@ -443,5 +443,3 @@ def test_raw_time_as_index():
     raw = Raw(fif_fname, preload=True)
     first_samp = raw.time_as_index([0], True)[0]
     assert_true(raw.first_samp == first_samp)
-
-
