@@ -8,7 +8,9 @@ from mne.datasets import sample
 from mne import stats, SourceEstimate
 from mne import read_stc, write_stc, read_source_estimate, morph_data
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
-                                spatio_temporal_src_connectivity
+                                spatio_temporal_src_connectivity, \
+                                compute_morph_matrix, grade_to_vertices, \
+                                morph_data_precomputed
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -127,21 +129,30 @@ def test_morph_data():
     # indexing silliness here due to mne_make_movie's indexing oddities
     assert_array_almost_equal(stc_to.data, stc_to1.data[:, 0][:, None], 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
+    # make sure precomputed morph matrices work
+    vertices_to = grade_to_vertices(subject_to, grade=3)
+    morph_mat = compute_morph_matrix(subject_from, subject_to,
+                                     stc_from.vertno, vertices_to,
+                                     smooth=12)
+    stc_to3 = morph_data_precomputed(subject_from, subject_to,
+                                     stc_from, vertices_to, morph_mat)
+    # indexing silliness here due to mne_make_movie's indexing oddities
+    assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)
     assert_true(np.corrcoef(mean_to, mean_from).min() > 0.999)
 
-    # test two new types of morphing:
+    # test two types of morphing:
     # 1) make sure we can fill by morphing
     stc_to5 = morph_data(subject_from, subject_to, stc_from,
                             grade=None, smooth=12, buffer_size=3)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
 
     # 2) make sure we can specify vertices
-    vertices = [np.arange(10242), np.arange(10242)]
+    vertices_to = [np.arange(10242), np.arange(10242)]
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
-                            grade=vertices, smooth=12, buffer_size=3)
+                            grade=vertices_to, smooth=12, buffer_size=3)
     stc_to4 = morph_data(subject_from, subject_to, stc_from,
                             grade=5, smooth=12, buffer_size=3)
     assert_array_almost_equal(stc_to3.data, stc_to4.data)
