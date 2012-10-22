@@ -28,11 +28,18 @@ from .proj import read_proj, write_proj, compute_proj_epochs, \
 
 from .selection import read_selection
 from .dipole import read_dip
-from . import fiff
+
 from . import artifacts
-from . import stats
-from . import viz
+from . import beamformer
+from . import data
+from . import datasets
+from . import fiff
+from . import layouts
+from . import minimum_norm
+from . import mixed_norm
 from . import preprocessing
 from . import simulation
-from . import layouts
-from . import datasets
+from . import tests
+from . import time_frequency
+from . import viz
+
