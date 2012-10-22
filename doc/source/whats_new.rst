@@ -31,6 +31,12 @@ Changelog
 
    - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Enhancement of cluster-level stats (speed and memory efficiency) by `Eric Larson`_ and `Martin Luessi`_
+
+   - Reading of source space distances by `Eric Larson`_
+
+   - Support for filling / smoothing labels and speedup of morphing by `Eric Larson`_
+
 API
 ~~~
 
