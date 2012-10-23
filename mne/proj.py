@@ -196,8 +196,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
             stop = (raw.last_samp - raw.first_samp + 1) / raw.info['sfreq']
     else:
         # convert to sample indices
-        start = raw.time_to_index(start)
-        start = start[0]
+        start = raw.time_as_index(start)[0]
         if stop:
             stop = raw.time_to_indx(stop)
             stop = min(stop[0], raw.last_samp - raw.fist_samp + 1)

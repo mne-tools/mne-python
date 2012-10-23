@@ -314,6 +314,28 @@ class Evoked(object):
         plot_evoked(self, picks=picks, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim)
 
+    def to_nitime(self, picks=None):
+        """ Export Evoked object to NiTime
+        Parameters
+        ----------
+        picks : array-like | None
+            Indices of channels to apply. If None, all channels will be
+            exported.
+
+        Retruns
+        -------
+        evoked_ts : instance of nitime.TimeSeries
+        """
+        try:
+            from nitime import TimeSeries  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the nitime package is missing')
+
+        evoked_ts = TimeSeries(self.data if picks is None
+                               else self.data[picks],
+                               sampling_rate=self.info['sfreq'])
+        return evoked_ts
+
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample preloaded data
 

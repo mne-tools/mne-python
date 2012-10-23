@@ -33,7 +33,7 @@ picks = fiff.pick_types(raw.info, meg=want_meg, eeg=want_eeg,
                                   exclude=exclude)
 
 some_picks = picks[:5]  # take 5 first
-start, stop = raw.time_to_index(0, 15)  # read the first 15s of data
+start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 data, times = raw[some_picks, start:(stop + 1)]
 
 # save 150s of MEG data in FIF file

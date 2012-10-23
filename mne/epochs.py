@@ -233,8 +233,8 @@ class Epochs(object):
 
         Should be used before slicing operations.
 
-        .. Warning:: Operation is slow since all epochs have to be read from disk.
-            To avoid reading epochs form disk multiple times, initialize
+        .. Warning:: Operation is slow since all epochs have to be read from
+            disk. To avoid reading epochs form disk multiple times, initialize
             Epochs object with preload=True.
 
         """
@@ -603,6 +603,58 @@ class Epochs(object):
 
         return out
 
+    def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
+                  copy=True, use_first_samp=False):
+        """ Export epochs as nitime TimeSeries
+
+        Parameters
+        ----------
+        picks : array-like | None
+            Indices for exporting subsets of the epochs channels. If None
+            all good channels will be used.
+        epochs_idx : slice | array-like | None
+            Epochs index for single or selective epochs exports. If None, all
+            epochs will be used.
+        collapse : boolean
+            If True export epochs and time slices will be collapsed to 2D array.
+            This may be required by some nitime functions.
+        copy : boolean
+            If True exports copy of epochs data.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
+
+        Returns
+        -------
+        epochs_ts : instance of nitime.TimeSeries
+            The Epochs as nitime TimeSeries object
+        """
+        try:
+            from nitime import TimeSeries  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the nitime package is missing')
+
+        if picks is None:
+            picks = pick_types(self.info, include=self.ch_names,
+                               exclude=self.info['bads'])
+        if epochs_idx is None:
+            epochs_idx = slice(len(self.events))
+
+        data = self.get_data()[epochs_idx, picks]
+
+        if copy is True:
+            data = data.copy()
+
+        if collapse is True:
+            data = np.hstack(data).copy()
+
+        offset = self.raw.time_as_index(abs(self.tmin), use_first_samp)
+        t0 = self.raw.index_as_time(self.events[0, 0] - offset)[0]
+        epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
+        epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
+
+        return epochs_ts
+
 
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
     """Test if data segment e is good according to the criteria
@@ -623,8 +675,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
                     if not has_printed:
-                        print '    Rejecting epoch based on %s : %s (%s > %s).' \
-                                    % (name, ch_name, delta, thresh)
+                        print('    Rejecting epoch based on %s : %s (%s > %s).'
+                                    % (name, ch_name, delta, thresh))
                         has_printed = True
                     if not full_report:
                         return False

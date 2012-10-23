@@ -103,9 +103,9 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
     """
     start, stop = None, None
     if tmin is not None:
-        start = raw.time_to_index(tmin)[0]
+        start = raw.time_as_index(tmin)[0]
     if tmax is not None:
-        stop = raw.time_to_index(tmax)[0] + 1
+        stop = raw.time_as_index(tmax)[0] + 1
     data, times = raw[picks, start:stop]
 
     coefs = np.empty((len(data), order))

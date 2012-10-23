@@ -389,9 +389,9 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     start, stop = 0, raw.last_samp + 1 - raw.first_samp
     if tmin is not None:
-        start = raw.time_to_index(tmin)[0]
+        start = raw.time_as_index(tmin)[0]
     if tmax is not None:
-        stop = raw.time_to_index(tmax)[0] + 1
+        stop = raw.time_as_index(tmax)[0] + 1
     NFFT = int(NFFT)
     Fs = raw.info['sfreq']
     window = signal.hanning(NFFT)

@@ -1,4 +1,5 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -294,3 +295,28 @@ def test_epochs_copy():
     data = epochs.get_data()
     copied_data = copied.get_data()
     assert_array_equal(data, copied_data)
+
+
+def test_epochs_to_nitime():
+    """Test test_to_nitime"""
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+
+    picks2 = [0, 3]
+
+    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                 collapse=True, copy=True)
+    assert_true(epochs_ts.ch_names == epochs.ch_names)
+
+    epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
+                                 collapse=True, copy=True)
+    assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks])
+
+    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                 collapse=False, copy=False)
+    assert_true(epochs_ts.ch_names == epochs.ch_names)
+
+    epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
+                                 collapse=False, copy=False)
+    assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks])
