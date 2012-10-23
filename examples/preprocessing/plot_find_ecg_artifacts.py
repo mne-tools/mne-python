@@ -38,10 +38,10 @@ epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,
                     proj=False)
 data = epochs.get_data()
 
-print "Number of detected EOG artifacts : %d" % len(data)
+print "Number of detected ECG artifacts : %d" % len(data)
 
 ###############################################################################
-# Plot EOG artifacts
+# Plot ECG artifacts
 pl.plot(1e3 * epochs.times, np.squeeze(data).T)
 pl.xlabel('Times (ms)')
 pl.ylabel('ECG')
