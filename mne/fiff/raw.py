@@ -767,14 +767,16 @@ class Raw(object):
 
         Returns
         -------
-        index : list
+        index : ndarray
             Indices corresponding to the times supplied.
         """
         if type(times) in (int, float):
             times = [times]
 
-        offset = self.first_samp if use_first_samp else 0
-        index = [int(t * self.info['sfreq']) + offset for t in times]
+        index = np.array(times, dtyp=int) * self.info['sfreq']
+
+        if use_first_samp:
+            index += self.first_samp
 
         return index
 
@@ -790,14 +792,14 @@ class Raw(object):
 
         Returns
         -------
-        times : list
+        times : ndarray
             Times corresponding to the index supplied.
         """
         if isinstance(index, int):
             index = [index]
 
-        offset = self.first_samp if use_first_samp else 0
-        times = [(idx + offset) / self.info['sfreq'] for idx in index]
+        times = (np.array(index, dtyp=int) + self.first_samp if
+                 use_first_samp else 0) / self.info['sfreq']
 
         return times
 
