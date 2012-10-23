@@ -70,16 +70,17 @@ class ICA(object):
         self.noise_cov = noise_cov
 
         # sklearn < 0.11 does not random_state argument for FastICA
-        kwargs = inspect.getargspec(FastICA.__init__)
-        if 'random_state' in kwargs:
-            self._fast_ica = FastICA(n_components, random_state=random_state,
-                                     algorithm=algorithm, fun=fun,
-                                     fun_args=fun_args)
-        else:
-            warnings.warn('random_state argument ignored, update scikit-learn '
-                           'to version 0.11 or newer')
-            self._fast_ica = FastICA(n_components, algorithm=algorithm,
-                                     fun=fun, fun_args=fun_args)
+        kwargs = {'algorithm': algorithm, 'fun': fun, 'fun_args': fun_args}
+
+        if random_state is not None:
+            aspec = inspect.getargspec(FastICA.__init__)
+            if 'random_state' not in aspec.args:
+                warnings.warn('random_state argument ignored, update '
+                              'scikit-learn to version 0.11 or newer')
+            else:
+                kwargs['random_state'] = random_state
+
+        self._fast_ica = FastICA(n_components, **kwargs)
 
         self.n_components = n_components
         self.last_fit = 'unfitted'
