@@ -142,6 +142,8 @@ Functions reference
    plot_topo
    plot_sparse_source_estimates
    plot_ica_panel
+   plot_topo_power
+   plot_topo_phase_lock
 
 .. automodule:: mne.artifacts
  :no-members:
