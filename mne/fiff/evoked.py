@@ -331,9 +331,9 @@ class Evoked(object):
         except ImportError:
             raise Exception('the nitime package is missing')
 
-        evoked_ts = TimeSeries(self.data[picks] if picks else self.data,
+        evoked_ts = TimeSeries(self.data if picks is None
+                               else self.data[picks],
                                sampling_rate=self.info['sfreq'])
-
         return evoked_ts
 
     def resample(self, sfreq, npad=100, window='boxcar'):

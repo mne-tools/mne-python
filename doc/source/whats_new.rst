@@ -30,11 +30,17 @@ Changelog
    - IO of many Evoked in a single fif file + compute Epochs.standard_error by `Eric Larson`_ and `Alex Gramfort`_
 
    - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
+   - Export epochs data to the pandas library by `Denis Engemann`_ 
+   - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
+   - Copy methods for raw and epochs objects by `Denis Engemann`_, `Martin Luessi`_ and `Alex Gramfort`_
+   - New raw objects method to get the time at certain indices by `Denis Engemann`_ and `Alex Gramfort`_
+   - plot method for evoked objects by `Denis Engemann`_
 
 API
 ~~~
 
    - Use mne.layout.read_layout instead of mne.layout.Layout to read a layout file (.lout)
+   - Use raw.time_as_index instead of time_to_index (still works but is deprecated). 
 
 .. _changes_0_4:
 

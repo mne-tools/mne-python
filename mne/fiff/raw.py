@@ -773,7 +773,7 @@ class Raw(object):
         if type(times) in (int, float):
             times = [times]
 
-        index = np.array(times, dtyp=int) * self.info['sfreq']
+        index = np.array(times, dtype=int) * self.info['sfreq']
 
         if use_first_samp:
             index += self.first_samp
@@ -798,8 +798,9 @@ class Raw(object):
         if isinstance(index, int):
             index = [index]
 
-        times = (np.array(index, dtyp=int) + self.first_samp if
-                 use_first_samp else 0) / self.info['sfreq']
+        index = np.array(index, dtype=int) + (self.first_samp if
+                                              use_first_samp else 0)
+        times = index / self.info['sfreq']
 
         return times
 
