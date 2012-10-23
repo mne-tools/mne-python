@@ -69,7 +69,7 @@ class ICA(object):
                             'required for ICA')
         self.noise_cov = noise_cov
 
-        # sklearn < 0.11 does not random_state argument for FastICA
+        # sklearn < 0.11 does not support random_state argument for FastICA
         kwargs = {'algorithm': algorithm, 'fun': fun, 'fun_args': fun_args}
 
         if random_state is not None:
