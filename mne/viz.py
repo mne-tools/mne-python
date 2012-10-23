@@ -117,45 +117,9 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
-def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
-                      vmin, vmax, colorbar, cmap, layout_scale):
-    """ Helper function: plot tfr on sensor layout """
-
-    import pylab as pl
-    if cmap == None:
-        cmap = pl.cm.jet
-    ch_names = epochs.info['ch_names']
-    pl.rcParams['axes.facecolor'] = 'k'
-    fig = pl.figure(facecolor='k')
-    pos = layout.pos.copy()
-    tmin = 1e3 * epochs.tmin
-    tmax = 1e3 * epochs.tmax
-    if colorbar:
-        pos[:, :2] *= layout_scale
-        pl.rcParams['axes.edgecolor'] = 'k'
-        sm = pl.cm.ScalarMappable(cmap=cmap,
-                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
-        sm.set_array(np.linspace(vmin, vmax))
-        ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
-        cb = fig.colorbar(sm, ax=ax)
-        cbytick_obj = pl.getp(cb.ax.axes, 'yticklabels')
-        pl.setp(cbytick_obj, color='w')
-    pl.rcParams['axes.edgecolor'] = 'w'
-    for idx, name in enumerate(layout.names):
-        if name in ch_names:
-            ax = pl.axes(pos[idx], axisbg='k')
-            ch_idx = epochs.info["ch_names"].index(name)
-            extent = (tmin, tmax, freq[0], freq[-1])
-            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower")
-            pl.xticks([], ())
-            pl.yticks([], ())
-
-    return fig
-
-
 def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
                     decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
-                    layout_scale=0.945):
+                    layout_scale=0.945, dB=True):
     """Plot induced power on sensor layout
 
     Parameters
@@ -182,6 +146,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         power during baseline) or z-score (power is divided by standard
         deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
+    If None, baseline no correction will be performed.
     decim : integer
         Increment for selecting each nth time slice
     colorbar : bool
@@ -195,16 +160,21 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     layout_scale: float
         scaling factor for adjusting the relative size of the layout
         on the canvas
+    dB: boolean
+        If True, log10 will be applied to the data.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figrue
         Images of induced power at sensor locations
 
     """
-    if baseline is None:
-        baseline = epochs.baseline
-
-    power = rescale(power.copy(), epochs.times * 1e3, baseline, mode)
+    if mode is not None:
+        if baseline is None:
+            baseline = epochs.baseline
+        times = epochs.times[::decim] * 1e3
+        power = rescale(power.copy(), times, baseline, mode)
+    if dB:
+        power = 20 * np.log10(power)
     if vmin is None:
         vmin = power.min()
     if vmax is None:
@@ -241,11 +211,12 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
+    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
+        Do baseline correction with ratio (phase is divided by mean
+        phase during baseline) or z-score (phase is divided by standard
+        deviation of phase during baseline after subtracting the mean,
+        phase = [phase - mean(phase_baseline)] / std(phase_baseline)).
+        If None, baseline no correction will be performed.
     decim : integer
         Increment for selecting each nth time slice
     colorbar : bool
@@ -266,28 +237,67 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         Phase lock images at sensor locations
 
     """
-    if baseline is None:
-        baseline = epochs.baseline
-    phase = rescale(phase.copy(), epochs.times * 1e3, baseline, mode)
+    if mode is not None:  # do baseline correction
+        if baseline is None:
+            baseline = epochs.baseline
+        times = epochs.times[::decim] * 1e3
+        phase = rescale(phase.copy(), times, baseline, mode)
     if vmin is None:
         vmin = phase.min()
     if vmax is None:
         vmax = phase.max()
-    ret = _plot_topo_imshow(epochs, phase, freq, layout, decim=decim,
+
+    ret = _plot_topo_imshow(epochs, phase.copy(), freq, layout, decim=decim,
                         colorbar=colorbar, vmin=vmin, vmax=vmax,
                         cmap=cmap, layout_scale=layout_scale)
 
     return ret
 
 
+def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
+                      vmin, vmax, colorbar, cmap, layout_scale):
+    """ Helper function: plot tfr on sensor layout """
+
+    import pylab as pl
+    if cmap == None:
+        cmap = pl.cm.jet
+    ch_names = epochs.info['ch_names']
+    pl.rcParams['axes.facecolor'] = 'k'
+    fig = pl.figure(facecolor='k')
+    pos = layout.pos.copy()
+    tmin = 1e3 * epochs.tmin
+    tmax = 1e3 * epochs.tmax
+    if colorbar:
+        pos[:, :2] *= layout_scale
+        pl.rcParams['axes.edgecolor'] = 'k'
+        sm = pl.cm.ScalarMappable(cmap=cmap,
+                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
+        sm.set_array(np.linspace(vmin, vmax))
+        ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+        cb = fig.colorbar(sm, ax=ax)
+        cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
+        pl.setp(cb_yticks, color='w')
+    pl.rcParams['axes.edgecolor'] = 'w'
+    for idx, name in enumerate(layout.names):
+        if name in ch_names:
+            ax = pl.axes(pos[idx], axisbg='k')
+            ch_idx = epochs.info["ch_names"].index(name)
+            extent = (tmin, tmax, freq[0], freq[-1])
+            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower")
+            pl.xticks([], ())
+            pl.yticks([], ())
+
+    return fig
+
+
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
-                                fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
-                                brain_color=(0.7, ) * 3, show=True,
-                                high_resolution=False, fig_name=None,
-                                fig_number=None, labels=None,
-                                modes=['cone', 'sphere'],
-                                scale_factors=[1, 0.6],
-                                **kwargs):
+                                 fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
+                                 brain_color=(0.7, ) * 3, show=True,
+                                 high_resolution=False, fig_name=None,
+                                 fig_number=None, labels=None,
+                                 modes=['cone', 'sphere'],
+                                 scale_factors=[1, 0.6],
+                                 **kwargs):
     """Plot source estimates obtained with sparse solver
 
     Active dipoles are represented in a "Glass" brain.
