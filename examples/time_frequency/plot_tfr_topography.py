@@ -63,7 +63,7 @@ baseline = (None, 0)  # set the baseline for induced power
 mode = 'ratio'  # set mode for baseline rescaling
 
 ###############################################################################
-# Show topography of power (be patient, this may take some time)
+# Show topography of power.
 
 plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
                 mode=mode, decim=decim)
@@ -73,7 +73,9 @@ pl.show()
 
 
 ###############################################################################
-# Show topography of phase_locking value (be patient, this may take some time)
+# Show topography of phase locking value (PLV)
+
+mode = None  # no baseline rescaling for PLV
 
 plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
                      baseline=baseline, mode=mode, decim=decim)
