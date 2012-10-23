@@ -5,10 +5,13 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
+import inspect
+import warnings
 
 import numpy as np
 from scipy import stats
 from scipy import linalg
+
 from ..cov import compute_whitener
 from ..fiff import pick_types
 
@@ -60,14 +63,24 @@ class ICA(object):
     def __init__(self, noise_cov=None, n_components=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None):
         try:
-            from sklearn.decomposition import FastICA  # to avoid strong dependency
+            from sklearn.decomposition import FastICA  # to avoid strong dep.
         except ImportError:
             raise Exception('the scikit-learn package is missing and '
                             'required for ICA')
         self.noise_cov = noise_cov
-        self._fast_ica = FastICA(n_components, random_state=random_state,
-                                 algorithm=algorithm, fun=fun,
-                                 fun_args=fun_args)
+
+        # sklearn < 0.11 does not random_state argument for FastICA
+        kwargs = inspect.getargspec(FastICA.__init__)
+        if 'random_state' in kwargs:
+            self._fast_ica = FastICA(n_components, random_state=random_state,
+                                     algorithm=algorithm, fun=fun,
+                                     fun_args=fun_args)
+        else:
+            warnings.warn('random_state argument ignored, update scikit-learn '
+                           'to version 0.11 or newer')
+            self._fast_ica = FastICA(n_components, algorithm=algorithm,
+                                     fun=fun, fun_args=fun_args)
+
         self.n_components = n_components
         self.last_fit = 'unfitted'
         self.sorted_by = 'unsorted'
