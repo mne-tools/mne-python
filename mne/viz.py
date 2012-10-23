@@ -124,7 +124,6 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
 
     Parameters
     ----------
-
     epochs : instance of Epochs
         The epochs used to generate the power
     power : 3D-array
@@ -162,11 +161,11 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         on the canvas
     dB: boolean
         If True, log10 will be applied to the data.
+
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figrue
+    fig : Instance of matplotlib.figure.Figure
         Images of induced power at sensor locations
-
     """
     if mode is not None:
         if baseline is None:
@@ -180,10 +179,10 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     if vmax is None:
         vmax = power.max()
 
-    ret = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
+    fig = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
                             cmap=cmap, layout_scale=layout_scale)
-    return ret
+    return fig
 
 
 def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
@@ -193,7 +192,6 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
 
     Parameters
     ----------
-
     epochs : instance of Epochs
         The epochs used to generate the phase locking value
     phase_lock : 3D-array
@@ -235,7 +233,6 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
     -------
     fig : Instance of matplotlib.figure.Figrue
         Phase lock images at sensor locations
-
     """
     if mode is not None:  # do baseline correction
         if baseline is None:
@@ -247,17 +244,16 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
     if vmax is None:
         vmax = phase.max()
 
-    ret = _plot_topo_imshow(epochs, phase.copy(), freq, layout, decim=decim,
+    fig = _plot_topo_imshow(epochs, phase.copy(), freq, layout, decim=decim,
                         colorbar=colorbar, vmin=vmin, vmax=vmax,
                         cmap=cmap, layout_scale=layout_scale)
 
-    return ret
+    return fig
 
 
 def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
                       vmin, vmax, colorbar, cmap, layout_scale):
-    """ Helper function: plot tfr on sensor layout """
-
+    """Helper function: plot tfr on sensor layout"""
     import pylab as pl
     if cmap == None:
         cmap = pl.cm.jet
@@ -283,7 +279,8 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
             ax = pl.axes(pos[idx], axisbg='k')
             ch_idx = epochs.info["ch_names"].index(name)
             extent = (tmin, tmax, freq[0], freq[-1])
-            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower")
+            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
+                      vmin=vmin, vmax=vmax)
             pl.xticks([], ())
             pl.yticks([], ())
 

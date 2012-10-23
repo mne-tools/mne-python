@@ -3,14 +3,14 @@
 Plot time-frequency representations on topographies for MEG sensors
 ===================================================================
 
+Both induced power and phase locking values are displayed.
 """
+print __doc__
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
-
-print __doc__
 
 import numpy as np
 import pylab as pl
@@ -20,6 +20,7 @@ from mne.time_frequency import induced_power
 from mne.layouts import read_layout
 from mne.viz import plot_topo_power, plot_topo_phase_lock
 from mne.datasets import sample
+
 data_path = sample.data_path('..')
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -52,25 +53,21 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
                                   n_cycles=n_cycles, n_jobs=1, use_fft=False,
                                   decim=decim, zero_mean=True)
 
-
 ###############################################################################
 # Prepare topography plots, set baseline correction parameters
 
 layout = read_layout('Vectorview-all')
-
 baseline = (None, 0)  # set the baseline for induced power
-
 mode = 'ratio'  # set mode for baseline rescaling
 
 ###############################################################################
 # Show topography of power.
 
 plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
-                mode=mode, decim=decim)
+                mode=mode, decim=decim, vmin=0., vmax=14)
 title = 'Induced power - MNE sample data'
 pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
 pl.show()
-
 
 ###############################################################################
 # Show topography of phase locking value (PLV)
