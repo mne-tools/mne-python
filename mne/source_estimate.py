@@ -936,10 +936,9 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
     n_iter = 100  # max nb of smoothing iterations
     if sparse.issparse(data):
-        if isinstance(data, sparse.csr_matrix):
-            use_sparse = True
-        else:
-            raise ValueError('Sparse data must be in csr format')
+        use_sparse = True
+        if not isinstance(data, sparse.csr_matrix):
+            data = data.tocsr()
     else:
         use_sparse = False
     for k in range(n_iter):
