@@ -65,7 +65,7 @@ class Raw(object):
 
     ch_names : list of string
         List of channels' names
-   """
+    """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
 
@@ -746,12 +746,63 @@ class Raw(object):
 
         finish_writing_raw(outfid)
 
+    @deprecated('time_to_index is deprecated please use time_as_index instead')
     def time_to_index(self, *args):
+        """Convert time to indices"""
         indices = []
         for time in args:
             ind = int(time * self.info['sfreq'])
             indices.append(ind)
         return indices
+
+    def time_as_index(self, times, use_first_samp=False):
+        """Convert time to indices
+        Parameters
+        ----------
+        times : list-like | float | int
+            List of numbers or a number representing points in time.
+        use_first_samp: boolean
+            If True, time is treated as relative to the session onset, else
+            as relative to the recording onset.
+
+        Returns
+        -------
+        index : ndarray
+            Indices corresponding to the times supplied.
+        """
+        if type(times) in (int, float):
+            times = [times]
+
+        index = np.array(times, dtype=int) * self.info['sfreq']
+
+        if use_first_samp:
+            index += self.first_samp
+
+        return index
+
+    def index_as_time(self, index, use_first_samp=False):
+        """Convert time to indices
+        Parameters
+        ----------
+        index : list-like | int
+            List of ints or int representing points in time.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
+
+        Returns
+        -------
+        times : ndarray
+            Times corresponding to the index supplied.
+        """
+        if isinstance(index, int):
+            index = [index]
+
+        index = np.array(index, dtype=int) + (self.first_samp if
+                                              use_first_samp else 0)
+        times = index / self.info['sfreq']
+
+        return times
 
     @property
     def ch_names(self):
@@ -894,6 +945,47 @@ class Raw(object):
                 new_fid.seek(this_fid.tell())
 
         return new
+
+    def to_nitime(self, start=None, stop=None, use_first_samp=False, picks=None,
+                  copy=True):
+        """ Raw data as nitime TimeSeries
+
+        Parameters
+        ----------
+        start : int | None
+            Data-extraction start index. If None, data will be exported from
+            the first sample.
+        stop : int | None
+            Data-extraction stop index. If None, data will be exported to the
+            last index.
+        use_first_samp: boolean
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
+        picks : array-like | None
+            Indices of channels to apply. If None, all channels will be exported.
+        copy : boolean | None
+            Whether to copy the raw data or not.
+
+        Returns
+        -------
+        raw_ts : instance of nitime.TimeSeries
+        """
+        try:
+            from nitime import TimeSeries  # to avoid strong dependency
+        except ImportError:
+            raise Exception('the nitime package is missing')
+
+        data, _ = self[picks, start:stop]
+        if copy:
+            data = data.copy()
+
+        start_time = self.index_as_time(start if start else 0, use_first_samp)
+        raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
+                            t0=start_time)
+
+        raw_ts.ch_names = [self.ch_names[k] for k in picks]
+
+        return raw_ts
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),

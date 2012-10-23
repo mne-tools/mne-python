@@ -37,7 +37,7 @@ raw = Raw(fname_raw)
 inverse_operator = read_inverse_operator(fname_inv)
 label = mne.read_label(fname_label)
 
-start, stop = raw.time_to_index(0, 15)  # read the first 15s of data
+start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 
 # Compute inverse solution
 stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,

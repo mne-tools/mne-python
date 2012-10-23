@@ -56,7 +56,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     freqs: array of float
         The frequencies
     """
-    start, stop = raw.time_to_index(tmin, tmax)
+    start, stop = raw.time_as_index([tmin, tmax])
     if picks is not None:
         data, times = raw[picks, start:(stop + 1)]
     else:

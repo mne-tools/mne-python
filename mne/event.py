@@ -250,10 +250,10 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     new_events: array
         The new events
     """
-    start = raw.time_to_index(start)
+    start = raw.time_as_index(start)
     start = start[0] + raw.first_samp
     if stop is not None:
-        stop = raw.time_to_index(stop)
+        stop = raw.time_as_index(stop)
         stop = min([stop[0] + raw.fist_samp, raw.last_samp + 1])
     else:
         stop = raw.last_samp + 1
