@@ -47,7 +47,7 @@ Changelog
 
    - Support for filling / smoothing labels and speedup of morphing by `Eric Larson`_
 
-   - Adding options for morphing by `Eric Larson`
+   - Adding options for morphing by `Eric Larson`_
 
    - Plotting functions for time frequency topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
