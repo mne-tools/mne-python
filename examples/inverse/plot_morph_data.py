@@ -29,7 +29,7 @@ src_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 # Read input stc file
 stc_from = mne.read_source_estimate(fname)
 # Morph using one method (supplying the vertices in fsaverage's source
-# space make it faster). Note that for any generic subject, you could do:
+# space makes it faster). Note that for any generic subject, you could do:
 #     vertices_to = mne.grade_to_vertices(subject_to, grade=5)
 # But fsaverage's source space was set up so we can just do this:
 vertices_to = [np.arange(10242), np.arange(10242)]

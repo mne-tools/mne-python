@@ -31,7 +31,7 @@ Changelog
 
    - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Export epochs data to the pandas library by `Denis Engemann`_ 
+   - Export epochs data to the pandas library by `Denis Engemann`_
 
    - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
 
@@ -46,6 +46,8 @@ Changelog
    - Reading of source space distances by `Eric Larson`_
 
    - Support for filling / smoothing labels and speedup of morphing by `Eric Larson`_
+
+   - Adding options for morphing by `Eric Larson`
 
    - Plotting functions for time frequency topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
