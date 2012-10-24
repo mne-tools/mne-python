@@ -905,26 +905,19 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     -----------
     data : array, or csr sparse matrix
         A n_vertices x n_times (or other dimension) dataset to morph
-
     idx_use : array of int
         Vertices from the original subject's data
-
     e : sparse matrix
         The mesh edges of the "from" subject
-
     smooth : int
         Number of smoothing iterations to perform. A hard limit of 100 is
         also imposed.
-
     n_vertices : int
         Number of vertices
-
     nearest : array of int
         Vertices on the destination surface to use.
-
     maps : sparse matrix
         Morph map from one subject to the other.
-
     verobse : bool
         If True, print status messages
 
