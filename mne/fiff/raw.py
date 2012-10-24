@@ -773,12 +773,12 @@ class Raw(object):
         if type(times) in (int, float):
             times = [times]
 
-        index = np.array(times, dtype=int) * self.info['sfreq']
+        index = np.array(times) * self.info['sfreq']
 
         if use_first_samp:
             index += self.first_samp
 
-        return index
+        return index.astype(int)
 
     def index_as_time(self, index, use_first_samp=False):
         """Convert time to indices
