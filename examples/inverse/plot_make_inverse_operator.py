@@ -23,7 +23,7 @@ from mne.minimum_norm import make_inverse_operator, apply_inverse, \
                              write_inverse_operator
 
 data_path = sample.data_path('..')
-fname_fwd = data_path + '/MEG/sample/sample_audvis-eeg-oct-6-fwd.fif'
+fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
@@ -39,23 +39,35 @@ noise_cov = mne.read_cov(fname_cov)
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
-inverse_operator = make_inverse_operator(evoked.info, forward, noise_cov,
-                                         loose=0.2, depth=0.8)
 
-# Save inverse operator to vizualize with mne_analyze
-write_inverse_operator('sample_audvis-eeg-oct-6-eeg-inv.fif', inverse_operator)
+# make an M/EEG, MEG-only, and EEG-only inverse operators
+names = ['meg-eeg', 'meg', 'eeg']
+meg_bool = [True, True, False]
+eeg_bool = [True, False, True]
+forwards = [mne.fiff.pick_types_forward(forward, meg=m, eeg=e)
+    for m, e in zip(meg_bool, eeg_bool)]
 
-# Compute inverse solution
-stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM",
-                    pick_normal=False)
+info = evoked.info
+inverse_operators = [make_inverse_operator(info, f, noise_cov, loose=0.2,
+                                           depth=0.8) for f in forwards]
 
-# Save result in stc files
-stc.save('mne_dSPM_inverse')
+# Save inverse operators to vizualize with mne_analyze
+stcs = [None] * len(names)
+for ii, (name, inv) in enumerate(zip(names, inverse_operators)):
+    write_inverse_operator('sample_audvis-eeg-oct-6-%s-inv.fif' % name, inv)
+
+    # Compute inverse solution
+    stcs[ii] = apply_inverse(evoked, inv, lambda2, "dSPM", pick_normal=False)
+
+    # Save result in stc files
+    stcs[ii].save('mne_dSPM_inverse-%s' % name)
 
 ###############################################################################
 # View activation time-series
 pl.close('all')
-pl.plot(1e3 * stc.times, stc.data[::150, :].T)
+for ii, (name, stc) in enumerate(zip(names, stcs)):
+    pl.subplot(len(stcs), 1, ii)
+    pl.plot(1e3 * stc.times, stc.data[::150, :].T)
+    pl.ylabel('%s\ndSPM value' % str.upper(name))
 pl.xlabel('time (ms)')
-pl.ylabel('dSPM value')
 pl.show()
