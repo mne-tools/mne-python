@@ -3,9 +3,9 @@
 Assemble inverse operator and compute MNE-dSPM inverse solution
 ===============================================================
 
-Assemble an EEG inverse operator and compute dSPM inverse solution
-on MNE evoked dataset and stores the solution in stc files for
-visualisation.
+Assemble M/EEG, MEG, and EEG inverse operators and compute dSPM
+inverse solution on MNE evoked dataset and stores the solution
+in stc files for visualisation.
 
 """
 
