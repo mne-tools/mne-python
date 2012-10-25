@@ -49,6 +49,9 @@ Functions reference
    read_source_spaces
    save_stc_as_volume
    morph_data
+   grade_to_vertices
+   compute_morph_matrix
+   morph_data_precomputed
    read_stc
    write_stc
    read_w
