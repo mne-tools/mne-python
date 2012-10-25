@@ -78,10 +78,10 @@ for name in names:
 ###############################################################################
 # View activation time-series
 pl.close('all')
-for ii in range(3):
+for ii in range(len(stcs)):
     name = names[ii]
     stc = stcs[name]
-    pl.subplot(3, 1, ii)
+    pl.subplot(len(stcs), 1, ii)
     pl.plot(1e3 * stc.times, stc.data[::150, :].T)
     pl.ylabel('%s\ndSPM value' % str.upper(name))
 pl.xlabel('time (ms)')
