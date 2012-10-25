@@ -901,8 +901,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   verbose=True):
     """Morph data from one subject's source space to another
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data : array, or csr sparse matrix
         A n_vertices x n_times (or other dimension) dataset to morph
     idx_use : array of int
@@ -921,10 +921,15 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     verobse : bool
         If True, print status messages
 
-    Returns:
-    --------
+    Returns
+    -------
     data_morphed : array, or csr sparse matrix
         The morphed data (same type as input)
+
+    Notes
+    -----
+    This function will transform data to float64 format before morphing,
+    then convert back to the original datatype on return.
     """
 
     n_iter = 100  # max nb of smoothing iterations
@@ -934,6 +939,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
             data = data.tocsr()
     else:
         use_sparse = False
+    old_type = data.dtype
+    data = data.astype('float64')
     for k in range(n_iter):
         e_use = e[:, idx_use]
         data1 = e_use * np.ones(len(idx_use))
@@ -960,6 +967,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     if verbose:
         print '    %d smooth iterations done.' % (k + 1)
     data_morphed = maps[nearest, :] * data
+    data_morphed = data_morphed.astype(old_type)
     return data_morphed
 
 
