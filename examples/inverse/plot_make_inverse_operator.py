@@ -62,26 +62,25 @@ write_inverse_operator('sample_audvis-eeg-oct-6-inv.fif',
                        inverse_operator_eeg)
 
 # Compute inverse solution
-stcs = [None] * 3
-stcs[0] = apply_inverse(evoked, inverse_operator_meeg, lambda2, "dSPM",
+stcs = dict()
+stcs['meeg'] = apply_inverse(evoked, inverse_operator_meeg, lambda2, "dSPM",
                         pick_normal=False)
-stcs[1] = apply_inverse(evoked, inverse_operator_meg, lambda2, "dSPM",
+stcs['meg'] = apply_inverse(evoked, inverse_operator_meg, lambda2, "dSPM",
                         pick_normal=False)
-stcs[2] = apply_inverse(evoked, inverse_operator_eeg, lambda2, "dSPM",
+stcs['eeg'] = apply_inverse(evoked, inverse_operator_eeg, lambda2, "dSPM",
                         pick_normal=False)
 
 # Save result in stc files
 names = ['meeg', 'meg', 'eeg']
-for ii in range(len(names)):
-    name = names[ii]
-    stcs[ii].save('mne_dSPM_inverse-%s' % name)
+for name in names:
+    stcs[name].save('mne_dSPM_inverse-%s' % name)
 
 ###############################################################################
 # View activation time-series
 pl.close('all')
-for ii in range(len(stcs)):
+for ii in range(3):
     name = names[ii]
-    stc = stcs[ii]
+    stc = stcs[name]
     pl.subplot(len(stcs), 1, ii)
     pl.plot(1e3 * stc.times, stc.data[::150, :].T)
     pl.ylabel('%s\ndSPM value' % str.upper(name))
