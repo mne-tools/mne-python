@@ -16,6 +16,7 @@ is a source estimate defined on the anatomy of 'fsaverage'
 print __doc__
 
 import mne
+import numpy as np
 from mne.datasets import sample
 
 data_path = sample.data_path('..')
