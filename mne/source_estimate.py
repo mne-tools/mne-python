@@ -723,9 +723,8 @@ class SourceEstimate(object):
             hemi = hemi[0]
         if not hemi in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
-        subjects_dir = os.environ.get('SUBJECTS_DIR', subjects_dir)
-        if subjects_dir is None:
-            raise ValueError('Please set SUBJECTS_DIR environment variable')
+
+        subjects_dir = _get_subjects_dir(subjects_dir)
 
         values = values[vert_inds[hemi]]
 
@@ -789,11 +788,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         The morph maps for the 2 hemisphere
     """
 
-    if subjects_dir is None:
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
+    subjects_dir = _get_subjects_dir(subjects_dir)
 
     # Does the file exist
     name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
@@ -904,11 +899,41 @@ def mesh_dist(tris, vert):
 
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   verbose=True):
-    # idx_use starts as the vertices from the original subject's data
-    # nearest are the vertices from the new subject's data to map to,
-    # based on the mapping in "maps"
+    """Morph data from one subject's source space to another
+
+    Parameters
+    ----------
+    data : array, or csr sparse matrix
+        A n_vertices x n_times (or other dimension) dataset to morph
+    idx_use : array of int
+        Vertices from the original subject's data
+    e : sparse matrix
+        The mesh edges of the "from" subject
+    smooth : int
+        Number of smoothing iterations to perform. A hard limit of 100 is
+        also imposed.
+    n_vertices : int
+        Number of vertices
+    nearest : array of int
+        Vertices on the destination surface to use.
+    maps : sparse matrix
+        Morph map from one subject to the other.
+    verobse : bool
+        If True, print status messages
+
+    Returns
+    -------
+    data_morphed : array, or csr sparse matrix
+        The morphed data (same type as input)
+    """
 
     n_iter = 100  # max nb of smoothing iterations
+    if sparse.issparse(data):
+        use_sparse = True
+        if not isinstance(data, sparse.csr_matrix):
+            data = data.tocsr()
+    else:
+        use_sparse = False
     for k in range(n_iter):
         e_use = e[:, idx_use]
         data1 = e_use * np.ones(len(idx_use))
@@ -920,9 +945,18 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                 break
         elif k == (smooth - 1):
             break
-        data = data[idx_use, :] / data1[idx_use][:, None]
+        if use_sparse:
+            data = data[idx_use, :]
+            data.data /= data1[idx_use].repeat(np.diff(data.indptr))
+        else:
+            data = data[idx_use, :] / data1[idx_use][:, None]
 
-    data[idx_use, :] /= data1[idx_use][:, None]
+    if use_sparse:
+        data1[data1 == 0] = 1
+        data.data /= data1.repeat(np.diff(data.indptr))
+    else:
+        data[idx_use, :] /= data1[idx_use][:, None]
+
     if verbose:
         print '    %d smooth iterations done.' % (k + 1)
     data_morphed = maps[nearest, :] * data
@@ -936,6 +970,23 @@ def _compute_nearest(xhs, rr):
         dots = np.dot(rr[k:k + dr], xhs.T)
         nearest[k:k + dr] = np.argmax(dots, axis=1)
     return nearest
+
+
+def _get_subject_sphere_tris(subject, subjects_dir):
+    spheres = [os.path.join(subjects_dir, subject, 'surf',
+                            xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    tris = [read_surface(s)[1] for s in spheres]
+    return tris
+
+
+def _get_subjects_dir(subjects_dir):
+    """Safely use subjects_dir input to return SUBJECTS_DIR"""
+    if subjects_dir is None:
+        if 'SUBJECTS_DIR' in os.environ:
+            subjects_dir = os.environ['SUBJECTS_DIR']
+        else:
+            raise ValueError('SUBJECTS_DIR environment variable not set')
+    return subjects_dir
 
 
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
@@ -963,8 +1014,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
-    subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment
     buffer_size : int
         Morph data in chunks of `buffer_size` time instants.
         Saves memory when morphing long time intervals.
@@ -987,48 +1038,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         raise ValueError('Morphing is only possible with surface source '
                          'estimates')
 
-    if subjects_dir is None:
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
-
-    spheres_from = [os.path.join(subjects_dir, subject_from, 'surf',
-                                 xh + '.sphere.reg') for xh in ['lh', 'rh']]
-    tris = [read_surface(s)[1] for s in spheres_from]
-
-    spheres_to = [os.path.join(subjects_dir, subject_to, 'surf',
-                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
-    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
-
-    if grade is not None:  # fill a subset of vertices
-        if isinstance(grade, list):
-            if not len(grade) == 2:
-                raise ValueError('grade as a list must have two elements '
-                                 '(arrays of output vertices)')
-            nearest = grade
-        else:
-            # find which vertices to use in "to mesh"
-            ico = _get_ico_tris(grade, verbose=False, return_surf=True,
-                                mne_root=mne_root)
-            lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
-            rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
-
-            # Compute nearest vertices in high dim mesh
-            parallel, my_compute_nearest, _ = \
-                                parallel_func(_compute_nearest, n_jobs,
-                                              verbose)
-            lhs, rhs, rr = [a.astype(np.float32)
-                            for a in [lhs, rhs, ico['rr']]]
-            nearest = parallel(my_compute_nearest(xhs, rr)
-                               for xhs in [lhs, rhs])
-    else:  # potentially fill the surface
-        nearest = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
-
-    # morph the data
+    subjects_dir = _get_subjects_dir(subjects_dir)
+    nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
+                                n_jobs, verbose)
+    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir,
                           verbose=verbose)
 
+    # morph the data
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
     rh_data = stc_from.data[-len(stc_from.rh_vertno):]
     data = [lh_data, rh_data]
@@ -1069,6 +1086,164 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     if verbose:
         print '[done]'
 
+    return stc_to
+
+
+def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
+                         smooth=None, subjects_dir=None, verbose=False):
+    """Get a matrix that morphs data from one subject to another
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR
+    vertices_from : list of arrays of int
+        Vertices for each hemisphere (LH, RH) for subject_from
+    vertices_to : list of arrays of int
+        Vertices for each hemisphere (LH, RH) for subject_to
+    smooth : int or None
+        Number of iterations for the smoothing of the surface data.
+        If None, smooth is automatically defined to fill the surface
+        with non-zero values.
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment
+    verbose : bool
+        If True, print some status messages
+
+    Returns
+    -------
+    morph_matrix : sparse matrix
+        matrix that morphs data from subject_from to subject_to
+
+    """
+    subjects_dir = _get_subjects_dir(subjects_dir)
+    tris = _get_subject_sphere_tris(subject_from, subjects_dir)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir,
+                          verbose=verbose)
+
+    morpher = [None] * 2
+    for hemi in [0, 1]:
+        e = mesh_edges(tris[hemi])
+        e.data[e.data == 2] = 1
+        n_vertices = e.shape[0]
+        e = e + sparse.eye(n_vertices, n_vertices)
+        idx_use = vertices_from[hemi]
+        if len(idx_use) == 0:
+            morpher[hemi] = []
+            continue
+        m = sparse.eye(len(idx_use), len(idx_use), format='csr')
+        morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
+                                      vertices_to[hemi], maps[hemi], verbose)
+    return sparse_block_diag(morpher, format='csr')
+
+
+def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
+                      n_jobs=1, verbose=0):
+    """Convert a grade to source space vertices for a given subject
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject
+    grade : int
+        Resolution of the icosahedral mesh (typically 5). If None, all
+        vertices will be used (potentially filling the surface). If a list,
+        then values will be morphed to the set of vertices specified in
+        in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+        grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
+        standard grade 5 source space) can be substantially faster than
+        computing vertex locations.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment
+    mne_root : str, or None
+        Root directory for MNE. If None, the environment variable MNE_ROOT
+        is used. mne_root is only used for computation of vertices to use
+        (i.e., when "grade" is an integer).
+    n_jobs : int
+        Number of jobs to run in parallel
+    verbose : int
+        Print some status messages
+
+    Returns
+    -------
+    vertices : list of arrays of int
+        Vertex numbers for LH and RH
+    """
+    subjects_dir = _get_subjects_dir(subjects_dir)
+
+    spheres_to = [os.path.join(subjects_dir, subject, 'surf',
+                               xh + '.sphere.reg') for xh in ['lh', 'rh']]
+    lhs, rhs = [read_surface(s)[0] for s in spheres_to]
+
+    if grade is not None:  # fill a subset of vertices
+        if isinstance(grade, list):
+            if not len(grade) == 2:
+                raise ValueError('grade as a list must have two elements '
+                                 '(arrays of output vertices)')
+            vertices = grade
+        else:
+            # find which vertices to use in "to mesh"
+            ico = _get_ico_tris(grade, verbose=False, return_surf=True,
+                                mne_root=mne_root)
+            lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
+            rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
+
+            # Compute nearest vertices in high dim mesh
+            parallel, my_compute_nearest, _ = \
+                                parallel_func(_compute_nearest, n_jobs,
+                                              verbose)
+            lhs, rhs, rr = [a.astype(np.float32)
+                            for a in [lhs, rhs, ico['rr']]]
+            vertices = parallel(my_compute_nearest(xhs, rr)
+                               for xhs in [lhs, rhs])
+    else:  # potentially fill the surface
+        vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
+
+    return vertices
+
+
+def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
+                           morph_mat):
+    """Morph a source estimate from one subject to another using a
+    morph matrix precomputed with compute_morph_matrix
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR
+    stc_from : SourceEstimate
+        Source estimates for subject "from" to morph
+    vertices_to : list of array of int
+        The vertices on the destination subject's brain
+    morph_mat : sparse matrix
+        The morphing matrix
+
+    Returns
+    -------
+    stc_to : SourceEstimate
+        Source estimate for the destination subject.
+    """
+
+    if not sparse.issparse(morph_mat):
+        raise ValueError('morph_mat must be a sparse matrix')
+
+    if not isinstance(vertices_to, list) or not len(vertices_to) == 2:
+        raise ValueError('vertices_to must be a list of length 2')
+
+    if not sum(len(v) for v in vertices_to) == morph_mat.shape[0]:
+        raise ValueError('number of vertices in vertices_to must match '
+                         'morph_mat.shape[0]')
+    if not stc_from.data.shape[0] == morph_mat.shape[1]:
+        raise ValueError('stc_from.data.shape[0] must be the same as '
+                         'morph_mat.shape[0]')
+
+    stc_to = copy.deepcopy(stc_from)
+    stc_to.vertno = vertices_to
+    stc_to.data = morph_mat * stc_from.data
     return stc_to
 
 
