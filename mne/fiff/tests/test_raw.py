@@ -23,7 +23,8 @@ bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
 
 
 def test_multiple_files():
-    """Test loading multiple files simultaneously"""
+    """Test loading multiple files simultaneously
+    """
 
     # split file
     raw = Raw(fif_fname, preload=True)
@@ -78,20 +79,20 @@ def test_multiple_files():
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
                                       Raw(fif_fname, preload=True)],
-                                      preload=True)
+                                     preload=True)
     assert_true(raw_combos[2]._preloaded == True)
 
     raw_combos[6] = concatenate_raws([Raw(fif_fname, preload=False),
                                       Raw(fif_fname, preload=True)],
-                                      preload='memmap3.dat')
+                                     preload='memmap3.dat')
 
     raw_combos[7] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=True)],
-                                      preload='memmap4.dat')
+                                     preload='memmap4.dat')
 
     raw_combos[8] = concatenate_raws([Raw(fif_fname, preload=False),
                                       Raw(fif_fname, preload=False)],
-                                      preload='memmap5.dat')
+                                     preload='memmap5.dat')
 
     # make sure that all our data match
     times = range(0, 2 * n_times, 999)
@@ -109,7 +110,8 @@ def test_multiple_files():
 
 
 def test_load_bad_channels():
-    """ Test reading/writing of bad channels """
+    """Test reading/writing of bad channels
+    """
 
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
@@ -147,14 +149,15 @@ def test_load_bad_channels():
 
 
 def test_io_raw():
-    """Test IO for raw data (Neuromag + CTF)"""
+    """Test IO for raw data (Neuromag + CTF)
+    """
     for fname in [fif_fname, ctf_fname]:
         raw = Raw(fname)
 
         nchan = raw.info['nchan']
         ch_names = raw.info['ch_names']
         meg_channels_idx = [k for k in range(nchan)
-                                            if ch_names[k][0] == 'M']
+                            if ch_names[k][0] == 'M']
         n_channels = 100
         meg_channels_idx = meg_channels_idx[:n_channels]
         start, stop = raw.time_as_index([0, 5])
@@ -165,8 +168,8 @@ def test_io_raw():
         include = ['STI 014']
         include += meg_ch_names
         picks = pick_types(raw.info, meg=True, eeg=False,
-                                stim=True, misc=True, include=include,
-                                exclude=raw.info['bads'])
+                           stim=True, misc=True, include=include,
+                           exclude=raw.info['bads'])
         print "Number of picked channels : %d" % len(picks)
 
         # Writing with drop_small_buffer True
@@ -203,7 +206,8 @@ def test_io_raw():
 
 
 def test_io_complex():
-    """ Test IO with complex data types """
+    """Test IO with complex data types
+    """
     dtypes = [np.complex64, np.complex128]
 
     raw = Raw(fif_fname, preload=True)
@@ -214,7 +218,7 @@ def test_io_complex():
 
     for dtype in dtypes:
         imag_rand = np.array(1j * np.random.randn(data_orig.shape[0],
-                            data_orig.shape[1]), dtype)
+                             data_orig.shape[1]), dtype)
 
         raw_cp = deepcopy(raw)
         raw_cp._data = np.array(raw_cp._data, dtype)

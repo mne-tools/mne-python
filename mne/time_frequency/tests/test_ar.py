@@ -8,7 +8,7 @@ from mne import fiff
 from mne.time_frequency import yule_walker, ar_raw
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                'test_raw.fif')
+                    'test_raw.fif')
 
 
 def test_yule_walker():
@@ -26,6 +26,8 @@ def test_yule_walker():
 
 
 def test_ar_raw():
+    """Test fitting AR model on raw data
+    """
     raw = fiff.Raw(raw_fname)
 
     # picks MEG gradiometers

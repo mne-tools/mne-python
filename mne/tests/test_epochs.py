@@ -30,7 +30,7 @@ flat = dict(grad=1e-15, mag=1e-15)
 
 
 def test_read_epochs():
-    """Reading epochs from raw files
+    """Test reading epochs from raw files
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
@@ -69,7 +69,8 @@ def test_epochs_proj():
 
 
 def test_evoked_arithmetic():
-    """Arithmetic of evoked data"""
+    """Test arithmetic of evoked data
+    """
     epochs1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0))
     evoked1 = epochs1.average()
@@ -281,7 +282,8 @@ def test_bootstrap():
 
 
 def test_epochs_copy():
-    """ Test copy epochs """
+    """Test copy epochs
+    """
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
@@ -298,7 +300,8 @@ def test_epochs_copy():
 
 
 def test_epochs_to_nitime():
-    """Test test_to_nitime"""
+    """Test test_to_nitime
+    """
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
