@@ -12,6 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
+from mne import concatenate_events, find_events
 
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
@@ -42,6 +43,9 @@ def test_multiple_files():
         fname = 'test_raw_split-%d_raw.fif' % ri
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
+    events = [find_events(r) for r in raws]
+    last_samps = [r.last_samp for r in raws]
+    first_samps = [r.first_samp for r in raws]
 
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=False)
@@ -51,6 +55,21 @@ def test_multiple_files():
     raws[0] = Raw(fname)
     all_raw_2 = concatenate_raws(raws, preload=True)
     assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
+
+    # test proper event treatment for split files
+    events = concatenate_events(events, first_samps, last_samps)
+    events2 = find_events(all_raw_2)
+    assert_array_equal(events, events2)
+
+    # now test event treatment for concatenated raw files
+    raws2 = [Raw(fif_fname, preload=True) for ii in [0, 1]]
+    events = [find_events(r) for r in raws2]
+    last_samps = [r.last_samp for r in raws2]
+    first_samps = [r.first_samp for r in raws2]
+    events = concatenate_events(events, first_samps, last_samps)
+    raws2 = concatenate_raws(raws2)
+    events2 = find_events(raws2)
+    assert_array_equal(events, events2)
 
     # test various methods of combining files
     n_combos = 9

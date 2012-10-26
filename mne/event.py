@@ -263,3 +263,52 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     n_events = len(ts)
     events = np.c_[ts, np.zeros(n_events), id * np.ones(n_events)]
     return events
+
+
+def concatenate_events(events, first_samps, last_samps):
+    """Concatenate event lists in a manner compatible with
+    concatenate_raws
+
+    This is useful, for example, if you processed and/or changed
+    events in raw files separately before combining them using
+    concatenate_raws.
+
+    Parameters
+    ----------
+    events : list of arrays
+        List of event arrays, typically each extracted from a
+        corresponding raw file that is being concatenated
+
+    first_samps : list or array of int
+        First sample numbers of the raw files concatenated
+
+    last_samps : list or array of int
+        Last sample numbers of the raw files concatenated
+
+    Returns
+    -------
+    events : array
+        The concatenated events.
+    """
+    if not isinstance(events, list):
+        raise ValueError('events must be a list of arrays')
+    if not (len(events) == len(last_samps) and
+            len(events) == len(first_samps)):
+        raise ValueError('events, first_samps, and last_samps must all have '
+                         'the same lengths')
+    first_samps = np.array(first_samps)
+    last_samps = np.array(last_samps)
+    n_samps = np.cumsum(last_samps - first_samps + 1)
+    events_out = events[0]
+    for e, f, n in zip(events[1:], first_samps[1:], n_samps[:-1]):
+        # unless the files were split by mne_browse_raw, remove first event
+        # designating the offset (split files don't have the zeroth event)
+        if e[0, 0] == 0:
+            e = e[1:]
+        # remove any skip since it doesn't exist in concatenated files
+        e[:, 0] -= f
+        # add offset due to previous files, plus original file offset
+        e[:, 0] += n + first_samps[0]
+        events_out = np.concatenate((events_out, e), axis=0)
+
+    return events_out

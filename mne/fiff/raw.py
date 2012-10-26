@@ -65,6 +65,9 @@ class Raw(object):
 
     ch_names : list of string
         List of channels' names
+
+    n_samp : int
+        Total length of the raw file in samples
     """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
@@ -807,6 +810,10 @@ class Raw(object):
     @property
     def ch_names(self):
         return self.info['ch_names']
+
+    @property
+    def n_samp(self):
+        return self.last_samp - self.first_samp + 1
 
     def load_bad_channels(self, bad_file=None, force=False):
         """
