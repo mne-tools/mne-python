@@ -6,6 +6,7 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
 
 
 def test_filters():
+    """Test low-, band-, and high-pass filters"""
     Fs = 500
     sig_len_secs = 60
 

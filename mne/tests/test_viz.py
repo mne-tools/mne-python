@@ -13,7 +13,7 @@ evoked = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
 
 
 def test_plot_topo():
-    """Plot ERP topography
+    """Test plotting of ERP topography
     """
 
     layout = read_layout('Vectorview-all')

@@ -21,20 +21,20 @@ sklearn_test = np.testing.dec.skipif(not have_sklearn,
                                      'scikit-learn not installed')
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                     'test_raw.fif')
+                    'test_raw.fif')
 event_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
                      'data', 'test-eve.fif')
 evoked_nf_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                     'data', 'test-nf-ave.fif')
+                         'data', 'test-nf-ave.fif')
 
 test_cov_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                     'data', 'test-cov.fif')
+                        'data', 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 raw = fiff.Raw(raw_fname, preload=True)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, stim=False,
-                            ecg=False, eog=False, exclude=raw.info['bads'])
+                        ecg=False, eog=False, exclude=raw.info['bads'])
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
@@ -46,7 +46,8 @@ start, stop = 0, 500
 
 @sklearn_test
 def test_ica_raw():
-    """Test ICA on raw"""
+    """Test ICA on raw
+    """
     ica = ICA(noise_cov=None, n_components=25, random_state=0)
     ica_cov = ICA(noise_cov=test_cov, n_components=25, random_state=0)
 
@@ -82,7 +83,7 @@ def test_ica_raw():
     raw2 = ica_cov.pick_sources_raw(raw, exclude=[], copy=True)
     raw2 = ica_cov.pick_sources_raw(raw, exclude=[1, 2], copy=True)
     raw2 = ica_cov.pick_sources_raw(raw, include=[1, 2],
-                                exclude=[], copy=True)
+                                    exclude=[], copy=True)
     assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
     initial_sort = ica_cov._sort_idx
@@ -129,7 +130,7 @@ def test_ica_raw():
     epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[], copy=True)
     epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[0], copy=True)
     epochs2 = ica_cov.pick_sources_epochs(epochs, include=[0],
-                                      exclude=[], copy=True)
+                                          exclude=[], copy=True)
     assert_array_almost_equal(epochs2._data, epochs._data)
 
     initial_sort = ica_cov._sort_idx
