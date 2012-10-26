@@ -301,10 +301,6 @@ def concatenate_events(events, first_samps, last_samps):
     n_samps = np.cumsum(last_samps - first_samps + 1)
     events_out = events[0]
     for e, f, n in zip(events[1:], first_samps[1:], n_samps[:-1]):
-        # unless the files were split by mne_browse_raw, remove first event
-        # designating the offset (split files don't have the zeroth event)
-        if e[0, 0] == 0:
-            e = e[1:]
         # remove any skip since it doesn't exist in concatenated files
         e[:, 0] -= f
         # add offset due to previous files, plus original file offset
