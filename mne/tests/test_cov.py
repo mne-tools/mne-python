@@ -40,7 +40,7 @@ def test_io_cov():
 
 
 def test_cov_estimation_on_raw_segment():
-    """Estimate raw on continuous recordings (typically empty room)
+    """Test estimation from raw on continuous recordings (typically empty room)
     """
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
@@ -64,7 +64,7 @@ def test_cov_estimation_on_raw_segment():
 
 
 def test_cov_estimation_with_triggers():
-    """Estimate raw with triggers
+    """Test estimation from raw with triggers
     """
     events = find_events(raw)
     event_ids = [1, 2, 3, 4]
