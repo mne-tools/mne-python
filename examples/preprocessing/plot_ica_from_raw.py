@@ -83,7 +83,7 @@ pl.show()
 
 eog_source_idx = ica.find_sources_raw(raw, target='eog', score_func=corr)
 
-# plot the component that correlates most with the ecg
+# plot the component that correlates most with the EOG
 
 pl.figure()
 pl.plot(times, sources[eog_source_idx])
@@ -95,7 +95,7 @@ pl.show()
 
 exclude = np.r_[ecg_source_idx]
 
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
+raw_ica = ica.pick_sources_raw(raw, include=None, exclude=[24], copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 

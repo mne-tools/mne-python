@@ -1,10 +1,11 @@
 """
-==================================
-Compute ICA components on Raw data
-==================================
+============================================
+Find ICA components matching custom criteria
+============================================
 
 ICA is used to decompose raw data in 25 sources.
-Events are extracted from the ecg sources.
+Events are extracted from the ecg sourcesa using
+different criteria.
 
 """
 print __doc__
@@ -15,7 +16,6 @@ print __doc__
 
 import numpy as np
 
-import mne
 from mne.fiff import Raw
 from mne.artifacts.ica import ICA
 from mne.datasets import sample
@@ -47,14 +47,7 @@ ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
 start_plot, stop_plot = raw.time_as_index([100, 103])
 
 # plot components
-ica.plot_panel(raw, start=0, stop=(stop_plot - start_plot))
-
-# Find the component that correlates the most with the ECG channel
-# As we don't have an ECG channel with take one can correlates a lot
-# 'MEG 1531'
-affected_idx = raw.ch_names.index('MEG 1531')
-ecg, times = raw[affected_idx]
-ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.)
+ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 
 from scipy.stats import pearsonr
 
@@ -64,27 +57,33 @@ corr_r = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
 # get source with maximum absolute correlation to the ecg signal
 # as we don't have an
-source_idx = ica.find_sources(raw, target='MEG 1531', score_func=corr_r,
+source_idx = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr_r,
                               criterion='max')
 
 print source_idx
 
 # get source with maximum positive correlation
-source_idx = ica.find_sources(raw, target=ecg, score_func=corr_r,
+source_idx = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr_r,
                               take_abs=False, criterion='max')
 
 print source_idx
 
 # get source with maximum negative correlation
-source_idx = ica.find_sources(raw, target=ecg, score_func=corr_r,
+source_idx = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr_r,
                               take_abs=False, criterion='min')
 
 print source_idx
 
 
+# get the source scores
+scores = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr_r,
+                              take_abs=False, criterion=None)
+
+print scores
+
 ###############################################################################
 #  get sources pearson correlated with ecg signal above a minimum variance
-#  explanation value of 2 percent
+#  explanation value of 5 percent
 
 #  create function that iteratively applies pearson correlation to sources
 #  and the ecg and returns \{r}^2\
@@ -92,9 +91,9 @@ corr_expl = lambda x, y: np.power([pearsonr(a, y.ravel()) for a in x], 2)[:, 0]
 
 # set cruterion to tuple with a comparison function to the left
 # and the float criterion to the right
-criterion = (np.greater_equal, .02)
+criterion = (np.greater_equal, .05)
 
-source_idx = ica.find_sources(raw, target=ecg, score_func=corr_expl,
+source_idx = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr_expl,
                               criterion=criterion)
 
 print source_idx
