@@ -61,10 +61,13 @@ class Raw(object):
     Attributes
     ----------
     info : dict
-        Measurement info
+        Measurement info.
 
     ch_names : list of string
-        List of channels' names
+        List of channels' names.
+
+    n_times : int
+        Total number of time points in the raw file.
     """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
@@ -619,10 +622,10 @@ class Raw(object):
         Parameters
         ----------
         projs : list
-            List with projection vectors
+            List with projection vectors.
 
         remove_existing : bool
-            Remove the projection vectors currently in the file
+            Remove the projection vectors currently in the file.
         """
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True)
@@ -645,7 +648,7 @@ class Raw(object):
         Parameters:
         -----------
         idx : int
-            Index of the projector to remove
+            Index of the projector to remove.
         """
         if self.info['projs'][idx]['active']:
             raise ValueError('Cannot remove projectors that have already '
@@ -664,13 +667,13 @@ class Raw(object):
             filename.
 
         picks : list of int
-            Indices of channels to include
+            Indices of channels to include.
 
         tmin : float
-            Time in seconds of first sample to save
+            Time in seconds of first sample to save.
 
         tmax : float
-            Time in seconds of last sample to save
+            Time in seconds of last sample to save.
 
         buffer_size_sec : float
             Size of data chuncks in seconds.
@@ -808,6 +811,13 @@ class Raw(object):
     def ch_names(self):
         return self.info['ch_names']
 
+    @property
+    def n_times(self):
+        return self.last_samp - self.first_samp + 1
+
+    def __len__(self):
+        return self.n_times
+
     def load_bad_channels(self, bad_file=None, force=False):
         """
         Mark channels as bad from a text file, in the style
@@ -818,7 +828,7 @@ class Raw(object):
         bad_file : string
             File name of the text file containing bad channels
             If bad_file = None, bad channels are cleared, but this
-            is more easily done directly as raw.info['bads'] = []
+            is more easily done directly as raw.info['bads'] = [].
 
         force : boolean
             Whether or not to force bad channel marking (of those
@@ -853,7 +863,7 @@ class Raw(object):
         ----------
         raws : list, or Raw instance
             list of Raw instances to concatenate to the current instance
-            (in order), or a single raw instance to concatenate
+            (in order), or a single raw instance to concatenate.
 
         preload : bool, str, or None (default None)
             Preload data into memory for data manipulation and faster indexing.
@@ -1010,18 +1020,18 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     Parameters
     ----------
     raw: Raw object
-        An instance of Raw
+        An instance of Raw.
 
     start: int, (optional)
         first sample to include (first is 0). If omitted, defaults to the first
-        sample in data
+        sample in data.
 
     stop: int, (optional)
         First sample to not include.
         If omitted, data is included to the end.
 
     sel: array, optional
-        Indices of channels to select
+        Indices of channels to select.
 
     data_buffer: array or str, optional
         numpy array to fill with data read, must have the correct shape.
@@ -1029,18 +1039,18 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         to store the data.
 
     verbose: bool
-        Use verbose output
+        Use verbose output.
 
     proj: array
-        SSP operator to apply to the data
+        SSP operator to apply to the data.
 
     Returns
     -------
     data: array, [channels x samples]
-       the data matrix (channels x samples)
+       the data matrix (channels x samples).
 
     times: array, [samples]
-        returns the time values corresponding to the samples
+        returns the time values corresponding to the samples.
     """
     if stop is None:
         stop = raw.last_samp - raw.first_samp + 1
@@ -1200,30 +1210,30 @@ def read_raw_segment_times(raw, start, stop, sel=None, verbose=True):
     Parameters
     ----------
     raw: Raw object
-        An instance of Raw
+        An instance of Raw.
 
     start: float
-        Starting time of the segment in seconds
+        Starting time of the segment in seconds.
 
     stop: float
-        End time of the segment in seconds
+        End time of the segment in seconds.
 
     sel: array, optional
-        Indices of channels to select
+        Indices of channels to select.
 
     node: tree node
-        The node of the tree where to look
+        The node of the tree where to look.
 
     verbose: bool
-        Use verbose output
+        Use verbose output.
 
     Returns
     -------
     data: array, [channels x samples]
-       the data matrix (channels x samples)
+       the data matrix (channels x samples).
 
     times: array, [samples]
-        returns the time values corresponding to the samples
+        returns the time values corresponding to the samples.
     """
     #   Convert to samples
     start = floor(start * raw.info['sfreq'])
@@ -1250,7 +1260,7 @@ def start_writing_raw(name, info, sel=None):
         Name of the file to create.
 
     info : dict
-        Measurement info
+        Measurement info.
 
     sel : array of int, optional
         Indices of channels to include. By default all channels are included.
@@ -1258,10 +1268,10 @@ def start_writing_raw(name, info, sel=None):
     Returns
     -------
     fid : file
-        The file descriptor
+        The file descriptor.
 
     cals : list
-        calibration factors
+        calibration factors.
     """
     #
     #  Create the file and save the essentials
@@ -1317,13 +1327,13 @@ def write_raw_buffer(fid, buf, cals):
     Parameters
     ----------
     fid : file descriptor
-        an open raw data file
+        an open raw data file.
 
     buf : array
-        The buffer to write
+        The buffer to write.
 
     cals : array
-        Calibration factors
+        Calibration factors.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
@@ -1341,7 +1351,7 @@ def finish_writing_raw(fid):
     Parameters
     ----------
     fid : file descriptor
-        an open raw data file
+        an open raw data file.
     """
     end_block(fid, FIFF.FIFFB_RAW_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
@@ -1392,7 +1402,7 @@ def concatenate_raws(raws, preload=None):
     Returns
     -------
     raw : instance of Raw
-        The result of the concatenation (first Raw instance passed in)
+        The result of the concatenation (first Raw instance passed in).
     """
     raws[0].append(raws[1:], preload)
     return raws[0]

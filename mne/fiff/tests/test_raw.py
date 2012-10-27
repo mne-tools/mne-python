@@ -12,6 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
+from mne import concatenate_events, find_events
 
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
@@ -42,6 +43,9 @@ def test_multiple_files():
         fname = 'test_raw_split-%d_raw.fif' % ri
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
+    events = [find_events(r) for r in raws]
+    last_samps = [r.last_samp for r in raws]
+    first_samps = [r.first_samp for r in raws]
 
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=False)
@@ -51,6 +55,11 @@ def test_multiple_files():
     raws[0] = Raw(fname)
     all_raw_2 = concatenate_raws(raws, preload=True)
     assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
+
+    # test proper event treatment for split files
+    events = concatenate_events(events, first_samps, last_samps)
+    events2 = find_events(all_raw_2)
+    assert_array_equal(events, events2)
 
     # test various methods of combining files
     n_combos = 9
@@ -75,6 +84,7 @@ def test_multiple_files():
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=False)])
     assert_true(raw_combos[1]._preloaded == False)
+    assert_array_equal(find_events(raw_combos[4]), find_events(raw_combos[0]))
 
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
@@ -107,6 +117,18 @@ def test_multiple_files():
     # verify that combining raws with different projectors throws an exception
     raw.add_proj([], remove_existing=True)
     assert_raises(ValueError, raw.append, Raw(fif_fname, preload=True))
+
+    # now test event treatment for concatenated raw files
+    events = [find_events(raw), find_events(raw)]
+    last_samps = [raw.last_samp, raw.last_samp]
+    first_samps = [raw.first_samp, raw.first_samp]
+    events = concatenate_events(events, first_samps, last_samps)
+    events2 = find_events(raw_combos[0])
+    assert_array_equal(events, events2)
+
+    # check out the len method
+    assert_true(len(raw) == raw.n_times)
+    assert_true(len(raw) == raw.last_samp - raw.first_samp + 1)
 
 
 def test_load_bad_channels():

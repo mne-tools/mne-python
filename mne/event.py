@@ -83,6 +83,11 @@ def read_events(filename, include=None, exclude=None):
     -------
     events: array, shape (n_events, 3)
         The list of events
+
+    Notes
+    -----
+    This function will discard the offset line (i.e., first line with zero
+    event number) if it is present in a text file.
     """
 
     if splitext(filename)[1].lower() == '.fif':
@@ -119,7 +124,7 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('No text lines found')
 
         if lines.ndim == 1:  # Special case for only one event
-            lines = lines[np.newaxis,:]
+            lines = lines[np.newaxis, :]
 
         if len(lines[0]) == 4:  # Old format eve/lst
             goods = [0, 2, 3]   # Omit "time" variable
@@ -129,6 +134,8 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
+        if event_list.shape[0] > 0 and event_list[0, 2] == 0:
+            event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
     return event_list
@@ -139,7 +146,7 @@ def write_events(filename, event_list):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         Name of the output file.
         If the extension is .fif, events are written in
         binary FIF format, otherwise (e.g., .eve, .lst,
@@ -147,7 +154,7 @@ def write_events(filename, event_list):
         Note that new format event files do not contain
         the "time" column (used to be the second column).
 
-    events: array, shape (n_events, 3)
+    event_list : array, shape (n_events, 3)
         The list of events
     """
     if splitext(filename)[1].lower() == '.fif':
@@ -171,14 +178,14 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
     Parameters
     ----------
     raw : Raw object
-        The raw data
+        The raw data.
 
     stim_channel : string or list of string
         Name of the stim channel or all the stim channels
         affected by the trigger.
 
     verbose : bool
-        Use verbose output
+        Use verbose output.
 
     Returns
     -------
@@ -215,11 +222,11 @@ def merge_events(events, ids, new_id):
     Parameters
     ----------
     events : array
-        Events
+        Events.
     ids : array of int
-        The ids of events to merge
+        The ids of events to merge.
     new_id : int
-        The new id
+        The new id.
 
     Returns
     -------
@@ -239,11 +246,11 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     Parameters
     ----------
     raw : instance of Raw
-        A raw object to use the data from
+        A raw object to use the data from.
     duration: float
-        The duration to separate events by
+        The duration to separate events by.
     id : int
-        The id to use
+        The id to use.
 
     Returns
     -------
@@ -263,3 +270,49 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     n_events = len(ts)
     events = np.c_[ts, np.zeros(n_events), id * np.ones(n_events)]
     return events
+
+
+def concatenate_events(events, first_samps, last_samps):
+    """Concatenate event lists in a manner compatible with
+    concatenate_raws
+
+    This is useful, for example, if you processed and/or changed
+    events in raw files separately before combining them using
+    concatenate_raws.
+
+    Parameters
+    ----------
+    events : list of arrays
+        List of event arrays, typically each extracted from a
+        corresponding raw file that is being concatenated.
+
+    first_samps : list or array of int
+        First sample numbers of the raw files concatenated.
+
+    last_samps : list or array of int
+        Last sample numbers of the raw files concatenated.
+
+    Returns
+    -------
+    events : array
+        The concatenated events.
+    """
+    if not isinstance(events, list):
+        raise ValueError('events must be a list of arrays')
+    if not (len(events) == len(last_samps) and
+            len(events) == len(first_samps)):
+        raise ValueError('events, first_samps, and last_samps must all have '
+                         'the same lengths')
+    first_samps = np.array(first_samps)
+    last_samps = np.array(last_samps)
+    n_samps = np.cumsum(last_samps - first_samps + 1)
+    events_out = events[0]
+    for e, f, n in zip(events[1:], first_samps[1:], n_samps[:-1]):
+        # remove any skip since it doesn't exist in concatenated files
+        e2 = e.copy()
+        e2[:, 0] -= f
+        # add offset due to previous files, plus original file offset
+        e2[:, 0] += n + first_samps[0]
+        events_out = np.concatenate((events_out, e2), axis=0)
+
+    return events_out
