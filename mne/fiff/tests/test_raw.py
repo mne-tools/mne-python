@@ -61,16 +61,6 @@ def test_multiple_files():
     events2 = find_events(all_raw_2)
     assert_array_equal(events, events2)
 
-    # now test event treatment for concatenated raw files
-    raws2 = [Raw(fif_fname, preload=True) for ii in [0, 1]]
-    events = [find_events(r) for r in raws2]
-    last_samps = [r.last_samp for r in raws2]
-    first_samps = [r.first_samp for r in raws2]
-    events = concatenate_events(events, first_samps, last_samps)
-    raws2 = concatenate_raws(raws2)
-    events2 = find_events(raws2)
-    assert_array_equal(events, events2)
-
     # test various methods of combining files
     n_combos = 9
     raw_combos = [None] * n_combos
@@ -94,6 +84,7 @@ def test_multiple_files():
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=False)])
     assert_true(raw_combos[1]._preloaded == False)
+    assert_array_equal(find_events(raw_combos[4]), find_events(raw_combos[0]))
 
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
@@ -126,6 +117,18 @@ def test_multiple_files():
     # verify that combining raws with different projectors throws an exception
     raw.add_proj([], remove_existing=True)
     assert_raises(ValueError, raw.append, Raw(fif_fname, preload=True))
+
+    # now test event treatment for concatenated raw files
+    events = [find_events(raw), find_events(raw)]
+    last_samps = [raw.last_samp, raw.last_samp]
+    first_samps = [raw.first_samp, raw.first_samp]
+    events = concatenate_events(events, first_samps, last_samps)
+    events2 = find_events(raw_combos[0])
+    assert_array_equal(events, events2)
+
+    # check out the len method
+    assert_true(len(raw) == raw.n_times)
+    assert_true(len(raw) == raw.last_samp - raw.first_samp + 1)
 
 
 def test_load_bad_channels():

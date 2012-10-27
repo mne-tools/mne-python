@@ -66,8 +66,8 @@ class Raw(object):
     ch_names : list of string
         List of channels' names
 
-    n_samp : int
-        Total length of the raw file in samples
+    n_times : int
+        Total number of time points in the raw file
     """
     def __init__(self, fnames, allow_maxshield=False, preload=False,
                  verbose=True, proj_active=False):
@@ -812,8 +812,11 @@ class Raw(object):
         return self.info['ch_names']
 
     @property
-    def n_samp(self):
+    def n_times(self):
         return self.last_samp - self.first_samp + 1
+
+    def __len__(self):
+        return self.n_times
 
     def load_bad_channels(self, bad_file=None, force=False):
         """

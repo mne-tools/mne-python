@@ -302,9 +302,10 @@ def concatenate_events(events, first_samps, last_samps):
     events_out = events[0]
     for e, f, n in zip(events[1:], first_samps[1:], n_samps[:-1]):
         # remove any skip since it doesn't exist in concatenated files
-        e[:, 0] -= f
+        e2 = e.copy()
+        e2[:, 0] -= f
         # add offset due to previous files, plus original file offset
-        e[:, 0] += n + first_samps[0]
-        events_out = np.concatenate((events_out, e), axis=0)
+        e2[:, 0] += n + first_samps[0]
+        events_out = np.concatenate((events_out, e2), axis=0)
 
     return events_out
