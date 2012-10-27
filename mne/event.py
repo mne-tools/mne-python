@@ -83,6 +83,11 @@ def read_events(filename, include=None, exclude=None):
     -------
     events: array, shape (n_events, 3)
         The list of events
+
+    Notes
+    -----
+    This function will discard the offset line (i.e., first line with zero
+    event number) if it is present in a text file.
     """
 
     if splitext(filename)[1].lower() == '.fif':
@@ -119,7 +124,7 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('No text lines found')
 
         if lines.ndim == 1:  # Special case for only one event
-            lines = lines[np.newaxis,:]
+            lines = lines[np.newaxis, :]
 
         if len(lines[0]) == 4:  # Old format eve/lst
             goods = [0, 2, 3]   # Omit "time" variable
@@ -129,6 +134,8 @@ def read_events(filename, include=None, exclude=None):
             raise ValueError('Unknown number of columns in event text file')
 
         event_list = lines[:, goods]
+        if event_list.shape[0] > 0 and event_list[0, 2] == 0:
+            event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
     return event_list
@@ -139,7 +146,7 @@ def write_events(filename, event_list):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         Name of the output file.
         If the extension is .fif, events are written in
         binary FIF format, otherwise (e.g., .eve, .lst,
@@ -147,7 +154,7 @@ def write_events(filename, event_list):
         Note that new format event files do not contain
         the "time" column (used to be the second column).
 
-    events: array, shape (n_events, 3)
+    event_list : array, shape (n_events, 3)
         The list of events
     """
     if splitext(filename)[1].lower() == '.fif':
