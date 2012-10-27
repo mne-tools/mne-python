@@ -21,7 +21,6 @@ import pylab as pl
 import mne
 from mne.fiff import Raw
 from mne.artifacts.ica import ICA
-from mne.viz import plot_ica_panel
 from mne.datasets import sample
 
 data_path = sample.data_path('..')
@@ -51,30 +50,52 @@ sources = ica.get_sources_raw(raw, start=start, stop=stop)
 start_plot, stop_plot = raw.time_as_index([100, 103])
 
 # plot components
-plot_ica_panel(sources, start=0, stop=stop_plot - start_plot)
-
-# Find the component that correlates the most with the ECG channel
-# As we don't have an ECG channel with take one can correlates a lot
-# 'MEG 1531'
-affected_idx = raw.ch_names.index('MEG 1531')
-ecg, times = raw[affected_idx, start:stop]
-ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.)
-sources_corr = sources.copy()
-sources_corr /= np.sqrt(np.sum(sources_corr ** 2, axis=1))[:, np.newaxis]
-ecg_component_idx = np.argmax(np.dot(sources_corr, ecg.T))
-
-# plot the component that correlates most with the ecg
-pl.figure()
-pl.plot(times, sources[ecg_component_idx])
-pl.title('ICA source matching ECG')
-
-# In addition a distinct cardiac and one EOG component
-# should be visible (0 and 1).
-raw_ica = ica.pick_sources_raw(raw, include=None,
-                               exclude=[ecg_component_idx, 0, 1], copy=True)
+ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 
 ###############################################################################
-# Show MEG data
+# Find the ECG component automatically using correlating with ECG signal
+
+from scipy.stats import pearsonr
+#  First, we create a helper function that iteratively applies the pearson
+#  correlation funciton to sources the sources and returns an array of r values
+corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
+
+# As we don't have an ECG channel with take one can correlates a lot.
+# 'MEG 1531'. We can directly pass the name to the find_sources method.
+# The if not told differently, the method will return the index with the
+# maximum score, that is, in our case the higest pearson correlation.
+# For more on this have a look at the find_sources example.
+
+ecg_source_idx = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr)
+
+sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
+
+times = raw.time_as_index(np.arange(stop_plot - start_plot))
+
+pl.figure()
+pl.plot(times, sources[ecg_source_idx])
+pl.title('ICA source matching ECG')
+pl.show()
+
+###############################################################################
+# Find the EOG component automatically using correlating with EOG signal
+# As we have an EOG channel, we can use it to detect the source.
+
+eog_source_idx = ica.find_sources_raw(raw, target='eog', score_func=corr)
+
+# plot the component that correlates most with the ecg
+
+pl.figure()
+pl.plot(times, sources[eog_source_idx])
+pl.title('ICA source matching EOG')
+pl.show()
+
+###############################################################################
+# Show MEG data before and after ICA cleaning
+
+exclude = np.r_[ecg_source_idx]
+
+raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
@@ -98,6 +119,8 @@ pl.show()
 
 ################################################################################
 # Compare the affected channel before and after ICA cleaning/
+
+affected_idx = raw.ch_names.index('MEG 1531')
 
 # plot the component that correlates most with the ecg
 pl.figure()

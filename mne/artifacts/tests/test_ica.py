@@ -44,10 +44,12 @@ epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
 
 start, stop = 0, 500
 
+
 @sklearn_test
-def test_ica_raw():
-    """Test ICA on raw
+def test_ica():
+    """Test ICA on raw and epochs
     """
+    # Test ICA raw
     ica = ICA(noise_cov=None, n_components=25, random_state=0)
     ica_cov = ICA(noise_cov=test_cov, n_components=25, random_state=0)
 
