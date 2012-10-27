@@ -61,6 +61,9 @@ def order_func(times, data):
     return np.argsort(spectral_embedding(np.corrcoef(this_data),
                       n_components=1, random_state=0)).ravel()
 
+good_pick = 97  # channel with a clear evoked response
+bad_pick = 98  # channel with no evoked response
+
 pl.close('all')
-mne.viz.plot_image_epochs(epochs, [97, 98], sigma=0.5, vmin=-100, vmax=250,
-                  colorbar=True, order=order_func, show=True)
+mne.viz.plot_image_epochs(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
+                    vmax=250, colorbar=True, order=order_func, show=True)
