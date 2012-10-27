@@ -11,19 +11,23 @@ fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-eve.fif')
 
 fname_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-eve-1.fif')
+                  'test-eve-1.fif')
 
 fname_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-eve.eve')
+                    'test-eve.eve')
 
 fname_txt_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-eve-1.eve')
+                      'test-eve-1.eve')
+
+# using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
+fname_txt_mpr = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                        'test-mpr-eve.eve')
 
 fname_old_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-eve-old-style.eve')
+                        'test-eve-old-style.eve')
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test_raw.fif')
+                    'test_raw.fif')
 
 
 def test_io_events():
@@ -38,6 +42,8 @@ def test_io_events():
     # Test new format text file IO
     write_events('events.eve', events)
     events2 = read_events('events.eve')
+    assert_array_almost_equal(events, events2)
+    events2 = read_events(fname_txt_mpr)
     assert_array_almost_equal(events, events2)
 
     # Test old format text file IO
