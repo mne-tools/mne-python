@@ -178,14 +178,14 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
     Parameters
     ----------
     raw : Raw object
-        The raw data
+        The raw data.
 
     stim_channel : string or list of string
         Name of the stim channel or all the stim channels
         affected by the trigger.
 
     verbose : bool
-        Use verbose output
+        Use verbose output.
 
     Returns
     -------
@@ -222,11 +222,11 @@ def merge_events(events, ids, new_id):
     Parameters
     ----------
     events : array
-        Events
+        Events.
     ids : array of int
-        The ids of events to merge
+        The ids of events to merge.
     new_id : int
-        The new id
+        The new id.
 
     Returns
     -------
@@ -246,11 +246,11 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     Parameters
     ----------
     raw : instance of Raw
-        A raw object to use the data from
+        A raw object to use the data from.
     duration: float
-        The duration to separate events by
+        The duration to separate events by.
     id : int
-        The id to use
+        The id to use.
 
     Returns
     -------
@@ -284,13 +284,13 @@ def concatenate_events(events, first_samps, last_samps):
     ----------
     events : list of arrays
         List of event arrays, typically each extracted from a
-        corresponding raw file that is being concatenated
+        corresponding raw file that is being concatenated.
 
     first_samps : list or array of int
-        First sample numbers of the raw files concatenated
+        First sample numbers of the raw files concatenated.
 
     last_samps : list or array of int
-        Last sample numbers of the raw files concatenated
+        Last sample numbers of the raw files concatenated.
 
     Returns
     -------
