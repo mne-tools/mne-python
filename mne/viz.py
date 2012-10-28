@@ -10,6 +10,7 @@ from itertools import cycle
 import copy
 import numpy as np
 from scipy import linalg
+from scipy import ndimage
 from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
@@ -693,3 +694,96 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         pl.setp(xtl, rotation=90.)
 
     return fig
+
+
+def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
+                      vmax=None, colorbar=True, order=None, show=True):
+    """Plot Event Related Potential / Fields image
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs
+    picks : int | array of int
+        The indices of the channels to consider
+    sigma : float
+        The standard deviation of the Gaussian smoothing to apply along
+        the epoch axis to apply in the image.
+    vmin : float
+        The min value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers
+    vmax : float
+        The max value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers
+    colorbar : bool
+        Display or not a colorbar
+    order : None | array of int | callable
+        If not None, order is used to reorder the epochs on the y-axis
+        of the image. If it's an array of int it should be of length
+        the number of good epochs. If it's a callable the arguments
+        passed are the times vector and the data as 2d array
+        (data.shape[1] == len(times))
+    show : bool
+        Show or not the figure at the end
+
+    Returns
+    -------
+    figs : the list of matplotlib figures
+        One figure per channel displayed
+    """
+    import pylab as pl
+
+    units = dict(eeg='uV', grad='fT/cm', mag='fT')
+    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+
+    picks = np.atleast_1d(picks)
+    evoked = epochs.average()
+    data = epochs.get_data()[:, picks, :]
+    if vmin is None:
+        vmin = data.min()
+    if vmax is None:
+        vmax = data.max()
+
+    figs = list()
+    for this_data, idx in zip(np.swapaxes(data, 0, 1), picks):
+        this_fig = pl.figure()
+        figs.append(this_fig)
+        ch_type = channel_type(epochs.info, idx)
+        this_data *= scaling[ch_type]
+
+        this_order = order
+        if callable(order):
+            this_order = order(epochs.times, this_data)
+
+        if this_order is not None:
+            this_data = this_data[this_order]
+
+        this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+        ax1 = pl.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+        im = pl.imshow(this_data,
+                   extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
+                           0, len(data)],
+                   aspect='auto', origin='lower',
+                   vmin=vmin, vmax=vmax)
+        ax2 = pl.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
+        if colorbar:
+            ax3 = pl.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
+        ax1.set_title(epochs.ch_names[idx])
+        ax1.set_ylabel('Epochs')
+        ax1.axis('auto')
+        ax1.axis('tight')
+        ax1.axvline(0, color='m', linewidth=3, linestyle='--')
+        ax2.plot(1e3 * evoked.times, scaling[ch_type] * evoked.data[idx])
+        ax2.set_xlabel('Time (ms)')
+        ax2.set_ylabel(units[ch_type])
+        ax2.set_ylim([vmin, vmax])
+        ax2.axvline(0, color='m', linewidth=3, linestyle='--')
+        if colorbar:
+            pl.colorbar(im, cax=ax3)
+        pl.tight_layout()
+
+    if show:
+        pl.show()
+
+    return figs
