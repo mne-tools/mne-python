@@ -147,6 +147,7 @@ Functions reference
    plot_ica_panel
    plot_topo_power
    plot_topo_phase_lock
+   plot_image_epochs
 
 .. automodule:: mne.artifacts
  :no-members:

@@ -51,6 +51,8 @@ Changelog
 
    - Plotting functions for time frequency topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Plotting ERP/ERF images by `Alex Gramfort`_
+
 API
 ~~~
 
