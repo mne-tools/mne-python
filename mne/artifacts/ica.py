@@ -33,9 +33,9 @@ def _make_sfunc(func, ndim_output=False):
     return sfunc
 
 score_funcs = dict((n, _make_sfunc(f)) for n, f in vars(distance).items()
-                    if callable(f)
-                    and getargspec(f).args == ['u', 'v']
-                    and not n.startswith('_'))
+                   if callable(f)
+                   and getargspec(f).args == ['u', 'v']
+                   and not n.startswith('_'))
 
 score_funcs['corr'] = _make_sfunc(stats.pearsonr, ndim_output=True)
 
@@ -145,7 +145,7 @@ class ICA(object):
             Channels to be included. This selecetion remains throught the
             initialized ICA session. If None only good data channels are used.
         start : int
-            first sample to include (first is 0). If omitted, defaults to the
+            First sample to include (first is 0). If omitted, defaults to the
             first sample in data.
         stop : int
             First sample to not include. If omitted, data is included to the
@@ -226,7 +226,7 @@ class ICA(object):
         Parameters
         ----------
         raw : instance of Raw
-            Raw object to draw sources from
+            Raw object to draw sources from.
         start : int
             First sample to include (first is 0). If omitted, defaults to the
             first sample in data.
@@ -259,9 +259,9 @@ class ICA(object):
         Parameters
         ----------
         epochs : instance of Epochs
-            Epochs object to draw sources from
+            Epochs object to draw sources from.
         sort_func : function
-            function used for sorting the sources. It should take an
+            Function used for sorting the sources. It should take an
             array and an axis argument.
         concatenate : boolean
             If true, epochs and time slices will be concatenated.
@@ -290,23 +290,23 @@ class ICA(object):
         Parameters
         ----------
         raw : instance of mne.fiff.Raw
-            Raw object to plot the sources from
+            Raw object to plot the sources from.
         sources : ndarray
-            Sources as drawn from self.get_sources
+            Sources as drawn from self.get_sources.
         start : int
             X-axis start index. If None from the beginning.
         stop : int
             X-axis stop index. If None to the end.
         n_components : int
-            Number of components fitted
+            Number of components fitted.
         source_idx : array-like
-            Indices for subsetting the sources
+            Indices for subsetting the sources.
         ncol : int
-            Number of panel-columns
+            Number of panel-columns.
         nrow : int
-            Number of panel-rows
+            Number of panel-rows.
         show : boolean
-            If True, plot will be shown, else just the figure is returened
+            If True, plot will be shown, else just the figure is returened.
 
         Returns
         -------
@@ -330,7 +330,7 @@ class ICA(object):
         Parameters
         ----------
         epochs : instance of mne.Epochs
-            Epochs object to plot the sources from
+            Epochs object to plot the sources from.
         epoch_idx:
             Index to plot particular epoch.
         sources : ndarray
@@ -340,15 +340,15 @@ class ICA(object):
         stop : int
             X-axis stop index. If None to the end.
         n_components : int
-            Number of components fitted
+            Number of components fitted.
         source_idx : array-like
-            Indices for subsetting the sources
+            Indices for subsetting the sources.
         ncol : int
-            Number of panel-columns
+            Number of panel-columns.
         nrow : int
-            Number of panel-rows
+            Number of panel-rows.
         show : boolean
-            If True, plot will be shown, else just the figure is returened
+            If True, plot will be shown, else just the figure is returened.
 
         Returns
         -------
@@ -372,14 +372,14 @@ class ICA(object):
         Parameters
         ----------
         raw : instance of Raw
-            Raw object to draw sources from
+            Raw object to draw sources from.
         target : array-like | str ('ecg' | ch_name)
             Signal to which the sources shall be compared. It has to be of
             the same shape as the sources. If 'ecg', the ecg
             channel will be picked, if available. If some other string is
             supplied, a routine will try to find a matching channel.
         source : array-like | None
-            sources to calculate metric from. It has to be of the same shape
+            Sources to calculate metric from. It has to be of the same shape
             as the target.
         score_func : callable | str label
             Callable taking as arguments the test targets (y_test) and the
@@ -409,7 +409,7 @@ class ICA(object):
             Function used for sorting the sources. It should take an
             array and an axis argument.
         scores : ndarray
-            scores for each source as returned from score_func
+            Scores for each source as returned from score_func.
 
         Returns
         -------
@@ -442,7 +442,7 @@ class ICA(object):
         Parameters
         ----------
         epochs : instance of Epochs
-            Epochs object to draw sources from
+            Epochs object to draw sources from.
         target : array-like | str ('ecg' | ch_name)
             Signal to which the sources shall be compared. It has to be of
             the same shape as the sources. If 'ecg', the ecg
@@ -503,7 +503,7 @@ class ICA(object):
         Parameters
         ----------
         sources : ndarray
-            Previously reconstructed sources
+            Previously reconstructed sources.
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
@@ -595,7 +595,7 @@ class ICA(object):
         Parameters
         ----------
         epochs : instance of Epochs
-            epochs object to pick to remove ica components from
+            Epochs object to pick to remove ica components from.
         include : list-like | None
             The source indices to use. If None all are used.
         exclude : list-like | None
@@ -682,7 +682,7 @@ def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
     event_id : int
         The index to assign to found events
     raw : instance of Raw
-        Raw object to draw sources from
+        Raw object to draw sources from.
     start : int
         First sample to include (first is 0). If omitted, defaults to the
         first sample in data.
@@ -696,20 +696,20 @@ def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
     l_freq: float
-        Low pass frequency
+        Low pass frequency.
     h_freq: float
-        High pass frequency
+        High pass frequency.
     qrs_threshold: float
-        Between 0 and 1. qrs detection threshold
+        Between 0 and 1. qrs detection threshold.
 
     Returns
     -------
     ecg_events : array
-        Events
+        Events.
     ch_ECG : string
-        Name of channel used
-    average_pulse : float
-        Estimated average pulse
+        Name of channel used.
+    average_pulse : float.
+        Estimated average pulse.
     """
 
     print 'Using ica source to identify heart beats'
@@ -738,13 +738,13 @@ def find_eog_events_ica(raw, eog_source=None, event_id=998, l_freq=1,
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     low_pass: float
-        Low pass frequency
+        Low pass frequency.
     high_pass: float
-        High pass frequency
+        High pass frequency.
 
     Returns
     -------
