@@ -10,19 +10,36 @@ import warnings
 
 import numpy as np
 from scipy import stats
+from inspect import getargspec
+from scipy.spatial import distance
 from scipy import linalg
 
 from .ecg import qrs_detector
 from .eog import _find_eog_events
 
 from ..cov import compute_whitener
-from ..fiff import pick_types, pick_channels, FIFF
+from ..fiff import pick_types, pick_channels
 from ..viz import plot_ica_panel
 
-IGNORE = [FIFF.FIFFV_STIM_CH, FIFF.FIFFV_EOG_CH, FIFF.FIFFV_ECG_CH,
-          FIFF.FIFFV_EMG_CH, FIFF.FIFFV_MISC_CH]
 
-__all__ = ['ICA']
+def _make_sfunc(func, ndim_output=False):
+    """Helper Function"""
+    if ndim_output:
+        sfunc = lambda x, y: np.array([func(a, y) for a in x])[:, 0]
+    else:
+        sfunc = lambda x, y: np.array([func(a, y) for a in x])
+    sfunc.__name__ = '.'.join(['score_func', func.__module__, func.__name__])
+
+    return sfunc
+
+score_funcs = dict((n, _make_sfunc(f)) for n, f in vars(distance).items()
+                    if callable(f)
+                    and getargspec(f).args == ['u', 'v']
+                    and not n.startswith('_'))
+
+score_funcs['corr'] = _make_sfunc(stats.pearsonr, ndim_output=True)
+
+__all__ = ['ICA', 'find_ecg_events_ica', 'find_eog_events_ica', 'score_funcs']
 
 
 class ICA(object):
@@ -184,13 +201,10 @@ class ICA(object):
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
                                exclude=epochs.info['bads'],)  # picking
 
-        ignore = []
-        for i, k in enumerate(epochs.info['chs']):
-            if k['kind'] in IGNORE:
-                ignore.append(i)
-        if ignore:
-            print 'Ignoring non-data channels'
-            picks = picks[ignore]
+        bad_picks = pick_types(epochs.info, meg=False, eog=True, ecg=True,
+                               emg=True, stim=True)
+
+        picks = [p for p in picks if p not in bad_picks]
 
         self.ch_names = [epochs.ch_names[k] for k in picks]
 
@@ -238,7 +252,8 @@ class ICA(object):
         raw_sources = self._fast_ica.transform(data.T).T
         return self.sort_sources(raw_sources, sort_func=sort_func)
 
-    def get_sources_epochs(self, epochs, sort_func=stats.skew, collapse=False):
+    def get_sources_epochs(self, epochs, sort_func=stats.skew,
+                           concatenate=False):
         """Estimate epochs sources given the unmixing matrix
 
         Parameters
@@ -248,8 +263,8 @@ class ICA(object):
         sort_func : function
             function used for sorting the sources. It should take an
             array and an axis argument.
-        collapse : boolean
-            If true, epochs and time slices will be collapsed.
+        concatenate : boolean
+            If true, epochs and time slices will be concatenated.
 
         Returns
         -------
@@ -266,7 +281,7 @@ class ICA(object):
         sources = self.sort_sources(sources, sort_func=sort_func)
         epochs_sources = np.array(np.split(sources, len(epochs.events), 1))
 
-        return epochs_sources if not collapse else np.hstack(epochs_sources)
+        return epochs_sources if not concatenate else np.hstack(epochs_sources)
 
     def plot_sources_raw(self, raw, start=None, stop=None, n_components=None,
                          source_idx=None, ncol=3, nrow=10, show=True):
@@ -350,7 +365,7 @@ class ICA(object):
         return fig
 
     def find_sources_raw(self, raw, target, sources=None, score_func=None,
-                         take_abs=True, criterion='max', start=None, stop=None,
+                         select='max-abs', start=None, stop=None,
                          sort_func=stats.skew):
         """ Find sources based on relationship between source and target
 
@@ -366,24 +381,24 @@ class ICA(object):
         source : array-like | None
             sources to calculate metric from. It has to be of the same shape
             as the target.
-        score_func : callable
+        score_func : callable | str label
             Callable taking as arguments the test targets (y_test) and the
             predicted targets (y_pred) and returns a float. The score functions
             are expected to return a bigger value for a better result otherwise
             the returned value does not correspond to a p-value
-            (see Returns below for further details).
-        take_abs : boolean
-            If True, the absolute values of the scores will be considered,
-            else the values as returend.
-        criterion : 'max' | 'min' | (comp_function, float) | 'sort' | None
-            the criterion for selectiong sources by scores. If max, the maximum
-            value will be considered, if min, the minumum value. If tuple of
-            comparison function, e.g., operator.le or numpy.less_equal,
-            and float criterion, the scores matching the comparison will
-            be considered. For exmaple (np.less_equal, .05) would return
-            source indices with significant p-values with regard if score_func
-            is a statistical test. If 'sort', the indices will be sorted with
-            regard to the score. If None, the scores will be returned.
+            (see Returns below for further details). For convenience the most
+            common score_funcs are available via string labels: Currently, all
+            distance  metrics from scipy.spatial taking compatible input
+            arguments and the pearsonr from scipy.stats are supported. These
+            function have been modified to support iteration over the rows of a
+            2d array. For an overview inspect mne.artifacts.ica.score_funcs.
+        select: 'max' | 'max-abs' | 'min' | 'min-abs' | 'all'
+            The criterion for selectiong sources by scores. If 'max', the
+            maximum value will be considered, if 'min', the minumum value.
+            If 'max-abs' or 'min-abs', absolute values will be considered,
+            which is usefull for score_funcs returning negative values.
+            If 'all', all indices will be returned. This is especially useful
+            for subsequently thresholding the sources using p-values.
         start : int
             First sample to include (first is 0). If omitted, defaults to the
             first sample in data.
@@ -393,6 +408,8 @@ class ICA(object):
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
+        scores : ndarray
+            scores for each source as returned from score_func
 
         Returns
         -------
@@ -415,11 +432,10 @@ class ICA(object):
                              'number of time slices.')
 
         return _find_sources(sources=sources, target=target,
-                             score_func=score_func, take_abs=take_abs,
-                             criterion=criterion)
+                             score_func=score_func, select=select)
 
     def find_sources_epochs(self, epochs, target, sources=None,
-                            score_func=None, take_abs=True, criterion='max',
+                            score_func='pearsonr', select='max-abs',
                             sort_func=stats.skew):
         """ Find sources based on relations between source and target
 
@@ -435,24 +451,24 @@ class ICA(object):
         source : array-like | None
             sources to calculate metric from. It has to be of the same shape
             as the target.
-        score_func : callable
+        score_func : callable | str label
             Callable taking as arguments the test targets (y_test) and the
             predicted targets (y_pred) and returns a float. The score functions
             are expected to return a bigger value for a better result otherwise
             the returned value does not correspond to a p-value
-            (see Returns below for further details).
-        take_abs : boolean
-            If True, the absolute values of the scores will be considered,
-            else the values as returend.
-        criterion : 'max' | 'min' | (comp_function, float) | 'sort' | None
-            the criterion for selectiong sources by scores. If max, the maximum
-            value will be considered, if min, the minumum value. If tuple of
-            comparison function, e.g., operator.le or numpy.less_equal,
-            and float criterion, the scores matching the comparison will
-            be considered. For exmaple (np.less_equal, .05) would return
-            source indices with significant p-values with regard if score_func
-            is a statistical test. If 'sort', the indices will be sorted with
-            regard to the score. If None, the scores will be returned.
+            (see Returns below for further details). For convenience the most
+            common score_funcs are available via string labels: Currently, all
+            distance  metrics from scipy.spatial taking compatible input
+            arguments and the pearsonr from scipy.stats are supported. These
+            function have been modified to support iteration over the rows of a
+            2d array. For an overview inspect mne.artifacts.ica.score_funcs.
+        select: 'max' | 'max-abs' | 'min' | 'min-abs' | 'all'
+            The criterion for selectiong sources by scores. If 'max', the
+            maximum value will be considered, if 'min', the minumum value.
+            If 'max-abs' or 'min-abs', absolute values will be considered,
+            which is usefull for score_funcs returning negative values.
+            If 'all', all indices will be returned. This is especially useful
+            for subsequently thresholding the sources using p-values.
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
@@ -461,6 +477,8 @@ class ICA(object):
         -------
         source_idx : ndarray
             source indices as informed by scores returned from score_func
+        scores : ndarray
+            scores for each source as returned from score_func
 
         """
         # auto target selecetion
@@ -477,8 +495,7 @@ class ICA(object):
                              'number of time slices.')
 
         return _find_sources(sources=np.hstack(sources), target=target.ravel(),
-                             score_func=score_func, take_abs=take_abs,
-                             criterion=criterion)
+                             score_func=score_func, select=select)
 
     def sort_sources(self, sources, sort_func=stats.skew):
         """Sort sources accoroding to criteria such as skewness or kurtosis
@@ -656,8 +673,8 @@ class ICA(object):
 
 
 def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
-                   sort_func=stats.skew, event_id=999, tstart=0.0,
-                   l_freq=5, h_freq=35, qrs_threshold=0.6):
+                        sort_func=stats.skew, event_id=999, tstart=0.0,
+                        l_freq=5, h_freq=35, qrs_threshold=0.6):
     """Find ECG peaks from one sleceted ICA source
 
     Parameters
@@ -698,9 +715,9 @@ def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
     print 'Using ica source to identify heart beats'
 
     # detecting QRS and generating event file
-    ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(), tstart=tstart,
-                              thresh_value=qrs_threshold, l_freq=l_freq,
-                              h_freq=h_freq)
+    ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(),
+                              tstart=tstart, thresh_value=qrs_threshold,
+                              l_freq=l_freq, h_freq=h_freq)
 
     _, times = raw[:, start:stop]
     if len(times) != len(ecg_source):
@@ -764,21 +781,24 @@ def _get_target_ch(container, target):
     return pick
 
 
-def _find_sources(sources, target, score_func, take_abs, criterion):
+def _find_sources(sources, target, score_func, select):
     """Helper Function"""
-    scores = (np.abs(score_func(sources, target)) if take_abs
-              else score_func(sources, target))
+    if isinstance(score_func, str):
+        score_func = score_funcs.get(score_func, score_func)
+    if not callable(score_func):
+        raise ValueError('%s is not a valid score_func.')
 
-    if isinstance(criterion, tuple):
-        comp, crit = criterion
-        source_idx = np.where(comp(scores, crit))[0]
-    elif criterion is 'max':
+    scores = score_func(sources, target)
+
+    if select == 'max':
         source_idx = scores.argmax()
-    elif criterion is 'min':
+    elif select == 'max-abs':
+        source_idx = np.abs(scores).argmax()
+    elif select == 'min':
         source_idx = scores.argmin()
-    elif criterion is 'sort':
-        source_idx = scores.argsort()
-    elif criterion is None:
-        return scores
+    elif select == 'min-abs':
+        source_idx = np.abs(scores).argmin()
+    elif select == 'all':
+        source_idx = np.arange(len(sources))
 
-    return source_idx
+    return source_idx, scores

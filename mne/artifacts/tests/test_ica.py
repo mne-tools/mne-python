@@ -10,6 +10,7 @@ from scipy import stats
 
 from mne import fiff, Epochs, read_events, cov
 from mne.artifacts import ICA
+from mne.artifacts.ica import score_funcs
 
 have_sklearn = True
 try:
@@ -102,6 +103,11 @@ def test_ica():
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
     assert_array_almost_equal(epochs2.get_data(), epochs.get_data())
 
+    sfunc_test = [ica.find_sources_raw(raw, target='eog', score_func=f)
+                  for f in score_funcs]
+
+    [assert_true(ica.n_components == len(scores)) for _, scores in sfunc_test]
+
     # Test ICA epochs
     ica.decompose_epochs(epochs)
 
@@ -144,3 +150,8 @@ def test_ica():
     sources_3 = ica_cov.sort_sources(sources_3, stats.skew)
     assert_array_equal(initial_sort, ica_cov._sort_idx)
     assert_array_equal(sources, sources_3)
+
+    sfunc_test = [ica.find_sources_epochs(epochs, target='eog', score_func=f)
+                  for f in score_funcs]
+
+    [assert_true(ica.n_components == len(scores)) for _, scores in sfunc_test]
