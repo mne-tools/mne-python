@@ -373,10 +373,10 @@ class ICA(object):
         ----------
         raw : instance of Raw
             Raw object to draw sources from
-        target : array-like | str ('ecg' | 'eog' | ch_name)
+        target : array-like | str ('ecg' | ch_name)
             Signal to which the sources shall be compared. It has to be of
-            the same shape as the sources. If 'ecg' / 'eog', the ecg / eog
-            channel will be picked if available. If some other string is
+            the same shape as the sources. If 'ecg', the ecg
+            channel will be picked, if available. If some other string is
             supplied, a routine will try to find a matching channel.
         source : array-like | None
             sources to calculate metric from. It has to be of the same shape
@@ -443,10 +443,10 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             Epochs object to draw sources from
-        target : array-like | str ('ecg' | 'eog' | ch_name)
+        target : array-like | str ('ecg' | ch_name)
             Signal to which the sources shall be compared. It has to be of
-            the same shape as the sources. If 'ecg' / 'eog', the ecg / eog
-            channel will be picked if available. If some other string is
+            the same shape as the sources. If 'ecg', the ecg
+            channel will be picked, if available. If some other string is
             supplied, a routine will try to find a matching channel.
         source : array-like | None
             sources to calculate metric from. It has to be of the same shape
@@ -767,12 +767,6 @@ def _get_target_ch(container, target):
         if len(pick) == 0:
             raise ValueError('No ECG channel available. Please '
                              'select a channel resembling the ECG.')
-    elif target is 'eog':
-        pick = pick_types(container.info, meg=False, eeg=False, stim=False,
-                          eog=True, ecg=False, emg=False)
-        if len(pick) == 0:
-            raise ValueError('No EOG channel available. Please '
-                             'select a channel resembling the EOG.')
     else:
         pick = pick_channels(container.ch_names, include=[target])
         if len(pick) == 0:

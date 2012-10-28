@@ -89,7 +89,8 @@ pl.show()
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_source_idx, _ = ica.find_sources_raw(raw, target='eog', score_func=corr)
+eog_source_idx, _ = ica.find_sources_raw(raw, target='EOG 061',
+                                         score_func=corr)
 
 # plot the component that correlates most with the EOG
 
