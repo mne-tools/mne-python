@@ -93,9 +93,9 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning
 
-exclude = np.r_[ecg_source_idx]
+exclude = np.r_[ecg_source_idx, eog_source_idx]
 
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=[24], copy=True)
+raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 

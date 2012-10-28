@@ -46,7 +46,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 ica.decompose_epochs(epochs)
 
 # plot components for one epoch of interest
-# A distinct cardiac component should be visible at index 24
+# A distinct cardiac component should be visible
 ica.plot_sources_epochs(epochs, idx=13, n_components=25)
 
 ###############################################################################
@@ -67,7 +67,7 @@ ecg_source_idx = ica.find_sources_epochs(epochs, target='MEG 1531',
                                          score_func=corr)
 
 ###############################################################################
-# Find the component automatically using correlating with EOG signal
+# Find the component automatically using correlation with EOG signal.
 # As we have an EOG channel, we can use it to detect the source.
 
 eog_source_idx = ica.find_sources_epochs(epochs, target='eog', score_func=corr)

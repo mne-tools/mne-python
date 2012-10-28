@@ -307,7 +307,7 @@ class ICA(object):
 
         return fig
 
-    def plot_sources_epochs(self, epochs, idx, start=None,
+    def plot_sources_epochs(self, epochs, epoch_idx, start=None,
                             stop=None, n_components=None, source_idx=None,
                             ncol=3, nrow=10, show=True):
         """Create panel plots of ICA sources. Wrapper around viz.plot_ica_panel
@@ -316,7 +316,7 @@ class ICA(object):
         ----------
         epochs : instance of mne.Epochs
             Epochs object to plot the sources from
-        idx:
+        epoch_idx:
             Index to plot particular epoch.
         sources : ndarray
             Sources as drawn from self.get_sources.
@@ -341,7 +341,7 @@ class ICA(object):
         """
 
         sources = self.get_sources_epochs(epochs)
-        fig = plot_ica_panel(sources[idx], start=start, stop=stop,
+        fig = plot_ica_panel(sources[epoch_idx], start=start, stop=stop,
                              n_components=n_components, source_idx=source_idx,
                              ncol=ncol, nrow=nrow)
         if show:
