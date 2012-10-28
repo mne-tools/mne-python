@@ -25,9 +25,9 @@ from ..viz import plot_ica_panel
 def _make_sfunc(func, ndim_output=False):
     """Helper Function"""
     if ndim_output:
-        sfunc = lambda x, y: np.array([func(a, y) for a in x])[:, 0]
+        sfunc = lambda x, y: np.array([func(a, y.ravel()) for a in x])[:, 0]
     else:
-        sfunc = lambda x, y: np.array([func(a, y) for a in x])
+        sfunc = lambda x, y: np.array([func(a, y.ravel()) for a in x])
     sfunc.__name__ = '.'.join(['score_func', func.__module__, func.__name__])
 
     return sfunc
