@@ -55,19 +55,21 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal
 
+# First, we create a helper function that iteratively applies the pearson
+# correlation functoon to sources and returns an array of r values
+# This is to illustrate the way ica.find_sources_raw works. Actually, this is
+# the default score_func.
+
 from scipy.stats import pearsonr
-#  First, we create a helper function that iteratively applies the pearson
-#  correlation funciton to sources the sources and returns an array of r values
-#  This is to illustrate the way ica.find_find_sources works. Actually this is
-#  the default score_func.
+
 corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
-# As we don't have an ECG channel with take one can correlates a lot.
-# 'MEG 1531'. We can directly pass the name to the find_sources method.
+# As we don't have an ECG channel we use one that correlates a lot with heart
+# beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
 # The default settings will take select the absolute maximum correlation.
 # Thus, strongly negatively correlated sources will be found. (Another useful
 # option would be to pass as additional argument select='all' which leads to
-# all indices being returne, hence, allowing for custom threshold seletion.
+# all indices being returned, hence, allowing for custom threshold selection.
 # For instance: source_idx[scores > .6]).
 
 ecg_source_idx, _ = ica.find_sources_raw(raw, target='MEG 1531',
@@ -83,7 +85,8 @@ pl.title('ICA source matching ECG')
 pl.show()
 
 ###############################################################################
-# Automatically find the EOG component using correlati with EOG signal
+# Automatically find the EOG component using correlatio with EOG signal
+
 # As we have an EOG channel, we can use it to detect the source.
 
 eog_source_idx, _ = ica.find_sources_raw(raw, target='eog', score_func=corr)
@@ -91,7 +94,7 @@ eog_source_idx, _ = ica.find_sources_raw(raw, target='eog', score_func=corr)
 # plot the component that correlates most with the EOG
 
 pl.figure()
-pl.plot(times, sources[eog_source_idx].T)
+pl.plot(times, sources[eog_source_idx])
 pl.title('ICA source matching EOG')
 pl.show()
 
@@ -123,18 +126,18 @@ pl.ylim(y0, y1)
 pl.show()
 
 ################################################################################
-# Compare the affected channel before and after ICA cleaning/
+# Compare the affected channel before and after ICA cleaning
 
 affected_idx = raw.ch_names.index('MEG 1531')
 
-# plot the component that correlates most with the ecg
+# plot the component that correlates most with the ECG
 pl.figure()
 pl.plot(times, data[affected_idx])
 pl.title('Affected channel MEG 1531 before cleaning.')
 y0, y1 = pl.ylim()
 
 
-# plot the component that correlates most with the ecg
+# plot the component that correlates most with the ECG
 pl.figure()
 pl.plot(times, ica_data[affected_idx])
 pl.title('Affected channel MEG 1531 after cleaning.')

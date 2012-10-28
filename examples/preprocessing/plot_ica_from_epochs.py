@@ -49,24 +49,26 @@ ica.decompose_epochs(epochs)
 # A distinct cardiac component should be visible
 ica.plot_sources_epochs(epochs, epoch_idx=13, n_components=25)
 
+
 ###############################################################################
-# Find the ecg component automatically using correlating with ecg signal
+# Automatically find the ECG component using correlation with ECG signal
+
+# First, we create a helper function that iteratively applies the pearson
+# correlation function to sources and returns an array of r values
+# This is to illustrate the way ica.find_find_sources works. Actually this is
+# the default score_func.
 
 from scipy.stats import pearsonr
-#  First, we create a helper function that iteratively applies the pearson
-#  correlation funciton to sources the sources and returns an array of r values
-#  This is to illustrate the way ica.find_find_sources works. Actually this is
-#  the default score_func.
 
 corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
-# As we don't have an ECG channel with take one can correlates a lot.
-# 'MEG 1531'. We can directly pass the name to the find_sources method.
+# As we don't have an ECG channel we use one that correlates a lot with heart
+# beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
 # The default settings will take select the absolute maximum correlation.
-# Thus, strongly negatively correlated sources will be found. (Another useful
+# Thus, strongly negatively correlated sources will be found. Another useful
 # option would be to pass as additional argument select='all' which leads to
-# all indices being returne, hence, allowing for custom threshold seletion.
-# For instance: source_idx[scores > .6]).
+# all indices being returned, hence, allowing for custom threshold selection.
+# For instance: source_idx[scores > .6].
 
 ecg_source_idx, _ = ica.find_sources_epochs(epochs, target='MEG 1531',
                                             score_func=corr)
@@ -74,7 +76,8 @@ ecg_source_idx, _ = ica.find_sources_epochs(epochs, target='MEG 1531',
 print '#%i -- ICA component resembling the ECG' % ecg_source_idx
 
 ###############################################################################
-# Find the component automatically using correlation with EOG signal.
+# Automatically find the EOG component using correlatio with EOG signal
+
 # As we have an EOG channel, we can use it to detect the source.
 
 eog_source_idx, _ = ica.find_sources_epochs(epochs, target='eog',
@@ -82,10 +85,10 @@ eog_source_idx, _ = ica.find_sources_epochs(epochs, target='eog',
 
 print '#%i -- ICA component resembling the EOG' % eog_source_idx
 
-# As the subject did not move her eyes all the time, it remains hidden when
-# plotting single epochs (#4 looks unsuspicious in the panel). However, plotting
-# the identified source across epochs reveals strong
-# EOG artifacts.
+# As the subject did not constantly move her eyes, the movement artifacts
+# remain hidden when plotting single epochs (#4 looks unsuspicious in the
+# panel plot). However, plotting the identified source across epochs reveals
+# considerable EOG artifacts.
 
 sources = ica.get_sources_epochs(epochs, concatenate=True)
 
@@ -96,7 +99,6 @@ pl.show()
 
 ###############################################################################
 # Reject artifact sources and compare results
-#
 
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
