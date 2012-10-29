@@ -45,7 +45,7 @@ def write_proj(fname, projs):
     fiff.write.end_file(fid)
 
 
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=True):
 
     mag_ind = pick_types(info, meg='mag')
     grad_ind = pick_types(info, meg='grad')
@@ -79,7 +79,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
-            print "Adding projection: %s" % this_desc
+            if verbose:
+                print "Adding projection: %s" % this_desc
             proj = dict(active=False, data=proj_data, desc=this_desc, kind=1)
             projs.append(proj)
 
@@ -119,31 +120,35 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     if event_id is None:
         event_id = 0
     desc_prefix = "%-d-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
-    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
+    return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix,
+                         verbose)
 
 
-def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
+def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=True):
     """Compute SSP (spatial space projection) vectors on Evoked
 
     Parameters
     ----------
-    evoked: instance of Evoked
+    evoked : instance of Evoked
         The Evoked obtained by averaging the artifact
-    n_grad: int
+    n_grad : int
         Number of vectors for gradiometers
-    n_mag: int
+    n_mag : int
         Number of vectors for gradiometers
-    n_eeg: int
+    n_eeg : int
         Number of vectors for gradiometers
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
-    projs: list
+    projs : list
         List of projection vectors
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
     desc_prefix = "%-.3f-%-.3f" % (evoked.times[0], evoked.times[-1])
-    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
+    return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix,
+                         verbose)
 
 
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
@@ -186,7 +191,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
                         picks=pick_types(raw.info, meg=True, eeg=True),
-                        reject=reject, flat=flat)
+                        reject=reject, flat=flat, verbose=verbose)
         if n_jobs > 1:
             parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
             data = sum(parallel(p_fun(e, e.T) for e in epochs))
@@ -209,5 +214,6 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         stop = stop / raw.info['sfreq']
 
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
-    projs = _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix)
+    projs = _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix,
+                          verbose)
     return projs

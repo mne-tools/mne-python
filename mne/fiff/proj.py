@@ -212,11 +212,11 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     Returns
     -------
     proj : array of shape [n_channels, n_channels]
-        The projection operator to apply to the data
+        The projection operator to apply to the data.
     nproj : int
-        How many items in the projector
+        How many items in the projector.
     U : array
-        The orthogonal basis of the projection vectors (optional)
+        The orthogonal basis of the projection vectors (optional).
     """
     nchan = len(ch_names)
     if nchan == 0:
@@ -298,16 +298,16 @@ def make_projector_info(info, include_active=True):
     Parameters
     ----------
     info : dict
-        Measurement info
-   include_active : bool
+        Measurement info.
+    include_active : bool
         Also include projectors that are already active.
 
     Returns
     -------
     proj : array of shape [n_channels, n_channels]
-        The projection operator to apply to the data
+        The projection operator to apply to the data.
     nproj : int
-        How many items in the projector
+        How many items in the projector.
     """
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
                                     info['bads'], include_active)
@@ -320,28 +320,44 @@ def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
 
     Parameters
     ----------
-    epochs: instance of Epochs
-        The epochs containing the artifact
-    n_grad: int
-        Number of vectors for gradiometers
-    n_mag: int
-        Number of vectors for gradiometers
-    n_eeg: int
-        Number of vectors for gradiometers
+    epochs : instance of Epochs
+        The epochs containing the artifact.
+    n_grad : int
+        Number of vectors for gradiometers.
+    n_mag : int
+        Number of vectors for gradiometers.
+    n_eeg : int
+        Number of vectors for gradiometers.
 
     Returns
     -------
     projs: list
-        List of projection vectors
+        List of projection vectors.
     """
     import mne  # XXX : ugly due to circular mess in imports
     return mne.compute_proj_epochs(epochs, n_grad, n_mag, n_eeg)
 
 
-def activate_proj(projs, copy=True):
+def activate_proj(projs, copy=True, verbose=True):
     """Set all projections to active
 
-    Useful before passing them to make_projector
+    Useful before passing them to make_projector.
+
+    Parameters
+    ----------
+    projs : list
+        The projectors.
+
+    copy : bool
+        Modify projs in place or operate on a copy.
+
+    verbose : bool
+        Print status messages.
+
+    Returns
+    -------
+    projs : list
+        The projectors.
     """
     if copy:
         projs = deepcopy(projs)
@@ -350,15 +366,32 @@ def activate_proj(projs, copy=True):
     for proj in projs:
         proj['active'] = True
 
-    print '%d projection items activated' % len(projs)
+    if verbose:
+        print '%d projection items activated' % len(projs)
 
     return projs
 
 
-def deactivate_proj(projs, copy=True):
+def deactivate_proj(projs, copy=True, verbose=True):
     """Set all projections to inactive
 
-    Useful before saving raw data without projectors applied
+    Useful before saving raw data without projectors applied.
+
+    Parameters
+    ----------
+    projs : list
+        The projectors.
+
+    copy : bool
+        Modify projs in place or operate on a copy.
+
+    verbose : bool
+        Print status messages.
+
+    Returns
+    -------
+    projs : list
+        The projectors.
     """
     if copy:
         projs = deepcopy(projs)
@@ -367,25 +400,30 @@ def deactivate_proj(projs, copy=True):
     for proj in projs:
         proj['active'] = False
 
-    print '%d projection items deactivated' % len(projs)
+    if verbose:
+        print '%d projection items deactivated' % len(projs)
 
     return projs
 
 
-def make_eeg_average_ref_proj(info):
+def make_eeg_average_ref_proj(info, verbose=True):
     """Create an EEG average reference SSP projection vector
 
     Parameters
     ----------
-    info: dict
-        Measurement info
+    info : dict
+        Measurement info.
+
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     eeg_proj: instance of Projection
-        The SSP/PCA projector
+        The SSP/PCA projector.
     """
-    print "Adding average EEG reference projection."
+    if verbose:
+        print "Adding average EEG reference projection."
     eeg_sel = pick_types(info, meg=False, eeg=True)
     ch_names = info['ch_names']
     eeg_names = [ch_names[k] for k in eeg_sel]
@@ -401,39 +439,43 @@ def make_eeg_average_ref_proj(info):
     return eeg_proj
 
 
-def setup_proj(info):
+def setup_proj(info, verbose=True):
     """Set up projection for Raw and Epochs
 
     Parameters
     ----------
     info : dict
-        The measurement info
+        The measurement info.
+
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     projector : array of shape [n_channels, n_channels]
-        The projection operator to apply to the data
+        The projection operator to apply to the data.
 
     info : dict
-        The modified measurement info (Warning: info is modified inplace)
+        The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
     proj_desc = [p['desc'] for p in info['projs']]
     eeg_sel = pick_types(info, meg=False, eeg=True)
     if len(eeg_sel) > 0 and 'Average EEG reference' not in proj_desc:
-        eeg_proj = make_eeg_average_ref_proj(info)
+        eeg_proj = make_eeg_average_ref_proj(info, verbose)
         info['projs'].append(eeg_proj)
 
     #   Create the projector
     projector, nproj = make_projector_info(info)
     if nproj == 0:
-        print 'The projection vectors do not apply to these channels'
+        if verbose:
+            print 'The projection vectors do not apply to these channels'
         projector = None
-    else:
+    elif verbose:
         print ('Created an SSP operator (subspace dimension = %d)'
                                                             % nproj)
 
     #   The projection items have been activated
-    info['projs'] = activate_proj(info['projs'], copy=False)
+    info['projs'] = activate_proj(info['projs'], copy=False, verbose=verbose)
 
     return projector, info

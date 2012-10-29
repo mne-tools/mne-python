@@ -499,8 +499,9 @@ class Raw(object):
               this point, as they are applied automatically later on (e.g. when
               computing inverse solutions).
        """
-        self._projector, self.info = setup_proj(self.info)
-        activate_proj(self.info['projs'], copy=False)
+        self._projector, self.info = setup_proj(self.info,
+                                                verbose=self.verbose)
+        activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
 
         if self._preloaded:
             self._data = np.dot(self._projector, self._data)
@@ -627,8 +628,9 @@ class Raw(object):
         remove_existing : bool
             Remove the projection vectors currently in the file.
         """
+
         # mark proj as inactive, as they have not been applied
-        projs = deactivate_proj(projs, copy=True)
+        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
 
         if remove_existing:
             # we cannot remove the proj if they are active
