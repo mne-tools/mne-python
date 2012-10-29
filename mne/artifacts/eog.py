@@ -5,56 +5,62 @@ from .. import fiff
 from ..filter import band_pass_filter
 
 
-def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10):
+def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=True):
     """Locate EOG artifacts
 
     Parameters
     ----------
     raw : instance of Raw
-        The raw data
+        The raw data.
     event_id : int
-        The index to assign to found events
-    low_pass: float
-        Low pass frequency
-    high_pass: float
-        High pass frequency
+        The index to assign to found events.
+    low_pass : float
+        Low pass frequency.
+    high_pass : float
+        High pass frequency.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     eog_events : array
-        Events
+        Events.
     """
     info = raw.info
 
     # Geting EOG Channel
     ch_EOG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                             eog=True, ecg=False, emg=False)
+                                                eog=True, ecg=False, emg=False)
 
     if len(ch_EOG) == 0:
-        print 'No EOG channels found'
-        print 'Trying with EEG 061 and EEG 062'
+        if verbose:
+            print 'No EOG channels found'
+            print 'Trying with EEG 061 and EEG 062'
         ch_EOG = fiff.pick_channels(raw.ch_names,
                                         include=['EEG 061', 'EEG 062'])
         if len(ch_EOG) != 2:
             raise ValueError('EEG 61 or EEG 62 channel not found !!')
 
-    print 'EOG channel index for this subject is: %s' % ch_EOG
+    if verbose:
+        print 'EOG channel index for this subject is: %s' % ch_EOG
 
     eog, _ = raw[ch_EOG, :]
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
                                   sampling_rate=raw.info['sfreq'],
-                                  first_samp=raw.first_samp)
+                                  first_samp=raw.first_samp, verbose)
 
     return eog_events
 
 
-def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
+def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
+                     verbose):
     """Helper function"""
 
-    print ('Filtering the data to remove DC offset to help distinguish '
-           'blinks from saccades')
+    if verbose:
+        print ('Filtering the data to remove DC offset to help distinguish '
+               'blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
     filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45) for x in eog])
@@ -67,7 +73,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
 
     # detecting eog blinks and generating event file
 
-    print 'Now detecting blinks and generating corresponding event file'
+    if verbose:
+        print 'Now detecting blinks and generating corresponding events'
 
     temp = filteog - np.mean(filteog)
     if np.abs(np.max(temp)) > np.abs(np.min(temp)):
@@ -75,10 +82,10 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
     else:
         eog_events, _ = peak_finder(filteog, extrema=-1)
 
-    print 'Saving event file'
     n_events = len(eog_events)
-    print "Number of EOG events detected : %d" % n_events
-    eog_events = np.c_[eog_events + first_samp, np.zeros(n_events),
+    if verbose:
+        print "Number of EOG events detected : %d" % n_events
+    eog_events = np.c_[eog_events + raw.first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]
 
     return eog_events

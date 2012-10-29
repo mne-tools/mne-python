@@ -163,12 +163,13 @@ class Epochs(object):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info)
+        self._projector, self.info = setup_proj(self.info, verbose)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
         if current_comp > 0:
-            print 'Current compensation grade : %d' % current_comp
+            if verbose:
+                print 'Current compensation grade : %d' % current_comp
 
         if keep_comp:
             dest_comp = current_comp
@@ -176,8 +177,9 @@ class Epochs(object):
         if current_comp != dest_comp:
             raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
                                                  dest_comp)
-            print 'Appropriate compensator added to change to grade %d.' % (
-                                                                    dest_comp)
+            if verbose:
+                print 'Appropriate compensator added to change to grade %d.' \
+                      % (dest_comp)
 
         #    Select the desired events
         self.events = events
@@ -189,7 +191,8 @@ class Epochs(object):
         n_events = len(self.events)
 
         if n_events > 0:
-            print '%d matching events found' % n_events
+            if verbose:
+                print '%d matching events found' % n_events
         else:
             raise ValueError('No desired events found.')
 
@@ -259,7 +262,8 @@ class Epochs(object):
         epoch, _ = self.raw[self.picks, start:stop]
 
         if self.proj and self._projector is not None:
-            print "SSP projectors applied..."
+            if self.verbose:
+                print "SSP projectors applied..."
             epoch = np.dot(self._projector, epoch)
 
         # Run baseline correction
@@ -300,7 +304,8 @@ class Epochs(object):
             self.drop_log = drop_log
             self.events = np.atleast_2d(self.events[good_events])
             self._bad_dropped = True
-            print "%d bad epochs dropped" % (n_events - len(good_events))
+            if self.verbose:
+                print "%d bad epochs dropped" % (n_events - len(good_events))
             if not out:
                 return
 
@@ -319,7 +324,8 @@ class Epochs(object):
             return True, None
         else:
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True)
+                            self.reject, self.flat, full_report=True,
+                            verbose=self.verbose)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -656,7 +662,8 @@ class Epochs(object):
         return epochs_ts
 
 
-def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
+def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
+             verbose=True):
     """Test if data segment e is good according to the criteria
     defined in reject and flat. If full_report=True, it will give
     True/False as well as a list of all offending channels.
@@ -674,7 +681,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
                 delta = deltas[idx_max_delta]
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
-                    if not has_printed:
+                    if (not has_printed) and verbose:
                         print('    Rejecting epoch based on %s : %s (%s > %s).'
                                     % (name, ch_name, delta, thresh))
                         has_printed = True
@@ -694,7 +701,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False):
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    if not has_printed:
+                    if (not has_printed) and verbose:
                         print ('    Rejecting flat epoch based on '
                                '%s : %s (%s < %s).' % (name, ch_name, delta,
                                                        thresh))
