@@ -64,14 +64,14 @@ corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
-# The default settings will take select the absolute maximum correlation.
-# Thus, strongly negatively correlated sources will be found. Another useful
-# option would be to pass as additional argument select='all' which leads to
-# all indices being returned, hence, allowing for custom threshold selection.
-# For instance: source_idx[scores > .6].
+# In our example, the find_sources method returns and array of correlation
+# scores for each ICA source.
 
-ecg_source_idx, _ = ica.find_sources_epochs(epochs, target='MEG 1531',
-                                            score_func=corr)
+ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
+                                     score_func=corr)
+
+# get maximum correlation index for ECG
+ecg_source_idx = np.abs(ecg_scores).argmax()
 
 print '#%i -- ICA component resembling the ECG' % ecg_source_idx
 
@@ -80,8 +80,10 @@ print '#%i -- ICA component resembling the ECG' % ecg_source_idx
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_source_idx, _ = ica.find_sources_epochs(epochs, target='EOG 061',
-                                            score_func=corr)
+eog_scores = ica.find_sources_epochs(epochs, target='EOG 061', score_func=corr)
+
+# get maximum correlation index for EOG
+eog_source_idx = np.abs(eog_scores).argmax()
 
 print '#%i -- ICA component resembling the EOG' % eog_source_idx
 
@@ -90,6 +92,10 @@ print '#%i -- ICA component resembling the EOG' % eog_source_idx
 # panel plot). However, plotting the identified source across epochs reveals
 # considerable EOG artifacts.
 
+# get maximum correlation index for EOG
+eog_source_idx = np.abs(eog_scores).argmax()
+
+# get sources
 sources = ica.get_sources_epochs(epochs, concatenate=True)
 
 pl.figure()
@@ -100,6 +106,7 @@ pl.show()
 ###############################################################################
 # Reject artifact sources and compare results
 
+# join the detected artifact indices
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=exclude,

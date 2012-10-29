@@ -66,21 +66,22 @@ corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
-# The default settings will take select the absolute maximum correlation.
-# Thus, strongly negatively correlated sources will be found. (Another useful
-# option would be to pass as additional argument select='all' which leads to
-# all indices being returned, hence, allowing for custom threshold selection.
-# For instance: source_idx[scores > .6]).
+# In our example, the find_sources method returns and array of correlation
+# scores for each ICA source.
 
-ecg_source_idx, _ = ica.find_sources_raw(raw, target='MEG 1531',
-                                         score_func=corr)
+ecg_scores = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr)
 
+# get sources
 sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
 
+# get times
 times = raw.time_as_index(np.arange(stop_plot - start_plot))
 
+# get maximum correlation index for ECG
+ecg_source_idx = np.abs(ecg_scores).argmax()
+
 pl.figure()
-pl.plot(times, sources[ecg_source_idx].T)
+pl.plot(times, sources[ecg_source_idx])
 pl.title('ICA source matching ECG')
 pl.show()
 
@@ -89,8 +90,11 @@ pl.show()
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_source_idx, _ = ica.find_sources_raw(raw, target='EOG 061',
+eog_scores = ica.find_sources_raw(raw, target='EOG 061',
                                          score_func=corr)
+
+# get maximum correlation index for EOG
+eog_source_idx = np.abs(eog_scores).argmax()
 
 # plot the component that correlates most with the EOG
 
@@ -102,6 +106,7 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning
 
+# join the detected source indices
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
 raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)

@@ -43,7 +43,7 @@ __all__ = ['ICA', 'find_ecg_events_ica', 'find_eog_events_ica', 'score_funcs']
 
 
 class ICA(object):
-    """M/EEG signal decomposition using Independant Component Analysis (ICA)
+    """M/EEG signal decomposition using Independent Component Analysis (ICA)
 
     This object can be used to estimate ICA components and then
     remove some from Raw or Epochs for data exploration or artifact
@@ -135,14 +135,14 @@ class ICA(object):
         return out
 
     def decompose_raw(self, raw, picks=None, start=None, stop=None):
-        """Run the ica decomposition on raw data
+        """Run the ICA decomposition on raw data
 
         Parameters
         ----------
         raw : instance of mne.fiff.Raw
-            Raw measurments to be decomposed.
+            Raw measurements to be decomposed.
         picks : array-like
-            Channels to be included. This selecetion remains throught the
+            Channels to be included. This selection remains throughout the
             initialized ICA session. If None only good data channels are used.
         start : int
             First sample to include (first is 0). If omitted, defaults to the
@@ -178,7 +178,7 @@ class ICA(object):
         return self
 
     def decompose_epochs(self, epochs, picks=None):
-        """Run the ica decomposition on epochs
+        """Run the ICA decomposition on epochs
 
         Parameters
         ----------
@@ -186,7 +186,7 @@ class ICA(object):
             The epochs. The ICA is estimated on the concatenated epochs.
         picks : array-like
             Channels to be included relative to the channels already picked on
-            epochs-initialization. This selecetion remains throught the
+            epochs-initialization. This selection remains throughout the
             initialized ICA session.
 
         Returns
@@ -199,12 +199,12 @@ class ICA(object):
 
         if picks is None:  # just use epochs good data channels and avoid
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
-                               exclude=epochs.info['bads'],)  # picking
+                               exclude=epochs.info['bads'])  # picking
 
-        bad_picks = pick_types(epochs.info, meg=False, eog=True, ecg=True,
-                               emg=True, stim=True)
+        meeg_picks = pick_types(epochs.info, meg=True, eeg=True,
+                                exclude=epochs.info['bads'])
 
-        picks = [p for p in picks if p not in bad_picks]
+        picks = np.intersect1d(meeg_picks, picks)
 
         self.ch_names = [epochs.ch_names[k] for k in picks]
 
@@ -275,7 +275,9 @@ class ICA(object):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        picks = epochs.picks
+        picks = pick_types(epochs.info, include=self.ch_names,
+                               exclude=epochs.info['bads'])
+
         data, _ = self._get_epochs_data(epochs, picks)
         sources = self._fast_ica.transform(data.T).T
         sources = self.sort_sources(sources, sort_func=sort_func)
@@ -306,7 +308,7 @@ class ICA(object):
         nrow : int
             Number of panel-rows.
         show : boolean
-            If True, plot will be shown, else just the figure is returened.
+            If True, plot will be shown, else just the figure is returned.
 
         Returns
         -------
@@ -348,7 +350,7 @@ class ICA(object):
         nrow : int
             Number of panel-rows.
         show : boolean
-            If True, plot will be shown, else just the figure is returened.
+            If True, plot will be shown, else just the figure is returned.
 
         Returns
         -------
@@ -365,8 +367,7 @@ class ICA(object):
         return fig
 
     def find_sources_raw(self, raw, target, sources=None, score_func=None,
-                         select='max-abs', start=None, stop=None,
-                         sort_func=stats.skew):
+                         start=None, stop=None, sort_func=stats.skew):
         """ Find sources based on relationship between source and target
 
         Parameters
@@ -392,13 +393,6 @@ class ICA(object):
             arguments and the pearsonr from scipy.stats are supported. These
             function have been modified to support iteration over the rows of a
             2d array. For an overview inspect mne.artifacts.ica.score_funcs.
-        select: 'max' | 'max-abs' | 'min' | 'min-abs' | 'all'
-            The criterion for selectiong sources by scores. If 'max', the
-            maximum value will be considered, if 'min', the minumum value.
-            If 'max-abs' or 'min-abs', absolute values will be considered,
-            which is usefull for score_funcs returning negative values.
-            If 'all', all indices will be returned. This is especially useful
-            for subsequently thresholding the sources using p-values.
         start : int
             First sample to include (first is 0). If omitted, defaults to the
             first sample in data.
@@ -417,7 +411,7 @@ class ICA(object):
             source indices as informed by scores returned from score_func
 
         """
-        # auto target selecetion
+        # auto target selection
         if isinstance(target, str):
             pick = _get_target_ch(raw, target)
             target, _ = raw[pick, start:stop]
@@ -432,11 +426,10 @@ class ICA(object):
                              'number of time slices.')
 
         return _find_sources(sources=sources, target=target,
-                             score_func=score_func, select=select)
+                             score_func=score_func)
 
     def find_sources_epochs(self, epochs, target, sources=None,
-                            score_func='pearsonr', select='max-abs',
-                            sort_func=stats.skew):
+                            score_func='pearsonr', sort_func=stats.skew):
         """ Find sources based on relations between source and target
 
         Parameters
@@ -462,13 +455,6 @@ class ICA(object):
             arguments and the pearsonr from scipy.stats are supported. These
             function have been modified to support iteration over the rows of a
             2d array. For an overview inspect mne.artifacts.ica.score_funcs.
-        select: 'max' | 'max-abs' | 'min' | 'min-abs' | 'all'
-            The criterion for selectiong sources by scores. If 'max', the
-            maximum value will be considered, if 'min', the minumum value.
-            If 'max-abs' or 'min-abs', absolute values will be considered,
-            which is usefull for score_funcs returning negative values.
-            If 'all', all indices will be returned. This is especially useful
-            for subsequently thresholding the sources using p-values.
         sort_func : function
             Function used for sorting the sources. It should take an
             array and an axis argument.
@@ -481,7 +467,7 @@ class ICA(object):
             scores for each source as returned from score_func
 
         """
-        # auto target selecetion
+        # auto target selection
         if isinstance(target, str):
             pick = _get_target_ch(epochs, target)
             target = epochs.get_data()[:, pick]
@@ -495,10 +481,10 @@ class ICA(object):
                              'number of time slices.')
 
         return _find_sources(sources=np.hstack(sources), target=target.ravel(),
-                             score_func=score_func, select=select)
+                             score_func=score_func)
 
     def sort_sources(self, sources, sort_func=stats.skew):
-        """Sort sources accoroding to criteria such as skewness or kurtosis
+        """Sort sources according to criteria such as skewness or kurtosis
 
         Parameters
         ----------
@@ -511,7 +497,7 @@ class ICA(object):
         Returns
         -------
         sorted_sources: ndarray
-            The reorderd sources.
+            The reordered sources.
         """
         if sort_func is None:  # return sources
             return sources
@@ -546,7 +532,7 @@ class ICA(object):
         Parameters
         ----------
         raw : instance of Raw
-            Raw object to pick to remove ica components from.
+            Raw object to pick to remove ICA components from.
         include : list-like | None
             The source indices to use. If None all are used.
         exclude : list-like | None
@@ -555,13 +541,13 @@ class ICA(object):
             The first time index to include.
         stop : int | None
             The first time index to exclude.
-        copy: bool
+        copy: boolean
             modify raw instance in place or return modified copy.
 
         Returns
         -------
         raw : instance of Raw
-            raw instance with selected ica components removed
+            raw instance with selected ICA components removed
         """
         if not raw._preloaded:
             raise ValueError('raw data should be preloaded to have this '
@@ -595,24 +581,32 @@ class ICA(object):
         Parameters
         ----------
         epochs : instance of Epochs
-            Epochs object to pick to remove ica components from.
+            Epochs object to pick to remove ICA components from.
         include : list-like | None
             The source indices to use. If None all are used.
         exclude : list-like | None
             The source indices to remove. If None  all are used.
-        copy : bool
+        copy : boolean
             Modify Epochs instance in place or return modified copy.
 
         Returns
         -------
         epochs : instance of Epochs
-            Epochs with selected ica components removed.
+            Epochs with selected ICA components removed.
         """
+
         if self.sorted_by == 'unsorted':
             raise ValueError('Currently no sources reconstructed.'
                              'Please inspect sources first.')
 
+        if not epochs.preload:
+            raise ValueError('raw data should be preloaded to have this '
+                             'working. Please read raw data with '
+                             'preload=True.')
+
         sources = self.get_sources_epochs(epochs, sort_func=self.sorted_by)
+        picks = pick_types(epochs.info, include=self.ch_names,
+                               exclude=epochs.info['bads'])
 
         if copy is True:
             epochs = epochs.copy()
@@ -620,7 +614,7 @@ class ICA(object):
         recomposed = self._pick_sources(sources.swapaxes(0, 1),
                                         include, exclude)
         # restore epochs, channels, tsl order
-        epochs._data = recomposed.swapaxes(0, 1)
+        epochs._data[:, picks] = recomposed.swapaxes(0, 1)
         epochs.preload = True
 
         return epochs
@@ -646,8 +640,8 @@ class ICA(object):
 
     def _get_epochs_data(self, epochs, picks):
         """Helper function"""
-        return self._pre_whiten(np.hstack(epochs.get_data()), epochs.info,
-                                picks)
+        return self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
+                                epochs.info, picks)
 
     def _pick_sources(self, sources, include, exclude):
         """Helper function"""
@@ -675,7 +669,7 @@ class ICA(object):
 def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
                         sort_func=stats.skew, event_id=999, tstart=0.0,
                         l_freq=5, h_freq=35, qrs_threshold=0.6):
-    """Find ECG peaks from one sleceted ICA source
+    """Find ECG peaks from one selected ICA source
 
     Parameters
     ----------
@@ -712,7 +706,7 @@ def find_ecg_events_ica(raw, ecg_source, start=None, stop=None,
         Estimated average pulse.
     """
 
-    print 'Using ica source to identify heart beats'
+    print 'Using ICA source to identify heart beats'
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(),
@@ -775,7 +769,7 @@ def _get_target_ch(container, target):
     return pick
 
 
-def _find_sources(sources, target, score_func, select):
+def _find_sources(sources, target, score_func):
     """Helper Function"""
     if isinstance(score_func, str):
         score_func = score_funcs.get(score_func, score_func)
@@ -784,15 +778,4 @@ def _find_sources(sources, target, score_func, select):
 
     scores = score_func(sources, target)
 
-    if select == 'max':
-        source_idx = scores.argmax()
-    elif select == 'max-abs':
-        source_idx = np.abs(scores).argmax()
-    elif select == 'min':
-        source_idx = scores.argmin()
-    elif select == 'min-abs':
-        source_idx = np.abs(scores).argmin()
-    elif select == 'all':
-        source_idx = np.arange(len(sources))
-
-    return source_idx, scores
+    return scores
