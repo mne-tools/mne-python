@@ -146,10 +146,13 @@ class Label(dict):
         elif isinstance(other, Label):
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
-                if self.hemi == 'lh':
-                    lh, rh = cp.deepcopy(self), cp.deepcopy(other)
-                else:
-                    lh, rh = cp.deepcopy(other), cp.deepcopy(self)
+                # catch warnings here to suppress deprecation warning
+                # XXX this can be removed once dict useage is removed
+                with warnings.catch_warnings(record=True) as w:
+                    if self.hemi == 'lh':
+                        lh, rh = cp.deepcopy(self), cp.deepcopy(other)
+                    else:
+                        lh, rh = cp.deepcopy(other), cp.deepcopy(self)
                 return BiHemiLabel(lh, rh, name=name)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)

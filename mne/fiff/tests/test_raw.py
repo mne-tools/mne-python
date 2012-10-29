@@ -232,20 +232,24 @@ def test_io_complex():
     """
     dtypes = [np.complex64, np.complex128]
 
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=True, verbose=False)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 
     data_orig, _ = raw[picks, start:stop]
 
-    for dtype in dtypes:
+    for di, dtype in enumerate(dtypes):
         imag_rand = np.array(1j * np.random.randn(data_orig.shape[0],
                              data_orig.shape[1]), dtype)
 
         raw_cp = deepcopy(raw)
         raw_cp._data = np.array(raw_cp._data, dtype)
         raw_cp._data[picks, start:stop] += imag_rand
-        raw_cp.save('raw.fif', picks, tmin=0, tmax=5)
+        # this should throw an error because it's complex
+        with warnings.catch_warnings(record=True) as w:
+            raw_cp.save('raw.fif', picks, tmin=0, tmax=5)
+            # warning only gets thrown on first instance
+            assert_equal(len(w), 1 if di == 0 else 0)
 
         raw2 = Raw('raw.fif')
         raw2_data, _ = raw2[picks, :]

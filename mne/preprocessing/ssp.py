@@ -312,7 +312,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 
 def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length=2048, n_jobs=1,
+                     average=False, filter_length=4096, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                      eog=np.inf), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=998, eog_l_freq=1, eog_h_freq=10, tstart=0.,

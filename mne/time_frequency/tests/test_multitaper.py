@@ -33,7 +33,8 @@ def test_multitaper_psd():
     sfreq = 500
 
     for adaptive, n_jobs in zip((False, True, True), (1, 1, 2)):
-        psd, freqs = multitaper_psd(x, sfreq, adaptive=adaptive, n_jobs=n_jobs)
+        psd, freqs = multitaper_psd(x, sfreq, adaptive=adaptive, n_jobs=n_jobs,
+                                    verbose=0)
         freqs_ni, psd_ni, _ = ni.algorithms.spectral.multi_taper_psd(x, sfreq,
                               adaptive=adaptive, jackknife=False)
 
