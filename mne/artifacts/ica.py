@@ -407,9 +407,8 @@ class ICA(object):
 
         Returns
         -------
-        source_idx : ndarray
-            source indices as informed by scores returned from score_func
-
+        scores : ndarray
+            scores for each source as returned from score_func
         """
         # auto target selection
         if isinstance(target, str):
@@ -461,11 +460,8 @@ class ICA(object):
 
         Returns
         -------
-        source_idx : ndarray
-            source indices as informed by scores returned from score_func
         scores : ndarray
             scores for each source as returned from score_func
-
         """
         # auto target selection
         if isinstance(target, str):
