@@ -59,6 +59,7 @@ def test_label_addition():
 
     # adding lh and rh
     l2.hemi = 'rh'
+    # this now has deprecated behavior
     bhl = l0 + l2
     assert bhl.hemi == 'both'
     assert len(bhl) == len(l0) + len(l2)

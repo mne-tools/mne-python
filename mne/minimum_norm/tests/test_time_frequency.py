@@ -40,7 +40,7 @@ def test_tfr_with_inverse_operator():
 
     # picks MEG gradiometers
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                                stim=False, include=include, exclude=exclude)
+                            stim=False, include=include, exclude=exclude)
 
     # Load condition 1
     event_id = 1
@@ -54,7 +54,8 @@ def test_tfr_with_inverse_operator():
     label = read_label(fname_label)
 
     stcs = source_band_induced_power(epochs, inverse_operator, bands,
-                            n_cycles=2, use_fft=False, pca=True, label=label)
+                                     n_cycles=2, use_fft=False, pca=True,
+                                     label=label, verbose=0)
 
     stc = stcs['alpha']
     assert_true(len(stcs) == len(bands.keys()))
@@ -62,7 +63,9 @@ def test_tfr_with_inverse_operator():
     assert_array_almost_equal(stc.times, epochs.times)
 
     stcs_no_pca = source_band_induced_power(epochs, inverse_operator, bands,
-                            n_cycles=2, use_fft=False, pca=False, label=label)
+                                            n_cycles=2, use_fft=False,
+                                            pca=False, label=label,
+                                            verbose=0)
 
     assert_array_almost_equal(stcs['alpha'].data, stcs_no_pca['alpha'].data)
 
@@ -74,7 +77,8 @@ def test_tfr_with_inverse_operator():
     frequencies = np.arange(7, 30, 2)  # define frequencies of interest
     power, phase_lock = source_induced_power(epochs, inverse_operator,
                             frequencies, label, baseline=(-0.1, 0),
-                            baseline_mode='percent', n_cycles=2, n_jobs=1)
+                            baseline_mode='percent', n_cycles=2, n_jobs=1,
+                            verbose=0)
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
     assert_true(np.max(power) > 10)
@@ -89,9 +93,10 @@ def test_source_psd():
     fmin, fmax = 55, 65  # Hz
     NFFT = 2048
     stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
-                            method="dSPM", tmin=tmin, tmax=tmax,
-                            fmin=fmin, fmax=fmax, pick_normal=True,
-                            NFFT=NFFT, label=label, overlap=0.1)
+                             method="dSPM", tmin=tmin, tmax=tmax,
+                             fmin=fmin, fmax=fmax, pick_normal=True,
+                             NFFT=NFFT, label=label, overlap=0.1,
+                             verbose=0)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
@@ -129,7 +134,8 @@ def test_source_psd_epochs():
                                         lambda2=lambda2, method=method,
                                         pick_normal=True, label=label,
                                         bandwidth=bandwidth,
-                                        fmin=fmin, fmax=fmax)[0]
+                                        fmin=fmin, fmax=fmax,
+                                        verbose=0)[0]
 
     # return generator
     stcs = compute_source_psd_epochs(one_epochs, inverse_operator,
@@ -137,7 +143,8 @@ def test_source_psd_epochs():
                                      pick_normal=True, label=label,
                                      bandwidth=bandwidth,
                                      fmin=fmin, fmax=fmax,
-                                     return_generator=True)
+                                     return_generator=True,
+                                     verbose=0)
 
     for stc in stcs:
         stc_psd_gen = stc

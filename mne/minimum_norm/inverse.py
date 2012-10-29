@@ -50,23 +50,26 @@ def _pick_channels_inverse_operator(ch_names, inv):
     return sel
 
 
-def read_inverse_operator(fname):
+def read_inverse_operator(fname, verbose=True):
     """Read the inverse operator decomposition from a FIF file
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the FIF file.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
-    inv: dict
-        The inverse operator
+    inv : dict
+        The inverse operator.
     """
     #
     #   Open the file, create directory
     #
-    print 'Reading inverse operator decomposition from %s...' % fname
+    if verbose:
+        print 'Reading inverse operator decomposition from %s...' % fname
     fid, tree, _ = fiff_open(fname)
     #
     #   Find all inverse operators
@@ -86,7 +89,8 @@ def read_inverse_operator(fname):
         raise Exception('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]  # take only first one
 
-    print '    Reading inverse operator info...',
+    if verbose:
+        print '    Reading inverse operator info...',
     #
     #   Methods and source orientations
     #
@@ -130,11 +134,13 @@ def read_inverse_operator(fname):
         raise Exception('Source orientation information not found')
 
     inv['source_nn'] = tag.data
-    print '[done]'
+    if verbose:
+        print '[done]'
     #
     #   The SVD decomposition...
     #
-    print '    Reading inverse operator decomposition...',
+    if verbose:
+        print '    Reading inverse operator decomposition...',
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
@@ -159,30 +165,33 @@ def read_inverse_operator(fname):
     inv['eigen_leads'] = _transpose_named_matrix(eigen_leads)
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                              FIFF.FIFF_MNE_INVERSE_FIELDS)
-    print '[done]'
+    if verbose:
+        print '[done]'
     #
     #   Read the covariance matrices
     #
     inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-    print '    Noise covariance matrix read.'
+    if verbose:
+        print '    Noise covariance matrix read.'
 
     inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-    print '    Source covariance matrix read.'
+    if verbose:
+        print '    Source covariance matrix read.'
     #
     #   Read the various priors
     #
     inv['orient_prior'] = read_cov(fid, invs,
                                    FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
-    if inv['orient_prior'] is not None:
+    if inv['orient_prior'] is not None and verbose:
         print '    Orientation priors read.'
 
     inv['depth_prior'] = read_cov(fid, invs,
                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
-    if inv['depth_prior'] is not None:
+    if inv['depth_prior'] is not None and verbose:
         print '    Depth priors read.'
 
     inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
-    if inv['fmri_prior'] is not None:
+    if inv['fmri_prior'] is not None and verbose:
         print '    fMRI priors read.'
 
     #
@@ -256,8 +265,9 @@ def read_inverse_operator(fname):
 
         nuse += inv['src'][k]['nuse']
 
-    print ('    Source spaces transformed to the inverse solution '
-           'coordinate frame')
+    if verbose:
+        print ('    Source spaces transformed to the inverse solution '
+               'coordinate frame')
     #
     #   Done!
     #
@@ -266,28 +276,33 @@ def read_inverse_operator(fname):
     return inv
 
 
-def write_inverse_operator(fname, inv):
+def write_inverse_operator(fname, inv, verbose=True):
     """Write an inverse operator to a FIF file
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the FIF file.
 
-    inv: dict
-        The inverse operator
+    inv : dict
+        The inverse operator.
+
+    verbose : bool
+        Print status messages.
     """
     #
     #   Open the file, create directory
     #
-    print 'Write inverse operator decomposition in %s...' % fname
+    if verbose:
+        print 'Write inverse operator decomposition in %s...' % fname
 
     # Create the file and save the essentials
     fid = start_file(fname)
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
-    print '    Writing inverse operator info...',
+    if verbose:
+        print '    Writing inverse operator info...',
 
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
@@ -308,19 +323,23 @@ def write_inverse_operator(fname, inv):
                            _transpose_named_matrix(inv['eigen_leads']))
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    print '[done]'
+    if verbose:
+        print '[done]'
     #
     #   write the covariance matrices
     #
-    print '    Writing noise covariance matrix.'
+    if verbose:
+        print '    Writing noise covariance matrix.'
     write_cov(fid, inv['noise_cov'])
 
-    print '    Writing source covariance matrix.'
+    if verbose:
+        print '    Writing source covariance matrix.'
     write_cov(fid, inv['source_cov'])
     #
     #   write the various priors
     #
-    print '    Writing orientation priors.'
+    if verbose:
+        print '    Writing orientation priors.'
     if inv['orient_prior'] is not None:
         write_cov(fid, inv['orient_prior'])
     write_cov(fid, inv['depth_prior'])
@@ -415,29 +434,32 @@ def _chech_ch_names(inv, info):
                          'are not present in the data (%s)' % missing_ch_names)
 
 
-def prepare_inverse_operator(orig, nave, lambda2, method):
+def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
     """Prepare an inverse operator for actually computing the inverse
 
     Parameters
     ----------
-    orig: dict
-        The inverse operator structure read from a file
-    nave: int
-        Number of averages (scales the noise covariance)
-    lambda2: float
-        The regularization factor. Recommended to be 1 / SNR**2
-    method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA
+    orig : dict
+        The inverse operator structure read from a file.
+    nave : int
+        Number of averages (scales the noise covariance).
+    lambda2 : float
+        The regularization factor. Recommended to be 1 / SNR**2.
+    method : "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     inv: dict
-        Prepared inverse operator
+        Prepared inverse operator.
     """
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
-    print 'Preparing the inverse operator for use...'
+    if verbose:
+        print 'Preparing the inverse operator for use...'
     inv = deepcopy(orig)
     #
     #   Scale some of the stuff
@@ -450,24 +472,27 @@ def prepare_inverse_operator(orig, nave, lambda2, method):
     if inv['eigen_leads_weighted']:
         inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
 
-    print ('    Scaled noise and source covariance from nave = %d to '
-          'nave = %d' % (inv['nave'], nave))
+    if verbose:
+        print ('    Scaled noise and source covariance from nave = %d to '
+               'nave = %d' % (inv['nave'], nave))
     inv['nave'] = nave
     #
     #   Create the diagonal matrix for computing the regularized inverse
     #
     sing = np.array(inv['sing'], dtype=np.float64)
     inv['reginv'] = sing / (sing ** 2 + lambda2)
-    print '    Created the regularized inverter'
+    if verbose:
+        print '    Created the regularized inverter'
     #
     #   Create the projection operator
     #
     inv['proj'], ncomp, _ = make_projector(inv['projs'],
                                            inv['noise_cov']['names'])
-    if ncomp > 0:
-        print '    Created an SSP operator (subspace dimension = %d)' % ncomp
-    else:
-        print '    The projection vectors do not apply to these channels.'
+    if verbose:
+        if ncomp > 0:
+            print '    Created an SSP operator (subspace dimension = %d)' % ncomp
+        else:
+            print '    The projection vectors do not apply to these channels.'
 
     #
     #   Create the whitener
@@ -485,27 +510,31 @@ def prepare_inverse_operator(orig, nave, lambda2, method):
         #   Rows of eigvec are the eigenvectors
         #
         inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
-        print ('    Created the whitener using a full noise covariance matrix '
-               '(%d small eigenvalues omitted)' % (inv['noise_cov']['dim']
-                                                  - np.sum(nzero)))
+        if verbose:
+            print ('    Created the whitener using a full noise covariance '
+                   'matrix (%d small eigenvalues omitted)'
+                   % (inv['noise_cov']['dim'] - np.sum(nzero)))
     else:
         #
         #   No need to omit the zeroes due to projection
         #
         inv['whitener'] = np.diag(1.0 /
                                   np.sqrt(inv['noise_cov']['data'].ravel()))
-        print ('    Created the whitener using a diagonal noise covariance '
-               'matrix (%d small eigenvalues discarded)' % ncomp)
+        if verbose:
+            print ('    Created the whitener using a diagonal noise covariance'
+                   ' matrix (%d small eigenvalues discarded)' % ncomp)
 
     #
     #   Finally, compute the noise-normalization factors
     #
     if method in ["dSPM", 'sLORETA']:
         if method == "dSPM":
-            print '    Computing noise-normalization factors (dSPM)...',
+            if verbose:
+                print '    Computing noise-normalization factors (dSPM)...',
             noise_weight = inv['reginv']
         else:
-            print '    Computing noise-normalization factors (sLORETA)...',
+            if verbose:
+                print '    Computing noise-normalization factors (sLORETA)...',
             noise_weight = inv['reginv'] * \
                            np.sqrt((1. + inv['sing'] ** 2 / lambda2))
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
@@ -535,14 +564,15 @@ def prepare_inverse_operator(orig, nave, lambda2, method):
             noise_norm = combine_xyz(noise_norm[:, None]).ravel()
 
         inv['noisenorm'] = 1.0 / np.abs(noise_norm)
-        print '[done]'
+        if verbose:
+            print '[done]'
     else:
         inv['noisenorm'] = []
 
     return inv
 
 
-def _assemble_kernel(inv, label, method, pick_normal):
+def _assemble_kernel(inv, label, method, pick_normal, verbose=True):
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -598,13 +628,15 @@ def _assemble_kernel(inv, label, method, pick_normal):
         #
         #     R^0.5 has been already factored in
         #
-        print '(eigenleads already weighted)...',
+        if verbose:
+            print '(eigenleads already weighted)...',
         K = np.dot(eigen_leads, trans)
     else:
         #
         #     R^0.5 has to be factored in
         #
-        print '(eigenleads need to be weighted)...',
+        if verbose:
+            print '(eigenleads need to be weighted)...',
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
     if method == "MNE":
@@ -635,7 +667,7 @@ def _check_method(method, dSPM):
 
 
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_normal=False, dSPM=None):
+                  pick_normal=False, dSPM=None, verbose=True):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -645,17 +677,19 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     Parameters
     ----------
     evoked: Evoked object
-        Evoked data
+        Evoked data.
     inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator
+        Inverse operator read with mne.read_inverse_operator.
     lambda2: float
-        The regularization parameter
+        The regularization parameter.
     method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA
+        Use mininum norm, dSPM or sLORETA.
     pick_normal: bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -670,14 +704,16 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _chech_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                   verbose)
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    print 'Picked %d channels from the data' % len(sel)
+    if verbose:
+        print 'Picked %d channels from the data' % len(sel)
 
-    print 'Computing inverse...',
+        print 'Computing inverse...',
     K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
@@ -685,18 +721,21 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                    and not pick_normal)
 
     if is_free_ori:
-        print 'combining the current components...',
+        if verbose:
+            print 'combining the current components...',
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
-        print '(dSPM)...',
+        if verbose:
+            print '(dSPM)...',
         sol *= noise_norm
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
     stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     return stc
 
@@ -704,7 +743,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_normal=False,
-                      buffer_size=None, dSPM=None):
+                      buffer_size=None, dSPM=None, verbose=True):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -713,30 +752,30 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     Parameters
     ----------
-    raw: Raw object
-        Raw data
-    inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator
-    lambda2: float
-        The regularization parameter
-    method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA
-    label: Label
-        Restricts the source estimates to a given label
-    start: int
-        Index of first time sample (index not time is seconds)
-    stop: int
-        Index of first time sample not to include (index not time is seconds)
-    nave: int
+    raw : Raw object
+        Raw data.
+    inverse_operator : dict
+        Inverse operator read with mne.read_inverse_operator.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA.
+    label : Label
+        Restricts the source estimates to a given label.
+    start : int
+        Index of first time sample (index not time is seconds).
+    stop : int
+        Index of first time sample not to include (index not time is seconds).
+    nave : int
         Number of averages used to regularize the solution.
         Set to 1 on raw data.
-    time_func: callable
+    time_func : callable
         Linear function applied to sensor space time series.
-    pick_normal: bool
+    pick_normal : bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    buffer_size: int (or None)
+    buffer_size : int (or None)
         If not None, the computation of the inverse and the combination of the
         current components is performed in segments of length buffer_size
         samples. While slightly slower, this is useful for long datasets as it
@@ -744,10 +783,13 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         buffer_size << data length).
         Note that this setting has no effect for fixed-orientation inverse
         operators.
+    verbose : bool
+        Print status messages.
+
     Returns
     -------
-    stc: SourceEstimate
-        The source estimates
+    stc : SourceEstimate
+        The source estimates.
     """
     method = _check_method(method, dSPM)
 
@@ -761,8 +803,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    print 'Picked %d channels from the data' % len(sel)
-    print 'Computing inverse...',
+    if verbose:
+        print 'Picked %d channels from the data' % len(sel)
+        print 'Computing inverse...',
 
     data, times = raw[sel, start:stop]
 
@@ -777,8 +820,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
-        print 'computing inverse and combining the current components'\
-              ' (using %d segments)...' % (n_seg)
+        if verbose:
+            print 'computing inverse and combining the current components'\
+                  ' (using %d segments)...' % (n_seg)
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
@@ -789,11 +833,13 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
             sol[:, pos:pos + buffer_size] = \
                 combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
 
-            print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
+            if verbose:
+                print 'segment %d / %d done..' % (pos / buffer_size + 1, n_seg)
     else:
         sol = np.dot(K, data)
         if is_free_ori:
-            print 'combining the current components...',
+            if verbose:
+                print 'combining the current components...',
             sol = combine_xyz(sol)
 
     if noise_norm is not None:
@@ -802,13 +848,15 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     return stc
 
 
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_normal=False, dSPM=None):
+                         label=None, nave=1, pick_normal=False, dSPM=None,
+                         verbose=True):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -816,28 +864,30 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Parameters
     ----------
-    epochs: Epochs object
-        Single trial epochs
-    inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator
-    lambda2: float
-        The regularization parameter
-    method: "MNE" | "dSPM" | "sLORETA"
-        Use mininum norm, dSPM or sLORETA
-    label: Label
-        Restricts the source estimates to a given label
-    nave: int
+    epochs : Epochs object
+        Single trial epochs.
+    inverse_operator : dict
+        Inverse operator read with mne.read_inverse_operator.
+    lambda2 : float
+        The regularization parameter.
+    method : "MNE" | "dSPM" | "sLORETA"
+        Use mininum norm, dSPM or sLORETA.
+    label : Label
+        Restricts the source estimates to a given label.
+    nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_normal: bool
+    pick_normal : bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
-    stc: list of SourceEstimate
-        The source estimates for all epochs
+    stc : list of SourceEstimate
+        The source estimates for all epochs.
     """
     method = _check_method(method, dSPM)
 
@@ -846,14 +896,16 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
+                                   verbose)
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    print 'Picked %d channels from the data' % len(sel)
+    if verbose:
+        print 'Picked %d channels from the data' % len(sel)
 
-    print 'Computing inverse...',
+        print 'Computing inverse...',
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     stcs = list()
@@ -864,11 +916,13 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                    and not pick_normal)
 
     for k, e in enumerate(epochs):
-        print "Processing epoch : %d" % (k + 1)
+        if verbose:
+            print "Processing epoch : %d" % (k + 1)
         sol = np.dot(K, e[sel])  # apply imaging kernel
 
         if is_free_ori:
-            print 'combining the current components...',
+            if verbose:
+                print 'combining the current components...',
             sol = combine_xyz(sol)
 
         if noise_norm is not None:
@@ -876,7 +930,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
         stcs.append(SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep))
 
-    print '[done]'
+    if verbose:
+        print '[done]'
 
     return stcs
 
@@ -928,7 +983,7 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_forward(forward, info, noise_cov, pca=False):
+def _prepare_forward(forward, info, noise_cov, pca=False, verbose=True):
     """Util function to prepare forward solution for inverse solvers
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
@@ -936,7 +991,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False):
                                     if (c['ch_name'] not in info['bads'])
                                         and (c['ch_name'] in fwd_ch_names)]
     n_chan = len(ch_names)
-    print "Computing inverse operator with %d channels." % n_chan
+    if verbose:
+        print "Computing inverse operator with %d channels." % n_chan
 
     #
     #   Handle noise cov
@@ -953,7 +1009,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False):
         whitener = 1.0 / np.sqrt(eig[nzero])
         #   Rows of eigvec are the eigenvectors
         whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
-        print 'Reducing data rank to %d' % n_nzero
+        if verbose:
+            print 'Reducing data rank to %d' % n_nzero
     else:
         whitener = np.zeros((n_chan, n_chan), dtype=np.float)
         whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
@@ -965,33 +1022,37 @@ def _prepare_forward(forward, info, noise_cov, pca=False):
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
 
-    print 'Total rank is %d' % n_nzero
+    if verbose:
+        print 'Total rank is %d' % n_nzero
 
     return ch_names, gain, noise_cov, whitener, n_nzero
 
 
-def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
+def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
+                          verbose=True):
     """Assemble inverse operator
 
     Parameters
     ----------
-    info: dict
+    info : dict
         The measurement info to specify the channels to include.
         Bad channels in info['bads'] are not used.
-    forward: dict
-        Forward operator
-    noise_cov: Covariance
-        The noise covariance matrix
-    loose: float in [0, 1]
+    forward : dict
+        Forward operator.
+    noise_cov : Covariance
+        The noise covariance matrix.
+    loose : float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces.
-    depth: None | float in [0, 1]
+    depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
-    stc: dict
-        Source time courses
+    stc : dict
+        Source time courses.
     """
     is_fixed_ori = is_fixed_orient(forward)
     if is_fixed_ori and loose is not None:
@@ -1023,10 +1084,12 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
         else:
             depth_prior = compute_depth_prior(gain, exp=depth)
 
-    print "Computing inverse operator with %d channels." % len(ch_names)
+    if verbose:
+        print "Computing inverse operator with %d channels." % len(ch_names)
 
     # Whiten lead field.
-    print 'Whitening lead field matrix.'
+    if verbose:
+        print 'Whitening lead field matrix.'
     gain = np.dot(whitener, gain)
 
     source_cov = depth_prior.copy()
@@ -1049,7 +1112,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
 
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
-    print 'Adjusting source covariance matrix.'
+    if verbose:
+        print 'Adjusting source covariance matrix.'
     source_std = np.sqrt(source_cov)
     gain *= source_std[None, :]
     trace_GRGT = linalg.norm(gain, ord='fro') ** 2
@@ -1065,7 +1129,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8):
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # print np.trace(np.dot(gain, gain.T)), n_nzero
 
-    print 'Computing SVD of whitened and weighted lead field matrix.'
+    if verbose:
+        print 'Computing SVD of whitened and weighted lead field matrix.'
     eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
 
     eigen_fields = dict(data=eigen_fields.T, col_names=ch_names, row_names=[],

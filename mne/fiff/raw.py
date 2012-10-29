@@ -33,23 +33,19 @@ class Raw(object):
     ----------
     fnames: list, or string
         A list of the raw files to treat as a Raw instance, or a single
-        raw file
-
+        raw file.
     allow_maxshield : bool, (default False)
         allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
         not be loaded directly, but should be processed using SSS first.
-
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-
-    verbose : bool
-        Use verbose output
-
+    verbose : int
+        Verbosity level.
     proj_active : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
@@ -62,10 +58,8 @@ class Raw(object):
     ----------
     info : dict
         Measurement info.
-
     ch_names : list of string
         List of channels' names.
-
     n_times : int
         Total number of time points in the raw file.
     """
@@ -445,15 +439,12 @@ class Raw(object):
         ----------
         l_freq : float | None
             Low cut-off frequency in Hz. If None the data are only low-passed.
-
         h_freq : float
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-
         filter_length : int (default: None)
             Length of the filter to use (e.g. 4096).
             If None or "n_times < filter_length",
@@ -464,11 +455,13 @@ class Raw(object):
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
             Width of the transition band at the high cut-off frequency in Hz.
-        n_jobs: int (default: 1)
+        n_jobs: int
             Number of jobs to run in parallel.
-        verbose: int (default: 5)
-            Verbosity level.
+        verbose: int, or None
+            Verbosity level. If None, it is inherited from Raw.
         """
+        if verbose is None:
+            verbose = self.verbose
         fs = float(self.info['sfreq'])
         if l_freq == 0:
             l_freq = None
@@ -702,7 +695,7 @@ class Raw(object):
         if proj_active:
             info = copy.deepcopy(self.info)
             proj, info = setup_proj(info)
-            activate_proj(info['projs'], copy=False)
+            activate_proj(info['projs'], copy=False, verbose=self.verbose)
         else:
             info = self.info
             proj = None
@@ -741,7 +734,8 @@ class Raw(object):
 
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
-                print 'Skipping data chunk due to small buffer ... [done]\n'
+                if self.verbose:
+                    print 'Skipping data chunk due to small buffer ... [done]'
                 break
             if self.verbose:
                 print 'Writing ... ',
@@ -1021,37 +1015,30 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
     Parameters
     ----------
-    raw: Raw object
+    raw : Raw object
         An instance of Raw.
-
-    start: int, (optional)
+    start : int, (optional)
         first sample to include (first is 0). If omitted, defaults to the first
         sample in data.
-
-    stop: int, (optional)
+    stop : int, (optional)
         First sample to not include.
         If omitted, data is included to the end.
-
-    sel: array, optional
+    sel : array, optional
         Indices of channels to select.
-
-    data_buffer: array or str, optional
+    data_buffer : array or str, optional
         numpy array to fill with data read, must have the correct shape.
         If str, a np.memmap with the correct data type will be used
         to store the data.
-
-    verbose: bool
+    verbose : bool
         Use verbose output.
-
-    proj: array
+    proj : array
         SSP operator to apply to the data.
 
     Returns
     -------
-    data: array, [channels x samples]
+    data : array, [channels x samples]
        the data matrix (channels x samples).
-
-    times: array, [samples]
+    times : array, [samples]
         returns the time values corresponding to the samples.
     """
     if stop is None:
