@@ -28,7 +28,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10):
 
     # Geting EOG Channel
     ch_EOG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                                                eog=True, ecg=False, emg=False)
+                             eog=True, ecg=False, emg=False)
 
     if len(ch_EOG) == 0:
         print 'No EOG channels found'
@@ -40,21 +40,30 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10):
 
     print 'EOG channel index for this subject is: %s' % ch_EOG
 
-    sampRate = info['sfreq']
-
     eog, _ = raw[ch_EOG, :]
+
+    eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
+                                  h_freq=h_freq,
+                                  sampling_rate=raw.info['sfreq'],
+                                  first_samp=raw.first_samp)
+
+    return eog_events
+
+
+def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
+    """Helper function"""
 
     print ('Filtering the data to remove DC offset to help distinguish '
            'blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
-    filteog = np.array([band_pass_filter(x, sampRate, 2, 45) for x in eog])
+    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45) for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
 
     # easier to detect peaks with filtering.
-    filteog = band_pass_filter(eog[indexmax], sampRate, l_freq, h_freq)
+    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq)
 
     # detecting eog blinks and generating event file
 
@@ -69,7 +78,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10):
     print 'Saving event file'
     n_events = len(eog_events)
     print "Number of EOG events detected : %d" % n_events
-    eog_events = np.c_[eog_events + raw.first_samp, np.zeros(n_events),
+    eog_events = np.c_[eog_events + first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]
 
     return eog_events
