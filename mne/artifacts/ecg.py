@@ -1,8 +1,10 @@
 import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 from .. import fiff
 from ..filter import band_pass_filter
-
 
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
                  l_freq=5, h_freq=35, tstart=0):
@@ -138,8 +140,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     assert len(ch_ECG) == 1
 
     if verbose:
-        print 'Using channel %s to identify heart beats' \
-              % raw.ch_names[ch_ECG[0]]
+        logger.info('Using channel %s to identify heart beats'
+                    % raw.ch_names[ch_ECG[0]])
 
     ecg, times = raw[ch_ECG, :]
 
@@ -151,8 +153,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     n_events = len(ecg_events)
     average_pulse = n_events * 60.0 / (times[-1] - times[0])
     if verbose:
-        print ("Number of ECG events detected : %d (average pulse %d / min.)"
-                                                % (n_events, average_pulse))
+        logger.info("Number of ECG events detected : %d (average pulse %d / "
+                    "min.)" % (n_events, average_pulse))
 
     ecg_events = np.c_[ecg_events + raw.first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]

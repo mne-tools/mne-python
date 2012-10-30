@@ -8,6 +8,9 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
@@ -42,7 +45,7 @@ def proj_equal(a, b):
     return equal
 
 
-def read_proj(fid, node):
+def read_proj(fid, node, verbose=True):
     """Read spatial projections from a FIF file.
 
     Parameters
@@ -52,6 +55,9 @@ def read_proj(fid, node):
 
     node: tree node
         The node of the tree where to look
+
+    verbose : bool
+        Print status messages
 
     Returns
     -------
@@ -139,16 +145,18 @@ def read_proj(fid, node):
         projs.append(one)
 
     if len(projs) > 0:
-        print '    Read a total of %d projection items:' % len(projs)
+        if verbose:
+            logger.info('    Read a total of %d projection items:'
+                        % len(projs))
         for k in range(len(projs)):
             if projs[k]['active']:
                 misc = 'active'
             else:
                 misc = ' idle'
-            print '        %s (%d x %d) %s' % (projs[k]['desc'],
-                                        projs[k]['data']['nrow'],
-                                        projs[k]['data']['ncol'],
-                                        misc)
+            logger.info('        %s (%d x %d) %s' % (projs[k]['desc'],
+                                                     projs[k]['data']['nrow'],
+                                                     projs[k]['data']['ncol'],
+                                                     misc))
 
     return projs
 
@@ -367,7 +375,7 @@ def activate_proj(projs, copy=True, verbose=True):
         proj['active'] = True
 
     if verbose:
-        print '%d projection items activated' % len(projs)
+        logger.info('%d projection items activated' % len(projs))
 
     return projs
 
@@ -401,7 +409,7 @@ def deactivate_proj(projs, copy=True, verbose=True):
         proj['active'] = False
 
     if verbose:
-        print '%d projection items deactivated' % len(projs)
+        logger.info('%d projection items deactivated' % len(projs))
 
     return projs
 
@@ -423,7 +431,7 @@ def make_eeg_average_ref_proj(info, verbose=True):
         The SSP/PCA projector.
     """
     if verbose:
-        print "Adding average EEG reference projection."
+        logger.info("Adding average EEG reference projection.")
     eeg_sel = pick_types(info, meg=False, eeg=True)
     ch_names = info['ch_names']
     eeg_names = [ch_names[k] for k in eeg_sel]
@@ -469,11 +477,12 @@ def setup_proj(info, verbose=True):
     projector, nproj = make_projector_info(info)
     if nproj == 0:
         if verbose:
-            print 'The projection vectors do not apply to these channels'
+            logger.info('The projection vectors do not apply to these '
+                        'channels')
         projector = None
     elif verbose:
-        print ('Created an SSP operator (subspace dimension = %d)'
-                                                            % nproj)
+        logger.info('Created an SSP operator (subspace dimension = %d)'
+                                                               % nproj)
 
     #   The projection items have been activated
     info['projs'] = activate_proj(info['projs'], copy=False, verbose=verbose)

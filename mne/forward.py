@@ -11,6 +11,9 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -251,7 +254,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     """
 
     #   Open the file, create directory
-    print 'Reading forward solution from %s...' % fname
+    logger.info('Reading forward solution from %s...' % fname)
     fid, tree, _ = fiff_open(fname)
 
     #   Find all forward solutions
@@ -300,8 +303,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         else:
             ori = 'free'
 
-        print '    Read MEG forward solution (%d sources, %d channels, ' \
-              '%s orientations)' % (megfwd['nsource'], megfwd['nchan'], ori)
+        logger.info('    Read MEG forward solution (%d sources, %d channels,'
+                     ' %s orientations)' % (megfwd['nsource'], megfwd['nchan'],
+                                            ori))
 
     eegfwd = _read_one(fid, eegnode)
     if eegfwd is not None:
@@ -310,8 +314,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         else:
             ori = 'free'
 
-        print '    Read EEG forward solution (%d sources, %d channels, ' \
-               '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'], ori)
+        logger.info('    Read EEG forward solution (%d sources, %d channels, '
+                     '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
+                                           ori))
 
     #   Merge the MEG and EEG solutions together
     if megfwd is not None and eegfwd is not None:
@@ -337,7 +342,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                                            eegfwd['sol_grad']['row_names']
 
         fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        print '    MEG and EEG forward solutions combined'
+        logger.info('    MEG and EEG forward solutions combined')
     elif megfwd is not None:
         fwd = megfwd
     else:
@@ -390,8 +395,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     if nuse != fwd['nsource']:
         raise ValueError('Source spaces do not match the forward solution.')
 
-    print '    Source spaces transformed to the forward solution ' \
-          'coordinate frame'
+    logger.info('    Source spaces transformed to the forward solution '
+                 'coordinate frame')
     fwd['src'] = src
 
     #   Handle the source locations and orientations
@@ -408,7 +413,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         #   Modify the forward solution for fixed source orientations
         if not is_fixed_orient(fwd):
-            print '    Changing to fixed-orientation forward solution...'
+            logger.info('    Changing to fixed-orientation forward '
+                         'solution...')
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
@@ -422,10 +428,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                                                  np.kron(fix_rot, np.eye(3)))
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
 
-            print '[done]'
+            logger.info('[done]')
     elif surf_ori:
         #   Rotate the local source coordinate systems
-        print '    Converting to surface-based source orientations...'
+        logger.info('    Converting to surface-based source orientations...')
         nuse = 0
         pp = 0
         nuse_total = sum([s['nuse'] for s in src])
@@ -452,9 +458,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
                                              np.kron(surf_rot, np.eye(3)))
 
-        print '[done]'
+        logger.info('[done]')
     else:
-        print '    Cartesian source orientations...'
+        logger.info('    Cartesian source orientations...')
         nuse = 0
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         for s in src:
@@ -463,7 +469,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             nuse += s['nuse']
 
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
-        print '[done]'
+        logger.info('[done]')
 
     fwd['surf_ori'] = surf_ori
 
@@ -549,8 +555,8 @@ def compute_orient_prior(forward, loose=0.2):
     else:
         orient_prior = np.ones(n_sources, dtype=np.float)
         if loose is not None:
-            print ('Applying loose dipole orientations. Loose value of %s.'
-                    % loose)
+            logger.info('Applying loose dipole orientations. Loose value of '
+                         '%s.' % loose)
             orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
     return orient_prior
 
@@ -644,9 +650,9 @@ def _apply_forward(fwd, stc, start=None, stop=None):
 
     gain = fwd['sol']['data'][:, src_sel]
 
-    print 'Projecting source estimate to sensor space...',
+    logger.info('Projecting source estimate to sensor space...')
     data = np.dot(gain, stc.data[:, start:stop])
-    print '[done]'
+    logger.info('[done]')
 
     times = deepcopy(stc.times[start:stop])
 

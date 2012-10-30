@@ -3,6 +3,9 @@
 #
 # License: BSD (3-clause)
 
+import logging
+logger = logging.getLogger('mne')
+
 from .tag import read_tag
 
 
@@ -45,7 +48,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         block = 0
 
     if verbose:
-        print '    ' * indent + 'start { %d' % block
+        logger.info('    ' * indent + 'start { %d' % block)
 
     this = start
 
@@ -95,9 +98,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
         tree['directory'] = None
 
     if verbose:
-        print '    ' * (indent + 1) + 'block = %d nent = %d nchild = %d' % (
-                                tree['block'], tree['nent'], tree['nchild'])
-        print '    ' * indent, 'end } %d' % block
+        logger.info('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
+                    % (tree['block'], tree['nent'], tree['nchild']))
+        logger.info('    ' * indent, 'end } %d' % block)
 
     last = this
     return tree, last

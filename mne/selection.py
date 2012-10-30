@@ -6,6 +6,8 @@
 
 from os import path
 
+import logging
+logger = logging.getLogger('mne')
 
 def read_selection(name, fname=None):
     """Read channel selection from file
@@ -70,8 +72,8 @@ def read_selection(name, fname=None):
         # get the name of the selection in the file
         pos = line.find(':')
         if pos < 0:
-            print '":" delimiter not found in selections file, '\
-                  'skipping line'
+            logger.info('":" delimiter not found in selections file, '
+                        'skipping line')
             continue
 
         sel_name_file = line[:pos]

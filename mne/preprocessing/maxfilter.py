@@ -10,29 +10,32 @@ from warnings import warn
 import numpy as np
 from scipy import optimize, linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..fiff import Raw
 from ..fiff.constants import FIFF
 
 
-def fit_sphere_to_headshape(info):
+def fit_sphere_to_headshape(info, verbose=True):
     """ Fit a sphere to the headshape points to determine head center for
         maxfilter.
 
     Parameters
     ----------
-    info: dict
-        Measurement info
+    info : dict
+        Measurement info.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     radius : float
-        Sphere radius in mm
-
+        Sphere radius in mm.
     origin_head: ndarray
-        Head center in head coordinates (mm)
-
+        Head center in head coordinates (mm).
     origin_device: ndarray
-        Head center in device coordinates (mm)
+        Head center in device coordinates (mm).
 
     """
     # get head digization points, excluding some frontal points (nose etc.)
@@ -71,11 +74,12 @@ def fit_sphere_to_headshape(info):
     origin_device = 1e3 * np.dot(head_to_dev,
                                  np.r_[1e-3 * origin_head, 1.0])[:3]
 
-    print 'Fitted sphere: r = %0.1f mm' % radius
-    print ('Origin head coordinates: %0.1f %0.1f %0.1f mm' %
-           (origin_head[0], origin_head[1], origin_head[2]))
-    print ('Origin device coordinates: %0.1f %0.1f %0.1f mm' %
-           (origin_device[0], origin_device[1], origin_device[2]))
+    if verbose:
+        logger.info('Fitted sphere: r = %0.1f mm' % radius)
+        logger.info('Origin head coordinates: %0.1f %0.1f %0.1f mm' %
+                    (origin_head[0], origin_head[1], origin_head[2]))
+        logger.info('Origin device coordinates: %0.1f %0.1f %0.1f mm' %
+                    (origin_device[0], origin_device[1], origin_device[2]))
 
     return radius, origin_head, origin_device
 
@@ -90,7 +94,8 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
                     st=False, st_buflen=16.0, st_corr=0.96, mv_trans=None,
                     mv_comp=False, mv_headpos=False, mv_hp=None,
                     mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
-                    linefreq=None, mx_args='', overwrite=True):
+                    linefreq=None, mx_args='', overwrite=True,
+                    verbose=True):
 
     """ Apply NeuroMag MaxFilter to raw data.
 
@@ -169,6 +174,9 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     overwrite: bool
         Overwrite output file if it already exists
 
+    verbose: bool
+        Print status messages.
+
     Returns
     -------
     origin: string
@@ -189,11 +197,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     # determine the head origin if necessary
     if origin is None:
-        print 'Estimating head origin from headshape points..'
+        if verbose:
+            logger.info('Estimating head origin from headshape points..')
         raw = Raw(in_fname)
         r, o_head, o_dev = fit_sphere_to_headshape(raw.info)
         raw.close()
-        print '[done]'
+        if verbose:
+            logger.info('[done]')
         if frame == 'head':
             origin = o_head
         elif frame == 'device':
@@ -261,10 +271,12 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     if overwrite and os.path.exists(out_fname):
         os.remove(out_fname)
 
-    print 'Running MaxFilter: %s ' % cmd
+    if verbose:
+        logger.info('Running MaxFilter: %s ' % cmd)
     st = os.system(cmd)
     if st != 0:
         raise RuntimeError('MaxFilter returned non-zero exit status %d' % st)
-    print '[done]'
+    if verbose:
+        logger.info('[done]')
 
     return origin

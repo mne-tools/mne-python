@@ -5,6 +5,9 @@
 
 import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -74,7 +77,7 @@ def read_bem_surfaces(fname, add_geom=False, verbose=True):
         raise ValueError('BEM surface data not found')
 
     if verbose:
-        print '    %d BEM surfaces found' % len(bemsurf)
+        logger.info('    %d BEM surfaces found' % len(bemsurf))
     #
     #   Coordinate frame possibly at the top level
     #
@@ -87,16 +90,16 @@ def read_bem_surfaces(fname, add_geom=False, verbose=True):
     surf = []
     for bsurf in bemsurf:
         if verbose:
-            print '    Reading a surface...',
+            logger.info('    Reading a surface...')
         this = _read_bem_surface(fid, bsurf, coord_frame)
         if verbose:
-            print '[done]'
+            logger.info('[done]')
         if add_geom:
             _complete_surface_info(this)
         surf.append(this)
 
     if verbose:
-        print '    %d BEM surfaces read' % len(surf)
+        logger.info('    %d BEM surfaces read' % len(surf))
 
     fid.close()
 
@@ -186,8 +189,8 @@ def _complete_surface_info(this):
     #
     #   Main triangulation
     #
-    print '    Completing triangulation info...',
-    print 'triangle normals...',
+    logger.info('    Completing triangulation info...')
+    logger.info('triangle normals...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -203,17 +206,17 @@ def _complete_surface_info(this):
     #
     #   Accumulate the vertex normals
     #
-    print 'vertex normals...',
+    logger.info('vertex normals...')
     this['nn'] = np.zeros((this['np'], 3))
     for p in range(this['ntri']):
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
     #
     #   Compute the lengths of the vertex normals and scale
     #
-    print 'normalize...',
+    logger.info('normalize...')
     this['nn'] /= np.sqrt(np.sum(this['nn'] ** 2, axis=1))[:, None]
 
-    print '[done]'
+    logger.info('[done]')
     return this
 
 

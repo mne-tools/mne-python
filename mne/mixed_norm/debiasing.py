@@ -7,6 +7,9 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..utils import check_random_state
 
 
@@ -119,8 +122,8 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
         if linalg.norm(D - D0, np.inf) < tol:
-            print "Debiasing converged after %d iterations" % i
+            logger.info("Debiasing converged after %d iterations" % i)
             break
     else:
-        print "Debiasing did not converge"
+        logger.info("Debiasing did not converge")
     return D

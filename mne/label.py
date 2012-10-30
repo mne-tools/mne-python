@@ -9,6 +9,9 @@ import numpy as np
 from scipy import linalg
 import warnings
 
+import logging
+logger = logging.getLogger('mne')
+
 from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
@@ -356,7 +359,7 @@ def write_label(filename, label, verbose=True):
     filename = os.path.join(path_head, name) + '.label'
 
     if verbose:
-        print 'Saving label to : %s' % filename
+        logger.info('Saving label to : %s' % filename)
 
     fid = open(filename, 'wb')
     n_vertices = len(label.vertices)

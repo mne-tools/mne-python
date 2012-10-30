@@ -7,6 +7,9 @@
 import numpy as np
 import copy as cp
 
+import logging
+logger = logging.getLogger('mne')
+
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..fiff import pick_types, make_eeg_average_ref_proj
 from ..artifacts import find_ecg_events, find_eog_events
@@ -118,7 +121,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     else:
         projs = cp.deepcopy(raw.info['projs'])
         if verbose:
-            print 'Including %d SSP projectors from raw file' % len(projs)
+            logger.info('Including %d SSP projectors from raw file'
+                        % len(projs))
 
     if avg_ref:
         eeg_proj = make_eeg_average_ref_proj(raw.info, verbose)
@@ -129,14 +133,14 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     if mode == 'ECG':
         if verbose:
-            print 'Running ECG SSP computation'
+            logger.info('Running ECG SSP computation')
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
                            event_id=event_id, l_freq=exg_l_freq,
                            h_freq=exg_h_freq, tstart=tstart,
                            qrs_threshold=qrs_threshold, verbose=verbose)
     elif mode == 'EOG':
         if verbose:
-            print 'Running EOG SSP computation'
+            logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
                            l_freq=exg_l_freq, h_freq=exg_h_freq,
                            verbose=verbose)
@@ -149,7 +153,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         return None, events
 
     if verbose:
-        print 'Computing projector'
+        logger.info('Computing projector')
 
     # Handler rejection parameters
     if reject is not None: # make sure they didn't pass None
@@ -200,7 +204,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     projs.extend(ev_projs)
 
     if verbose:
-        print 'Done.'
+        logger.info('Done.')
 
     return projs, events
 

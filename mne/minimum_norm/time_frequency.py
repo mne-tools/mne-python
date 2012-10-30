@@ -8,6 +8,9 @@ from warnings import warn
 import numpy as np
 from scipy import linalg, signal, fftpack
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..fiff.constants import FIFF
 from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
@@ -101,7 +104,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep)
         stcs[name] = stc
 
-        print '[done]'
+        logger.info('[done]')
 
     return stcs
 
@@ -154,7 +157,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
                         plv_f += 1j * sol_pick_normal
 
                 if is_free_ori:
-                    # print 'combining the current components...',
+                    # logger.info('combining the current components...')
                     sol = combine_xyz(sol, square=True)
                 else:
                     np.power(sol, 2, sol)
@@ -194,8 +197,8 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     if verbose:
-        print 'Picked %d channels from the data' % len(sel)
-        print 'Computing inverse...',
+        logger.info('Picked %d channels from the data' % len(sel))
+        logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -211,14 +214,14 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
         if verbose:
-            print 'Reducing data rank to %d' % rank
+            logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
     Fs = epochs.info['sfreq']  # sampling in Hz
 
     if verbose:
-        print 'Computing source power ...'
+        logger.info('Computing source power ...')
 
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
@@ -369,7 +372,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     """
 
     if verbose:
-        print 'Considering frequencies %g ... %g Hz' % (fmin, fmax)
+        logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
                                    verbose)
@@ -380,8 +383,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
     if verbose:
-        print 'Picked %d channels from the data' % len(sel)
-        print 'Computing inverse...',
+        logger.info('Picked %d channels from the data' % len(sel))
+        logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -398,7 +401,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
         if verbose:
-            print 'Reducing data rank to %d' % rank
+            logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
@@ -421,7 +424,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         data, _ = raw[sel, this_start:this_start + NFFT]
         if data.shape[1] < NFFT:
             if verbose:
-                print "Skipping last buffer"
+                logger.info("Skipping last buffer")
             break
 
         if Vh is not None:
@@ -461,7 +464,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     """ Generator for compute_source_psd_epochs """
 
     if verbose:
-        print 'Considering frequencies %g ... %g Hz' % (fmin, fmax)
+        logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
                                    verbose)
@@ -472,8 +475,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     if verbose:
-        print 'Picked %d channels from the data' % len(sel)
-        print 'Computing inverse...',
+        logger.info('Picked %d channels from the data' % len(sel))
+        logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -490,7 +493,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
         if verbose:
-            print 'Reducing data rank to %d' % rank
+            logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
@@ -513,7 +516,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     n_tapers = len(dpss)
 
     if verbose:
-        print 'Using %d tapers with bandwidth %0.1fHz' % (n_tapers, bandwidth)
+        logger.info('Using %d tapers with bandwidth %0.1fHz'
+                    % (n_tapers, bandwidth))
 
     if adaptive and len(eigvals) < 3:
         warn('Not adaptively combining the spectral estimators '
@@ -528,7 +532,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     for k, e in enumerate(epochs):
         if verbose:
-            print "Processing epoch : %d" % (k + 1)
+            logger.info("Processing epoch : %d" % (k + 1))
         data = e[sel]
 
         if Vh is not None:

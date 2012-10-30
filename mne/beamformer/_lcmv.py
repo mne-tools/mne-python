@@ -8,6 +8,9 @@
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
@@ -122,7 +125,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             raise ValueError('data and picks must have the same length')
 
         if not return_single:
-            print "Processing epoch : %d" % (i + 1)
+            logger.info("Processing epoch : %d" % (i + 1))
 
         # SSP and whitening
         M = np.dot(proj, M)
@@ -132,7 +135,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         sol = np.dot(W, M)
 
         if is_free_ori:
-            print 'combining the current components...',
+            logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
         sol /= noise_norm[:, None]
@@ -142,7 +145,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
         if not return_single:
             stcs.append(stc)
-        print '[done]'
+        logger.info('[done]')
 
     if return_single:
         return stc

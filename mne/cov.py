@@ -11,6 +11,9 @@ import warnings
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from . import fiff
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
@@ -215,13 +218,13 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
             data += np.dot(raw_segment[idx], raw_segment[idx].T)
             n_samples += raw_segment.shape[1]
         else:
-            print "Artefact detected in [%d, %d]" % (first, last)
+            logger.info("Artefact detected in [%d, %d]" % (first, last))
 
     mu /= n_samples
     data -= n_samples * mu[:, None] * mu[None, :]
     data /= (n_samples - 1.0)
-    print "Number of samples used : %d" % n_samples
-    print '[done]'
+    logger.info("Number of samples used : %d" % n_samples)
+    logger.info('[done]')
 
     cov = Covariance(None)
 
@@ -363,8 +366,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                data=data, projs=projs, bads=epochs[0].info['bads'],
                nfree=n_samples_tot, eig=eig, eigvec=eigvec)
 
-    print "Number of samples used : %d" % n_samples_tot
-    print '[done]'
+    logger.info("Number of samples used : %d" % n_samples_tot)
+    logger.info('[done]')
 
     return cov
 
@@ -400,11 +403,11 @@ def _get_whitener(A, pca, ch_type):
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
     eig[:-rnk] = 0.0
-    print 'Setting small %s eigenvalues to zero.' % ch_type
+    logger.info('Setting small %s eigenvalues to zero.' % ch_type)
     if not pca:  # No PCA case.
-        print 'Not doing PCA for %s.' % ch_type
+        logger.info('Not doing PCA for %s.' % ch_type)
     else:
-        print 'Doing PCA for %s.' % ch_type
+        logger.info('Doing PCA for %s.' % ch_type)
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
         eigvec = eigvec[:-rnk].copy()
@@ -418,7 +421,8 @@ def prepare_noise_cov(noise_cov, info, ch_names):
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if ncomp > 0:
-        print '    Created an SSP operator (subspace dimension = %d)' % ncomp
+        logger.info('    Created an SSP operator (subspace dimension = %d)'
+                                                                   % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
     pick_meg = pick_types(info, meg=True, eeg=False, exclude=info['bads'])
@@ -527,10 +531,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
                            ('GRAD', idx_grad, grad)]:
         if len(idx) == 0 or reg == 0.0:
-            print "    %s regularization : None" % desc
+            logger.info("    %s regularization : None" % desc)
             continue
 
-        print "    %s regularization : %s" % (desc, reg)
+        logger.info("    %s regularization : %s" % (desc, reg))
 
         this_C = C[idx][:, idx]
         if proj:
@@ -538,8 +542,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
             P, ncomp, _ = make_projector(projs, this_ch_names)
             U = linalg.svd(P)[0][:, :-ncomp]
             if ncomp > 0:
-                print '    Created an SSP operator for %s (dimension = %d)' % \
-                                                                  (desc, ncomp)
+                logger.info('    Created an SSP operator for %s '
+                            '(dimension = %d)' % (desc, ncomp))
                 this_C = np.dot(U.T, np.dot(this_C, U))
 
         sigma = np.mean(np.diag(this_C))

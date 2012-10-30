@@ -13,6 +13,9 @@ import numpy as np
 from scipy.signal import hilbert
 from copy import deepcopy
 
+import logging
+logger = logging.getLogger('mne')
+
 from .constants import FIFF
 from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
@@ -113,7 +116,7 @@ class Raw(object):
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose):
         """Read in header information from a raw file"""
         if verbose:
-            print 'Opening raw data file %s...' % fname
+            logger.info('Opening raw data file %s...' % fname)
         fid, tree, _ = fiff_open(fname)
 
         #   Read the measurement info
@@ -219,17 +222,17 @@ class Raw(object):
         raw.comp = None
         # XXX raw.comp never changes!
         if verbose:
-            print '    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                       raw.first_samp, raw.last_samp,
-                       float(raw.first_samp) / info['sfreq'],
-                       float(raw.last_samp) / info['sfreq'])
+            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
+                        raw.first_samp, raw.last_samp,
+                        float(raw.first_samp) / info['sfreq'],
+                        float(raw.last_samp) / info['sfreq']))
 
         raw.fid = fid
         raw.info = info
         raw.verbose = verbose
 
         if verbose:
-            print 'Ready.'
+            logger.info('Ready.')
 
         return raw
 
@@ -735,13 +738,14 @@ class Raw(object):
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
                 if self.verbose:
-                    print 'Skipping data chunk due to small buffer ... [done]'
+                    logger.info('Skipping data chunk due to small buffer ... '
+                                '[done]')
                 break
             if self.verbose:
-                print 'Writing ... ',
+                logger.info('Writing ... ')
             write_raw_buffer(outfid, data, cals)
             if self.verbose:
-                print '[done]'
+                logger.info('[done]')
 
         finish_writing_raw(outfid)
 
@@ -1053,9 +1057,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         raise ValueError('No data in this range')
 
     if verbose:
-        print 'Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                           start, stop - 1, start / float(raw.info['sfreq']),
-                           (stop - 1) / float(raw.info['sfreq'])),
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
+                               start, stop - 1, start / float(raw.info['sfreq']),
+                               (stop - 1) / float(raw.info['sfreq'])))
 
     #  Initialize the data and calibration vector
     nchan = raw.info['nchan']
@@ -1079,9 +1083,6 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
             mult[ri] = np.dot(proj, mult[ri])
     else:
         mult = None
-
-    do_debug = False
-    # do_debug = True
 
     # deal with having multiple files accessed by the raw object
     cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths, dtype='int')))
@@ -1114,8 +1115,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
             if this['last'] >= start_loc:
                 if this['ent'] is None:
                     #  Take the easy route: skip is translated to zeros
-                    if do_debug:
-                        print 'S'
+                    logger.debug('S')
                     one = np.zeros((n_sel_channels, this['nsamp']))
                 else:
                     tag = read_tag(raw.fids[fi], this['ent'].pos)
@@ -1139,27 +1139,23 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                     #    We need the whole buffer
                     first_pick = 0
                     last_pick = this['nsamp']
-                    if do_debug:
-                        print 'W'
+                    logger.debug('W')
 
                 elif start_loc >= this['first']:
                     first_pick = start_loc - this['first']
                     if stop_loc <= this['last']:
                         #   Something from the middle
                         last_pick = this['nsamp'] + stop_loc - this['last']
-                        if do_debug:
-                            print 'M'
+                        logger.debug('M')
                     else:
                         #   From the middle to the end
                         last_pick = this['nsamp']
-                        if do_debug:
-                            print 'E'
+                        logger.debug('E')
                 else:
                     #    From the beginning to the middle
                     first_pick = 0
                     last_pick = stop_loc - this['first'] + 1
-                    if do_debug:
-                        print 'B'
+                    logger.debug('B')
 
                 #   Now we are ready to pick
                 picksamp = last_pick - first_pick
@@ -1187,7 +1183,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
             raise ValueError('Incorrect file reading')
 
     if verbose:
-        print ' [done]'
+        logger.info(' [done]')
     times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times

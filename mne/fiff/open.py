@@ -3,6 +3,9 @@
 #
 # License: BSD (3-clause)
 
+import logging
+logger = logging.getLogger('mne')
+
 from .tag import read_tag_info, read_tag
 from .tree import make_dir_tree
 from .constants import FIFF
@@ -53,7 +56,7 @@ def fiff_open(fname, verbose=False):
 
     #   Read or create the directory tree
     if verbose:
-        print '    Creating tag directory for %s...' % fname
+        logger.info('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
     if dirpos > 0:
@@ -71,7 +74,7 @@ def fiff_open(fname, verbose=False):
     tree, _ = make_dir_tree(fid, directory, verbose=verbose)
 
     if verbose:
-        print '[done]'
+        logger.info('[done]')
 
     #   Back to the beginning
     fid.seek(0)

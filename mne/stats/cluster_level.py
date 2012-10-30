@@ -11,6 +11,9 @@
 import numpy as np
 from scipy import stats, sparse, ndimage
 
+import logging
+logger = logging.getLogger('mne')
+
 from .parametric import f_oneway
 from ..parallel import parallel_func
 from ..utils import split_list
@@ -108,7 +111,8 @@ def _get_components(x_in, connectivity, return_list=True):
             c = np.where(components == l)[0]
             if np.any(x_in[c]):
                 clusters.append(c)
-        # print "-- number of components : %d" % np.unique(components).size
+        # logger.info("-- number of components : %d"
+        #             % np.unique(components).size)
         return clusters
     else:
         return components
@@ -438,7 +442,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
     if verbose:
-        print 'stat_fun(H1): min=%f max=%f' % (np.min(T_obs), np.max(T_obs))
+        logger.info('stat_fun(H1): min=%f max=%f'
+                    % (np.min(T_obs), np.max(T_obs)))
 
     # The stat should have the same shape as the samples for no conn.
     if connectivity is None:
@@ -447,7 +452,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
     if verbose:
-        print 'Found %d clusters' % len(clusters)
+        logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
     if connectivity is not None and out_type == 'mask':
@@ -773,8 +778,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                 extra_text = 'additional ' if step_down_iteration > 1 else ''
                 new_count = under.size - clusters_kept
                 plural = '' if new_count == 1 else 's'
-                print 'Step-down-in-jumps iteration %i found %i %scluster%s'\
-                    % (step_down_iteration, new_count, extra_text, plural)
+                logger.info('Step-down-in-jumps iteration'
+                            '%i found %i %scluster%s'
+                            % (step_down_iteration, new_count,
+                               extra_text, plural))
             clusters_kept += under.size
 
         return T_obs, clusters, cluster_pv, H0
@@ -928,7 +935,8 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose):
     part_clusts, _ = _find_clusters(test, 0, 1, test_conn)
     if len(part_clusts) > 1:
         if verbose:
-            print '%i disjoint connectivity sets found' % len(part_clusts)
+            logger.info('%i disjoint connectivity sets found'
+                        % len(part_clusts))
         partitions = np.zeros(len(test), dtype='int')
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii
@@ -936,7 +944,7 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose):
             partitions = np.tile(partitions, n_times)
     else:
         if verbose:
-            print 'No disjoint connectivity sets found'
+            logger.info('No disjoint connectivity sets found')
         partitions = None
 
     return partitions

@@ -1,6 +1,9 @@
 import numpy as np
 from math import ceil
 
+import logging
+logger = logging.getLogger('mne')
+
 
 def peak_finder(x0, thresh=None, extrema=1):
     """Noise tolerant fast peak finding algorithm
@@ -158,6 +161,6 @@ def peak_finder(x0, thresh=None, extrema=1):
 
     # Plot if no output desired
     if len(peak_inds) == 0:
-        print 'No significant peaks found'
+        logger.info('No significant peaks found')
 
     return peak_inds, peak_mags

@@ -6,6 +6,9 @@
 
 import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 from .constants import FIFF
 from .tag import find_tag, has_tag, read_tag
 from .tree import dir_tree_find
@@ -98,7 +101,7 @@ def _read_named_matrix(fid, node, matkind):
     return mat
 
 
-def read_ctf_comp(fid, node, chs):
+def read_ctf_comp(fid, node, chs, verbose=True):
     """Read the CTF software compensation data from the given node
 
     Parameters
@@ -111,6 +114,9 @@ def read_ctf_comp(fid, node, chs):
 
     chs: list
         The list of channels # XXX unclear
+
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -208,8 +214,8 @@ def read_ctf_comp(fid, node, chs):
         if col_cals is not None:
             del col_cals
 
-    if len(compdata) > 0:
-        print '    Read %d compensation matrices' % len(compdata)
+    if len(compdata) > 0 and verbose:
+        logger.info('    Read %d compensation matrices' % len(compdata))
 
     return compdata
 
