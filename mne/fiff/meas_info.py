@@ -8,6 +8,9 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
 from .constants import FIFF
@@ -21,7 +24,7 @@ from .write import start_block, end_block, write_string, write_dig_point, \
                    write_name_list
 
 
-def read_meas_info(fid, tree):
+def read_meas_info(fid, tree, verbose=True):
     """Read the measurement info
 
     Parameters
@@ -31,6 +34,9 @@ def read_meas_info(fid, tree):
 
     tree: tree
         FIF tree structure
+
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -131,8 +137,8 @@ def read_meas_info(fid, tree):
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
-    if len(isotrak) == 0:
-        print 'Isotrak not found'
+    if len(isotrak) == 0 and verbose:
+        logger.info('Isotrak not found')
     elif len(isotrak) > 1:
         warn('Multiple Isotrak found')
     else:

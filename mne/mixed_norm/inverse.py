@@ -6,6 +6,9 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient
@@ -13,8 +16,10 @@ from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf
 
 
-def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min):
-    print 'Whitening lead field matrix.'
+def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
+                  verbose=True):
+    if verbose:
+        logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)
 
     # Handle depth prior scaling
@@ -51,14 +56,16 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min):
             mask = (weights > weights_min)
             gain = gain[:, mask]
             n_sources = np.sum(mask) / n_dip_per_pos
-            print "Reducing source space to %d sources" % n_sources
+            if verbose:
+                logger.info("Reducing source space to %d sources" % n_sources)
 
     return gain, source_weighting, mask
 
 
-def _make_sparse_stc(X, active_set, forward, tmin, tstep):
+def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=True):
     if not is_fixed_orient(forward):
-        print 'combining the current components...',
+        if verbose:
+            logger.info('combining the current components...')
         X = combine_xyz(X)
 
     active_idx = np.where(active_set)[0]
@@ -80,7 +87,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep):
 def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
-               return_residual=False):
+               return_residual=False, verbose=True):
     """Mixed-norm estimate (MxNE)
 
     Compute L1/L2 mixed-norm solution on evoked data.
@@ -94,39 +101,41 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     Parameters
     ----------
     evoked : instance of Evoked or list of instances of Evoked
-        Evoked data to invert
+        Evoked data to invert.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : instance of Covariance
-        Noise covariance to compute whitener
+        Noise covariance to compute whitener.
     alpha : float
-        Regularization parameter
+        Regularization parameter.
     loose : float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces. If loose
         is 0 or None then the solution is computed with fixed orientation.
     maxit : int
-        Maximum number of iterations
+        Maximum number of iterations.
     tol : float
-        Tolerance parameter
+        Tolerance parameter.
     active_set_size : int | None
         Size of active set increment. If None, no active set strategy is used.
-    pca: bool
+    pca : bool
         If True the rank of the data is reduced to true dimension.
-    debias: bool
-        Remove coefficient amplitude bias due to L1 penalty
-    time_pca: bool or int
+    debias : bool
+        Remove coefficient amplitude bias due to L1 penalty.
+    time_pca : bool or int
         If True the rank of the concatenated epochs is reduced to
         its true dimension. If is 'int' the rank is limited to this value.
-    weights: None | array | SourceEstimate
+    weights : None | array | SourceEstimate
         Weight for penalty in mixed_norm. Can be None or
         1d array of length n_sources or a SourceEstimate e.g. obtained
-        with wMNE or dSPM or fMRI
-    weights_min: float
+        with wMNE or dSPM or fMRI.
+    weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    return_residual: bool
+    return_residual : bool
         If True, the residual is returned as an Evoked instance.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -150,13 +159,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     # Whiten lead field.
     gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                            depth, loose, weights, weights_min)
+                                            depth, loose, weights, weights_min,
+                                            verbose)
 
     sel = [all_ch_names.index(name) for name in ch_names]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
-    print 'Whitening data matrix.'
+    if verbose:
+        logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
     if time_pca:
@@ -202,7 +213,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         tmin = float(e.first) / e.info['sfreq']
         tstep = 1.0 / e.info['sfreq']
         stc = _make_sparse_stc(X[:, cnt:(cnt + len(e.times))], active_set,
-                               forward, tmin, tstep)
+                               forward, tmin, tstep, verbose)
         stcs.append(stc)
 
         if return_residual:
@@ -212,7 +223,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
             r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], X)
             residual.append(r)
 
-    print '[done]'
+    if verbose:
+        logger.info('[done]')
 
     if len(stcs) == 1:
         out = stcs[0]

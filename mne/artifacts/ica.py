@@ -9,6 +9,9 @@ import inspect
 import warnings
 from inspect import getargspec, isfunction
 
+import logging
+logger = logging.getLogger('mne')
+
 import numpy as np
 from scipy import stats
 from scipy.spatial import distance
@@ -141,7 +144,8 @@ class ICA(object):
 
         return out
 
-    def decompose_raw(self, raw, picks=None, start=None, stop=None):
+    def decompose_raw(self, raw, picks=None, start=None, stop=None, 
+                      verbose=True):
         """Run the ICA decomposition on raw data
 
         Parameters
@@ -157,14 +161,17 @@ class ICA(object):
         stop : int
             First sample to not include. If omitted, data is included to the
             end.
+        verbose : bool
+            Print status messages.
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        print ('Computing signal decomposition on raw data. '
-               'Please be patient, this may take some time')
+        if verbose:
+            logger.info('Computing signal decomposition on raw data. '
+                        'Please be patient, this may take some time'))
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True,
@@ -185,7 +192,7 @@ class ICA(object):
         self.last_fit = 'raw'
         return self
 
-    def decompose_epochs(self, epochs, picks=None):
+    def decompose_epochs(self, epochs, picks=None, verbose=True):
         """Run the ICA decomposition on epochs
 
         Parameters
@@ -196,14 +203,17 @@ class ICA(object):
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
+        verbose : bool
+            Print status messages.
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        print ('Computing signal decomposition on epochs. '
-               'Please be patient, this may take some time')
+        if verbose:
+            logger.info('Computing signal decomposition on epochs. '
+                        'Please be patient, this may take some time'))
 
         if picks is None:  # just use epochs good data channels and avoid
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
@@ -616,7 +626,8 @@ class ICA(object):
 
 
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
-                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6):
+                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
+                        verbose=True):
     """Find ECG peaks from one selected ICA source
 
     Parameters
@@ -633,15 +644,17 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     stop : int
         First sample to not include.
         If omitted, data is included to the end.
-    tstart: float
+    tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
-    l_freq: float
+    l_freq : float
         Low pass frequency.
-    h_freq: float
+    h_freq : float
         High pass frequency.
-    qrs_threshold: float
+    qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -652,7 +665,8 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     average_pulse : float.
         Estimated average pulse.
     """
-    print 'Using ICA source to identify heart beats'
+    if verbose:
+        logger.info('Using ICA source to identify heart beats')
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(),

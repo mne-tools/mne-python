@@ -30,6 +30,7 @@ from .proj import read_proj, write_proj, compute_proj_epochs, \
 
 from .selection import read_selection
 from .dipole import read_dip
+from .utils import set_log_level, set_log_file
 from . import artifacts
 from . import beamformer
 from . import datasets
@@ -43,3 +44,8 @@ from . import stats
 from . import tests
 from . import time_frequency
 from . import viz
+
+# deal with logging
+import logging
+set_log_level()
+set_log_file()

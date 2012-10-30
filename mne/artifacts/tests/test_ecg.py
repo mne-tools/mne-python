@@ -5,6 +5,10 @@ from nose.tools import assert_true
 from mne.fiff import Raw
 from mne.artifacts.ecg import find_ecg_events
 
+# Turn status messages off
+from mne import set_log_level
+set_log_level('WARNING')
+
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 event_fname = op.join(data_path, 'test-eve.fif')

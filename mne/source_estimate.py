@@ -12,6 +12,9 @@ from scipy import sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
+import logging
+logger = logging.getLogger('mne')
+
 from .parallel import parallel_func
 from .surface import read_surface
 
@@ -393,7 +396,7 @@ class SourceEstimate(object):
             rh_data = self.data[-len(self.rh_vertno):]
 
             if ftype == 'stc':
-                print 'Writing STC to disk...',
+                logger.info('Writing STC to disk...')
                 write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
                           vertices=self.lh_vertno, data=lh_data)
                 write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
@@ -402,7 +405,7 @@ class SourceEstimate(object):
                 if self.data.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
-                print 'Writing STC to disk (w format)...',
+                logger.info('Writing STC to disk (w format)...')
                 write_w(fname + '-lh.w', vertices=self.lh_vertno,
                         data=lh_data[:, 0])
                 write_w(fname + '-rh.w', vertices=self.rh_vertno,
@@ -413,12 +416,12 @@ class SourceEstimate(object):
             if ftype != 'stc':
                 raise ValueError('ftype has to be \"stc\" volume source '
                                  'spaces')
-            print 'Writing STC to disk...',
+            logger.info('Writing STC to disk...')
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
             write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                            vertices=self.vertno[0], data=self.data)
-        print '[done]'
+        logger.info('[done]')
 
     def __repr__(self):
         s = "%d vertices" % sum([len(v) for v in self.vertno])
@@ -824,12 +827,12 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     left_map = tag.data
                     if verbose:
-                        print '    Left-hemisphere map read.'
+                        logger.info('    Left-hemisphere map read.')
                 elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     right_map = tag.data
                     if verbose:
-                        print '    Right-hemisphere map read.'
+                        logger.info('    Right-hemisphere map read.')
 
     fid.close()
     if left_map is None:
@@ -958,7 +961,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         data[idx_use, :] /= data1[idx_use][:, None]
 
     if verbose:
-        print '    %d smooth iterations done.' % (k + 1)
+        logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
     return data_morphed
 
@@ -1084,7 +1087,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
 
     if verbose:
-        print '[done]'
+        logger.info('[done]')
 
     return stc_to
 
@@ -1391,7 +1394,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=True):
     """Given edges sparse matrix, create connectivity matrix"""
     n_vertices = edges.shape[0]
     if verbose:
-        print "-- number of connected vertices : %d" % n_vertices
+        logger.info("-- number of connected vertices : %d" % n_vertices)
     nnz = edges.col.size
     aux = n_vertices * np.arange(n_times)[:, None] * np.ones((1, nnz), np.int)
     col = (edges.col[None, :] + aux).ravel()

@@ -9,6 +9,7 @@ import numpy as np
 from math import ceil, log
 from numpy.fft import irfft
 import hashlib
+import logging
 
 # Following deprecated class copied from scikit-learn
 
@@ -287,3 +288,58 @@ def split_list(l, n):
     for i in range(n - 1):
         yield l[i * sz:(i + 1) * sz]
     yield l[(n - 1) * sz:]
+
+
+
+def set_log_level(level='INFO'):
+    """Convenience function for setting the logging level
+
+    Parameters
+    ----------
+    level : str or int
+        The level of messages to print. If a str, it can be either DEBUG,
+        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
+        convenience and are equivalent to passing in logging.DEBUG, etc.
+    """
+    if isinstance(level, str):
+        level = str.upper(level)
+        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
+                             WARNING=logging.WARNING, ERROR=logging.ERROR,
+                             CRITICAL=logging.CRITICAL)
+        if not level in logging_types:
+            raise ValueError('level must be of a valid type')
+        level = logging_types[level]
+    logger = logging.getLogger('mne')
+    logger.setLevel(level)
+
+
+def set_log_file(fname=None, output_format='%(message)s'):
+    """Convenience function for setting the log to print to a file
+
+    Parameters
+    ----------
+    fname : str, or None
+        Filename of the log to print to. If None, stdout is used.
+        To suppress log outputs, use set_log_level('WARN').
+    output_format : str
+        Format of the output messages. See the following for examples:
+            http://docs.python.org/dev/howto/logging.html
+        e.g., "%(asctime)s - %(levelname)s - %(message)s".
+    """
+    logger = logging.getLogger('mne')
+    handlers = logger.handlers
+    for h in handlers:
+        if isinstance(h, logging.StreamHandler):
+            h.close()
+        logger.removeHandler(h)
+    if fname is not None:
+        f = open(fname, 'w')
+        lh = logging.StreamHandler(f)
+    else:
+        lh = logging.StreamHandler()
+
+    lh.setLevel(logger.level)
+    lh.setFormatter(logging.Formatter(output_format))
+    logger.addHandler(lh)
+    # actually add the stream handler
+    logger.addHandler(lh)

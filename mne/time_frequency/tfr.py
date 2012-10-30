@@ -11,6 +11,10 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
+
+import logging
+logger = logging.getLogger('mne')
+
 from ..baseline import rescale
 from ..parallel import parallel_func
 
@@ -254,7 +258,7 @@ def _time_frequency(X, Ws, use_fft):
 
 def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       n_jobs=1, zero_mean=False):
+                       n_jobs=1, zero_mean=False, verbose=True):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -289,6 +293,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         The number of epochs to process at the same time
     zero_mean : bool
         Make sure the wavelets are zero mean.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -304,7 +310,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
-    print "Computing time-frequency power on single epochs..."
+    if verbose:
+        logger.info("Computing time-frequency power on single epochs...")
 
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)

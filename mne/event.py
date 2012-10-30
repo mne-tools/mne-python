@@ -10,6 +10,9 @@ import warnings
 import numpy as np
 from os.path import splitext
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
@@ -211,8 +214,8 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
     if verbose:
-        print "%s events found" % len(events)
-        print "Events id: %s" % np.unique(events[:, 2])
+        logger.info("%s events found" % len(events))
+        logger.info("Events id: %s" % np.unique(events[:, 2]))
     return events
 
 

@@ -7,6 +7,9 @@
 from copy import deepcopy
 import re
 
+import logging
+logger = logging.getLogger('mne')
+
 import numpy as np
 from .constants import FIFF
 
@@ -348,8 +351,8 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    print '    %d out of %d channels remain after picking' % (nuse,
-                                                            fwd['nchan'])
+    logger.info('    %d out of %d channels remain after picking' % (nuse,
+                                                            fwd['nchan']))
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]

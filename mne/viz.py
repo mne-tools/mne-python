@@ -12,6 +12,10 @@ import copy
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
+
+import logging
+logger = logging.getLogger('mne')
+
 from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
@@ -399,7 +403,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     colors = cycle(colors)
 
-    print "Total number of active sources: %d" % len(unique_vertnos)
+    logger.info("Total number of active sources: %d" % len(unique_vertnos))
 
     if labels is not None:
         colors = [colors.next() for _ in
@@ -498,11 +502,12 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            print '    Created an SSP operator (subspace dimension = %d)' % \
-                                                                        ncomp
+            logger.info('    Created an SSP operator (subspace dimension = %d)'
+                        % ncomp)
             C = np.dot(P, np.dot(C, P.T))
         else:
-            print '    The projection vectors do not apply to these channels.'
+            logger.info('    The projection vectors do not apply to these '
+                        'channels.')
 
     import pylab as pl
 
@@ -662,8 +667,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     if source_idx is None:
         source_idx = np.arange(n_components)
     elif source_idx.shape > 30:
-        print ('More sources selected than rows and cols specified.'
-               'Showing the first %i sources.' % nplots)
+        logger.info('More sources selected than rows and cols specified.'
+                    'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
 
     sources = sources[:, start:stop]

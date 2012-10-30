@@ -5,7 +5,8 @@
 #
 # License: Simplified BSD
 
-
+import logging
+logger = logging.getLogger('mne')
 def parallel_func(func, n_jobs, verbose=5):
     """Return parallel instance with delayed function
 
@@ -35,7 +36,7 @@ def parallel_func(func, n_jobs, verbose=5):
         try:
             from joblib import Parallel, delayed
         except ImportError:
-            print "joblib not installed. Cannot run in parallel."
+            logger.info("joblib not installed. Cannot run in parallel.")
             n_jobs = 1
             my_func = func
             parallel = list
@@ -49,7 +50,8 @@ def parallel_func(func, n_jobs, verbose=5):
             import multiprocessing
             n_jobs = multiprocessing.cpu_count()
         except ImportError:
-            print "multiprocessing not installed. Cannot run in parallel."
+            logger.info('multiprocessing not installed. Cannot run in '
+                         'parallel.')
             n_jobs = 1
 
     return parallel, my_func, n_jobs

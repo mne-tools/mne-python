@@ -6,6 +6,9 @@
 import numpy as np
 import os
 
+import logging
+logger = logging.getLogger('mne')
+
 from .label import _aslabel
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -84,17 +87,17 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=True):
     src = list()
     for s in spaces:
         if verbose:
-            print '    Reading a source space...',
+            logger.info('    Reading a source space...')
         this = _read_one_source_space(fid, s, verbose=verbose)
         if verbose:
-            print '[done]'
+            logger.info('[done]')
         if add_geom:
             complete_source_space_info(this, verbose=verbose)
 
         src.append(this)
 
     if verbose:
-        print '    %d source spaces read' % len(spaces)
+        logger.info('    %d source spaces read' % len(spaces))
 
     return src
 
@@ -174,7 +177,7 @@ def _read_one_source_space(fid, this, verbose=True):
         if tag is not None:
             res['interpolator'] = tag.data
         elif verbose:
-            print "Interpolation matrix for MRI not found."
+            logger.info("Interpolation matrix for MRI not found.")
 
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
         if tag is not None:
@@ -289,7 +292,7 @@ def _read_one_source_space(fid, this, verbose=True):
 
     res['pinfo'] = patch_info(res['nearest'])
     if (res['pinfo'] is not None) and verbose:
-        print 'Patch information added...',
+        logger.info('Patch information added...')
 
     #   Distances
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
@@ -303,7 +306,7 @@ def _read_one_source_space(fid, this, verbose=True):
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None) and verbose:
-        print 'Distance information added...',
+        logger.info('Distance information added...')
 
     return res
 
@@ -313,7 +316,7 @@ def complete_source_space_info(this, verbose=True):
     """
     #   Main triangulation
     if verbose:
-        print '    Completing triangulation info...',
+        logger.info('    Completing triangulation info...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -324,11 +327,11 @@ def complete_source_space_info(this, verbose=True):
     this['tri_area'] = size / 2.0
     this['tri_nn'] /= size[:, None]
     if verbose:
-        print '[done]'
+        logger.info('[done]')
 
     #   Selected triangles
     if verbose:
-        print '    Completing selection triangulation info...',
+        logger.info('    Completing selection triangulation info...')
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0], :]
         r2 = this['rr'][this['use_tris'][:, 1], :]
@@ -338,7 +341,7 @@ def complete_source_space_info(this, verbose=True):
         this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
                                        ) / 2.0
     if verbose:
-        print '[done]'
+        logger.info('[done]')
 
 
 def find_source_space_hemi(src):
@@ -427,12 +430,12 @@ def write_source_spaces(fid, src):
 
     """
     for s in src:
-        print '    Write a source space...',
+        logger.info('    Write a source space...')
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         _write_one_source_space(fid, s)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        print '[done]'
-    print '    %d source spaces written' % len(src)
+        logger.info('[done]')
+    logger.info('    %d source spaces written' % len(src))
 
 
 def _write_one_source_space(fid, this):
@@ -501,7 +504,7 @@ def _write_one_source_space(fid, this):
     #
     # res['pinfo'] = patch_info(res['nearest'])
     # if res['pinfo'] is not None:
-    #     print 'Patch information added...',
+    #     logger.info('Patch information added...')
     #
     # #   Distances
     # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
@@ -515,7 +518,7 @@ def _write_one_source_space(fid, this):
     #    #   Add the upper triangle
     #     res['dist'] = res['dist'] + res['dist'].T
     # if (res['dist'] is not None) and verbose:
-    #     print 'Distance information added...',
+    #     logger.info('Distance information added...')
 
 
 def vertex_to_mni(vertices, hemis, subject, verbose=False):
@@ -570,7 +573,7 @@ def _freesurfer_read_talxfm(fname, verbose=False):
     fid = open(fname, 'r')
 
     if verbose:
-        print '...Reading FreeSurfer talairach.xfm file:\n%s' % fname
+        logger.info('...Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
     # read lines until we get the string 'Linear_Transform', which precedes
     # the data transformation matrix

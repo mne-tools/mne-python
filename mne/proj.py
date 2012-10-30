@@ -5,6 +5,9 @@
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from . import fiff, Epochs
 from .fiff.pick import pick_types
 from .event import make_fixed_length_events
@@ -52,13 +55,13 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=True):
     eeg_ind = pick_types(info, meg=False, eeg=True)
 
     if (n_grad > 0) and len(grad_ind) == 0:
-        print "No gradiometers found. Forcing n_grad to 0"
+        logger.info("No gradiometers found. Forcing n_grad to 0")
         n_grad = 0
     if (n_mag > 0) and len(mag_ind) == 0:
-        print "No magnetometers found. Forcing n_mag to 0"
+        logger.info("No magnetometers found. Forcing n_mag to 0")
         n_mag = 0
     if (n_eeg > 0) and len(eeg_ind) == 0:
-        print "No EEG channels found. Forcing n_eeg to 0"
+        logger.info("No EEG channels found. Forcing n_eeg to 0")
         n_eeg = 0
 
     ch_names = info['ch_names']
@@ -80,7 +83,7 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=True):
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             if verbose:
-                print "Adding projection: %s" % this_desc
+                logger.info("Adding projection: %s" % this_desc)
             proj = dict(active=False, data=proj_data, desc=this_desc, kind=1)
             projs.append(proj)
 

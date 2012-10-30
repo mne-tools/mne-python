@@ -11,6 +11,9 @@ import warnings
 import numpy as np
 from copy import deepcopy
 
+import logging
+logger = logging.getLogger('mne')
+
 import fiff
 from .fiff import Evoked, FIFF
 from .fiff.pick import pick_types, channel_indices_by_type
@@ -169,7 +172,7 @@ class Epochs(object):
         current_comp = fiff.get_current_comp(self.info)
         if current_comp > 0:
             if verbose:
-                print 'Current compensation grade : %d' % current_comp
+                logger.info('Current compensation grade : %d' % current_comp)
 
         if keep_comp:
             dest_comp = current_comp
@@ -178,8 +181,8 @@ class Epochs(object):
             raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
                                                  dest_comp)
             if verbose:
-                print 'Appropriate compensator added to change to grade %d.' \
-                      % (dest_comp)
+                logger.info('Appropriate compensator added to change to '
+                            'grade %d.' % (dest_comp))
 
         #    Select the desired events
         self.events = events
@@ -192,7 +195,7 @@ class Epochs(object):
 
         if n_events > 0:
             if verbose:
-                print '%d matching events found' % n_events
+                logger.info('%d matching events found' % n_events)
         else:
             raise ValueError('No desired events found.')
 
@@ -263,7 +266,7 @@ class Epochs(object):
 
         if self.proj and self._projector is not None:
             if self.verbose:
-                print "SSP projectors applied..."
+                logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
         # Run baseline correction
@@ -305,7 +308,8 @@ class Epochs(object):
             self.events = np.atleast_2d(self.events[good_events])
             self._bad_dropped = True
             if self.verbose:
-                print "%d bad epochs dropped" % (n_events - len(good_events))
+                logger.info("%d bad epochs dropped"
+                            % (n_events - len(good_events)))
             if not out:
                 return
 
@@ -702,8 +706,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
                     if (not has_printed) and verbose:
-                        print ('    Rejecting flat epoch based on '
-                               '%s : %s (%s < %s).' % (name, ch_name, delta,
+                        logger.info('    Rejecting flat epoch based on %s : '
+                                    '%s (%s < %s).' % (name, ch_name, delta,
                                                        thresh))
                         has_printed = True
                     if not full_report:
