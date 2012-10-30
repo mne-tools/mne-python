@@ -33,7 +33,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=True):
 
     # Geting EOG Channel
     ch_EOG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                                                eog=True, ecg=False, emg=False)
+                             eog=True, ecg=False, emg=False)
 
     if len(ch_EOG) == 0:
         if verbose:
@@ -81,9 +81,9 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
 
     temp = filteog - np.mean(filteog)
     if np.abs(np.max(temp)) > np.abs(np.min(temp)):
-        eog_events, _ = peak_finder(filteog, extrema=1)
+        eog_events, _ = peak_finder(filteog, extrema=1, verbose=verbose)
     else:
-        eog_events, _ = peak_finder(filteog, extrema=-1)
+        eog_events, _ = peak_finder(filteog, extrema=-1, verbose=verbose)
 
     n_events = len(eog_events)
     if verbose:
