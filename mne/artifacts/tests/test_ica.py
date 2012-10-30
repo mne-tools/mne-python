@@ -59,7 +59,7 @@ def test_ica():
     ica_cov = ICA(noise_cov=test_cov, n_components=25, random_state=0)
 
     print ica  # to test repr
-    ica.decompose_raw(raw, picks=None, start=0, stop=30)  # test default picks
+    ica.decompose_raw(raw, picks=None, start=0, stop=3)  # test default picks
 
     ica.decompose_raw(raw, picks=picks, start=start, stop=stop)
     sources = ica.get_sources_raw(raw)
@@ -81,15 +81,15 @@ def test_ica():
     raw2 = ica_cov.pick_sources_raw(raw, exclude=[1, 2], copy=True)
     raw2 = ica_cov.pick_sources_raw(raw, include=[1, 2],
                                     exclude=[], copy=True)
-    assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
+    assert_array_almost_equal(raw2[:, :100][1], raw[:, :100][1])
 
     # Test epochs sources selection using raw fit.
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
     assert_array_almost_equal(epochs2.get_data(), epochs.get_data())
 
     # Test score_funcs and find_sources
-    sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n)
-                  for  n, f in score_funcs.items()]
+    sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,
+                    start=0, stop=10) for  n, f in score_funcs.items()]
 
     [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
 
@@ -142,4 +142,3 @@ def test_ica():
                     score_func=n) for n, f in score_funcs.items()]
 
     [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
-

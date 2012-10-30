@@ -49,18 +49,8 @@ ica.decompose_epochs(epochs)
 # A distinct cardiac component should be visible
 ica.plot_sources_epochs(epochs, epoch_idx=13, n_components=25)
 
-
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal
-
-# First, we create a helper function that iteratively applies the pearson
-# correlation function to sources and returns an array of r values
-# This is to illustrate the way ica.find_find_sources works. Actually this is
-# the default score_func.
-
-from scipy.stats import pearsonr
-
-corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
@@ -68,7 +58,7 @@ corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 # scores for each ICA source.
 
 ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
-                                     score_func=corr)
+                                     score_func='pearsonr')
 
 # get maximum correlation index for ECG
 ecg_source_idx = np.abs(ecg_scores).argmax()

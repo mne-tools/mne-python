@@ -38,7 +38,7 @@ ica = ICA(noise_cov=None, n_components=25, random_state=0)
 print ica
 
 # 1 minute exposure should be sufficient for artifact detection.
-# However, rejection pefromance may significantly improve when using
+# However, rejection performance may significantly improve when using
 # the entire data range
 start, stop = raw.time_as_index([100, 160])
 
@@ -91,7 +91,7 @@ pl.show()
 # We can do this by reordering the plot by our scores using sort_args
 # and generating sort indices for the sources:
 
-ecg_sort_args = np.abs(ecg_scores.argsort())
+ecg_sort_args = np.abs(ecg_scores).argsort()
 
 ica.plot_sources_raw(raw, sort_args=ecg_sort_args, start=start_plot,
                      stop=stop_plot)
@@ -104,7 +104,7 @@ ica.plot_sources_raw(raw, sort_args=ecg_sort_args, start=start_plot,
 ecg_source_idx_updated = ica.index[np.abs(ecg_scores) ** 2 > .05]
 
 ###############################################################################
-# Automatically find the EOG component using correlatio with EOG signal
+# Automatically find the EOG component using correlation with EOG signal
 
 # As we have an EOG channel, we can use it to detect the source.
 
@@ -115,7 +115,6 @@ eog_scores = ica.find_sources_raw(raw, target='EOG 061',
 eog_source_idx = np.abs(eog_scores).argmax()
 
 # plot the component that correlates most with the EOG
-
 pl.figure()
 pl.plot(times, sources[eog_source_idx])
 pl.title('ICA source matching EOG')
@@ -149,7 +148,7 @@ pl.ylabel('Denoised MEG data (T)')
 pl.ylim(y0, y1)
 pl.show()
 
-################################################################################
+###############################################################################
 # Compare the affected channel before and after ICA cleaning
 
 affected_idx = raw.ch_names.index('MEG 1531')
@@ -159,7 +158,6 @@ pl.figure()
 pl.plot(times, data[affected_idx])
 pl.title('Affected channel MEG 1531 before cleaning.')
 y0, y1 = pl.ylim()
-
 
 # plot the component that correlates most with the ECG
 pl.figure()

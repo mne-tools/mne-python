@@ -46,7 +46,8 @@ score_funcs.update(dict((n, _make_xy_sfunc(f)) for n, f in xy_arg_dist_funcs
                    if getargspec(f).args == ['u', 'v']))
 
 score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
-                   for n, f in xy_arg_stats_funcs if getargspec(f).args == ['x', 'y']))
+                   for n, f in xy_arg_stats_funcs
+                   if getargspec(f).args == ['x', 'y']))
 
 
 __all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs']
@@ -220,8 +221,9 @@ class ICA(object):
         else:
             self._sort_idx = np.arange(len(picks))
 
-        data, self.pre_whitener = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
-                                                   epochs.info, picks)
+        data, self.pre_whitener = self._pre_whiten(
+                                np.hstack(epochs.get_data()[:, picks]),
+                                epochs.info, picks)
         self._fast_ica.fit(data.T)
         self.mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'epochs'
@@ -298,9 +300,10 @@ class ICA(object):
         ----------
         raw : instance of mne.fiff.Raw
             Raw object to plot the sources from.
-        ssort_args : ndarray | None.
-            Index of length n_components. If None, plot will show the sources in the
-            order as fitted. Example: arg_sort = np.argsort(np.var(sources)).
+        sort_args : ndarray | None.
+            Index of length n_components. If None, plot will show the sources
+            in the order as fitted.
+            Example: arg_sort = np.argsort(np.var(sources)).
         start : int
             X-axis start index. If None from the beginning.
         stop : int
@@ -339,9 +342,9 @@ class ICA(object):
 
         return fig
 
-    def plot_sources_epochs(self, epochs, epoch_idx=None, sort_args=None, start=None,
-                            stop=None, n_components=None, source_idx=None,
-                            ncol=3, nrow=10, show=True):
+    def plot_sources_epochs(self, epochs, epoch_idx=None, sort_args=None,
+                            start=None, stop=None, n_components=None,
+                            source_idx=None, ncol=3, nrow=10, show=True):
         """Create panel plots of ICA sources. Wrapper around viz.plot_ica_panel
 
         Parameters
@@ -351,8 +354,9 @@ class ICA(object):
         epoch_idx : int
             Index to plot particular epoch.
         sort_args : ndarray | None.
-            Index of length n_components. If None, plot will show the sources in the
-            order as fitted. Example: arg_sort = np.argsort(np.var(sources)).
+            Index of length n_components. If None, plot will show the sources
+            in the order as fitted.
+            Example: arg_sort = np.argsort(np.var(sources)).
         sources : ndarray
             Sources as drawn from self.get_sources.
         start : int
@@ -394,10 +398,10 @@ class ICA(object):
 
         return fig
 
-    def find_sources_raw(self, raw, target=None, score_func=None, start=None,
-                         stop=None):
-        """ Find sources based on own distribution or based on relationship to
-            other sources or between source and target.
+    def find_sources_raw(self, raw, target=None, score_func='pearsonr',
+                         start=None, stop=None):
+        """Find sources based on own distribution or based on similarity to
+        other sources or between source and target.
 
         Parameters
         ----------
@@ -412,10 +416,10 @@ class ICA(object):
         score_func : callable | str label
             Callable taking as arguments either two input arrays
             (e.g. pearson correlation) or one input
-            array (e. g. skewness) and returns a float. For convenience the most
-            common score_funcs are available via string labels: Currently, all
-            distance metrics from scipy.spatial and all functions from scipy.stats
-            taking compatible input arguments are supported. These
+            array (e. g. skewness) and returns a float. For convenience the
+            most common score_funcs are available via string labels: Currently,
+            all distance metrics from scipy.spatial and all functions from
+            scipy.stats taking compatible input arguments are supported. These
             function have been modified to support iteration over the rows of a
             2D array.
         start : int
@@ -450,8 +454,8 @@ class ICA(object):
 
         return _find_sources(sources, target, score_func)
 
-    def find_sources_epochs(self, epochs, target=None, score_func=None):
-        """ Find sources based on relations between source and target
+    def find_sources_epochs(self, epochs, target=None, score_func='pearsonr'):
+        """Find sources based on relations between source and target
 
         Parameters
         ----------
@@ -466,10 +470,10 @@ class ICA(object):
         score_func : callable | str label
             Callable taking as arguments either two input arrays
             (e.g. pearson correlation) or one input
-            array (e. g. skewness) and returns a float. For convenience the most
-            common score_funcs are available via string labels: Currently, all
-            distance metrics from scipy.spatial and all functions from scipy.stats
-            taking compatible input arguments are supported. These
+            array (e. g. skewness) and returns a float. For convenience the
+            most common score_funcs are available via string labels: Currently,
+            all distance metrics from scipy.spatial and all functions from
+            scipy.stats taking compatible input arguments are supported. These
             function have been modified to support iteration over the rows of a
             2D array.
 
@@ -478,7 +482,6 @@ class ICA(object):
         scores : ndarray
             scores for each source as returned from score_func
         """
-
         sources = self.get_sources_epochs(epochs=epochs)
         # auto target selection
         if target is not None:
@@ -555,7 +558,6 @@ class ICA(object):
         epochs : instance of Epochs
             Epochs with selected ICA components removed.
         """
-
         if not epochs.preload:
             raise ValueError('raw data should be preloaded to have this '
                              'working. Please read raw data with '
@@ -620,9 +622,9 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     Parameters
     ----------
     ecg_source : ndarray
-        ICA source resembling ECG to find peaks from
+        ICA source resembling ECG to find peaks from.
     event_id : int
-        The index to assign to found events
+        The index to assign to found events.
     raw : instance of Raw
         Raw object to draw sources from.
     start : int
@@ -650,7 +652,6 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     average_pulse : float.
         Estimated average pulse.
     """
-
     print 'Using ICA source to identify heart beats'
 
     # detecting QRS and generating event file
@@ -675,7 +676,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     raw : instance of Raw
         The raw data.
     eog_source : ndarray
-        ICA source resembling EOG to find peaks from
+        ICA source resembling EOG to find peaks from.
     event_id : int
         The index to assign to found events.
     low_pass: float
@@ -688,9 +689,10 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     eog_events : array
         Events
     """
-    eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id, l_freq=l_freq,
-                                  h_freq=h_freq, sampling_rate=raw.info['sfreq'],
-                                  first_samp=raw.first_samp)
+    eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
+                                l_freq=l_freq, h_freq=h_freq,
+                                sampling_rate=raw.info['sfreq'],
+                                first_samp=raw.first_samp)
     return eog_events
 
 
