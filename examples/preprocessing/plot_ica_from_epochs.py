@@ -66,7 +66,7 @@ ecg_source_idx = np.abs(ecg_scores).argmax()
 print '#%i -- ICA component resembling the ECG' % ecg_source_idx
 
 ###############################################################################
-# Automatically find the EOG component using correlatio with EOG signal
+# Automatically find the EOG component using correlation with EOG signal
 
 # As we have an EOG channel, we can use it to detect the source.
 
