@@ -182,6 +182,8 @@ Functions reference
 
    find_eog_events
    find_ecg_events
+   ica_find_eog_events
+   ica_find_ecg_events
 
 .. automodule:: mne.time_frequency
  :no-members:
