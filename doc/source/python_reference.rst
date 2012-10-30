@@ -81,6 +81,8 @@ Functions reference
    compute_proj_raw
    read_selection
    read_dip
+   set_log_level
+   set_log_file
    fiff.pick_types
    fiff.pick_channels
    fiff.pick_types_evoked
