@@ -144,7 +144,7 @@ class ICA(object):
 
         return out
 
-    def decompose_raw(self, raw, picks=None, start=None, stop=None, 
+    def decompose_raw(self, raw, picks=None, start=None, stop=None,
                       verbose=True):
         """Run the ICA decomposition on raw data
 
@@ -171,7 +171,7 @@ class ICA(object):
         """
         if verbose:
             logger.info('Computing signal decomposition on raw data. '
-                        'Please be patient, this may take some time'))
+                        'Please be patient, this may take some time')
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True,
@@ -213,7 +213,7 @@ class ICA(object):
         """
         if verbose:
             logger.info('Computing signal decomposition on epochs. '
-                        'Please be patient, this may take some time'))
+                        'Please be patient, this may take some time')
 
         if picks is None:  # just use epochs good data channels and avoid
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
@@ -682,7 +682,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
 
 
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
-                    h_freq=10):
+                    h_freq=10, verbose=True):
     """Locate EOG artifacts
 
     Parameters
@@ -693,10 +693,12 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         ICA source resembling EOG to find peaks from.
     event_id : int
         The index to assign to found events.
-    low_pass: float
+    low_pass : float
         Low pass frequency.
-    high_pass: float
+    high_pass : float
         High pass frequency.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -706,7 +708,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
                                 l_freq=l_freq, h_freq=h_freq,
                                 sampling_rate=raw.info['sfreq'],
-                                first_samp=raw.first_samp)
+                                first_samp=raw.first_samp, verbose=verbose)
     return eog_events
 
 
