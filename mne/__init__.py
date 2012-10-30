@@ -46,6 +46,5 @@ from . import time_frequency
 from . import viz
 
 # deal with logging
-import logging
 set_log_level()
 set_log_file()

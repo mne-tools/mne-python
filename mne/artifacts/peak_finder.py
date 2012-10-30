@@ -5,20 +5,22 @@ import logging
 logger = logging.getLogger('mne')
 
 
-def peak_finder(x0, thresh=None, extrema=1):
+def peak_finder(x0, thresh=None, extrema=1, verbose=True):
     """Noise tolerant fast peak finding algorithm
 
     Parameters
     ----------
-    x0: 1d array
-        A real vector from the maxima will be found (required)
-    thresh: float
+    x0 : 1d array
+        A real vector from the maxima will be found (required).
+    thresh : float
         The amount above surrounding data for a peak to be
         identified (default = (max(x0)-min(x0))/4). Larger values mean
         the algorithm is more selective in finding peaks.
-    extrema: {-1, 1}
+    extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
-        (default = maxima, 1)
+        (default = maxima, 1).
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -160,7 +162,7 @@ def peak_finder(x0, thresh=None, extrema=1):
         x0 = -x0
 
     # Plot if no output desired
-    if len(peak_inds) == 0:
+    if len(peak_inds) == 0 and verbose:
         logger.info('No significant peaks found')
 
     return peak_inds, peak_mags
