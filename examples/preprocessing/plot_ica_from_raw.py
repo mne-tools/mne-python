@@ -88,13 +88,11 @@ pl.title('ICA source matching ECG')
 pl.show()
 
 # let us have a look which other components resemble the ECG.
-# We can do this by reordering the plot by our scores using sort_args
+# We can do this by reordering the plot by our scores using order
 # and generating sort indices for the sources:
 
-ecg_sort_args = np.abs(ecg_scores).argsort()
-
-ica.plot_sources_raw(raw, sort_args=ecg_sort_args, start=start_plot,
-                     stop=stop_plot)
+ecg_order = np.abs(ecg_scores).argsort()
+ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
 # for which the variance explantion in terms of \{r^2}\ exceeds 5 percent.

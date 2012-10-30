@@ -70,7 +70,8 @@ print '#%i -- ICA component resembling the ECG' % ecg_source_idx
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_scores = ica.find_sources_epochs(epochs, target='EOG 061', score_func=corr)
+eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
+                                     score_func='pearsonr')
 
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()

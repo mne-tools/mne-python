@@ -291,7 +291,7 @@ class ICA(object):
 
         return epochs_sources if not concatenate else np.hstack(epochs_sources)
 
-    def plot_sources_raw(self, raw, sort_args=None, start=None, stop=None,
+    def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=10,
                          show=True):
         """Create panel plots of ICA sources. Wrapper around viz.plot_ica_panel
@@ -300,7 +300,7 @@ class ICA(object):
         ----------
         raw : instance of mne.fiff.Raw
             Raw object to plot the sources from.
-        sort_args : ndarray | None.
+        order : ndarray | None.
             Index of length n_components. If None, plot will show the sources
             in the order as fitted.
             Example: arg_sort = np.argsort(np.var(sources)).
@@ -326,12 +326,12 @@ class ICA(object):
 
         sources = self.get_sources_raw(raw, start=start, stop=stop)
 
-        if sort_args is not None:
-            if len(sort_args) != sources.shape[0]:
-                    raise ValueError('sort_args and sources have to be of the '
+        if order is not None:
+            if len(order) != sources.shape[0]:
+                    raise ValueError('order and sources have to be of the '
                                      'same lenght.')
             else:
-                sources = sources[sort_args]
+                sources = sources[order]
 
         fig = plot_ica_panel(sources, start=0 if start is not None else start,
                              stop=(stop - start) if stop is not None else stop,
@@ -342,7 +342,7 @@ class ICA(object):
 
         return fig
 
-    def plot_sources_epochs(self, epochs, epoch_idx=None, sort_args=None,
+    def plot_sources_epochs(self, epochs, epoch_idx=None, order=None,
                             start=None, stop=None, n_components=None,
                             source_idx=None, ncol=3, nrow=10, show=True):
         """Create panel plots of ICA sources. Wrapper around viz.plot_ica_panel
@@ -353,7 +353,7 @@ class ICA(object):
             Epochs object to plot the sources from.
         epoch_idx : int
             Index to plot particular epoch.
-        sort_args : ndarray | None.
+        order : ndarray | None.
             Index of length n_components. If None, plot will show the sources
             in the order as fitted.
             Example: arg_sort = np.argsort(np.var(sources)).
@@ -382,13 +382,13 @@ class ICA(object):
         sources = self.get_sources_epochs(epochs, concatenate=True if epoch_idx
                                           is None else False)
         source_dim = 1 if sources.ndim > 2 else 0
-        if sort_args is not None:
-            if len(sort_args) != sources.shape[source_dim]:
-                raise ValueError('sort_args and sources have to be of the '
+        if order is not None:
+            if len(order) != sources.shape[source_dim]:
+                raise ValueError('order and sources have to be of the '
                                  'same lenght.')
             else:
-                sources = (sources[:, sort_args] if source_dim
-                           else sources[sort_args])
+                sources = (sources[:, order] if source_dim
+                           else sources[order])
 
         fig = plot_ica_panel(sources[epoch_idx], start=start, stop=stop,
                              n_components=n_components, source_idx=source_idx,
