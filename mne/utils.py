@@ -290,7 +290,6 @@ def split_list(l, n):
     yield l[(n - 1) * sz:]
 
 
-
 def set_log_level(level='INFO'):
     """Convenience function for setting the logging level
 
