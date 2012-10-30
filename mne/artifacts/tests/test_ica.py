@@ -5,11 +5,12 @@
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 from scipy import stats
 
 from mne import fiff, Epochs, read_events, cov
-from mne.artifacts import ICA
+from mne.artifacts import ICA, ica_find_ecg_events, ica_find_eog_events
+from mne.artifacts.ica import score_funcs
 
 have_sklearn = True
 try:
@@ -35,19 +36,25 @@ raw = fiff.Raw(raw_fname, preload=True)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, stim=False,
                         ecg=False, eog=False, exclude=raw.info['bads'])
+
+picks2 = fiff.pick_types(raw.info, meg=True, stim=False,
+                        ecg=False, eog=True, exclude=raw.info['bads'])
+
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 test_cov = cov.read_cov(test_cov_name)
-epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
 start, stop = 0, 500
 
+
 @sklearn_test
-def test_ica_raw():
-    """Test ICA on raw
+def test_ica():
+    """Test ICA on raw and epochs
     """
+    # Test ICA raw
     ica = ICA(noise_cov=None, n_components=25, random_state=0)
     ica_cov = ICA(noise_cov=test_cov, n_components=25, random_state=0)
 
@@ -64,16 +71,6 @@ def test_ica_raw():
                                 exclude=[], copy=True)
     assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
-    initial_sort = ica._sort_idx
-    sources_2 = ica.sort_sources(sources, stats.kurtosis)
-    sources_3 = ica.sort_sources(sources_2, stats.skew)
-    assert_array_equal(initial_sort, ica._sort_idx)
-    assert_array_equal(sources, sources_3)
-
-    sources_3 = ica.sort_sources(sources_3, stats.skew)
-    assert_array_equal(initial_sort, ica._sort_idx)
-    assert_array_equal(sources, sources_3)
-
     ica_cov.decompose_raw(raw, picks=picks)
     print ica  # to test repr
 
@@ -86,22 +83,36 @@ def test_ica_raw():
                                     exclude=[], copy=True)
     assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
-    initial_sort = ica_cov._sort_idx
-    sources_2 = ica_cov.sort_sources(sources, stats.kurtosis)
-    sources_3 = ica_cov.sort_sources(sources_2, stats.skew)
-    assert_array_equal(initial_sort, ica_cov._sort_idx)
-    assert_array_equal(sources, sources_3)
-
-    sources_3 = ica_cov.sort_sources(sources_3, stats.skew)
-    assert_array_equal(initial_sort, ica_cov._sort_idx)
-    assert_array_equal(sources, sources_3)
-
     # Test epochs sources selection using raw fit.
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
     assert_array_almost_equal(epochs2.get_data(), epochs.get_data())
 
+    # Test score_funcs and find_sources
+    sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n)
+                  for  n, f in score_funcs.items()]
+
+    [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
+
+    scores = ica.find_sources_raw(raw, score_func=stats.skew)
+    assert_true(scores.shape == ica.index.shape)
+
+    ecg_scores = ica.find_sources_raw(raw, target='MEG 1531',
+                                      score_func='pearsonr')
+
+    ecg_events = ica_find_ecg_events(raw, sources[np.abs(ecg_scores).argmax()])
+
+    assert_true(ecg_events.ndim == 2)
+
+    eog_scores = ica.find_sources_raw(raw, target='EOG 061',
+                                      score_func='pearsonr')
+
+    eog_events = ica_find_eog_events(raw, sources[np.abs(eog_scores).argmax()])
+
+    assert_true(eog_events.ndim == 2)
+
     # Test ICA epochs
-    ica.decompose_epochs(epochs)
+
+    ica.decompose_epochs(epochs, picks=picks2)
 
     sources = ica.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
@@ -110,19 +121,10 @@ def test_ica_raw():
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[0], copy=True)
     epochs2 = ica.pick_sources_epochs(epochs, include=[0],
                                       exclude=[], copy=True)
-    assert_array_almost_equal(epochs2.get_data(), epochs.get_data())
+    assert_array_almost_equal(epochs2.get_data(),
+                              epochs.get_data())
 
-    initial_sort = ica._sort_idx
-    sources_2 = ica.sort_sources(sources, stats.kurtosis)
-    sources_3 = ica.sort_sources(sources_2, stats.skew)
-    assert_array_equal(initial_sort, ica._sort_idx)
-    assert_array_equal(sources, sources_3)
-
-    sources_3 = ica.sort_sources(sources_3, stats.skew)
-    assert_array_equal(initial_sort, ica._sort_idx)
-    assert_array_equal(sources, sources_3)
-
-    ica_cov.decompose_epochs(epochs)
+    ica_cov.decompose_epochs(epochs, picks=picks2)
 
     sources = ica_cov.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
@@ -133,12 +135,11 @@ def test_ica_raw():
                                           exclude=[], copy=True)
     assert_array_almost_equal(epochs2._data, epochs._data)
 
-    initial_sort = ica_cov._sort_idx
-    sources_2 = ica_cov.sort_sources(sources, stats.kurtosis)
-    sources_3 = ica_cov.sort_sources(sources_2, stats.skew)
-    assert_array_equal(initial_sort, ica_cov._sort_idx)
-    assert_array_equal(sources, sources_3)
+    scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
+    assert_true(scores.shape == ica.index.shape)
 
-    sources_3 = ica_cov.sort_sources(sources_3, stats.skew)
-    assert_array_equal(initial_sort, ica_cov._sort_idx)
-    assert_array_equal(sources, sources_3)
+    sfunc_test = [ica.find_sources_epochs(epochs, target='EOG 061',
+                    score_func=n) for n, f in score_funcs.items()]
+
+    [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
+
