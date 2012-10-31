@@ -451,7 +451,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
-             show=True):
+             show=True, verbose=True):
     """Plot Covariance data
 
     Parameters
@@ -471,6 +471,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor type.
         We show square roots ie. standard deviations.
+    verbose : bool
+        Print status messages.
     """
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
@@ -502,10 +504,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            logger.info('    Created an SSP operator (subspace dimension = %d)'
-                        % ncomp)
+            if verbose:
+                logger.info('    Created an SSP operator (subspace dimension'
+                            ' = %d)' % ncomp)
             C = np.dot(P, np.dot(C, P.T))
-        else:
+        elif verbose:
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
@@ -630,25 +633,27 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
 
 
 def plot_ica_panel(sources, start=None, stop=None, n_components=None,
-                   source_idx=None, ncol=3, nrow=10):
+                   source_idx=None, ncol=3, nrow=10, verbose=True):
     """Create panel plots of ICA sources
 
     Parameters
     ----------
     sources : ndarray
-        sources as drawn from ica.get_sources
+        sources as drawn from ica.get_sources.
     start : int
         x-axis start index. If None from the beginning.
     stop : int
         x-axis stop index. If None to the end.
     n_components : int
-        number of components fitted
+        number of components fitted.
     source_idx : array-like
-        indices for subsetting the sources
+        indices for subsetting the sources.
     ncol : int
-        number of panel-columns
+        number of panel-columns.
     nrow : int
-        number of panel-rows
+        number of panel-rows.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -667,8 +672,9 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     if source_idx is None:
         source_idx = np.arange(n_components)
     elif source_idx.shape > 30:
-        logger.info('More sources selected than rows and cols specified.'
-                    'Showing the first %i sources.' % nplots)
+        if verbose:
+            logger.info('More sources selected than rows and cols specified.'
+                        'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
 
     sources = sources[:, start:stop]

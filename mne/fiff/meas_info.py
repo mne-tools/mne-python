@@ -137,8 +137,9 @@ def read_meas_info(fid, tree, verbose=True):
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
-    if len(isotrak) == 0 and verbose:
-        logger.info('Isotrak not found')
+    if len(isotrak) == 0:
+        if verbose:
+            logger.info('Isotrak not found')
     elif len(isotrak) > 1:
         warn('Multiple Isotrak found')
     else:

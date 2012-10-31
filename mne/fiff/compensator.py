@@ -140,7 +140,7 @@ def get_current_comp(info):
 #     return comp
 
 
-# def compensate_to(data, to):
+# def compensate_to(data, to, verbose=True):
 #     """
 #     %
 #     % [newdata] = mne_compensate_to(data,to)
@@ -153,7 +153,7 @@ def get_current_comp(info):
 #     now = get_current_comp(newdata['info'])
 #
 #     #   Are we there already?
-#     if now == to:
+#     if now == to and verbose:
 #         logger.info('Data are already compensated as desired')
 #
 #     #   Make the compensator and apply it to all data sets

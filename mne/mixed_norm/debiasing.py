@@ -57,7 +57,7 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     return L
 
 
-def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
+def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=True):
     """Compute scaling to correct amplitude bias
 
     It solves the following optimization problem using FISTA:
@@ -74,22 +74,24 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
     Parameters
     ----------
     M : array
-        measurement data
+        measurement data.
     G : array
-        leadfield matrix
+        leadfield matrix.
     X : array
-        reconstructed time courses with amplitude bias
+        reconstructed time courses with amplitude bias.
     max_iter : int
-        Maximum number of iterations
+        Maximum number of iterations.
     tol : float
-        The tolerance on convergence
+        The tolerance on convergence.
     n_orient : int
-        The number of orientations (1 for fixed and 3 otherwise)
+        The number of orientations (1 for fixed and 3 otherwise).
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
     D : array
-        Debiasing weights
+        Debiasing weights.
     """
     n_sources = X.shape[0]
 
@@ -122,7 +124,8 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
         if linalg.norm(D - D0, np.inf) < tol:
-            logger.info("Debiasing converged after %d iterations" % i)
+            if verbose:
+                logger.info("Debiasing converged after %d iterations" % i)
             break
     else:
         logger.info("Debiasing did not converge")

@@ -163,7 +163,7 @@ def transform_coordinates(filename, pos, orig, dest):
     return trans_pos
 
 
-# def transform_meg_chs(chs, trans):
+# def transform_meg_chs(chs, trans, verbose=True):
 #     """
 #     %
 #     % [res, count] = fiff_transform_meg_chs(chs,trans)
@@ -192,13 +192,13 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 ch['coord_frame'] = trans['to']
 #                 count += 1
 #
-#     if count > 0:
+#     if count > 0 and verbose:
 #         logger.info('    %d MEG channel locations transformed' % count)
 #
 #     return res, count
 
 
-# def transform_eeg_chs(chs, trans):
+# def transform_eeg_chs(chs, trans, verbose):
 #     """
 #     %
 #     % [res, count] = fiff_transform_eeg_chs(chs,trans)
@@ -232,7 +232,7 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 count += 1
 #                 ch['coord_frame'] = trans['to']
 #
-#     if count > 0:
+#     if count > 0 and verbose:
 #         logger.info('    %d EEG electrode locations transformed\n' % count)
 #
 #     return res, count
