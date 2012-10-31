@@ -153,10 +153,10 @@ def read_proj(fid, node, verbose=True):
                 misc = 'active'
             else:
                 misc = ' idle'
-            logger.info('        %s (%d x %d) %s' % (projs[k]['desc'],
-                                                     projs[k]['data']['nrow'],
-                                                     projs[k]['data']['ncol'],
-                                                     misc))
+            if verbose:
+                logger.info('        %s (%d x %d) %s'
+                            % (projs[k]['desc'], projs[k]['data']['nrow'],
+                               projs[k]['data']['ncol'], misc))
 
     return projs
 

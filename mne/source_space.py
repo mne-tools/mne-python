@@ -417,28 +417,31 @@ def _get_vertno(src):
 ###############################################################################
 # Write routines
 
-def write_source_spaces(fid, src):
+def write_source_spaces(fid, src, verbose=True):
     """Write the source spaces to a FIF file
 
     Parameters
     ----------
-    fid: file descriptor
-        An open file descriptor
-
-    src: list
-        The list of source spaces
-
+    fid : file descriptor
+        An open file descriptor.
+    src : list
+        The list of source spaces.
+    verbose : bool
+        Print status messages.
     """
     for s in src:
-        logger.info('    Write a source space...')
+        if verbose:
+            logger.info('    Write a source space...')
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        _write_one_source_space(fid, s)
+        _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        logger.info('[done]')
-    logger.info('    %d source spaces written' % len(src))
+        if verbose:
+            logger.info('[done]')
+    if verbose:
+        logger.info('    %d source spaces written' % len(src))
 
 
-def _write_one_source_space(fid, this):
+def _write_one_source_space(fid, this, verbose=True):
     """Write one source space"""
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
     if this['type'] == 'surf':
@@ -503,7 +506,7 @@ def _write_one_source_space(fid, this):
     #     res['nearest_dist'] = tag2.data.T
     #
     # res['pinfo'] = patch_info(res['nearest'])
-    # if res['pinfo'] is not None:
+    # if res['pinfo'] is not None and verbose:
     #     logger.info('Patch information added...')
     #
     # #   Distances

@@ -374,7 +374,7 @@ class SourceEstimate(object):
         self.times = tmin + (tstep * np.arange(data.shape[1]))
         self.vertno = vertices
 
-    def save(self, fname, ftype='stc'):
+    def save(self, fname, ftype='stc', verbose=True):
         """Save the source estimates to a file
 
         Parameters
@@ -390,13 +390,16 @@ class SourceEstimate(object):
             The "stc" format can be for surface and volume source spaces,
             while the "w" format only supports surface source spaces with a
             single time point.
+        verbose : bool
+            Print status messages.
         """
         if self.is_surface():
             lh_data = self.data[:len(self.lh_vertno)]
             rh_data = self.data[-len(self.rh_vertno):]
 
             if ftype == 'stc':
-                logger.info('Writing STC to disk...')
+                if verbose:
+                    logger.info('Writing STC to disk...')
                 write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
                           vertices=self.lh_vertno, data=lh_data)
                 write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
@@ -405,7 +408,8 @@ class SourceEstimate(object):
                 if self.data.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
-                logger.info('Writing STC to disk (w format)...')
+                if verbose:
+                    logger.info('Writing STC to disk (w format)...')
                 write_w(fname + '-lh.w', vertices=self.lh_vertno,
                         data=lh_data[:, 0])
                 write_w(fname + '-rh.w', vertices=self.rh_vertno,
@@ -416,12 +420,14 @@ class SourceEstimate(object):
             if ftype != 'stc':
                 raise ValueError('ftype has to be \"stc\" volume source '
                                  'spaces')
-            logger.info('Writing STC to disk...')
+            if verbose:
+                logger.info('Writing STC to disk...')
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
             write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                            vertices=self.vertno[0], data=self.data)
-        logger.info('[done]')
+        if verbose:
+            logger.info('[done]')
 
     def __repr__(self):
         s = "%d vertices" % sum([len(v) for v in self.vertno])

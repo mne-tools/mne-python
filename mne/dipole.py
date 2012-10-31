@@ -6,13 +6,15 @@ import numpy as np
 import logging
 logger = logging.getLogger('mne')
 
-def read_dip(fname):
+def read_dip(fname, verbose=True):
     """Read .dip file from Neuromag/xfit or MNE
 
     Parameters
     ----------
     fname : str
-        The name of the .dip file
+        The name of the .dip file.
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -33,7 +35,8 @@ def read_dip(fname):
         data = np.loadtxt(fname, comments='#')  # handle 2 types of comments...
     if data.ndim == 1:
         data = data[None, :]
-    logger.info("%d dipole(s) found" % len(data))
+    if verbose:
+        logger.info("%d dipole(s) found" % len(data))
     time = data[:, 0]
     pos = 1e-3 * data[:, 2:5]  # put data in meters
     amplitude = data[:, 5]

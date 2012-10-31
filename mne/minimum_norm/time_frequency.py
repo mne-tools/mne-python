@@ -104,13 +104,14 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep)
         stcs[name] = stc
 
-        logger.info('[done]')
+        if verbose:
+            logger.info('[done]')
 
     return stcs
 
 
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal, decim):
+                     pick_normal, decim, verbose=True):
     """Aux function for source_induced_power"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
@@ -157,7 +158,8 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
                         plv_f += 1j * sol_pick_normal
 
                 if is_free_ori:
-                    # logger.info('combining the current components...')
+                    # if verbose:
+                    #     logger.info('combining the current components...')
                     sol = combine_xyz(sol, square=True)
                 else:
                     np.power(sol, 2, sol)

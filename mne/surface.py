@@ -95,7 +95,7 @@ def read_bem_surfaces(fname, add_geom=False, verbose=True):
         if verbose:
             logger.info('[done]')
         if add_geom:
-            _complete_surface_info(this)
+            _complete_surface_info(this, verbose)
         surf.append(this)
 
     if verbose:
@@ -184,13 +184,14 @@ def _read_bem_surface(fid, this, def_coord_frame):
     return res
 
 
-def _complete_surface_info(this):
+def _complete_surface_info(this, verbose=True):
     """Complete surface info"""
     #
     #   Main triangulation
     #
-    logger.info('    Completing triangulation info...')
-    logger.info('triangle normals...')
+    if verbose:
+        logger.info('    Completing triangulation info...')
+        logger.info('triangle normals...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -206,17 +207,20 @@ def _complete_surface_info(this):
     #
     #   Accumulate the vertex normals
     #
-    logger.info('vertex normals...')
+    if verbose:
+        logger.info('vertex normals...')
     this['nn'] = np.zeros((this['np'], 3))
     for p in range(this['ntri']):
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
     #
     #   Compute the lengths of the vertex normals and scale
     #
-    logger.info('normalize...')
+    if verbose:
+        logger.info('normalize...')
     this['nn'] /= np.sqrt(np.sum(this['nn'] ** 2, axis=1))[:, None]
 
-    logger.info('[done]')
+    if verbose:
+        logger.info('[done]')
     return this
 
 

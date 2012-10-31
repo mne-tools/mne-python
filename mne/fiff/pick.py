@@ -317,19 +317,19 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     return pick_channels_evoked(orig, include_ch_names)
 
 
-def pick_channels_forward(orig, include=[], exclude=[]):
+def pick_channels_forward(orig, include=[], exclude=[], verbose=True):
     """Pick channels from forward operator
 
     Parameters
     ----------
     orig : dict
-        A forward solution
-
+        A forward solution.
     include : list of string, (optional)
-        List of channels to include. (if None, include all available)
-
+        List of channels to include. (if None, include all available).
     exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any)
+        Channels to exclude (if None, do not exclude any).
+    verbose : bool
+        Print status messages.
 
     Returns
     -------
@@ -351,8 +351,9 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    logger.info('    %d out of %d channels remain after picking' % (nuse,
-                                                            fwd['nchan']))
+    if verbose:
+        logger.info('    %d out of %d channels remain after picking' % (nuse,
+                                                                fwd['nchan']))
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]

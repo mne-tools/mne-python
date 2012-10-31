@@ -55,13 +55,16 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=True):
     eeg_ind = pick_types(info, meg=False, eeg=True)
 
     if (n_grad > 0) and len(grad_ind) == 0:
-        logger.info("No gradiometers found. Forcing n_grad to 0")
+        if verbose:
+            logger.info("No gradiometers found. Forcing n_grad to 0")
         n_grad = 0
     if (n_mag > 0) and len(mag_ind) == 0:
-        logger.info("No magnetometers found. Forcing n_mag to 0")
+        if verbose:
+            logger.info("No magnetometers found. Forcing n_mag to 0")
         n_mag = 0
     if (n_eeg > 0) and len(eeg_ind) == 0:
-        logger.info("No EEG channels found. Forcing n_eeg to 0")
+        if verbose:
+            logger.info("No EEG channels found. Forcing n_eeg to 0")
         n_eeg = 0
 
     ch_names = info['ch_names']
