@@ -15,6 +15,7 @@ logger = logging.getLogger('mne')
 from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
+from . import verbose
 
 
 def _aslabel(label):
@@ -39,38 +40,30 @@ class Label(dict):
     Parameters
     ----------
     vertices : array (length N)
-        vertex indices (0 based)
-
+        vertex indices (0 based).
     pos : array (N by 3)
-        locations in meters
-
+        locations in meters.
     values : array (length N)
-        values at the vertices
-
+        values at the vertices.
     hemi : 'lh' | 'rh'
         Hemisphere to which the label applies.
-
     comment, name, fpath : str
-        Kept as information but not used by the object itself
-
+        Kept as information but not used by the object itself.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
     comment : str
-        Comment from the first line of the label file
-
+        Comment from the first line of the label file.
     hemi : 'lh' | 'rh'
-        Hemisphere
-
+        Hemisphere.
     name : None | str
         A name for the label. It is OK to change that attribute manually.
-
     pos : array, shape = (n_pos, 3)
-        Locations in meters
-
+        Locations in meters.
     values : array, len = n_pos
-        Values at the vertices
-
+        Values at the vertices.
     vertices : array, len = n_pos
         Vertex indices (0 based)
 
@@ -78,10 +71,10 @@ class Label(dict):
     -----
     For backwards compatibility, the following attributes are stored as
     dictionary entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
-
     """
+    @verbose
     def __init__(self, vertices, pos, values, hemi, comment="", name=None,
-                 filename=None):
+                 filename=None, verbose=None):
         vertices = np.asarray(vertices)
         values = np.asarray(values)
         pos = np.asarray(pos)
@@ -201,8 +194,9 @@ class Label(dict):
         "calls write_label to write the label to disk"
         write_label(filename, self)
 
+    @verbose
     def smooth(self, subject, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=True):
+               subjects_dir=None, n_jobs=1, verbose=None):
         """Smooth the label. Useful for filling in labels made in a
         decimated source space for display.
 
@@ -222,8 +216,9 @@ class Label(dict):
             See morph_data.
         n_jobs: int
             See morph_data.
-        verbose: int
-            See morph_data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
 
         if self.hemi == 'lh':
@@ -233,8 +228,7 @@ class Label(dict):
         data = self.values[:, np.newaxis]
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1)
         stc = morph_data(subject, subject, stc, grade=grade, smooth=smooth,
-                         subjects_dir=subjects_dir, n_jobs=n_jobs,
-                         verbose=verbose)
+                         subjects_dir=subjects_dir, n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))
@@ -339,7 +333,8 @@ def read_label(filename):
     return label
 
 
-def write_label(filename, label, verbose=True):
+@verbose
+def write_label(filename, label, verbose=None):
     """Write a FreeSurfer label
 
     Parameters
@@ -348,6 +343,8 @@ def write_label(filename, label, verbose=True):
         Path to label file to produce.
     label : Label
         The label object to save.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     label = _aslabel(label)
     hemi = label.hemi
@@ -358,8 +355,7 @@ def write_label(filename, label, verbose=True):
         name += '-' + hemi
     filename = os.path.join(path_head, name) + '.label'
 
-    if verbose:
-        logger.info('Saving label to : %s' % filename)
+    logger.info('Saving label to : %s' % filename)
 
     fid = open(filename, 'wb')
     n_vertices = len(label.vertices)

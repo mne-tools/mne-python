@@ -5,8 +5,11 @@ from scipy.fftpack import fft, ifft, fftfreq
 import logging
 logger = logging.getLogger('mne')
 
+from .. import verbose
 
-def stft(x, wsize, tstep=None, verbose=True):
+
+@verbose
+def stft(x, wsize, tstep=None, verbose=None):
     """STFT Short-Term Fourier Transform using a sine window.
 
     The transformation is designed to be a tight frame that can be
@@ -21,8 +24,8 @@ def stft(x, wsize, tstep=None, verbose=True):
     tstep: int
         step between successive windows in samples (must be a multiple of 2,
         a divider of wsize and smaller than wsize/2) (default: wsize/2)
-    verbose: bool
-        Verbose output or not.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -65,9 +68,8 @@ def stft(x, wsize, tstep=None, verbose=True):
 
     n_step = int(ceil(T / tstep))
     n_freq = wsize / 2 + 1
-    if verbose:
-        logger.info("Number of frequencies: %d" % n_freq)
-        logger.info("Number of time steps: %d" % n_step)
+    logger.info("Number of frequencies: %d" % n_freq)
+    logger.info("Number of time steps: %d" % n_step)
 
     X = np.zeros((n_signals, n_freq, n_step), dtype=np.complex)
 

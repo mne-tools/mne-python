@@ -22,7 +22,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
         Low pass frequency.
     high_pass : float
         High pass frequency.
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns

@@ -22,30 +22,28 @@ from .channels import read_bad_channels
 from .write import start_block, end_block, write_string, write_dig_point, \
                    write_float, write_int, write_coord_trans, write_ch_info, \
                    write_name_list
+from .. import verbose
 
 
-def read_meas_info(fid, tree, verbose=True):
+@verbose
+def read_meas_info(fid, tree, verbose=None):
     """Read the measurement info
 
     Parameters
     ----------
     fid: file
-        Open file descriptor
-
+        Open file descriptor.
     tree: tree
-        FIF tree structure
-
-    verbose : bool
-        Print status messages.
+        FIF tree structure.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     info: dict
-       Info on dataset
-
+       Info on dataset.
     meas: dict
         Node in tree that contains the info.
-
     """
     #   Find the desired blocks
     meas = dir_tree_find(tree, FIFF.FIFFB_MEAS)
@@ -138,8 +136,7 @@ def read_meas_info(fid, tree, verbose=True):
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
     if len(isotrak) == 0:
-        if verbose:
-            logger.info('Isotrak not found')
+        logger.info('Isotrak not found')
     elif len(isotrak) > 1:
         warn('Multiple Isotrak found')
     else:

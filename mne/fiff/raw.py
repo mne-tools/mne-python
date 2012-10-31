@@ -27,6 +27,7 @@ from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
 from ..parallel import parallel_func
 from ..utils import deprecated
+from .. import verbose
 
 
 class Raw(object):
@@ -47,8 +48,8 @@ class Raw(object):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : int
-        Verbosity level.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     proj_active : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
@@ -66,13 +67,14 @@ class Raw(object):
     n_times : int
         Total number of time points in the raw file.
     """
+    @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=True, proj_active=False):
+                 verbose=None, proj_active=False):
 
         if not isinstance(fnames, list):
             fnames = [fnames]
 
-        raws = [self._read_raw_file(fname, allow_maxshield, preload, verbose)
+        raws = [self._read_raw_file(fname, allow_maxshield, preload)
                 for fname in fnames]
 
         _check_raw_compatibility(raws)
@@ -113,10 +115,10 @@ class Raw(object):
                                                    data_buffer=data_buffer)
         self._preloaded = True
 
-    def _read_raw_file(self, fname, allow_maxshield, preload, verbose):
+    @verbose
+    def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
         """Read in header information from a raw file"""
-        if verbose:
-            logger.info('Opening raw data file %s...' % fname)
+        logger.info('Opening raw data file %s...' % fname)
         fid, tree, _ = fiff_open(fname)
 
         #   Read the measurement info
@@ -221,18 +223,16 @@ class Raw(object):
         raw.rawdir = rawdir
         raw.comp = None
         # XXX raw.comp never changes!
-        if verbose:
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                        raw.first_samp, raw.last_samp,
-                        float(raw.first_samp) / info['sfreq'],
-                        float(raw.last_samp) / info['sfreq']))
+        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
+                    raw.first_samp, raw.last_samp,
+                    float(raw.first_samp) / info['sfreq'],
+                    float(raw.last_samp) / info['sfreq']))
 
         raw.fid = fid
         raw.info = info
         raw.verbose = verbose
 
-        if verbose:
-            logger.info('Ready.')
+        logger.info('Ready.')
 
         return raw
 
@@ -297,7 +297,8 @@ class Raw(object):
         # set the data
         self._data[sel, start:stop] = value
 
-    def apply_function(self, fun, picks, dtype, n_jobs, verbose, *args,
+    @verbose
+    def apply_function(self, fun, picks, dtype, n_jobs, verbose=None, *args,
                        **kwargs):
         """ Apply a function to a subset of channels.
 
@@ -333,8 +334,9 @@ class Raw(object):
         n_jobs: int
             Number of jobs to run in parallel.
 
-        verbose: int
-            Verbosity level.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         *args:
             Additional positional arguments to pass to fun (first pos. argument
@@ -360,7 +362,7 @@ class Raw(object):
                 self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(fun, n_jobs, verbose)
+            parallel, p_fun, _ = parallel_func(fun, n_jobs)
 
             data_picks = data_in[picks, :]
             data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
@@ -368,7 +370,8 @@ class Raw(object):
 
             self._data[picks, :] = data_picks_new
 
-    def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=5):
+    @verbose
+    def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=None):
         """ Compute analytic signal or envelope for a subset of channels.
 
         If envelope=False, the analytic signal for the channels defined in
@@ -396,15 +399,13 @@ class Raw(object):
         ----------
         picks : list of int
             Indices of channels to apply the function to.
-
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
-
         n_jobs: int
             Number of jobs to run in parallel.
-
-        verbose: int
-            Verbosity level.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Notes
         -----
@@ -421,13 +422,14 @@ class Raw(object):
         inverse, and computing the envelope in source space.
         """
         if envelope:
-            self.apply_function(_envelope, picks, None, n_jobs, verbose)
+            self.apply_function(_envelope, picks, None, n_jobs)
         else:
-            self.apply_function(hilbert, picks, np.complex64, n_jobs, verbose)
+            self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
+    @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               verbose=5):
+               verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase band-pass filter to the channels selected by
@@ -460,8 +462,9 @@ class Raw(object):
             Width of the transition band at the high cut-off frequency in Hz.
         n_jobs: int
             Number of jobs to run in parallel.
-        verbose: int, or None
-            Verbosity level. If None, it is inherited from Raw.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
         if verbose is None:
             verbose = self.verbose
@@ -504,7 +507,7 @@ class Raw(object):
 
     @deprecated('band_pass_filter is deprecated please use raw.filter instead')
     def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
-                         n_jobs=1, verbose=5):
+                         n_jobs=1, verbose=None):
         """Band-pass filter a subset of channels.
 
         Applies a zero-phase band-pass filter to the channels selected by
@@ -519,31 +522,28 @@ class Raw(object):
         ----------
         picks : list of int
             Indices of channels to filter.
-
         l_freq : float
             Low cut-off frequency in Hz.
-
         h_freq : float
             High cut-off frequency in Hz.
-
         filter_length : int (default: None)
             Length of the filter to use. If None or "n_times < filter_length",
             (n_times: number of timepoints in Raw object) the filter length
             used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
-
         n_jobs: int (default: 1)
             Number of jobs to run in parallel.
-
-        verbose: int (default: 5)
-            Verbosity level.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
+        verbose = self.verbose if verbose is None else verbose
         self.filter(l_freq, h_freq, picks, n_jobs=n_jobs, verbose=verbose,
                     filter_length=filter_length)
 
     @deprecated('high_pass_filter is deprecated please use raw.filter instead')
     def high_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
-                         verbose=5):
+                         verbose=None):
         """High-pass filter a subset of channels.
 
         Applies a zero-phase high-pass filter to the channels selected by
@@ -558,28 +558,25 @@ class Raw(object):
         ----------
         picks : list of int
             Indices of channels to filter.
-
         freq : float
             Cut-off frequency in Hz.
-
         filter_length : int (default: None)
             Length of the filter to use. If None or "n_times < filter_length",
             (n_times: number of timepoints in Raw object) the filter length
             used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
-
         n_jobs: int (default: 1)
             Number of jobs to run in parallel.
-
         verbose: int (default: 5)
             Verbosity level.
         """
+        verbose = self.verbose if verbose is None else verbose
         self.filter(freq, None, picks, n_jobs=n_jobs, verbose=verbose,
                     filter_length=filter_length)
 
     @deprecated('low_pass_filter is deprecated please use raw.filter instead')
     def low_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
-                        verbose=5):
+                        verbose=None):
         """Low-pass filter a subset of channels.
 
         Applies a zero-phase low-pass filter to the channels selected by
@@ -594,22 +591,19 @@ class Raw(object):
         ----------
         picks : list of int
             Indices of channels to filter.
-
         freq : float
             Cut-off frequency in Hz.
-
         filter_length : int (default: None)
             Length of the filter to use. If None or "n_times < filter_length",
             (n_times: number of timepoints in Raw object) the filter length
             used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
-
         n_jobs: int (default: 1)
             Number of jobs to run in parallel.
-
         verbose: int (default: 5)
             Verbosity level.
         """
+        verbose = self.verbose if verbose is None else verbose
         self.filter(None, freq, picks, n_jobs=n_jobs, verbose=verbose,
                     filter_length=filter_length)
 
@@ -620,7 +614,6 @@ class Raw(object):
         ----------
         projs : list
             List with projection vectors.
-
         remove_existing : bool
             Remove the projection vectors currently in the file.
         """
@@ -654,8 +647,9 @@ class Raw(object):
 
         self.info['projs'].pop(idx)
 
+    @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=False):
+             drop_small_buffer=False, proj_active=False, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -663,28 +657,24 @@ class Raw(object):
         fname : string
             File name of the new dataset. Caveat! This has to be a new
             filename.
-
         picks : list of int
             Indices of channels to include.
-
         tmin : float
             Time in seconds of first sample to save.
-
         tmax : float
             Time in seconds of last sample to save.
-
         buffer_size_sec : float
             Size of data chuncks in seconds.
-
         drop_small_buffer: bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
-
         proj_active: bool
             If True the data is saved with the projections applied (active).
             Note: If apply_projector() was used to apply the projectons,
             the projectons will be active even if proj_active is False.
-
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
         if any([fname == f for f in self.info['filenames']]):
             raise ValueError('You cannot save data to the same file.'
@@ -698,7 +688,7 @@ class Raw(object):
         if proj_active:
             info = copy.deepcopy(self.info)
             proj, info = setup_proj(info)
-            activate_proj(info['projs'], copy=False, verbose=self.verbose)
+            activate_proj(info['projs'], copy=False)
         else:
             info = self.info
             proj = None
@@ -737,15 +727,12 @@ class Raw(object):
 
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
-                if self.verbose:
-                    logger.info('Skipping data chunk due to small buffer ... '
-                                '[done]')
+                logger.info('Skipping data chunk due to small buffer ... '
+                            '[done]')
                 break
-            if self.verbose:
-                logger.info('Writing ... ')
+            logger.info('Writing ... ')
             write_raw_buffer(outfid, data, cals)
-            if self.verbose:
-                logger.info('[done]')
+            logger.info('[done]')
 
         finish_writing_raw(outfid)
 
@@ -1013,8 +1000,9 @@ class _RawShell():
         self._projector = None
 
 
+@verbose
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
-    verbose=False, proj=None):
+    verbose=None, proj=None):
     """Read a chunck of raw data
 
     Parameters
@@ -1033,8 +1021,8 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         numpy array to fill with data read, must have the correct shape.
         If str, a np.memmap with the correct data type will be used
         to store the data.
-    verbose : bool
-        Use verbose output.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     proj : array
         SSP operator to apply to the data.
 
@@ -1056,10 +1044,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     if start >= stop:
         raise ValueError('No data in this range')
 
-    if verbose:
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                               start, stop - 1, start / float(raw.info['sfreq']),
-                               (stop - 1) / float(raw.info['sfreq'])))
+    logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
+                           start, stop - 1, start / float(raw.info['sfreq']),
+                           (stop - 1) / float(raw.info['sfreq'])))
 
     #  Initialize the data and calibration vector
     nchan = raw.info['nchan']
@@ -1182,41 +1169,35 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         if not s_off == dest:
             raise ValueError('Incorrect file reading')
 
-    if verbose:
-        logger.info(' [done]')
+    logger.info(' [done]')
     times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times
 
 
-def read_raw_segment_times(raw, start, stop, sel=None, verbose=True):
+@verbose
+def read_raw_segment_times(raw, start, stop, sel=None, verbose=None):
     """Read a chunck of raw data
 
     Parameters
     ----------
     raw: Raw object
         An instance of Raw.
-
     start: float
         Starting time of the segment in seconds.
-
     stop: float
         End time of the segment in seconds.
-
     sel: array, optional
         Indices of channels to select.
-
     node: tree node
         The node of the tree where to look.
-
-    verbose: bool
-        Use verbose output.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     data: array, [channels x samples]
        the data matrix (channels x samples).
-
     times: array, [samples]
         returns the time values corresponding to the samples.
     """
@@ -1225,7 +1206,7 @@ def read_raw_segment_times(raw, start, stop, sel=None, verbose=True):
     stop = ceil(stop * raw.info['sfreq'])
 
     #   Read it
-    return read_raw_segment(raw, start, stop, sel, verbose=verbose)
+    return read_raw_segment(raw, start, stop, sel)
 
 ###############################################################################
 # Writing

@@ -12,6 +12,7 @@ logger = logging.getLogger('mne')
 
 import numpy as np
 from .constants import FIFF
+from .. import verbose
 
 
 def channel_type(info, idx):
@@ -317,7 +318,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     return pick_channels_evoked(orig, include_ch_names)
 
 
-def pick_channels_forward(orig, include=[], exclude=[], verbose=True):
+@verbose
+def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """Pick channels from forward operator
 
     Parameters
@@ -328,8 +330,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=True):
         List of channels to include. (if None, include all available).
     exclude : list of string, (optional)
         Channels to exclude (if None, do not exclude any).
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -351,9 +353,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=True):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    if verbose:
-        logger.info('    %d out of %d channels remain after picking' % (nuse,
-                                                                fwd['nchan']))
+    logger.info('    %d out of %d channels remain after picking' % (nuse,
+                                                            fwd['nchan']))
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]

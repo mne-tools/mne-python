@@ -11,6 +11,7 @@ from numpy.fft import irfft
 import hashlib
 import logging
 import os
+import inspect
 
 # Following deprecated class copied from scikit-learn
 
@@ -291,32 +292,38 @@ def split_list(l, n):
     yield l[(n - 1) * sz:]
 
 
-def set_log_level(level=None):
+def set_log_level(verbose=None):
     """Convenience function for setting the logging level
 
     Parameters
     ----------
-    level : str, int, or None
-        The level of messages to print. If a str, it can be either DEBUG,
+    verbose : bool, str, int, or None
+        The verbosity of messages to print. If a str, it can be either DEBUG,
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
+        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
         If None, the environment variable MNE_LOG_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
     """
-    if level is None:
-        level = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
-    if isinstance(level, str):
-        level = str.upper(level)
+    if verbose is None:
+        verbose = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
+    elif isinstance(verbose, bool):
+        if verbose == True:
+            verbose = 'INFO'
+        else:
+            verbose = 'WARNING'
+    if isinstance(verbose, str):
+        verbose = str.upper(verbose)
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not level in logging_types:
-            raise ValueError('level must be of a valid type')
-        level = logging_types[level]
+        if not verbose in logging_types:
+            raise ValueError('verbose must be of a valid type')
+        verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
-    old_level = logger.level
-    logger.setLevel(level)
-    return old_level
+    old_verbose = logger.level
+    logger.setLevel(verbose)
+    return old_verbose
 
 
 def set_log_file(fname=None, output_format='%(message)s'):
@@ -352,34 +359,31 @@ def set_log_file(fname=None, output_format='%(message)s'):
 
 
 def verbose(function):
-    """Decorator to allow a function to override default log level
+    """Decorator to allow functions to override default log level
 
     Do not call this function directly to set the global verbosity level,
     instead use set_log_level().
 
     Parameters (to decorated function)
     ----------------------------------
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         The level of messages to print. If a str, it can be either DEBUG,
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
+        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
         None defaults to using the current log level [e.g., set using
         mne.set_log_level()].
     """
     def dec(*args, **kwargs):
-        verbose_level = kwargs.pop('verbose', None)
+        # if the first argument (hopefully "self") has verbose, use that
+        if len(args) > 0 and hasattr(args[0], 'verbose'):
+            default_level = args[0].verbose
+        else:
+            default_level = None
+        verbose_level = kwargs.get('verbose', default_level)
         if verbose_level is not None:
-            # maintain backward compatibility
-            if verbose_level == False:
-                warnings.warn('Using boolean verbose level is deprecated, '
-                              'and will be removed in v0.6')
-                verbose_level = 'WARNING'
-            elif verbose_level == True:
-                warnings.warn('Using boolean verbose level is deprecated, '
-                              'and will be removed in v0.6')
-                verbose_level = 'INFO'
             old_level = set_log_level(verbose_level)
-            # be careful in case we get an error
+            # set it back if we get an exception
             try:
                 ret = function(*args, **kwargs)
             except:

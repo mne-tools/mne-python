@@ -19,6 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans
 from .surface import read_surface
+from . import verbose
 
 
 def patch_info(nearest):
@@ -57,27 +58,25 @@ def patch_info(nearest):
     return pinfo
 
 
-def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=True):
+@verbose
+def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
     ----------
     fid: file descriptor
-        An open file descriptor
-
+        An open file descriptor.
     tree: dict
         The FIF tree structure if source is a file id.
-
     add_geom: bool, optional (default False)
-        Add geometry information to the surfaces
-
-    verbose:
-        If True print status messages
+        Add geometry information to the surfaces.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     src: list
-        The list of source spaces
+        The list of source spaces.
     """
     #   Find all source spaces
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
@@ -86,44 +85,43 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=True):
 
     src = list()
     for s in spaces:
-        if verbose:
-            logger.info('    Reading a source space...')
-        this = _read_one_source_space(fid, s, verbose=verbose)
-        if verbose:
-            logger.info('[done]')
+        logger.info('    Reading a source space...')
+        this = _read_one_source_space(fid, s)
+        logger.info('[done]')
         if add_geom:
-            complete_source_space_info(this, verbose=verbose)
+            complete_source_space_info(this)
 
         src.append(this)
 
-    if verbose:
-        logger.info('    %d source spaces read' % len(spaces))
+    logger.info('    %d source spaces read' % len(spaces))
 
     return src
 
 
-def read_source_spaces(fname, add_geom=False, verbose=True):
+@verbose
+def read_source_spaces(fname, add_geom=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
     ----------
     fname: string
-        The name of the file
-
+        The name of the file.
     add_geom: bool, optional (default False)
-        Add geometry information to the surfaces
+        Add geometry information to the surfaces.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     src: list
-        The list of source spaces
+        The list of source spaces.
     """
     fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
-                                        verbose=verbose)
+    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
 
 
-def _read_one_source_space(fid, this, verbose=True):
+@verbose
+def _read_one_source_space(fid, this, verbose=None):
     """Read one source space
     """
     FIFF_BEM_SURF_NTRI = 3104
@@ -176,7 +174,7 @@ def _read_one_source_space(fid, this, verbose=True):
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR)
         if tag is not None:
             res['interpolator'] = tag.data
-        elif verbose:
+        else:
             logger.info("Interpolation matrix for MRI not found.")
 
         tag = find_tag(fid, mri, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE)
@@ -291,7 +289,7 @@ def _read_one_source_space(fid, this, verbose=True):
         res['nearest_dist'] = tag2.data.T
 
     res['pinfo'] = patch_info(res['nearest'])
-    if (res['pinfo'] is not None) and verbose:
+    if (res['pinfo'] is not None):
         logger.info('Patch information added...')
 
     #   Distances
@@ -305,18 +303,18 @@ def _read_one_source_space(fid, this, verbose=True):
         res['dist_limit'] = tag2.data
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
-    if (res['dist'] is not None) and verbose:
+    if (res['dist'] is not None):
         logger.info('Distance information added...')
 
     return res
 
 
-def complete_source_space_info(this, verbose=True):
+@verbose
+def complete_source_space_info(this, verbose=None):
     """Add more info on surface
     """
     #   Main triangulation
-    if verbose:
-        logger.info('    Completing triangulation info...')
+    logger.info('    Completing triangulation info...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -326,12 +324,10 @@ def complete_source_space_info(this, verbose=True):
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
     this['tri_nn'] /= size[:, None]
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
     #   Selected triangles
-    if verbose:
-        logger.info('    Completing selection triangulation info...')
+    logger.info('    Completing selection triangulation info...')
     if this['nuse_tri'] > 0:
         r1 = this['rr'][this['use_tris'][:, 0], :]
         r2 = this['rr'][this['use_tris'][:, 1], :]
@@ -340,8 +336,7 @@ def complete_source_space_info(this, verbose=True):
         this['use_tri_nn'] = np.cross((r2 - r1), (r3 - r1))
         this['use_tri_area'] = np.sqrt(np.sum(this['use_tri_nn'] ** 2, axis=1)
                                        ) / 2.0
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
 
 def find_source_space_hemi(src):
@@ -417,7 +412,8 @@ def _get_vertno(src):
 ###############################################################################
 # Write routines
 
-def write_source_spaces(fid, src, verbose=True):
+@verbose
+def write_source_spaces(fid, src, verbose=None):
     """Write the source spaces to a FIF file
 
     Parameters
@@ -426,22 +422,19 @@ def write_source_spaces(fid, src, verbose=True):
         An open file descriptor.
     src : list
         The list of source spaces.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     for s in src:
-        if verbose:
-            logger.info('    Write a source space...')
+        logger.info('    Write a source space...')
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        if verbose:
-            logger.info('[done]')
-    if verbose:
-        logger.info('    %d source spaces written' % len(src))
+        logger.info('[done]')
+    logger.info('    %d source spaces written' % len(src))
 
 
-def _write_one_source_space(fid, this, verbose=True):
+def _write_one_source_space(fid, this, verbose=None):
     """Write one source space"""
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
     if this['type'] == 'surf':
@@ -506,7 +499,7 @@ def _write_one_source_space(fid, this, verbose=True):
     #     res['nearest_dist'] = tag2.data.T
     #
     # res['pinfo'] = patch_info(res['nearest'])
-    # if res['pinfo'] is not None and verbose:
+    # if res['pinfo'] is not None:
     #     logger.info('Patch information added...')
     #
     # #   Distances
@@ -520,11 +513,12 @@ def _write_one_source_space(fid, this, verbose=True):
     #     res['dist_limit'] = tag2.data
     #    #   Add the upper triangle
     #     res['dist'] = res['dist'] + res['dist'].T
-    # if (res['dist'] is not None) and verbose:
+    # if (res['dist'] is not None):
     #     logger.info('Distance information added...')
 
 
-def vertex_to_mni(vertices, hemis, subject, verbose=False):
+@verbose
+def vertex_to_mni(vertices, hemis, subject, verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
@@ -535,6 +529,8 @@ def vertex_to_mni(vertices, hemis, subject, verbose=False):
         Hemisphere(s) the vertices belong to
     subject : string
         Name of the subject to load surfaces from.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -561,13 +557,14 @@ def vertex_to_mni(vertices, hemis, subject, verbose=False):
                             'mri', 'transforms', 'talairach.xfm'))
 
     # take point locations in RAS space and convert to MNI coordinates
-    xfm = _freesurfer_read_talxfm(xfm_file, verbose=verbose)
+    xfm = _freesurfer_read_talxfm(xfm_file)
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
     return np.dot(xfm, data).T
 
 
-def _freesurfer_read_talxfm(fname, verbose=False):
+@verbose
+def _freesurfer_read_talxfm(fname, verbose=None):
     """Read MNI transform from FreeSurfer talairach.xfm file
 
     Adapted from freesurfer m-files.
@@ -575,8 +572,7 @@ def _freesurfer_read_talxfm(fname, verbose=False):
 
     fid = open(fname, 'r')
 
-    if verbose:
-        logger.info('...Reading FreeSurfer talairach.xfm file:\n%s' % fname)
+    logger.info('...Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
     # read lines until we get the string 'Linear_Transform', which precedes
     # the data transformation matrix

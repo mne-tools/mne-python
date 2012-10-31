@@ -22,6 +22,7 @@ from mne.baseline import rescale
 
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
+from . import verbose
 
 
 def plot_topo(evoked, layout):
@@ -450,8 +451,9 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
+@verbose
 def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
-             show=True, verbose=True):
+             show=True, verbose=None):
     """Plot Covariance data
 
     Parameters
@@ -471,8 +473,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor type.
         We show square roots ie. standard deviations.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
@@ -504,11 +506,10 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
         P, ncomp, _ = make_projector(projs, ch_names)
         if ncomp > 0:
-            if verbose:
-                logger.info('    Created an SSP operator (subspace dimension'
-                            ' = %d)' % ncomp)
+            logger.info('    Created an SSP operator (subspace dimension'
+                        ' = %d)' % ncomp)
             C = np.dot(P, np.dot(C, P.T))
-        elif verbose:
+        else:
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
@@ -632,8 +633,9 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
+@verbose
 def plot_ica_panel(sources, start=None, stop=None, n_components=None,
-                   source_idx=None, ncol=3, nrow=10, verbose=True):
+                   source_idx=None, ncol=3, nrow=10, verbose=None):
     """Create panel plots of ICA sources
 
     Parameters
@@ -652,8 +654,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         number of panel-columns.
     nrow : int
         number of panel-rows.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -672,9 +674,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     if source_idx is None:
         source_idx = np.arange(n_components)
     elif source_idx.shape > 30:
-        if verbose:
-            logger.info('More sources selected than rows and cols specified.'
-                        'Showing the first %i sources.' % nplots)
+        logger.info('More sources selected than rows and cols specified.'
+                    'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
 
     sources = sources[:, start:stop]

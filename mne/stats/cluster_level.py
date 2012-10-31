@@ -17,6 +17,7 @@ logger = logging.getLogger('mne')
 from .parametric import f_oneway
 from ..parallel import parallel_func
 from ..utils import split_list
+from .. import verbose
 
 
 def _get_clusters_st(x_in, neighbors, max_step=1):
@@ -358,10 +359,11 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
     return max_cluster_sums
 
 
+@verbose
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
                              connectivity=None, n_jobs=1,
-                             verbose=5, seed=None, out_type='mask'):
+                             verbose=None, seed=None, out_type='mask'):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -390,8 +392,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         Defaut is None, i.e, a regular lattice connectivity.
-    verbose : int
-        If > 0, print some text during computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
@@ -441,9 +443,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(*X)
-    if verbose:
-        logger.info('stat_fun(H1): min=%f max=%f'
-                    % (np.min(T_obs), np.max(T_obs)))
+    logger.info('stat_fun(H1): min=%f max=%f'
+                % (np.min(T_obs), np.max(T_obs)))
 
     # The stat should have the same shape as the samples for no conn.
     if connectivity is None:
@@ -451,8 +452,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
                                              connectivity)
-    if verbose:
-        logger.info('Found %d clusters' % len(clusters))
+    logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
     if connectivity is not None and out_type == 'mask':
@@ -467,8 +467,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                 for k in range(len(X))]
 
-    parallel, my_do_permutations, _ = parallel_func(_do_permutations, n_jobs,
-                                                    verbose=verbose)
+    parallel, my_do_permutations, _ = parallel_func(_do_permutations, n_jobs)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -559,9 +558,10 @@ def _do_1samp_permutations(X, threshold, tail, connectivity, stat_fun,
     return max_cluster_sums
 
 
+@verbose
 def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                    tail=0, stat_fun=ttest_1samp_no_p,
-                                   connectivity=None, verbose=5, n_jobs=1,
+                                   connectivity=None, verbose=None, n_jobs=1,
                                    seed=None, max_step=1, exclude=None,
                                    step_down_p=0, t_power=1, out_type='mask',
                                    check_disjoint=False):
@@ -597,8 +597,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         (n_vertices). Defaut is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
-    verbose : int
-        If > 0, print some text during computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
@@ -703,8 +703,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
 
     # determine if connectivity itself can be separated into disjoint sets
     if check_disjoint is True and connectivity is not None:
-        partitions = _get_partitions_from_connectivity(connectivity, n_times,
-                                                       verbose)
+        partitions = _get_partitions_from_connectivity(connectivity, n_times)
     else:
         partitions = None
 
@@ -723,7 +722,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     T_obs.shape = sample_shape
 
     parallel, my_do_1samp_permutations, _ = parallel_func(
-                               _do_1samp_permutations, n_jobs, verbose=verbose)
+                               _do_1samp_permutations, n_jobs)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
@@ -774,7 +773,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
             for ci in under:
                 step_down_include[clusters[ci]] = False
             step_down_iteration += 1
-            if verbose > 0 and step_down_p > 0:
+            if step_down_p > 0:
                 extra_text = 'additional ' if step_down_iteration > 1 else ''
                 new_count = under.size - clusters_kept
                 plural = '' if new_count == 1 else 's'
@@ -792,9 +791,10 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
 permutation_cluster_1samp_test.__test__ = False
 
 
+@verbose
 def spatio_temporal_cluster_1samp_test(X, threshold=None,
         n_permutations=1024, tail=0, stat_fun=ttest_1samp_no_p,
-        connectivity=None, verbose=5, n_jobs=1, seed=None, max_step=1,
+        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
         check_disjoint=False):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
@@ -817,8 +817,8 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         See permutation_cluster_1samp_test.
     connectivity : sparse matrix or None
         See permutation_cluster_1samp_test.
-    verbose : int
-        See permutation_cluster_1samp_test.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     n_jobs : int
         See permutation_cluster_1samp_test.
     seed : int or None
@@ -878,8 +878,8 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     out = permutation_cluster_1samp_test(X, threshold=threshold,
               stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_step=max_step, verbose=verbose, exclude=exclude,
-              step_down_p=step_down_p, t_power=t_power, out_type=out_type,
+              max_step=max_step, exclude=exclude, step_down_p=step_down_p,
+              t_power=t_power, out_type=out_type,
               check_disjoint=check_disjoint)
     return out
 
@@ -918,7 +918,8 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     return mask
 
 
-def _get_partitions_from_connectivity(connectivity, n_times, verbose):
+@verbose
+def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
     """Use indices to specify disjoint subsets (e.g., hemispheres) based on
     connectivity"""
     if isinstance(connectivity, list):
@@ -934,17 +935,15 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose):
 
     part_clusts, _ = _find_clusters(test, 0, 1, test_conn)
     if len(part_clusts) > 1:
-        if verbose:
-            logger.info('%i disjoint connectivity sets found'
-                        % len(part_clusts))
+        logger.info('%i disjoint connectivity sets found'
+                    % len(part_clusts))
         partitions = np.zeros(len(test), dtype='int')
         for ii, pc in enumerate(part_clusts):
             partitions[pc] = ii
         if isinstance(connectivity, list):
             partitions = np.tile(partitions, n_times)
     else:
-        if verbose:
-            logger.info('No disjoint connectivity sets found')
+        logger.info('No disjoint connectivity sets found')
         partitions = None
 
     return partitions

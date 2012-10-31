@@ -111,7 +111,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         High pass frequency.
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns

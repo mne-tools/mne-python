@@ -21,6 +21,7 @@ from .fiff.proj import setup_proj
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample
+from . import verbose
 
 
 class Epochs(object):
@@ -82,9 +83,9 @@ class Epochs(object):
     proj : bool, optional
         Apply SSP projection vectors
 
-    verbose : None | bool
-        Use verbose output. None defaults to raw.verbose.
-
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
 
     Attributes
     ----------
@@ -129,6 +130,7 @@ class Epochs(object):
         Return Epochs object with a subset of epochs (supports single
         index and python style slicing)
     """
+    @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                 preload=False, reject=None, flat=None, proj=True,
@@ -166,13 +168,12 @@ class Epochs(object):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info, verbose)
+        self._projector, self.info = setup_proj(self.info)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
         if current_comp > 0:
-            if verbose:
-                logger.info('Current compensation grade : %d' % current_comp)
+            logger.info('Current compensation grade : %d' % current_comp)
 
         if keep_comp:
             dest_comp = current_comp
@@ -180,9 +181,8 @@ class Epochs(object):
         if current_comp != dest_comp:
             raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
                                                  dest_comp)
-            if verbose:
-                logger.info('Appropriate compensator added to change to '
-                            'grade %d.' % (dest_comp))
+            logger.info('Appropriate compensator added to change to '
+                        'grade %d.' % (dest_comp))
 
         #    Select the desired events
         self.events = events
@@ -194,8 +194,7 @@ class Epochs(object):
         n_events = len(self.events)
 
         if n_events > 0:
-            if verbose:
-                logger.info('%d matching events found' % n_events)
+            logger.info('%d matching events found' % n_events)
         else:
             raise ValueError('No desired events found.')
 
@@ -246,7 +245,8 @@ class Epochs(object):
         """
         self._get_data_from_disk(out=False)
 
-    def _get_epoch_from_disk(self, idx):
+    @verbose
+    def _get_epoch_from_disk(self, idx, verbose=None):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
 
@@ -265,16 +265,15 @@ class Epochs(object):
         epoch, _ = self.raw[self.picks, start:stop]
 
         if self.proj and self._projector is not None:
-            if self.verbose:
-                logger.info("SSP projectors applied...")
+            logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
         # Run baseline correction
-        epoch = rescale(epoch, self.times, self.baseline, 'mean',
-                        verbose=self.verbose, copy=False)
+        epoch = rescale(epoch, self.times, self.baseline, 'mean', copy=False)
         return epoch
 
-    def _get_data_from_disk(self, out=True):
+    @verbose
+    def _get_data_from_disk(self, out=True, verbose=None):
         """Load all data from disk
 
         Parameters
@@ -282,7 +281,9 @@ class Epochs(object):
         out : bool
             Return the data. Setting this to False is used to reject bad
             epochs without caching all the data, which saves memory.
-
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
         if self._bad_dropped:
             if not out:
@@ -307,16 +308,16 @@ class Epochs(object):
             self.drop_log = drop_log
             self.events = np.atleast_2d(self.events[good_events])
             self._bad_dropped = True
-            if self.verbose:
-                logger.info("%d bad epochs dropped"
-                            % (n_events - len(good_events)))
+            logger.info("%d bad epochs dropped"
+                        % (n_events - len(good_events)))
             if not out:
                 return
 
         data = np.array(epochs)
         return data
 
-    def _is_good_epoch(self, data):
+    @verbose
+    def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good"""
         if data is None:
             return False, ['NO_DATA']
@@ -328,8 +329,7 @@ class Epochs(object):
             return True, None
         else:
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True,
-                            verbose=self.verbose)
+                            self.reject, self.flat, full_report=True)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -666,8 +666,9 @@ class Epochs(object):
         return epochs_ts
 
 
+@verbose
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
-             verbose=True):
+             verbose=None):
     """Test if data segment e is good according to the criteria
     defined in reject and flat. If full_report=True, it will give
     True/False as well as a list of all offending channels.
@@ -685,9 +686,9 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 delta = deltas[idx_max_delta]
                 if delta > thresh:
                     ch_name = ch_names[idx[idx_max_delta]]
-                    if (not has_printed) and verbose:
-                        print('    Rejecting epoch based on %s : %s (%s > %s).'
-                                    % (name, ch_name, delta, thresh))
+                    if (not has_printed):
+                        logger.info('    Rejecting epoch based on %s : %s (%s '
+                                    '> %s).' % (name, ch_name, delta, thresh))
                         has_printed = True
                     if not full_report:
                         return False
@@ -705,7 +706,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 delta = deltas[idx_min_delta]
                 if delta < thresh:
                     ch_name = ch_names[idx[idx_min_delta]]
-                    if (not has_printed) and verbose:
+                    if (not has_printed):
                         logger.info('    Rejecting flat epoch based on %s : '
                                     '%s (%s < %s).' % (name, ch_name, delta,
                                                        thresh))
