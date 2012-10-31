@@ -15,7 +15,7 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
     for average in [False, True]:
-        raw = Raw(raw_fname, preload=True, verbose=False)
+        raw = Raw(raw_fname, preload=True)
         with warnings.catch_warnings(record=True) as w:
             # this will throw a warning only for short filter_length (only
             # once, so it's for average == True), so set filter_length short
@@ -42,7 +42,7 @@ def test_compute_proj_ecg():
 def test_compute_proj_eog():
     """Test computation of EOG SSP projectors"""
     for average in [False, True]:
-        raw = Raw(raw_fname, preload=True, verbose=False)
+        raw = Raw(raw_fname, preload=True)
         n_projs_init = len(raw.info['projs'])
         projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                      bads=['MEG 2443'], average=average,
@@ -65,15 +65,13 @@ def test_compute_proj_parallel():
     raw = Raw(raw_fname, preload=True)
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,
-                                avg_ref=True, no_proj=False, n_jobs=1,
-                                verbose=0)
+                                avg_ref=True, no_proj=False, n_jobs=1)
     raw.close()
 
     raw = Raw(raw_fname, preload=True)
     projs_2, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                   bads=['MEG 2443'], average=False,
-                                  avg_ref=True, no_proj=False, n_jobs=2,
-                                  verbose=0)
+                                  avg_ref=True, no_proj=False, n_jobs=2)
     projs = activate_proj(projs)
     projs_2 = activate_proj(projs_2)
     projs, _, _ = make_projector(projs, raw.info['ch_names'],

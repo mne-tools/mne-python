@@ -20,13 +20,14 @@ from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
                      _pick_channels_inverse_operator, _check_method
 from ..parallel import parallel_func
+from .. import verbose
 
-
+@verbose
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
                               df=1, use_fft=False, decim=1, baseline=None,
                               baseline_mode='logratio', pca=True,
-                              n_jobs=1, dSPM=None, verbose=5):
+                              n_jobs=1, dSPM=None, verbose=None):
     """Compute source space induced power in given frequency bands
 
     Parameters
@@ -70,8 +71,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         e.g. with a dataset that was maxfiltered (true dim is 64).
     n_jobs : int
         Number of jobs to run in parallel.
-    verbose : int
-        Verbosity level of status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     method = _check_method(method, dSPM)
 
@@ -84,7 +85,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                                       lambda2=lambda2, method=method,
                                       n_cycles=n_cycles, decim=decim,
                                       use_fft=use_fft, pca=pca, n_jobs=n_jobs,
-                                      with_plv=False, verbose=verbose)
+                                      with_plv=False)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -97,21 +98,21 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
         # Run baseline correction
         power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        verbose=True, copy=False)
+                        copy=False)
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
         stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep)
         stcs[name] = stc
 
-        if verbose:
-            logger.info('[done]')
+        logger.info('[done]')
 
     return stcs
 
 
+# NOTE: Cannot decorate functions that will be pickled!
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal, decim, verbose=True):
+                     pick_normal, decim):
     """Aux function for source_induced_power"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
@@ -158,8 +159,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
                         plv_f += 1j * sol_pick_normal
 
                 if is_free_ori:
-                    # if verbose:
-                    #     logger.info('combining the current components...')
+                    # logger.debug('combining the current components...')
                     sol = combine_xyz(sol, square=True)
                 else:
                     np.power(sol, 2, sol)
@@ -177,15 +177,16 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
     return power, plv
 
 
+@verbose
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True, zero_mean=False,
-                          verbose=5):
+                          verbose=None):
     """Aux function for source_induced_power
     """
     parallel, my_compute_pow_plv, n_jobs = parallel_func(_compute_pow_plv,
-                                                         n_jobs, verbose)
+                                                         n_jobs)
     #
     #   Set up the inverse according to the parameters
     #
@@ -198,9 +199,8 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -215,15 +215,13 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        if verbose:
-            logger.info('Reducing data rank to %d' % rank)
+        logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
     Fs = epochs.info['sfreq']  # sampling in Hz
 
-    if verbose:
-        logger.info('Computing source power ...')
+    logger.info('Computing source power ...')
 
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
@@ -248,11 +246,12 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     return power, plv, vertno
 
 
+@verbose
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
                          use_fft=False, pick_normal=False, baseline=None,
                          baseline_mode='logratio', pca=True, n_jobs=1,
-                         dSPM=None, zero_mean=False, verbose=5):
+                         dSPM=None, zero_mean=False, verbose=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -302,8 +301,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         Number of jobs to run in parallel.
     zero_mean : bool
         Make sure the wavelets are zero mean.
-    verbose : int
-        Level of status messages from parallel function.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     method = _check_method(method, dSPM)
 
@@ -311,20 +310,21 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                             inverse_operator, frequencies,
                             label, lambda2, method, n_cycles, decim,
                             use_fft, pick_normal=pick_normal, pca=pca,
-                            n_jobs=n_jobs, verbose=verbose)
+                            n_jobs=n_jobs)
 
     # Run baseline correction
     if baseline is not None:
         power = rescale(power, epochs.times[::decim], baseline, baseline_mode,
-                        verbose=True, copy=False)
+                        copy=False)
 
     return power, plv
 
 
+@verbose
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        NFFT=2048, overlap=0.5, pick_normal=False, label=None,
-                       nave=1, pca=True, verbose=5):
+                       nave=1, pca=True, verbose=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -364,8 +364,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         If True, the true dimension of data is estimated before running
         the time frequency transforms. It reduces the computation times
         e.g. with a dataset that was maxfiltered (true dim is 64)
-    verbose : int
-        Verbosity level of status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -373,20 +373,17 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The PSD (in dB) of each of the sources.
     """
 
-    if verbose:
-        logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
+    logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                   verbose)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -394,16 +391,14 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal,
-                                             verbose)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        if verbose:
-            logger.info('Reducing data rank to %d' % rank)
+        logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
@@ -425,8 +420,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     for this_start in np.arange(start, stop, int(NFFT * (1. - overlap))):
         data, _ = raw[sel, this_start:this_start + NFFT]
         if data.shape[1] < NFFT:
-            if verbose:
-                logger.info("Skipping last buffer")
+            logger.info("Skipping last buffer")
             break
 
         if Vh is not None:
@@ -457,28 +451,26 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     return stc
 
 
+@verbose
 def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
                               pick_normal=False, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True, n_jobs=1,
-                              verbose=5):
+                              verbose=None):
     """ Generator for compute_source_psd_epochs """
 
-    if verbose:
-        logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
+    logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                   verbose)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     is_free_ori = inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
     #
     #   Simple matrix multiplication followed by combination of the
     #   three current components
@@ -486,16 +478,14 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal,
-                                             verbose)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
         rank = np.sum(s > 1e-8 * s[0])
         K = s[:rank] * U[:, :rank]
         Vh = Vh[:rank]
-        if verbose:
-            logger.info('Reducing data rank to %d' % rank)
+        logger.info('Reducing data rank to %d' % rank)
     else:
         Vh = None
 
@@ -517,9 +507,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                  low_bias=low_bias)
     n_tapers = len(dpss)
 
-    if verbose:
-        logger.info('Using %d tapers with bandwidth %0.1fHz'
-                    % (n_tapers, bandwidth))
+    logger.info('Using %d tapers with bandwidth %0.1fHz'
+                % (n_tapers, bandwidth))
 
     if adaptive and len(eigvals) < 3:
         warn('Not adaptively combining the spectral estimators '
@@ -528,13 +517,12 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     if adaptive:
         parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs, verbose)
+            parallel_func(_psd_from_mt_adaptive, n_jobs)
     else:
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
 
     for k, e in enumerate(epochs):
-        if verbose:
-            logger.info("Processing epoch : %d" % (k + 1))
+        logger.info("Processing epoch : %d" % (k + 1))
         data = e[sel]
 
         if Vh is not None:
@@ -588,13 +576,14 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         yield stc
 
 
+@verbose
 def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
                               pick_normal=False, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              verbose=5):
+                              verbose=None):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 
@@ -639,8 +628,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         over the stcs without having to keep them all in memory.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    verbose : int
-        Verbosity level of status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -654,8 +643,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               fmax=fmax, pick_normal=pick_normal, label=label,
                               nave=nave, pca=pca, inv_split=inv_split,
                               bandwidth=bandwidth, adaptive=adaptive,
-                              low_bias=low_bias, n_jobs=n_jobs,
-                              verbose=verbose)
+                              low_bias=low_bias, n_jobs=n_jobs)
 
     if return_generator:
         # return generator object

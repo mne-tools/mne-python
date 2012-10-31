@@ -9,7 +9,11 @@ import numpy as np
 import logging
 logger = logging.getLogger('mne')
 
-def rescale(data, times, baseline, mode, verbose=True, copy=True):
+from . import verbose
+
+
+@verbose
+def rescale(data, times, baseline, mode, verbose=None, copy=True):
     """Rescale aka baseline correct data
 
     Parameters
@@ -32,8 +36,8 @@ def rescale(data, times, baseline, mode, verbose=True, copy=True):
         power during baseline) or zscore (power is divided by standard
         deviatio of power during baseline after substracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline)).
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     copy : bool
         Operate on a copy of the data, or in place.
 
@@ -50,8 +54,7 @@ def rescale(data, times, baseline, mode, verbose=True, copy=True):
         raise Exception('mode should be any of : %s' % valid_modes)
 
     if baseline is not None:
-        if verbose:
-            logger.info("Applying baseline correction ... (mode: %s)" % mode)
+        logger.info("Applying baseline correction ... (mode: %s)" % mode)
         bmin, bmax = baseline
         if bmin is None:
             imin = 0
@@ -78,7 +81,7 @@ def rescale(data, times, baseline, mode, verbose=True, copy=True):
             data -= mean
             data /= mean
 
-    elif verbose:
+    else:
         logger.info("No baseline correction applied...")
 
     return data

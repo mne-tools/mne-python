@@ -12,6 +12,7 @@ logger = logging.getLogger('mne')
 from .constants import FIFF
 from .tag import find_tag, has_tag, read_tag
 from .tree import dir_tree_find
+from .. import verbose
 
 
 def hex2dec(s):
@@ -101,22 +102,20 @@ def _read_named_matrix(fid, node, matkind):
     return mat
 
 
-def read_ctf_comp(fid, node, chs, verbose=True):
+@verbose
+def read_ctf_comp(fid, node, chs, verbose=None):
     """Read the CTF software compensation data from the given node
 
     Parameters
     ----------
     fid: file
-        The file descriptor
-
+        The file descriptor.
     node: dict
-        The node in the FIF tree
-
+        The node in the FIF tree.
     chs: list
-        The list of channels # XXX unclear
-
-    verbose : bool
-        Print status messages.
+        The list of channels # XXX unclear.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -214,7 +213,7 @@ def read_ctf_comp(fid, node, chs, verbose=True):
         if col_cals is not None:
             del col_cals
 
-    if len(compdata) > 0 and verbose:
+    if len(compdata) > 0:
         logger.info('    Read %d compensation matrices' % len(compdata))
 
     return compdata

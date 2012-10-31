@@ -21,7 +21,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
         (default = maxima, 1).
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns

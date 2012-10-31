@@ -15,9 +15,11 @@ from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj, write_proj
 from .channels import read_bad_channels
+from .. import verbose
 
 
-def read_cov(fid, node, cov_kind, verbose=True):
+@verbose
+def read_cov(fid, node, cov_kind, verbose=None):
     """Read a noise covariance matrix
 
     Parameters
@@ -31,8 +33,8 @@ def read_cov(fid, node, cov_kind, verbose=True):
     cov_kind: int
         The type of covariance. XXX : clarify
 
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -81,9 +83,8 @@ def read_cov(fid, node, cov_kind, verbose=True):
                     #   Diagonal is stored
                     data = tag.data
                     diagmat = True
-                    if verbose:
-                        logger.info('    %d x %d diagonal covariance (kind = '
-                                    '%d) found.' % (dim, dim, cov_kind))
+                    logger.info('    %d x %d diagonal covariance (kind = '
+                                '%d) found.' % (dim, dim, cov_kind))
 
             else:
                 from scipy import sparse
@@ -95,15 +96,13 @@ def read_cov(fid, node, cov_kind, verbose=True):
                     data = data + data.T
                     data.flat[::dim + 1] /= 2.0
                     diagmat = False
-                    if verbose:
-                        logger.info('    %d x %d full covariance (kind = %d) '
-                                    'found.' % (dim, dim, cov_kind))
+                    logger.info('    %d x %d full covariance (kind = %d) '
+                                'found.' % (dim, dim, cov_kind))
                 else:
                     diagmat = False
                     data = tag.data
-                    if verbose:
-                        logger.info('    %d x %d sparse covariance (kind = %d)'
-                                    ' found.' % (dim, dim, cov_kind))
+                    logger.info('    %d x %d sparse covariance (kind = %d)'
+                                ' found.' % (dim, dim, cov_kind))
 
             #   Read the possibly precomputed decomposition
             tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)
@@ -127,8 +126,7 @@ def read_cov(fid, node, cov_kind, verbose=True):
                        eigvec=eigvec)
             return cov
 
-    if verbose:
-        logger.info('Did not find the desired covariance matrix')
+    logger.info('Did not find the desired covariance matrix')
 
     return None
 

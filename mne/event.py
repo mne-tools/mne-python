@@ -19,6 +19,7 @@ from .fiff.tag import read_tag
 from .fiff.open import fiff_open
 from .fiff.write import write_int, start_block, start_file, end_block, end_file
 from .fiff.pick import pick_channels
+from . import verbose
 
 
 def pick_events(events, include=None, exclude=None):
@@ -175,20 +176,19 @@ def write_events(filename, event_list):
         f.close()
 
 
-def find_events(raw, stim_channel='STI 014', verbose=True):
+@verbose
+def find_events(raw, stim_channel='STI 014', verbose=None):
     """Find events from raw file
 
     Parameters
     ----------
     raw : Raw object
         The raw data.
-
     stim_channel : string or list of string
         Name of the stim channel or all the stim channels
         affected by the trigger.
-
-    verbose : bool
-        Use verbose output.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -204,18 +204,16 @@ def find_events(raw, stim_channel='STI 014', verbose=True):
         raise ValueError('No stim channel found to extract event triggers.')
     data, times = raw[pick, :]
     if np.any(data < 0):
-        if verbose:
-            warnings.warn('Trigger channel contains negative values. '
-                          'Taking absolute value.')
+        logger.warn('Trigger channel contains negative values. '
+                    'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
     idx = np.where(np.all(np.diff(data, axis=1) > 0, axis=0))[0]
     events_id = data[0, idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
-    if verbose:
-        logger.info("%s events found" % len(events))
-        logger.info("Events id: %s" % np.unique(events[:, 2]))
+    logger.info("%s events found" % len(events))
+    logger.info("Events id: %s" % np.unique(events[:, 2]))
     return events
 
 

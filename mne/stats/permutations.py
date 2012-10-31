@@ -10,6 +10,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
+from .. import verbose
 
 
 def bin_perm_rep(ndim, a=0, b=1):
@@ -56,7 +57,9 @@ def _max_stat(X, X2, perms, dof_scaling):
     return max_abs
 
 
-def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1, verbose=5):
+@verbose
+def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
+                       verbose=None):
     """One sample/paired sample permutation test based on a t-statistic.
 
     This function can perform the test on one variable or
@@ -86,8 +89,8 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1, verbose=5):
         is that the mean of the data is less than 0 (lower tailed test).
     n_jobs : int
         Number of CPUs to use for computation.
-    verbose : int
-        Verbosity for the parallel function.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -129,7 +132,7 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1, verbose=5):
     else:
         perms = np.sign(0.5 - np.random.rand(n_permutations, n_samples))
 
-    parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs, verbose)
+    parallel, my_max_stat, n_jobs = parallel_func(_max_stat, n_jobs)
 
     max_abs = np.concatenate(parallel(my_max_stat(X, X2, p, dof_scaling)
                                       for p in np.array_split(perms, n_jobs)))

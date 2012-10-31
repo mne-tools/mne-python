@@ -89,6 +89,8 @@ class ICA(object):
         Arguments to send to the functional form.
         If empty and if fun='logcosh', fun_args will take value
         {'alpha' : 1.0}
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
@@ -102,8 +104,10 @@ class ICA(object):
         Integer array representing the sources. This is usefull for different
         kinds of indexing and selection operations.
     """
+    @verbose
     def __init__(self, noise_cov=None, n_components=None, random_state=None,
-                 algorithm='parallel', fun='logcosh', fun_args=None):
+                 algorithm='parallel', fun='logcosh', fun_args=None,
+                 verbose=None):
         try:
             from sklearn.decomposition import FastICA  # to avoid strong dep.
         except ImportError:
@@ -129,6 +133,7 @@ class ICA(object):
         self.last_fit = 'unfitted'
         self.ch_names = None
         self.mixing = None
+        self.verbose = verbose
 
     def __repr__(self):
         out = 'ICA '
@@ -163,8 +168,9 @@ class ICA(object):
         stop : int
             First sample to not include. If omitted, data is included to the
             end.
-        verbose : str, int, or None
+        verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Returns
         -------
@@ -205,8 +211,9 @@ class ICA(object):
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
-        verbose : str, int, or None
+        verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Returns
         -------
@@ -650,7 +657,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         High pass frequency.
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
@@ -694,7 +701,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         Low pass frequency.
     high_pass : float
         High pass frequency.
-    verbose : str, int, or None
+    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns

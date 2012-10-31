@@ -24,6 +24,7 @@ from .write import start_file, start_block, end_file, end_block, \
                    write_id
 
 from ..viz import plot_evoked
+from .. import verbose
 
 
 class Evoked(object):
@@ -42,8 +43,8 @@ class Evoked(object):
     proj : bool, optional
         Apply SSP projection vectors
 
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
@@ -75,14 +76,14 @@ class Evoked(object):
         Evoked response.
 
     """
-
+    @verbose
     def __init__(self, fname, setno=None, baseline=None, proj=True,
-                 verbose=True):
+                 verbose=None):
         if fname is None:
             return
 
-        if verbose:
-            logger.info('Reading %s ...' % fname)
+        self.verbose = verbose
+        logger.info('Reading %s ...' % fname)
         fid, tree, _ = fiff_open(fname)
 
         #   Read the measurement info
@@ -117,7 +118,7 @@ class Evoked(object):
 
         # Identify the aspects
         aspects = dir_tree_find(my_evoked, FIFF.FIFFB_ASPECT)
-        if len(aspects) > 1 and verbose:
+        if len(aspects) > 1:
             logger.info('Multiple aspects found. Taking first one.')
         my_aspect = aspects[0]
 
@@ -165,19 +166,17 @@ class Evoked(object):
 
             info['chs'] = chs
             info['nchan'] = nchan
-            if verbose:
-                logger.info('    Found channel information in evoked data. '
-                            'nchan = %d' % nchan)
+            logger.info('    Found channel information in evoked data. '
+                        'nchan = %d' % nchan)
             if sfreq > 0:
                 info['sfreq'] = sfreq
 
         nsamp = last - first + 1
-        if verbose:
-            logger.info('    Found the data of interest:')
-            logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                        % (1000 * first / info['sfreq'],
-                           1000 * last / info['sfreq'], comment))
-        if info['comps'] is not None and verbose:
+        logger.info('    Found the data of interest:')
+        logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                    % (1000 * first / info['sfreq'],
+                       1000 * last / info['sfreq'], comment))
+        if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
                                                    % len(info['comps']))
 
@@ -200,9 +199,8 @@ class Evoked(object):
                 tag = read_tag(fid, pos)
                 epoch.append(tag)
 
-        if verbose:
-            logger.info('        nave = %d - aspect type = %d'
-                        % (nave, aspect_kind))
+        logger.info('        nave = %d - aspect type = %d'
+                    % (nave, aspect_kind))
 
         nepoch = len(epoch)
         if nepoch != 1 and nepoch != info['nchan']:
@@ -233,34 +231,29 @@ class Evoked(object):
 
         # Set up projection
         if info['projs'] is None or not proj:
-            if verbose:
-                logger.info('No projector specified for these data')
+            logger.info('No projector specified for these data')
             self.proj = None
         else:
             #   Create the projector
             proj, nproj = make_projector_info(info)
             if nproj == 0:
-                if verbose:
-                    logger.info('The projection vectors do not apply to these'
-                                ' channels')
+                logger.info('The projection vectors do not apply to these'
+                            ' channels')
                 self.proj = None
             else:
-                if verbose:
-                    logger.info('Created an SSP operator (subspace dimension '
-                                '= %d)' % nproj)
+                logger.info('Created an SSP operator (subspace dimension '
+                            '= %d)' % nproj)
                 self.proj = proj
 
             #   The projection items have been activated
             info['projs'] = activate_proj(info['projs'], copy=False)
 
         if self.proj is not None:
-            if verbose:
-                logger.info("SSP projectors applied...")
+            logger.info("SSP projectors applied...")
             all_data = np.dot(self.proj, all_data)
 
         # Run baseline correction
-        all_data = rescale(all_data, times, baseline, 'mean', verbose=True,
-                        copy=False)
+        all_data = rescale(all_data, times, baseline, 'mean', copy=False)
 
         # Put it all together
         self.info = info

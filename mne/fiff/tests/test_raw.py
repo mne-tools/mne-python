@@ -232,7 +232,7 @@ def test_io_complex():
     """
     dtypes = [np.complex64, np.complex128]
 
-    raw = Raw(fif_fname, preload=True, verbose=False)
+    raw = Raw(fif_fname, preload=True)
     picks = np.arange(5)
     start, stop = raw.time_as_index([0, 5])
 
@@ -376,13 +376,13 @@ def test_filter():
     picks = picks_meg[:4]
 
     raw_lp = deepcopy(raw)
-    raw_lp.filter(0., 4.0, picks=picks, verbose=0, n_jobs=2)
+    raw_lp.filter(0., 4.0, picks=picks, n_jobs=2)
 
     raw_hp = deepcopy(raw)
-    raw_lp.filter(8.0, None, picks=picks, verbose=0, n_jobs=2)
+    raw_lp.filter(8.0, None, picks=picks, n_jobs=2)
 
     raw_bp = deepcopy(raw)
-    raw_bp.filter(4.0, 8.0, picks=picks, verbose=0)
+    raw_bp.filter(4.0, 8.0, picks=picks)
 
     data, _ = raw[picks, :]
 
@@ -406,8 +406,8 @@ def test_hilbert():
     picks = picks_meg[:4]
 
     raw2 = deepcopy(raw)
-    raw.apply_hilbert(picks, verbose=0)
-    raw2.apply_hilbert(picks, envelope=True, n_jobs=2, verbose=0)
+    raw.apply_hilbert(picks)
+    raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
 
     env = np.abs(raw._data[picks, :])
     assert_array_almost_equal(env, raw2._data[picks, :])

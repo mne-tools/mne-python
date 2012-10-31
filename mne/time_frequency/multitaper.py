@@ -8,6 +8,7 @@ import numpy as np
 from scipy import fftpack, linalg, interpolate
 
 from ..parallel import parallel_func
+from .. import verbose
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -399,8 +400,9 @@ def _mt_spectra(x, dpss, sfreq):
     return x_mt, freqs
 
 
+@verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1, verbose=5):
+                   adaptive=False, low_bias=True, n_jobs=1, verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
@@ -423,8 +425,8 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
-    verbose : int
-        Verbosity level of status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -469,7 +471,7 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         psd = _psd_from_mt(x_mt, weights)
     else:
         parallel, my_psd_from_mt_adaptive, n_jobs = \
-            parallel_func(_psd_from_mt_adaptive, n_jobs, verbose)
+            parallel_func(_psd_from_mt_adaptive, n_jobs)
         out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
                        for x in np.array_split(x_mt, n_jobs))
         psd = np.concatenate(out)
