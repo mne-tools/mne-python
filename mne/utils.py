@@ -10,6 +10,7 @@ from math import ceil, log
 from numpy.fft import irfft
 import hashlib
 import logging
+import os
 
 # Following deprecated class copied from scikit-learn
 
@@ -290,16 +291,20 @@ def split_list(l, n):
     yield l[(n - 1) * sz:]
 
 
-def set_log_level(level='INFO'):
+def set_log_level(level=None):
     """Convenience function for setting the logging level
 
     Parameters
     ----------
-    level : str or int
+    level : str, int, or None
         The level of messages to print. If a str, it can be either DEBUG,
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
+        If None, the environment variable MNE_LOG_LEVEL is read, and if
+        it doesn't exist, defaults to INFO.
     """
+    if level is None:
+        level = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
     if isinstance(level, str):
         level = str.upper(level)
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
