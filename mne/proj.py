@@ -196,7 +196,8 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
-                        picks=pick_types(raw.info, meg=True, eeg=True),
+                        picks=pick_types(raw.info, meg=True, eeg=True,
+                                         eog=True, ecg=True, emg=True),
                         reject=reject, flat=flat, verbose=verbose)
         if n_jobs > 1:
             parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
