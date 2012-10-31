@@ -4,8 +4,10 @@ from math import ceil
 import logging
 logger = logging.getLogger('mne')
 
+from .. import verbose
 
-def peak_finder(x0, thresh=None, extrema=1, verbose=True):
+@verbose
+def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     """Noise tolerant fast peak finding algorithm
 
     Parameters
@@ -19,8 +21,8 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=True):
     extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
         (default = maxima, 1).
-    verbose : bool
-        Print status messages.
+    verbose : str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -162,7 +164,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=True):
         x0 = -x0
 
     # Plot if no output desired
-    if len(peak_inds) == 0 and verbose:
+    if len(peak_inds) == 0:
         logger.info('No significant peaks found')
 
     return peak_inds, peak_mags
