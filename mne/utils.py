@@ -314,7 +314,9 @@ def set_log_level(level=None):
             raise ValueError('level must be of a valid type')
         level = logging_types[level]
     logger = logging.getLogger('mne')
+    old_level = logger.level
     logger.setLevel(level)
+    return old_level
 
 
 def set_log_file(fname=None, output_format='%(message)s'):
@@ -347,3 +349,44 @@ def set_log_file(fname=None, output_format='%(message)s'):
     logger.addHandler(lh)
     # actually add the stream handler
     logger.addHandler(lh)
+
+
+def verbose(function):
+    """Decorator to allow a function to override default log level
+
+    Do not call this function directly to set the global verbosity level,
+    instead use set_log_level().
+
+    Parameters (to decorated function)
+    ----------------------------------
+    verbose : str, int, or None
+        The level of messages to print. If a str, it can be either DEBUG,
+        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
+        convenience and are equivalent to passing in logging.DEBUG, etc.
+        None defaults to using the current log level [e.g., set using
+        mne.set_log_level()].
+    """
+    def dec(*args, **kwargs):
+        verbose_level = kwargs.pop('verbose', None)
+        if verbose_level is not None:
+            # maintain backward compatibility
+            if verbose_level == False:
+                warnings.warn('Using boolean verbose level is deprecated, '
+                              'and will be removed in v0.6')
+                verbose_level = 'WARNING'
+            elif verbose_level == True:
+                warnings.warn('Using boolean verbose level is deprecated, '
+                              'and will be removed in v0.6')
+                verbose_level = 'INFO'
+            old_level = set_log_level(verbose_level)
+            # be careful in case we get an error
+            try:
+                ret = function(*args, **kwargs)
+            except:
+                set_log_level(old_level)
+                raise
+            set_log_level(old_level)
+            return ret
+        else:
+            return function(*args, **kwargs)
+    return dec

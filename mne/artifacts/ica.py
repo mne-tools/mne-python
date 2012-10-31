@@ -24,6 +24,7 @@ from ..cov import compute_whitener
 from ..fiff import pick_types, pick_channels
 from ..fiff.constants import Bunch
 from ..viz import plot_ica_panel
+from .. import verbose
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -144,8 +145,9 @@ class ICA(object):
 
         return out
 
+    @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
-                      verbose=True):
+                      verbose=None):
         """Run the ICA decomposition on raw data
 
         Parameters
@@ -161,17 +163,16 @@ class ICA(object):
         stop : int
             First sample to not include. If omitted, data is included to the
             end.
-        verbose : bool
-            Print status messages.
+        verbose : str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        if verbose:
-            logger.info('Computing signal decomposition on raw data. '
-                        'Please be patient, this may take some time')
+        logger.info('Computing signal decomposition on raw data. '
+                    'Please be patient, this may take some time')
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True,
@@ -192,7 +193,8 @@ class ICA(object):
         self.last_fit = 'raw'
         return self
 
-    def decompose_epochs(self, epochs, picks=None, verbose=True):
+    @verbose
+    def decompose_epochs(self, epochs, picks=None, verbose=None):
         """Run the ICA decomposition on epochs
 
         Parameters
@@ -203,17 +205,16 @@ class ICA(object):
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
-        verbose : bool
-            Print status messages.
+        verbose : str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        if verbose:
-            logger.info('Computing signal decomposition on epochs. '
-                        'Please be patient, this may take some time')
+        logger.info('Computing signal decomposition on epochs. '
+                    'Please be patient, this may take some time')
 
         if picks is None:  # just use epochs good data channels and avoid
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
@@ -620,9 +621,10 @@ class ICA(object):
         return out
 
 
+@verbose
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
                         tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
-                        verbose=True):
+                        verbose=None):
     """Find ECG peaks from one selected ICA source
 
     Parameters
@@ -648,8 +650,8 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         High pass frequency.
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
-    verbose : bool
-        Print status messages.
+    verbose : str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -660,8 +662,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     average_pulse : float.
         Estimated average pulse.
     """
-    if verbose:
-        logger.info('Using ICA source to identify heart beats')
+    logger.info('Using ICA source to identify heart beats')
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(),
@@ -676,8 +677,9 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     return ecg_events
 
 
+@verbose
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
-                    h_freq=10, verbose=True):
+                    h_freq=10, verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -692,8 +694,8 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         Low pass frequency.
     high_pass : float
         High pass frequency.
-    verbose : bool
-        Print status messages.
+    verbose : str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -703,7 +705,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
     eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
                                 l_freq=l_freq, h_freq=h_freq,
                                 sampling_rate=raw.info['sfreq'],
-                                first_samp=raw.first_samp, verbose=verbose)
+                                first_samp=raw.first_samp)
     return eog_events
 
 
