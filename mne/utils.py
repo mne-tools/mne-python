@@ -353,7 +353,6 @@ def set_log_file(fname=None, output_format='%(message)s'):
     else:
         lh = logging.StreamHandler()
 
-    lh.setLevel(logger.level)
     lh.setFormatter(logging.Formatter(output_format))
     logger.addHandler(lh)
     # actually add the stream handler
