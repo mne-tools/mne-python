@@ -103,6 +103,8 @@ class ICA(object):
     index : ndarray
         Integer array representing the sources. This is usefull for different
         kinds of indexing and selection operations.
+    verbose : bool, str, int, or None
+        See above.
     """
     @verbose
     def __init__(self, noise_cov=None, n_components=None, random_state=None,

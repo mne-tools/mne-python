@@ -910,8 +910,9 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-# This cannot have verbose decorator b/c it gets pickled!
-def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
+@verbose
+def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
+                  verbose=None):
     """Morph data from one subject's source space to another
 
     Parameters
@@ -931,6 +932,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
         Vertices on the destination surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -968,6 +971,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps):
     else:
         data[idx_use, :] /= data1[idx_use][:, None]
 
+    logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
     return data_morphed
 

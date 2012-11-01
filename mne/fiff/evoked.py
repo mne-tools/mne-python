@@ -75,6 +75,9 @@ class Evoked(object):
     data : 2D array of shape [n_channels x n_times]
         Evoked response.
 
+    verbose : bool, str, int, or None
+        See above.
+
     """
     @verbose
     def __init__(self, fname, setno=None, baseline=None, proj=True,

@@ -100,6 +100,9 @@ class Epochs(object):
         if any, that caused an event in the original event list
         to be dropped by drop_bad_epochs().
 
+    verbose : bool, str, int, or None
+        See above.
+
     Methods
     -------
     get_data() : self

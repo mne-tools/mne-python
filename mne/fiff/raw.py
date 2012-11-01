@@ -66,6 +66,8 @@ class Raw(object):
         List of channels' names.
     n_times : int
         Total number of time points in the raw file.
+    verbose : bool, str, int, or None
+        See above.
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,

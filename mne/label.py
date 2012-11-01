@@ -64,6 +64,8 @@ class Label(dict):
         Locations in meters.
     values : array, len = n_pos
         Values at the vertices.
+    verbose : bool, str, int, or None
+        See above.
     vertices : array, len = n_pos
         Vertex indices (0 based)
 

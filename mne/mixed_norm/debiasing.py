@@ -11,6 +11,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ..utils import check_random_state
+from .. import verbose
 
 
 def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
@@ -57,7 +58,8 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     return L
 
 
-def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=True):
+@verbose
+def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias
 
     It solves the following optimization problem using FISTA:
@@ -85,8 +87,8 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=True):
         The tolerance on convergence.
     n_orient : int
         The number of orientations (1 for fixed and 3 otherwise).
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -124,8 +126,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=True):
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
         if linalg.norm(D - D0, np.inf) < tol:
-            if verbose:
-                logger.info("Debiasing converged after %d iterations" % i)
+            logger.info("Debiasing converged after %d iterations" % i)
             break
     else:
         logger.info("Debiasing did not converge")
