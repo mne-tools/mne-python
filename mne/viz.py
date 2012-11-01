@@ -747,7 +747,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     picks = np.atleast_1d(picks)
     evoked = epochs.average()
-    data = epochs.get_data()[:, picks, :]
+    data = epochs.copy().get_data()[:, picks, :]
     if vmin is None:
         vmin = data.min()
     if vmax is None:
@@ -861,7 +861,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
-    data = epochs.get_data()
+    data = epochs.copy().get_data()
     if vmin is None:
         vmin = data.min()
     if vmax is None:
