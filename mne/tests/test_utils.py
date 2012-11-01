@@ -25,6 +25,11 @@ def test_firwin2():
 def test_logging():
     """Test logging (to file)
     """
+    old_log_file = open(fname_log, 'r')
+    old_lines = old_log_file.readlines()
+    old_log_file.close()
+
+    # test it one way (printing default off)
     set_log_file(test_name)
     set_log_level('WARNING')
     # should NOT print
@@ -36,6 +41,13 @@ def test_logging():
     # should NOT print
     evoked = Evoked(fname_evoked, setno=1, verbose='WARNING')
     assert_true(open(test_name).readlines() == [])
+    # SHOULD print
+    evoked = Evoked(fname_evoked, setno=1, verbose=True)
+    new_log_file = open(test_name, 'r')
+    assert_equal(new_log_file.readlines(), old_lines)
+
+    # now go the other way (printing default on)
+    set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print
     evoked = Evoked(fname_evoked, setno=1, verbose='WARNING')
@@ -45,7 +57,7 @@ def test_logging():
     assert_true(open(test_name).readlines() == [])
     # SHOULD print
     evoked = Evoked(fname_evoked, setno=1)
-    set_log_file()
     new_log_file = open(test_name, 'r')
     old_log_file = open(fname_log, 'r')
-    assert_equal(new_log_file.readlines(), old_log_file.readlines())
+    print set_log_level('INFO')
+    assert_equal(new_log_file.readlines(), old_lines)
