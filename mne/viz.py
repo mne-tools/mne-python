@@ -7,6 +7,7 @@
 # License: Simplified BSD
 
 from itertools import cycle
+from functools import partial
 import copy
 import numpy as np
 from scipy import linalg
@@ -180,7 +181,9 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     if vmax is None:
         vmax = power.max()
 
-    fig = _plot_topo_imshow(epochs, power, freq, layout, decim=decim,
+    power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
+
+    fig = _plot_topo_imshow(epochs, power_imshow, layout, decim=decim,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
                             cmap=cmap, layout_scale=layout_scale)
     return fig
@@ -197,11 +200,11 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         The epochs used to generate the phase locking value
     phase_lock : 3D-array
         Phase locking value, second return value from
-        mne.time_frequency.induced_power
+        mne.time_frequency.induced_power.
     freq : array-like
         Frequencies of interest as passed to induced_power
     layout: instance of Layout
-        System specific sensor positions
+        System specific sensor positions.
     baseline: tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -245,25 +248,25 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
     if vmax is None:
         vmax = phase.max()
 
-    fig = _plot_topo_imshow(epochs, phase.copy(), freq, layout, decim=decim,
-                        colorbar=colorbar, vmin=vmin, vmax=vmax,
-                        cmap=cmap, layout_scale=layout_scale)
+    phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
+
+    fig = _plot_topo_imshow(epochs, phase_imshow, layout, decim=decim,
+                            colorbar=colorbar, vmin=vmin, vmax=vmax,
+                            cmap=cmap,  layout_scale=layout_scale)
 
     return fig
 
 
-def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
+def _plot_topo_imshow(epochs, show_func, layout, decim,
                       vmin, vmax, colorbar, cmap, layout_scale):
     """Helper function: plot tfr on sensor layout"""
     import pylab as pl
-    if cmap == None:
+    if cmap is None:
         cmap = pl.cm.jet
     ch_names = epochs.info['ch_names']
     pl.rcParams['axes.facecolor'] = 'k'
     fig = pl.figure(facecolor='k')
     pos = layout.pos.copy()
-    tmin = 1e3 * epochs.tmin
-    tmax = 1e3 * epochs.tmax
     if colorbar:
         pos[:, :2] *= layout_scale
         pl.rcParams['axes.edgecolor'] = 'k'
@@ -279,13 +282,19 @@ def _plot_topo_imshow(epochs, tfr, freq, layout, decim,
         if name in ch_names:
             ax = pl.axes(pos[idx], axisbg='k')
             ch_idx = epochs.info["ch_names"].index(name)
-            extent = (tmin, tmax, freq[0], freq[-1])
-            ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-                      vmin=vmin, vmax=vmax)
+            show_func(ax, ch_idx, 1e3 * epochs.times[0],
+                      1e3 * epochs.times[-1], vmin, vmax)
             pl.xticks([], ())
             pl.yticks([], ())
 
     return fig
+
+
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
+    """ Aux Function """
+    extent = (tmin, tmax, freq[0], freq[-1])
+    ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
+              vmin=vmin, vmax=vmax)
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
@@ -748,6 +757,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
     for this_data, idx in zip(np.swapaxes(data, 0, 1), picks):
         this_fig = pl.figure()
         figs.append(this_fig)
+
         ch_type = channel_type(epochs.info, idx)
         this_data *= scaling[ch_type]
 
@@ -787,3 +797,84 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         pl.show()
 
     return figs
+
+
+def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
+                     data=None, epochs=None, sigma=None,
+                     order=None, scaling=None):
+    """ Aux Function """
+
+    this_data = data[:, ch_idx, :]
+    ch_type = channel_type(epochs.info, ch_idx)
+    this_data *= scaling[ch_type]
+
+    this_order = order
+    if callable(order):
+        this_order = order(epochs.times, this_data)
+
+    if this_order is not None:
+        this_data = this_data[this_order]
+
+    this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
+              origin='lower', vmin=vmin, vmax=vmax)
+
+
+def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
+                           vmax=None, colorbar=True, order=None, show=True,
+                           cmap=None, layout_scale=.95):
+    """Plot Event Related Potential / Fields image on topographies
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs.
+    layout: instance of Layout
+        System specific sensor positions.
+    sigma : float
+        The standard deviation of the Gaussian smoothing to apply along
+        the epoch axis to apply in the image.
+    vmin : float
+        The min value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers.
+    vmax : float
+        The max value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers.
+    colorbar : bool
+        Display or not a colorbar.
+    order : None | array of int | callable
+        If not None, order is used to reorder the epochs on the y-axis
+        of the image. If it's an array of int it should be of length
+        the number of good epochs. If it's a callable the arguments
+        passed are the times vector and the data as 2d array
+        (data.shape[1] == len(times)).
+    show : bool
+        Show or not the figure at the end.
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values.
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas.
+
+    Returns
+    -------
+    fig : instacne fo matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+    data = epochs.get_data()
+    if vmin is None:
+        vmin = data.min()
+    if vmax is None:
+        vmax = data.max()
+    erf_imshow = partial(_erfimage_imshow, scaling=scaling,
+                         data=data, epochs=epochs, sigma=sigma)
+
+    fig = _plot_topo_imshow(epochs, erf_imshow, layout, decim=1,
+                            colorbar=colorbar, vmin=vmin, vmax=vmax,
+                            cmap=cmap, layout_scale=layout_scale)
+    if show == True:
+        fig.show()
+
+    return fig
