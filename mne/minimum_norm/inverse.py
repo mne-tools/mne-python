@@ -34,6 +34,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            write_source_spaces, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
+from .. import verbose
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -53,15 +54,16 @@ def _pick_channels_inverse_operator(ch_names, inv):
     return sel
 
 
-def read_inverse_operator(fname, verbose=True):
+@verbose
+def read_inverse_operator(fname, verbose=None):
     """Read the inverse operator decomposition from a FIF file
 
     Parameters
     ----------
     fname : string
         The name of the FIF file.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -71,9 +73,8 @@ def read_inverse_operator(fname, verbose=True):
     #
     #   Open the file, create directory
     #
-    if verbose:
-        logger.info('Reading inverse operator decomposition from %s...'
-                    % fname)
+    logger.info('Reading inverse operator decomposition from %s...'
+                % fname)
     fid, tree, _ = fiff_open(fname)
     #
     #   Find all inverse operators
@@ -93,8 +94,7 @@ def read_inverse_operator(fname, verbose=True):
         raise Exception('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]  # take only first one
 
-    if verbose:
-        logger.info('    Reading inverse operator info...')
+    logger.info('    Reading inverse operator info...')
     #
     #   Methods and source orientations
     #
@@ -138,13 +138,11 @@ def read_inverse_operator(fname, verbose=True):
         raise Exception('Source orientation information not found')
 
     inv['source_nn'] = tag.data
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
     #
     #   The SVD decomposition...
     #
-    if verbose:
-        logger.info( '    Reading inverse operator decomposition...')
+    logger.info( '    Reading inverse operator decomposition...')
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
@@ -169,33 +167,30 @@ def read_inverse_operator(fname, verbose=True):
     inv['eigen_leads'] = _transpose_named_matrix(eigen_leads)
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                              FIFF.FIFF_MNE_INVERSE_FIELDS)
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
     #
     #   Read the covariance matrices
     #
     inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-    if verbose:
-        logger.info('    Noise covariance matrix read.')
+    logger.info('    Noise covariance matrix read.')
 
     inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-    if verbose:
-        logger.info('    Source covariance matrix read.')
+    logger.info('    Source covariance matrix read.')
     #
     #   Read the various priors
     #
     inv['orient_prior'] = read_cov(fid, invs,
                                    FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
-    if inv['orient_prior'] is not None and verbose:
+    if inv['orient_prior'] is not None:
         logger.info('    Orientation priors read.')
 
     inv['depth_prior'] = read_cov(fid, invs,
                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
-    if inv['depth_prior'] is not None and verbose:
+    if inv['depth_prior'] is not None:
         logger.info('    Depth priors read.')
 
     inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
-    if inv['fmri_prior'] is not None and verbose:
+    if inv['fmri_prior'] is not None:
         logger.info('    fMRI priors read.')
 
     #
@@ -269,9 +264,8 @@ def read_inverse_operator(fname, verbose=True):
 
         nuse += inv['src'][k]['nuse']
 
-    if verbose:
-         logger.info('    Source spaces transformed to the inverse solution '
-                     'coordinate frame')
+    logger.info('    Source spaces transformed to the inverse solution '
+                'coordinate frame')
     #
     #   Done!
     #
@@ -280,33 +274,30 @@ def read_inverse_operator(fname, verbose=True):
     return inv
 
 
-def write_inverse_operator(fname, inv, verbose=True):
+@verbose
+def write_inverse_operator(fname, inv, verbose=None):
     """Write an inverse operator to a FIF file
 
     Parameters
     ----------
     fname : string
         The name of the FIF file.
-
     inv : dict
         The inverse operator.
-
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     #
     #   Open the file, create directory
     #
-    if verbose:
-        logger.info('Write inverse operator decomposition in %s...' % fname)
+    logger.info('Write inverse operator decomposition in %s...' % fname)
 
     # Create the file and save the essentials
     fid = start_file(fname)
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
-    if verbose:
-        logger.info('    Writing inverse operator info...')
+    logger.info('    Writing inverse operator info...')
 
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
@@ -327,23 +318,19 @@ def write_inverse_operator(fname, inv, verbose=True):
                            _transpose_named_matrix(inv['eigen_leads']))
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
     #
     #   write the covariance matrices
     #
-    if verbose:
-        logger.info('    Writing noise covariance matrix.')
+    logger.info('    Writing noise covariance matrix.')
     write_cov(fid, inv['noise_cov'])
 
-    if verbose:
-        logger.info('    Writing source covariance matrix.')
+    logger.info('    Writing source covariance matrix.')
     write_cov(fid, inv['source_cov'])
     #
     #   write the various priors
     #
-    if verbose:
-        logger.info('    Writing orientation priors.')
+    logger.info('    Writing orientation priors.')
     if inv['orient_prior'] is not None:
         write_cov(fid, inv['orient_prior'])
     write_cov(fid, inv['depth_prior'])
@@ -438,7 +425,8 @@ def _chech_ch_names(inv, info):
                          'are not present in the data (%s)' % missing_ch_names)
 
 
-def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
+@verbose
+def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     """Prepare an inverse operator for actually computing the inverse
 
     Parameters
@@ -451,8 +439,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
         The regularization factor. Recommended to be 1 / SNR**2.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -462,8 +450,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
     if nave <= 0:
         raise ValueError('The number of averages should be positive')
 
-    if verbose:
-        logger.info('Preparing the inverse operator for use...')
+    logger.info('Preparing the inverse operator for use...')
     inv = deepcopy(orig)
     #
     #   Scale some of the stuff
@@ -476,8 +463,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
     if inv['eigen_leads_weighted']:
         inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
 
-    if verbose:
-        logger.info('    Scaled noise and source covariance from nave = %d to'
+    logger.info('    Scaled noise and source covariance from nave = %d to'
                     ' nave = %d' % (inv['nave'], nave))
     inv['nave'] = nave
     #
@@ -485,20 +471,18 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
     #
     sing = np.array(inv['sing'], dtype=np.float64)
     inv['reginv'] = sing / (sing ** 2 + lambda2)
-    if verbose:
-        logger.info('    Created the regularized inverter')
+    logger.info('    Created the regularized inverter')
     #
     #   Create the projection operator
     #
     inv['proj'], ncomp, _ = make_projector(inv['projs'],
                                            inv['noise_cov']['names'])
-    if verbose:
-        if ncomp > 0:
-            logger.info('    Created an SSP operator (subspace dimension = %d)'
-                        % ncomp)
-        else:
-            logger.info('    The projection vectors do not apply to these '
-                        'channels.')
+    if ncomp > 0:
+        logger.info('    Created an SSP operator (subspace dimension = %d)'
+                    % ncomp)
+    else:
+        logger.info('    The projection vectors do not apply to these '
+                    'channels.')
 
     #
     #   Create the whitener
@@ -516,34 +500,30 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
         #   Rows of eigvec are the eigenvectors
         #
         inv['whitener'] = np.dot(inv['whitener'], inv['noise_cov']['eigvec'])
-        if verbose:
-            logger.info('    Created the whitener using a full noise '
-                        'covariance matrix (%d small eigenvalues omitted)'
-                        % (inv['noise_cov']['dim'] - np.sum(nzero)))
+        logger.info('    Created the whitener using a full noise '
+                    'covariance matrix (%d small eigenvalues omitted)'
+                    % (inv['noise_cov']['dim'] - np.sum(nzero)))
     else:
         #
         #   No need to omit the zeroes due to projection
         #
         inv['whitener'] = np.diag(1.0 /
                                   np.sqrt(inv['noise_cov']['data'].ravel()))
-        if verbose:
-            logger.info('    Created the whitener using a diagonal noise '
-                        'covariance matrix (%d small eigenvalues discarded)'
-                        % ncomp)
+        logger.info('    Created the whitener using a diagonal noise '
+                    'covariance matrix (%d small eigenvalues discarded)'
+                    % ncomp)
 
     #
     #   Finally, compute the noise-normalization factors
     #
     if method in ["dSPM", 'sLORETA']:
         if method == "dSPM":
-            if verbose:
-                logger.info('    Computing noise-normalization factors '
-                            '(dSPM)...')
+            logger.info('    Computing noise-normalization factors '
+                        '(dSPM)...')
             noise_weight = inv['reginv']
         else:
-            if verbose:
-                logger.info('    Computing noise-normalization factors '
-                            '(sLORETA)...')
+            logger.info('    Computing noise-normalization factors '
+                        '(sLORETA)...')
             noise_weight = inv['reginv'] * \
                            np.sqrt((1. + inv['sing'] ** 2 / lambda2))
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
@@ -573,15 +553,15 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=True):
             noise_norm = combine_xyz(noise_norm[:, None]).ravel()
 
         inv['noisenorm'] = 1.0 / np.abs(noise_norm)
-        if verbose:
-            logger.info('[done]')
+        logger.info('[done]')
     else:
         inv['noisenorm'] = []
 
     return inv
 
 
-def _assemble_kernel(inv, label, method, pick_normal, verbose=True):
+@verbose
+def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -637,15 +617,13 @@ def _assemble_kernel(inv, label, method, pick_normal, verbose=True):
         #
         #     R^0.5 has been already factored in
         #
-        if verbose:
-            logger.info('(eigenleads already weighted)...')
+        logger.info('(eigenleads already weighted)...')
         K = np.dot(eigen_leads, trans)
     else:
         #
         #     R^0.5 has to be factored in
         #
-        if verbose:
-            logger.info('(eigenleads need to be weighted)...')
+        logger.info('(eigenleads need to be weighted)...')
         K = np.sqrt(source_cov) * np.dot(eigen_leads, trans)
 
     if method == "MNE":
@@ -675,8 +653,9 @@ def _check_method(method, dSPM):
     return method
 
 
+@verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_normal=False, dSPM=None, verbose=True):
+                  pick_normal=False, dSPM=None, verbose=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -697,8 +676,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -713,15 +692,13 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _chech_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                   verbose)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
     K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
@@ -729,29 +706,27 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                    and not pick_normal)
 
     if is_free_ori:
-        if verbose:
-            logger.info('combining the current components...')
+        logger.info('combining the current components...')
         sol = combine_xyz(sol)
 
     if noise_norm is not None:
-        if verbose:
-            logger.info('(dSPM)...')
+        logger.info('(dSPM)...')
         sol *= noise_norm
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
     stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
     return stc
 
 
+@verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_normal=False,
-                      buffer_size=None, dSPM=None, verbose=True):
+                      buffer_size=None, dSPM=None, verbose=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -791,8 +766,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         buffer_size << data length).
         Note that this setting has no effect for fixed-orientation inverse
         operators.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -811,9 +786,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
 
     data, times = raw[sel, start:stop]
 
@@ -828,8 +802,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
-        if verbose:
-            logger.info('computing inverse and combining the current '
+        logger.info('computing inverse and combining the current '
                         'components (using %d segments)...' % (n_seg))
 
         # Allocate space for inverse solution
@@ -841,14 +814,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
             sol[:, pos:pos + buffer_size] = \
                 combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
 
-            if verbose:
-                logger.info('segment %d / %d done..'
-                            % (pos / buffer_size + 1, n_seg))
+            logger.info('segment %d / %d done..'
+                        % (pos / buffer_size + 1, n_seg))
     else:
         sol = np.dot(K, data)
         if is_free_ori:
-            if verbose:
-                logger.info('combining the current components...')
+            logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
     if noise_norm is not None:
@@ -857,15 +828,15 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
     return stc
 
 
+@verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_normal=False, dSPM=None,
-                         verbose=True):
+                         verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -890,8 +861,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -905,15 +876,13 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method,
-                                   verbose)
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    if verbose:
-        logger.info('Picked %d channels from the data' % len(sel))
-        logger.info('Computing inverse...')
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
 
     stcs = list()
@@ -924,13 +893,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                    and not pick_normal)
 
     for k, e in enumerate(epochs):
-        if verbose:
-            logger.info("Processing epoch : %d" % (k + 1))
+        logger.info("Processing epoch : %d" % (k + 1))
         sol = np.dot(K, e[sel])  # apply imaging kernel
 
         if is_free_ori:
-            if verbose:
-                logger.info('combining the current components...')
+            logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
         if noise_norm is not None:
@@ -938,8 +905,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
         stcs.append(SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep))
 
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
     return stcs
 
@@ -991,7 +957,8 @@ def _xyz2lf(Lf_xyz, normals):
 ###############################################################################
 # Assemble the inverse operator
 
-def _prepare_forward(forward, info, noise_cov, pca=False, verbose=True):
+@verbose
+def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
     """Util function to prepare forward solution for inverse solvers
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
@@ -1017,8 +984,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=True):
         whitener = 1.0 / np.sqrt(eig[nzero])
         #   Rows of eigvec are the eigenvectors
         whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
-        if verbose:
-            logger.info('Reducing data rank to %d' % n_nzero)
+        logger.info('Reducing data rank to %d' % n_nzero)
     else:
         whitener = np.zeros((n_chan, n_chan), dtype=np.float)
         whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
@@ -1030,14 +996,14 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=True):
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
 
-    if verbose:
-        logger.info('Total rank is %d' % n_nzero)
+    logger.info('Total rank is %d' % n_nzero)
 
     return ch_names, gain, noise_cov, whitener, n_nzero
 
 
+@verbose
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
-                          verbose=True):
+                          verbose=None):
     """Assemble inverse operator
 
     Parameters
@@ -1054,8 +1020,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         defining the tangent space of the cortical surfaces.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1092,13 +1058,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         else:
             depth_prior = compute_depth_prior(gain, exp=depth)
 
-    if verbose:
-        logger.info("Computing inverse operator with %d channels."
-                    % len(ch_names))
+    logger.info("Computing inverse operator with %d channels."
+                % len(ch_names))
 
     # Whiten lead field.
-    if verbose:
-        logger.info('Whitening lead field matrix.')
+    logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)
 
     source_cov = depth_prior.copy()
@@ -1121,8 +1085,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
-    if verbose:
-        logger.info('Adjusting source covariance matrix.')
+    logger.info('Adjusting source covariance matrix.')
     source_std = np.sqrt(source_cov)
     gain *= source_std[None, :]
     trace_GRGT = linalg.norm(gain, ord='fro') ** 2
@@ -1138,9 +1101,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # logger.info(np.trace(np.dot(gain, gain.T)), n_nzero)
 
-    if verbose:
-        logger.info('Computing SVD of whitened and weighted lead field '
-                    'matrix.')
+    logger.info('Computing SVD of whitened and weighted lead field '
+                'matrix.')
     eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
 
     eigen_fields = dict(data=eigen_fields.T, col_names=ch_names, row_names=[],

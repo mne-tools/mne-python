@@ -22,6 +22,7 @@ from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
 from ..parallel import parallel_func
 from .. import verbose
 
+
 @verbose
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
@@ -110,9 +111,9 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     return stcs
 
 
-# NOTE: Cannot decorate functions that will be pickled!
+@verbose
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal, decim):
+                     pick_normal, decim, verbose=None):
     """Aux function for source_induced_power"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
@@ -159,7 +160,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
                         plv_f += 1j * sol_pick_normal
 
                 if is_free_ori:
-                    # logger.debug('combining the current components...')
+                    logger.debug('combining the current components...')
                     sol = combine_xyz(sol, square=True)
                 else:
                     np.power(sol, 2, sol)

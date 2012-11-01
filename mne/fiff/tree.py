@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from .tag import read_tag
+from .. import verbose
 
 
 def dir_tree_find(tree, kind):
@@ -32,7 +33,8 @@ def dir_tree_find(tree, kind):
     return nodes
 
 
-def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
+@verbose
+def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
     """Create the directory tree structure
     """
     FIFF_BLOCK_START = 104
@@ -47,8 +49,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
     else:
         block = 0
 
-    if verbose:
-        logger.info('    ' * indent + 'start { %d' % block)
+    logger.info('    ' * indent + 'start { %d' % block)
 
     this = start
 
@@ -64,8 +65,7 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
     while this < len(directory):
         if directory[this].kind == FIFF_BLOCK_START:
             if this != start:
-                child, this = make_dir_tree(fid, directory, this,
-                                                        indent + 1, verbose)
+                child, this = make_dir_tree(fid, directory, this, indent + 1)
                 tree['nchild'] += 1
                 tree['children'].append(child)
         elif directory[this].kind == FIFF_BLOCK_END:
@@ -97,10 +97,9 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=False):
     if tree['nent'] == 0:
         tree['directory'] = None
 
-    if verbose:
-        logger.info('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
-                    % (tree['block'], tree['nent'], tree['nchild']))
-        logger.info('    ' * indent, 'end } %d' % block)
+    logger.info('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
+                % (tree['block'], tree['nent'], tree['nchild']))
+    logger.info('    ' * indent, 'end } %d' % block)
 
     last = this
     return tree, last

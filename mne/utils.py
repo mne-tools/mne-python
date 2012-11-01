@@ -11,7 +11,7 @@ from numpy.fft import irfft
 import hashlib
 import logging
 import os
-import inspect
+from functools import wraps
 
 # Following deprecated class copied from scikit-learn
 
@@ -111,6 +111,7 @@ def deprecated_func():
 # Original version of firwin2 from scipy ticket #457, submitted by "tash".
 #
 # Rewritten by Warren Weckesser, 2010.
+
 
 def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
     """FIR filter design using the window method.
@@ -308,7 +309,7 @@ def set_log_level(verbose=None):
     if verbose is None:
         verbose = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
     elif isinstance(verbose, bool):
-        if verbose == True:
+        if verbose is True:
             verbose = 'INFO'
         else:
             verbose = 'WARNING'
@@ -374,8 +375,11 @@ def verbose(function):
         None defaults to using the current log level [e.g., set using
         mne.set_log_level()].
     """
+    # this wrap allows decorated functions to be pickled (e.g., for parallel)
+    @wraps(function)
     def dec(*args, **kwargs):
-        # if the first argument (hopefully "self") has verbose, use that
+        # XXX would be nice to improve this to check for whether it's a method
+        # instead, if the first argument (hopefully "self") has verbose, use it
         if len(args) > 0 and hasattr(args[0], 'verbose'):
             default_level = args[0].verbose
         else:

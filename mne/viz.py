@@ -309,7 +309,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fig_number=None, labels=None,
                                  modes=['cone', 'sphere'],
                                  scale_factors=[1, 0.6],
-                                 **kwargs):
+                                 verbose=None, **kwargs):
     """Plot source estimates obtained with sparse solver
 
     Active dipoles are represented in a "Glass" brain.
@@ -345,8 +345,10 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         label and the waveforms within each cluster are presented in
         the same color. labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     kwargs: kwargs
-        kwargs pass to mlab.triangular_mesh
+        Keyword arguments to pass to mlab.triangular_mesh
     """
     if not isinstance(stcs, list):
         stcs = [stcs]
