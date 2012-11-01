@@ -263,7 +263,7 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
     alpha_max = norm_l2inf(np.dot(G.T, M), n_orient, copy=False)
-    print "-- ALPHA MAX : %s" % alpha_max
+    logger.info("-- ALPHA MAX : %s" % alpha_max)
     if active_set_size is not None:
         n_sensors, n_times = M.shape
         idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, M), n_orient))
@@ -278,9 +278,10 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                                            init=init, n_orient=n_orient)
             as_ = np.where(active_set)[0][as_]
             gap, pobj, dobj, R = dgap_l21(M, G, X, as_, alpha, n_orient)
-            print 'gap = %s, pobj = %s' % (gap, pobj)
+            logger.info('gap = %s, pobj = %s' % (gap, pobj))
             if gap < tol:
-                print 'Convergence reached ! (gap: %s < %s)' % (gap, tol)
+                logger.info('Convergence reached ! (gap: %s < %s)'
+                            % (gap, tol))
                 break
             else:  # add sources
                 idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, R),
@@ -294,17 +295,17 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                 active_set_old = active_set.copy()
                 active_set[new_active_idx] = True
                 as_size = np.sum(active_set)
-                print 'active set size %s' % as_size
+                logger.info('active set size %s' % as_size)
                 X_init = np.zeros((as_size, n_times), dtype=X.dtype)
                 idx_active_set = np.where(active_set)[0]
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
                 X_init[idx] = X
                 init = X_init, active_set[active_set == True]
                 if np.all(active_set_old == active_set):
-                    print 'Convergence stopped (AS did not change) !'
+                    logger.info('Convergence stopped (AS did not change) !')
                     break
         else:
-            print 'Did NOT converge ! (gap: %s > %s)' % (gap, tol)
+            logger.warn('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
 
         active_set = np.zeros_like(active_set)
         active_set[as_] = True
