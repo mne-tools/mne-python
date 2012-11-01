@@ -822,7 +822,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
 
 def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
-                           vmax=None, colorbar=True, order=None, show=True,
+                           vmax=None, colorbar=True, order=None,
                            cmap=None, layout_scale=.95):
     """Plot Event Related Potential / Fields image on topographies
 
@@ -849,8 +849,6 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
         (data.shape[1] == len(times)).
-    show : bool
-        Show or not the figure at the end.
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values.
     layout_scale: float
@@ -874,7 +872,5 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     fig = _plot_topo_imshow(epochs, erf_imshow, layout, decim=1,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
                             cmap=cmap, layout_scale=layout_scale)
-    if show == True:
-        fig.show()
 
     return fig

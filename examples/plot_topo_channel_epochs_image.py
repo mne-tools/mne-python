@@ -16,7 +16,6 @@ print __doc__
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import pylab as pl
 
 import mne
@@ -50,9 +49,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 layout = read_layout('Vectorview-all')
 
-pl.close('all')
-mne.viz.plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
-                               colorbar=True, show=True)
+mne.viz.plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200)
 title = 'ERF images - MNE sample data'
 pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
 pl.show()
