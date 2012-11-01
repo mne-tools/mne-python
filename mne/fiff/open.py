@@ -53,7 +53,7 @@ def fiff_open(fname, verbose=None):
         raise ValueError('file does have a directory pointer')
 
     #   Read or create the directory tree
-    logger.info('    Creating tag directory for %s...' % fname)
+    logger.debug('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
     if dirpos > 0:
@@ -70,7 +70,7 @@ def fiff_open(fname, verbose=None):
 
     tree, _ = make_dir_tree(fid, directory)
 
-    logger.info('[done]')
+    logger.debug('[done]')
 
     #   Back to the beginning
     fid.seek(0)
