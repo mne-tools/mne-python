@@ -14,12 +14,13 @@ from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient
 from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf
+from .. import verbose
 
 
+@verbose
 def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
-                  verbose=True):
-    if verbose:
-        logger.info('Whitening lead field matrix.')
+                  verbose=None):
+    logger.info('Whitening lead field matrix.')
     gain = np.dot(whitener, gain)
 
     # Handle depth prior scaling
@@ -56,16 +57,15 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
             mask = (weights > weights_min)
             gain = gain[:, mask]
             n_sources = np.sum(mask) / n_dip_per_pos
-            if verbose:
-                logger.info("Reducing source space to %d sources" % n_sources)
+            logger.info("Reducing source space to %d sources" % n_sources)
 
     return gain, source_weighting, mask
 
 
-def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=True):
+@verbose
+def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=None):
     if not is_fixed_orient(forward):
-        if verbose:
-            logger.info('combining the current components...')
+        logger.info('combining the current components...')
         X = combine_xyz(X)
 
     active_idx = np.where(active_set)[0]
@@ -84,10 +84,11 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=True):
     return stc
 
 
+@verbose
 def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
-               return_residual=False, verbose=True):
+               return_residual=False, verbose=None):
     """Mixed-norm estimate (MxNE)
 
     Compute L1/L2 mixed-norm solution on evoked data.
@@ -134,8 +135,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         is less than weights_min.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    verbose : bool
-        Print status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -159,15 +160,13 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     # Whiten lead field.
     gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                            depth, loose, weights, weights_min,
-                                            verbose)
+                                            depth, loose, weights, weights_min)
 
     sel = [all_ch_names.index(name) for name in ch_names]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
-    if verbose:
-        logger.info('Whitening data matrix.')
+    logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
     if time_pca:
@@ -186,7 +185,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     source_weighting *= alpha_max
 
     X, active_set, E = mixed_norm_solver(M, gain, alpha,
-                                         maxit=maxit, tol=tol, verbose=True,
+                                         maxit=maxit, tol=tol,
                                          active_set_size=active_set_size,
                                          debias=debias,
                                          n_orient=n_dip_per_pos)
@@ -213,7 +212,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         tmin = float(e.first) / e.info['sfreq']
         tstep = 1.0 / e.info['sfreq']
         stc = _make_sparse_stc(X[:, cnt:(cnt + len(e.times))], active_set,
-                               forward, tmin, tstep, verbose)
+                               forward, tmin, tstep)
         stcs.append(stc)
 
         if return_residual:
@@ -223,8 +222,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
             r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], X)
             residual.append(r)
 
-    if verbose:
-        logger.info('[done]')
+    logger.info('[done]')
 
     if len(stcs) == 1:
         out = stcs[0]

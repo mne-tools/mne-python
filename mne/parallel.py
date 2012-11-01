@@ -42,7 +42,7 @@ def parallel_func(func, n_jobs, verbose=None):
         try:
             from joblib import Parallel, delayed
         except ImportError:
-            logger.info("joblib not installed. Cannot run in parallel.")
+            logger.warn("joblib not installed. Cannot run in parallel.")
             n_jobs = 1
             my_func = func
             parallel = list
@@ -57,7 +57,7 @@ def parallel_func(func, n_jobs, verbose=None):
             import multiprocessing
             n_jobs = multiprocessing.cpu_count()
         except ImportError:
-            logger.info('multiprocessing not installed. Cannot run in '
+            logger.warn('multiprocessing not installed. Cannot run in '
                          'parallel.')
             n_jobs = 1
 

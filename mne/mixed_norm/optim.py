@@ -6,7 +6,11 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .debiasing import compute_bias
+from .. import verbose
 
 
 def groups_norm2(A, n_orient):
@@ -153,7 +157,8 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     return gap, pobj, dobj, R
 
 
-def _mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
+@verbose
+def _mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                        init=None, n_orient=1):
     """Solves L21 inverse solver"""
     n_sensors, n_times = M.shape
@@ -207,17 +212,17 @@ def _mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
         else:
             R = GTM - np.dot(gram[:, Y_as], Y[Y_as])
 
-        if verbose:  # log cost function value
-            gap, pobj, dobj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
-            E.append(pobj)
-            print "pobj : %s -- gap : %s" % (pobj, gap)
-            if gap < tol:
-                print 'Convergence reached ! (gap: %s < %s)' % (gap, tol)
-                break
+        gap, pobj, dobj, _ = dgap_l21(M, G, X, active_set, alpha, n_orient)
+        E.append(pobj)
+        logger.debug("pobj : %s -- gap : %s" % (pobj, gap))
+        if gap < tol:
+            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
+            break
     return X, active_set, E
 
 
-def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
+@verbose
+def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1):
     """Solves L21 inverse solver with active set strategy
 
@@ -237,8 +242,8 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
         The number of iterations
     tol : float
         Tolerance on dual gap for convergence checking
-    verbose : bool
-        Use verbose output
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
@@ -269,7 +274,7 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
         init = None
         for k in xrange(maxit):
             X, as_, E = _mixed_norm_solver(M, G[:, active_set], alpha,
-                                           maxit=maxit, tol=tol, verbose=False,
+                                           maxit=maxit, tol=tol,
                                            init=init, n_orient=n_orient)
             as_ = np.where(active_set)[0][as_]
             gap, pobj, dobj, R = dgap_l21(M, G, X, as_, alpha, n_orient)
@@ -305,8 +310,7 @@ def mixed_norm_solver(M, G, alpha, maxit=200, tol=1e-8, verbose=True,
         active_set[as_] = True
     else:
         X, active_set, E = _mixed_norm_solver(M, G, alpha, maxit=maxit,
-                                              tol=tol, verbose=verbose,
-                                              n_orient=n_orient)
+                                              tol=tol, n_orient=n_orient)
 
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)

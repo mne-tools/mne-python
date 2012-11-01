@@ -32,76 +32,52 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     ----------
     mode : string ('ECG', or 'EOG')
         What type of events to detect.
-
     raw : mne.fiff.Raw
         Raw input file.
-
     raw_event : mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-
     tmin : float
         Time before event in seconds.
-
     tmax : float
         Time after event in seconds.
-
     n_grad : int
         Number of SSP vectors for gradiometers.
-
     n_mag : int
         Number of SSP vectors for magnetometers.
-
     n_eeg : int
         Number of SSP vectors for EEG.
-
     l_freq : float
         Filter low cut-off frequency in Hz.
-
     h_freq : float
         Filter high cut-off frequency in Hz.
-
     average : bool
         Compute SSP after averaging.
-
     filter_length : int
         Number of taps to use for filtering.
-
     n_jobs : int
         Number of jobs to run in parallel.
-
     ch_name : string (or None)
         Channel to use for ECG event detection.
-
     reject : dict
         Epoch rejection configuration (see Epochs).
-
     flat : dict
         Epoch flat configuration (see Epochs).
-
     bads : list
         List with (additional) bad channels.
-
     avg_ref : bool
         Add EEG average reference proj.
-
     no_proj : bool
         Exclude the SSP projectors currently in the fiff file.
-
     event_id : int
         ID to use for events.
-
     exg_l_freq : float
         Low pass frequency applied for filtering EXG channel.
-
     exg_h_freq : float
         High pass frequency applied for filtering EXG channel.
-
     tstart : float
         Start artifact detection after tstart seconds.
-
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold (only for ECG).
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -109,7 +85,6 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     -------
     proj : list
         Computed SSP projectors.
-
     events : ndarray
         Detected events.
     """
@@ -219,73 +194,50 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     ----------
     raw : mne.fiff.Raw
         Raw input file.
-
     raw_event : mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-
     tmin : float
         Time before event in seconds.
-
     tmax : float
         Time after event in seconds.
-
     n_grad : int
         Number of SSP vectors for gradiometers.
-
     n_mag : int
         Number of SSP vectors for magnetometers.
-
     n_eeg : int
         Number of SSP vectors for EEG.
-
     l_freq : float
         Filter low cut-off frequency in Hz.
-
     h_freq : float
         Filter high cut-off frequency in Hz.
-
     average : bool
         Compute SSP after averaging.
-
     filter_length : int
         Number of taps to use for filtering.
-
     n_jobs : int
         Number of jobs to run in parallel.
-
     ch_name : string (or None)
         Channel to use for ECG detection (Required if no ECG found).
-
     reject : dict
         Epoch rejection configuration (see Epochs).
-
     flat : dict
         Epoch flat configuration (see Epochs).
-
     bads : list
         List with (additional) bad channels.
-
     avg_ref : bool
         Add EEG average reference proj.
-
     no_proj : bool
         Exclude the SSP projectors currently in the fiff file.
-
     event_id : int
         ID to use for events.
-
     ecg_l_freq : float
         Low pass frequency applied for filtering ECG channel.
-
     ecg_h_freq : float
         High pass frequency applied for filtering ECG channel.
-
     tstart : float
         Start artifact detection after tstart seconds.
-
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -293,7 +245,6 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     -------
     proj : list
         Computed SSP projectors.
-
     ecg_events : ndarray
         Detected ECG events.
     """
@@ -324,70 +275,48 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     ----------
     raw : mne.fiff.Raw
         Raw input file.
-
     raw_event : mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-
     tmin : float
         Time before event in seconds.
-
     tmax : float
         Time after event in seconds.
-
     n_grad : int
         Number of SSP vectors for gradiometers.
-
     n_mag : int
         Number of SSP vectors for magnetometers.
-
     n_eeg : int
         Number of SSP vectors for EEG.
-
     l_freq : float
         Filter low cut-off frequency in Hz.
-
     h_freq : float
         Filter high cut-off frequency in Hz.
-
     average : bool
         Compute SSP after averaging.
-
     preload : string (or True)
         Temporary file used during computaion.
-
     filter_length : int
         Number of taps to use for filtering.
-
     n_jobs : int
         Number of jobs to run in parallel.
-
     reject : dict
         Epoch rejection configuration (see Epochs).
-
     flat : dict
         Epoch flat configuration (see Epochs).
-
     bads : list
         List with (additional) bad channels.
-
     avg_ref : bool
         Add EEG average reference proj.
-
     no_proj : bool
         Exclude the SSP projectors currently in the fiff file.
-
     event_id : int
         ID to use for events.
-
     eog_l_freq : float
         Low pass frequency applied for filtering E0G channel.
-
     eog_h_freq : float
         High pass frequency applied for filtering E0G channel.
-
     tstart : float
         Start artifact detection after tstart seconds.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -395,7 +324,6 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     -------
     proj : list
         Computed SSP projectors.
-
     eog_events : ndarray
         Detected ECG events.
     """
