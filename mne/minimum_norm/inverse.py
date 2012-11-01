@@ -966,8 +966,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
                                     if (c['ch_name'] not in info['bads'])
                                         and (c['ch_name'] in fwd_ch_names)]
     n_chan = len(ch_names)
-    if verbose:
-        logger.info("Computing inverse operator with %d channels." % n_chan)
+    logger.info("Computing inverse operator with %d channels." % n_chan)
 
     #
     #   Handle noise cov
