@@ -12,6 +12,7 @@ import hashlib
 import logging
 import os
 from functools import wraps
+import inspect
 
 # Following deprecated class copied from scikit-learn
 
@@ -375,13 +376,13 @@ def verbose(function):
         None defaults to using the current log level [e.g., set using
         mne.set_log_level()].
     """
+    arg_names = inspect.getargspec(function).args
     # this wrap allows decorated functions to be pickled (e.g., for parallel)
     @wraps(function)
     def dec(*args, **kwargs):
-        # XXX would be nice to improve this to check for whether it's a method
-        # instead, if the first argument (hopefully "self") has verbose, use it
-        if len(args) > 0 and hasattr(args[0], 'verbose'):
-            default_level = args[0].verbose
+        # Check if the first arg is "self", if it has verbose, make it default
+        if len(arg_names) > 0 and arg_names[0] == 'self':
+            default_level = getattr(args[0], 'verbose', None)
         else:
             default_level = None
         verbose_level = kwargs.get('verbose', default_level)
