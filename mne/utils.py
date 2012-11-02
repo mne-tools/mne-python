@@ -328,7 +328,7 @@ def set_log_level(verbose=None):
     return old_verbose
 
 
-def set_log_file(fname=None, output_format='%(message)s'):
+def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     """Convenience function for setting the log to print to a file
 
     Parameters
@@ -340,16 +340,25 @@ def set_log_file(fname=None, output_format='%(message)s'):
         Format of the output messages. See the following for examples:
             http://docs.python.org/dev/howto/logging.html
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
+    overwrite : bool, or None
+        Overwrite the log file (if it exists). Otherwise, statements
+        will be appended to the log (default). None is the same as False,
+        but additionally raises a warning to notify the user that log
+        entries will be appended.
     """
     logger = logging.getLogger('mne')
     handlers = logger.handlers
     for h in handlers:
-        if isinstance(h, logging.StreamHandler):
+        if isinstance(h, logging.FileHandler):
             h.close()
         logger.removeHandler(h)
     if fname is not None:
-        f = open(fname, 'w')
-        lh = logging.StreamHandler(f)
+        if os.path.isfile(fname) and overwrite is None:
+            warnings.warn('Log entries will be appended to the file. Use '
+                          'overwrite=False to avoid this message in the '
+                          'future.')
+        mode = 'w' if overwrite else 'a'
+        lh = logging.FileHandler(fname, mode=mode)
     else:
         lh = logging.StreamHandler()
 
