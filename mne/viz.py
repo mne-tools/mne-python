@@ -21,8 +21,24 @@ from .fiff.proj import make_projector, activate_proj
 
 
 def _clean_names(names):
-    """ Remove white-space on topo matching"""
-    return [n.replace(' ', '') for n in names if ' ' in n]
+    """ Remove white-space on topo matching
+
+    Over the years, Neuromag systems employed inconsistent handling of
+    white-space in layout names. This function handles different naming
+    conventions and hence should be used in each topography-plot to
+    warrant compatibility across systems.
+
+    Usage
+    -----
+    Wrap this function around channel and layout names:
+    ch_names = _clean_names(epochs.ch_names)
+
+    for n in _clean_names(layout.names):
+        if n in ch_names:
+            # prepare plot
+
+    """
+    return [n.replace(' ', '') if ' ' in n else n for n in names]
 
 
 def plot_topo(evoked, layout):
