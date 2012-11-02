@@ -13,6 +13,7 @@ import logging
 import os
 from functools import wraps
 import inspect
+import sys
 
 # Following deprecated class copied from scikit-learn
 
@@ -360,7 +361,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         mode = 'w' if overwrite else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
-        lh = logging.StreamHandler()
+        lh = logging.StreamHandler(sys.stdout)
 
     lh.setFormatter(logging.Formatter(output_format))
     logger.addHandler(lh)
