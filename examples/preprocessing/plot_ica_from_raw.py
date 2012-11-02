@@ -122,7 +122,7 @@ pl.show()
 # Show MEG data before and after ICA cleaning
 
 # join the detected artifact indices
-exclude = np.r_[ecg_source_idx, eog_source_idx]
+exclude = np.r_[ecg_source_idx_updated, eog_source_idx]
 
 raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
 
@@ -148,6 +148,14 @@ pl.show()
 
 ###############################################################################
 # Compare the affected channel before and after ICA cleaning
+from mne.artifacts.ecg import find_ecg_events
+
+ecg_events, _, _ = find_ecg_events(raw, event_id=999, ch_name='MEG 1531')
+
+
+check_picks = mne.fiff.pick_types(raw.info, meg=True)
+
+tmin, tmax = -0.4, 0.4
 
 affected_idx = raw.ch_names.index('MEG 1531')
 
@@ -157,9 +165,20 @@ pl.plot(times, data[affected_idx])
 pl.title('Affected channel MEG 1531 before cleaning.')
 y0, y1 = pl.ylim()
 
+
 # plot the component that correlates most with the ECG
 pl.figure()
 pl.plot(times, ica_data[affected_idx])
 pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()
+
+
+###############################################################################
+# export ICA as raw for more peculiar treatments.
+
+ica_raw = ica.export_sources(raw)
+
+print ica_raw.ch_names
+
+# Now say ica_raw.save('ica_raw.fif') to save
