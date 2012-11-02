@@ -265,7 +265,7 @@ class ICA(object):
         Parameters
         ----------
         raw : instance of Raw
-            Raw object to draw sources from.
+            Raw object to export sources from.
         start : int
             First sample to include (first is 0). If omitted, defaults to the
             first sample in data.
@@ -306,9 +306,6 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             Epochs object to draw sources from.
-        sort_func : function
-            Function used for sorting the sources. It should take an
-            array and an axis argument.
         concatenate : bool
             If true, epochs and time slices will be concatenated.
 
