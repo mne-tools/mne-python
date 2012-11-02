@@ -20,17 +20,22 @@ from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 
 
+def _clean_names(names):
+    """ Remove white-space on topo matching"""
+    return [n.replace(' ', '') for n in names if ' ' in n]
+
+
 def plot_topo(evoked, layout):
     """Plot 2D topographies
     """
-    ch_names = evoked.info['ch_names']
+    ch_names = _clean_names(evoked.info['ch_names'])
     times = evoked.times
     data = evoked.data
 
     import pylab as pl
     pl.rcParams['axes.edgecolor'] = 'w'
     pl.figure(facecolor='k')
-    for name in layout.names:
+    for name in _clean_names(layout.names):
         if name in ch_names:
             idx = ch_names.index(name)
             ax = pl.axes(layout.pos[idx], axisbg='k')
@@ -263,7 +268,7 @@ def _plot_topo_imshow(epochs, show_func, layout, decim,
     import pylab as pl
     if cmap is None:
         cmap = pl.cm.jet
-    ch_names = epochs.info['ch_names']
+    ch_names = _clean_names(epochs.info['ch_names'])
     pl.rcParams['axes.facecolor'] = 'k'
     fig = pl.figure(facecolor='k')
     pos = layout.pos.copy()
@@ -278,10 +283,10 @@ def _plot_topo_imshow(epochs, show_func, layout, decim,
         cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
         pl.setp(cb_yticks, color='w')
     pl.rcParams['axes.edgecolor'] = 'w'
-    for idx, name in enumerate(layout.names):
+    for idx, name in enumerate(_clean_names(layout.names)):
         if name in ch_names:
             ax = pl.axes(pos[idx], axisbg='k')
-            ch_idx = epochs.info["ch_names"].index(name)
+            ch_idx = ch_names.index(name)
             show_func(ax, ch_idx, 1e3 * epochs.times[0],
                       1e3 * epochs.times[-1], vmin, vmax)
             pl.xticks([], ())
@@ -747,7 +752,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     picks = np.atleast_1d(picks)
     evoked = epochs.average()
-    data = epochs.copy().get_data()[:, picks, :]
+    data = epochs.get_data()[:, picks, :]
     if vmin is None:
         vmin = data.min()
     if vmax is None:
@@ -861,7 +866,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
-    data = epochs.copy().get_data()
+    data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
     if vmax is None:
