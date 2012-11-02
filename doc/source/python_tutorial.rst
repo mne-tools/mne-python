@@ -16,7 +16,7 @@ What you're not supposed to do with MNE Python
 
     - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
     - **Raw data visualization** done with *mne_browse_raw* (see :ref:`ch_browse`)
-    - **MNE source estimates visualization** done with *mne_analyze* (see :ref:`ch_interactive_analysis`) 
+    - **MNE source estimates visualization** done with *mne_analyze* (see :ref:`ch_interactive_analysis`)
 
 What you can do with MNE Python
 -------------------------------
@@ -73,6 +73,14 @@ Now, launch `ipython`_ (Advanced Python shell)::
 First, load the mne package:
 
     >>> import mne
+
+If you'd like to turn information status messages off:
+
+    >>> mne.set_log_level('WARNING')
+
+But it's generally a good idea to leave them on:
+
+    >>> mne.set_log_level('INFO')
 
 Access raw data
 ^^^^^^^^^^^^^^^
@@ -188,7 +196,7 @@ epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time instan
 Scipy supports read and write of matlab files. You can save your single trials with:
 
     >>> from scipy import io
-    >>> io.savemat('epochs_data.mat', dict(epochs_data=epochs_data))
+    >>> io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 
 Compute evoked responses by averaging and plot it:
 

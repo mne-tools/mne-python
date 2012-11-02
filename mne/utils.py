@@ -295,7 +295,7 @@ def split_list(l, n):
     yield l[(n - 1) * sz:]
 
 
-def set_log_level(verbose=None):
+def set_log_level(verbose=None, return_old_level=False):
     """Convenience function for setting the logging level
 
     Parameters
@@ -307,6 +307,8 @@ def set_log_level(verbose=None):
         For bool, True is the same as 'INFO', False is the same as 'WARNING'.
         If None, the environment variable MNE_LOG_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
+    return_old_verbose : bool
+        If True, return the old verbosity level.
     """
     if verbose is None:
         verbose = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
@@ -326,7 +328,7 @@ def set_log_level(verbose=None):
     logger = logging.getLogger('mne')
     old_verbose = logger.level
     logger.setLevel(verbose)
-    return old_verbose
+    return (old_verbose if return_old_level else None)
 
 
 def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
@@ -396,7 +398,7 @@ def verbose(function):
             default_level = None
         verbose_level = kwargs.get('verbose', default_level)
         if verbose_level is not None:
-            old_level = set_log_level(verbose_level)
+            old_level = set_log_level(verbose_level, True)
             # set it back if we get an exception
             try:
                 ret = function(*args, **kwargs)
