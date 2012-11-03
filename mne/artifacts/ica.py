@@ -266,9 +266,6 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             Epochs object to draw sources from.
-        sort_func : function
-            Function used for sorting the sources. It should take an
-            array and an axis argument.
         concatenate : bool
             If true, epochs and time slices will be concatenated.
 
@@ -429,9 +426,6 @@ class ICA(object):
         stop : int
             First sample to not include.
             If omitted, data is included to the end.
-        sort_func : function
-            Function used for sorting the sources. It should take an
-            array and an axis argument.
         scores : ndarray
             Scores for each source as returned from score_func.
 
