@@ -323,7 +323,7 @@ class ICA(object):
         -------
         fig : instance of pyplot.Figure
         """
-
+        import matplotlib.pylab as pl
         sources = self.get_sources_raw(raw, start=start, stop=stop)
 
         if order is not None:
@@ -338,7 +338,7 @@ class ICA(object):
                              n_components=n_components, source_idx=source_idx,
                              ncol=ncol, nrow=nrow)
         if show:
-            fig.show()
+            pl.show(fig)
 
         return fig
 
@@ -378,7 +378,7 @@ class ICA(object):
         -------
         fig : instance of pyplot.Figure
         """
-
+        import matplotlib.pylab as pl
         sources = self.get_sources_epochs(epochs, concatenate=True if epoch_idx
                                           is None else False)
         source_dim = 1 if sources.ndim > 2 else 0
@@ -394,7 +394,7 @@ class ICA(object):
                              n_components=n_components, source_idx=source_idx,
                              ncol=ncol, nrow=nrow)
         if show:
-            fig.show()
+            pl.show(fig)
 
         return fig
 
