@@ -7,8 +7,12 @@
 from copy import deepcopy
 import re
 
+import logging
+logger = logging.getLogger('mne')
+
 import numpy as np
 from .constants import FIFF
+from .. import verbose
 
 
 def channel_type(info, idx):
@@ -314,19 +318,20 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     return pick_channels_evoked(orig, include_ch_names)
 
 
-def pick_channels_forward(orig, include=[], exclude=[]):
+@verbose
+def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """Pick channels from forward operator
 
     Parameters
     ----------
     orig : dict
-        A forward solution
-
+        A forward solution.
     include : list of string, (optional)
-        List of channels to include. (if None, include all available)
-
+        List of channels to include. (if None, include all available).
     exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any)
+        Channels to exclude (if None, do not exclude any).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -348,8 +353,8 @@ def pick_channels_forward(orig, include=[], exclude=[]):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    print '    %d out of %d channels remain after picking' % (nuse,
-                                                            fwd['nchan'])
+    logger.info('    %d out of %d channels remain after picking' % (nuse,
+                                                            fwd['nchan']))
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]

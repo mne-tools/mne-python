@@ -53,6 +53,8 @@ Changelog
 
    - Plotting ERP/ERF images by `Alex Gramfort`_
 
+   - Improved logging support by `Eric Larson`_
+
 API
 ~~~
 

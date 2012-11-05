@@ -10,6 +10,7 @@ from math import sqrt
 import numpy as np
 
 from ..parallel import parallel_func
+from .. import verbose
 
 
 def bin_perm_rep(ndim, a=0, b=1):
@@ -56,7 +57,9 @@ def _max_stat(X, X2, perms, dof_scaling):
     return max_abs
 
 
-def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
+@verbose
+def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1,
+                       verbose=None):
     """One sample/paired sample permutation test based on a t-statistic.
 
     This function can perform the test on one variable or
@@ -72,23 +75,22 @@ def permutation_t_test(X, n_permutations=10000, tail=0, n_jobs=1):
     ----------
     X : array of shape [n_samples x n_tests]
         Data of size number of samples (aka number of observations) times
-        number of tests (aka number of variables)
-
+        number of tests (aka number of variables).
     n_permutations : int or 'all'
         Number of permutations. If n_permutations is 'all' all possible
         permutations are tested (2**n_samples). It's the exact test, that
         can be untractable when the number of samples is big (e.g. > 20).
-        If n_permutations >= 2**n_samples then the exact test is performed
-
+        If n_permutations >= 2**n_samples then the exact test is performed.
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the alternative hypothesis is that the
         mean of the data is greater than 0 (upper tailed test).  If tail is 0,
         the alternative hypothesis is that the mean of the data is different
         than 0 (two tailed test).  If tail is -1, the alternative hypothesis
         is that the mean of the data is less than 0 (lower tailed test).
-
     n_jobs : int
         Number of CPUs to use for computation.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

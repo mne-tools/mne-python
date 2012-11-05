@@ -3,6 +3,9 @@
 
 __version__ = '0.4.git'
 
+# have to import verbose first since it's needed by many things
+from .utils import set_log_level, set_log_file, verbose
+
 from .cov import read_cov, write_cov, Covariance, \
                  compute_covariance, compute_raw_data_covariance
 from .event import read_events, write_events, find_events, merge_events, \
@@ -27,7 +30,6 @@ from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw
-
 from .selection import read_selection
 from .dipole import read_dip
 from . import artifacts
@@ -43,3 +45,7 @@ from . import stats
 from . import tests
 from . import time_frequency
 from . import viz
+
+# deal with logging
+set_log_level(None, False)
+set_log_file()

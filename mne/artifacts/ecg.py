@@ -1,6 +1,9 @@
 import numpy as np
 
-from .. import fiff
+import logging
+logger = logging.getLogger('mne')
+
+from .. import fiff, verbose
 from ..filter import band_pass_filter
 
 
@@ -84,8 +87,9 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     return clean_events
 
 
+@verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
-                    l_freq=5, h_freq=35, qrs_threshold=0.6):
+                    l_freq=5, h_freq=35, qrs_threshold=0.6, verbose=None):
     """Find ECG peaks
 
     Parameters
@@ -98,24 +102,26 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         The name of the channel to use for ECG peak detection.
         The argument is mandatory if the dataset contains no ECG
         channels.
-    tstart: float
+    tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
-    l_freq: float
-        Low pass frequency
-    h_freq: float
-        High pass frequency
-    qrs_threshold: float
-        Between 0 and 1. qrs detection threshold
+    l_freq : float
+        Low pass frequency.
+    h_freq : float
+        High pass frequency.
+    qrs_threshold : float
+        Between 0 and 1. qrs detection threshold.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     ecg_events : array
-        Events
+        Events.
     ch_ECG : string
-        Name of channel used
+        Name of channel used.
     average_pulse : float
-        Estimated average pulse
+        Estimated average pulse.
     """
     info = raw.info
 
@@ -135,7 +141,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
     assert len(ch_ECG) == 1
 
-    print 'Using channel %s to identify heart beats' % raw.ch_names[ch_ECG[0]]
+    logger.info('Using channel %s to identify heart beats'
+                % raw.ch_names[ch_ECG[0]])
 
     ecg, times = raw[ch_ECG, :]
 
@@ -146,8 +153,8 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
     n_events = len(ecg_events)
     average_pulse = n_events * 60.0 / (times[-1] - times[0])
-    print ("Number of ECG events detected : %d (average pulse %d / min.)"
-                                           % (n_events, average_pulse))
+    logger.info("Number of ECG events detected : %d (average pulse %d / "
+                "min.)" % (n_events, average_pulse))
 
     ecg_events = np.c_[ecg_events + raw.first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]

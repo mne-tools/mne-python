@@ -11,6 +11,9 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -23,6 +26,7 @@ from .fiff.write import write_int, start_block, end_block, \
 
 from .source_space import read_source_spaces_from_tree, find_source_space_hemi
 from .transforms import transform_source_space_to, invert_transform
+from . import verbose
 
 
 def _block_diag(A, n):
@@ -220,38 +224,36 @@ def read_forward_meas_info(tree, fid):
     return info
 
 
+@verbose
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
-                              include=[], exclude=[]):
+                              include=[], exclude=[], verbose=None):
     """Read a forward solution a.k.a. lead field
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The file name.
-
-    force_fixed: bool, optional (default False)
+    force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
-
-    surf_ori: bool, optional (default False)
+    surf_ori : bool, optional (default False)
         Use surface based source coordinate system?
-
-    include: list, optional
+    include : list, optional
         List of names of channels to include. If empty all channels
         are included.
-
-    exclude: list, optional
+    exclude : list, optional
         List of names of channels to exclude. If empty include all
         channels.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     fwd: dict
-        The forward solution
-
+        The forward solution.
     """
 
     #   Open the file, create directory
-    print 'Reading forward solution from %s...' % fname
+    logger.info('Reading forward solution from %s...' % fname)
     fid, tree, _ = fiff_open(fname)
 
     #   Find all forward solutions
@@ -299,9 +301,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             ori = 'fixed'
         else:
             ori = 'free'
-
-        print '    Read MEG forward solution (%d sources, %d channels, ' \
-              '%s orientations)' % (megfwd['nsource'], megfwd['nchan'], ori)
+        logger.info('    Read MEG forward solution (%d sources, %d channels, '
+                    '%s orientations)' % (megfwd['nsource'], megfwd['nchan'],
+                                          ori))
 
     eegfwd = _read_one(fid, eegnode)
     if eegfwd is not None:
@@ -309,9 +311,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             ori = 'fixed'
         else:
             ori = 'free'
-
-        print '    Read EEG forward solution (%d sources, %d channels, ' \
-               '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'], ori)
+        logger.info('    Read EEG forward solution (%d sources, %d channels, '
+                     '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
+                                           ori))
 
     #   Merge the MEG and EEG solutions together
     if megfwd is not None and eegfwd is not None:
@@ -337,7 +339,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                                            eegfwd['sol_grad']['row_names']
 
         fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        print '    MEG and EEG forward solutions combined'
+        logger.info('    MEG and EEG forward solutions combined')
     elif megfwd is not None:
         fwd = megfwd
     else:
@@ -390,8 +392,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     if nuse != fwd['nsource']:
         raise ValueError('Source spaces do not match the forward solution.')
 
-    print '    Source spaces transformed to the forward solution ' \
-          'coordinate frame'
+    logger.info('    Source spaces transformed to the forward solution '
+                     'coordinate frame')
     fwd['src'] = src
 
     #   Handle the source locations and orientations
@@ -408,7 +410,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         #   Modify the forward solution for fixed source orientations
         if not is_fixed_orient(fwd):
-            print '    Changing to fixed-orientation forward solution...'
+            logger.info('    Changing to fixed-orientation forward '
+                        'solution...')
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
@@ -421,11 +424,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'],
                                                  np.kron(fix_rot, np.eye(3)))
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-
-            print '[done]'
+            logger.info('[done]')
     elif surf_ori:
         #   Rotate the local source coordinate systems
-        print '    Converting to surface-based source orientations...'
+        logger.info('    Converting to surface-based source orientations...')
         nuse = 0
         pp = 0
         nuse_total = sum([s['nuse'] for s in src])
@@ -451,10 +453,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         if fwd['sol_grad'] is not None:
             fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
                                              np.kron(surf_rot, np.eye(3)))
-
-        print '[done]'
+        logger.info('[done]')
     else:
-        print '    Cartesian source orientations...'
+        logger.info('    Cartesian source orientations...')
         nuse = 0
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         for s in src:
@@ -463,7 +464,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             nuse += s['nuse']
 
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
-        print '[done]'
+        logger.info('[done]')
 
     fwd['surf_ori'] = surf_ori
 
@@ -513,20 +514,23 @@ def write_forward_meas_info(fid, info):
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
-def compute_orient_prior(forward, loose=0.2):
+@verbose
+def compute_orient_prior(forward, loose=0.2, verbose=None):
     """Compute orientation prior
 
     Parameters
     ----------
     forward : dict
-        Forward operator
+        Forward operator.
     loose : float in [0, 1] or None
-        The loose orientation parameter
+        The loose orientation parameter.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     orient_prior : array
-        Orientation priors
+        Orientation priors.
     """
     is_fixed_ori = is_fixed_orient(forward)
     n_sources = forward['sol']['data'].shape[1]
@@ -549,8 +553,8 @@ def compute_orient_prior(forward, loose=0.2):
     else:
         orient_prior = np.ones(n_sources, dtype=np.float)
         if loose is not None:
-            print ('Applying loose dipole orientations. Loose value of %s.'
-                    % loose)
+            logger.info('Applying loose dipole orientations. Loose value '
+                        'of %s.' % loose)
             orient_prior[np.mod(np.arange(n_sources), 3) != 2] *= loose
     return orient_prior
 
@@ -621,7 +625,8 @@ def _fill_measurement_info(info, fwd, sfreq):
     return info
 
 
-def _apply_forward(fwd, stc, start=None, stop=None):
+@verbose
+def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
     """ Apply forward model and return data, times, ch_names
     """
     if not is_fixed_orient(fwd):
@@ -644,16 +649,18 @@ def _apply_forward(fwd, stc, start=None, stop=None):
 
     gain = fwd['sol']['data'][:, src_sel]
 
-    print 'Projecting source estimate to sensor space...',
+    logger.info('Projecting source estimate to sensor space...')
     data = np.dot(gain, stc.data[:, start:stop])
-    print '[done]'
+    logger.info('[done]')
 
     times = deepcopy(stc.times[start:stop])
 
     return data, times
 
 
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
+@verbose
+def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
+                  verbose=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -671,18 +678,20 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
     ----------
     forward: dict
         Forward operator to use. Has to be fixed-orientation.
-    stc: SourceEstimate
+    stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    evoked_template: Evoked object
+    evoked_template : Evoked object
         Evoked object used as template to generate the output argument.
-    start: int, optional
+    start : int, optional
         Index of first time sample (index not time is seconds).
-    stop: int, optional
+    stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    evoked: Evoked
+    evoked : Evoked
         Evoked object with computed sensor space data.
 
     See Also
@@ -716,7 +725,9 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None):
     return evoked
 
 
-def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
+@verbose
+def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
+                      verbose=None):
     """Project source space currents to sensor space using a forward operator
 
     The sensor space data is computed for all channels present in fwd. Use
@@ -730,20 +741,22 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None):
 
     Parameters
     ----------
-    forward: dict
+    forward : dict
         Forward operator to use. Has to be fixed-orientation.
-    stc: SourceEstimate
+    stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    raw_template: Raw object
+    raw_template : Raw object
         Raw object used as template to generate the output argument.
-    start: int, optional
+    start : int, optional
         Index of first time sample (index not time is seconds).
-    stop: int, optional
+    stop : int, optional
         Index of first time sample not to include (index not time is seconds).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    raw: Raw object
+    raw : Raw object
         Raw object with computed sensor space data.
 
     See Also

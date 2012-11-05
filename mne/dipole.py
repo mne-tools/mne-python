@@ -3,14 +3,22 @@
 # License: Simplified BSD
 
 import numpy as np
+import logging
+logger = logging.getLogger('mne')
 
-def read_dip(fname):
+from . import verbose
+
+
+@verbose
+def read_dip(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE
 
     Parameters
     ----------
     fname : str
-        The name of the .dip file
+        The name of the .dip file.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -31,7 +39,7 @@ def read_dip(fname):
         data = np.loadtxt(fname, comments='#')  # handle 2 types of comments...
     if data.ndim == 1:
         data = data[None, :]
-    print "%d dipole(s) found" % len(data)
+    logger.info("%d dipole(s) found" % len(data))
     time = data[:, 0]
     pos = 1e-3 * data[:, 2:5]  # put data in meters
     amplitude = data[:, 5]

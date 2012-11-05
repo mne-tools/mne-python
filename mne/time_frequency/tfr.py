@@ -11,8 +11,13 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
+
+import logging
+logger = logging.getLogger('mne')
+
 from ..baseline import rescale
 from ..parallel import parallel_func
+from .. import verbose
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
@@ -252,9 +257,10 @@ def _time_frequency(X, Ws, use_fft):
     return psd, plf
 
 
+@verbose
 def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       n_jobs=1, zero_mean=False):
+                       n_jobs=1, zero_mean=False, verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -289,6 +295,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         The number of epochs to process at the same time
     zero_mean : bool
         Make sure the wavelets are zero mean.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -304,7 +312,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
-    print "Computing time-frequency power on single epochs..."
+    logger.info("Computing time-frequency power on single epochs...")
 
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
@@ -318,8 +326,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
             power[k] = np.abs(tfr) ** 2
 
     # Run baseline correction
-    power = rescale(power, times, baseline, baseline_mode,
-                    verbose=True, copy=False)
+    power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 
 

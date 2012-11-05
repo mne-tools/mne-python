@@ -8,6 +8,9 @@
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
@@ -15,10 +18,12 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
 from ..source_estimate import SourceEstimate
 from ..source_space import label_src_vertno_sel
+from .. import verbose
 
 
+@verbose
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                label=None, picks=None):
+                label=None, picks=None, verbose=None):
     """ LCMV beamformer for evoked data, single epochs, and raw data
 
     Parameters
@@ -43,6 +48,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Restricts the LCMV solution to a given label
     picks : array of int
         Indices (in info) of data channels
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -122,7 +129,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             raise ValueError('data and picks must have the same length')
 
         if not return_single:
-            print "Processing epoch : %d" % (i + 1)
+            logger.info("Processing epoch : %d" % (i + 1))
 
         # SSP and whitening
         M = np.dot(proj, M)
@@ -132,7 +139,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         sol = np.dot(W, M)
 
         if is_free_ori:
-            print 'combining the current components...',
+            logger.info('combining the current components...')
             sol = combine_xyz(sol)
 
         sol /= noise_norm[:, None]
@@ -142,7 +149,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
         if not return_single:
             stcs.append(stc)
-        print '[done]'
+        logger.info('[done]')
 
     if return_single:
         return stc
@@ -150,7 +157,9 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         return stcs
 
 
-def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
+@verbose
+def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
+         verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -173,6 +182,8 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -197,7 +208,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None):
     return stc
 
 
-def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
+@verbose
+def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
+                verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -209,17 +222,19 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
     Parameters
     ----------
     epochs: Epochs
-        Single trial epochs
+        Single trial epochs.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : Covariance
-        The noise covariance
+        The noise covariance.
     data_cov : Covariance
-        The data covariance
+        The data covariance.
     reg : float
         The regularization for the whitened data covariance.
     label : Label
-        Restricts the LCMV solution to a given label
+        Restricts the LCMV solution to a given label.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -247,8 +262,9 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None):
     return stcs
 
 
+@verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
-             start=None, stop=None, picks=None):
+             start=None, stop=None, picks=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -260,24 +276,26 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Parameters
     ----------
     raw : mne.fiff.Raw
-        Raw data to invert
+        Raw data to invert.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : Covariance
-        The noise covariance
+        The noise covariance.
     data_cov : Covariance
-        The data covariance
+        The data covariance.
     reg : float
         The regularization for the whitened data covariance.
     label : Label
-        Restricts the LCMV solution to a given label
+        Restricts the LCMV solution to a given label.
     start : int
-        Index of first time sample (index not time is seconds)
+        Index of first time sample (index not time is seconds).
     stop : int
-        Index of first time sample not to include (index not time is seconds)
-    picks: array of int
+        Index of first time sample not to include (index not time is seconds).
+    picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
-        are used)
+        are used).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

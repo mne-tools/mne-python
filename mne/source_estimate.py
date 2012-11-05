@@ -12,8 +12,12 @@ from scipy import sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
+import logging
+logger = logging.getLogger('mne')
+
 from .parallel import parallel_func
 from .surface import read_surface
+from . import verbose
 
 
 def read_stc(filename):
@@ -330,6 +334,9 @@ class SourceEstimate(object):
     tstep : scalar
         time step between successive samples in data
 
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     .. note::
         For backwards compatibility, the SourceEstimate can also be
         initialized with a single argument, which can be ``None`` (an
@@ -349,7 +356,9 @@ class SourceEstimate(object):
         The indices of the dipoles in the different source spaces
 
     """
-    def __init__(self, data, vertices=None, tmin=None, tstep=None):
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None, tstep=None,
+                 verbose=None):
         if data is None:
             warnings.warn('Constructing a SourceEstimate object with no '
                           'attributes is deprecated and will stop working in '
@@ -370,8 +379,10 @@ class SourceEstimate(object):
         self.tstep = tstep
         self.times = tmin + (tstep * np.arange(data.shape[1]))
         self.vertno = vertices
+        self.verbose = verbose
 
-    def save(self, fname, ftype='stc'):
+    @verbose
+    def save(self, fname, ftype='stc', verbose=None):
         """Save the source estimates to a file
 
         Parameters
@@ -387,13 +398,16 @@ class SourceEstimate(object):
             The "stc" format can be for surface and volume source spaces,
             while the "w" format only supports surface source spaces with a
             single time point.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
         """
         if self.is_surface():
             lh_data = self.data[:len(self.lh_vertno)]
             rh_data = self.data[-len(self.rh_vertno):]
 
             if ftype == 'stc':
-                print 'Writing STC to disk...',
+                logger.info('Writing STC to disk...')
                 write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
                           vertices=self.lh_vertno, data=lh_data)
                 write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
@@ -402,7 +416,7 @@ class SourceEstimate(object):
                 if self.data.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
-                print 'Writing STC to disk (w format)...',
+                logger.info('Writing STC to disk (w format)...')
                 write_w(fname + '-lh.w', vertices=self.lh_vertno,
                         data=lh_data[:, 0])
                 write_w(fname + '-rh.w', vertices=self.rh_vertno,
@@ -413,12 +427,12 @@ class SourceEstimate(object):
             if ftype != 'stc':
                 raise ValueError('ftype has to be \"stc\" volume source '
                                  'spaces')
-            print 'Writing STC to disk...',
+            logger.info('Writing STC to disk...')
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
             write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                            vertices=self.vertno[0], data=self.data)
-        print '[done]'
+        logger.info('[done]')
 
     def __repr__(self):
         s = "%d vertices" % sum([len(v) for v in self.vertno])
@@ -767,8 +781,9 @@ from .fiff.tree import dir_tree_find
 from .surface import read_bem_surfaces
 
 
+@verbose
 def read_morph_map(subject_from, subject_to, subjects_dir=None,
-                   verbose=True):
+                   verbose=None):
     """Read morph map generated with mne_make_morph_maps
 
     Parameters
@@ -779,8 +794,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         Name of the subject on which to morph as named in the SUBJECTS_DIR
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
-    verbose : bool
-        Display messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -823,13 +838,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                 if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     left_map = tag.data
-                    if verbose:
-                        print '    Left-hemisphere map read.'
+                    logger.info('    Left-hemisphere map read.')
                 elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
                     tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
                     right_map = tag.data
-                    if verbose:
-                        print '    Right-hemisphere map read.'
+                    logger.info('    Right-hemisphere map read.')
 
     fid.close()
     if left_map is None:
@@ -897,8 +910,9 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
+@verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  verbose=True):
+                  verbose=None):
     """Morph data from one subject's source space to another
 
     Parameters
@@ -918,8 +932,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Vertices on the destination surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
-    verobse : bool
-        If True, print status messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -957,8 +971,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     else:
         data[idx_use, :] /= data1[idx_use][:, None]
 
-    if verbose:
-        print '    %d smooth iterations done.' % (k + 1)
+    logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
     return data_morphed
 
@@ -989,8 +1002,9 @@ def _get_subjects_dir(subjects_dir):
     return subjects_dir
 
 
+@verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=0,
+               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None,
                mne_root=None):
     """Morph a source estimate from one subject to another
 
@@ -1021,8 +1035,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Saves memory when morphing long time intervals.
     n_jobs : int
         Number of jobs to run in parallel
-    verbose : int
-        Verbosity level.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     mne_root : str, or None
         Root directory for MNE. If None, the environment variable MNE_ROOT
         is used. mne_root is only used for computation of vertices to use
@@ -1040,10 +1054,9 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     subjects_dir = _get_subjects_dir(subjects_dir)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
-                                n_jobs, verbose)
+                                n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir,
-                          verbose=verbose)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
     # morph the data
     lh_data = stc_from.data[:len(stc_from.lh_vertno)]
@@ -1054,7 +1067,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
 
     parallel, my_morph_buffer, _ = \
-                        parallel_func(_morph_buffer, n_jobs, verbose)
+                        parallel_func(_morph_buffer, n_jobs)
 
     for hemi in [0, 1]:
         e = mesh_edges(tris[hemi])
@@ -1066,8 +1079,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             continue
         data_morphed[hemi] = np.concatenate(
                     parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                   n_vertices, nearest[hemi], maps[hemi],
-                                   verbose)
+                                   n_vertices, nearest[hemi], maps[hemi])
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
@@ -1083,14 +1095,14 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     else:
         stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
 
-    if verbose:
-        print '[done]'
+    logger.info('[done]')
 
     return stc_to
 
 
+@verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, verbose=False):
+                         smooth=None, subjects_dir=None, verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -1109,8 +1121,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
-    verbose : bool
-        If True, print some status messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1120,8 +1132,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     """
     subjects_dir = _get_subjects_dir(subjects_dir)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
-    maps = read_morph_map(subject_from, subject_to, subjects_dir,
-                          verbose=verbose)
+    maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
     morpher = [None] * 2
     for hemi in [0, 1]:
@@ -1135,12 +1146,13 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
             continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi], verbose)
+                                      vertices_to[hemi], maps[hemi])
     return sparse_block_diag(morpher, format='csr')
 
 
+@verbose
 def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
-                      n_jobs=1, verbose=0):
+                      n_jobs=1, verbose=None):
     """Convert a grade to source space vertices for a given subject
 
     Parameters
@@ -1163,8 +1175,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
         (i.e., when "grade" is an integer).
     n_jobs : int
         Number of jobs to run in parallel
-    verbose : int
-        Print some status messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1185,15 +1197,13 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
             vertices = grade
         else:
             # find which vertices to use in "to mesh"
-            ico = _get_ico_tris(grade, verbose=False, return_surf=True,
-                                mne_root=mne_root)
+            ico = _get_ico_tris(grade, return_surf=True, mne_root=mne_root)
             lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
             rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
 
             # Compute nearest vertices in high dim mesh
             parallel, my_compute_nearest, _ = \
-                                parallel_func(_compute_nearest, n_jobs,
-                                              verbose)
+                                parallel_func(_compute_nearest, n_jobs)
             lhs, rhs, rr = [a.astype(np.float32)
                             for a in [lhs, rhs, ico['rr']]]
             vertices = parallel(my_compute_nearest(xhs, rr)
@@ -1247,24 +1257,22 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return stc_to
 
 
-def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
+@verbose
+def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """Compute connectivity for a source space activation over time
 
     Parameters
     ----------
     src : source space
-        The source space
-
+        The source space.
     n_times : int
-        Number of time instants
-
+        Number of time instants.
     dist : float, or None
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors. If None, immediate neighbors
         are extracted from an ico surface.
-
-    verbose : bool
-        If True, display status messages.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1274,7 +1282,6 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
         source space, the N first nodes in the graph are the
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
-
     """
     if dist is None:
         if src[0]['use_tris'] is None:
@@ -1286,12 +1293,13 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=True):
         rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
                                   src[1]['use_tris'])
         tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
-        return spatio_temporal_tris_connectivity(tris, n_times, verbose)
+        return spatio_temporal_tris_connectivity(tris, n_times)
     else:  # use distances computed and saved in the source space file
-        return spatio_temporal_dist_connectivity(src, n_times, dist, verbose)
+        return spatio_temporal_dist_connectivity(src, n_times, dist)
 
 
-def spatio_temporal_tris_connectivity(tris, n_times, verbose=True):
+@verbose
+def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
     """Compute connectivity from triangles and time instants
 
     Parameters
@@ -1300,8 +1308,8 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=True):
         N x 3 array defining triangles.
     n_times : int
         Number of time points
-    verbose : bool
-        Display some status messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1313,10 +1321,11 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=True):
         during time 2, etc.
     """
     edges = mesh_edges(tris).tocoo()
-    return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
+    return _get_connectivity_from_edges(edges, n_times)
 
 
-def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
+@verbose
+def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     """Compute connectivity from distances in a source space and time instants
 
     Parameters
@@ -1330,8 +1339,8 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
     dist : float
         Maximal geodesic distance (in m) between vertices in the
         source space to consider neighbors.
-    verbose : bool
-        Display some status messages
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1352,7 +1361,7 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=True):
     edges = edges.tocsr()
     edges.eliminate_zeros()
     edges = edges.tocoo()
-    return _get_connectivity_from_edges(edges, n_times, verbose=verbose)
+    return _get_connectivity_from_edges(edges, n_times)
 
 
 def sparse_block_diag(mats, format=None, dtype=None):
@@ -1387,11 +1396,11 @@ def sparse_block_diag(mats, format=None, dtype=None):
         return sparse.bmat(rows, format=format, dtype=dtype)
 
 
-def _get_connectivity_from_edges(edges, n_times, verbose=True):
+@verbose
+def _get_connectivity_from_edges(edges, n_times, verbose=None):
     """Given edges sparse matrix, create connectivity matrix"""
     n_vertices = edges.shape[0]
-    if verbose:
-        print "-- number of connected vertices : %d" % n_vertices
+    logger.info("-- number of connected vertices : %d" % n_vertices)
     nnz = edges.col.size
     aux = n_vertices * np.arange(n_times)[:, None] * np.ones((1, nnz), np.int)
     col = (edges.col[None, :] + aux).ravel()
@@ -1410,13 +1419,14 @@ def _get_connectivity_from_edges(edges, n_times, verbose=True):
     return connectivity
 
 
-def _get_ico_tris(grade, verbose=True, return_surf=False, mne_root=None):
+@verbose
+def _get_ico_tris(grade, verbose=None, return_surf=False, mne_root=None):
     """Get triangles for ico surface."""
     mne_root = os.environ.get('MNE_ROOT', mne_root)
     if mne_root is None:
         raise Exception('Please set MNE_ROOT environment variable.')
     ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
-    surfaces = read_bem_surfaces(ico_file_name, verbose=verbose)
+    surfaces = read_bem_surfaces(ico_file_name)
     for s in surfaces:
         if s['id'] == (9000 + grade):
             ico = s

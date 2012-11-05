@@ -9,6 +9,9 @@ import inspect
 import warnings
 from inspect import getargspec, isfunction
 
+import logging
+logger = logging.getLogger('mne')
+
 import numpy as np
 from scipy import stats
 from scipy.spatial import distance
@@ -21,6 +24,7 @@ from ..cov import compute_whitener
 from ..fiff import pick_types, pick_channels
 from ..fiff.constants import Bunch
 from ..viz import plot_ica_panel
+from .. import verbose
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -85,6 +89,8 @@ class ICA(object):
         Arguments to send to the functional form.
         If empty and if fun='logcosh', fun_args will take value
         {'alpha' : 1.0}
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
@@ -97,9 +103,13 @@ class ICA(object):
     index : ndarray
         Integer array representing the sources. This is usefull for different
         kinds of indexing and selection operations.
+    verbose : bool, str, int, or None
+        See above.
     """
+    @verbose
     def __init__(self, noise_cov=None, n_components=None, random_state=None,
-                 algorithm='parallel', fun='logcosh', fun_args=None):
+                 algorithm='parallel', fun='logcosh', fun_args=None,
+                 verbose=None):
         try:
             from sklearn.decomposition import FastICA  # to avoid strong dep.
         except ImportError:
@@ -125,6 +135,7 @@ class ICA(object):
         self.last_fit = 'unfitted'
         self.ch_names = None
         self.mixing = None
+        self.verbose = verbose
 
     def __repr__(self):
         out = 'ICA '
@@ -141,7 +152,9 @@ class ICA(object):
 
         return out
 
-    def decompose_raw(self, raw, picks=None, start=None, stop=None):
+    @verbose
+    def decompose_raw(self, raw, picks=None, start=None, stop=None,
+                      verbose=None):
         """Run the ICA decomposition on raw data
 
         Parameters
@@ -157,14 +170,17 @@ class ICA(object):
         stop : int
             First sample to not include. If omitted, data is included to the
             end.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        print ('Computing signal decomposition on raw data. '
-               'Please be patient, this may take some time')
+        logger.info('Computing signal decomposition on raw data. '
+                    'Please be patient, this may take some time')
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True,
@@ -185,7 +201,8 @@ class ICA(object):
         self.last_fit = 'raw'
         return self
 
-    def decompose_epochs(self, epochs, picks=None):
+    @verbose
+    def decompose_epochs(self, epochs, picks=None, verbose=None):
         """Run the ICA decomposition on epochs
 
         Parameters
@@ -196,14 +213,17 @@ class ICA(object):
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Returns
         -------
         self : instance of ICA
             Returns the modified instance.
         """
-        print ('Computing signal decomposition on epochs. '
-               'Please be patient, this may take some time')
+        logger.info('Computing signal decomposition on epochs. '
+                    'Please be patient, this may take some time')
 
         if picks is None:  # just use epochs good data channels and avoid
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
@@ -610,8 +630,10 @@ class ICA(object):
         return out
 
 
+@verbose
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
-                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6):
+                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
+                        verbose=None):
     """Find ECG peaks from one selected ICA source
 
     Parameters
@@ -628,15 +650,17 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     stop : int
         First sample to not include.
         If omitted, data is included to the end.
-    tstart: float
+    tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
-    l_freq: float
+    l_freq : float
         Low pass frequency.
-    h_freq: float
+    h_freq : float
         High pass frequency.
-    qrs_threshold: float
+    qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -647,7 +671,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     average_pulse : float.
         Estimated average pulse.
     """
-    print 'Using ICA source to identify heart beats'
+    logger.info('Using ICA source to identify heart beats')
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg_source.ravel(),
@@ -662,8 +686,9 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     return ecg_events
 
 
+@verbose
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
-                    h_freq=10):
+                    h_freq=10, verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -674,10 +699,12 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         ICA source resembling EOG to find peaks from.
     event_id : int
         The index to assign to found events.
-    low_pass: float
+    low_pass : float
         Low pass frequency.
-    high_pass: float
+    high_pass : float
         High pass frequency.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

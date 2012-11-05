@@ -1,21 +1,28 @@
 import numpy as np
 from math import ceil
 
+import logging
+logger = logging.getLogger('mne')
 
-def peak_finder(x0, thresh=None, extrema=1):
+from .. import verbose
+
+@verbose
+def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     """Noise tolerant fast peak finding algorithm
 
     Parameters
     ----------
-    x0: 1d array
-        A real vector from the maxima will be found (required)
-    thresh: float
+    x0 : 1d array
+        A real vector from the maxima will be found (required).
+    thresh : float
         The amount above surrounding data for a peak to be
         identified (default = (max(x0)-min(x0))/4). Larger values mean
         the algorithm is more selective in finding peaks.
-    extrema: {-1, 1}
+    extrema : {-1, 1}
         1 if maxima are desired, -1 if minima are desired
-        (default = maxima, 1)
+        (default = maxima, 1).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -158,6 +165,6 @@ def peak_finder(x0, thresh=None, extrema=1):
 
     # Plot if no output desired
     if len(peak_inds) == 0:
-        print 'No significant peaks found'
+        logger.info('No significant peaks found')
 
     return peak_inds, peak_mags

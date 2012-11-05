@@ -19,18 +19,18 @@ def test_l21_MxNE():
     X[4] = -2
     M = np.dot(G, X)
     X_hat, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8, verbose=True,
+                            G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True)
     assert_array_equal(np.where(active_set)[0], [0, 4])
     X_hat, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8, verbose=True,
+                            G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=1, debias=True)
     assert_array_equal(np.where(active_set)[0], [0, 4])
     X_hat, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8, verbose=True,
+                            G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=1, debias=True, n_orient=2)
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     X_hat, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8, verbose=True,
+                            G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=1, debias=True, n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])

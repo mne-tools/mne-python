@@ -5,6 +5,9 @@
 
 import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -12,6 +15,7 @@ from .fiff.tag import find_tag
 from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
+from . import verbose
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -29,24 +33,23 @@ FIFF_BEM_COORD_FRAME = 3112  # The coordinate frame of the mode
 FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
 
 
-def read_bem_surfaces(fname, add_geom=False, verbose=True):
+@verbose
+def read_bem_surfaces(fname, add_geom=False, verbose=None):
     """Read the BEM surfaces from a FIF file
 
     Parameters
     ----------
     fname : string
-        The name of the file containing the surfaces
-
+        The name of the file containing the surfaces.
     add_geom : bool, optional (default False)
-        If True add geometry information to the surfaces
-
-    verbose : bool
-        If True display status messages
+        If True add geometry information to the surfaces.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     surf: list
-        A list of dictionaries that each contain a surface
+        A list of dictionaries that each contain a surface.
     """
     #
     #   Default coordinate frame
@@ -73,8 +76,7 @@ def read_bem_surfaces(fname, add_geom=False, verbose=True):
         fid.close()
         raise ValueError('BEM surface data not found')
 
-    if verbose:
-        print '    %d BEM surfaces found' % len(bemsurf)
+    logger.info('    %d BEM surfaces found' % len(bemsurf))
     #
     #   Coordinate frame possibly at the top level
     #
@@ -86,17 +88,14 @@ def read_bem_surfaces(fname, add_geom=False, verbose=True):
     #
     surf = []
     for bsurf in bemsurf:
-        if verbose:
-            print '    Reading a surface...',
+        logger.info('    Reading a surface...')
         this = _read_bem_surface(fid, bsurf, coord_frame)
-        if verbose:
-            print '[done]'
+        logger.info('[done]')
         if add_geom:
             _complete_surface_info(this)
         surf.append(this)
 
-    if verbose:
-        print '    %d BEM surfaces read' % len(surf)
+    logger.info('    %d BEM surfaces read' % len(surf))
 
     fid.close()
 
@@ -181,13 +180,14 @@ def _read_bem_surface(fid, this, def_coord_frame):
     return res
 
 
-def _complete_surface_info(this):
+@verbose
+def _complete_surface_info(this, verbose=None):
     """Complete surface info"""
     #
     #   Main triangulation
     #
-    print '    Completing triangulation info...',
-    print 'triangle normals...',
+    logger.info('    Completing triangulation info...')
+    logger.info('triangle normals...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -203,17 +203,17 @@ def _complete_surface_info(this):
     #
     #   Accumulate the vertex normals
     #
-    print 'vertex normals...',
+    logger.info('vertex normals...')
     this['nn'] = np.zeros((this['np'], 3))
     for p in range(this['ntri']):
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
     #
     #   Compute the lengths of the vertex normals and scale
     #
-    print 'normalize...',
+    logger.info('normalize...')
     this['nn'] /= np.sqrt(np.sum(this['nn'] ** 2, axis=1))[:, None]
 
-    print '[done]'
+    logger.info('[done]')
     return this
 
 

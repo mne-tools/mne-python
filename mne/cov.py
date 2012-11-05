@@ -11,7 +11,10 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from . import fiff
+import logging
+logger = logging.getLogger('mne')
+
+from . import fiff, verbose
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open
@@ -132,8 +135,10 @@ def read_cov(fname):
 ###############################################################################
 # Estimate from data
 
+@verbose
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
-                                reject=None, flat=None, picks=None):
+                                reject=None, flat=None, picks=None,
+                                verbose=None):
     """Estimate noise covariance matrix from a continuous segment of raw data
 
     It is typically useful to estimate a noise covariance
@@ -169,7 +174,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         If flat is None then no rejection is done.
     picks : array of int
         Indices of channels to include (if None, all channels
-        are used)
+        are used).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -215,13 +222,13 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
             data += np.dot(raw_segment[idx], raw_segment[idx].T)
             n_samples += raw_segment.shape[1]
         else:
-            print "Artefact detected in [%d, %d]" % (first, last)
+            logger.info("Artefact detected in [%d, %d]" % (first, last))
 
     mu /= n_samples
     data -= n_samples * mu[:, None] * mu[None, :]
     data /= (n_samples - 1.0)
-    print "Number of samples used : %d" % n_samples
-    print '[done]'
+    logger.info("Number of samples used : %d" % n_samples)
+    logger.info('[done]')
 
     cov = Covariance(None)
 
@@ -240,8 +247,9 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     return cov
 
 
+@verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
-                       projs=None):
+                       projs=None, verbose=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -276,6 +284,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -363,8 +373,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                data=data, projs=projs, bads=epochs[0].info['bads'],
                nfree=n_samples_tot, eig=eig, eigvec=eigvec)
 
-    print "Number of samples used : %d" % n_samples_tot
-    print '[done]'
+    logger.info("Number of samples used : %d" % n_samples_tot)
+    logger.info('[done]')
 
     return cov
 
@@ -394,31 +404,34 @@ def rank(A, tol=1e-8):
     return np.sum(np.where(s > s[0] * tol, 1, 0))
 
 
-def _get_whitener(A, pca, ch_type):
+@verbose
+def _get_whitener(A, pca, ch_type, verbose=None):
     # whitening operator
     rnk = rank(A)
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
     eig[:-rnk] = 0.0
-    print 'Setting small %s eigenvalues to zero.' % ch_type
+    logger.info('Setting small %s eigenvalues to zero.' % ch_type)
     if not pca:  # No PCA case.
-        print 'Not doing PCA for %s.' % ch_type
+        logger.info('Not doing PCA for %s.' % ch_type)
     else:
-        print 'Doing PCA for %s.' % ch_type
+        logger.info('Doing PCA for %s.' % ch_type)
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
         eigvec = eigvec[:-rnk].copy()
     return eig, eigvec
 
 
-def prepare_noise_cov(noise_cov, info, ch_names):
+@verbose
+def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     C = noise_cov.data[C_ch_idx][:, C_ch_idx]
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if ncomp > 0:
-        print '    Created an SSP operator (subspace dimension = %d)' % ncomp
+        logger.info('    Created an SSP operator (subspace dimension = %d)'
+                    % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
     pick_meg = pick_types(info, meg=True, eeg=False, exclude=info['bads'])
@@ -460,7 +473,7 @@ def prepare_noise_cov(noise_cov, info, ch_names):
 
 
 def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
-               proj=True):
+               proj=True, verbose=None):
     """Regularize noise covariance matrix
 
     This method works by adding a constant to the diagonal for each
@@ -469,21 +482,23 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
 
     Parameters
     ----------
-    cov: Covariance
+    cov : Covariance
         The noise covariance matrix.
-    info: dict
+    info : dict
         The measurement info (used to get channel types and bad channels)
-    mag: float
+    mag : float
         Regularization factor for MEG magnetometers
-    grad: float
+    grad : float
         Regularization factor for MEG gradiometers
-    eeg: float
+    eeg : float
         Regularization factor for EEG
-    exclude: list
+    exclude : list
         List of channels to mark as bad. If None, bads channels
         are extracted from info and cov['bads'].
-    proj: bool
+    proj : bool
         Apply or not projections to keep rank of data.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -527,10 +542,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
                            ('GRAD', idx_grad, grad)]:
         if len(idx) == 0 or reg == 0.0:
-            print "    %s regularization : None" % desc
+            logger.info("    %s regularization : None" % desc)
             continue
 
-        print "    %s regularization : %s" % (desc, reg)
+        logger.info("    %s regularization : %s" % (desc, reg))
 
         this_C = C[idx][:, idx]
         if proj:
@@ -538,8 +553,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
             P, ncomp, _ = make_projector(projs, this_ch_names)
             U = linalg.svd(P)[0][:, :-ncomp]
             if ncomp > 0:
-                print '    Created an SSP operator for %s (dimension = %d)' % \
-                                                                  (desc, ncomp)
+                logger.info('    Created an SSP operator for %s '
+                            '(dimension = %d)' % (desc, ncomp))
                 this_C = np.dot(U.T, np.dot(this_C, U))
 
         sigma = np.mean(np.diag(this_C))
@@ -554,7 +569,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     return cov
 
 
-def compute_whitener(noise_cov, info, picks=None):
+def compute_whitener(noise_cov, info, picks=None, verbose=None):
     """Compute whitening matrix
 
     Parameters
@@ -566,6 +581,8 @@ def compute_whitener(noise_cov, info, picks=None):
     picks : array of int | None
         The channels indices to include. If None the data
         channels in info, except bad channels, are used.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
