@@ -75,10 +75,8 @@ def test_logging():
     evoked = Evoked(fname_evoked, setno=1)
     new_log_file = open(test_name, 'r')
     old_log_file = open(fname_log, 'r')
-    new_lines = new_log_file.readlines()
-    if len(new_lines) > 0:
-        new_lines = new_lines[1:]
-    assert_equal(new_lines, old_lines[1:])
+    new_lines = clean_lines(new_log_file.readlines())
+    assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(True) as w:
         set_log_file(test_name, overwrite=False)
