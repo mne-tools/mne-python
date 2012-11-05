@@ -331,6 +331,12 @@ def set_log_level(verbose=None, return_old_level=False):
     return (old_verbose if return_old_level else None)
 
 
+class WrapStdOut(object):
+    """Ridiculous class to work around how doctest captures stdout"""
+    def __getattr__(self, name):
+        return getattr(sys.stdout, name)
+
+
 def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     """Convenience function for setting the log to print to a file
 
@@ -363,7 +369,11 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         mode = 'w' if overwrite else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
-        lh = logging.StreamHandler(sys.stdout)
+        """ we should just be able to do:
+                lh = logging.StreamHandler(sys.stdout)
+            but because doctests uses some magic on stdout, we have to do this:
+        """
+        lh = logging.StreamHandler(WrapStdOut())
 
     lh.setFormatter(logging.Formatter(output_format))
     logger.addHandler(lh)

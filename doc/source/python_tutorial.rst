@@ -82,6 +82,8 @@ But it's generally a good idea to leave them on:
 
     >>> mne.set_log_level('INFO')
 
+By default these print to the console, but look at mne.set_log_file() to save output to a file.
+
 Access raw data
 ^^^^^^^^^^^^^^^
 
@@ -110,13 +112,15 @@ Read and plot a segment of raw data
 
     >>> start, stop = raw.time_as_index([100, 115])  # 100 s to 115 s data segment
     >>> data, times = raw[:, start:stop]
-    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...  [done]
+    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
+    [done]
     >>> print data.shape
     (376, 2252)
     >>> print times.shape
     (2252,)
     >>> data, times = raw[2:20:3, start:stop]  # take some Magnetometers
-    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...  [done]
+    Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
+    [done]
 
 .. figure:: _images/plot_read_and_write_raw_data.png
     :alt: Raw data
@@ -133,7 +137,8 @@ Define and read epochs
 First extract events:
 
     >>> events = mne.find_events(raw, stim_channel='STI 014')
-    Reading 0 ... 41699  =      0.000 ...   277.709 secs...  [done]
+    Reading 0 ... 41699  =      0.000 ...   277.709 secs...
+    [done]
     319 events found
     Events id: [ 1  2  3  4  5 32]
     >>> print events[:5]
@@ -205,7 +210,7 @@ Compute evoked responses by averaging and plot it:
     >>> print evoked
     Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106)
     >>> from mne.viz import plot_evoked
-    >>> plot_evoked(evoked)
+    >>> plot_evoked(evoked) # doctest:+SKIP
 
 .. figure:: _images/plot_read_epochs.png
     :alt: Evoked data
@@ -294,14 +299,20 @@ Compute the inverse solution:
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
-        Computing noise-normalization factors (dSPM)... [done]
+        Computing noise-normalization factors (dSPM)...
+    [done]
     Picked 305 channels from the data
-    Computing inverse... (eigenleads need to be weighted)... combining the current components... (dSPM)... [done]
+    Computing inverse...
+    (eigenleads need to be weighted)...
+    combining the current components...
+    (dSPM)...
+    [done]
 
 Save the source time courses to disk:
 
     >>> stc.save('mne_dSPM_inverse')
-    Writing STC to disk... [done]
+    Writing STC to disk...
+    [done]
 
 Now, let's compute dSPM on a raw file within a label:
 
@@ -318,15 +329,21 @@ Compute inverse solution during the first 15s:
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
-        Computing noise-normalization factors (dSPM)... [done]
+        Computing noise-normalization factors (dSPM)...
+    [done]
     Picked 305 channels from the data
-    Computing inverse... Reading 0 ... 2251  =      0.000 ...    14.991 secs...  [done]
-    (eigenleads need to be weighted)... combining the current components... [done]
+    Computing inverse...
+    Reading 0 ... 2251  =      0.000 ...    14.991 secs...
+    [done]
+    (eigenleads need to be weighted)...
+    combining the current components...
+    [done]
 
 Save result in stc files:
 
     >>> stc.save('mne_dSPM_raw_inverse_Aud')
-    Writing STC to disk... [done]
+    Writing STC to disk...
+    [done]
 
 What else can you do?
 ^^^^^^^^^^^^^^^^^^^^^

@@ -732,7 +732,7 @@ class Raw(object):
                 logger.info('Skipping data chunk due to small buffer ... '
                             '[done]')
                 break
-            logger.info('Writing ... ')
+            logger.info('Writing ...')
             write_raw_buffer(outfid, data, cals)
             logger.info('[done]')
 
@@ -1171,7 +1171,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
         if not s_off == dest:
             raise ValueError('Incorrect file reading')
 
-    logger.info(' [done]')
+    logger.info('[done]')
     times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times
