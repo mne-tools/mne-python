@@ -279,7 +279,7 @@ class ICA(object):
 
         return raw_sources
 
-    def export_sources_raw(self, raw, start=None, stop=None):
+    def export_sources(self, raw, start=None, stop=None):
         """ Export sources as raw object
 
         Parameters
@@ -396,7 +396,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 
@@ -452,7 +452,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 

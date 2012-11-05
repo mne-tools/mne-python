@@ -175,3 +175,19 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     ids = 1 + np.arange(n_channels)
     layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
     return layout
+
+
+def make_grid_layout(size, shape):
+    """ Generate .lout file for custom data, i.e., ICA sources
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    layout : Layout
+        The generated layout.
+
+    """
+    layout = Layout()
+    return layout
