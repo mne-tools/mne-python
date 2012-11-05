@@ -281,11 +281,6 @@ def check_random_state(seed):
                      ' instance' % seed)
 
 
-def array_hash(array):
-    """Calculate a hash string from a numpy array"""
-    return hashlib.sha1(array).hexdigest()
-
-
 def split_list(l, n):
     """split list in n (approx) equal pieces"""
     n = int(n)
