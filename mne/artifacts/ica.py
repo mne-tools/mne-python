@@ -356,7 +356,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 
@@ -412,7 +412,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 
