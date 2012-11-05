@@ -4,10 +4,15 @@
 # License: BSD (3-clause)
 
 import copy
+
+import logging
+logger = logging.getLogger('mne')
+
 from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import write_int, start_block, end_block, write_float_matrix, \
                    write_name_list
+from .. import verbose
 
 
 def _transpose_named_matrix(mat):
@@ -20,7 +25,8 @@ def _transpose_named_matrix(mat):
     return mat
 
 
-def _read_named_matrix(fid, node, matkind):
+@verbose
+def _read_named_matrix(fid, node, matkind, verbose=None):
     """Read named matrix from the given node
 
     Parameters
@@ -31,6 +37,8 @@ def _read_named_matrix(fid, node, matkind):
         The node in the tree
     matkind: int
         The type of matrix
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -45,11 +53,13 @@ def _read_named_matrix(fid, node, matkind):
                     node = node['children'][k]
                     break
         else:
-            print 'Desired named matrix (kind = %d) not available' % matkind
+            logger.info('Desired named matrix (kind = %d) not available'
+                        % matkind)
             return None
     else:
         if not has_tag(node, matkind):
-            print 'Desired named matrix (kind = %d) not available' % matkind
+            logger.info('Desired named matrix (kind = %d) not available'
+                        % matkind)
             return None
 
     #   Read everything we need

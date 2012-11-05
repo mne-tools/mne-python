@@ -1,6 +1,10 @@
 # import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 from .constants import FIFF
+from .. import verbose
 
 
 def get_current_comp(info):
@@ -137,7 +141,8 @@ def get_current_comp(info):
 #     return comp
 
 
-# def compensate_to(data, to):
+# @verbose
+# def compensate_to(data, to, verbose=None):
 #     """
 #     %
 #     % [newdata] = mne_compensate_to(data,to)
@@ -151,7 +156,7 @@ def get_current_comp(info):
 #
 #     #   Are we there already?
 #     if now == to:
-#         print 'Data are already compensated as desired'
+#         logger.info('Data are already compensated as desired')
 #
 #     #   Make the compensator and apply it to all data sets
 #     comp = make_compensator(newdata['info'], now, to)

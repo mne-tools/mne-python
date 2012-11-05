@@ -5,7 +5,10 @@
 import numpy as np
 from scipy import linalg
 
-from . import fiff, Epochs
+import logging
+logger = logging.getLogger('mne')
+
+from . import fiff, Epochs, verbose
 from .fiff.pick import pick_types
 from .event import make_fixed_length_events
 from .parallel import parallel_func
@@ -45,20 +48,21 @@ def write_proj(fname, projs):
     fiff.write.end_file(fid)
 
 
-def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
+@verbose
+def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
     mag_ind = pick_types(info, meg='mag')
     grad_ind = pick_types(info, meg='grad')
     eeg_ind = pick_types(info, meg=False, eeg=True)
 
     if (n_grad > 0) and len(grad_ind) == 0:
-        print "No gradiometers found. Forcing n_grad to 0"
+        logger.info("No gradiometers found. Forcing n_grad to 0")
         n_grad = 0
     if (n_mag > 0) and len(mag_ind) == 0:
-        print "No magnetometers found. Forcing n_mag to 0"
+        logger.info("No magnetometers found. Forcing n_mag to 0")
         n_mag = 0
     if (n_eeg > 0) and len(eeg_ind) == 0:
-        print "No EEG channels found. Forcing n_eeg to 0"
+        logger.info("No EEG channels found. Forcing n_eeg to 0")
         n_eeg = 0
 
     ch_names = info['ch_names']
@@ -79,15 +83,16 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
-            print "Adding projection: %s" % this_desc
+            logger.info("Adding projection: %s" % this_desc)
             proj = dict(active=False, data=proj_data, desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs
 
 
+@verbose
 def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
-                        verbose=False):
+                        verbose=None):
     """Compute SSP (spatial space projection) vectors on Epochs
 
     Parameters
@@ -102,8 +107,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         Number of vectors for gradiometers
     n_jobs: int
         Number of jobs to use to compute covariance
-    verbose: bool
-        If True, be verbose in parallelization
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -111,7 +116,7 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         List of projection vectors
     """
     if n_jobs > 1:
-        parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
+        parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
         data = sum(parallel(p_fun(e, e.T) for e in epochs))
     else:
         data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
@@ -122,23 +127,26 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
-def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
+@verbose
+def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     """Compute SSP (spatial space projection) vectors on Evoked
 
     Parameters
     ----------
-    evoked: instance of Evoked
+    evoked : instance of Evoked
         The Evoked obtained by averaging the artifact
-    n_grad: int
+    n_grad : int
         Number of vectors for gradiometers
-    n_mag: int
+    n_mag : int
         Number of vectors for gradiometers
-    n_eeg: int
+    n_eeg : int
         Number of vectors for gradiometers
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    projs: list
+    projs : list
         List of projection vectors
     """
     data = np.dot(evoked.data, evoked.data.T)  # compute data covariance
@@ -146,8 +154,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2):
     return _compute_proj(data, evoked.info, n_grad, n_mag, n_eeg, desc_prefix)
 
 
+@verbose
 def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
-                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=False):
+                     n_eeg=0, reject=None, flat=None, n_jobs=1, verbose=None):
     """Compute SSP (spatial space projection) vectors on Raw
 
     Parameters
@@ -174,8 +183,8 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         Epoch flat configuration (see Epochs)
     n_jobs: int
         Number of jobs to use to compute covariance
-    verbose: bool
-        If True, be verbose in parallelization
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -185,10 +194,11 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     if duration is not None:
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
-                        picks=pick_types(raw.info, meg=True, eeg=True),
+                        picks=pick_types(raw.info, meg=True, eeg=True,
+                                         eog=True, ecg=True, emg=True),
                         reject=reject, flat=flat)
         if n_jobs > 1:
-            parallel, p_fun, _ = parallel_func(np.dot, n_jobs, verbose)
+            parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
             data = sum(parallel(p_fun(e, e.T) for e in epochs))
         else:
             data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance

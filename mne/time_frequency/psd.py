@@ -3,15 +3,20 @@
 
 import numpy as np
 
+import logging
+logger = logging.getLogger('mne')
+
 # XXX : don't import pylab here or you will break the doc
 
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
+from .. import verbose
 
 
+@verbose
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
-                    plot=False, proj=False):
+                    plot=False, proj=False, verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -48,6 +53,9 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     proj : bool
         Apply SSP projection vectors
 
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     psd: array of float
@@ -72,10 +80,10 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     NFFT = int(NFFT)
     Fs = raw.info['sfreq']
 
-    print "Effective window size : %0.3f (s)" % (NFFT / float(Fs))
+    logger.info("Effective window size : %0.3f (s)" % (NFFT / float(Fs)))
 
     import pylab as pl
-    parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs, verbose=0)
+    parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs)
     fig = pl.figure()
     out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data)
     if not plot:

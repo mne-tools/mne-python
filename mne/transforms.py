@@ -2,10 +2,13 @@ import copy
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from .fiff import FIFF
 from .fiff.open import fiff_open
 from .fiff.tag import read_tag
-
+from . import verbose
 
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
@@ -160,7 +163,8 @@ def transform_coordinates(filename, pos, orig, dest):
     return trans_pos
 
 
-# def transform_meg_chs(chs, trans):
+# @verbose
+# def transform_meg_chs(chs, trans, verbose=None):
 #     """
 #     %
 #     % [res, count] = fiff_transform_meg_chs(chs,trans)
@@ -190,12 +194,12 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 count += 1
 #
 #     if count > 0:
-#         print '    %d MEG channel locations transformed' % count
+#         logger.info('    %d MEG channel locations transformed' % count)
 #
 #     return res, count
 
-
-# def transform_eeg_chs(chs, trans):
+# @verbose
+# def transform_eeg_chs(chs, trans, verbose=None):
 #     """
 #     %
 #     % [res, count] = fiff_transform_eeg_chs(chs,trans)
@@ -230,6 +234,6 @@ def transform_coordinates(filename, pos, orig, dest):
 #                 ch['coord_frame'] = trans['to']
 #
 #     if count > 0:
-#         print '    %d EEG electrode locations transformed\n' % count
+#         logger.info('    %d EEG electrode locations transformed\n' % count)
 #
 #     return res, count

@@ -8,6 +8,7 @@ import numpy as np
 from scipy import fftpack, linalg, interpolate
 
 from ..parallel import parallel_func
+from .. import verbose
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -399,37 +400,40 @@ def _mt_spectra(x, dpss, sfreq):
     return x_mt, freqs
 
 
+@verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1):
+                   adaptive=False, low_bias=True, n_jobs=1, verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
     ----------
-    x: array, shape=(n_signals, n_times) or (n_times,)
-        The data to compute PSD from
-    sfreq: float
-        The sampling frequency
+    x : array, shape=(n_signals, n_times) or (n_times,)
+        The data to compute PSD from.
+    sfreq : float
+        The sampling frequency.
     fmin : float
-        The lower frequency of interest
+        The lower frequency of interest.
     fmax : float
-        The upper frequency of interest
-    bandwidth: float
-        The bandwidth of the multi taper windowing function in Hz
-    adaptive: bool
+        The upper frequency of interest.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD
-        (slow, use n_jobs >> 1 to speed up computation)
-    low_bias: bool
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
         Only use tapers with more than 90% spectral concentration within
-        bandwidth
-    n_jobs: int
-        Number of parallel jobs to use (only used if adaptive=True)
+        bandwidth.
+    n_jobs : int
+        Number of parallel jobs to use (only used if adaptive=True).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    psd: array, shape=(n_signals, len(freqs)) or (len(freqs),)
-        The computed PSD
-    freqs: array
-        The frequency points in Hz of the PSD
+    psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
+        The computed PSD.
+    freqs : array
+        The frequency points in Hz of the PSD.
     """
     if x.ndim > 2:
         raise ValueError('x can only be 1d or 2d')

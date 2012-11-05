@@ -7,7 +7,11 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
+import logging
+logger = logging.getLogger('mne')
+
 from ..utils import check_random_state
+from .. import verbose
 
 
 def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
@@ -54,7 +58,8 @@ def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):
     return L
 
 
-def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
+@verbose
+def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1, verbose=None):
     """Compute scaling to correct amplitude bias
 
     It solves the following optimization problem using FISTA:
@@ -71,22 +76,24 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
     Parameters
     ----------
     M : array
-        measurement data
+        measurement data.
     G : array
-        leadfield matrix
+        leadfield matrix.
     X : array
-        reconstructed time courses with amplitude bias
+        reconstructed time courses with amplitude bias.
     max_iter : int
-        Maximum number of iterations
+        Maximum number of iterations.
     tol : float
-        The tolerance on convergence
+        The tolerance on convergence.
     n_orient : int
-        The number of orientations (1 for fixed and 3 otherwise)
+        The number of orientations (1 for fixed and 3 otherwise).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     D : array
-        Debiasing weights
+        Debiasing weights.
     """
     n_sources = X.shape[0]
 
@@ -119,8 +126,8 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-4, n_orient=1):
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
         if linalg.norm(D - D0, np.inf) < tol:
-            print "Debiasing converged after %d iterations" % i
+            logger.info("Debiasing converged after %d iterations" % i)
             break
     else:
-        print "Debiasing did not converge"
+        logger.info("Debiasing did not converge")
     return D

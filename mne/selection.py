@@ -6,8 +6,14 @@
 
 from os import path
 
+import logging
+logger = logging.getLogger('mne')
 
-def read_selection(name, fname=None):
+from . import verbose
+
+
+@verbose
+def read_selection(name, fname=None, verbose=None):
     """Read channel selection from file
 
     By default, the selections used in mne_browse_raw are supported*.
@@ -28,14 +34,15 @@ def read_selection(name, fname=None):
     ----------
     name : string or list of string
         Name of the selection. If is a list, the selections are combined.
-
     fname : string
-        Filename of the selection file (if None, built-in selections are used)
+        Filename of the selection file (if None, built-in selections are used).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     sel : list of string
-        List with channel names in the selection
+        List with channel names in the selection.
     """
 
     # convert name to list of string
@@ -70,8 +77,8 @@ def read_selection(name, fname=None):
         # get the name of the selection in the file
         pos = line.find(':')
         if pos < 0:
-            print '":" delimiter not found in selections file, '\
-                  'skipping line'
+            logger.info('":" delimiter not found in selections file, '
+                        'skipping line')
             continue
 
         sel_name_file = line[:pos]

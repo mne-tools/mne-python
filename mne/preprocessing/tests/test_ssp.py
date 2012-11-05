@@ -17,20 +17,25 @@ def test_compute_proj_ecg():
     for average in [False, True]:
         raw = Raw(raw_fname, preload=True)
         with warnings.catch_warnings(record=True) as w:
+            # this will throw a warning only for short filter_length (only
+            # once, so it's for average == True), so set filter_length short
             projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
                                         ch_name='MEG 1531', bads=['MEG 2443'],
                                         average=average, avg_ref=True,
-                                        no_proj=True)
+                                        no_proj=True, filter_length=2048)
             assert_equal(len(w), 0 if average else 1)
         raw.close()
         assert_true(len(projs) == 7)
         #XXX: better tests
 
-        # without setting a bad channel, this should throw a warning
-        projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                        ch_name='MEG 1531', bads=[],
-                                        average=average, avg_ref=True,
-                                        no_proj=True)
+        # without setting a bad channel, this should throw a warning (only
+        # thrown once, so it's for average == True)
+        with warnings.catch_warnings(record=True) as w:
+            projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
+                                            ch_name='MEG 1531', bads=[],
+                                            average=average, avg_ref=True,
+                                            no_proj=True)
+            assert_equal(len(w), 0 if average else 1)
         assert_equal(projs, None)
 
 
@@ -46,16 +51,17 @@ def test_compute_proj_eog():
         assert_true(len(projs) == (7 + n_projs_init))
         #XXX: better tests
 
-        # without setting a bad channel, this should throw a warning
-        projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                     average=average, bads=[],
-                                     avg_ref=True, no_proj=False)
+        # This will not throw a warning (?)
+        with warnings.catch_warnings(record=True) as w:
+            projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
+                                         average=average, bads=[],
+                                         avg_ref=True, no_proj=False)
+            assert_equal(len(w), 0)
         assert_equal(projs, None)
 
 
-
 def test_compute_proj_parallel():
-    """Test computation of projectors using parallelization"""
+    """Test computation of ExG projectors using parallelization"""
     raw = Raw(raw_fname, preload=True)
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,

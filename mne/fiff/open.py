@@ -3,34 +3,35 @@
 #
 # License: BSD (3-clause)
 
+import logging
+logger = logging.getLogger('mne')
+
 from .tag import read_tag_info, read_tag
 from .tree import make_dir_tree
 from .constants import FIFF
+from .. import verbose
 
 
-def fiff_open(fname, verbose=False):
+@verbose
+def fiff_open(fname, verbose=None):
     """Open a FIF file.
 
     Parameters
     ----------
     fname: string
         name of the fif file
-
-    verbose: bool
-        verbose mode if True
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     fid: file
         The file descriptor of the open file
-
     tree: fif tree
         The tree is a complex structure filled with dictionaries,
         lists and tags.
-
     directory: list
         list of nodes.
-
     """
     fid = open(fname, "rb")  # Open in binary mode
 
@@ -52,8 +53,7 @@ def fiff_open(fname, verbose=False):
         raise ValueError('file does have a directory pointer')
 
     #   Read or create the directory tree
-    if verbose:
-        print '    Creating tag directory for %s...' % fname
+    logger.debug('    Creating tag directory for %s...' % fname)
 
     dirpos = int(tag.data)
     if dirpos > 0:
@@ -68,10 +68,9 @@ def fiff_open(fname, verbose=False):
             tag.pos = pos
             directory.append(tag)
 
-    tree, _ = make_dir_tree(fid, directory, verbose=verbose)
+    tree, _ = make_dir_tree(fid, directory)
 
-    if verbose:
-        print '[done]'
+    logger.debug('[done]')
 
     #   Back to the beginning
     fid.seek(0)
