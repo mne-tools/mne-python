@@ -131,7 +131,7 @@ class ICA(object):
         self._fast_ica = FastICA(n_components, **kwargs)
 
         self.n_components = n_components
-        self.index = np.arange(n_components)
+        self.index = np.arange(n_components) if n_components else None
         self.last_fit = 'unfitted'
         self.ch_names = None
         self.mixing = None
@@ -147,8 +147,8 @@ class ICA(object):
             msg = '(epochs'
         msg += ' decomposition, '
 
-        out += (msg + '%s components' % str(self.n_components) if
-                self.n_components else 'no dimension reduction') + ')'
+        out += msg + ('%s components' % str(self.n_components) if
+               self.n_components else 'no dimension reduction') + ')'
 
         return out
 
@@ -356,7 +356,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 
@@ -412,7 +412,7 @@ class ICA(object):
                              ncol=ncol, nrow=nrow)
         if show:
             import matplotlib.pylab as pl
-            pl.show(fig)
+            pl.show()
 
         return fig
 
