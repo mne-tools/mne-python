@@ -147,8 +147,8 @@ class ICA(object):
             msg = '(epochs'
         msg += ' decomposition, '
 
-        out += (msg + '%s components' % str(self.n_components) if
-                self.n_components else 'no dimension reduction') + ')'
+        out += msg + ('%s components' % str(self.n_components) if
+               self.n_components else 'no dimension reduction') + ')'
 
         return out
 
