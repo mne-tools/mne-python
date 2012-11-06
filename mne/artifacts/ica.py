@@ -131,7 +131,7 @@ class ICA(object):
         self._fast_ica = FastICA(n_components, **kwargs)
 
         self.n_components = n_components
-        self.index = np.arange(n_components)
+        self.index = np.arange(n_components) if n_components else None
         self.last_fit = 'unfitted'
         self.ch_names = None
         self.mixing = None
