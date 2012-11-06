@@ -244,7 +244,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     return dpss, eigvals
 
 
-def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150):
+def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
+                          return_weights=False):
     """
     Perform an iterative procedure to compute the PSD from tapered spectra
     using the optimal weights.
@@ -256,17 +257,21 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150):
 
     x_mt: array, shape=(n_signals, n_tapers, n_freqs)
        The DFTs of the tapered sequences (only positive frequencies)
-    eigvals: array, length-n_tapers
+    eigvals: array, length n_tapers
        The eigenvalues of the DPSS tapers
     freq_mask: array
         Frequency indices to keep
     max_iter: int
        Maximum number of iterations for weight computation
+    return_weights: bool
+       Also return the weights
 
     Returns
     -------
     psd: array, shape=(n_signals, np.sum(freq_mask))
         The computed PSDs
+    weights: array shape=(n_signals, n_tapers, np.sum(freq_mask))
+        The weights used to combine the tapered spectra
 
     Notes
     -----
@@ -294,6 +299,9 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150):
 
     # only keep the frequencies of interest
     x_mt = x_mt[:, :, freq_mask]
+
+    if return_weights:
+        weights = np.empty((n_signals, n_tapers, psd.shape[1]))
 
     for i, (xk, var) in enumerate(zip(x_mt, x_var)):
         # combine the SDFs in the traditional way in order to estimate
@@ -341,7 +349,13 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150):
 
         psd[i, :] = psd_iter
 
-    return psd
+        if return_weights:
+            weights[i, :, :] = d_k
+
+    if return_weights:
+        return psd, weights
+    else:
+        return psd
 
 
 def _psd_from_mt(x_mt, weights):
@@ -364,6 +378,36 @@ def _psd_from_mt(x_mt, weights):
     psd *= 2 / np.sum(np.abs(weights) ** 2, axis=-2)
 
     return psd
+
+
+def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
+    """ Compute CSD from tapered spectra
+
+    Parameters
+    ----------
+    x_mt: array
+        Tapered spectra for x
+    y_mt: array
+        Tapered spectra for y
+    weights_x: array
+        Weights used to combine the tapered spectra of x_mt
+    weights_y: array
+        Weights used to combine the tapered spectra of y_mt
+
+    Returns
+    -------
+    psd: array
+        The computed PSD
+    """
+
+    csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
+
+    denom =  np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))\
+             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2))
+
+    csd *= 2 / denom
+
+    return csd
 
 
 def _mt_spectra(x, dpss, sfreq):
