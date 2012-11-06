@@ -308,7 +308,7 @@ class ICA(object):
         ch_info = ica_raw.info['chs'] = []
         for i, e in enumerate(range(self.n_components)):
             ica_raw.info['ch_names'].append('ICA %03d' % (i + 1))
-            ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1., logno=i + 1,
+            ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=0.1, logno=i + 1,
                 coil_type=FIFF.FIFFV_COIL_NONE, kind=FIFF.FIFFV_MISC_CH,
                 coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
                 loc=np.array([0.,  0.,  0.,  1., 0.,  0.,  0.,  1.,
