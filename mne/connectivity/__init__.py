@@ -1,4 +1,5 @@
 """ Connectivity Analysis Tools
 """
 
-from .correlation import pearsonr
+from .coh_est import coherency
+
