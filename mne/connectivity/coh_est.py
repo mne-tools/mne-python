@@ -48,7 +48,7 @@ def coherency(data, idx=None, sfreq=2*np.pi, fmin=0, fmax=np.inf,
 
     This is equivalent, but more efficient, to
 
-    coh = coherenct(data, idx=None, ...)
+    coh = coherency(data, idx=None, ...)
     coh_flat = coh[idx]  # idx defined above
 
     Parameters
@@ -67,8 +67,7 @@ def coherency(data, idx=None, sfreq=2*np.pi, fmin=0, fmax=np.inf,
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz.
     adaptive : bool
-        Use adaptive weights to combine the tapered spectra into PSD
-        (slow, use n_jobs >> 1 to speed up computation).
+        Use adaptive weights to combine the tapered spectra into PSD.
     low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth.
@@ -150,7 +149,7 @@ def coherency(data, idx=None, sfreq=2*np.pi, fmin=0, fmax=np.inf,
         if data_i.shape != (n_signals, n_times):
             raise ValueError('all epochs must have the same shape')
 
-        logger.info('    processing epoch %d' % (epoch_idx + 1))
+        logger.info('    computing coherency for epoch %d' % (epoch_idx + 1))
 
         # compute tapered spectra
         x_mt, _ = _mt_spectra(data_i[sig_idx], dpss, sfreq)
@@ -202,6 +201,73 @@ def coherency(data, idx=None, sfreq=2*np.pi, fmin=0, fmax=np.inf,
         coh[idx_use] = coh_flat
         coh[(idx_use[1], idx_use[0])] = coh_flat.conj()  # reverse connections
 
-    logger.info('[done]')
+    logger.info('[coherency computation done]')
+
+    return coh, freqs, n_epochs, n_tapers
+
+
+@verbose
+def coherence(data, idx=None, sfreq=2*np.pi, fmin=0, fmax=np.inf,
+              bandwidth=None, adaptive=False, low_bias=True,
+              verbose=None):
+
+    """Compute coherence between signals using a multi-taper method.
+
+    The computed coherence is given by
+
+    .. math:: C_{XY}(f) = \frac{\|\langle S_{XY}(f)\rangle\|}
+                               {\sqrt{\langle S_{XX}(f) \rangle
+                                      \langle S_{YY}(f) \rangle}}
+
+    Where the cross spectral density :math:`S_{XY}(f)` and the power
+    spectral densities :math:`S_{XX}(f), S_{YY}(f)` are computed using
+    a multi-taper method. The average :math:`\langle \cdot \rangle` is
+    computed over epochs.
+
+    Note: See coherency for an explanation of the idx parameter.
+
+    Parameters
+    ----------
+    data : array, shape=(n_epochs, n_signals, n_times)
+        The data from which to compute coherency.
+    idx : tuple of arrays | None
+        Two arrays with indices of connections for which to compute
+        connectivity. If None, all connections are computed.
+    sfreq : float
+        The sampling frequency.
+    fmin : float
+        The lower frequency of interest.
+    fmax : float
+        The upper frequency of interest.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    coh : array, shape=(n_signals, n_signals, n_freq) or
+                 shape=(len(idx[0]), n_freq) if idx is not None
+        Computed coherence.
+    freqs : array
+        Frequency points at which the coherence was computed.
+    n_epochs : int
+        Number of epochs used for computation.
+    n_tapers : int
+        The number of DPSS tapers used.
+    """
+
+    coh, freqs, n_epochs, n_tapers = coherency(data, idx=idx, sfreq=sfreq,
+        fmin=fmin, fmax=fmax, bandwidth=bandwidth, adaptive=adaptive,
+        low_bias=low_bias, verbose=verbose)
+
+    # the coherence is simply the magnitude of the coherency
+    coh = np.abs(coh)
 
     return coh, freqs, n_epochs, n_tapers
