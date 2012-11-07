@@ -396,6 +396,13 @@ def label_src_vertno_sel(label, src):
         src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
         vertno[0] = np.array([])
         vertno[1] = vertno_sel
+    elif label.hemi == 'both':
+        vertno_sel_lh = np.intersect1d(vertno[0], label.lh.vertices)
+        src_sel_lh = np.searchsorted(vertno[0], vertno_sel_lh)
+        vertno_sel_rh = np.intersect1d(vertno[1], label.rh.vertices)
+        src_sel_rh = np.searchsorted(vertno[1], vertno_sel_rh) + len(vertno[0])
+        src_sel = np.hstack((src_sel_lh, src_sel_rh))
+        vertno = [vertno_sel_lh, vertno_sel_rh]
     else:
         raise Exception("Unknown hemisphere type")
 
