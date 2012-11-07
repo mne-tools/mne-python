@@ -188,7 +188,7 @@ class Label(dict):
         name1 = other.name if other.name else 'unnamed'
 
         label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
-                      comment="%s\n+\n%s" % (self.comment, other.comment),
+                      comment="%s + %s" % (self.comment, other.comment),
                       name="%s + %s" % (name0, name1))
         return label
 
