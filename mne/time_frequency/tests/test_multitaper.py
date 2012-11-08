@@ -1,10 +1,18 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-import nitime as ni
 
 from mne.time_frequency import dpss_windows, multitaper_psd
 
+try:
+    import nitime as ni
+except ImportError:
+    have_nitime = False
+else:
+    have_nitime = True
+nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
+
+@nitime_test
 def test_dpss_windows():
     """ Test computation of DPSS windows """
 
@@ -25,6 +33,7 @@ def test_dpss_windows():
     assert_array_almost_equal(eigs, eigs_ni)
 
 
+@nitime_test
 def test_multitaper_psd():
     """ Test multi-taper PSD computation """
 

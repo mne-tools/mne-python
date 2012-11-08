@@ -36,13 +36,13 @@ fname_raw = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis_filt-0-40_raw.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis_filt-0-40_raw-eve.fif')
-label = 'Aud-lh'
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label')
 
 inverse_operator = read_inverse_operator(fname_inv)
 inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
 inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-label = read_label(fname_label)
+label_lh = read_label(fname_label % 'Aud-lh')
+label_rh = read_label(fname_label % 'Aud-rh')
 noise_cov = read_cov(fname_cov)
 raw = fiff.Raw(fname_raw)
 snr = 3.0
@@ -172,11 +172,11 @@ def test_apply_mne_inverse_raw():
     _, times = raw[0, start:stop]
     for pick_normal in [False, True]:
         stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
-                                label=label, start=start, stop=stop, nave=1,
+                                label=label_lh, start=start, stop=stop, nave=1,
                                 pick_normal=pick_normal, buffer_size=None)
 
         stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
-                                 label=label, start=start, stop=stop, nave=1,
+                                 label=label_lh, start=start, stop=stop, nave=1,
                                  pick_normal=pick_normal, buffer_size=3)
 
         if not pick_normal:
@@ -201,11 +201,11 @@ def test_apply_mne_inverse_fixed_raw():
                                    loose=None, depth=0.8)
 
     stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
-                            label=label, start=start, stop=stop, nave=1,
+                            label=label_lh, start=start, stop=stop, nave=1,
                             pick_normal=False, buffer_size=None)
 
     stc2 = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
-                             label=label, start=start, stop=stop, nave=1,
+                             label=label_lh, start=start, stop=stop, nave=1,
                              pick_normal=False, buffer_size=3)
 
     assert_array_almost_equal(stc.times, times)
@@ -227,15 +227,25 @@ def test_apply_mne_inverse_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                label=label, pick_normal=True)
+                                label=label_lh, pick_normal=True)
 
     assert_true(len(stcs) == 4)
     assert_true(3 < stcs[0].data.max() < 10)
 
     data = sum(stc.data for stc in stcs) / len(stcs)
-    flip = label_sign_flip(label, inverse_operator['src'])
+    flip = label_sign_flip(label_lh, inverse_operator['src'])
 
     label_mean = np.mean(data, axis=0)
     label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
 
     assert_true(label_mean.max() < label_mean_flip.max())
+
+    # test extracting a BiHemiLabel
+    stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_rh, pick_normal=True)
+    stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                   label=label_lh + label_rh, pick_normal=True)
+
+    n_lh = len(stcs[0].data)
+    assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
+    assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
