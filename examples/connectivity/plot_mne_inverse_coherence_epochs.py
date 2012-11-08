@@ -4,7 +4,7 @@ Compute coherency in source space using a MNE inverse solution
 ==============================================================
 
 This examples computes the coherence between a seed in the left
-auditory corext and the rest of the brain based on single-trial
+auditory cortex and the rest of the brain based on single-trial
 MNE-dSPM inverse soltions.
 
 """
@@ -100,8 +100,9 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 coh, freqs, n_epochs, n_tapers = coherence(data, idx=idx, sfreq=sfreq,
                                            fmin=fmin, fmax=fmax)
 
-# Genrerate a source estimate with the coherence. This is simple since we
+# Generate a source estimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.
+# Note: We use a hack to save the frequency axis as time
 tstep = np.mean(np.diff(freqs)) / 1e3
 coh_stc = mne.SourceEstimate(coh, vertices=stc.vertno,
                              tmin=freqs[0] / 1e3, tstep=tstep)
@@ -114,5 +115,5 @@ pl.xlabel('Frequency (Hz)')
 pl.ylabel('Coherence left-right auditory cortex')
 pl.show()
 
-# We could save the coherence, for visualization using e.g. mne-analyze
+# We could save the coherence, for visualization using e.g. mne_analyze
 #coh_stc.save('seed_coh_vertno_%d' % seed_vertno)
