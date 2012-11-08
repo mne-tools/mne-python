@@ -5,12 +5,21 @@
 
 import os.path as op
 
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from nose.tools import assert_true
 
 from mne.fiff import read_evoked, write_evoked
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
+
+try:
+    import nitime
+except ImportError:
+    have_nitime = False
+else:
+    have_nitime = True
+nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
 def test_io_evoked():
@@ -76,6 +85,7 @@ def test_io_multi_evoked():
         assert_equal(ave.first, ave2.first)
 
 
+@nitime_test
 def test_evoked_to_nitime():
     """ Test to_nitime """
     aves = read_evoked(fname, [0, 1, 2, 3])

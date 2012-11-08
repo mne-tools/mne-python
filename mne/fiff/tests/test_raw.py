@@ -14,6 +14,14 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
 from mne import concatenate_events, find_events
 
+try:
+    import nitime
+except ImportError:
+    have_nitime = False
+else:
+    have_nitime = True
+nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
+
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
@@ -432,6 +440,7 @@ def test_raw_copy():
                  sorted(copied.__dict__.keys()))
 
 
+@nitime_test
 def test_raw_to_nitime():
     """ Test nitime export """
     raw = Raw(fif_fname, preload=True)
