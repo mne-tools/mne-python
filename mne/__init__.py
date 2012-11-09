@@ -15,14 +15,14 @@ from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              read_source_estimate, \
                              SourceEstimate, morph_data, \
                              morph_data_precomputed, compute_morph_matrix, \
-                             grade_to_vertices, \
+                             grade_to_tris, grade_to_vertices, \
                              spatio_temporal_src_connectivity, \
                              spatio_temporal_tris_connectivity, \
                              spatio_temporal_dist_connectivity, \
                              save_stc_as_volume
 from .surface import read_bem_surfaces, read_surface, write_bem_surface
 from .source_space import read_source_spaces, vertex_to_mni
-from .epochs import Epochs
+from .epochs import Epochs, equalize_epoch_counts
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
                    BiHemiLabel

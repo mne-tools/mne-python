@@ -34,6 +34,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            write_source_spaces, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
+from ..parallel import parallel_func
 from .. import verbose
 
 
@@ -405,7 +406,7 @@ def combine_xyz(vec, square=False):
     return comb
 
 
-def _chech_ch_names(inv, info):
+def _check_ch_names(inv, info):
     """Check that channels in inverse operator are measurements"""
 
     inv_ch_names = inv['eigen_fields']['col_names']
@@ -653,6 +654,27 @@ def _check_method(method, dSPM):
     return method
 
 
+def _prepare_and_assemble(inverse_operator, nave, lambda2, method, ch_names,
+                          info, label, pick_normal, dSPM):
+    """Set up the inverse according to the parameters and pick channels"""
+    method = _check_method(method, dSPM)
+    _check_ch_names(inverse_operator, info)
+    #
+    #   Set up the inverse according to the parameters
+    #
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+                   and not pick_normal)
+    return sel, K, noise_norm, vertno, is_free_ori
+
+
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                   pick_normal=False, dSPM=None, verbose=None):
@@ -684,41 +706,15 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     stc: SourceEstimate
         The source estimates
     """
-    method = _check_method(method, dSPM)
-    #
-    #   Set up the inverse according to the parameters
-    #
-    nave = evoked.nave
-
-    _chech_ch_names(inverse_operator, evoked.info)
-
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
-    sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
-
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
-
-    if is_free_ori:
-        logger.info('combining the current components...')
-        sol = combine_xyz(sol)
-
-    if noise_norm is not None:
-        logger.info('(dSPM)...')
-        sol *= noise_norm
-
+    # Set up the inverse according to the parameters and pick channels
+    sel, K, noise_norm, vertno, is_free_ori = _prepare_and_assemble(
+               inverse_operator, evoked.nave, lambda2, method, evoked.ch_names,
+               evoked.info, None, pick_normal, dSPM)
+    sol = _apply_inverse(evoked.data[sel], K, is_free_ori, noise_norm)
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
-    vertno = _get_vertno(inv['src'])
     stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
     logger.info('[done]')
-
     return stc
 
 
@@ -774,30 +770,15 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     stc : SourceEstimate
         The source estimates.
     """
-    method = _check_method(method, dSPM)
-
-    _chech_ch_names(inverse_operator, raw.info)
-
-    #
-    #   Set up the inverse according to the parameters
-    #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(raw.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
+    # Set up the inverse according to the parameters and pick channels
+    sel, K, noise_norm, vertno, is_free_ori = _prepare_and_assemble(
+               inverse_operator, nave, lambda2, method, raw.ch_names, raw.info,
+               label, pick_normal, dSPM)
 
     data, times = raw[sel, start:stop]
 
     if time_func is not None:
         data = time_func(data)
-
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
-
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -812,18 +793,13 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
         for pos in xrange(0, n_times, buffer_size):
             sol[:, pos:pos + buffer_size] = \
-                combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
+                _apply_inverse(data[:, pos:pos + buffer_size], K, is_free_ori,
+                               noise_norm)
 
             logger.info('segment %d / %d done..'
                         % (pos / buffer_size + 1, n_seg))
     else:
-        sol = np.dot(K, data)
-        if is_free_ori:
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-
-    if noise_norm is not None:
-        sol *= noise_norm
+        sol = _apply_inverse(data, K, is_free_ori, noise_norm)
 
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
@@ -836,7 +812,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_normal=False, dSPM=None,
-                         verbose=None):
+                         n_jobs=1, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -861,6 +837,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    n_jobs : int
+        Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -869,45 +847,40 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stc : list of SourceEstimate
         The source estimates for all epochs.
     """
-    method = _check_method(method, dSPM)
-
-    _chech_ch_names(inverse_operator, epochs.info)
-
-    #
-    #   Set up the inverse according to the parameters
-    #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
-
+    # Set up the inverse according to the parameters and pick channels
+    sel, K, noise_norm, vertno, is_free_ori = _prepare_and_assemble(
+        inverse_operator, nave, lambda2, method, epochs.ch_names, epochs.info,
+        label, pick_normal, dSPM)
     stcs = list()
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
-
-    for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d" % (k + 1))
-        sol = np.dot(K, e[sel])  # apply imaging kernel
-
-        if is_free_ori:
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-
-        if noise_norm is not None:
-            sol *= noise_norm
-
-        stcs.append(SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep))
-
+    logger.info('Processing epochs...')
+    parallel, my_apply_inverse, _ = parallel_func(_apply_inverse, n_jobs)
+    sols = parallel(my_apply_inverse(e, K, is_free_ori, noise_norm, sel)
+                    for e in epochs)
+    stcs = [SourceEstimate(s, vertices=vertno, tmin=tmin, tstep=tstep)
+            for s in sols]
     logger.info('[done]')
 
     return stcs
+
+
+def _apply_inverse(e, K, is_free_ori, noise_norm, sel=None):
+    """Actually apply an inverse"""
+    # apply imaging kernel
+    if sel is None:
+        sol = np.dot(K, e)
+    else:
+        sol = np.dot(K, e[sel])
+
+    if is_free_ori:
+        sol = combine_xyz(sol)
+
+    if noise_norm is not None:
+        sol *= noise_norm
+
+    return sol
 
 
 def _xyz2lf(Lf_xyz, normals):
