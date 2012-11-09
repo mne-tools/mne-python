@@ -58,6 +58,7 @@ Functions reference
    write_bem_surface
    read_source_spaces
    vertex_to_mni
+   equalize_epoch_counts
    read_stc
    write_stc
    read_w
@@ -66,6 +67,7 @@ Functions reference
    morph_data
    morph_data_precomputed
    compute_morph_matrix
+   grade_to_tris
    grade_to_vertices
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity

@@ -15,6 +15,7 @@ import warnings
 import logging
 logger = logging.getLogger('mne')
 
+from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from . import verbose
@@ -377,7 +378,6 @@ class SourceEstimate(object):
         self.data = data
         self.tmin = tmin
         self.tstep = tstep
-        self.times = tmin + (tstep * np.arange(data.shape[1]))
         self.vertno = vertices
         self.verbose = verbose
 
@@ -461,6 +461,28 @@ class SourceEstimate(object):
         self.data = self.data[:, mask]
         self.tmin = self.times[0]
 
+    def resample(self, sfreq, npad=100, window='boxcar'):
+        """Resample data
+
+        Parameters
+        ----------
+        sfreq : float
+            New sample rate to use.
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+
+        Notes
+        -----
+        Note that the sample rate of the original data is inferred from tstep.
+        """
+        o_sfreq = 1.0 / self.tstep
+        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        # adjust indirectly affected variables
+        self.tstep = 1.0 / sfreq
+
     @property
     def lh_data(self):
         return self.data[:len(self.lh_vertno)]
@@ -472,6 +494,10 @@ class SourceEstimate(object):
     @property
     def lh_vertno(self):
         return self.vertno[0]
+
+    @property
+    def times(self):
+        return self.tmin + (self.tstep * np.arange(self.data.shape[1]))
 
     @property
     def rh_vertno(self):
@@ -1102,7 +1128,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, verbose=None):
+                         smooth=None, subjects_dir=None, dense=False,
+                         verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -1121,6 +1148,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    dense : bool
+        If True, the matrix returned will be dense (instead of sparse).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1147,7 +1176,10 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
                                       vertices_to[hemi], maps[hemi])
-    return sparse_block_diag(morpher, format='csr')
+    morpher = sparse_block_diag(morpher, format='csr')
+    if dense:
+        morpher = morpher.todense()
+    return morpher
 
 
 @verbose
@@ -1296,6 +1328,25 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         return spatio_temporal_tris_connectivity(tris, n_times)
     else:  # use distances computed and saved in the source space file
         return spatio_temporal_dist_connectivity(src, n_times, dist)
+
+
+def grade_to_tris(grade):
+    """Get tris defined for a certain grade
+
+    Parameters
+    ----------
+    grade : int
+        Grade of an icosehedral mesh.
+
+    Returns
+    -------
+    tris : list
+        2-element list containing Nx3 arrays of tris, suitable for use in
+        spatio_temporal_tris_connectivity.
+    """
+    a = _get_ico_tris(grade)
+    tris = np.concatenate((a, a + np.max(a) + 1))
+    return tris
 
 
 @verbose

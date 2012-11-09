@@ -249,6 +249,23 @@ class Epochs(object):
         self._get_data_from_disk(out=False)
 
     @verbose
+    def drop_epochs(self, mask, verbose=None):
+        """Drop epochs based on boolean mask
+
+        Parameters
+        ----------
+        mask : boolean array
+            Set epochs to remove (with corresponding events) to False.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to raw.verbose.
+        """
+        self.events = self.events[mask]
+        if(self.preload):
+            self._data = self._data[mask]
+        logger.info('Dropped %d epoch(s)' % np.sum(mask))
+
+    @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
         """Load one epoch from disk"""
         sfreq = self.raw.info['sfreq']
@@ -667,6 +684,41 @@ class Epochs(object):
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 
         return epochs_ts
+
+
+@verbose
+def equalize_epoch_counts(*args):
+    """Equalize the number of trials in multiple Epoch instances
+
+    Note that this operates on the Epochs instances in-place. It chooses the
+    epochs to eliminate by minimizing the differences in timing between Epochs
+    instances with more trials and the Epochs instance with the fewest trials.
+
+    Parameters
+    ----------
+    e1, e2, ... : sequence of Epochs instances
+        The Epochs instances to equalize trial counts for
+    """
+    epochs_list = args
+    if not all([isinstance(e, Epochs) for e in epochs_list]):
+        raise ValueError('All inputs must be Epochs instances')
+    if not all([e._bad_dropped for e in epochs_list]):
+        warnings.warn('Some epochs instances have not had bad epochs dropped!')
+
+    lengths = [e.events.shape[0] for e in epochs_list]
+    small_idx = np.argmin(lengths)
+    small_e_times = epochs_list[small_idx].events[:, 2]
+    out_count = lengths[small_idx]
+    for e, l in zip(epochs_list, lengths):
+        # XXX FOR NOW, JUST USE FIRST N
+        to_eliminate = l - out_count
+        if to_eliminate:
+            keep = np.ones((l), dtype=bool)
+            keep[out_count:] = False
+            e.drop_epochs(keep)
+            # Minimize the timing differences between events
+            # event_times = e.events[:, 2]
+            # Figure out the smallest one to remove (brute force it)
 
 
 @verbose
