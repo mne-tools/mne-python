@@ -17,7 +17,7 @@ permutation test across space and time.
 print __doc__
 
 import mne
-from mne import fiff, spatio_temporal_tris_connectivity, morph_data, \
+from mne import fiff, spatio_temporal_tris_connectivity, compute_morph_matrix,\
                 grade_to_tris, equalize_epoch_counts, SourceEstimate
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
@@ -42,12 +42,12 @@ events = mne.read_events(event_fname)
 ###############################################################################
 # Read epochs for the channel of interest
 picks = fiff.pick_types(raw.info, meg=True, eog=True)
-event_id = 1
+event_id = 1  # L auditory
 reject = dict(grad=4000e-13, eog=150e-6)
 epochs1 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                      baseline=(None, 0), reject=reject, preload=True)
 
-event_id = 2
+event_id = 3  # R visual
 epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                      baseline=(None, 0), reject=reject, preload=True)
 
@@ -73,22 +73,15 @@ evoked2 = epochs2.average()
 evoked2.resample(100)
 condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 
-#    We only really care about t > 0, so crop to reduce multiple comparisons
-condition1.crop(0, None)
-condition2.crop(0, None)
+#    Let's only deal with 0 < t 0.4, cropping to reduce multiple comparisons
+condition1.crop(0, 0.4)
+condition2.crop(0, 0.4)
 tmin = condition1.tmin
 tstep = condition1.tstep
+times = condition1.times
 
 ###############################################################################
 # Transform to common cortical space
-
-#    For visualization purposes, let's morph these to fsaverage, which is a
-#    grade 5 source space with vertices 0:10242 for each hemisphere
-fsave_vertices = [np.arange(10242), np.arange(10242)]
-condition1 = morph_data('sample', 'fsaverage', condition1, fsave_vertices,
-                        5, op.join(data_path, 'subjects'))
-condition2 = morph_data('sample', 'fsaverage', condition1, fsave_vertices,
-                        5, op.join(data_path, 'subjects'))
 
 #    Normally you would read in estimates across several subjects on the same
 #    cortical space (e.g. fsaverage), but we'll just simulate that each subject
@@ -96,7 +89,7 @@ condition2 = morph_data('sample', 'fsaverage', condition1, fsave_vertices,
 condition1 = condition1.data
 condition2 = condition2.data
 n_simulate = 8
-noise_level = 10  # this is a reasonable choice here
+noise_level = 3  # this is a reasonable choice here
 X1 = randn(condition1.shape[0], condition1.shape[1], n_simulate) * noise_level
 X2 = randn(condition2.shape[0], condition2.shape[1], n_simulate) * noise_level
 for ri in range(n_simulate):
@@ -104,6 +97,23 @@ for ri in range(n_simulate):
     X2[:, :, ri] += condition2
 del condition1
 del condition2
+
+#    It's a good idea to spatially smooth the data, and for visualization
+#    purposes, let's morph these to fsaverage, which is a grade 5 source space
+#    with vertices 0:10242 for each hemisphere. Usually you'd have to morph
+#    each subject's data separately (and you might want to use morph_data
+#    instead), but here since all estimates are on 'sample'we can use one
+#    morph matix for all the heavy lifting.
+fsave_vertices = [np.arange(10242), np.arange(10242)]
+morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
+                                 fsave_vertices, 20,
+                                 op.join(data_path, 'subjects'), array=True
+#    We have to swap axes for the dot() to work properly
+X1 = np.swapaxes(X1, 0, 1)
+X2 = np.swapaxes(X2, 0, 1)
+X1 = np.dot(morph_mat, X1)
+X2 = np.dot(morph_mat, X2)
+raise ValueError('me')
 
 #    We want to compare the overall activity levels in each condition
 X = abs(X1) - abs(X2)
@@ -123,9 +133,9 @@ X = np.transpose(X, [2, 0, 1])
 
 #    Now let's actually do the clustering (can be slow!), making it faster here
 #    by being more conservative for which points to cluster (higher threshold)
-threshold = -spstats.distributions.t.ppf(0.01, n_simulate)
+threshold = np.inf  # -spstats.distributions.t.ppf(0.001, n_simulate)
 T_obs, clusters, cluster_p_values, H0 = \
-    spatio_temporal_cluster_1samp_test(X[:, :, :5], connectivity=connectivity, n_jobs=2,
+    spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
                                        n_permutations=1, threshold=threshold,
                                        check_disjoint=True)
 
