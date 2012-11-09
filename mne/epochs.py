@@ -686,39 +686,53 @@ class Epochs(object):
         return epochs_ts
 
 
-@verbose
 def equalize_epoch_counts(*args):
     """Equalize the number of trials in multiple Epoch instances
 
     Note that this operates on the Epochs instances in-place. It chooses the
     epochs to eliminate by minimizing the differences in timing between Epochs
     instances with more trials and the Epochs instance with the fewest trials.
+    This function will also call drop_bad_epochs() on any epochs instance that
+    hasn't yet had bad epochs dropped.
 
     Parameters
     ----------
     e1, e2, ... : sequence of Epochs instances
-        The Epochs instances to equalize trial counts for
+        The Epochs instances to equalize trial counts for.
     """
     epochs_list = args
     if not all([isinstance(e, Epochs) for e in epochs_list]):
         raise ValueError('All inputs must be Epochs instances')
-    if not all([e._bad_dropped for e in epochs_list]):
-        warnings.warn('Some epochs instances have not had bad epochs dropped!')
+    # make sure bad epochs are dropped
+    [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
 
-    lengths = [e.events.shape[0] for e in epochs_list]
-    small_idx = np.argmin(lengths)
+    small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
     small_e_times = epochs_list[small_idx].events[:, 2]
-    out_count = lengths[small_idx]
-    for e, l in zip(epochs_list, lengths):
-        # XXX FOR NOW, JUST USE FIRST N
-        to_eliminate = l - out_count
-        if to_eliminate:
-            keep = np.ones((l), dtype=bool)
-            keep[out_count:] = False
-            e.drop_epochs(keep)
-            # Minimize the timing differences between events
-            # event_times = e.events[:, 2]
-            # Figure out the smallest one to remove (brute force it)
+    for e in epochs_list:
+        e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 2]))
+
+
+def _minimize_time_diff(t_shorter, t_longer):
+    """Find a boolean mask to minimize timing differences"""
+    keep = np.ones((len(t_longer)), dtype=bool)
+    scores = np.ones((len(t_longer)))
+    for iter in range(len(t_longer) - len(t_shorter)):
+        scores[:] = np.inf
+        # Check every possible remvoval to see if it minimizes
+        for idx in np.where(keep)[0]:
+            keep[idx] = False
+            scores[idx] = _area_between_times(t_shorter, t_longer[keep])
+            keep[idx] = True
+        keep[np.argmin(scores)] = False
+    return keep
+
+
+def _area_between_times(t1, t2):
+    """Quantify the difference between two timing sets"""
+    x1 = range(len(t1))
+    x2 = range(len(t2))
+    xs = np.concatenate((x1, x2))
+    return np.sum(np.abs(np.interp(xs, x1, t1) - np.interp(xs, x2, t2)))
 
 
 @verbose

@@ -290,7 +290,8 @@ def read_source_estimate(fname):
         elif any(stc_exist) or any(w_exist):
             raise IOError("Hemisphere missing for %r" % fname_arg)
         else:
-            raise IOError("SourceEstimate File(s) not found for: %r" % fname_arg)
+            raise IOError("SourceEstimate File(s) not found for: %r"
+                          % fname_arg)
 
     # read the files
     if ftype == 'volume':  # volume source space
@@ -375,6 +376,12 @@ class SourceEstimate(object):
             tstep = se.tstep
             vertices = se.vertno
 
+        if isinstance(vertices, list):
+            if not len(vertices) == 2 or \
+                    not all([isinstance(v, np.ndarray) for v in vertices]):
+                raise ValueError('Vertices, if a list, must contain two numpy'
+                                 'arrays')
+
         self.data = data
         self.tmin = tmin
         self.tstep = tstep
@@ -411,7 +418,7 @@ class SourceEstimate(object):
                 write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
                           vertices=self.lh_vertno, data=lh_data)
                 write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
-                           vertices=self.rh_vertno, data=rh_data)
+                          vertices=self.rh_vertno, data=rh_data)
             elif ftype == 'w':
                 if self.data.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
@@ -431,7 +438,7 @@ class SourceEstimate(object):
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
             write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                           vertices=self.vertno[0], data=self.data)
+                      vertices=self.vertno[0], data=self.data)
         logger.info('[done]')
 
     def __repr__(self):
@@ -457,7 +464,6 @@ class SourceEstimate(object):
             mask = mask & (self.times >= tmin)
         if tmax is not None:
             mask = mask & (self.times <= tmax)
-        self.times = self.times[mask]
         self.data = self.data[:, mask]
         self.tmin = self.times[0]
 
@@ -787,8 +793,8 @@ class SourceEstimate(object):
         c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
 
         # Find the vertex closest to the COM
-        vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] - \
-            c_o_m) ** 2, axis=1)))
+        vertex = np.argmin(np.sqrt(np.mean((surf[0][restrict_vertices, :] -
+                                            c_o_m) ** 2, axis=1)))
         vertex = restrict_vertices[vertex]
 
         # do time center of mass by using the values across space
@@ -894,14 +900,11 @@ def mesh_edges(tris):
         The adjacency matrix
     """
     npoints = np.max(tris) + 1
-    ntris = len(tris)
+    ones_ntris = np.ones(len(tris))
     a, b, c = tris.T
-    edges = sparse.coo_matrix((np.ones(ntris), (a, b)),
-                                            shape=(npoints, npoints))
-    edges = edges + sparse.coo_matrix((np.ones(ntris), (b, c)),
-                                            shape=(npoints, npoints))
-    edges = edges + sparse.coo_matrix((np.ones(ntris), (c, a)),
-                                            shape=(npoints, npoints))
+    edges = coo_matrix((ones_ntris, (a, b)), shape=(npoints, npoints))
+    edges = edges + coo_matrix((ones_ntris, (b, c)), shape=(npoints, npoints))
+    edges = edges + coo_matrix((ones_ntris, (c, a)), shape=(npoints, npoints))
     edges = edges.tocsr()
     edges = edges + edges.T
     return edges
@@ -1465,8 +1468,8 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),
                    dtype=np.int)
-    connectivity = sparse.coo_matrix((data, (row, col)),
-                                     shape=(n_times * n_vertices, ) * 2)
+    connectivity = coo_matrix((data, (row, col)),
+                              shape=(n_times * n_vertices, ) * 2)
     return connectivity
 
 
