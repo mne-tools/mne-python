@@ -462,10 +462,10 @@ class SourceEstimate(object):
         mask = np.ones(len(self.times), dtype=np.bool)
         if tmin is not None:
             mask = mask & (self.times >= tmin)
+            self.tmin = tmin
         if tmax is not None:
             mask = mask & (self.times <= tmax)
         self.data = self.data[:, mask]
-        self.tmin = self.times[0]
 
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample data
@@ -1131,7 +1131,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, dense=False,
+                         smooth=None, subjects_dir=None, array=False,
                          verbose=None):
     """Get a matrix that morphs data from one subject to another
 
@@ -1151,8 +1151,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
-    dense : bool
-        If True, the matrix returned will be dense (instead of sparse).
+    array : bool
+        If True, the a dense array will be returned (instead of sparse matrix).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1180,8 +1180,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
                                       vertices_to[hemi], maps[hemi])
     morpher = sparse_block_diag(morpher, format='csr')
-    if dense:
-        morpher = morpher.todense()
+    if array:
+        morpher = morpher.toarray()
     return morpher
 
 
