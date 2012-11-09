@@ -84,7 +84,7 @@ tstep = condition1.tstep
 
 #    For visualization purposes, let's morph these to fsaverage, which is a
 #    grade 5 source space with vertices 0:10242 for each hemisphere
-fsave_vertices = [range(10242), range(10242)]
+fsave_vertices = [np.arange(10242), np.arange(10242)]
 condition1 = morph_data('sample', 'fsaverage', condition1, fsave_vertices,
                         5, op.join(data_path, 'subjects'))
 condition2 = morph_data('sample', 'fsaverage', condition1, fsave_vertices,
