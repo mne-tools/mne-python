@@ -22,7 +22,7 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.minimum_norm import apply_inverse, apply_inverse_epochs,\
                              read_inverse_operator
-from mne.connectivity import idx_seed_con, coherence
+from mne.connectivity import idx_seed_con, coherence, freq_connectivity
 
 
 data_path = sample.data_path('..')
@@ -85,20 +85,37 @@ lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_normal=True, return_generator=True)
 
-# We need a function to extract the data from the stc, so we can pass it to the
-# coherence function (Note: This returns a generator for stream processing).
-def get_stc_data(stcs):
-    for stc in stcs:
-        yield stc.data
-
-data = get_stc_data(stcs)
-
 # Now we are ready to compute the coherence
 fmin, fmax = 1.0, 30
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-coh, freqs, n_epochs, n_tapers = coherence(data, idx=idx, sfreq=sfreq,
-                                           fmin=fmin, fmax=fmax)
+# test: custom connectivity method that computes the phase histogram
+def _hist_con(csd_xy):
+    # compute phase angle 0..2pi and quantize it
+    angle = np.angle(csd_xy) + np.pi
+    n_bins = 20
+    hist = np.zeros((len(csd_xy), n_bins))
+    for i in xrange(len(csd_xy)):
+        bin_idx = int(min(np.floor(angle[i] * n_bins / (2 * np.pi)),
+                          n_bins - 1))
+        hist[i, bin_idx] += 1
+
+    return hist
+
+
+def _hist_norm(hist, psd_xx, psd_yy, n_epochs):
+    # Do nothing
+    return hist
+
+my_phase_method = (_hist_con, _hist_norm)
+
+con, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
+                                                   method=('coh', 'pli', my_phase_method),
+                                                   idx=idx, sfreq=sfreq,
+                                                   fmin=fmin, fmax=fmax)
+
+# only get the coherence
+coh = np.abs(con[0])
 
 # Generate a source estimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.
@@ -116,4 +133,4 @@ pl.ylabel('Coherence left-right auditory cortex')
 pl.show()
 
 # We could save the coherence, for visualization using e.g. mne_analyze
-#coh_stc.save('seed_coh_vertno_%d' % seed_vertno)
+coh_stc.save('seed_coh_vertno_%d' % seed_vertno)
