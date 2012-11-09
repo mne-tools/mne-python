@@ -665,6 +665,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     if X.ndim == 1:
         X = X[:, np.newaxis]
     n_samples = X.shape[0]
+    n_times = X.shape[1]
 
     # flatten the last dimensions if data is high dimensional
     sample_shape = X.shape[1:]
@@ -676,8 +677,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
             connectivity = connectivity.tocoo()
             n_times = None
         else:  # use temporal adjacency algorithm
-            n_times = X.shape[1] / float(connectivity.shape[0])
-            if not round(n_times) == n_times:
+            if not round(X.shape[1] / float(connectivity.shape[0])) == n_times:
                 raise ValueError('connectivity must be of the correct size')
             # we claim to only use upper triangular part... not true here
             connectivity = (connectivity + connectivity.transpose()).tocsr()

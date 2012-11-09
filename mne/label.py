@@ -224,9 +224,9 @@ class Label(dict):
         """
 
         if self.hemi == 'lh':
-            vertices = [self.vertices, []]
+            vertices = [self.vertices, np.array([])]
         else:
-            vertices = [[], self.vertices]
+            vertices = [np.array([]), self.vertices]
         data = self.values[:, np.newaxis]
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1)
         stc = morph_data(subject, subject, stc, grade=grade, smooth=smooth,
