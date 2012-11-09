@@ -685,18 +685,18 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             if len(idx) > 0:
                 e_idx = e[idx]
                 deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                idx_max_delta = np.argmax(deltas)
-                delta = deltas[idx_max_delta]
-                if delta > thresh:
-                    ch_name = ch_names[idx[idx_max_delta]]
+                idx_deltas = np.where(deltas > thresh)[0]
+
+                if any(idx_deltas):
+                    ch_name = [ch_names[idx[i]] for i in idx_deltas]
                     if (not has_printed):
-                        logger.info('    Rejecting epoch based on %s : %s (%s '
-                                    '> %s).' % (name, ch_name, delta, thresh))
+                        logger.info('    Rejecting epoch based on %s : %s'
+                                    % (name, ch_name))
                         has_printed = True
                     if not full_report:
                         return False
                     else:
-                        bad_list.append(ch_name)
+                        bad_list.extend(ch_name)
 
     if flat is not None:
         for key, thresh in flat.iteritems():
