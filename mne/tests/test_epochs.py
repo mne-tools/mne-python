@@ -12,6 +12,15 @@ import copy as cp
 from mne import fiff, Epochs, read_events, pick_events
 from mne.epochs import bootstrap
 
+try:
+    import nitime
+except ImportError:
+    have_nitime = False
+else:
+    have_nitime = True
+nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
+
+
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test_raw.fif')
 event_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
@@ -299,6 +308,7 @@ def test_epochs_copy():
     assert_array_equal(data, copied_data)
 
 
+@nitime_test
 def test_epochs_to_nitime():
     """Test test_to_nitime
     """
