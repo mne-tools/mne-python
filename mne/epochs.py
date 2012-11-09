@@ -716,9 +716,9 @@ def equalize_epoch_counts(*args):
     [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
 
     small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
-    small_e_times = epochs_list[small_idx].events[:, 2]
+    small_e_times = epochs_list[small_idx].events[:, 0]
     for e in epochs_list:
-        e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 2]))
+        e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 0]))
 
 
 def _minimize_time_diff(t_shorter, t_longer):
