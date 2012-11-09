@@ -9,7 +9,8 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 import copy as cp
 
-from mne import fiff, Epochs, read_events, pick_events
+from mne import fiff, Epochs, read_events, pick_events, \
+                equalize_epoch_counts
 from mne.epochs import bootstrap
 
 try:
@@ -29,6 +30,7 @@ evoked_nf_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
+event_id_2 = 2
 raw = fiff.Raw(raw_fname)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
@@ -333,3 +335,12 @@ def test_epochs_to_nitime():
     epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
                                  collapse=False, copy=False)
     assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks2])
+
+
+def test_epoch_eq():
+    """Test epoch count equalization"""
+    epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
+    epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    assert_true(not epochs_1.events.shape[0] == epochs_2.events.shape[0])
+    equalize_epoch_counts(epochs_1, epochs_2)
+    assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])

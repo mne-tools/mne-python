@@ -249,21 +249,30 @@ class Epochs(object):
         self._get_data_from_disk(out=False)
 
     @verbose
-    def drop_epochs(self, mask, verbose=None):
+    def drop_epochs(self, indices, verbose=None):
         """Drop epochs based on boolean mask
 
         Parameters
         ----------
-        mask : boolean array
-            Set epochs to remove (with corresponding events) to False.
+        indices : array of ints or bools
+            Set epochs to keep using indices, or set epochs to remove by using
+            a boolean mask with False elements. Events are correspondingly
+            modified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
-        self.events = self.events[mask]
+        if not isinstance(indices, np.ndarray):
+            raise ValueError('indices must be a numpy array')
+        if indices.dtype == np.dtype(bool) and \
+                not indices.size == self.events.shape[0]:
+            raise ValueError('boolean mask must match events size')
+        self.events = self.events[indices]
         if(self.preload):
-            self._data = self._data[mask]
-        logger.info('Dropped %d epoch(s)' % np.sum(mask))
+            self._data = self._data[indices]
+        count = np.sum(indices) if indices.dtype == np.dtype(bool) \
+                                else len(indices)
+        logger.info('Dropped %d epoch(s)' % count)
 
     @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
