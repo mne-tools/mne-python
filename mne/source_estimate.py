@@ -325,16 +325,16 @@ class SourceEstimate(object):
     Parameters
     ----------
     data : array of shape [n_dipoles x n_times]
-        The data in source space
+        The data in source space.
 
     vertices : array | list of two arrays
-        vertex number corresponding to the data
+        Vertex numbers corresponding to the data.
 
     tmin : scalar
-        time point of the first sample in data
+        Time point of the first sample in data.
 
     tstep : scalar
-        time step between successive samples in data
+        Time step between successive samples in data.
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -349,13 +349,13 @@ class SourceEstimate(object):
     Attributes
     ----------
     data : array of shape [n_dipoles x n_times]
-        The data in source space
+        The data in source space.
 
     times : array of shape [n_times]
-        The time vector
+        The time vector.
 
     vertno : list of array of shape [n_dipoles in each source space]
-        The indices of the dipoles in the different source spaces
+        The indices of the dipoles in the different source spaces.
 
     """
     @verbose
@@ -377,10 +377,10 @@ class SourceEstimate(object):
             vertices = se.vertno
 
         if isinstance(vertices, list):
-            if not len(vertices) == 2 or \
+            if not (len(vertices) == 2 or len(vertices) == 1) or \
                     not all([isinstance(v, np.ndarray) for v in vertices]):
-                raise ValueError('Vertices, if a list, must contain two numpy'
-                                 'arrays')
+                raise ValueError('Vertices, if a list, must contain one or '
+                                 'two numpy arrays')
 
         self.data = data
         self.tmin = tmin
@@ -460,11 +460,11 @@ class SourceEstimate(object):
             The last time point in seconds. If None the last present is used.
         """
         mask = np.ones(len(self.times), dtype=np.bool)
+        if tmax is not None:
+            mask = mask & (self.times <= tmax)
         if tmin is not None:
             mask = mask & (self.times >= tmin)
             self.tmin = tmin
-        if tmax is not None:
-            mask = mask & (self.times <= tmax)
         self.data = self.data[:, mask]
 
     def resample(self, sfreq, npad=100, window='boxcar'):
@@ -1058,7 +1058,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         If None, smooth is automatically defined to fill the surface
         with non-zero values.
     subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment
+        Path to SUBJECTS_DIR if it is not set in the environment.
     buffer_size : int
         Morph data in chunks of `buffer_size` time instants.
         Saves memory when morphing long time intervals.
@@ -1333,7 +1333,8 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         return spatio_temporal_dist_connectivity(src, n_times, dist)
 
 
-def grade_to_tris(grade):
+@verbose
+def grade_to_tris(grade, mne_root=None, verbose=None):
     """Get tris defined for a certain grade
 
     Parameters
@@ -1341,13 +1342,20 @@ def grade_to_tris(grade):
     grade : int
         Grade of an icosehedral mesh.
 
+    mne_root : str, or None
+        Root directory for mne (needed to find icos.fif). If None, MNE_ROOT
+        environment variable is used.
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     tris : list
         2-element list containing Nx3 arrays of tris, suitable for use in
         spatio_temporal_tris_connectivity.
     """
-    a = _get_ico_tris(grade)
+    a = _get_ico_tris(grade, None, False, mne_root)
     tris = np.concatenate((a, a + np.max(a) + 1))
     return tris
 
