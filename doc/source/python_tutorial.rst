@@ -26,7 +26,7 @@ What you can do with MNE Python
     - **Linear inverse solvers** (dSPM, MNE)
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
-    - **Non-parametric statistics** in time, space and frequency (including with cluster-level)
+    - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
 
 .. note:: Package based on the FIF file format from Neuromag but can work with CTF and 4D after conversion to FIF.
@@ -194,7 +194,7 @@ Get single epochs:
     >>> epochs_data = epochs.get_data() # doctest: +ELLIPSIS
     Reading ...
     >>> print epochs_data.shape
-    (71, 365, 106)
+    (55, 365, 106)
 
 epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time instants).
 
@@ -208,7 +208,7 @@ Compute evoked responses by averaging and plot it:
     >>> evoked = epochs.average() # doctest: +ELLIPSIS
     Reading ...
     >>> print evoked
-    Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 71, n_channels x n_times : 364 x 106)
+    Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106)
     >>> from mne.viz import plot_evoked
     >>> plot_evoked(evoked) # doctest:+SKIP
 
@@ -295,7 +295,7 @@ Compute the inverse solution:
 
     >>> stc = apply_inverse(evoked, inverse_operator, lambda2, method)
     Preparing the inverse operator for use...
-        Scaled noise and source covariance from nave = 1 to nave = 71
+        Scaled noise and source covariance from nave = 1 to nave = 55
         Created the regularized inverter
         Created an SSP operator (subspace dimension = 3)
         Created the whitener using a full noise covariance matrix (3 small eigenvalues omitted)
@@ -304,6 +304,8 @@ Compute the inverse solution:
     Picked 305 channels from the data
     Computing inverse...
     (eigenleads need to be weighted)...
+    combining the current components...
+    (dSPM)...
     [done]
 
 Save the source time courses to disk:
@@ -331,9 +333,10 @@ Compute inverse solution during the first 15s:
     [done]
     Picked 305 channels from the data
     Computing inverse...
-    (eigenleads need to be weighted)...
     Reading 0 ... 2251  =      0.000 ...    14.991 secs...
     [done]
+    (eigenleads need to be weighted)...
+    combining the current components...
     [done]
 
 Save result in stc files:

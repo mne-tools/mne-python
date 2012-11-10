@@ -69,6 +69,9 @@ Functions reference
    compute_morph_matrix
    grade_to_tris
    grade_to_vertices
+   spatial_src_connectivity
+   spatial_tris_connectivity
+   spatial_dist_connectivity
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity
