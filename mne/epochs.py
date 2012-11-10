@@ -135,9 +135,9 @@ class Epochs(object):
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True,
-                verbose=None):
+                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
+                 preload=False, reject=None, flat=None, proj=True,
+                 verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -183,7 +183,7 @@ class Epochs(object):
 
         if current_comp != dest_comp:
             raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
-                                                 dest_comp)
+                                                    dest_comp)
             logger.info('Appropriate compensator added to change to '
                         'grade %d.' % (dest_comp))
 
@@ -255,23 +255,32 @@ class Epochs(object):
         Parameters
         ----------
         indices : array of ints or bools
-            Set epochs to keep using indices, or set epochs to remove by using
-            a boolean mask with False elements. Events are correspondingly
-            modified.
+            Set epochs to remove using indices, or set epochs to remove by
+            using a boolean mask (removs False elements). Events are
+            correspondingly modified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
         if not isinstance(indices, np.ndarray):
-            raise ValueError('indices must be a numpy array')
-        if indices.dtype == np.dtype(bool) and \
-                not indices.size == self.events.shape[0]:
-            raise ValueError('boolean mask must match events size')
-        self.events = self.events[indices]
-        if(self.preload):
-            self._data = self._data[indices]
-        count = np.sum(indices) if indices.dtype == np.dtype(bool) \
-                                else len(indices)
+            indices = np.asarray(indices)
+        if indices.dtype == np.dtype(bool):
+            is_bool = True
+            if indices.size != len(self.events):
+                raise ValueError('boolean mask must match events size')
+        else:
+            is_bool = False
+
+        if is_bool:
+            self.events = self.events[indices]
+            if(self.preload):
+                self._data = self._data[indices]
+            count = len(indices) - np.sum(indices)
+        else:
+            self.events = np.delete(self.events, indices, axis=0)
+            if(self.preload):
+                self._data = np.delete(self._data, indices, axis=0)
+            count = len(indices)
         logger.info('Dropped %d epoch(s)' % count)
 
     @verbose
@@ -387,7 +396,7 @@ class Epochs(object):
                     or (self.flat is not None and key in self.flat):
                 if len(idx[key]) == 0:
                     raise ValueError("No %s channel found. Cannot reject based"
-                                 " on %s." % (key.upper(), key.upper()))
+                                     " on %s." % (key.upper(), key.upper()))
 
         self._channel_type_idx = idx
 
@@ -524,14 +533,14 @@ class Epochs(object):
         # dropping EOG, ECG and STIM channels. Keeping only data
         if keep_only_data_channels:
             data_picks = pick_types(evoked.info, meg=True, eeg=True,
-                                          stim=False, eog=False, ecg=False,
-                                          emg=False)
+                                    stim=False, eog=False, ecg=False,
+                                    emg=False)
             if len(data_picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
             evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
             evoked.info['ch_names'] = [evoked.info['ch_names'][k]
-                                    for k in data_picks]
+                                       for k in data_picks]
             evoked.info['nchan'] = len(data_picks)
             evoked.data = evoked.data[data_picks]
         return evoked
@@ -555,8 +564,8 @@ class Epochs(object):
         """
         if not self.preload:
             raise RuntimeError('Modifying data of epochs is only supported '
-                                'when preloading is used. Use preload=True '
-                                'in the constructor.')
+                               'when preloading is used. Use preload=True '
+                               'in the constructor.')
 
         if tmin is None:
             tmin = self.tmin
@@ -655,8 +664,8 @@ class Epochs(object):
             Epochs index for single or selective epochs exports. If None, all
             epochs will be used.
         collapse : boolean
-            If True export epochs and time slices will be collapsed to 2D array.
-            This may be required by some nitime functions.
+            If True export epochs and time slices will be collapsed to 2D
+            array. This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
         use_first_samp: boolean
@@ -726,8 +735,8 @@ def _minimize_time_diff(t_shorter, t_longer):
     keep = np.ones((len(t_longer)), dtype=bool)
     scores = np.ones((len(t_longer)))
     for iter in range(len(t_longer) - len(t_shorter)):
-        scores[:] = np.inf
-        # Check every possible remvoval to see if it minimizes
+        scores.fill(np.inf)
+        # Check every possible removal to see if it minimizes
         for idx in np.where(keep)[0]:
             keep[idx] = False
             scores[idx] = _area_between_times(t_shorter, t_longer[keep])
@@ -820,8 +829,8 @@ def bootstrap(epochs, random_state=None):
     """
     if not epochs.preload:
         raise RuntimeError('Modifying data of epochs is only supported '
-                            'when preloading is used. Use preload=True '
-                            'in the constructor.')
+                           'when preloading is used. Use preload=True '
+                           'in the constructor.')
 
     rng = check_random_state(random_state)
     epochs_bootstrap = cp.deepcopy(epochs)

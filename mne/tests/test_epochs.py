@@ -10,7 +10,7 @@ import numpy as np
 import copy as cp
 
 from mne import fiff, Epochs, read_events, pick_events, \
-                equalize_epoch_counts
+                equalize_epoch_counts, find_events
 from mne.epochs import bootstrap
 
 try:
@@ -23,11 +23,11 @@ nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                     'test_raw.fif')
+                    'test_raw.fif')
 event_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                      'test-eve.fif')
 evoked_nf_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                     'test-nf-ave.fif')
+                         'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
@@ -44,7 +44,7 @@ def test_read_epochs():
     """Test reading epochs from raw files
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                    baseline=(None, 0))
     epochs.average()
     data = epochs.get_data()
 
@@ -83,13 +83,13 @@ def test_evoked_arithmetic():
     """Test arithmetic of evoked data
     """
     epochs1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                     baseline=(None, 0))
     evoked1 = epochs1.average()
     epochs2 = Epochs(raw, events[4:8], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                     baseline=(None, 0))
     evoked2 = epochs2.average()
     epochs = Epochs(raw, events[:8], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                    baseline=(None, 0))
     evoked = epochs.average()
     evoked_sum = evoked1 + evoked2
     assert_array_equal(evoked.data, evoked_sum.data)
@@ -103,7 +103,7 @@ def test_evoked_standard_error():
     """Test calculation and read/write of standard error
     """
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                    baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
     fiff.write_evoked('evoked.fif', evoked)
     evoked2 = fiff.read_evoked('evoked.fif', [0, 1])
@@ -122,8 +122,7 @@ def test_reject_epochs():
     """Test of epochs rejection
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0),
-                        reject=reject, flat=flat)
+                    baseline=(None, 0), reject=reject, flat=flat)
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
@@ -132,21 +131,21 @@ def test_reject_epochs():
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
     assert_true(n_clean_epochs == 3)
-    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'], \
-                                  ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
+    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
+                                    ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
 
 
 def test_preload_epochs():
     """Test preload of epochs
     """
     epochs_preload = Epochs(raw, events[:16], event_id, tmin, tmax,
-                        picks=picks, baseline=(None, 0), preload=True,
-                        reject=reject, flat=flat)
+                            picks=picks, baseline=(None, 0), preload=True,
+                            reject=reject, flat=flat)
     data_preload = epochs_preload.get_data()
 
     epochs = Epochs(raw, events[:16], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), preload=False,
-                        reject=reject, flat=flat)
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat)
     data = epochs.get_data()
     assert_array_equal(data_preload, data)
     assert_array_equal(epochs_preload.average().data, epochs.average().data)
@@ -214,8 +213,8 @@ def test_comparision_with_c():
     """
     c_evoked = fiff.Evoked(evoked_nf_name, setno=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax,
-                        baseline=None, preload=True,
-                        reject=None, flat=None)
+                    baseline=None, preload=True,
+                    reject=None, flat=None)
     evoked = epochs.average()
     sel = fiff.pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
@@ -235,8 +234,8 @@ def test_crop():
     data_normal = epochs.get_data()
 
     epochs2 = Epochs(raw, events[:5], event_id, tmin, tmax,
-                    picks=picks, baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
+                     picks=picks, baseline=(None, 0), preload=True,
+                     reject=reject, flat=flat)
 
     # indices for slicing
     tmin_window = tmin + 0.1
@@ -341,6 +340,6 @@ def test_epoch_eq():
     """Test epoch count equalization"""
     epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
-    assert_true(not epochs_1.events.shape[0] == epochs_2.events.shape[0])
+    assert_true(epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts(epochs_1, epochs_2)
     assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])

@@ -385,6 +385,8 @@ class SourceEstimate(object):
         self.data = data
         self.tmin = tmin
         self.tstep = tstep
+        self.times = None
+        self._update_times()
         self.vertno = vertices
         self.verbose = verbose
 
@@ -466,6 +468,7 @@ class SourceEstimate(object):
             mask = mask & (self.times >= tmin)
             self.tmin = tmin
         self.data = self.data[:, mask]
+        self._update_times()
 
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample data
@@ -488,6 +491,7 @@ class SourceEstimate(object):
         self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
+        self._update_times()
 
     @property
     def lh_data(self):
@@ -502,10 +506,6 @@ class SourceEstimate(object):
         return self.vertno[0]
 
     @property
-    def times(self):
-        return self.tmin + (self.tstep * np.arange(self.data.shape[1]))
-
-    @property
     def rh_vertno(self):
         return self.vertno[1]
 
@@ -516,6 +516,10 @@ class SourceEstimate(object):
             return False
         else:
             return True
+
+    def _update_times(self):
+        """Update the times attribute after changing tmin, tmax, or tstep"""
+        self.times = self.tmin + (self.tstep * np.arange(self.data.shape[1]))
 
     def __add__(self, a):
         stc = copy.deepcopy(self)
@@ -1081,6 +1085,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         raise ValueError('Morphing is only possible with surface source '
                          'estimates')
 
+    logging.info('Morphing data...')
     subjects_dir = _get_subjects_dir(subjects_dir)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
                                 n_jobs)
@@ -1095,8 +1100,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
 
-    parallel, my_morph_buffer, _ = \
-                        parallel_func(_morph_buffer, n_jobs)
+    parallel, my_morph_buffer, _ = parallel_func(_morph_buffer, n_jobs)
 
     for hemi in [0, 1]:
         e = mesh_edges(tris[hemi])
@@ -1107,8 +1111,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         if len(idx_use) == 0:
             continue
         data_morphed[hemi] = np.concatenate(
-                    parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                   n_vertices, nearest[hemi], maps[hemi])
+            parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
+                                     n_vertices, nearest[hemi], maps[hemi])
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
@@ -1162,6 +1166,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         matrix that morphs data from subject_from to subject_to
 
     """
+    logging.info('Computing morph matrix...')
     subjects_dir = _get_subjects_dir(subjects_dir)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -1182,6 +1187,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     morpher = sparse_block_diag(morpher, format='csr')
     if array:
         morpher = morpher.toarray()
+    logging.info('[done]')
     return morpher
 
 
@@ -1238,11 +1244,11 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
 
             # Compute nearest vertices in high dim mesh
             parallel, my_compute_nearest, _ = \
-                                parallel_func(_compute_nearest, n_jobs)
+                parallel_func(_compute_nearest, n_jobs)
             lhs, rhs, rr = [a.astype(np.float32)
                             for a in [lhs, rhs, ico['rr']]]
             vertices = parallel(my_compute_nearest(xhs, rr)
-                               for xhs in [lhs, rhs])
+                                for xhs in [lhs, rhs])
     else:  # potentially fill the surface
         vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
 
@@ -1340,7 +1346,7 @@ def grade_to_tris(grade, mne_root=None, verbose=None):
     Parameters
     ----------
     grade : int
-        Grade of an icosehedral mesh.
+        Grade of an icosahedral mesh.
 
     mne_root : str, or None
         Root directory for mne (needed to find icos.fif). If None, MNE_ROOT
@@ -1356,7 +1362,7 @@ def grade_to_tris(grade, mne_root=None, verbose=None):
         spatio_temporal_tris_connectivity.
     """
     a = _get_ico_tris(grade, None, False, mne_root)
-    tris = np.concatenate((a, a + np.max(a) + 1))
+    tris = np.concatenate((a, a + (np.max(a) + 1)))
     return tris
 
 
@@ -1426,6 +1432,71 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     return _get_connectivity_from_edges(edges, n_times)
 
 
+@verbose
+def spatial_src_connectivity(src, dist=None, verbose=None):
+    """Compute connectivity for a source space activation
+
+    Parameters
+    ----------
+    src : source space
+        The source space.
+    dist : float, or None
+        Maximal geodesic distance (in m) between vertices in the
+        source space to consider neighbors. If None, immediate neighbors
+        are extracted from an ico surface.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatial graph structure.
+    """
+    return spatio_temporal_src_connectivity(src, 1, dist)
+
+
+@verbose
+def spatial_tris_connectivity(tris, verbose=None):
+    """Compute connectivity from triangles
+
+    Parameters
+    ----------
+    tris : array
+        N x 3 array defining triangles.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatial graph structure.
+    """
+    return spatio_temporal_tris_connectivity(tris, 1)
+
+
+def spatial_dist_connectivity(src, dist, verbose=None):
+    """Compute connectivity from distances in a source space
+
+    Parameters
+    ----------
+    src : source space
+        The source space must have distances between vertices computed, such
+        that src['dist'] exists and is useful. This can be obtained using MNE
+        with a call to mne_add_patch_info with the --dist option.
+    dist : float
+        Maximal geodesic distance (in m) between vertices in the
+        source space to consider neighbors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    connectivity : sparse COO matrix
+        The connectivity matrix describing the spatial graph structure.
+    """
+    return spatio_temporal_dist_connectivity(src, 1, dist)
+
+
 def sparse_block_diag(mats, format=None, dtype=None):
     """An implementation of scipy.sparse.block_diag since old versions of
     scipy don't have it. Forms a sparse matrix by stacking matrices in block
@@ -1469,9 +1540,9 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     row = (edges.row[None, :] + aux).ravel()
     if n_times > 1:  # add temporal edges
         o = (n_vertices * np.arange(n_times - 1)[:, None]
-                                  + np.arange(n_vertices)[None, :]).ravel()
+             + np.arange(n_vertices)[None, :]).ravel()
         d = (n_vertices * np.arange(1, n_times)[:, None]
-                                  + np.arange(n_vertices)[None, :]).ravel()
+             + np.arange(n_vertices)[None, :]).ravel()
         row = np.concatenate((row, o, d))
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),

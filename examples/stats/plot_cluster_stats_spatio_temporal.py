@@ -23,8 +23,8 @@ permutation test across space and time.
 print __doc__
 
 import mne
-from mne import fiff, spatio_temporal_tris_connectivity, compute_morph_matrix,\
-                grade_to_tris, equalize_epoch_counts, SourceEstimate
+from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
+    grade_to_tris, equalize_epoch_counts, SourceEstimate
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
@@ -48,10 +48,11 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
-# Read epochs for the channel of interest
-picks = fiff.pick_types(raw.info, meg=True, eog=True)
+# Read epochs for all channels, removing a bad one
+exclude = ['MEG 2443']
+picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude=exclude)
 event_id = 1  # L auditory
-reject = dict(grad=4000e-13, eog=150e-6)
+reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
 epochs1 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                      baseline=(None, 0), reject=reject, preload=True)
 
@@ -129,8 +130,8 @@ X = np.squeeze(-np.diff(np.abs(X)))
 # Compute statistic
 
 #    To use an algorithm optimized for spatio-temporal clutering, we
-#    use n_times=1 even though there are many time points in the data
-connectivity = spatio_temporal_tris_connectivity(grade_to_tris(5), n_times=1)
+#    just pass the spatial connectivity matrix (instead of spatio-temporal)
+connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Note that X needs to be a multi-dimensional array of shape
 #    samples (subjects) x time x space, so we permute dimensions
@@ -139,7 +140,7 @@ X = np.transpose(X, [2, 1, 0])
 #    Now let's actually do the clustering. This can take a long time...
 #    Here we set the threshold quite high to reduce computation.
 p_threshold = 0.001
-t_threshold = -spstats.distributions.t.ppf(p_threshold/2, n_subjects)
+t_threshold = -spstats.distributions.t.ppf(p_threshold / 2, n_subjects)
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
                                        threshold=t_threshold)
@@ -193,7 +194,8 @@ for ii, cluster_ind in enumerate(good_cluster_inds):
     label.smooth('fsaverage', verbose=False)
     cluster_labels.append(label)
 
-#    Make the first "time point" a sum across all clusters for easy visualization
+#    Make the first "time point" a sum across all clusters for easy
+#    visualization
 data_summary[:, 0] = np.sum(data_summary, axis=1)
 stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, 0, 1e-3)
 
