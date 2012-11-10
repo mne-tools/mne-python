@@ -250,7 +250,7 @@ class Epochs(object):
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
-        """Drop epochs based on boolean mask
+        """Drop epochs based on indices or boolean mask
 
         Parameters
         ----------
