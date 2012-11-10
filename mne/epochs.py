@@ -687,7 +687,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
                 idx_deltas = np.where(deltas > thresh)[0]
 
-                if any(idx_deltas):
+                if len(idx_deltas) > 0:
                     ch_name = [ch_names[idx[i]] for i in idx_deltas]
                     if (not has_printed):
                         logger.info('    Rejecting epoch based on %s : %s'
