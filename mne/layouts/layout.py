@@ -1,5 +1,4 @@
 import os.path as op
-
 import numpy as np
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import pick_types
@@ -49,9 +48,8 @@ class Layout(object):
         height = self.pos[:, 3]
         out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
         for ii in range(x.shape[0]):
-            out_str += '%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
-                                                x[ii], y[ii], width[ii], height[ii],
-                                                self.names[ii])
+            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
+                        x[ii], y[ii], width[ii], height[ii], self.names[ii]))
 
         f = open(fname, 'w')
         f.write(out_str)
@@ -174,4 +172,61 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
            y.min() - 0.1 * width, y.max() + 1.1 * height)
     ids = 1 + np.arange(n_channels)
     layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
+    return layout
+
+
+def make_grid_layout(info=None, shape=None, width=4, height=5):
+    """ Generate .lout file for custom data, i.e., ICA sources
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info (e.g., raw.info). If None, default names will be
+        employed.
+    shape : tuple | None
+        row * cols. If None, shape will be infered from measurement info
+    Returns
+    -------
+    layout : Layout
+        The generated layout.
+
+    """
+    if not any([info, shape]):
+        raise ValueError('Please supply measurement info, size or shape!')
+    elif info is not None:
+        inds = pick_types(info, misc=True)
+        if len(inds) == 0:
+            raise ValueError('No misc data channels found.')
+        names = [info['chs'][ii]['ch_name'] for ii in inds]
+        ids = range(len(inds))
+        size = len(inds)
+    elif info is None and shape is not None:
+        size = np.prod(*shape)
+        ids = range(size)
+        names = ['X %3d' % i for i in xrange(size)]
+
+    # prepare square-like layout
+    if shape is None:
+        ht = wd = np.sqrt(size)  # try square
+        if wd % 1:
+            wd, ht = int(wd + 1), int(ht)  # try n * (n-1) rectangle
+    else:
+        wd, ht = shape
+
+    if wd * ht < size:  # jump to the next full square
+        ht += 1
+
+    # setup position grid and fill up
+    x, y = np.meshgrid(np.linspace(0, 1, wd), np.linspace(0, 1, ht))
+
+    x, y = x.ravel()[:size], y.ravel()[:size]
+
+    # calculate pos
+    pos = np.c_[x, y, width * np.ones(size), height * np.ones(size)]
+
+    # calculate box
+    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
+           y.min() - 0.1 * width, y.max() + 1.1 * height)
+
+    layout = Layout(box=box, pos=pos, names=names, kind='Grid-custom', ids=ids)
     return layout
