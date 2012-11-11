@@ -298,7 +298,7 @@ class ICA(object):
 
         Returns
         -------
-        ica_raw : isntance of mne.Raw
+        out : isntance of mne.Raw
             Container object for ICA sources
 
         """
@@ -309,22 +309,24 @@ class ICA(object):
 
         # include 'reference' channels for comparison with ica
         if picks is None:
-            picks = pick_types(raw.info, meg=False, ecg=True, eog=True,
-                               stim=True)
+            picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
+                               ecg=True, eog=True, stim=True)
 
         # merge copied instance and picked data with sources
-        ica_raw = raw.copy()
-        ica_raw.fids = []
+        out = raw.copy()
+        out.fids = []
         sources = self.get_sources_raw(raw, start=start, stop=stop)
-        ica_raw._data = np.r_[sources, raw[picks, start:stop][0]]
+        out._data = np.r_[sources, raw[picks, start:stop][0]]
+
+        # update first and last samples
+        out.first_samp = raw.first_samp + (start if start else 0)
+        out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
         # set channel names and info
-        # picked_ch_names = [ica_raw.ch_names[k] for k in picks]
-        # picked_chs = [ica_raw.info['chs'] for k in picks]
-        ica_raw.info['ch_names'] = []
-        ch_info = ica_raw.info['chs'] = []
-        for i, e in enumerate(range(self.n_components)):
-            ica_raw.info['ch_names'].append('ICA %03d' % (i + 1))
+        ch_names = out.info['ch_names'] = []
+        ch_info = out.info['chs'] = []
+        for i in xrange(self.n_components):
+            ch_names.append('ICA %03d' % (i + 1))
             ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
                 logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
                 kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
@@ -334,14 +336,14 @@ class ICA(object):
                 scanno=i + 1, unit_mul=0, coil_trans=None))
 
         # re-append additionally picked ch_names
-        [ica_raw.info['ch_names'].append(raw.ch_names[k]) for k in picks]
+        ch_names += [raw.ch_names[k] for k in picks]
         # re-append additionally picked ch_info
-        [ica_raw.info['chs'].append(raw.info['chs'][k]) for k in picks]
+        ch_info += [raw.info['chs'][k] for k in picks]
 
         # update number of channels
-        ica_raw.info['nchan'] = len(picks) + self.n_components
+        out.info['nchan'] = len(picks) + self.n_components
 
-        return ica_raw
+        return out
 
     def get_sources_epochs(self, epochs, concatenate=False):
         """Estimate epochs sources given the unmixing matrix

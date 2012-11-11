@@ -175,7 +175,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     return layout
 
 
-def make_grid_layout(info):
+def make_grid_layout(info, picks=None):
     """ Generate .lout file for custom data, i.e., ICA sources
 
     Parameters
@@ -183,6 +183,9 @@ def make_grid_layout(info):
     info : dict
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
+    picks : array-like | None
+        The indices of the channels to be included. If None, al misc channels will
+        be included.
 
     Returns
     -------
@@ -190,12 +193,16 @@ def make_grid_layout(info):
         The generated layout.
 
     """
-    inds = pick_types(info, misc=True)
-    if len(inds) == 0:
+    if picks is None:
+        picks = pick_types(info, misc=True)
+
+    names = [info['chs'][k]['ch_name'] for k in picks]
+
+    if not names:
         raise ValueError('No misc data channels found.')
-    names = [info['chs'][ii]['ch_name'] for ii in inds]
-    ids = range(len(inds))
-    size = len(inds)
+
+    ids = range(len(picks))
+    size = len(picks)
 
     # prepare square-like layout
     ht = wd = np.sqrt(size)  # try square
