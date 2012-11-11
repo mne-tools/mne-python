@@ -188,10 +188,8 @@ class ICA(object):
 
         self.ch_names = [raw.ch_names[k] for k in picks]
 
-        if self.n_components is not None:
-            self._sort_idx = np.arange(self.n_components)
-        else:
-            self._sort_idx = np.arange(len(picks))
+        if self.index is None:
+            self.index = np.arange(len(picks))
 
         data, self.pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                    raw.info, picks)
@@ -236,10 +234,8 @@ class ICA(object):
 
         self.ch_names = [epochs.ch_names[k] for k in picks]
 
-        if self.n_components is not None:
-            self._sort_idx = np.arange(self.n_components)
-        else:
-            self._sort_idx = np.arange(len(picks))
+        if self.index is None:
+            self.index = np.arange(len(picks))
 
         data, self.pre_whitener = self._pre_whiten(
                                 np.hstack(epochs.get_data()[:, picks]),
