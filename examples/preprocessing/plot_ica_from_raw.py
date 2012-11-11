@@ -23,6 +23,9 @@ from mne.fiff import Raw
 from mne.artifacts.ica import ICA
 from mne.datasets import sample
 
+###############################################################################
+# Setup paths and prepare raw data
+
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
@@ -31,9 +34,11 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
-# setup ica seed
+###############################################################################
+# Setup ica seed decompose data, then access and plot sources.
+
 # Sign and order of components is non deterministic.
-# setting the random state to 0 helps stabilizing the solution.
+# setting the random state to 0 makes the solution reproducible.
 ica = ICA(noise_cov=None, n_components=25, random_state=0)
 print ica
 
@@ -55,7 +60,7 @@ start_plot, stop_plot = raw.time_as_index([100, 103])
 ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 
 ###############################################################################
-# Automatically find the ECG component using correlation with ECG signal
+# Automatically find the ECG component using correlation with ECG signal.
 
 # First, we create a helper function that iteratively applies the pearson
 # correlation functoon to sources and returns an array of r values
@@ -102,7 +107,7 @@ ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 ecg_source_idx_updated = ica.index[np.abs(ecg_scores) ** 2 > .05]
 
 ###############################################################################
-# Automatically find the EOG component using correlation with EOG signal
+# Automatically find the EOG component using correlation with EOG signal.
 
 # As we have an EOG channel, we can use it to detect the source.
 
@@ -119,10 +124,10 @@ pl.title('ICA source matching EOG')
 pl.show()
 
 ###############################################################################
-# Show MEG data before and after ICA cleaning
+# Show MEG data before and after ICA cleaning.
 
 # join the detected artifact indices
-exclude = np.r_[ecg_source_idx, eog_source_idx]
+exclude = np.r_[ecg_source_idx_updated, eog_source_idx]
 
 raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
 
@@ -147,7 +152,7 @@ pl.ylim(y0, y1)
 pl.show()
 
 ###############################################################################
-# Compare the affected channel before and after ICA cleaning
+# Compare the affected channel before and after ICA cleaning.
 
 affected_idx = raw.ch_names.index('MEG 1531')
 
@@ -163,3 +168,18 @@ pl.plot(times, ica_data[affected_idx])
 pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()
+
+###############################################################################
+# Export ICA as raw for subsequent processing steps in ICA space.
+
+from mne.layouts import make_grid_layout
+
+ica_raw = ica.export_sources(raw, start=start, stop=3, picks=None)
+
+print ica_raw.ch_names
+
+ica_lout = make_grid_layout(ica_raw.info)
+
+# uncomment the following two line to save sources and layut
+# ica_raw.save('ica_raw.fif')
+# ica_lout.save(os.path.join(os.environ['HOME'], '.mne/lout/ica.lout'))

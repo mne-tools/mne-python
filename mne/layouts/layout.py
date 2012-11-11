@@ -219,6 +219,7 @@ def make_grid_layout(info, picks=None):
     width = size * .15  # value depends on mne default full-view size
     spacing = (width * ht)
 
+    # XXX : width and height are here assumed to be equal. Could be improved.
     x, y = (x.ravel()[:size] * spacing, y.ravel()[:size] * spacing)
 
     # calculate pos
