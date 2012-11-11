@@ -22,7 +22,7 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from ..fiff import pick_types, pick_channels
-from ..fiff.constants import Bunch
+from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
 
@@ -278,6 +278,72 @@ class ICA(object):
         raw_sources = self._fast_ica.transform(data.T).T
 
         return raw_sources
+
+    def export_sources(self, raw, picks=None, start=None, stop=None):
+        """ Export sources as raw object
+
+        Parameters
+        ----------
+        raw : instance of Raw
+            Raw object to export sources from.
+        picks : array-like
+            Channels to be included in addition to the sources. If None,
+            artifact and stimulus channels will be included.
+        start : int
+            First sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int
+            First sample to not include. If omitted, data is included to the
+            end.
+
+        Returns
+        -------
+        out : isntance of mne.Raw
+            Container object for ICA sources
+
+        """
+        if not raw._preloaded:
+            raise ValueError('raw data should be preloaded to have this '
+                             'working. Please read raw data with '
+                             'preload=True.')
+
+        # include 'reference' channels for comparison with ica
+        if picks is None:
+            picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
+                               ecg=True, eog=True, stim=True)
+
+        # merge copied instance and picked data with sources
+        out = raw.copy()
+        out.fids = []
+        sources = self.get_sources_raw(raw, start=start, stop=stop)
+        out._data = np.r_[sources, raw[picks, start:stop][0]]
+
+        # update first and last samples
+        out.first_samp = raw.first_samp + (start if start else 0)
+        out.last_samp = out.first_samp + stop if stop else raw.last_samp
+
+        # set channel names and info
+        ch_names = out.info['ch_names'] = []
+        ch_info = out.info['chs'] = []
+        for i in xrange(self.n_components):
+            ch_names.append('ICA %03d' % (i + 1))
+            ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
+                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+                kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
+                loc=np.array([0.,  0.,  0.,  1., 0.,  0.,  0.,  1.,
+                              0.,  0.,  0.,  1.], dtype=np.float32),
+                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
+                scanno=i + 1, unit_mul=0, coil_trans=None))
+
+        # re-append additionally picked ch_names
+        ch_names += [raw.ch_names[k] for k in picks]
+        # re-append additionally picked ch_info
+        ch_info += [raw.info['chs'][k] for k in picks]
+
+        # update number of channels
+        out.info['nchan'] = len(picks) + self.n_components
+
+        return out
 
     def get_sources_epochs(self, epochs, concatenate=False):
         """Estimate epochs sources given the unmixing matrix

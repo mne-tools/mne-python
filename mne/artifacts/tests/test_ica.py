@@ -2,10 +2,11 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import stats
 
 from mne import fiff, Epochs, read_events, cov
@@ -86,6 +87,17 @@ def test_ica():
     # Test epochs sources selection using raw fit.
     epochs2 = ica.pick_sources_epochs(epochs, exclude=[], copy=True)
     assert_array_almost_equal(epochs2.get_data(), epochs.get_data())
+
+    # Test ica fiff export
+    ica_raw = ica.export_sources(raw, start=0, stop=100)
+    assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
+    ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
+    assert_true(ica.n_components == len(ica_chans))
+    test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
+    ica_raw.save(test_ica_fname)
+    ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
+    assert_array_almost_equal(ica_raw._data, ica_raw2._data)
+    os.remove(test_ica_fname)
 
     # Test score_funcs and find_sources
     sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,

@@ -1,5 +1,4 @@
 import os.path as op
-
 import numpy as np
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import pick_types
@@ -49,9 +48,8 @@ class Layout(object):
         height = self.pos[:, 3]
         out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
         for ii in range(x.shape[0]):
-            out_str += '%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
-                                                x[ii], y[ii], width[ii], height[ii],
-                                                self.names[ii])
+            out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
+                        x[ii], y[ii], width[ii], height[ii], self.names[ii]))
 
         f = open(fname, 'w')
         f.write(out_str)
@@ -174,4 +172,62 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
            y.min() - 0.1 * width, y.max() + 1.1 * height)
     ids = 1 + np.arange(n_channels)
     layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
+    return layout
+
+
+def make_grid_layout(info, picks=None):
+    """ Generate .lout file for custom data, i.e., ICA sources
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info (e.g., raw.info). If None, default names will be
+        employed.
+    picks : array-like | None
+        The indices of the channels to be included. If None, al misc channels will
+        be included.
+
+    Returns
+    -------
+    layout : Layout
+        The generated layout.
+
+    """
+    if picks is None:
+        picks = pick_types(info, misc=True)
+
+    names = [info['chs'][k]['ch_name'] for k in picks]
+
+    if not names:
+        raise ValueError('No misc data channels found.')
+
+    ids = range(len(picks))
+    size = len(picks)
+
+    # prepare square-like layout
+    ht = wd = np.sqrt(size)  # try square
+    if wd % 1:
+        wd, ht = int(wd + 1), int(ht)  # try n * (n-1) rectangle
+
+    if wd * ht < size:  # jump to the next full square
+        ht += 1
+
+    # setup position grid and fill up
+    x, y = np.meshgrid(np.linspace(0, 1, wd), np.linspace(0, 1, ht))
+
+    # scale boxes depending on size such that square is always filled
+    width = size * .15  # value depends on mne default full-view size
+    spacing = (width * ht)
+
+    # XXX : width and height are here assumed to be equal. Could be improved.
+    x, y = (x.ravel()[:size] * spacing, y.ravel()[:size] * spacing)
+
+    # calculate pos
+    pos = np.c_[x, y, width * np.ones(size), width * np.ones(size)]
+
+    # calculate box
+    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
+           y.min() - 0.1 * width, y.max() + 1.1 * width)
+
+    layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
