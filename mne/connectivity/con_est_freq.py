@@ -41,7 +41,7 @@ def _pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
 @verbose
 def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
                       fmax=np.inf, bandwidth=None, adaptive=False,
-                      low_bias=True, verbose=None):
+                      low_bias=True, block_size=1000, verbose=None):
     """Compute various frequency-domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
@@ -93,7 +93,7 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
     Frist, we define an accumulator and normalization function
 
     def pli_acc(csd_xy):
-        # The function receives the CSD for one signal pair
+        # The function receives the CSD csd_xy.shape = (n_pairs, n_freq)
         return np.sign(np.imag(csd_xy))
 
     def pli_norm(acc, psd_xx, psd_yy, n_epochs):
@@ -106,11 +106,11 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
 
     my_pli = (pli_acc, pli_norm)
 
-    Note: The function pli_acc receives the CSD which is an array of length
-    n_freq. The returned array can have an arbitrary shape and data
-    type, which makes it possible to e.g. compute phase histograms etc.
-    (in this case the accumulator function could return a (n_freq, n_bin)
-    array).
+    Note: The function pli_acc receives the CSD which is an array with shape
+    (n_pairs, n_freq). The first dimension of the returned array must be
+    n_pairs. All other dimensions and the data type can be arbitrary. This
+    makes it possible to e.g. compute phase histograms etc. For example,
+    the accumulator function could return an (n_pairs, n_freq, n_bin) array.
 
     Parameters
     ----------
@@ -134,6 +134,9 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
     low_bias : bool
         Only use tapers with more than 90% spectral concentration within
         bandwidth.
+    block_size : int
+        How many connections to compute at once (higher numbers are faster
+        but require more memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -238,10 +241,13 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
             # allocate space to accumulate PSD and con. score over epochs
             psd = np.zeros((len(sig_idx), n_freqs))
             con_accumulators = []
-            tmp = np.zeros(n_freqs, dtype=np.complex128)
+            tmp = np.zeros((3, n_freqs), dtype=np.complex128)
             for fun in accumulator_fun:
                 out = fun(tmp)
-                con_accumulators.append(np.zeros((n_con,) + out.shape,
+                if out.shape[0] != tmp.shape[0]:
+                    raise ValueError('Accumulator function must return output '
+                                     'with shape[0] == csd.shape[0]')
+                con_accumulators.append(np.zeros((n_con,) + out.shape[1:],
                                         dtype=out.dtype))
             del tmp, out
 
@@ -264,12 +270,13 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
             psd += this_psd
 
             # accumulate connectivity scores
-            for i in xrange(n_con):
-                csd = _csd_from_mt(x_mt[idx_map[0][i]], x_mt[idx_map[1][i]],
-                                   weights, weights)[0]
+            for i in xrange(0, n_con, block_size):
+                csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
+                                   x_mt[idx_map[1][i:i + block_size]],
+                                   weights, weights)
 
                 for fun, acc in zip(accumulator_fun, con_accumulators):
-                    acc[i] += fun(csd)
+                    acc[i:i + block_size] += fun(csd)
 
         else:
             # compute PSD and adaptive weights
@@ -283,13 +290,14 @@ def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
             x_mt = x_mt[:, :, freq_mask]
 
             # compute CSD
-            for i in xrange(n_con):
-                csd = _csd_from_mt(x_mt[idx_map[0][i]], x_mt[idx_map[1][i]],
-                                   weights[idx_map[0][i]],
-                                   weights[idx_map[1][i]])
+            for i in xrange(0, n_con, block_size):
+                csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
+                                   x_mt[idx_map[1][i:i + block_size]],
+                                   weights[idx_map[0][i:i + block_size]],
+                                   weights[idx_map[1][i:i + block_size]])
 
                 for fun, acc in zip(accumulator_fun, con_accumulators):
-                    acc[i] += fun(csd)
+                    acc[i:i + block_size] += fun(csd)
 
     # normalize
     n_epochs = epoch_idx + 1
