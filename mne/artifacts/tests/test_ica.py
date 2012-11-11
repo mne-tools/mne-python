@@ -6,7 +6,7 @@ import os
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 from scipy import stats
 
 from mne import fiff, Epochs, read_events, cov
