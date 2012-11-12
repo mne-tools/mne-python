@@ -1085,7 +1085,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         raise ValueError('Morphing is only possible with surface source '
                          'estimates')
 
-    logging.info('Morphing data...')
+    logger.info('Morphing data...')
     subjects_dir = _get_subjects_dir(subjects_dir)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
                                 n_jobs)
@@ -1166,7 +1166,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         matrix that morphs data from subject_from to subject_to
 
     """
-    logging.info('Computing morph matrix...')
+    logger.info('Computing morph matrix...')
     subjects_dir = _get_subjects_dir(subjects_dir)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -1184,10 +1184,16 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
                                       vertices_to[hemi], maps[hemi])
-    morpher = sparse_block_diag(morpher, format='csr')
+    # be careful about zero-length arrays
+    if isinstance(morpher[0], list):
+        morpher = morpher[1]
+    elif isinstance(morpher[1], list):
+        morpher = morpher[0]
+    else:
+        morpher = sparse_block_diag(morpher, format='csr')
     if array:
         morpher = morpher.toarray()
-    logging.info('[done]')
+    logger.info('[done]')
     return morpher
 
 

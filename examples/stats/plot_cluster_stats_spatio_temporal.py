@@ -24,11 +24,11 @@ print __doc__
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris, equalize_epoch_counts, SourceEstimate
+    grade_to_tris, equalize_epoch_counts, SourceEstimate, read_surface
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
-from mne.source_space import vertex_to_mni
+from mne.viz import mne_analyze_colormap
 import os.path as op
 import numpy as np
 from numpy.random import randn
@@ -41,7 +41,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = op.join(data_path, 'subjects')
 tmin = -0.2
-tmax = 0.5
+tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
@@ -62,7 +62,7 @@ epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 #    Equalize trial counts to eliminate bias (which would otherwise be
 #    introduced by the abs() performed below)
-equalize_epoch_counts(epochs1, epochs2)
+equalize_epoch_counts(epochs1, epochs2, method='mintime')
 
 ###############################################################################
 # Transform to source space
@@ -74,15 +74,17 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 sample_vertices = [s['vertno'] for s in inverse_operator['src']]
 
-#    Let's average and compute inverse
+#    Let's average and compute inverse, resampling to speed things up
 evoked1 = epochs1.average()
+evoked1.resample(50)
 condition1 = apply_inverse(evoked1, inverse_operator, lambda2, method)
 evoked2 = epochs2.average()
+evoked2.resample(50)
 condition2 = apply_inverse(evoked2, inverse_operator, lambda2, method)
 
-#    Let's only deal with 0 < t 0.3, cropping to reduce multiple comparisons
-condition1.crop(0, 0.3)
-condition2.crop(0, 0.3)
+#    Let's only deal with t > 0, cropping to reduce multiple comparisons
+condition1.crop(0, None)
+condition2.crop(0, None)
 tmin = condition1.tmin
 tstep = condition1.tstep
 
@@ -97,6 +99,8 @@ tstep = condition1.tstep
 #    permutation test is only p = 1/(2 ** 6) = 0.015, which is large.
 n_vertices_sample, n_times = condition1.data.shape
 n_subjects = 7
+print 'Simulating data for %d subjects.' % n_subjects
+
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
 X = randn(n_vertices_sample, n_times, n_subjects, 2) * 10
@@ -117,7 +121,8 @@ n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X.shape = (n_vertices_sample, n_times * n_subjects * 2)
-X = np.dot(morph_mat, X)
+print 'Morphing data.'
+X = morph_mat.dot(X)
 X.shape = (n_vertices_fsave, n_times, n_subjects, 2)
 
 #    Finally, we want to compare the overall activity levels in each condition,
@@ -129,8 +134,9 @@ X = np.squeeze(-np.diff(np.abs(X)))
 ###############################################################################
 # Compute statistic
 
-#    To use an algorithm optimized for spatio-temporal clutering, we
+#    To use an algorithm optimized for spatio-temporal clustering, we
 #    just pass the spatial connectivity matrix (instead of spatio-temporal)
+print 'Computing connectivity.'
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Note that X needs to be a multi-dimensional array of shape
@@ -141,6 +147,7 @@ X = np.transpose(X, [2, 1, 0])
 #    Here we set the threshold quite high to reduce computation.
 p_threshold = 0.001
 t_threshold = -spstats.distributions.t.ppf(p_threshold / 2, n_subjects)
+print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
                                        threshold=t_threshold)
@@ -151,70 +158,55 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 ###############################################################################
 # Visualize the clusters
 
-#    Visualize the t-values that were used
-stc_t_vals = SourceEstimate(T_obs.T, fsave_vertices, tmin, tstep)
+print 'Visualizing clusters.'
 
-#    Visualize the clusters that were isolated
+#    Now let's build a convenient representation of each cluster, where each
+#    cluster becomes a "time point" in the SourceEstimate
 data = np.zeros((n_vertices_fsave, n_times))
-keep_verts = np.concatenate([clusters[gi][1] for gi in good_cluster_inds])
-keep_times = np.concatenate([clusters[gi][0] for gi in good_cluster_inds])
-data[keep_verts, keep_times] = T_obs[keep_times, keep_verts]
-stc_cluster_t_vals = SourceEstimate(data, fsave_vertices, tmin, tstep)
-
-# Now let's build a convenient representation of each cluster
-stc_dummy = SourceEstimate(data, fsave_vertices, tmin, tstep)
 data_summary = np.zeros((n_vertices_fsave, len(good_cluster_inds) + 1))
-hemis = ['lh', 'rh']
-cluster_labels = list()
-space_com = list()
-time_com = list()
 for ii, cluster_ind in enumerate(good_cluster_inds):
-    stc_dummy.data[:, :] = 0
+    data.fill(0)
     v_inds = clusters[cluster_ind][1]
     t_inds = clusters[cluster_ind][0]
-    stc_dummy.data[v_inds, t_inds] = T_obs[t_inds, v_inds]
+    data[v_inds, t_inds] = T_obs[t_inds, v_inds]
     # Store a nice visualization of the cluster by summing across time
-    data_summary[:, ii + 1] = np.sum(stc_dummy.data, axis=1)
-
-    # Figure out the center of mass; data points must be positive
-    stc_dummy.data = np.abs(stc_dummy.data)
-    out = stc_dummy.center_of_mass('fsaverage', subjects_dir=subjects_dir)
-    time_com.append(out[2])
-    vertex = out[0]
-    hemi = out[1]
-    space_com.extend(vertex_to_mni(vertex, hemi, 'fsaverage',
-                                   subjects_dir=subjects_dir))
-
-    # Make a label for it
-    verts_used = np.unique(v_inds)
-    pos = np.zeros((verts_used.size, 3))
-    values = np.ones(verts_used.shape)
-    label = mne.label.Label(verts_used, pos, values, hemis[hemi])
-    # Fill in the label for visualization
-    label.smooth('fsaverage', verbose=False)
-    cluster_labels.append(label)
+    data = np.sign(data) * np.logical_not(data == 0) * tstep
+    data_summary[:, ii + 1] = np.sum(data, axis=1)
 
 #    Make the first "time point" a sum across all clusters for easy
 #    visualization
 data_summary[:, 0] = np.sum(data_summary, axis=1)
 stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, 0, 1e-3)
 
-#    Now if you save these STC files (e.g., stc_all_cluster_vis.save(fname)),
-#    you can visualize them. Note that there is "red" bilateral auditory
-#    activation, and "blue" R Occipital actiavtion, which is what we expected
-#    since we had an auditory condition contrasted with a visual (L stimulus)
-#    condition.
-#
-#    The time_com and space_com variables give information about the temporal
-#    and spatial center of masses.
-#
-#    stc_all_cluster_vis has all clusters shown as "time point" zero, and
-#    time points 1->N correspond to the N significant clusters, visualized
-#    in terms of the duration they were active, so fthresh/fmid/fmax of
-#    0/1/50 is good in mne_analyze.
-#
-#    stc_cluster_t_vals shows the cluster-thresholded t-value map, with the
-#    unthresholded version in stc_t_vals.
-#
-#    Labels for each cluster are stored in cluster_labels, so doing something
-#    like write_label(fname, cluster_labels[0]) allows visualization.
+#    Let's actually plot the first "time point" in the SourceEstimate, which
+#    shows all the clusters, weighted by duration, for the right hemisphere
+
+#from enthought.mayavi import mlab
+#mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
+#mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
+#                     lh_faces)
+#mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
+#                     rh_faces)
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+max_duration = 60.0  # in ms
+my_cmap = mne_analyze_colormap([1000 * tstep - 1, 1000 * tstep, max_duration])
+surf = read_surface(op.join(data_path, 'subjects', 'fsaverage',
+                            'surf', 'rh.white'))
+coords = surf[0][fsave_vertices[1]]
+vals = stc_all_cluster_vis.rh_data[:, 0] * 1000
+
+fig = plt.figure(facecolor='k')
+ax = plt.axes([0, 0, 1, 1], projection='3d', axis_bgcolor='k')
+sc = ax.scatter(coords[:, 0], coords[:, 1], coords[:, 2], c=vals,
+                vmin=-max_duration, vmax=max_duration,
+                cmap=my_cmap, edgecolors='none', s=5)
+ax.view_init(0, 0)
+plt.axis('off')
+cax = plt.axes([0.85, 0.15, 0.025, 0.15], axisbg='k')
+cb = plt.colorbar(sc, cax, ticks=[-max_duration, 0, max_duration])
+cb.set_label('Duration significant (ms)', color='w')
+plt.setp(plt.getp(cb.ax, 'yticklabels'), color='w')
+plt.draw()
+plt.show()
