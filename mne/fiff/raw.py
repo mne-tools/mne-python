@@ -165,6 +165,12 @@ class Raw(object):
             first_skip = int(tag.data)
             first += 1
 
+        #  Get first sample tag if it is there
+        if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
+            tag = read_tag(fid, directory[first].pos)
+            first_samp += int(tag.data)
+            first += 1
+
         raw = _RawShell()
         raw.first_samp = first_samp
 
