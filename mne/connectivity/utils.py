@@ -4,41 +4,39 @@
 import numpy as np
 
 
-def check_idx(idx):
-    """Check idx parameter"""
+def check_indices(indices):
+    """Check indices parameter"""
 
-    if not isinstance(idx, tuple) or len(idx) != 2:
-        raise ValueError('idx must be a tuple of length 2')
+    if not isinstance(indices, tuple) or len(indices) != 2:
+        raise ValueError('indices must be a tuple of length 2')
 
-    if len(idx[0]) != len(idx[1]):
-        raise ValueError('Index arrays idx[0] and idx[1] must have same '
-                         'length')
+    if len(indices[0]) != len(indices[1]):
+        raise ValueError('Index arrays indices[0] and indices[1] must '
+                         'have the same length')
 
-    return idx
+    return indices
 
 
-def idx_seed_con(seeds, dest):
-    """Generate idx parameter for seed based connectivity analysis.
+def seed_target_indices(seeds, targets):
+    """Generate indices parameter for seed based connectivity analysis.
 
     Parameters
     ----------
     seeds : array of int
         Seed indices.
-    dest : array of int
+    targets : array of int
         Indices of signals for which to compute connectivity.
 
     Returns
     -------
-    idx : tuple of arrays
-        The idx parameter used for connectivity computation.
+    indices : tuple of arrays
+        The indices parameter used for connectivity computation.
     """
 
     n_seeds = len(seeds)
-    n_dest = len(dest)
+    n_targets = len(targets)
 
-    n_con = n_seeds * n_dest
+    indices = (np.concatenate([np.tile(i, n_targets) for i in seeds]),
+               np.tile(targets, n_seeds))
 
-    idx = (np.concatenate([np.tile(i, n_dest) for i in seeds]),
-           np.tile(dest, n_seeds))
-
-    return idx
+    return indices

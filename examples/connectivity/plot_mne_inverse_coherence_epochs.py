@@ -22,7 +22,7 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.minimum_norm import apply_inverse, apply_inverse_epochs,\
                              read_inverse_operator
-from mne.connectivity import idx_seed_con, coherence, freq_connectivity
+from mne.connectivity import seed_target_indices, freq_connectivity
 
 
 data_path = sample.data_path('..')
@@ -74,7 +74,7 @@ seed_idx = np.searchsorted(stc.vertno[0], seed_vertno)  # index in original stc
 
 # Generate index parameter for seed-based connectivity analysis
 n_sources = stc.data.shape[0]
-idx = idx_seed_con([seed_idx], np.arange(n_sources))
+indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
 # Compute inverse solution and for each epoch. By using "return_generator=True"
 # stcs will be a generator object instead of a list. This allows us so to compute
@@ -86,7 +86,7 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_normal=True, return_generator=True)
 
 # Now we are ready to compute the coherence
-fmin, fmax = 1.0, 30
+fmin, fmax = (1.0, 20), (8., 30)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 # test: custom connectivity method that computes the phase histogram
@@ -113,9 +113,10 @@ def _hist_norm(hist, psd_xx, psd_yy, n_epochs):
 my_phase_method = (_hist_con, _hist_norm)
 
 con, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
-                                                   method=('coh', 'pli', my_phase_method),
-                                                   idx=idx, sfreq=sfreq,
-                                                   fmin=fmin, fmax=fmax, adaptive=True)
+                                                   method=('coh', 'spli'),
+                                                   indices=indices, sfreq=sfreq,
+                                                   fmin=fmin, fmax=fmax,
+                                                   faverage=True, adaptive=True)
 
 # only get the coherence
 coh = np.abs(con[0])
