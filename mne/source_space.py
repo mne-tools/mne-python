@@ -577,7 +577,7 @@ def _freesurfer_read_talxfm(fname, verbose=None):
 
     fid = open(fname, 'r')
 
-    logger.info('...Reading FreeSurfer talairach.xfm file:\n%s' % fname)
+    logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
     # read lines until we get the string 'Linear_Transform', which precedes
     # the data transformation matrix

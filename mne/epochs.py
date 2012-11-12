@@ -120,6 +120,9 @@ class Epochs(object):
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations, and is done automatically by preload=True.
 
+    drop_epochs() : self, indices
+        Drop a set of epochs (both from preloaded data and event list).
+
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
@@ -281,7 +284,7 @@ class Epochs(object):
             if(self.preload):
                 self._data = np.delete(self._data, indices, axis=0)
             count = len(indices)
-        logger.info('Dropped %d epoch(s)' % count)
+        logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
@@ -704,7 +707,7 @@ class Epochs(object):
         return epochs_ts
 
 
-def equalize_epoch_counts(*args):
+def equalize_epoch_counts(*args, **kwargs):
     """Equalize the number of trials in multiple Epoch instances
 
     Note that this operates on the Epochs instances in-place. It chooses the
@@ -717,7 +720,13 @@ def equalize_epoch_counts(*args):
     ----------
     e1, e2, ... : sequence of Epochs instances
         The Epochs instances to equalize trial counts for.
+    method : str
+        If 'truncate', events will be truncated from the end of each event
+        list. If 'mintime', timing differences between each event list will be
+        minimized.
     """
+    method = kwargs['method'] if 'method' in kwargs else 'truncate'
+
     epochs_list = args
     if not all([isinstance(e, Epochs) for e in epochs_list]):
         raise ValueError('All inputs must be Epochs instances')
@@ -726,8 +735,14 @@ def equalize_epoch_counts(*args):
 
     small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
     small_e_times = epochs_list[small_idx].events[:, 0]
-    for e in epochs_list:
-        e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 0]))
+    if method == 'mintime':
+        for e in epochs_list:
+            e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 0]))
+    elif method == 'truncate':
+        for e in epochs_list:
+            e.drop_epochs(np.arange(len(small_e_times), len(e.events)))
+        else:
+            raise ValueError('method must be ''truncate'' or ''mintime''')
 
 
 def _minimize_time_diff(t_shorter, t_longer):
