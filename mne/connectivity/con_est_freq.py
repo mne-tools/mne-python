@@ -38,6 +38,14 @@ def _pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
     return np.abs(acc_mean)
 
 
+# TODO:
+# - add seeds / tragets params (?)
+# - multiple bands using fmin, fmax tuples
+# - add fskip param to decimate in frequency domain
+# - allow norm_func to be None
+# - averaging over freq. bands (test dimension, if acc_func is None, no need
+#   to store all freqs before normalization)
+# - parallel processing of epochs
 @verbose
 def freq_connectivity(data, method='coh', idx=None, sfreq=2*np.pi, fmin=0,
                       fmax=np.inf, bandwidth=None, adaptive=False,

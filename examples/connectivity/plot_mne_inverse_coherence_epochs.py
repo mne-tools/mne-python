@@ -94,11 +94,14 @@ def _hist_con(csd_xy):
     # compute phase angle 0..2pi and quantize it
     angle = np.angle(csd_xy) + np.pi
     n_bins = 20
-    hist = np.zeros((len(csd_xy), n_bins))
-    for i in xrange(len(csd_xy)):
-        bin_idx = int(min(np.floor(angle[i] * n_bins / (2 * np.pi)),
+    n_sig, n_freq = csd_xy.shape
+    hist = np.zeros((n_sig, n_freq, n_bins))
+
+    for i in xrange(n_sig):
+        for j in xrange(n_freq):
+            bin_idx = int(min(np.floor(angle[i, j] * n_bins / (2 * np.pi)),
                           n_bins - 1))
-        hist[i, bin_idx] += 1
+            hist[i, j, bin_idx] += 1
 
     return hist
 
@@ -112,7 +115,7 @@ my_phase_method = (_hist_con, _hist_norm)
 con, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
                                                    method=('coh', 'pli', my_phase_method),
                                                    idx=idx, sfreq=sfreq,
-                                                   fmin=fmin, fmax=fmax)
+                                                   fmin=fmin, fmax=fmax, adaptive=True)
 
 # only get the coherence
 coh = np.abs(con[0])
