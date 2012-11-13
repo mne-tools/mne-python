@@ -1320,15 +1320,13 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
             raise Exception("The source space does not appear to be an ico "
                             "surface. Connectivity cannot be extracted from "
                             "non-ico source spaces.")
-        lh_tris = np.searchsorted(np.unique(src[0]['use_tris']),
-                                  src[0]['use_tris'])
-        rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
-                                  src[1]['use_tris'])
+        used_verts = [np.unique(s['use_tris']) for s in src]
+        lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
+        rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])
         tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
         connectivity = spatio_temporal_tris_connectivity(tris, n_times)
 
         # deal with source space only using a subset of vertices
-        used_verts = [np.unique(s['use_tris']) for s in src]
         masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
         if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
             raise ValueError('Used vertices do not match connectivity shape')
