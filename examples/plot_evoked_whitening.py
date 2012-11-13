@@ -16,8 +16,6 @@ and less than 2 standard deviations.
 
 print __doc__
 
-from copy import deepcopy
-import numpy as np
 import mne
 from mne.datasets import sample
 from mne.viz import plot_evoked
@@ -41,36 +39,9 @@ pl.close('all')
 pl.figure()
 plot_evoked(evoked, picks=picks)
 
-from mne.cov import prepare_noise_cov
+noise_cov = mne.cov.regularize(noise_cov, evoked.info,
+                               grad=0.1, mag=0.1, eeg=0.1)
 
-noise_cov = mne.cov.regularize(noise_cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
-
-def whiten(evoked, noise_cov, picks, diag=False):
-    ch_names = [evoked.ch_names[k] for k in picks]
-    n_chan = len(ch_names)
-    evoked = deepcopy(evoked)
-
-    if diag:
-        noise_cov = deepcopy(noise_cov)
-        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
-
-    noise_cov = prepare_noise_cov(noise_cov, evoked.info, ch_names)
-
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
-    W = np.dot(noise_cov['eigvec'].T, W)
-    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
-    return evoked
-
-evoked_white = whiten(evoked, noise_cov, picks, diag=True)
+evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
 pl.figure()
 plot_evoked(evoked_white, picks=picks, unit=False, hline=[-2, 2])
