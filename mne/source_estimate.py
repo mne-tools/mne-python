@@ -1126,8 +1126,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, array=False,
-                         verbose=None):
+                         smooth=None, subjects_dir=None, verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -1146,8 +1145,6 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
-    array : bool
-        If True, the a dense array will be returned (instead of sparse matrix).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1155,7 +1152,6 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     -------
     morph_matrix : sparse matrix
         matrix that morphs data from subject_from to subject_to
-
     """
     logger.info('Computing morph matrix...')
     subjects_dir = get_subjects_dir(subjects_dir)
@@ -1182,8 +1178,6 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         morpher = morpher[0]
     else:
         morpher = sparse_block_diag(morpher, format='csr')
-    if array:
-        morpher = morpher.toarray()
     logger.info('[done]')
     return morpher
 

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.datasets import sample
-from mne import stats, SourceEstimate
+from mne import stats
 from mne import read_stc, write_stc, read_source_estimate, morph_data
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
