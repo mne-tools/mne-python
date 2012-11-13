@@ -17,6 +17,7 @@ logger = logging.getLogger('mne')
 from .parametric import f_oneway
 from ..parallel import parallel_func
 from ..utils import split_list
+from ..fixes import in1d
 from .. import verbose
 
 
@@ -70,7 +71,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
                 # look at current time point across other vertices
                 buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
                 buddies = buddies[r[buddies]]
-                buddies = buddies[np.in1d(s[buddies], neighbors[s[ind]],
+                buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
                                           assume_unique=True)]
                 buddies = np.concatenate((selves, buddies))
                 t_inds += buddies.tolist()
