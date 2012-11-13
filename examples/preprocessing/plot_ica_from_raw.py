@@ -37,18 +37,16 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 ###############################################################################
 # Setup ica seed decompose data, then access and plot sources.
 
-# Sign and order of components is non deterministic.
-# setting the random state to 0 makes the solution reproducible.
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
-print ica
-
 # 1 minute exposure should be sufficient for artifact detection.
 # However, rejection performance may significantly improve when using
 # the entire data range
 start, stop = raw.time_as_index([100, 160])
 
-# decompose sources for raw data
-ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+# Sign and order of components is non deterministic.
+# setting the random state to 0 makes the solution reproducible.
+ica = ICA.decompose_raw(raw, start=start, stop=stop, picks=picks,
+                        noise_cov=None, explained_var=.95, max_n_components=50,
+                        random_state=0)
 print ica
 
 sources = ica.get_sources_raw(raw, start=start, stop=stop)
