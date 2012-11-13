@@ -203,6 +203,17 @@ Scipy supports read and write of matlab files. You can save your single trials w
     >>> from scipy import io
     >>> io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 
+or if you want to keep all the information about the data you can save your epochs
+in a fif file:
+
+    >>> epochs.save('sample-epo.fif') # doctest: +ELLIPSIS
+    Reading ...
+
+and read them later with:
+
+    >>> saved_epochs = mne.read_epochs('sample-epo.fif') # doctest: +ELLIPSIS
+    Reading ...
+
 Compute evoked responses by averaging and plot it:
 
     >>> evoked = epochs.average() # doctest: +ELLIPSIS
