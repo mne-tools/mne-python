@@ -1427,7 +1427,9 @@ def spatio_temporal_dist_connectivity(src, n_times, dist, verbose=None):
     """
     if src[0]['dist'] is None:
         raise RuntimeError('src must have distances included, consider using\n'
-                           'mne_add_patch_info with --dist argument')
+                           'mne_add_patch_info with --dist argument, e.g.,\n'
+                           '  mne_add_patch_info --src orig-5-src.fif --srcp '
+                           'orig5p7-src.fif --dist 7')
     edges = sparse_block_diag([s['dist'][s['vertno'], :][:, s['vertno']]
                               for s in src])
     edges.data[:] = np.less_equal(edges.data, dist)

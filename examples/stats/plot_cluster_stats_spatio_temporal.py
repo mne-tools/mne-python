@@ -18,11 +18,10 @@ print __doc__
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris, equalize_epoch_counts, SourceEstimate, read_surface
+    grade_to_tris, equalize_epoch_counts, SourceEstimate
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
-from mne.viz import mne_analyze_colormap
 import os.path as op
 import numpy as np
 from numpy.random import randn
@@ -178,17 +177,9 @@ subjects_dir = op.join(data_path, 'subjects')
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration, for the right hemisphere
 
-#from enthought.mayavi import mlab
-#mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-#mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-#                     lh_faces)
-#mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-#                     rh_faces)
-
-
 from mne.source_estimate import _get_subjects_dir
 
-def _force_aspect(ax, x, y, z, color='w'):
+def _force_aspect(ax, x, y, z, color='k'):
     """Surrogate for ax.set_aspect('equal') since it fails in 3D
     """
     ax.set_aspect('equal')
@@ -201,16 +192,19 @@ def _force_aspect(ax, x, y, z, color='w'):
     [ax.plot([p[0]], [p[1]], [p[2]], color) for p in pts]
 
 
-def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
+def plot_stc_time_point(stc, subject, grade, limits=[5, 10, 15], time_index=0,
                         surf='inflated', measure='dSPM', subjects_dir=None):
     """Plot a time instant from a SourceEstimate
-    XXXXXXXXXXXXXXXX
+
     Parameters
     ----------
     stc : instance of SourceEstimate
         The SourceEstimate to plot.
     subject : string
         The subject name (only needed if surf is a string).
+    grade : int
+        Grade of the icosahedral mesh. (Plotting is only supported for ico
+        surfaces.)
     time_index : int
         Time index to plot.
     surf : str, or instance of surfaces
@@ -222,39 +216,67 @@ def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
         the environment variable SUBJECTS_DIR.
     """
     subjects_dir = _get_subjects_dir(subjects_dir)
-    import matplotlib.pyplot as pl
-    fig = pl.figure(facecolor='k')
+    from mne import read_surface
+    try:
+        from mayavi import mlab
+        use_mayavi = True
+    except:
+        try:
+            from enthought.mayavi import mlab
+            use_mayavi = True
+        except:
+            use_mayavi = False
+            from matplotlib import pyplot as pl
+            from mpl_toolkits.mplot3d import Axes3D
+            fig = pl.figure(facecolor='k')
+            my_cmap = mne.viz.mne_analyze_colormap(limits)
     hemis = ['lh', 'rh']
     if isinstance(surf, str):
         surf = [read_surface(op.join(subjects_dir, subject, 'surf',
                                      '%s.%s' % (h, surf))) for h in hemis]
-    my_cmap = mne_analyze_colormap(limits)
     for hi, h in enumerate(hemis):
-        coords = surf[hi][0][stc.vertno[hi]]
         if hi == 0:
-            vals = stc_all_cluster_vis.lh_data[:, time_index]
+            vals = stc.lh_data[:, time_index]
+            views = [[0, 180], [0, 0]]
         else:
-            vals = stc_all_cluster_vis.rh_data[:, time_index]
-        ax = pl.subplot(1, 2, 1 - hi, axis_bgcolor='none')
-        pl.tick_params(labelbottom='off', labelleft='off')
-        flipper = -1 if hi == 1 else 1
-        sc = ax.scatter(flipper * coords[:, 1], coords[:, 2], c=vals,
-                        vmin=-limits[2], vmax=limits[2], cmap=my_cmap,
-                        edgecolors='none', s=5)
-        ax.set_aspect('equal')
-        pl.axis('off')
-    try:
-        pl.tight_layout(0)
-    except:
-        pass
-    if measure is not None:
-        cax = pl.axes([0.85, 0.15, 0.025, 0.15], axisbg='k')
-        cb = pl.colorbar(sc, cax, ticks=[-limits[2], 0, limits[2]])
-        cb.set_label(measure, color='w')
-    pl.setp(pl.getp(cb.ax, 'yticklabels'), color='w')
-    pl.draw()
-    pl.show()
+            vals = stc.rh_data[:, time_index]
+            views = [[0, 0], [0, 180]]
+        for vi, v in enumerate(views):
+            if not use_mayavi:
+                coords = surf[hi][0][stc.vertno[hi]]
+                ax = pl.subplot(2, 2, hi + 2 * vi + 1, axis_bgcolor='none',
+                                projection='3d')
+                sc = ax.scatter(coords[:, 0], coords[:, 1], coords[:, 2],
+                                c=vals, vmin=-limits[2], vmax=limits[2],
+                                cmap=my_cmap, edgecolors='none', s=5)
+                pl.axis('off')
+                pl.tick_params(labelbottom='off', labelleft='off')
+                _force_aspect(ax, coords[:, 0], coords[:, 1], coords[:, 2])
+                ax.view_init(v[0], v[1])
+            else:
+                coords = surf[hi][0][stc.vertno[hi], :]
+                tris = grade_to_tris(grade)
+                if hi == 0:
+                    tris = tris[:tris.shape[0] / 2]
+                else:
+                    tris = tris[tris.shape[0] / 2:] - tris.shape[0] / 2
+                mlab.triangular_mesh(coords[:, 0], coords[:, 1], coords[:, 2],
+                                     tris, scalars=vals)
+                raise ValueError('Not implemented yet')
+    if not use_mayavi:
+        try:
+            pl.tight_layout(0)
+        except:
+            pass
+        if measure is not None:
+            cax = pl.axes([0.85, 0.15, 0.025, 0.15], axisbg='k')
+            cb = pl.colorbar(sc, cax, ticks=[-limits[2], 0, limits[2]])
+            cb.set_label(measure, color='w')
+        pl.setp(pl.getp(cb.ax, 'yticklabels'), color='w')
+        pl.draw()
+        pl.show()
+    return fig
 
-plot_stc_time_point(stc_all_cluster_vis, 'fsaverage', limits, surf='white',
+
+plot_stc_time_point(stc_all_cluster_vis, 'fsaverage', 5, limits, surf='white',
                     measure='Duration significant (ms)')
-
