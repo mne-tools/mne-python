@@ -120,6 +120,9 @@ class Epochs(object):
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations, and is done automatically by preload=True.
 
+    drop_epochs() : self, indices
+        Drop a set of epochs (both from preloaded data and event list).
+
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
@@ -135,9 +138,9 @@ class Epochs(object):
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                preload=False, reject=None, flat=None, proj=True,
-                verbose=None):
+                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
+                 preload=False, reject=None, flat=None, proj=True,
+                 verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -183,7 +186,7 @@ class Epochs(object):
 
         if current_comp != dest_comp:
             raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
-                                                 dest_comp)
+                                                    dest_comp)
             logger.info('Appropriate compensator added to change to '
                         'grade %d.' % (dest_comp))
 
@@ -247,6 +250,41 @@ class Epochs(object):
 
         """
         self._get_data_from_disk(out=False)
+
+    @verbose
+    def drop_epochs(self, indices, verbose=None):
+        """Drop epochs based on indices or boolean mask
+
+        Parameters
+        ----------
+        indices : array of ints or bools
+            Set epochs to remove using indices, or set epochs to remove by
+            using a boolean mask (removs False elements). Events are
+            correspondingly modified.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to raw.verbose.
+        """
+        if not isinstance(indices, np.ndarray):
+            indices = np.asarray(indices)
+        if indices.dtype == np.dtype(bool):
+            is_bool = True
+            if indices.size != len(self.events):
+                raise ValueError('boolean mask must match events size')
+        else:
+            is_bool = False
+
+        if is_bool:
+            self.events = self.events[indices]
+            if(self.preload):
+                self._data = self._data[indices]
+            count = len(indices) - np.sum(indices)
+        else:
+            self.events = np.delete(self.events, indices, axis=0)
+            if(self.preload):
+                self._data = np.delete(self._data, indices, axis=0)
+            count = len(indices)
+        logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
@@ -361,7 +399,7 @@ class Epochs(object):
                     or (self.flat is not None and key in self.flat):
                 if len(idx[key]) == 0:
                     raise ValueError("No %s channel found. Cannot reject based"
-                                 " on %s." % (key.upper(), key.upper()))
+                                     " on %s." % (key.upper(), key.upper()))
 
         self._channel_type_idx = idx
 
@@ -498,14 +536,14 @@ class Epochs(object):
         # dropping EOG, ECG and STIM channels. Keeping only data
         if keep_only_data_channels:
             data_picks = pick_types(evoked.info, meg=True, eeg=True,
-                                          stim=False, eog=False, ecg=False,
-                                          emg=False)
+                                    stim=False, eog=False, ecg=False,
+                                    emg=False)
             if len(data_picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
             evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
             evoked.info['ch_names'] = [evoked.info['ch_names'][k]
-                                    for k in data_picks]
+                                       for k in data_picks]
             evoked.info['nchan'] = len(data_picks)
             evoked.data = evoked.data[data_picks]
         return evoked
@@ -529,8 +567,8 @@ class Epochs(object):
         """
         if not self.preload:
             raise RuntimeError('Modifying data of epochs is only supported '
-                                'when preloading is used. Use preload=True '
-                                'in the constructor.')
+                               'when preloading is used. Use preload=True '
+                               'in the constructor.')
 
         if tmin is None:
             tmin = self.tmin
@@ -629,8 +667,8 @@ class Epochs(object):
             Epochs index for single or selective epochs exports. If None, all
             epochs will be used.
         collapse : boolean
-            If True export epochs and time slices will be collapsed to 2D array.
-            This may be required by some nitime functions.
+            If True export epochs and time slices will be collapsed to 2D
+            array. This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
         use_first_samp: boolean
@@ -667,6 +705,67 @@ class Epochs(object):
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 
         return epochs_ts
+
+
+def equalize_epoch_counts(*args, **kwargs):
+    """Equalize the number of trials in multiple Epoch instances
+
+    Note that this operates on the Epochs instances in-place. It chooses the
+    epochs to eliminate by minimizing the differences in timing between Epochs
+    instances with more trials and the Epochs instance with the fewest trials.
+    This function will also call drop_bad_epochs() on any epochs instance that
+    hasn't yet had bad epochs dropped.
+
+    Parameters
+    ----------
+    e1, e2, ... : sequence of Epochs instances
+        The Epochs instances to equalize trial counts for.
+    method : str
+        If 'truncate', events will be truncated from the end of each event
+        list. If 'mintime', timing differences between each event list will be
+        minimized.
+    """
+    method = kwargs['method'] if 'method' in kwargs else 'truncate'
+
+    epochs_list = args
+    if not all([isinstance(e, Epochs) for e in epochs_list]):
+        raise ValueError('All inputs must be Epochs instances')
+    # make sure bad epochs are dropped
+    [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
+
+    small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
+    small_e_times = epochs_list[small_idx].events[:, 0]
+    if method == 'mintime':
+        for e in epochs_list:
+            e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 0]))
+    elif method == 'truncate':
+        for e in epochs_list:
+            e.drop_epochs(np.arange(len(small_e_times), len(e.events)))
+        else:
+            raise ValueError('method must be ''truncate'' or ''mintime''')
+
+
+def _minimize_time_diff(t_shorter, t_longer):
+    """Find a boolean mask to minimize timing differences"""
+    keep = np.ones((len(t_longer)), dtype=bool)
+    scores = np.ones((len(t_longer)))
+    for iter in range(len(t_longer) - len(t_shorter)):
+        scores.fill(np.inf)
+        # Check every possible removal to see if it minimizes
+        for idx in np.where(keep)[0]:
+            keep[idx] = False
+            scores[idx] = _area_between_times(t_shorter, t_longer[keep])
+            keep[idx] = True
+        keep[np.argmin(scores)] = False
+    return keep
+
+
+def _area_between_times(t1, t2):
+    """Quantify the difference between two timing sets"""
+    x1 = range(len(t1))
+    x2 = range(len(t2))
+    xs = np.concatenate((x1, x2))
+    return np.sum(np.abs(np.interp(xs, x1, t1) - np.interp(xs, x2, t2)))
 
 
 @verbose
@@ -745,8 +844,8 @@ def bootstrap(epochs, random_state=None):
     """
     if not epochs.preload:
         raise RuntimeError('Modifying data of epochs is only supported '
-                            'when preloading is used. Use preload=True '
-                            'in the constructor.')
+                           'when preloading is used. Use preload=True '
+                           'in the constructor.')
 
     rng = check_random_state(random_state)
     epochs_bootstrap = cp.deepcopy(epochs)

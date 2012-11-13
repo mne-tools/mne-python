@@ -4,7 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import os
+import os.path as op
 
 import logging
 logger = logging.getLogger('mne')
@@ -19,6 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans
 from .surface import read_surface
+from .source_estimate import _get_subjects_dir
 from . import verbose
 
 
@@ -410,10 +411,7 @@ def label_src_vertno_sel(label, src):
 
 
 def _get_vertno(src):
-    vertno = list()
-    for s in src:
-        vertno.append(s['vertno'])
-    return vertno
+    return [s['vertno'] for s in src]
 
 
 ###############################################################################
@@ -525,7 +523,7 @@ def _write_one_source_space(fid, this, verbose=None):
 
 
 @verbose
-def vertex_to_mni(vertices, hemis, subject, verbose=None):
+def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
@@ -536,6 +534,8 @@ def vertex_to_mni(vertices, hemis, subject, verbose=None):
         Hemisphere(s) the vertices belong to
     subject : string
         Name of the subject to load surfaces from.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -554,17 +554,15 @@ def vertex_to_mni(vertices, hemis, subject, verbose=None):
     if not len(hemis) == len(vertices):
         raise ValueError('hemi and vertices must match in length')
 
-    if subject is None:
-        subject = 'fsaverage'
+    subjects_dir = _get_subjects_dir(subjects_dir)
 
-    surfs = [os.path.join(os.getenv('SUBJECTS_DIR'), subject, 'surf',
-                          '%s.white' % h) for h in ['lh', 'rh']]
+    surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
+             for h in ['lh', 'rh']]
     rr = [read_surface(s)[0] for s in surfs]
-    xfm_file = os.path.join(os.path.join(os.getenv('SUBJECTS_DIR'), subject,
-                            'mri', 'transforms', 'talairach.xfm'))
 
     # take point locations in RAS space and convert to MNI coordinates
-    xfm = _freesurfer_read_talxfm(xfm_file)
+    xfm = _freesurfer_read_talxfm(op.join(subjects_dir, subject, 'mri',
+                                          'transforms', 'talairach.xfm'))
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
     return np.dot(xfm, data).T
@@ -579,7 +577,7 @@ def _freesurfer_read_talxfm(fname, verbose=None):
 
     fid = open(fname, 'r')
 
-    logger.info('...Reading FreeSurfer talairach.xfm file:\n%s' % fname)
+    logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
     # read lines until we get the string 'Linear_Transform', which precedes
     # the data transformation matrix

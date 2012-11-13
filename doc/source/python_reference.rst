@@ -58,6 +58,7 @@ Functions reference
    write_bem_surface
    read_source_spaces
    vertex_to_mni
+   equalize_epoch_counts
    read_stc
    write_stc
    read_w
@@ -66,7 +67,11 @@ Functions reference
    morph_data
    morph_data_precomputed
    compute_morph_matrix
+   grade_to_tris
    grade_to_vertices
+   spatial_src_connectivity
+   spatial_tris_connectivity
+   spatial_dist_connectivity
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity
@@ -173,6 +178,7 @@ Functions reference
    plot_topo_phase_lock
    plot_image_epochs
    plot_topo_image_epochs
+   mne_analyze_colormap
 
 .. automodule:: mne.artifacts
  :no-members:

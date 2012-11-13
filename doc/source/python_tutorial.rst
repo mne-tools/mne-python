@@ -26,7 +26,7 @@ What you can do with MNE Python
     - **Linear inverse solvers** (dSPM, MNE)
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
-    - **Non-parametric statistics** in time, space and frequency (including with cluster-level)
+    - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
 
 .. note:: Package based on the FIF file format from Neuromag but can work with CTF and 4D after conversion to FIF.

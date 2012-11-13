@@ -909,3 +909,44 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                             cmap=cmap, layout_scale=layout_scale)
 
     return fig
+
+
+def mne_analyze_colormap(limits=[5, 10, 15]):
+    """Return a colormap similar to that used by mne_analyze
+
+    Parameters
+    ----------
+    limits : list (or array) of length 3
+        Bounds for the colormap.
+
+    Returns
+    -------
+    cmap : instance of matplotlib.pylab.colormap
+        A teal->blue->gray->red->yellow colormap.
+    """
+    from matplotlib import colors
+    l = np.asarray(limits, dtype='float')
+    if any(np.diff(l) <= 0):
+        raise ValueError('limits must be monotonically increasing')
+    if len(l) != 3:
+        raise ValueError('limits must have 3 elements')
+    l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
+    cdict = {'red': ((l[0], 0.0, 0.0),
+                     (l[1], 0.0, 0.0),
+                     (l[2], 0.5, 0.5),
+                     (l[3], 0.5, 0.5),
+                     (l[4], 1.0, 1.0),
+                     (l[5], 1.0, 1.0)),
+             'green': ((l[0], 1.0, 1.0),
+                       (l[1], 0.0, 0.0),
+                       (l[2], 0.5, 0.5),
+                       (l[3], 0.5, 0.5),
+                       (l[4], 0.0, 0.0),
+                       (l[5], 1.0, 1.0)),
+             'blue': ((l[0], 1.0, 1.0),
+                      (l[1], 1.0, 1.0),
+                      (l[2], 0.5, 0.5),
+                      (l[3], 0.5, 0.5),
+                      (l[4], 0.0, 0.0),
+                      (l[5], 0.0, 0.0))}
+    return colors.LinearSegmentedColormap('mne_analyze', cdict)
