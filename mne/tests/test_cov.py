@@ -159,16 +159,16 @@ def test_evoked_whiten():
     evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
     cov = read_cov(cov_fname)
 
-    ###############################################################################
+    ###########################################################################
     # Show result
     picks = pick_types(evoked.info, meg=True, eeg=True,
-                            exclude=evoked.info['bads'])  # Pick channels to view
+                        exclude=evoked.info['bads'])  # Pick channels to view
 
     noise_cov = regularize(cov, evoked.info,
                                    grad=0.1, mag=0.1, eeg=0.1)
 
     evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
-    mean_baseline = np.mean(np.abs(evoked_white.data[picks][:, evoked.times < 0]),
-                            axis=1)
+    whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
+    mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
     assert_true(np.all(mean_baseline < 1.))
     assert_true(np.all(mean_baseline > 0.2))
