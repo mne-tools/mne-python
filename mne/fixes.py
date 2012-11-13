@@ -3,7 +3,7 @@
 If you add content to this file, please give the version of the package
 at which the fixe is no longer needed.
 
-# XXX : copied from scikt-learn
+# XXX : copied from scikit-learn
 
 """
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
