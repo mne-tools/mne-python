@@ -1,5 +1,6 @@
 import os.path as op
 from nose.tools import assert_true, assert_raises
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -11,6 +12,7 @@ from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
                                 compute_morph_matrix, grade_to_vertices, \
                                 morph_data_precomputed
+from mne.minimum_norm import read_inverse_operator
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -180,6 +182,8 @@ def test_spatio_temporal_src_connectivity():
     connectivity = spatio_temporal_tris_connectivity(tris, 2)
     src[0]['use_tris'] = np.array([[0, 1, 2]])
     src[1]['use_tris'] = np.array([[0, 1, 2]])
+    src[0]['vertno'] = np.array([0, 1, 2])
+    src[1]['vertno'] = np.array([0, 1, 2])
     connectivity2 = spatio_temporal_src_connectivity(src, 2)
     assert_array_equal(connectivity.todense(), connectivity2.todense())
     # add test for dist connectivity
@@ -189,3 +193,13 @@ def test_spatio_temporal_src_connectivity():
     src[1]['vertno'] = [0, 1, 2]
     connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
     assert_array_equal(connectivity.todense(), connectivity3.todense())
+    # add test for source space connectivity with omitted vertices
+    fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+    inverse_operator = read_inverse_operator(fname_inv)
+    with warnings.catch_warnings(record=True) as w:
+        connectivity = spatio_temporal_src_connectivity(
+                                            inverse_operator['src'], n_times=2)
+        assert len(w) == 1
+    a = connectivity.shape[0] / 2
+    b = sum([s['nuse'] for s in inverse_operator['src']])
+    assert_true(a == b)

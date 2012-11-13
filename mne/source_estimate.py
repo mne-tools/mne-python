@@ -1325,7 +1325,30 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         rh_tris = np.searchsorted(np.unique(src[1]['use_tris']),
                                   src[1]['use_tris'])
         tris = np.concatenate((lh_tris, rh_tris + np.max(lh_tris) + 1))
-        return spatio_temporal_tris_connectivity(tris, n_times)
+        connectivity = spatio_temporal_tris_connectivity(tris, n_times)
+
+        # deal with source space only using a subset of vertices
+        used_verts = [np.unique(s['use_tris']) for s in src]
+        masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
+        if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
+            raise ValueError('Used vertices do not match connectivity shape')
+        if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
+            raise ValueError('Vertex mask does not match number of vertices')
+        masks = np.concatenate(masks)
+        missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
+        if missing:
+            warnings.warn('%0.1f%% of original source space vertices have been'
+                          ' omitted, tri-based connectivity will have holes\n'
+                          '(consider using distance-based connectivity)'
+                          % missing)
+            masks = np.tile(masks, n_times)
+            masks = np.where(masks)[0]
+            connectivity = connectivity.tocsr()
+            connectivity = connectivity[masks]
+            connectivity = connectivity[:, masks]
+            connectivity = connectivity.tocoo()
+
+        return connectivity
     else:  # use distances computed and saved in the source space file
         return spatio_temporal_dist_connectivity(src, n_times, dist)
 
