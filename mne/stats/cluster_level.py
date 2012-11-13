@@ -17,7 +17,7 @@ logger = logging.getLogger('mne')
 from .parametric import f_oneway
 from ..parallel import parallel_func
 from ..utils import split_list
-from ..fixes import in1d
+from ..fixes import in1d, unravel_index
 from .. import verbose
 
 
@@ -957,5 +957,5 @@ def _reshape_clusters(clusters, sample_shape):
         if clusters[0].dtype == bool:  # format of mask
             clusters = [c.reshape(sample_shape) for c in clusters]
         else:  # format of indices
-            clusters = [np.unravel_index(c, sample_shape) for c in clusters]
+            clusters = [unravel_index(c, sample_shape) for c in clusters]
     return clusters

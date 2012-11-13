@@ -168,6 +168,29 @@ else:
     in1d = np.in1d
 
 
+def _unravel_index(indices, dims):
+    """Add support for multiple indices in unravel_index that is provided
+    for numpy >= 1.4"""
+    indices_arr = np.asarray(indices)
+    if indices_arr.size == 1:
+        return np.unravel_index(indices, dims)
+    else:
+        if indices_arr.ndim != 1:
+            raise ValueError('indices should be one dimensional')
+
+        ndims = len(dims)
+        unraveled_coords = np.empty((indices_arr.size, ndims), dtype=np.int)
+        for coord, idx in zip(unraveled_coords, indices_arr):
+            coord[:] = np.unravel_index(idx, dims)
+        return tuple(unraveled_coords.T)
+
+
+if np_version[:2] < (1, 4):
+    unravel_index = _unravel_index
+else:
+    unravel_index = np.unravel_index
+
+
 def qr_economic(A, **kwargs):
     """Compat function for the QR-decomposition in economic mode
 

@@ -112,7 +112,7 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir,
-                                 array=True)
+                                 array=False)
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
