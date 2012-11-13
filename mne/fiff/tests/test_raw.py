@@ -24,6 +24,7 @@ nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
 fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
+fif_gz_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif.gz')
 ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
 fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
                                'test_withbads_raw.fif')
@@ -181,7 +182,7 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF)
     """
-    for fname in [fif_fname, ctf_fname]:
+    for fname in [fif_fname, fif_gz_fname, ctf_fname]:
         raw = Raw(fname)
 
         nchan = raw.info['nchan']
