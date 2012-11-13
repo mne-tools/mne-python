@@ -111,14 +111,13 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 #    morph matix for all the heavy lifting.
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
-                                 fsave_vertices, 20, subjects_dir,
-                                 array=False)
+                                 fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 2)
 print 'Morphing data.'
-X = morph_mat.dot(X)
+X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
 #    Finally, we want to compare the overall activity levels in each condition,
