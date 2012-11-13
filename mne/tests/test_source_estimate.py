@@ -18,6 +18,8 @@ from mne.minimum_norm import read_inverse_operator
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
+fname_inv = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis-meg-oct-6-meg-inv.fif')
 
 
 def test_io_stc():
@@ -194,7 +196,6 @@ def test_spatio_temporal_src_connectivity():
     connectivity3 = spatio_temporal_src_connectivity(src, 2, dist=2)
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
-    fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
     inverse_operator = read_inverse_operator(fname_inv)
     with warnings.catch_warnings(record=True) as w:
         connectivity = spatio_temporal_src_connectivity(

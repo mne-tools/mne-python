@@ -20,7 +20,7 @@ from .parallel import parallel_func
 from .surface import read_surface
 from .utils import get_subjects_dir
 from . import verbose
-
+from . fixes import in1d
 
 def read_stc(filename):
     """Read an STC file and return as dict
@@ -1327,7 +1327,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         connectivity = spatio_temporal_tris_connectivity(tris, n_times)
 
         # deal with source space only using a subset of vertices
-        masks = [np.in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
+        masks = [in1d(u, s['vertno']) for s, u in zip(src, used_verts)]
         if sum(u.size for u in used_verts) != connectivity.shape[0] / n_times:
             raise ValueError('Used vertices do not match connectivity shape')
         if [np.sum(m) for m in masks] != [len(s['vertno']) for s in src]:
@@ -1345,6 +1345,7 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
             connectivity = connectivity.tocsr()
             connectivity = connectivity[masks]
             connectivity = connectivity[:, masks]
+            # return to original format
             connectivity = connectivity.tocoo()
 
         return connectivity
