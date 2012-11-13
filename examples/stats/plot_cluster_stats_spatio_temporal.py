@@ -16,6 +16,12 @@ permutation test across space and time.
 
 print __doc__
 
+import os.path as op
+import numpy as np
+from numpy.random import randn
+from scipy import stats as stats
+import pylab as pl
+
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
     grade_to_tris, equalize_epoch_counts, SourceEstimate, read_surface
@@ -23,10 +29,6 @@ from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
 from mne.viz import mne_analyze_colormap
-import os.path as op
-import numpy as np
-from numpy.random import randn
-from scipy import stats as spstats
 
 ###############################################################################
 # Set parameters
@@ -56,7 +58,7 @@ epochs2 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 #    Equalize trial counts to eliminate bias (which would otherwise be
 #    introduced by the abs() performed below)
-equalize_epoch_counts(epochs1, epochs2, method='mintime')
+equalize_epoch_counts(epochs1, epochs2)
 
 ###############################################################################
 # Transform to source space
@@ -114,15 +116,16 @@ morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
 n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
-X.shape = (n_vertices_sample, n_times * n_subjects * 2)
+X = X.reshape(n_vertices_sample, n_times * n_subjects * 2)
 print 'Morphing data.'
 X = morph_mat.dot(X)
-X.shape = (n_vertices_fsave, n_times, n_subjects, 2)
+X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
 #    Finally, we want to compare the overall activity levels in each condition,
 #    the diff is taken along the last axis (condition). The negative sign makes
 #    it so condition1 > condition2 shows up as "red blobs" (instead of blue).
-X = np.squeeze(-np.diff(np.abs(X)))
+X = np.abs(X)  # only magnitude
+X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
 
 ###############################################################################
@@ -140,7 +143,7 @@ X = np.transpose(X, [2, 1, 0])
 #    Now let's actually do the clustering. This can take a long time...
 #    Here we set the threshold quite high to reduce computation.
 p_threshold = 0.001
-t_threshold = -spstats.distributions.t.ppf(p_threshold / 2, n_subjects)
+t_threshold = -stats.distributions.t.ppf(p_threshold / 2, n_subjects)
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
@@ -165,28 +168,22 @@ for ii, cluster_ind in enumerate(good_cluster_inds):
     data[v_inds, t_inds] = T_obs[t_inds, v_inds]
     # Store a nice visualization of the cluster by summing across time (in ms)
     data = np.sign(data) * np.logical_not(data == 0) * tstep
-    data_summary[:, ii + 1] = np.sum(data, axis=1) * 1000
+    data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
 
 #    Make the first "time point" a sum across all clusters for easy
 #    visualization
 data_summary[:, 0] = np.sum(data_summary, axis=1)
-stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, 0, 1e-3)
+stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
+                                     tstep=1e-3)
 max_duration = 60.0  # in ms
 limits = [1000 * tstep - 1, 1000 * tstep, max_duration]
 subjects_dir = op.join(data_path, 'subjects')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
-#    shows all the clusters, weighted by duration, for the right hemisphere
+#    shows all the clusters, weighted by duration, for both hemispheres
 
-#from enthought.mayavi import mlab
-#mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-#mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-#                     lh_faces)
-#mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-#                     rh_faces)
+from mne.utils import get_subjects_dir
 
-
-from mne.source_estimate import _get_subjects_dir
 
 def _force_aspect(ax, x, y, z, color='w'):
     """Surrogate for ax.set_aspect('equal') since it fails in 3D
@@ -203,8 +200,10 @@ def _force_aspect(ax, x, y, z, color='w'):
 
 def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
                         surf='inflated', measure='dSPM', subjects_dir=None):
-    """Plot a time instant from a SourceEstimate
-    XXXXXXXXXXXXXXXX
+    """Plot a time instant from a SourceEstimate using matplotlib
+
+    The same could be done with mayavi using proper 3D.
+
     Parameters
     ----------
     stc : instance of SourceEstimate
@@ -221,9 +220,8 @@ def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     """
-    subjects_dir = _get_subjects_dir(subjects_dir)
-    import matplotlib.pyplot as pl
-    fig = pl.figure(facecolor='k')
+    subjects_dir = get_subjects_dir(subjects_dir)
+    pl.figure(facecolor='k', figsize=(8, 5))
     hemis = ['lh', 'rh']
     if isinstance(surf, str):
         surf = [read_surface(op.join(subjects_dir, subject, 'surf',

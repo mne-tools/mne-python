@@ -253,37 +253,22 @@ class Epochs(object):
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
-        """Drop epochs based on indices or boolean mask
+        """Drop epochs based on indices
 
         Parameters
         ----------
-        indices : array of ints or bools
-            Set epochs to remove using indices, or set epochs to remove by
-            using a boolean mask (removs False elements). Events are
+        indices : array of ints
+            Set epochs to remove using indices. Events are
             correspondingly modified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
-        if not isinstance(indices, np.ndarray):
-            indices = np.asarray(indices)
-        if indices.dtype == np.dtype(bool):
-            is_bool = True
-            if indices.size != len(self.events):
-                raise ValueError('boolean mask must match events size')
-        else:
-            is_bool = False
-
-        if is_bool:
-            self.events = self.events[indices]
-            if(self.preload):
-                self._data = self._data[indices]
-            count = len(indices) - np.sum(indices)
-        else:
-            self.events = np.delete(self.events, indices, axis=0)
-            if(self.preload):
-                self._data = np.delete(self._data, indices, axis=0)
-            count = len(indices)
+        indices = np.asarray(indices)
+        self.events = np.delete(self.events, indices, axis=0)
+        if(self.preload):
+            self._data = np.delete(self._data, indices, axis=0)
+        count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
@@ -707,14 +692,29 @@ class Epochs(object):
         return epochs_ts
 
 
-def equalize_epoch_counts(*args, **kwargs):
+def equalize_epoch_counts(*args):
     """Equalize the number of trials in multiple Epoch instances
 
-    Note that this operates on the Epochs instances in-place. It chooses the
-    epochs to eliminate by minimizing the differences in timing between Epochs
-    instances with more trials and the Epochs instance with the fewest trials.
-    This function will also call drop_bad_epochs() on any epochs instance that
-    hasn't yet had bad epochs dropped.
+    It tries to make the remaining epochs occuring as close as possible in
+    time. This method works based on the idea that if there happened to be some
+    time-varying (like on the scale of minutes) noise characteristics during
+    a recording, they could be compensated for (to some extent) in the
+    equalization process. This method thus seeks to reduce any of those effects
+    by minimizing the differences in the times of the events in the two sets of
+    epochs. For example, if one had event times [1, 2, 3, 4, 120, 121] and the
+    other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
+    [1, 2] in the first epochs and not [20, 21].
+
+    Note that this operates on the Epochs instances in-place.
+
+    It chooses the epochs to eliminate by minimizing the differences in timing
+    between Epochs instances with more trials and the Epochs instance with the
+    fewest trials. This function will also call drop_bad_epochs() on any epochs
+    instance that hasn't yet had bad epochs dropped.
+
+    Example:
+
+    equalize_epoch_counts(epochs1, epochs2)
 
     Parameters
     ----------
@@ -725,24 +725,19 @@ def equalize_epoch_counts(*args, **kwargs):
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    method = kwargs['method'] if 'method' in kwargs else 'truncate'
-
     epochs_list = args
     if not all([isinstance(e, Epochs) for e in epochs_list]):
         raise ValueError('All inputs must be Epochs instances')
+
     # make sure bad epochs are dropped
     [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
 
     small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
     small_e_times = epochs_list[small_idx].events[:, 0]
-    if method == 'mintime':
-        for e in epochs_list:
-            e.drop_epochs(_minimize_time_diff(small_e_times, e.events[:, 0]))
-    elif method == 'truncate':
-        for e in epochs_list:
-            e.drop_epochs(np.arange(len(small_e_times), len(e.events)))
-        else:
-            raise ValueError('method must be ''truncate'' or ''mintime''')
+    for e in epochs_list:
+        mask = _minimize_time_diff(small_e_times, e.events[:, 0])
+        indices = np.where(np.logical_not(mask))[0]
+        e.drop_epochs(indices)
 
 
 def _minimize_time_diff(t_shorter, t_longer):

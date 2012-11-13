@@ -415,3 +415,13 @@ def verbose(function):
         else:
             return function(*args, **kwargs)
     return dec
+
+
+def get_subjects_dir(subjects_dir=None):
+    """Safely use subjects_dir input to return SUBJECTS_DIR"""
+    if subjects_dir is None:
+        if 'SUBJECTS_DIR' in os.environ:
+            subjects_dir = os.environ['SUBJECTS_DIR']
+        else:
+            raise ValueError('SUBJECTS_DIR environment variable not set')
+    return subjects_dir

@@ -18,6 +18,7 @@ logger = logging.getLogger('mne')
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
+from .utils import get_subjects_dir
 from . import verbose
 
 
@@ -774,7 +775,7 @@ class SourceEstimate(object):
         if not hemi in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
-        subjects_dir = _get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir)
 
         values = values[vert_inds[hemi]]
 
@@ -839,7 +840,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         The morph maps for the 2 hemisphere
     """
 
-    subjects_dir = _get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     # Does the file exist
     name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
@@ -1025,16 +1026,6 @@ def _get_subject_sphere_tris(subject, subjects_dir):
     return tris
 
 
-def _get_subjects_dir(subjects_dir):
-    """Safely use subjects_dir input to return SUBJECTS_DIR"""
-    if subjects_dir is None:
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
-    return subjects_dir
-
-
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None,
@@ -1086,7 +1077,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                          'estimates')
 
     logger.info('Morphing data...')
-    subjects_dir = _get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
                                 n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
@@ -1167,7 +1158,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
     """
     logger.info('Computing morph matrix...')
-    subjects_dir = _get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
@@ -1230,7 +1221,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
     vertices : list of arrays of int
         Vertex numbers for LH and RH
     """
-    subjects_dir = _get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
                                xh + '.sphere.reg') for xh in ['lh', 'rh']]

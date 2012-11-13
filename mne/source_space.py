@@ -19,7 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans
 from .surface import read_surface
-from .source_estimate import _get_subjects_dir
+from .utils import get_subjects_dir
 from . import verbose
 
 
@@ -554,7 +554,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     if not len(hemis) == len(vertices):
         raise ValueError('hemi and vertices must match in length')
 
-    subjects_dir = _get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
              for h in ['lh', 'rh']]
