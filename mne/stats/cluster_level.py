@@ -499,7 +499,7 @@ def ttest_1samp_no_p(X):
     -----
     One can use the conversion:
 
-        threshold = -scipy.stats.distributions.t.ppf(p_thresh, n_samples)
+        threshold = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1)
 
     to convert a desired p-value threshold to t-value threshold. Don't forget
     that for two-tailed tests, p_thresh in the above should be divided by 2
@@ -864,7 +864,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
-        threshold = -stats.distributions.t.ppf(p_thresh, n_samples)
+        threshold = -stats.distributions.t.ppf(p_thresh, n_samples - 1)
         if np.sign(tail) < 0:
             threshold = -threshold
 
