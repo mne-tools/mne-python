@@ -1336,8 +1336,9 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
         missing = 100 * float(len(masks) - np.sum(masks)) / len(masks)
         if missing:
             warnings.warn('%0.1f%% of original source space vertices have been'
-                          ' omitted, tri-based connectivity will have holes\n'
-                          '(consider using distance-based connectivity)'
+                          ' omitted, tri-based connectivity will have holes.\n'
+                          'Consider using distance-based connectivity or '
+                          'morphing data to all vertices.'
                           % missing)
             masks = np.tile(masks, n_times)
             masks = np.where(masks)[0]
