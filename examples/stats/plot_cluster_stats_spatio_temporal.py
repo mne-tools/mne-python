@@ -143,7 +143,7 @@ X = np.transpose(X, [2, 1, 0])
 #    Now let's actually do the clustering. This can take a long time...
 #    Here we set the threshold quite high to reduce computation.
 p_threshold = 0.001
-t_threshold = -stats.distributions.t.ppf(p_threshold / 2, n_subjects)
+t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
