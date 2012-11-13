@@ -33,15 +33,13 @@ noise_cov = mne.read_cov(cov_fname)
 # Show result
 picks = mne.fiff.pick_types(evoked.info, meg=True, eeg=True,
                         exclude=evoked.info['bads'])  # Pick channels to view
-
 import pylab as pl
-pl.close('all')
-pl.figure()
-plot_evoked(evoked, picks=picks)
+
+evoked.plot(picks=picks)
 
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                grad=0.1, mag=0.1, eeg=0.1)
 
 evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
 pl.figure()
-plot_evoked(evoked_white, picks=picks, unit=False, hline=[-2, 2])
+evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])
