@@ -3,9 +3,12 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 25 sources.
+ICA is used to decompose raw data in 37 to 38 sources.
 The source matching the ECG is found automatically
-and displayed.
+and displayed. Subsequently, the cleaned data is compared
+with the uncleanend data. The last section shows how to export
+the sources into a fiff file for further processing and displaying, e.g.
+using mne_brows_raw.
 
 """
 print __doc__

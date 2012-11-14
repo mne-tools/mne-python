@@ -3,9 +3,10 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 25 sources.
-The source matching the ECG is found automatically
-and displayed.
+ICA is used to decompose raw data in 37 to 38 sources.
+The source matching the EOG is found automatically
+identified and then used to detect EOG artifacts in
+the raw data.
 
 """
 print __doc__

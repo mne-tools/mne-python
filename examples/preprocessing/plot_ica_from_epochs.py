@@ -3,7 +3,10 @@
 Compute ICA components on Epochs
 ================================
 
-25 ICA components are estimated and displayed.
+ICA is used to decompose raw data in 37 to 38 sources.
+The source matching the ECG is found automatically
+and displayed. Finally, the cleaned epochs are compared
+to the uncleanend epochs.
 
 """
 print __doc__
