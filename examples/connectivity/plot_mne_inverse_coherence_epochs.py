@@ -1,6 +1,6 @@
 """
 ==============================================================
-Compute coherency in source space using a MNE inverse solution
+Compute coherence in source space using a MNE inverse solution
 ==============================================================
 
 This examples computes the coherence between a seed in the left
@@ -85,56 +85,45 @@ lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_normal=True, return_generator=True)
 
-# Now we are ready to compute the coherence
-fmin, fmax = (1.0, 20), (8., 30)
+# Now we are ready to compute the coherence in the alpha and beta band
+fmin, fmax = (8., 20.), (13., 30.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-# test: custom connectivity method that computes the phase histogram
-def _hist_con(csd_xy):
-    # compute phase angle 0..2pi and quantize it
-    angle = np.angle(csd_xy) + np.pi
-    n_bins = 20
-    n_sig, n_freq = csd_xy.shape
-    hist = np.zeros((n_sig, n_freq, n_bins))
+# Now we compute connectivity. To speed things up, we use 2 parallel jobs
+# and do not use adaptive weights for the multi-taper spectral estimation.
+# By using faverage=True, we directly average the coherence in the alpha
+# and beta band, i.e., we will only get 2 frequency bins
+coh, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
+    method='coh', indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
+    faverage=True, adaptive=False, n_jobs=2)
 
-    for i in xrange(n_sig):
-        for j in xrange(n_freq):
-            bin_idx = int(min(np.floor(angle[i, j] * n_bins / (2 * np.pi)),
-                          n_bins - 1))
-            hist[i, j, bin_idx] += 1
-
-    return hist
-
-
-def _hist_norm(hist, psd_xx, psd_yy, n_epochs):
-    # Do nothing
-    return hist
-
-my_phase_method = (_hist_con, _hist_norm)
-
-con, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
-                                                   method=('coh', 'spli'),
-                                                   indices=indices, sfreq=sfreq,
-                                                   fmin=fmin, fmax=fmax,
-                                                   faverage=True, adaptive=True)
-
-# only get the coherence
-coh = np.abs(con[0])
+print 'Frequencies in Hz over which coherence was averaged for alpha: '
+print freqs[0]
+print 'Frequencies in Hz over which coherence was averaged for beta: '
+print freqs[1]
 
 # Generate a source estimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.
 # Note: We use a hack to save the frequency axis as time
-tstep = np.mean(np.diff(freqs)) / 1e3
-coh_stc = mne.SourceEstimate(coh, vertices=stc.vertno,
-                             tmin=freqs[0] / 1e3, tstep=tstep)
+aud_rh_coh = dict()  # store the coherence for each band
+for i, band in enumerate(['alpha', 'beta']):
+    tstep = np.mean(np.diff(freqs[i])) / 1e3
 
-# Plot average coherence left-right auditory cortex
-aud_rh_coh = np.mean(coh_stc.label_stc(label_rh).data, axis=0)
+    coh_stc = mne.SourceEstimate(coh[:, i][:, None], vertices=stc.vertno,
+        tmin=1e-3 * np.mean(freqs[i]), tstep=1)
 
-pl.plot(freqs, aud_rh_coh)
-pl.xlabel('Frequency (Hz)')
-pl.ylabel('Coherence left-right auditory cortex')
+    # save the cohrence to plot later
+    aud_rh_coh[band] = np.mean(coh_stc.label_stc(label_rh).data, axis=0)
+
+    # We could save the coherence, for visualization using e.g. mne_analyze
+    #coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
+
+pl.figure()
+width = 0.5
+pos = np.arange(2)
+pl.bar(pos, [aud_rh_coh['alpha'], aud_rh_coh['beta']], width)
+pl.ylabel('Coherence')
+pl.title('Cohrence left-right auditory')
+pl.xticks(pos + width / 2, ('alpha', 'beta'))
 pl.show()
 
-# We could save the coherence, for visualization using e.g. mne_analyze
-coh_stc.save('seed_coh_vertno_%d' % seed_vertno)
