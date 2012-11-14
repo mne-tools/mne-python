@@ -68,7 +68,7 @@ def plot_topo(evoked, layout):
 
 
 def plot_evoked(evoked, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight'):
+                ylim=None, proj=False, xlim='tight', hline=None):
     """Plot evoked data
 
     Parameters
@@ -88,6 +88,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         xlim for plots.
     proj : bool
         If true SSP projections are applied before display.
+    hline : list of floats | None
+        The values at which show an horizontal line.
     """
     import pylab as pl
     pl.clf()
@@ -131,6 +133,10 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
             pl.xlabel('time (ms)')
             counter += 1
             pl.ylabel('data (%s)' % ch_unit)
+
+            if hline is not None:
+                for h in hline:
+                    pl.axhline(h, color='k', linestyle='--', linewidth=2)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     try:

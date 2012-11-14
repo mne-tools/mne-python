@@ -6,11 +6,11 @@ from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 
-from mne.cov import regularize
+from mne.cov import regularize, whiten_evoked
 from mne import read_cov, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
-from mne.fiff import Raw, pick_channels_cov, pick_channels
+from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 
 cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-cov.fif')
@@ -18,6 +18,8 @@ cov_km_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test-km-cov.fif')
 raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                 'test_raw.fif')
+ave_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+                'test-ave.fif')
 erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
                      'test_erm-cov.fif')
 
@@ -150,3 +152,23 @@ def test_regularize_cov():
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
+
+
+def test_evoked_whiten():
+    """Test whitening of evoked data"""
+    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
+    cov = read_cov(cov_fname)
+
+    ###########################################################################
+    # Show result
+    picks = pick_types(evoked.info, meg=True, eeg=True,
+                        exclude=evoked.info['bads'])  # Pick channels to view
+
+    noise_cov = regularize(cov, evoked.info,
+                                   grad=0.1, mag=0.1, eeg=0.1)
+
+    evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
+    whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
+    mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
+    assert_true(np.all(mean_baseline < 1.))
+    assert_true(np.all(mean_baseline > 0.2))
