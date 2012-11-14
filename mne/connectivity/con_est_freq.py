@@ -10,7 +10,9 @@ from scipy.fftpack import fftfreq
 import logging
 logger = logging.getLogger('mne')
 
+
 from .utils import check_indices
+from ..parallel import parallel_func
 from .. import SourceEstimate
 from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _psd_from_mt, _csd_from_mt,\
@@ -18,34 +20,137 @@ from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
 from .. import verbose
 
 
+########################################################################
+# Accumulator and normalization functions for various methods
+
 def _coh_acc(csd_xy):
-    """Accumulator function for coherency"""
+    """Accumulator function for coherence, coherency etc"""
     return csd_xy
 
 
 def _coh_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+    """Normalization function for coherence"""
+    return np.abs(acc_mean) / np.sqrt(psd_xx * psd_yy)
+
+
+def _cohy_norm(acc_mean, psd_xx, psd_yy, n_epochs):
     """Normalization function for coherency"""
     return acc_mean / np.sqrt(psd_xx * psd_yy)
 
 
-def _spli_acc(csd_xy):
-    """Accumulator function for sPLI"""
+def _imcoh_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+    """Normalization function for imaginary coherence"""
+    return np.imag(acc_mean) / np.sqrt(psd_xx * psd_yy)
+
+
+def _pli_acc(csd_xy):
+    """Accumulator function for PLI"""
     return np.sign(np.imag(csd_xy))
 
 
-# TODO:
-# - parallel processing of epochs
+def _pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+    """Normalization function for PLI"""
+    return np.abs(acc_mean)
+
+########################################################################
+
+
+def _epoch_freq_connectivity(data, sfreq, dpss, eigvals, freq_mask, adaptive,
+                             faverage, freq_idx_bands, idx_map, block_size,
+                             accumulator_fun, normalization_fun,
+                             con_accumulators, psd, con_acc_info=None,
+                             accumulate_inplace=True):
+    """Connectivity estimation for one epoch see freq_connectivity"""
+    if not accumulate_inplace:
+        # the con_acc_info are tuples of shape and dtype, allocate space
+        acc_shapes = [acc[0] for acc in con_acc_info]
+        acc_dtypes = [acc[1] for acc in con_acc_info]
+        con_accumulators = [np.zeros(shape, dtype=dtype)
+                            for shape, dtype in zip(acc_shapes, acc_dtypes)]
+
+    n_con = con_accumulators[0].shape[0]
+    x_mt, _ = _mt_spectra(data, dpss, sfreq)
+
+    if adaptive:
+        # compute PSD and adaptive weights
+        this_psd, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
+                                                  return_weights=True)
+
+        # only keep freqs of interest
+        x_mt = x_mt[:, :, freq_mask]
+    else:
+        # do not use adaptive weights
+        x_mt = x_mt[:, :, freq_mask]
+        weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+        this_psd = _psd_from_mt(x_mt, weights)
+
+    # accumulate or retrun psd
+    if accumulate_inplace:
+        psd += this_psd
+    else:
+        psd = this_psd
+
+    # accumulate connectivity scores
+    for i in xrange(0, n_con, block_size):
+        if adaptive:
+            csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
+                               x_mt[idx_map[1][i:i + block_size]],
+                               weights[idx_map[0][i:i + block_size]],
+                               weights[idx_map[1][i:i + block_size]])
+        else:
+            csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
+                               x_mt[idx_map[1][i:i + block_size]],
+                               weights, weights)
+
+        for fun, norm, acc in zip(accumulator_fun, normalization_fun,
+                                  con_accumulators):
+            this_acc = fun(csd)
+            if faverage and norm is None:
+                # average over each frequency band
+                for j, freq_idx in enumerate(freq_idx_bands):
+                    acc[i:i + block_size, j] +=\
+                        np.mean(this_acc[:, freq_idx], axis=1)
+            else:
+                acc[i:i + block_size] += this_acc
+
+    return con_accumulators, psd
+
+
+def _get_n_epochs(epochs, n):
+    """Generator that returns lists with at most n epochs"""
+    epochs_out = []
+    for e in epochs:
+        epochs_out.append(e)
+        if len(epochs_out) >= n:
+            yield epochs_out
+            epochs_out = []
+    yield epochs_out
+
+
+def _check_method(method):
+    """Check user defined method"""
+    if not isinstance(method, (list, tuple)):
+        return False
+    if not len(method) == 2:
+        return False
+    if not callable(method[0]):
+        return False
+    if method[1] is not None and not callable(method[1]):
+        return False
+    return True
+
+
 @verbose
-def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
-                      fmax=np.inf, fskip=0, faverage=False, bandwidth=None,
-                      adaptive=False, low_bias=True, block_size=1000,
-                      verbose=None):
+def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
+                      fmin=0, fmax=np.inf, fskip=0, faverage=False,
+                      bandwidth=None, adaptive=False, low_bias=True,
+                      block_size=1000, n_jobs=1, verbose=None):
     """Compute various frequency-domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
-    densities (CSD/PSD_ :math:`S_{XY}(f)` and :math:`S_{XX}(f), S_{YY}(f)`,
-    respectively, which are computed using a multi-taper method.
+    densities (CSD/PSD) Sxy(f) and Sxx(f), Syy(f), respectively,
+    which are computed using a multi-taper method.
 
     By default, the connectivity between all signals is computed (only
     connections corresponding to the lower-triangular part of the
@@ -55,48 +160,63 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
     "2, 3, 4" (a total of 3 connections) one can use the following:
 
     indices = (np.array([0, 0, 0],    # row indices
-           np.array([2, 3, 4])))  # col indices
+               np.array([2, 3, 4])))  # col indices
 
-    con_flat = freq_connectivity(data, 'coh', indices=indices, ...)
+    con_flat = freq_connectivity(data, method='coh', indices=indices, ...)
 
-    This is equivalent, but more efficient, to
-
-    coh = freq_connectivity(data, 'coh', indices=None, ...)
-    coh_flat = coh[indices]  # indices defined above
+    In this case con_flat.shape = (3, n_freqs). The connectivity scores are
+    in the same order as defined indices.
 
     Supported Connectivity Measures
     -------------------------------
     The connectivity method(s) is specified using the "method" parameter. The
     following methods are supported (note: E[] denotes average over epochs).
     Multiple measures can be computed at once by using a list/tuple, e.g.
-    "['coh', 'pli']" to compute coherency and PLI.
+    "['coh', 'pli']" to compute coherence and PLI.
 
-    'coh' : Coherency
-        The coherency is given by
+    'coh' : Coherence given by
 
-        .. math:: C_{XY}(f) = \frac{E[S_{XY}](f)}
-                                   {\sqrt{E[S_{XX}]E[(f) S_{YY}(f)}]}
+                     | E[Sxy(f)] |
+        C(f) = ---------------------------
+               sqrt(E[Sxx(f)] * E[Syy(f)])
 
-    'spli' : signed Phase Locking Index (sPLI)
-        The sPLI is given by
+    'cohy' : Coherency given by
 
-        .. math:: PLI_{XY}(f) = E[sign(Im(S_{XY}(f)))]
+                       E[Sxy(f)]
+        C(f) = ---------------------------
+               sqrt(E[Sxx(f)] * E[Syy(f)])
+
+    'imcoh' : Imaginary coherence given by
+
+                      Im(E[Sxy(f)])
+        C(f) = --------------------------
+               sqrt(E[Sxx(f)] * E[Syy(f)])
+
+
+    'pli' : Phase Locking Index (PLI) given by
+
+        PLI(f) = |E[sign(Im(Sxy(f)))]|
 
     Defining Custom Connectivity Measures
     -------------------------------------
     It is possible to define custom connectivity measures by passing tuples
-    with function handles to the "method" parameter. Assume we want to
-    implement the PLI method (unsiged version of PLI above) ourselves.
+    with two functions to the "method" parameter. Specifically, any measure
+    of the form
 
-    Frist, we define an accumulator and normalization function
+    Con = f_norm(E[f_acc(Sxy(f))], E[Sxx(f)], E[Syy(f)], n_epochs)
+
+    can be implemented by defining the accumulator and normalization functions
+    f_acc and f_norm, respectively. For example, if we want to re-implement
+    the PLI method ourselves we we define an accumulator and normalization
+    functions as follows
 
     def pli_acc(csd_xy):
         # The function receives the CSD csd_xy.shape = (n_pairs, n_freq)
         return np.sign(np.imag(csd_xy))
 
-    def pli_norm(acc, psd_xx, psd_yy, n_epochs):
-        # acc is the output of pli_acc defined above averaged over epochs
-        # for this measure we ignore the PSD and n_epochs parameter
+    def pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+        # acc_norm is the output of pli_acc defined above averaged over epochs
+        # for this measure we ignore the PSD and n_epochs parameters
         return np.abs(acc)
 
     Now, we define our custom PLI method which we can pass to the "method"
@@ -114,8 +234,8 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
     Parameters
     ----------
     data : array, shape=(n_epochs, n_signals, n_times) | list of SourceEstimate
-        The data from which to compute coherency.
-    method : (string | tuple with two function handles) or a list thereof
+        The data from which to compute connectivity.
+    method : (string | tuple with two functions) or a list thereof
         Connectivity measure(s) to compute.
     indices : tuple of arrays | None
         Two arrays with indices of connections for which to compute
@@ -145,6 +265,8 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
     block_size : int
         How many connections to compute at once (higher numbers are faster
         but require more memory).
+    n_jobs : int
+        How many epochs to process in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -154,7 +276,7 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
         Computed connectivity measure(s). If "indices" is None, the first
         two dimensions have shape (n_signals, n_signals) otherwise the
         first dimension is len(indices[0]). The remaining dimensions are
-        method depenend.
+        method dependent.
     freqs : array
         Frequency points at which the coherency was computed.
     n_epochs : int
@@ -162,6 +284,11 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
     n_tapers : int
         The number of DPSS tapers used.
     """
+
+    if n_jobs > 1:
+        parallel, my_epoch_freq_connectivity, _ = \
+                parallel_func(_epoch_freq_connectivity, n_jobs,
+                              verbose=verbose)
 
     # format fmin and fmax and check inputs
     fmin = np.asarray((fmin,)).ravel()
@@ -174,7 +301,12 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
     n_bands = len(fmin)
 
     # assign functions to various methods
-    if not isinstance(method, (list, tuple)):
+    if isinstance(method, (list, tuple)):
+        # check if the user has defined a single custom method
+        if _check_method(method):
+            method = [method]
+    else:
+        # make it a tuple
         method = [method]
 
     n_methods = len(method)
@@ -185,13 +317,19 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
         if m == 'coh':
             accumulator_fun.append(_coh_acc)
             normalization_fun.append(_coh_norm)
-        elif m == 'spli':
-            accumulator_fun.append(_spli_acc)
-            normalization_fun.append(None)
+        elif m == 'cohy':
+            accumulator_fun.append(_coh_acc)
+            normalization_fun.append(_cohy_norm)
+        elif m == 'imcoh':
+            accumulator_fun.append(_coh_acc)
+            normalization_fun.append(_imcoh_norm)
+        elif m == 'pli':
+            accumulator_fun.append(_pli_acc)
+            normalization_fun.append(_pli_norm)
         elif isinstance(m, (tuple, list)):
-            if len(m) != 2 or not all([callable(fun) for fun in m]):
+            if not _check_method(m):
                 raise ValueError('custom method must be defined using a '
-                                 'list/tuple with two function handles')
+                                 'list/tuple with two functions')
             accumulator_fun.append(m[0])
             normalization_fun.append(m[1])
         else:
@@ -199,17 +337,18 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
-
+    epoch_idx = 0
     logger.info('Connectivity computation...')
-    for epoch_idx, data_i in enumerate(data):
+    for epoch_block in _get_n_epochs(data, n_jobs):
 
-        if isinstance(data_i, SourceEstimate):
-            # allow data to be a list of source estimates
-            data_i = data_i.data
+        for i, this_epoch in enumerate(epoch_block):
+            if isinstance(this_epoch, SourceEstimate):
+                # allow data to be a list of source estimates
+                epoch_block[i] = this_epoch.data
 
         if epoch_idx == 0:
             # initialize things
-            n_signals, n_times = data_i.shape
+            n_signals, n_times = epoch_block[0].shape
 
             # compute standardized half-bandwidth
             if bandwidth is not None:
@@ -242,25 +381,25 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
                         % n_con)
 
             # decide which frequencies to keep
-            freqs = fftfreq(n_times, 1. / sfreq)
-            freqs = freqs[freqs >= 0]
+            freqs_all = fftfreq(n_times, 1. / sfreq)
+            freqs_all = freqs_all[freqs_all >= 0]
 
-            freq_mask_bands = []
+            # create a frequency mask for all bands
+            freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
             for f_lower, f_upper in zip(fmin, fmax):
-                this_mask = (freqs >= f_lower) & (freqs <= f_upper)
-                if fskip > 0:
-                    # only keep every (fskip + 1)-th frequency point
-                    for pos in xrange(fskip):
-                        this_mask[pos + 1::fskip + 1] = False
-                freq_mask_bands.append(this_mask)
+                freq_mask |= (freqs_all >= f_lower) & (freqs_all <= f_upper)
 
-            # combined mask for all bands
-            freq_mask = freq_mask_bands[0].copy()
-            for mask in freq_mask_bands[1:]:
-                freq_mask |= mask
+            # possibly skip frequency points
+            for pos in xrange(fskip):
+                freq_mask[pos + 1::fskip + 1] = False
 
-            # frequencies for each band
-            freqs_bands = [freqs[mask] for mask in freq_mask_bands]
+            # the frequency points where we compute connectivity
+            freqs = freqs_all[freq_mask]
+
+            # get the freq. indices and points for each band
+            freq_idx_bands = [np.where((freqs >= fl) & (freqs <= fu))[0]
+                              for fl, fu in zip(fmin, fmax)]
+            freqs_bands = [freqs[freq_idx] for freq_idx in freq_idx_bands]
 
             n_freqs = np.sum(freq_mask)
             if n_bands == 1:
@@ -269,19 +408,12 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
             else:
                 logger.info('    computing connectivity for the bands:')
                 for i, bfreqs in enumerate(freqs_bands):
-                    logger.info('    band %d: %0.1fHz..%0.1fHz (%d points)'
+                    logger.info('     band %d: %0.1fHz..%0.1fHz (%d points)'
                                 % (i + 1, bfreqs[0], bfreqs[-1], len(bfreqs)))
 
-            # freqs output argument
-            freqs_out = freqs[freq_mask]
             if faverage:
                 logger.info('    connectivity scores will be averaged for '
                             'each band')
-                # we will need the indices to average over for each band
-                freq_idx_bands = [np.searchsorted(freqs_out, f)
-                                  for f in freqs_bands]
-                # for each band we return the frequencies that were averaged
-                freqs_out = freqs_bands
 
             # unique signals for which we actually need to compute PSD etc.
             sig_idx = np.unique(np.r_[indices_use[0], indices_use[1]])
@@ -303,10 +435,11 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
                 if faverage:
                     # test if averaging over frequencies works
                     if norm is not None:
-                        out = norm(out, tmp_psd, tmp_psd, 3)
+                        out2 = norm(out, tmp_psd, tmp_psd, 3)
                     else:
+                        out2 = out
                         faverage_acc = True  # we can directly average
-                    if out.shape[1] != n_freqs:
+                    if out2.ndim < 2 or out2.shape[1] != n_freqs:
                         raise ValueError('Averaging over freq. not possible '
                                          'normalization function must return '
                                          'output with shape[1] == n_freqs')
@@ -322,54 +455,49 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
                 con_accumulators.append(this_acc)
             del tmp_csd, tmp_psd, out
 
-        # epoch processing starts here
-        if data_i.shape != (n_signals, n_times):
-            raise ValueError('all epochs must have the same shape')
+            if n_jobs > 1:
+                # we will need the info about the accumulators
+                con_acc_info = [(acc.shape, acc.dtype)
+                                for acc in con_accumulators]
 
-        logger.info('    computing connectivity for epoch %d'
-                    % (epoch_idx + 1))
+        # check dimensions
+        for this_epoch in epoch_block:
+            if this_epoch.shape != (n_signals, n_times):
+                raise ValueError('all epochs must have the same shape')
 
-        # compute tapered spectra
-        x_mt, _ = _mt_spectra(data_i[sig_idx], dpss, sfreq)
+        if n_jobs == 1:
+            # no parallel processing
+            for this_epoch in epoch_block:
+                if this_epoch.shape != (n_signals, n_times):
+                    raise ValueError('all epochs must have the same shape')
 
-        if adaptive:
-            # compute PSD and adaptive weights
-            this_psd, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
-                                                      return_weights=True)
+                logger.info('    computing connectivity for epoch %d'
+                            % (epoch_idx + 1))
 
-            # only keep freqs of interest
-            x_mt = x_mt[:, :, freq_mask]
+                # con_accumulators and psd are updated inplace
+                _epoch_freq_connectivity(this_epoch[sig_idx], sfreq, dpss,
+                    eigvals, freq_mask, adaptive, faverage, freq_idx_bands,
+                    idx_map, block_size, accumulator_fun, normalization_fun,
+                    con_accumulators, psd)
+                epoch_idx += 1
         else:
-            # do not use adaptive weights
-            x_mt = x_mt[:, :, freq_mask]
-            weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-            this_psd = _psd_from_mt(x_mt, weights)
+            # process epochs in parallel
+            logger.info('    computing connectivity for epochs %d..%d'
+                        % (epoch_idx + 1, epoch_idx + len(epoch_block)))
 
-        # accumulate PSD
-        psd += this_psd
+            out = parallel(my_epoch_freq_connectivity(epoch[sig_idx], sfreq,
+                    dpss, eigvals, freq_mask, adaptive, faverage,
+                    freq_idx_bands, idx_map, block_size, accumulator_fun,
+                    normalization_fun, None, None, con_acc_info=con_acc_info,
+                    accumulate_inplace=False) for epoch in epoch_block)
 
-        # accumulate connectivity scores
-        for i in xrange(0, n_con, block_size):
-            if adaptive:
-                csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
-                                   x_mt[idx_map[1][i:i + block_size]],
-                                   weights[idx_map[0][i:i + block_size]],
-                                   weights[idx_map[1][i:i + block_size]])
-            else:
-                csd = _csd_from_mt(x_mt[idx_map[0][i:i + block_size]],
-                                   x_mt[idx_map[1][i:i + block_size]],
-                                   weights, weights)
+            # do the accumulation
+            for this_out in out:
+                for acc, this_acc in zip(con_accumulators, this_out[0]):
+                    acc += this_acc
+                psd += this_out[1]
 
-            for fun, norm, acc in zip(accumulator_fun, normalization_fun,
-                                      con_accumulators):
-                this_acc = fun(csd)
-                if faverage and norm is None:
-                    # average over each frequency band
-                    for j in xrange(n_bands):
-                        acc[i:i + block_size, j] +=\
-                            np.mean(this_acc[:, freq_idx_bands[j]], axis=1)
-                else:
-                    acc[i:i + block_size] += this_acc
+            epoch_idx += len(epoch_block)
 
     # normalize
     n_epochs = epoch_idx + 1
@@ -425,4 +553,8 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2*np.pi, fmin=0,
         # for a single method return connectivity directly
         con = con[0]
 
-    return con, freqs_out, n_epochs, n_tapers
+    if faverage:
+        # for each band we return the frequencies that were averaged
+        freqs = freqs_bands
+
+    return con, freqs, n_epochs, n_tapers

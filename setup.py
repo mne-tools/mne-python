@@ -53,6 +53,7 @@ if __name__ == "__main__":
          packages=['mne', 'mne.tests',
                    'mne.artifacts', 'mne.artifacts.tests',
                    'mne.beamformer', 'mne.beamformer.tests',
+                   'mne.connectivity', 'mne.connectivity.tests',
                    'mne.data',
                    'mne.datasets', 'mne.datasets.sample',
                    'mne.fiff', 'mne.fiff.tests',
