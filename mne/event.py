@@ -96,7 +96,6 @@ def read_events(filename, include=None, exclude=None):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        print filename
 
         #   Find the desired block
         events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)

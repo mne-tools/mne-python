@@ -7,11 +7,7 @@ import time
 import numpy as np
 from scipy import linalg
 import os.path as op
-try:
-    import gzip
-    use_gz = True
-except:
-    use_gz = False
+import gzip
 import logging
 logger = logging.getLogger('mne')
 
@@ -163,14 +159,12 @@ def start_file(fname):
         that the name ends with .fif or .fif.gz
     """
     if op.splitext(fname)[1].lower() == '.gz':
-        if use_gz:
-            logger.info('Writing using gzip')
-            fid = gzip.open(fname, "wb")
-        else:
-            raise RuntimeError('gzip package not installed, cannot open .gz '
-                               'fif file')
+        logger.info('Writing using gzip')
+        # defaults to compression level 9, which is barely smaller but much
+        # slower. 3 offers a good compromise.
+        fid = gzip.open(fname, "wb", compresslevel=3)
     else:
-        logger.debug('Using normal i/o')
+        logger.debug('Writing using normal I/O')
         fid = open(fname, "wb")
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID)
