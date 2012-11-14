@@ -19,6 +19,9 @@ from mne.fiff import Raw
 from mne.artifacts.ica import ICA
 from mne.datasets import sample
 
+###############################################################################
+# Setup paths and prepare epochs data
+
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
@@ -27,8 +30,10 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude=raw.info['bads'])
 
-# setup ica seed
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
+###############################################################################
+# Setup ica seed decompose data, then access and plot sources.
+
+ica = ICA(noise_cov=None, random_state=0)
 print ica
 
 # get epochs
@@ -43,7 +48,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 
 
 # fit sources from epochs or from raw (both works for epochs)
-ica.decompose_epochs(epochs)
+# select n_components by explained variance
+ica.decompose_epochs(epochs, max_n_components=50, explained_var=0.95)
 
 # plot components for one epoch of interest
 # A distinct cardiac component should be visible
@@ -100,8 +106,10 @@ pl.show()
 # join the detected artifact indices
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
+# restore sources, re-append 50 % of the pca components excluded from ICA.
+# this allows to controll the trade-off between denoising and preserving data.
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=exclude,
-                                     copy=True)
+                                     prop_unused=0.5, copy=True)
 
 # plot original epochs
 pl.figure()

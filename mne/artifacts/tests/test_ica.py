@@ -56,13 +56,15 @@ def test_ica():
     """Test ICA on raw and epochs
     """
     # Test ICA raw
-    ica = ICA(noise_cov=None, n_components=25, random_state=0)
-    ica_cov = ICA(noise_cov=test_cov, n_components=25, random_state=0)
+    ica = ICA(noise_cov=None, random_state=0)
+    ica_cov = ICA(noise_cov=test_cov, random_state=0)
 
     print ica  # to test repr
-    ica.decompose_raw(raw, picks=None, start=0, stop=3)  # test default picks
+    ica.decompose_raw(raw, picks=None, start=0, stop=3,
+                      max_n_components=25, explained_var=0.9)  # test default picks
 
-    ica.decompose_raw(raw, picks=picks, start=start, stop=stop)
+    ica.decompose_raw(raw, picks=picks, start=start, stop=stop,
+                      max_n_components=25, explained_var=0.9)
     sources = ica.get_sources_raw(raw)
     assert_true(sources.shape[0] == ica.n_components)
 
@@ -72,7 +74,8 @@ def test_ica():
                                 exclude=[], copy=True)
     assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
-    ica_cov.decompose_raw(raw, picks=picks)
+    ica_cov.decompose_raw(raw, picks=picks,
+                          max_n_components=25, explained_var=0.9)
     print ica  # to test repr
 
     ica_cov.get_sources_raw(raw)
@@ -123,8 +126,8 @@ def test_ica():
     assert_true(eog_events.ndim == 2)
 
     # Test ICA epochs
-
-    ica.decompose_epochs(epochs, picks=picks2)
+    ica.decompose_epochs(epochs, picks=picks2,
+                         max_n_components=25, explained_var=0.9)
 
     sources = ica.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
@@ -136,10 +139,11 @@ def test_ica():
     assert_array_almost_equal(epochs2.get_data(),
                               epochs.get_data())
 
-    ica_cov.decompose_epochs(epochs, picks=picks2)
+    ica_cov.decompose_epochs(epochs, picks=picks2, max_n_components=25,
+                             explained_var=0.9)
 
     sources = ica_cov.get_sources_epochs(epochs)
-    assert_true(sources.shape[1] == ica.n_components)
+    assert_true(sources.shape[1] == ica_cov.n_components)
 
     epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[], copy=True)
     epochs2 = ica_cov.pick_sources_epochs(epochs, exclude=[0], copy=True)

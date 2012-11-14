@@ -39,7 +39,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
+ica = ICA(noise_cov=None, random_state=0)
 print ica
 
 # 1 minute exposure should be sufficient for artifact detection.
@@ -47,8 +47,9 @@ print ica
 # the entire data range
 start, stop = raw.time_as_index([100, 160])
 
-# decompose sources for raw data
-ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+# decompose sources for raw data, select n_components by explained variance
+ica.decompose_raw(raw, start=start, stop=stop, picks=picks,
+                  max_n_components=50, explained_var=0.95)
 print ica
 
 sources = ica.get_sources_raw(raw, start=start, stop=stop)
@@ -85,7 +86,7 @@ sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
 times = raw.time_as_index(np.arange(stop_plot - start_plot))
 
 # get maximum correlation index for ECG
-ecg_source_idx = np.abs(ecg_scores).argmax()
+ecg_source_idx = ecg_scores.argmax()
 
 pl.figure()
 pl.plot(times, sources[ecg_source_idx])
@@ -96,7 +97,8 @@ pl.show()
 # We can do this by reordering the plot by our scores using order
 # and generating sort indices for the sources:
 
-ecg_order = np.abs(ecg_scores).argsort()
+ecg_order = np.abs(ecg_scores).argsort()[::-1]  # ascending order
+
 ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
@@ -127,9 +129,12 @@ pl.show()
 # Show MEG data before and after ICA cleaning.
 
 # join the detected artifact indices
-exclude = np.r_[ecg_source_idx_updated, eog_source_idx]
+exclude = np.r_[ecg_source_idx, eog_source_idx]
 
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
+# restore sources, re-append 50 % of the pca components excluded from ICA.
+# this allows to controll the trade-off between denoising and preserving data.
+raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude,
+                               prop_unused=0.5, copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 

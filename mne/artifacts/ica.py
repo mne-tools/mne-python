@@ -69,9 +69,6 @@ class ICA(object):
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
-    n_components : int
-        Number of components to be extracted. If None, no dimensionality
-        reduction will be applied.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -94,8 +91,6 @@ class ICA(object):
 
     Attributes
     ----------
-    pre_whitener : instance of np.float | instance of mne.cov.Covariance
-        Whitener used for preprocessing.
     last_fit : str
         Flag informing about which type was last fit.
     ch_names : list-like
@@ -107,7 +102,7 @@ class ICA(object):
         See above.
     """
     @verbose
-    def __init__(self, noise_cov=None, n_components=None, random_state=None,
+    def __init__(self, noise_cov=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
         try:
@@ -128,14 +123,13 @@ class ICA(object):
             else:
                 kwargs['random_state'] = random_state
 
-        self._fast_ica = FastICA(n_components, **kwargs)
+        self._fast_ica = FastICA(**kwargs)
 
-        self.n_components = n_components
-        self.index = np.arange(n_components) if n_components else None
         self.last_fit = 'unfitted'
         self.ch_names = None
-        self.mixing = None
+        self._mixing = None
         self.verbose = verbose
+        self.n_components = None
 
     def __repr__(self):
         out = 'ICA '
@@ -154,6 +148,7 @@ class ICA(object):
 
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
+                      max_n_components=50, explained_var=.95,
                       verbose=None):
         """Run the ICA decomposition on raw data
 
@@ -170,6 +165,9 @@ class ICA(object):
         stop : int
             First sample to not include. If omitted, data is included to the
             end.
+        max_n_components : int
+
+        explained_var : .95
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -188,19 +186,23 @@ class ICA(object):
 
         self.ch_names = [raw.ch_names[k] for k in picks]
 
-        if self.index is None:
-            self.index = np.arange(len(picks))
-
-        data, self.pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
+        data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                    raw.info, picks)
 
-        self._fast_ica.fit(data.T)
-        self.mixing = self._fast_ica.get_mixing_matrix().T
+        pca = _prepare_pca(data, max_n_components, explained_var)
+        data, self._pca, self._comp_idx, self._comp_unused_idx = pca
+
+        self._fast_ica.fit(data[:, self._comp_idx])
+        self._mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'raw'
+        self.n_components = len(self._comp_idx)
+        self.index = np.arange(self.n_components)
+
         return self
 
     @verbose
-    def decompose_epochs(self, epochs, picks=None, verbose=None):
+    def decompose_epochs(self, epochs, picks=None, max_n_components=50,
+                         explained_var=.95, verbose=None):
         """Run the ICA decomposition on epochs
 
         Parameters
@@ -234,15 +236,19 @@ class ICA(object):
 
         self.ch_names = [epochs.ch_names[k] for k in picks]
 
-        if self.index is None:
-            self.index = np.arange(len(picks))
-
-        data, self.pre_whitener = self._pre_whiten(
+        data, self._pre_whitener = self._pre_whiten(
                                 np.hstack(epochs.get_data()[:, picks]),
                                 epochs.info, picks)
-        self._fast_ica.fit(data.T)
-        self.mixing = self._fast_ica.get_mixing_matrix().T
+
+        pca = _prepare_pca(data, max_n_components, explained_var)
+        data, self._pca, self._comp_idx, self._comp_unused_idx = pca
+
+        self._fast_ica.fit(data[:, self._comp_idx])
+        self._mixing = self._fast_ica.get_mixing_matrix().T
         self.last_fit = 'epochs'
+        self.n_components = len(self._comp_idx)
+        self.index = np.arange(self.n_components)
+
         return self
 
     def get_sources_raw(self, raw, start=None, stop=None):
@@ -264,16 +270,56 @@ class ICA(object):
         sources : array, shape = (n_components, n_times)
             The ICA sources time series.
         """
-        if self.mixing is None:
+        if self._mixing is None:
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        # this depends on the previous fit so no pick arg
+        return self._get_sources_raw(raw, start, stop)[0]
+
+    def _get_sources_raw(self, raw, start, stop):
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
-        raw_sources = self._fast_ica.transform(data.T).T
+        data = self._pca.transform(data.T)
+        raw_sources = self._fast_ica.transform(data[:, self._comp_idx]).T
 
-        return raw_sources
+        return raw_sources, data
+
+    def get_sources_epochs(self, epochs, concatenate=False):
+        """Estimate epochs sources given the unmixing matrix
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            Epochs object to draw sources from.
+        concatenate : bool
+            If true, epochs and time slices will be concatenated.
+
+        Returns
+        -------
+        epochs_sources : ndarray of shape (n_epochs, n_sources, n_times)
+            The sources for each epoch
+        """
+        if self._mixing is None:
+            raise RuntimeError('No fit available. Please first fit ICA '
+                               'decomposition.')
+
+        return self._get_sources_epochs(epochs, concatenate)[0]
+
+    def _get_sources_epochs(self, epochs, concatenate):
+
+        picks = pick_types(epochs.info, include=self.ch_names,
+                               exclude=epochs.info['bads'])
+
+        data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
+                                   epochs.info, picks)
+
+        data = self._pca.transform(data.T)
+        sources = self._fast_ica.transform(data[:, self._comp_idx]).T
+        sources = np.array(np.split(sources, len(epochs.events), 1))
+
+        epochs_sources = sources if not concatenate else np.hstack(sources)
+
+        return epochs_sources, data
 
     def export_sources(self, raw, picks=None, start=None, stop=None):
         """ Export sources as raw object
@@ -340,35 +386,6 @@ class ICA(object):
         out.info['nchan'] = len(picks) + self.n_components
 
         return out
-
-    def get_sources_epochs(self, epochs, concatenate=False):
-        """Estimate epochs sources given the unmixing matrix
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            Epochs object to draw sources from.
-        concatenate : bool
-            If true, epochs and time slices will be concatenated.
-
-        Returns
-        -------
-        epochs_sources : ndarray of shape (n_epochs, n_sources, n_times)
-            The sources for each epoch
-        """
-        if self.mixing is None:
-            raise RuntimeError('No fit available. Please first fit ICA '
-                               'decomposition.')
-
-        picks = pick_types(epochs.info, include=self.ch_names,
-                               exclude=epochs.info['bads'])
-
-        data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
-                                   epochs.info, picks)
-        sources = self._fast_ica.transform(data.T).T
-        epochs_sources = np.array(np.split(sources, len(epochs.events), 1))
-
-        return epochs_sources if not concatenate else np.hstack(epochs_sources)
 
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=10,
@@ -572,8 +589,9 @@ class ICA(object):
 
         return _find_sources(np.hstack(sources), target, score_func)
 
-    def pick_sources_raw(self, raw, include=None, exclude=None, start=None,
-                         stop=None, copy=True):
+    def pick_sources_raw(self, raw, include=None, exclude=None,
+                         prop_unused=0.5, start=None, stop=None,
+                         copy=True):
         """Recompose raw data including or excluding some sources
 
         Parameters
@@ -605,8 +623,9 @@ class ICA(object):
             raise ValueError('Currently no raw data fitted.'
                              'Please fit raw data first.')
 
-        sources = self.get_sources_raw(raw, start=start, stop=stop)
-        recomposed = self._pick_sources(sources, include, exclude)
+        sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
+        recomposed = self._pick_sources(sources, pca_data, include, exclude,
+                                        prop_unused)
 
         if copy is True:
             raw = raw.copy()
@@ -616,7 +635,7 @@ class ICA(object):
         return raw
 
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
-                            copy=True):
+                            prop_unused=0.5, copy=True):
         """Recompose epochs
 
         Parameters
@@ -640,7 +659,7 @@ class ICA(object):
                              'working. Please read raw data with '
                              'preload=True.')
 
-        sources = self.get_sources_epochs(epochs)
+        sources, pca_data = self._get_sources_epochs(epochs, True)
         picks = pick_types(epochs.info, include=self.ch_names,
                                exclude=epochs.info['bads'])
 
@@ -648,10 +667,11 @@ class ICA(object):
             epochs = epochs.copy()
 
         # put sources-dimension first for selection
-        recomposed = self._pick_sources(sources.swapaxes(0, 1),
-                                        include, exclude)
+        recomposed = self._pick_sources(sources, pca_data,
+                                        include, exclude, prop_unused)
         # restore epochs, channels, tsl order
-        epochs._data[:, picks] = recomposed.swapaxes(0, 1)
+        epochs._data[:, picks] = np.array(np.split(recomposed,
+                                          len(epochs.events), 1))
         epochs.preload = True
 
         return epochs
@@ -671,15 +691,8 @@ class ICA(object):
 
         return data, pre_whitener
 
-    def _pick_sources(self, sources, include, exclude):
+    def _pick_sources(self, sources, data, include, exclude, prop_unused):
         """Helper function"""
-        mixing = self.mixing.copy()
-        pre_whitener = self.pre_whitener.copy()
-        if self.noise_cov is None:  # revert standardization
-            pre_whitener **= -1
-            mixing *= pre_whitener
-        else:
-            mixing = np.dot(mixing, linalg.pinv(pre_whitener))
 
         if include not in (None, []):
             mute = [i for i in xrange(len(sources)) if i not in include]
@@ -687,16 +700,34 @@ class ICA(object):
         elif exclude not in (None, []):
             sources[exclude, :] = 0.  # just exclude
 
-        out = np.dot(sources.T, mixing).T
+        # restore pca data
+        mixing = self._mixing.copy()
+        pca_restored = np.dot(sources.T, mixing)
 
-        return out
+        # re-append deselected pca dimension
+        re_append_idx = np.arange(len(self._comp_unused_idx) * prop_unused)
+        pca_reappend = data[:, self._comp_unused_idx[re_append_idx.astype(int)]]
+        pca_compound = np.c_[pca_restored, pca_reappend]
+
+        # restore sensor space data
+        out = _inverse_t_pca(pca_compound, self._pca)
+
+        # restore scaling
+        pre_whitener = self._pre_whitener.copy()
+        if self.noise_cov is None:  # revert standardization
+            pre_whitener **= -1
+            out *= pre_whitener
+        else:
+            out = np.dot(out, linalg.pinv(pre_whitener))
+
+        return out.T
 
 
 @verbose
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
                         tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
                         verbose=None):
-    """Find ECG peaks from one selected ICA source
+    """Find ECG peaks from one selected7 ICA source
 
     Parameters
     ----------
@@ -706,12 +737,6 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         The index to assign to found events.
     raw : instance of Raw
         Raw object to draw sources from.
-    start : int
-        First sample to include (first is 0). If omitted, defaults to the
-        first sample in data.
-    stop : int
-        First sample to not include.
-        If omitted, data is included to the end.
     tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
@@ -802,3 +827,29 @@ def _find_sources(sources, target, score_func):
               else score_func(sources, 1))
 
     return scores
+
+
+def _prepare_pca(data, max_n_components, explained_var):
+    """ Helper Function """
+    from sklearn.decomposition import RandomizedPCA
+
+    pca = RandomizedPCA(max_n_components, whiten=False, random_state=0)
+    data = pca.fit_transform(data.T)
+    expl_var = pca.explained_variance_ratio_
+    comp_sel_idx = np.where(expl_var.cumsum() < explained_var)[0]
+    comp_unused_idx = np.where(expl_var.cumsum() > explained_var)[0]
+
+    return data[:, comp_sel_idx], pca, comp_sel_idx, comp_unused_idx
+
+
+def _inverse_t_pca(X, pca):
+    """ Helper Function """
+    from sklearn.utils.extmath import safe_sparse_dot
+
+    components = pca.components_[np.arange(len(X.T))]
+    X_orig = safe_sparse_dot(X, components)
+
+    if pca.mean_ is not None:
+        X_orig += pca.mean_
+
+    return X_orig

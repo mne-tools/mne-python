@@ -31,22 +31,24 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
-# setup ica seed
+###############################################################################
+# Setup ica seed decompose data, then access and plot sources.
+
 # Sign and order of components is non deterministic.
-# setting the random state to 0 helps stabilizing the solution.
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
+# setting the random state to 0 makes the solution reproducible.
+ica = ICA(noise_cov=None, random_state=0)
 print ica
 
-# 1 minute exposure should be sufficient for artifact detection.
-# However, rejection pefromance may significantly improve when using
-# the entire data range
-start, stop = raw.time_as_index([100, 160])
 
-# decompose sources for raw data
-ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+# For maximum rejection performance we will compute the decomposition on
+# the entire time range
+
+# decompose sources for raw data, select n_components by explained variance
+ica.decompose_raw(raw, start=None, stop=None, picks=picks,
+                  max_n_components=50, explained_var=0.95)
 print ica
 
-sources = ica.get_sources_raw(raw, start=start, stop=stop)
+sources = ica.get_sources_raw(raw)
 
 # setup reasonable time window for inspection
 start_plot, stop_plot = raw.time_as_index([100, 103])
@@ -70,7 +72,7 @@ eog_scores = ica.find_sources_raw(raw, target='EOG 061',
 sources = ica.get_sources_raw(raw)
 
 # get maximum correlation index for ECG
-eog_source_idx = np.abs(eog_scores).argmax()
+eog_source_idx = eog_scores.argmax()
 
 ###############################################################################
 # Find ECG event onsets from ICA source
