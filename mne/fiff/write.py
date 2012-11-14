@@ -4,9 +4,16 @@
 # License: BSD (3-clause)
 
 import time
-import array
 import numpy as np
 from scipy import linalg
+import os.path as op
+try:
+    import gzip
+    use_gz = True
+except:
+    use_gz = False
+import logging
+logger = logging.getLogger('mne')
 
 from .constants import FIFF
 
@@ -146,16 +153,25 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(name):
+def start_file(fname):
     """Opens a fif file for writing and writes the compulsory header tags
 
     Parameters
     ----------
-    name : string
+    fname : string
         The name of the file to open. It is recommended
-        that the name ends with .fif
+        that the name ends with .fif or .fif.gz
     """
-    fid = open(name, 'wb')
+    if op.splitext(fname)[1].lower() == '.gz':
+        if use_gz:
+            logger.info('Writing using gzip')
+            fid = gzip.open(fname, "wb")
+        else:
+            raise RuntimeError('gzip package not installed, cannot open .gz '
+                               'fif file')
+    else:
+        logger.debug('Using normal i/o')
+        fid = open(fname, "wb")
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
@@ -258,8 +274,10 @@ def write_ch_info(fid, ch):
 
     fid.write(np.array(ch_name, dtype='>c').tostring())
     if len(ch_name) < 16:
-        dum = array.array('c', '\0' * (16 - len(ch_name)))
-        dum.tofile(fid)
+        # This code was replaced / simplified on 2012/11/13:
+        #dum = array.array('c', '\0' * (16 - len(ch_name)))
+        #dum.tofile(fid)
+        fid.write('\0' * (16 - len(ch_name)))
 
 
 def write_dig_point(fid, dig):

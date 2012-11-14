@@ -25,7 +25,7 @@ nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
 def test_io_evoked():
-    """Test IO for evoked data
+    """Test IO for evoked data (fif + gz)
     """
     ave = read_evoked(fname)
 

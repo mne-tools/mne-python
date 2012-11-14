@@ -12,16 +12,13 @@ from mne import read_cov, Epochs, merge_events, \
                compute_covariance
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 
-cov_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-cov.fif')
-cov_km_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-km-cov.fif')
-raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test_raw.fif')
-ave_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-ave.fif')
-erm_cov_fname = op.join('mne', 'fiff', 'tests', 'data',
-                     'test_erm-cov.fif')
+base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+cov_fname = op.join(base_dir, 'test-cov.fif')
+cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
+cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+ave_fname = op.join(base_dir, 'test-ave.fif')
+erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 
 raw = Raw(raw_fname, preload=True)
 
@@ -34,11 +31,23 @@ def test_io_cov():
     cov2 = read_cov('cov.fif')
     assert_array_almost_equal(cov.data, cov2.data)
 
+    cov2 = read_cov(cov_gz_fname)
+    assert_array_almost_equal(cov.data, cov2.data)
+    cov2.save('cov.fif.gz')
+    cov2 = read_cov('cov.fif.gz')
+    assert_array_almost_equal(cov.data, cov2.data)
+
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
     assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
     cov_sel.save('cov.fif')
+
+    cov2 = read_cov(cov_gz_fname)
+    assert_array_almost_equal(cov.data, cov2.data)
+    cov2.save('cov.fif.gz')
+    cov2 = read_cov('cov.fif.gz')
+    assert_array_almost_equal(cov.data, cov2.data)
 
 
 def test_cov_estimation_on_raw_segment():
@@ -152,23 +161,3 @@ def test_regularize_cov():
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
-
-
-def test_evoked_whiten():
-    """Test whitening of evoked data"""
-    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
-    cov = read_cov(cov_fname)
-
-    ###########################################################################
-    # Show result
-    picks = pick_types(evoked.info, meg=True, eeg=True,
-                        exclude=evoked.info['bads'])  # Pick channels to view
-
-    noise_cov = regularize(cov, evoked.info,
-                                   grad=0.1, mag=0.1, eeg=0.1)
-
-    evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
-    whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
-    mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
-    assert_true(np.all(mean_baseline < 1.))
-    assert_true(np.all(mean_baseline > 0.2))

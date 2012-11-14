@@ -11,6 +11,7 @@
 *.lprof
 *.npy
 *.zip
+*.fif.gz
 *.tar.*
 *.egg*
 *.tmproj

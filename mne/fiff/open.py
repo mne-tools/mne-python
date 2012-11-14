@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from os import path as op
+import os.path as op
 try:
     import gzip
     use_gz = True
@@ -39,15 +39,15 @@ def fiff_open(fname, verbose=None):
     directory: list
         list of nodes.
     """
-    if '.gz' in op.splitext(fname)[1]:
+    if op.splitext(fname)[1].lower() == '.gz':
         if use_gz:
             logger.debug('Using gzip')
             fid = gzip.open(fname, "rb")  # Open in binary mode
         else:
-            logger.debug('Using normal i/o')
             raise RuntimeError('gzip package not installed, cannot open .gz '
                                'fif file')
     else:
+        logger.debug('Using normal i/o')
         fid = open(fname, "rb")  # Open in binary mode
 
     tag = read_tag_info(fid)

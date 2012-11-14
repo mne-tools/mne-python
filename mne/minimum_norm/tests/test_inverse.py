@@ -13,30 +13,20 @@ from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate
 from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
-                      apply_inverse_raw, apply_inverse_epochs, \
-                      make_inverse_operator, write_inverse_operator
+    apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
+    write_inverse_operator
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
-fname_inv = op.join(data_path, 'MEG', 'sample',
-                            # 'sample_audvis-meg-eeg-oct-6-meg-eeg-inv.fif')
-                            'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_inv_fixed = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
-fname_vol_inv = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-vol-7-meg-inv.fif')
-fname_data = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-cov.fif')
-fname_fwd = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-oct-6-fwd.fif')
-                            # 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis_filt-0-40_raw.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis_filt-0-40_raw-eve.fif')
-fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label')
+s_path = op.join(sample.data_path(examples_folder), 'MEG', 'sample')
+fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
+fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
+fname_data = op.join(s_path, 'sample_audvis-ave.fif')
+fname_cov = op.join(s_path, 'sample_audvis-cov.fif')
+fname_fwd = op.join(s_path, 'sample_audvis-meg-oct-6-fwd.fif')
+fname_raw = op.join(s_path, 'sample_audvis_filt-0-40_raw.fif')
+fname_event = op.join(s_path, 'sample_audvis_filt-0-40_raw-eve.fif')
+fname_label = op.join(s_path, 'labels', '%s.label')
 
 inverse_operator = read_inverse_operator(fname_inv)
 inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
@@ -75,11 +65,12 @@ def test_io_inverse_operator():
     """
     for inv in [inverse_operator, inverse_operator_vol]:
         inv_init = copy.deepcopy(inv)
-        write_inverse_operator('test-inv.fif', inv)
-        this_inv = read_inverse_operator('test-inv.fif')
+        for out_file in ['test-inv.fif', 'test-inv.fif.gz']:
+            write_inverse_operator(out_file, inv)
+            this_inv = read_inverse_operator(out_file)
 
-        _compare(inv, inv_init)
-        _compare(inv, this_inv)
+            _compare(inv, inv_init)
+            _compare(inv, this_inv)
 
 
 def test_apply_inverse_operator():
