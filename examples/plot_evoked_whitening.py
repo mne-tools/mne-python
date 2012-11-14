@@ -5,7 +5,7 @@ Whitening evoked data with a noise covariance
 
 Evoked data are loaded and then whitened using a given
 noise covariance matrix. It's an excellent
-quality check to see if baseline signal match the assumption
+quality check to see if baseline signals match the assumption
 of Gaussian whiten noise from which we expect values around
 and less than 2 standard deviations.
 
@@ -18,7 +18,6 @@ print __doc__
 
 import mne
 from mne.datasets import sample
-from mne.viz import plot_evoked
 
 data_path = sample.data_path('.')
 
@@ -33,7 +32,6 @@ noise_cov = mne.read_cov(cov_fname)
 # Show result
 picks = mne.fiff.pick_types(evoked.info, meg=True, eeg=True,
                         exclude=evoked.info['bads'])  # Pick channels to view
-import pylab as pl
 
 evoked.plot(picks=picks)
 
@@ -41,5 +39,10 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                grad=0.1, mag=0.1, eeg=0.1)
 
 evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
+
+# plot the whitened evoked data to see if baseline signals match the
+# assumption of Gaussian whiten noise from which we expect values around
+# and less than 2 standard deviations.
+import pylab as pl
 pl.figure()
 evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])
