@@ -183,7 +183,8 @@ def test_io_raw():
     """
     fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
     fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
-    for fname_in, fname_out in zip(fnames_in, fnames_out):
+    whole_files = [False, True, False]
+    for fname_in, fname_out, whole in zip(fnames_in, fnames_out, whole_files):
         raw = Raw(fname_in)
 
         nchan = raw.info['nchan']
@@ -207,7 +208,7 @@ def test_io_raw():
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
                  drop_small_buffer=True)
-        raw2 = Raw(fname_out)
+        raw2 = Raw(fname_out, preload=True, whole_file=whole)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]

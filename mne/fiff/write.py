@@ -162,7 +162,7 @@ def start_file(fname):
         logger.info('Writing using gzip')
         # defaults to compression level 9, which is barely smaller but much
         # slower. 3 offers a good compromise.
-        fid = gzip.open(fname, "wb", compresslevel=3)
+        fid = gzip.open(fname, "wb", compresslevel=2)
     else:
         logger.debug('Writing using normal I/O')
         fid = open(fname, "wb")

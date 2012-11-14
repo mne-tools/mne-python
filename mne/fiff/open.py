@@ -6,7 +6,7 @@
 import os.path as op
 import gzip
 import logging
-import StringIO
+import cStringIO
 logger = logging.getLogger('mne')
 
 from .tag import read_tag_info, read_tag
@@ -49,7 +49,9 @@ def fiff_open(fname, preload=False, verbose=None):
 
     # do preloading of entire file
     if preload:
-        fid = StringIO.StringIO(fid.read())
+        # note that cStringIO objects instantiated this way are read-only,
+        # but that's okay here since we are using mode "rb" anyway
+        fid = cStringIO.StringIO(fid.read())
 
     tag = read_tag_info(fid)
 
