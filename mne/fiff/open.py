@@ -6,6 +6,7 @@
 import os.path as op
 import gzip
 import logging
+import StringIO
 logger = logging.getLogger('mne')
 
 from .tag import read_tag_info, read_tag
@@ -15,13 +16,17 @@ from .. import verbose
 
 
 @verbose
-def fiff_open(fname, verbose=None):
+def fiff_open(fname, preload=False, verbose=None):
     """Open a FIF file.
 
     Parameters
     ----------
     fname: string
         name of the fif file
+    preload : bool
+        If True, all data from the file is read into a memory buffer. This
+        requires more memory, but can be faster for I/O operations that require
+        frequent seeks.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -41,6 +46,10 @@ def fiff_open(fname, verbose=None):
     else:
         logger.debug('Using normal I/O')
         fid = open(fname, "rb")  # Open in binary mode
+
+    # do preloading of entire file
+    if preload:
+        fid = StringIO.StringIO(fid.read())
 
     tag = read_tag_info(fid)
 

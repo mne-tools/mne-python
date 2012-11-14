@@ -75,7 +75,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     logger.info('Reading inverse operator decomposition from %s...'
                 % fname)
-    fid, tree, _ = fiff_open(fname)
+    fid, tree, _ = fiff_open(fname, preload=True)
     #
     #   Find all inverse operators
     #
