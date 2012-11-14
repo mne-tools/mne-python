@@ -306,7 +306,7 @@ class Evoked(object):
         self.data = self.data[:, mask]
 
     def plot(self, picks=None, unit=True, show=True,
-             ylim=None, proj=False, xlim='tight'):
+             ylim=None, proj=False, xlim='tight', hline=None):
         """Plot evoked data
 
         Parameters
@@ -324,9 +324,11 @@ class Evoked(object):
             xlim for plots.
         proj : bool
             If true SSP projections are applied before display.
+        hline : list of floats | None
+            The values at which show an horizontal line.
         """
         plot_evoked(self, picks=picks, unit=unit, show=show,
-                    ylim=ylim, proj=proj, xlim=xlim)
+                    ylim=ylim, proj=proj, xlim=xlim, hline=hline)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime

@@ -55,6 +55,8 @@ Changelog
 
    - Improved logging support by `Eric Larson`_
 
+   - Whitening of evoked data for plotting and quality checking by `Alex Gramfort`_
+
 API
 ~~~
 

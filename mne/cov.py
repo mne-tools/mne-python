@@ -613,3 +613,48 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     W = np.dot(W, noise_cov['eigvec'])
     W = np.dot(noise_cov['eigvec'].T, W)
     return W, ch_names
+
+
+def whiten_evoked(evoked, noise_cov, picks, diag=False):
+    """Whiten evoked data using given noise covariance
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data
+    noise_cov : instance of Covariance
+        The noise covariance
+    picks : array of ints
+        The channel indices to whiten
+    diag : bool
+        If True, whiten using only the diagonal of the covariance
+
+    Returns
+    -------
+    evoked_white : instance of Evoked
+        The whitened evoked data.
+    """
+    ch_names = [evoked.ch_names[k] for k in picks]
+    n_chan = len(ch_names)
+    evoked = cp.deepcopy(evoked)
+
+    if diag:
+        noise_cov = cp.deepcopy(noise_cov)
+        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
+
+    noise_cov = prepare_noise_cov(noise_cov, evoked.info, ch_names)
+
+    W = np.zeros((n_chan, n_chan), dtype=np.float)
+    #
+    #   Omit the zeroes due to projection
+    #
+    eig = noise_cov['eig']
+    nzero = (eig > 0)
+    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
+    #
+    #   Rows of eigvec are the eigenvectors
+    #
+    W = np.dot(W, noise_cov['eigvec'])
+    W = np.dot(noise_cov['eigvec'].T, W)
+    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
+    return evoked

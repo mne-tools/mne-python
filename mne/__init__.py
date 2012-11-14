@@ -7,7 +7,8 @@ __version__ = '0.4.git'
 from .utils import set_log_level, set_log_file, verbose
 
 from .cov import read_cov, write_cov, Covariance, \
-                 compute_covariance, compute_raw_data_covariance
+                 compute_covariance, compute_raw_data_covariance, \
+                 whiten_evoked
 from .event import read_events, write_events, find_events, merge_events, \
                    pick_events, make_fixed_length_events, concatenate_events
 from .forward import read_forward_solution, apply_forward, apply_forward_raw
