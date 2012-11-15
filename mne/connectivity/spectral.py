@@ -85,7 +85,7 @@ def _epoch_spectral_connectivity(data, sfreq, dpss, eigvals, freq_mask,
         weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
         this_psd = _psd_from_mt(x_mt, weights)
 
-    # accumulate or retrun psd
+    # accumulate or return psd
     if accumulate_inplace:
         psd += this_psd
     else:
