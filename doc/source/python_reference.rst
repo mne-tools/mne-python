@@ -213,6 +213,19 @@ Functions reference
    ar_raw
    iir_filter_raw
 
+.. automodule:: mne.connectivity
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.connectivity
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   spectral_connectivity
+   seed_target_indices
+
 .. automodule:: mne.simulation
  :no-members:
  :no-inherited-members:
