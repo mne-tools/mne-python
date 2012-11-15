@@ -2,16 +2,19 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
-from mne.connectivity import freq_connectivity, seed_target_indices
+from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.connectivity.con_est_freq import _coh_acc, _coh_norm
 
 from mne import SourceEstimate
 from mne.filter import band_pass_filter
 
-sfreq = 100
+sfreq = 100.
 n_signals = 5
 n_epochs = 30
 n_times = 1000
+
+tmin = 0.
+tmax = (n_times - 1) / sfreq
 
 data = np.random.randn(n_epochs, n_signals, n_times)
 
@@ -23,35 +26,16 @@ for i in xrange(n_epochs):
     data[i, 1, :] += 1e-2 * np.random.randn(n_times)
 
 
-def _stc_gen(data):
+def _stc_gen(data, sfreq, tmin):
     """Simulate a SourceEstimate generator"""
     vertices = [np.arange(data.shape[1]), np.empty(0)]
     for d in data:
         stc = SourceEstimate(data=d, vertices=vertices,
-                             tmin=0, tstep=1)
+                             tmin=tmin, tstep=1 / float(sfreq))
         yield stc
 
 
-def test_indices():
-    """Test connectivity indexing methods"""
-    n_seeds_test = [1, 3, 4]
-    n_targets_test = [2, 3, 200]
-    for n_seeds in n_seeds_test:
-        for n_targets in n_targets_test:
-            idx = np.random.permutation(np.arange(n_seeds + n_targets))
-            seeds = idx[:n_seeds]
-            targets = idx[n_seeds:]
-            indices = seed_target_indices(seeds, targets)
-            assert_true(len(indices) == 2)
-            assert_true(len(indices[0]) == len(indices[1]))
-            assert_true(len(indices[0]) == n_seeds * n_targets)
-            for seed in seeds:
-                assert_true(np.sum(indices[0] == seed) == n_targets)
-            for target in targets:
-                assert_true(np.sum(indices[1] == target) == n_seeds)
-
-
-def test_freq_connectivity():
+def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
 
     # First we test some invalid parameters:
@@ -63,17 +47,18 @@ def test_freq_connectivity():
 
     indices = seed_target_indices([0], [1])
     # this works
-    freq_connectivity(data, method=(_my_acc, None), indices=indices,
+    spectral_connectivity(data, method=(_my_acc, None), indices=indices,
                       sfreq=sfreq, faverage=False)
     # however, we cannot average over frequencies
-    assert_raises(ValueError, freq_connectivity, data, method=(_my_acc, None),
-                  indices=indices, sfreq=sfreq, faverage=True)
+    assert_raises(ValueError, spectral_connectivity, data,
+                  method=(_my_acc, None), indices=indices, sfreq=sfreq,
+                  faverage=True)
 
     # test invalid fmin fmax settings
-    assert_raises(ValueError, freq_connectivity, data, fmin=10, fmax=5)
-    assert_raises(ValueError, freq_connectivity, data, fmin=(0, 11),
+    assert_raises(ValueError, spectral_connectivity, data, fmin=10, fmax=5)
+    assert_raises(ValueError, spectral_connectivity, data, fmin=(0, 11),
                   fmax=(5, 10))
-    assert_raises(ValueError, freq_connectivity, data, fmin=(11,),
+    assert_raises(ValueError, spectral_connectivity, data, fmin=(11,),
                   fmax=(12, 15))
 
     # A method that just estimates the cross spectrum. This is addedto have
@@ -89,7 +74,7 @@ def test_freq_connectivity():
         else:
             check_adaptive = [False]
         for adaptive in check_adaptive:
-            con, freqs, n, _ = freq_connectivity(data, method=method,
+            con, freqs, n, _ = spectral_connectivity(data, method=method,
                     indices=None, sfreq=sfreq, adaptive=adaptive,
                     low_bias=True)
 
@@ -125,10 +110,11 @@ def test_freq_connectivity():
             indices = np.tril_indices(n_signals, -1)
 
             my_method = (_coh_acc, _coh_norm)
-            stc_data = _stc_gen(data)
-            con2, freqs2, n2, _ = freq_connectivity(stc_data,
+            stc_data = _stc_gen(data, sfreq, tmin)
+            con2, freqs2, n2, _ = spectral_connectivity(stc_data,
                     method=(method, my_method), indices=indices, sfreq=sfreq,
-                    adaptive=adaptive, low_bias=True, n_jobs=2)
+                    adaptive=adaptive, low_bias=True, tmin=tmin, tmax=tmax,
+                    n_jobs=2)
             assert_true(isinstance(con2, list))
             assert_true(len(con2) == 2)
 
@@ -145,7 +131,7 @@ def test_freq_connectivity():
             # compute same connections for two bands, fskip=1, and f. averaging
             fmin = (0, sfreq / 4)
             fmax = (sfreq / 4, sfreq / 2)
-            con3, freqs3, n3, _ = freq_connectivity(data, method=method,
+            con3, freqs3, n3, _ = spectral_connectivity(data, method=method,
                     indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
                     fskip=1, faverage=True, adaptive=adaptive, low_bias=True)
 

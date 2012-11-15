@@ -22,7 +22,7 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.minimum_norm import apply_inverse, apply_inverse_epochs,\
                              read_inverse_operator
-from mne.connectivity import seed_target_indices, freq_connectivity
+from mne.connectivity import seed_target_indices, spectral_connectivity
 
 
 data_path = sample.data_path('..')
@@ -93,7 +93,7 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # and do not use adaptive weights for the multi-taper spectral estimation.
 # By using faverage=True, we directly average the coherence in the alpha
 # and beta band, i.e., we will only get 2 frequency bins
-coh, freqs, n_epochs, n_tapers = freq_connectivity(stcs,
+coh, freqs, n_epochs, n_tapers = spectral_connectivity(stcs,
     method='coh', indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
     faverage=True, adaptive=False, n_jobs=2)
 

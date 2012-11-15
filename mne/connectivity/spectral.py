@@ -13,7 +13,7 @@ logger = logging.getLogger('mne')
 
 from .utils import check_indices
 from ..parallel import parallel_func
-from .. import SourceEstimate
+from .. import Epochs, SourceEstimate
 from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _psd_from_mt, _csd_from_mt,\
                                         _psd_from_mt_adaptive
@@ -55,12 +55,13 @@ def _pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
 ########################################################################
 
 
-def _epoch_freq_connectivity(data, sfreq, dpss, eigvals, freq_mask, adaptive,
-                             faverage, freq_idx_bands, idx_map, block_size,
-                             accumulator_fun, normalization_fun,
-                             con_accumulators, psd, con_acc_info=None,
-                             accumulate_inplace=True):
-    """Connectivity estimation for one epoch see freq_connectivity"""
+def _epoch_spectral_connectivity(data, sfreq, dpss, eigvals, freq_mask,
+                                 adaptive, faverage, freq_idx_bands,
+                                 idx_map, block_size, accumulator_fun,
+                                 normalization_fun, con_accumulators,
+                                 psd, con_acc_info=None,
+                                 accumulate_inplace=True):
+    """Connectivity estimation for one epoch see spectral_connectivity"""
     if not accumulate_inplace:
         # the con_acc_info are tuples of shape and dtype, allocate space
         acc_shapes = [acc[0] for acc in con_acc_info]
@@ -141,10 +142,11 @@ def _check_method(method):
 
 
 @verbose
-def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
-                      fmin=0, fmax=np.inf, fskip=0, faverage=False,
-                      bandwidth=None, adaptive=False, low_bias=True,
-                      block_size=1000, n_jobs=1, verbose=None):
+def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
+                          fmin=0, fmax=np.inf, fskip=0, faverage=False,
+                          tmin=None, tmax=None, bandwidth=None, adaptive=False,
+                          low_bias=True, block_size=1000, n_jobs=1,
+                          verbose=None):
     """Compute various frequency-domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
@@ -162,7 +164,7 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     indices = (np.array([0, 0, 0],    # row indices
                np.array([2, 3, 4])))  # col indices
 
-    con_flat = freq_connectivity(data, method='coh', indices=indices, ...)
+    con_flat = spectral_connectivity(data, method='coh', indices=indices, ...)
 
     In this case con_flat.shape = (3, n_freqs). The connectivity scores are
     in the same order as defined indices.
@@ -233,7 +235,9 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times) | list of SourceEstimate
+    data : array, shape=(n_epochs, n_signals, n_times)
+           or list/generator of SourceEstimate
+           or Epochs
         The data from which to compute connectivity.
     method : (string | tuple with two functions) or a list thereof
         Connectivity measure(s) to compute.
@@ -255,6 +259,12 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         Average connectivity scores for each frequency band. If True,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
+    tmin : float | None
+        Time to start connectivity estimation. Only supported if data is
+        Epochs or a list of SourceEstimate
+    tmax : float | None
+        Time to end connectivity estimation. Only supported if data is
+        Epochs or a list of SourceEstimate.
     bandwidth : float
         The bandwidth of the multi taper windowing function in Hz.
     adaptive : bool
@@ -286,8 +296,8 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     """
 
     if n_jobs > 1:
-        parallel, my_epoch_freq_connectivity, _ = \
-                parallel_func(_epoch_freq_connectivity, n_jobs,
+        parallel, my_epoch_spectral_connectivity, _ = \
+                parallel_func(_epoch_spectral_connectivity, n_jobs,
                               verbose=verbose)
 
     # format fmin and fmax and check inputs
@@ -335,20 +345,62 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         else:
             raise ValueError('invalid value for method')
 
+    # by default we assume time starts at zero
+    tmintmax_support = False
+    tmin_idx = None
+    tmax_idx = None
+    tmin_true = None
+    tmax_true = None
+
+    if isinstance(data, Epochs):
+        tmin_true = data.times[0]
+        tmax_true = data.times[-1]
+        if tmin is not None:
+            tmin_idx = np.argmin(np.abs(data.times - tmin))
+            tmin_true = data.times[tmin_idx]
+        if tmax is not None:
+            tmax_idx = np.argmin(np.abs(data.times - tmax))
+            tmax_true = data.times[tmax_idx]
+        tmintmax_support = True
+
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
     epoch_idx = 0
     logger.info('Connectivity computation...')
     for epoch_block in _get_n_epochs(data, n_jobs):
 
-        for i, this_epoch in enumerate(epoch_block):
-            if isinstance(this_epoch, SourceEstimate):
-                # allow data to be a list of source estimates
-                epoch_block[i] = this_epoch.data
-
         if epoch_idx == 0:
-            # initialize things
-            n_signals, n_times = epoch_block[0].shape
+            first_epoch = epoch_block[0]
+
+            if isinstance(first_epoch, SourceEstimate):
+                tmin_true = first_epoch.times[0]
+                tmax_true = first_epoch.times[-1]
+                if tmin is not None:
+                    tmin_idx = np.argmin(np.abs(first_epoch.times - tmin))
+                    tmin_true = first_epoch.times[tmin_idx]
+                if tmax is not None:
+                    tmax_idx = np.argmin(np.abs(first_epoch.times - tmax))
+                    tmax_true = first_epoch.times[tmax_idx]
+                tmintmax_support = True
+                first_epoch = first_epoch.data
+
+            if not tmintmax_support and (tmin is not None or tmax is not None):
+                raise ValueError('tmin and tmax are only supported if data is '
+                                 'Epochs or a list of SourceEstimate')
+
+            # we want to include the sample at tmax_idx
+            tmax_idx = tmax_idx + 1 if tmax_idx is not None else None
+            n_signals, n_times = first_epoch[:, tmin_idx:tmax_idx].shape
+
+            # if we are not using Epochs or SourceEstimate, we assume time
+            # starts at zero
+            if tmin_true is None:
+                tmin_true = 0.
+            if tmax_true is None:
+                tmax_true = n_times / float(sfreq)
+
+            logger.info('    using t=%0.3fs..%0.3fs for estimation (%d points)'
+                        % (tmin_true, tmax_true, n_times))
 
             # compute standardized half-bandwidth
             if bandwidth is not None:
@@ -460,6 +512,13 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 con_acc_info = [(acc.shape, acc.dtype)
                                 for acc in con_accumulators]
 
+        for i, this_epoch in enumerate(epoch_block):
+            if isinstance(this_epoch, SourceEstimate):
+                # allow data to be a list of source estimates
+                epoch_block[i] = this_epoch.data[:, tmin_idx:tmax_idx]
+            else:
+                epoch_block[i] = this_epoch[:, tmin_idx:tmax_idx]
+
         # check dimensions
         for this_epoch in epoch_block:
             if this_epoch.shape != (n_signals, n_times):
@@ -475,7 +534,7 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                             % (epoch_idx + 1))
 
                 # con_accumulators and psd are updated inplace
-                _epoch_freq_connectivity(this_epoch[sig_idx], sfreq, dpss,
+                _epoch_spectral_connectivity(this_epoch[sig_idx], sfreq, dpss,
                     eigvals, freq_mask, adaptive, faverage, freq_idx_bands,
                     idx_map, block_size, accumulator_fun, normalization_fun,
                     con_accumulators, psd)
@@ -485,8 +544,8 @@ def freq_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             logger.info('    computing connectivity for epochs %d..%d'
                         % (epoch_idx + 1, epoch_idx + len(epoch_block)))
 
-            out = parallel(my_epoch_freq_connectivity(epoch[sig_idx], sfreq,
-                    dpss, eigvals, freq_mask, adaptive, faverage,
+            out = parallel(my_epoch_spectral_connectivity(epoch[sig_idx],
+                    sfreq, dpss, eigvals, freq_mask, adaptive, faverage,
                     freq_idx_bands, idx_map, block_size, accumulator_fun,
                     normalization_fun, None, None, con_acc_info=con_acc_info,
                     accumulate_inplace=False) for epoch in epoch_block)
