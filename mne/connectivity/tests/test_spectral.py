@@ -56,7 +56,7 @@ def test_spectral_connectivity():
 
     # test that using a normalization fun with the wrong number of args doesnt
     # work
-    def _my_norm(acc_mean, arg):
+    def _my_norm(acc_mean, arg2, arg3):
         return acc_mean
 
     assert_raises(ValueError, spectral_connectivity, data,

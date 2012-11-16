@@ -29,17 +29,17 @@ def _coh_acc(csd_xy):
     return csd_xy
 
 
-def _coh_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+def _coh_norm(acc_mean, n_epochs, psd_xx, psd_yy):
     """Normalization function for coherence"""
     return np.abs(acc_mean) / np.sqrt(psd_xx * psd_yy)
 
 
-def _cohy_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+def _cohy_norm(acc_mean, n_epochs, psd_xx, psd_yy):
     """Normalization function for coherency"""
     return acc_mean / np.sqrt(psd_xx * psd_yy)
 
 
-def _imcoh_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+def _imcoh_norm(acc_mean, n_epochs, psd_xx, psd_yy):
     """Normalization function for imaginary coherence"""
     return np.imag(acc_mean) / np.sqrt(psd_xx * psd_yy)
 
@@ -49,7 +49,7 @@ def _pli_acc(csd_xy):
     return np.sign(np.imag(csd_xy))
 
 
-def _pli_norm(acc_mean):
+def _pli_norm(acc_mean, n_epochs):
     """Normalization function for PLI"""
     return np.abs(acc_mean)
 
@@ -64,7 +64,7 @@ def _wpli_acc(csd_xy):
     return acc
 
 
-def _wpli_norm(acc_mean):
+def _wpli_norm(acc_mean, n_epochs):
     """Normalization function for WPLI"""
 
     # get the numerator and denominator
@@ -249,14 +249,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         # The function receives the CSD csd_xy.shape = (n_pairs, n_freq)
         return np.sign(np.imag(csd_xy))
 
-    def pli_norm(acc_mean):
+    def pli_norm(acc_mean, n_epochs):
         # acc_norm is the output of pli_acc defined above averaged over epochs
+        # and n_epochs is the number of epochs that were used
         return np.abs(acc)
 
     Note: for measures that need normalization with the PSD, we can also use
     a function with 4 parameters, i.e.,
 
-    def pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+    def pli_norm(acc_mean, n_epochs, psd_xx, psd_yy):
         return np.abs(acc)
 
     Now, we define our custom PLI method which we can pass to the "method"
@@ -387,12 +388,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             raise ValueError('invalid value for method')
 
     # determine how many arguments the normalization functions need
-    n_norm_args = [len(getargspec(fun).args) if fun is not None else 1
+    n_norm_args = [len(getargspec(fun).args) if fun is not None else 2
                    for fun in normalization_fun]
     # we only support 1 or 4 arguments
-    if any([n not in (1, 4) for n in n_norm_args]):
+    if any([n not in (2, 4) for n in n_norm_args]):
         raise ValueError('The normalization function needs to have either '
-                         '1 or 4 arguments')
+                         '2 or 4 arguments')
 
     # if none of the norm. functions needs the PSD, we don't estimate it
     accumulate_psd = any([n == 4 for n in n_norm_args])
@@ -545,10 +546,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 if faverage:
                     # test if averaging over frequencies works
                     if norm is not None:
-                        if n_args == 1:
-                            out2 = norm(out)
+                        if n_args == 2:
+                            out2 = norm(out, 3)
                         else:
-                            out2 = norm(out, tmp_psd, tmp_psd, 3)
+                            out2 = norm(out, 3, tmp_psd, tmp_psd)
                     else:
                         out2 = out
                         faverage_acc = True  # we can directly average
@@ -638,10 +639,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             continue
 
         # detect the shape and dtype of the output
-        if n_args == 1:
-            tmp = fun(acc[:2])
+        if n_args == 2:
+            tmp = fun(acc[:2], n_epochs)
         else:
-            tmp = fun(acc[:2], psd[:2], psd[:2], n_epochs)
+            tmp = fun(acc[:2], n_epochs, psd[:2], psd[:2])
 
         if faverage:
             this_con = np.empty((n_con, n_bands) + tmp.shape[2:],
@@ -651,12 +652,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         del tmp
 
         for i in xrange(0, n_con, block_size):
-            if n_args == 1:
-                this_block = fun(acc[i:i + block_size])
+            if n_args == 2:
+                this_block = fun(acc[i:i + block_size], n_epochs)
             else:
-                this_block = fun(acc[i:i + block_size],
+                this_block = fun(acc[i:i + block_size], n_epochs,
                                  psd[idx_map[0][i:i + block_size]],
-                                 psd[idx_map[1][i:i + block_size]], n_epochs)
+                                 psd[idx_map[1][i:i + block_size]])
 
             if faverage:
                 for j in xrange(n_bands):
