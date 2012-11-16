@@ -32,7 +32,6 @@ def seed_target_indices(seeds, targets):
     indices : tuple of arrays
         The indices parameter used for connectivity computation.
     """
-
     n_seeds = len(seeds)
     n_targets = len(targets)
 
