@@ -66,12 +66,15 @@ class ICA(object):
 
     Parameters
     ----------
-    n_components : int
-
-    max_n_components : int
-
-    explained_var : .95
-
+    n_components : int | float | None
+        The number of components used for ICA decomposition. If int it must be smaller
+        then max_n_components. If None, all PCA components will be used. If float
+        betweem 0 and 1 components can will be selected by the cumulative explained
+        variance ratio.
+    max_n_components : int | None
+        The number of components ised for PCA decomposition. If None, no dimension
+        reduction will be applied and max_n_components will equal the the number
+        of channels supplied on decomposing data.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -101,6 +104,10 @@ class ICA(object):
         Flag informing about which type was last fit.
     ch_names : list-like
         Channel names resulting from initial picking.
+    n_components : int
+        The number of components used for ICA decomposition.
+    max_n_components : int
+        The number of PCA dimensions decomposed.
     index : ndarray
         Integer array representing the sources. This is usefull for different
         kinds of indexing and selection operations.
