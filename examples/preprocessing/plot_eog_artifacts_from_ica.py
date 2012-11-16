@@ -3,7 +3,7 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 37 to 38 sources.
+ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the EOG is found automatically
 identified and then used to detect EOG artifacts in
 the raw data.
@@ -37,16 +37,18 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
-ica = ICA(noise_cov=None, random_state=0)
-print ica
+# Instead of the actual number of components we pass a float value
+# between 0 and 1 to select n_components by the explained variance ratio.
+
+ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
+          random_state=0)
 
 
 # For maximum rejection performance we will compute the decomposition on
 # the entire time range
 
 # decompose sources for raw data, select n_components by explained variance
-ica.decompose_raw(raw, start=None, stop=None, picks=picks,
-                  max_n_components=50, explained_var=0.95)
+ica.decompose_raw(raw, start=None, stop=None, picks=picks)
 print ica
 
 sources = ica.get_sources_raw(raw)
@@ -73,7 +75,7 @@ eog_scores = ica.find_sources_raw(raw, target='EOG 061',
 sources = ica.get_sources_raw(raw)
 
 # get maximum correlation index for ECG
-eog_source_idx = eog_scores.argmax()
+eog_source_idx = np.abs(eog_scores).argmax()
 
 ###############################################################################
 # Find ECG event onsets from ICA source

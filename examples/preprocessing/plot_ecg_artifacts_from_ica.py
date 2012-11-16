@@ -3,7 +3,7 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 37 to 38 sources.
+ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
 identified and then used to detect ECG artifacts in
 the raw data.
@@ -37,15 +37,17 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
-ica = ICA(noise_cov=None, random_state=0)
-print ica
+# Instead of the actual number of components we pass a float value
+# between 0 and 1 to select n_components by the explained variance ratio.
+
+ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
+          random_state=0)
 
 # For maximum rejection performance we will compute the decomposition on
 # the entire time range
 
 # decompose sources for raw data, select n_components by explained variance
-ica.decompose_raw(raw, start=None, stop=None, picks=picks,
-                  max_n_components=50, explained_var=0.95)
+ica.decompose_raw(raw, start=None, stop=None, picks=picks)
 print ica
 
 # setup reasonable time window for inspection
@@ -63,14 +65,20 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 # The function is internally modified to be applicable to 2D arrays and,
 # hence, returns product-moment correlation scores for each ICA source.
 
-ecg_scores = ica.find_sources_raw(raw, target='MEG 1531',
-                                  score_func='pearsonr')
+#pick ecg affected chanel
+picks = pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
+                   include=['MEG 1531'])
+ecg = raw[picks, :][0]
+
+ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.0)
+
+ecg_scores = ica.find_sources_raw(raw, target=ecg, score_func='pearsonr')
 
 # get sources for the entire time range.
 sources = ica.get_sources_raw(raw)
 
 # get maximum correlation index for ECG
-ecg_source_idx = ecg_scores.argmax()
+ecg_source_idx = np.abs(ecg_scores).argmax()
 
 # high pass filter source
 ecg_source = mne.filter.high_pass_filter(sources[ecg_source_idx],

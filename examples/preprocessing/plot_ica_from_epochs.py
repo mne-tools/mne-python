@@ -3,7 +3,7 @@
 Compute ICA components on Epochs
 ================================
 
-ICA is used to decompose raw data in 37 to 38 sources.
+ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
 and displayed. Finally, the cleaned epochs are compared
 to the uncleanend epochs.
@@ -36,7 +36,12 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 ###############################################################################
 # Setup ica seed decompose data, then access and plot sources.
 
-ica = ICA(noise_cov=None, random_state=0)
+# Instead of thea actual number of components here we pass a float value
+# between 0 and 1 to select n_components by the explained variance ratio of
+# the PCA dimensions.
+ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
+          random_state=0)
+
 print ica
 
 # get epochs
@@ -51,8 +56,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 
 
 # fit sources from epochs or from raw (both works for epochs)
-# select n_components by explained variance
-ica.decompose_epochs(epochs, max_n_components=50, explained_var=0.95)
+ica.decompose_epochs(epochs)
 
 # plot components for one epoch of interest
 # A distinct cardiac component should be visible
@@ -109,10 +113,11 @@ pl.show()
 # join the detected artifact indices
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
-# restore sources, re-append 50 % of the pca components excluded from ICA.
-# this allows to controll the trade-off between denoising and preserving data.
+# Restore sources, use 64 PCA components which include the ICA cleaned sources
+# plus additional PCA components not supplied to ICA (up to rank 64).
+# This allows to control the trade-off between denoising and preserving data.
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=exclude,
-                                     prop_unused=0.5, copy=True)
+                                     n_pca_components=64, copy=True)
 
 # plot original epochs
 pl.figure()
