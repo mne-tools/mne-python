@@ -3,7 +3,7 @@
 Compute all-to-all connectivity in sensor space
 ===============================================
 
-Computes the Phase Locking Index (PLI) between all gradiometers and shows the
+Computes the Phase Lag Index (PLI) between all gradiometers and shows the
 connectivity in 3D using the helmet geometry. The left visual stimulation data
 are used which produces strong connectvitiy in the right occipital sensors.
 """
@@ -98,7 +98,7 @@ for val, nodes in zip(con_val, con_nodes):
     mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
                 vmin=vmin, vmax=vmax, tube_radius=0.002)
 
-mlab.scalarbar(title='Phase Locking Index (PLI)', nb_labels=4)
+mlab.scalarbar(title='Phase Lag Index (PLI)', nb_labels=4)
 
 view = (-88.7, 40.8, 0.76, np.array([-3.9e-4, -8.5e-3, -1e-2]))
 mlab.view(*view)

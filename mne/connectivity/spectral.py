@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 from warnings import warn
+from inspect import getargspec
 
 import numpy as np
 from scipy.fftpack import fftfreq
@@ -48,9 +49,31 @@ def _pli_acc(csd_xy):
     return np.sign(np.imag(csd_xy))
 
 
-def _pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+def _pli_norm(acc_mean):
     """Normalization function for PLI"""
     return np.abs(acc_mean)
+
+
+def _wpli_acc(csd_xy):
+    """Accumulator function for WPLI"""
+    im_csd = np.imag(csd_xy)
+
+    #           numerator denominator
+    acc = np.c_[im_csd, np.abs(im_csd)]
+
+    return acc
+
+
+def _wpli_norm(acc_mean):
+    """Normalization function for WPLI"""
+
+    # get the numerator and denominator
+    n_freq = acc_mean.shape[1] / 2
+    num = np.abs(acc_mean[:, :n_freq])
+    denom = acc_mean[:, n_freq:]
+
+    return num / denom
+
 
 ########################################################################
 
@@ -59,7 +82,7 @@ def _epoch_spectral_connectivity(data, sfreq, dpss, eigvals, freq_mask,
                                  adaptive, faverage, freq_idx_bands,
                                  idx_map, block_size, accumulator_fun,
                                  normalization_fun, con_accumulators,
-                                 psd, con_acc_info=None,
+                                 psd, accumulate_psd, con_acc_info=None,
                                  accumulate_inplace=True):
     """Connectivity estimation for one epoch see spectral_connectivity"""
     if not accumulate_inplace:
@@ -86,10 +109,13 @@ def _epoch_spectral_connectivity(data, sfreq, dpss, eigvals, freq_mask,
         this_psd = _psd_from_mt(x_mt, weights)
 
     # accumulate or return psd
-    if accumulate_inplace:
-        psd += this_psd
+    if accumulate_psd:
+        if accumulate_inplace:
+            psd += this_psd
+        else:
+            psd = this_psd
     else:
-        psd = this_psd
+        psd = None
 
     # accumulate connectivity scores
     for i in xrange(0, n_con, block_size):
@@ -195,9 +221,16 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                sqrt(E[Sxx(f)] * E[Syy(f)])
 
 
-    'pli' : Phase Locking Index (PLI) given by
+    'pli' : Phase Lag Index (PLI) given by
 
         PLI(f) = |E[sign(Im(Sxy(f)))]|
+
+
+    'wpli' : Weighted Phase Lag Index (WPLI) given by
+
+                   |E[Im(Sxy(f))]|
+        WPLI(f) = ------------------
+                   E[|Im(Sxy(f))|]
 
     Defining Custom Connectivity Measures
     -------------------------------------
@@ -216,9 +249,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         # The function receives the CSD csd_xy.shape = (n_pairs, n_freq)
         return np.sign(np.imag(csd_xy))
 
-    def pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
+    def pli_norm(acc_mean):
         # acc_norm is the output of pli_acc defined above averaged over epochs
-        # for this measure we ignore the PSD and n_epochs parameters
+        return np.abs(acc)
+
+    Note: for measures that need normalization with the PSD, we can also use
+    a function with 4 parameters, i.e.,
+
+    def pli_norm(acc_mean, psd_xx, psd_yy, n_epochs):
         return np.abs(acc)
 
     Now, we define our custom PLI method which we can pass to the "method"
@@ -336,6 +374,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         elif m == 'pli':
             accumulator_fun.append(_pli_acc)
             normalization_fun.append(_pli_norm)
+        elif m == 'wpli':
+            accumulator_fun.append(_wpli_acc)
+            normalization_fun.append(_wpli_norm)
         elif isinstance(m, (tuple, list)):
             if not _check_method(m):
                 raise ValueError('custom method must be defined using a '
@@ -344,6 +385,17 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             normalization_fun.append(m[1])
         else:
             raise ValueError('invalid value for method')
+
+    # determine how many arguments the normalization functions need
+    n_norm_args = [len(getargspec(fun).args) if fun is not None else 1
+                   for fun in normalization_fun]
+    # we only support 1 or 4 arguments
+    if any([n not in (1, 4) for n in n_norm_args]):
+        raise ValueError('The normalization function needs to have either '
+                         '1 or 4 arguments')
+
+    # if none of the norm. functions needs the PSD, we don't estimate it
+    accumulate_psd = any([n == 4 for n in n_norm_args])
 
     # by default we assume time starts at zero
     tmintmax_support = False
@@ -473,12 +525,18 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             # map indices to unique indices
             idx_map = [np.searchsorted(sig_idx, ind) for ind in indices_use]
 
-            # allocate space to accumulate PSD and con. score over epochs
-            psd = np.zeros((len(sig_idx), n_freqs))
+            # allocate space to accumulate PSD
+            if accumulate_psd:
+                psd = np.zeros((len(sig_idx), n_freqs))
+            else:
+                psd = None
+
+            # allocate space for the accumulators of the con. methods
             con_accumulators = []
             tmp_csd = np.zeros((3, n_freqs), dtype=np.complex128)
             tmp_psd = np.ones((3, n_freqs))
-            for acc, norm  in zip(accumulator_fun, normalization_fun):
+            for acc, norm, n_args in zip(accumulator_fun,
+                                         normalization_fun, n_norm_args):
                 out = acc(tmp_csd)
                 if out.shape[0] != tmp_csd.shape[0]:
                     raise ValueError('Accumulator function must return output '
@@ -487,7 +545,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 if faverage:
                     # test if averaging over frequencies works
                     if norm is not None:
-                        out2 = norm(out, tmp_psd, tmp_psd, 3)
+                        if n_args == 1:
+                            out2 = norm(out)
+                        else:
+                            out2 = norm(out, tmp_psd, tmp_psd, 3)
                     else:
                         out2 = out
                         faverage_acc = True  # we can directly average
@@ -537,7 +598,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 _epoch_spectral_connectivity(this_epoch[sig_idx], sfreq, dpss,
                     eigvals, freq_mask, adaptive, faverage, freq_idx_bands,
                     idx_map, block_size, accumulator_fun, normalization_fun,
-                    con_accumulators, psd)
+                    con_accumulators, psd, accumulate_psd)
                 epoch_idx += 1
         else:
             # process epochs in parallel
@@ -547,33 +608,41 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             out = parallel(my_epoch_spectral_connectivity(epoch[sig_idx],
                     sfreq, dpss, eigvals, freq_mask, adaptive, faverage,
                     freq_idx_bands, idx_map, block_size, accumulator_fun,
-                    normalization_fun, None, None, con_acc_info=con_acc_info,
-                    accumulate_inplace=False) for epoch in epoch_block)
+                    normalization_fun, None, None, accumulate_psd,
+                    con_acc_info=con_acc_info, accumulate_inplace=False)
+                    for epoch in epoch_block)
 
             # do the accumulation
             for this_out in out:
                 for acc, this_acc in zip(con_accumulators, this_out[0]):
                     acc += this_acc
-                psd += this_out[1]
+                if accumulate_psd:
+                    psd += this_out[1]
 
             epoch_idx += len(epoch_block)
 
     # normalize
     n_epochs = epoch_idx + 1
-    psd /= n_epochs
+    if accumulate_psd:
+        psd /= n_epochs
     for acc in con_accumulators:
         acc /= float(n_epochs)
 
     # compute final connectivity scores
     con = []
-    for fun, acc in zip(normalization_fun, con_accumulators):
+    for fun, n_args, acc in zip(normalization_fun, n_norm_args,
+                                con_accumulators):
         if fun is None:
             # we don't need normalization
             con.append(acc)
             continue
 
         # detect the shape and dtype of the output
-        tmp = fun(acc[:2], psd[:2], psd[:2], n_epochs)
+        if n_args == 1:
+            tmp = fun(acc[:2])
+        else:
+            tmp = fun(acc[:2], psd[:2], psd[:2], n_epochs)
+
         if faverage:
             this_con = np.empty((n_con, n_bands) + tmp.shape[2:],
                                  dtype=tmp.dtype)
@@ -582,9 +651,13 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         del tmp
 
         for i in xrange(0, n_con, block_size):
-            this_block = fun(acc[i:i + block_size],
-                             psd[idx_map[0][i:i + block_size]],
-                             psd[idx_map[1][i:i + block_size]], n_epochs)
+            if n_args == 1:
+                this_block = fun(acc[i:i + block_size])
+            else:
+                this_block = fun(acc[i:i + block_size],
+                                 psd[idx_map[0][i:i + block_size]],
+                                 psd[idx_map[1][i:i + block_size]], n_epochs)
+
             if faverage:
                 for j in xrange(n_bands):
                     this_con[i:i + block_size, j] =\

@@ -3,13 +3,13 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
 from mne.connectivity import spectral_connectivity, seed_target_indices
-from mne.connectivity.con_est_freq import _coh_acc, _coh_norm
+from mne.connectivity.spectral import _coh_acc, _coh_norm
 
 from mne import SourceEstimate
 from mne.filter import band_pass_filter
 
 sfreq = 100.
-n_signals = 5
+n_signals = 3
 n_epochs = 30
 n_times = 1000
 
@@ -54,6 +54,14 @@ def test_spectral_connectivity():
                   method=(_my_acc, None), indices=indices, sfreq=sfreq,
                   faverage=True)
 
+    # test that using a normalization fun with the wrong number of args doesnt
+    # work
+    def _my_norm(acc_mean, arg):
+        return acc_mean
+
+    assert_raises(ValueError, spectral_connectivity, data,
+                  method=(_my_acc, _my_norm), indices=indices, sfreq=sfreq)
+
     # test invalid fmin fmax settings
     assert_raises(ValueError, spectral_connectivity, data, fmin=10, fmax=5)
     assert_raises(ValueError, spectral_connectivity, data, fmin=(0, 11),
@@ -65,7 +73,7 @@ def test_spectral_connectivity():
     # a method that doesn't use a normalization function
     my_csd_method = (_coh_acc, None)
 
-    methods = ('coh', 'cohy', 'imcoh', 'pli', my_csd_method)
+    methods = ('wpli', 'coh', 'cohy', 'imcoh', 'pli', my_csd_method)
 
     for method in methods:
         if method == 'coh':
@@ -85,8 +93,8 @@ def test_spectral_connectivity():
                 assert_true(np.all(con[1, 0, idx[0]:idx[1]] > 0.95))
 
                 idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                assert_true(np.all(con[1, 0, :idx[0]] < 0.2))
-                assert_true(np.all(con[1, 0, idx[1]:] < 0.2))
+                assert_true(np.all(con[1, 0, :idx[0]] < 0.25))
+                assert_true(np.all(con[1, 0, idx[1]:] < 0.25))
             elif method == 'cohy':
                 idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                 # imaginary coh will be zero
@@ -95,15 +103,15 @@ def test_spectral_connectivity():
                 assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]]) > 0.95))
 
                 idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                assert_true(np.all(np.abs(con[1, 0, :idx[0]]) < 0.2))
-                assert_true(np.all(np.abs(con[1, 0, idx[1]:]) < 0.2))
+                assert_true(np.all(np.abs(con[1, 0, :idx[0]]) < 0.25))
+                assert_true(np.all(np.abs(con[1, 0, idx[1]:]) < 0.25))
             elif method == 'imcoh':
                 idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                 # imaginary coh will be zero
                 assert_true(np.all(con[1, 0, idx[0]:idx[1]] < 0.05))
                 idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                assert_true(np.all(con[1, 0, :idx[0]] < 0.2))
-                assert_true(np.all(con[1, 0, idx[1]:] < 0.2))
+                assert_true(np.all(con[1, 0, :idx[0]] < 0.25))
+                assert_true(np.all(con[1, 0, idx[1]:] < 0.25))
 
             # compute same connections using indices and 2 jobs, also add 2nd
             # method defined using function pointers and stc
