@@ -4,17 +4,18 @@ Compute all-to-all connectivity in sensor space
 ===============================================
 
 Computes the Phase Locking Index (PLI) between all gradiometers and shows the
-connectivity in 3D using the helmet geometry.
+connectivity in 3D using the helmet geometry. The left visual stimulation data
+are used which produces strong connectvitiy in the right occipital sensors.
 """
 
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-
 print __doc__
 
 import numpy as np
+from scipy import linalg
 
 import mne
 from mne import fiff
@@ -39,12 +40,13 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude=exclude)
 
 # Create epochs for left-auditory condition
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = 3, -0.2, 0.5
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 
-# Compute connectivity for alpha band. We exclude the baseline period
-fmin, fmax = 8., 13.
+# Compute connectivity for band containing the evoked response.
+# We exclude the baseline period
+fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
 con, freqs, n_epochs, n_tapers = spectral_connectivity(epochs,
@@ -72,8 +74,8 @@ pts = mlab.points3d(sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2],
                     color=(0, 0, 1), opacity=0.5, scale_factor=0.01)
 
 # Get the strongest connections
-n_con = 50  # show up to 50 connections
-min_dist = 0.1  # exlude sensors that are less than 10cm apart
+n_con = 20  # show up to 20 connections
+min_dist = 0.05  # exclude sensors that are less than 5cm apart
 threshold = np.sort(con, axis=None)[-n_con]
 ii, jj = np.where(con >= threshold)
 
@@ -81,7 +83,7 @@ ii, jj = np.where(con >= threshold)
 con_nodes = list()
 con_val = list()
 for i, j in zip(ii, jj):
-    if np.linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
+    if linalg.norm(sens_loc[i] - sens_loc[j]) > min_dist:
         con_nodes.append((i, j))
         con_val.append(con[i, j])
 
@@ -98,7 +100,5 @@ for val, nodes in zip(con_val, con_nodes):
 
 mlab.scalarbar(title='Phase Locking Index (PLI)', nb_labels=4)
 
-view = (144.4, 92.7, 0.63, np.array([-5.0e-05, 1.6e-02, 2.3e-02]))
-roll = 86.4
+view = (-88.7, 40.8, 0.76, np.array([-3.9e-4, -8.5e-3, -1e-2]))
 mlab.view(*view)
-mlab.roll(roll)
