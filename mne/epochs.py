@@ -83,6 +83,10 @@ class Epochs(object):
     proj : bool, optional
         Apply SSP projection vectors
 
+    downsample : False | int
+        Factor by which to downsample the data from the raw file. Note: data
+        is not filtered here.
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -140,7 +144,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 verbose=None):
+                 downsample=False, verbose=None):
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -154,6 +158,7 @@ class Epochs(object):
         self.reject = reject
         self.flat = flat
         self.proj = proj
+        self.downsample = downsample
         self._bad_dropped = False
         self.drop_log = None
 
@@ -206,11 +211,18 @@ class Epochs(object):
 
         # Handle times
         assert tmin < tmax
-        sfreq = raw.info['sfreq']
-        n_times_min = int(round(tmin * float(sfreq)))
-        n_times_max = int(round(tmax * float(sfreq)))
+        sfreq = float(raw.info['sfreq'])
+        n_times_min = int(round(tmin * sfreq))
+        n_times_max = int(round(tmax * sfreq))
         self.times = np.arange(n_times_min, n_times_max + 1,
                                dtype=np.float) / sfreq
+        self._epoch_stop = ep_len = len(self.times)
+        if downsample:
+            self.times = self.times[0:ep_len:downsample]
+            self._epoch_step = downsample
+            self.info['sfreq'] /= downsample
+        else:
+            self._epoch_step = 1
 
         # setup epoch rejection
         self._reject_setup()
@@ -285,10 +297,13 @@ class Epochs(object):
         # Read a data segment
         first_samp = self.raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
-        stop = start + len(self.times)
+        stop = start + self._epoch_stop
         if start < 0:
             return None
         epoch, _ = self.raw[self.picks, start:stop]
+
+        if self.downsample:
+            epoch = epoch[:, ::self._epoch_step]
 
         if self.proj and self._projector is not None:
             logger.info("SSP projectors applied...")
