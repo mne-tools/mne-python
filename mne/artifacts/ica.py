@@ -66,6 +66,9 @@ class ICA(object):
 
     Parameters
     ----------
+    noise_cov : None | instance of mne.cov.Covariance
+        Noise covariance used for whitening. If None, channels are just
+        z-scored.
     n_components : int | float | None
         The number of components used for ICA decomposition. If int it must be smaller
         then max_n_components. If None, all PCA components will be used. If float
@@ -75,9 +78,6 @@ class ICA(object):
         The number of components ised for PCA decomposition. If None, no dimension
         reduction will be applied and max_n_components will equal the the number
         of channels supplied on decomposing data.
-    noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for whitening. If None, channels are just
-        z-scored.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -136,7 +136,7 @@ class ICA(object):
             else:
                 kwargs['random_state'] = random_state
 
-        if n_components > max_n_components:
+        if max_n_components is not None and n_components > max_n_components:
             raise ValueError('n_components must be smaller than '
                              'max_n_components')
 
@@ -201,11 +201,16 @@ class ICA(object):
         self : instance of ICA
             Returns the modified instance.
         """
+        if self.current_fit != 'unfitted':
+            raise RuntimeError('ICA decomposition has already been fitted. '
+                               'Please start a new ICA session.')
+
         logger.info('Computing signal decomposition on raw data. '
                     'Please be patient, this may take some time')
 
         if picks is None:  # just use good data channels
-            picks = pick_types(raw.info, meg=True, eeg=True,
+            picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
+                               ecg=False, misc=False, stim=False,
                                exclude=raw.info['bads'])
 
         if self.max_n_components is None:
@@ -217,15 +222,8 @@ class ICA(object):
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                    raw.info, picks)
 
-        pca = _prepare_pca(data, self.max_n_components, self._explained_var)
-        data, self._pca, self._comp_idx = pca
-
-        if self._explained_var == 1.1:
-            self._comp_idx = np.arange(self.n_components)
-            to_ica = data[:, self._comp_idx]
-        else:
-            to_ica = data[:, self._comp_idx]
-            self.n_components = len(self._comp_idx)
+        to_ica, self._pca = self._prepare_pca(data, self.max_n_components,
+                                              self._explained_var)
 
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
@@ -255,6 +253,10 @@ class ICA(object):
         self : instance of ICA
             Returns the modified instance.
         """
+        if self.current_fit != 'unfitted':
+            raise RuntimeError('ICA decomposition has already been fitted. '
+                               'Please start a new ICA session.')
+
         logger.info('Computing signal decomposition on epochs. '
                     'Please be patient, this may take some time')
 
@@ -262,9 +264,11 @@ class ICA(object):
             picks = pick_types(epochs.info, include=epochs.ch_names,  # double
                                exclude=epochs.info['bads'])  # picking
 
-        meeg_picks = pick_types(epochs.info, meg=True, eeg=True,
+        meeg_picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
+                                ecg=False, misc=False, stim=False,
                                 exclude=epochs.info['bads'])
 
+        # filter out all the channels the raw wouldn't have initialized
         picks = np.intersect1d(meeg_picks, picks)
 
         self.ch_names = [epochs.ch_names[k] for k in picks]
@@ -277,15 +281,8 @@ class ICA(object):
                                 np.hstack(epochs.get_data()[:, picks]),
                                 epochs.info, picks)
 
-        pca = _prepare_pca(data, self.max_n_components, self._explained_var)
-        data, self._pca, self._comp_idx = pca
-
-        if self._explained_var == 1.1:
-            self._comp_idx = np.arange(self.n_components)
-            to_ica = data[:, self._comp_idx]
-        else:
-            to_ica = data[:, self._comp_idx]
-            self.n_components = len(self._comp_idx)
+        to_ica, self._pca = self._prepare_pca(data, self.max_n_components,
+                                      self._explained_var)
 
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
@@ -322,10 +319,10 @@ class ICA(object):
     def _get_sources_raw(self, raw, start, stop):
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
-        data = self._pca.transform(data.T)
-        raw_sources = self._ica.transform(data[:, self._comp_idx]).T
+        pca_data = self._pca.transform(data.T)
+        raw_sources = self._ica.transform(pca_data[:, self._comp_idx]).T
 
-        return raw_sources, data
+        return raw_sources, pca_data
 
     def get_sources_epochs(self, epochs, concatenate=False):
         """Estimate epochs sources given the unmixing matrix
@@ -356,13 +353,13 @@ class ICA(object):
         data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
                                    epochs.info, picks)
 
-        data = self._pca.transform(data.T)
-        sources = self._ica.transform(data[:, self._comp_idx]).T
+        pca_data = self._pca.transform(data.T)
+        sources = self._ica.transform(pca_data[:, self._comp_idx]).T
         sources = np.array(np.split(sources, len(epochs.events), 1))
 
         epochs_sources = sources if not concatenate else np.hstack(sources)
 
-        return epochs_sources, data
+        return epochs_sources, pca_data
 
     def export_sources(self, raw, picks=None, start=None, stop=None):
         """ Export sources as raw object
@@ -752,7 +749,30 @@ class ICA(object):
 
         return data, pre_whitener
 
-    def _pick_sources(self, sources, data, include, exclude, pca_components):
+    def _prepare_pca(self, data, max_n_components, explained_var):
+        """ Helper Function """
+        from sklearn.decomposition import RandomizedPCA
+
+        pca = RandomizedPCA(max_n_components, whiten=False, random_state=0)
+        pca_data = pca.fit_transform(data.T)
+
+        if self._explained_var == 1.1:
+            if self.n_components is not None:  # normal n case
+                self._comp_idx = np.arange(self.n_components)
+                to_ica = pca_data[:, self._comp_idx]
+            else:  # None case
+                to_ica = pca_data
+                self.n_components = pca_data.shape[1]
+                self._comp_idx = np.arange(self.n_components)
+        else:  # float case
+            expl_var = pca.explained_variance_ratio_
+            self._comp_idx = np.where(expl_var.cumsum() < explained_var)[0]
+            to_ica = pca_data[:, self._comp_idx]
+            self.n_components = len(self._comp_idx)
+
+        return to_ica, pca
+
+    def _pick_sources(self, sources, pca_data, include, exclude, pca_components):
         """Helper function"""
 
         if any([np.less(pca_components, self.n_components),
@@ -770,13 +790,15 @@ class ICA(object):
         mixing = self._mixing.copy()
         pca_restored = np.dot(sources.T, mixing)
 
-        # re-append deselected pca dimension
+        # re-append deselected pca dimension if desired
         add_components = pca_components - self.n_components
-        pca_reappend = data[:, np.arange(add_components) - self.n_components]
-        pca_compound = np.c_[pca_restored, pca_reappend]
+        if add_components > 0:
+            pca_reappend = pca_data[:, np.arange(add_components) \
+            - self.n_components]
+            pca_restored = np.c_[pca_restored, pca_reappend]
 
         # restore sensor space data
-        out = _inverse_t_pca(pca_compound, self._pca)
+        out = _inverse_t_pca(pca_restored, self._pca)
 
         # restore scaling
         pre_whitener = self._pre_whitener.copy()
@@ -893,18 +915,6 @@ def _find_sources(sources, target, score_func):
               else score_func(sources, 1))
 
     return scores
-
-
-def _prepare_pca(data, max_n_components, explained_var):
-    """ Helper Function """
-    from sklearn.decomposition import RandomizedPCA
-
-    pca = RandomizedPCA(max_n_components, whiten=False, random_state=0)
-    data = pca.fit_transform(data.T)
-    expl_var = pca.explained_variance_ratio_
-    comp_sel_idx = np.where(expl_var.cumsum() < explained_var)[0]
-
-    return data, pca, comp_sel_idx
 
 
 def _inverse_t_pca(X, pca):
