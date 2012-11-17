@@ -141,7 +141,7 @@ class ICA(object):
                              'max_n_components')
 
         if isinstance(n_components, float):
-            if not 0 < n_components < 1:
+            if not 0 < n_components <= 1:
                 raise ValueError('For selecting ICA components by the explained '
                                  'varianace of PCA components the float value'
                                  ' must be between 0.0 and 1.0 ')
@@ -222,8 +222,7 @@ class ICA(object):
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                    raw.info, picks)
 
-        to_ica, self._pca = self._prepare_pca(data, self.max_n_components,
-                                              self._explained_var)
+        to_ica, self._pca = self._prepare_pca(data, self.max_n_components)
 
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
@@ -281,8 +280,7 @@ class ICA(object):
                                 np.hstack(epochs.get_data()[:, picks]),
                                 epochs.info, picks)
 
-        to_ica, self._pca = self._prepare_pca(data, self.max_n_components,
-                                      self._explained_var)
+        to_ica, self._pca = self._prepare_pca(data, self.max_n_components)
 
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
@@ -349,6 +347,14 @@ class ICA(object):
 
         picks = pick_types(epochs.info, include=self.ch_names,
                                exclude=epochs.info['bads'])
+
+        # special case of epochs aleready picked but fit unpicked.
+        if len(picks) != len(self.ch_names):
+            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+                               'fitted but %i channels supplied. \nPlease '
+                               'provide Epochs compaible with '
+                               'ica.ch_names' % (len(self.ch_names),
+                                                  len(picks)))
 
         data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
                                    epochs.info, picks)
@@ -749,14 +755,15 @@ class ICA(object):
 
         return data, pre_whitener
 
-    def _prepare_pca(self, data, max_n_components, explained_var):
+    def _prepare_pca(self, data, max_n_components):
         """ Helper Function """
         from sklearn.decomposition import RandomizedPCA
 
-        pca = RandomizedPCA(max_n_components, whiten=False, random_state=0)
+        pca = RandomizedPCA(n_components=max_n_components, whiten=False,
+                            random_state=0)
         pca_data = pca.fit_transform(data.T)
 
-        if self._explained_var == 1.1:
+        if self._explained_var > 1.0:
             if self.n_components is not None:  # normal n case
                 self._comp_idx = np.arange(self.n_components)
                 to_ica = pca_data[:, self._comp_idx]
@@ -766,7 +773,8 @@ class ICA(object):
                 self._comp_idx = np.arange(self.n_components)
         else:  # float case
             expl_var = pca.explained_variance_ratio_
-            self._comp_idx = np.where(expl_var.cumsum() < explained_var)[0]
+            self._comp_idx = (np.where(expl_var.cumsum() <
+                                      self._explained_var)[0])
             to_ica = pca_data[:, self._comp_idx]
             self.n_components = len(self._comp_idx)
 
@@ -791,10 +799,9 @@ class ICA(object):
         pca_restored = np.dot(sources.T, mixing)
 
         # re-append deselected pca dimension if desired
-        add_components = pca_components - self.n_components
-        if add_components > 0:
-            pca_reappend = pca_data[:, np.arange(add_components) \
-            - self.n_components]
+        if pca_components - self.n_components > 0:
+            add_components = np.arange(self.n_components, pca_components)
+            pca_reappend = pca_data[:, add_components]
             pca_restored = np.c_[pca_restored, pca_reappend]
 
         # restore sensor space data

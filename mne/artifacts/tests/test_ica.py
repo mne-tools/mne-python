@@ -37,6 +37,7 @@ test_cov_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 raw = fiff.Raw(raw_fname, preload=True)
+
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, stim=False,
                         ecg=False, eog=False, exclude=raw.info['bads'])
@@ -52,34 +53,35 @@ test_cov = cov.read_cov(test_cov_name)
 epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
-epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
+epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                         baseline=(None, 0), preload=True)
+
+epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
-start, stop = 0, 10
+start, stop = 0, 20  # if stop > 20 pca may fail in some cases
 
 
 @sklearn_test
-def test_ica():
+def test_ica_core():
     """Test ICA on raw and epochs
     """
-    # setup params
+    # setup parameter
+    # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
-    n_components = [None, 20, 0.9]
-    max_n_components = [None, 25]
+    n_components = [None, 3, 1.0]
+    max_n_components = [None, 4]
     picks_ = [None, picks]
-    start_stop = [(0, 3), (start, stop)]
     iter_raw_ica = product(noise_cov, n_components, max_n_components,
-                           picks_, start_stop)
+                           picks_)
 
     # test init catchers
     assert_raises(ValueError, ICA, n_components=3, max_n_components=2)
     assert_raises(ValueError, ICA, n_components=1.3, max_n_components=2)
 
     # test essential core functionality
-    for n_cov, n_comp, max_n, pcks, (sta, stp) in iter_raw_ica:
+    for n_cov, n_comp, max_n, pcks in iter_raw_ica:
       # Test ICA raw
-        #dbg
-        print repr([n_cov, n_comp, max_n, pcks, (sta, stp)])
         ica = ICA(noise_cov=n_cov, n_components=n_comp, max_n_components=max_n,
                   random_state=0)
 
@@ -89,7 +91,7 @@ def test_ica():
         assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
 
         # test decomposition
-        ica.decompose_raw(raw, picks=pcks, start=sta, stop=stp)
+        ica.decompose_raw(raw, picks=pcks, start=start, stop=stop)
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
 
@@ -109,12 +111,9 @@ def test_ica():
 
             assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
-        # test epochs source extraction from raw data fit
-        # sources = ica.get_sources_epochs(epochs)
-        # assert_true(sources.shape[1] == ica.n_components)
-
+        #######################################################################
         # test epochs decomposition
-        print '\n testing epohs now'
+
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_epochs, epochs, picks=picks)
         ica = ICA(noise_cov=n_cov, n_components=n_comp, max_n_components=max_n,
@@ -146,8 +145,24 @@ def test_ica():
             assert_array_almost_equal(epochs2.get_data(),
                                       epochs.get_data())
 
-    ###########################################################################
-    # test additional functionality
+
+@sklearn_test
+def test_ica_additional():
+    # Test additional functionality
+    stop2 = 500
+
+    ica = ICA(n_components=3, max_n_components=4)
+    ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
+
+    # epochs extraction from raw fit
+    assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
+
+    ica = ICA(n_components=3, max_n_components=4)
+    ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
+    sources = ica.get_sources_epochs(epochs)
+    assert_true(sources.shape[1] == ica.n_components)
+
+    sources = ica.get_sources_raw(raw)
 
     # score funcs raw
     sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,
@@ -166,7 +181,7 @@ def test_ica():
     ## score funcs epochs ##
 
     # check lenght of scores
-    sfunc_test = [ica.find_sources_epochs(epochs2, target='EOG 061',
+    sfunc_test = [ica.find_sources_epochs(epochs_eog, target='EOG 061',
                     score_func=n) for n, f in score_funcs.items()]
 
     # check lenght of scores
