@@ -192,6 +192,6 @@ print ica_raw.ch_names
 
 ica_lout = make_grid_layout(ica_raw.info)
 
-# Uncomment the following two lines to save sources and layut.
+# Uncomment the following two lines to save sources and layout.
 # ica_raw.save('ica_raw.fif')
 # ica_lout.save(os.path.join(os.environ['HOME'], '.mne/lout/ica.lout'))
