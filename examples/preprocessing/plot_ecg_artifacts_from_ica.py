@@ -33,7 +33,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
 ###############################################################################
-# Setup ica seed decompose data, then access and plot sources.
+# Setup ICA seed decompose data, then access and plot sources.
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
@@ -61,7 +61,7 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
-# We select the pearson correlation from scipy stats via string lable.
+# We select the pearson correlation from scipy stats via string label.
 # The function is internally modified to be applicable to 2D arrays and,
 # hence, returns product-moment correlation scores for each ICA source.
 

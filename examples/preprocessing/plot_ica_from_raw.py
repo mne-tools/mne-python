@@ -6,7 +6,7 @@ Compute ICA components on Raw data
 ICA is used to decompose raw data in 49 to  50 sources.
 The source matching the ECG is found automatically
 and displayed. Subsequently, the cleaned data is compared
-with the uncleanend data. The last section shows how to export
+with the uncleaned data. The last section shows how to export
 the sources into a fiff file for further processing and displaying, e.g.
 using mne_brows_raw.
 
@@ -38,7 +38,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
 ###############################################################################
-# Setup ica seed decompose data, then access and plot sources.
+# Setup ICA seed decompose data, then access and plot sources.
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
@@ -70,7 +70,7 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 # Automatically find the ECG component using correlation with ECG signal.
 
 # First, we create a helper function that iteratively applies the pearson
-# correlation functoon to sources and returns an array of r values
+# correlation function to sources and returns an array of r values
 # This is to illustrate the way ica.find_sources_raw works. Actually, this is
 # the default score_func.
 
@@ -108,7 +108,7 @@ ecg_order = np.abs(ecg_scores).argsort()[::-1]  # ascending order
 ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
-# for which the variance explantion in terms of \{r^2}\ exceeds 5 percent.
+# for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.
 # For convenience, we can use the ica.index attribute to get the indices.
 # (the indices depend on the number of components.)
 

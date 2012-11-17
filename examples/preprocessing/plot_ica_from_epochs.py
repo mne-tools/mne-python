@@ -6,7 +6,7 @@ Compute ICA components on Epochs
 ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
 and displayed. Finally, the cleaned epochs are compared
-to the uncleanend epochs.
+to the uncleaned epochs.
 
 """
 print __doc__
@@ -34,9 +34,9 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude=raw.info['bads'])
 
 ###############################################################################
-# Setup ica seed decompose data, then access and plot sources.
+# Setup ICA seed decompose data, then access and plot sources.
 
-# Instead of thea actual number of components here we pass a float value
+# Instead of the actual number of components here we pass a float value
 # between 0 and 1 to select n_components by the explained variance ratio of
 # the PCA dimensions.
 ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
@@ -92,8 +92,8 @@ eog_source_idx = np.abs(eog_scores).argmax()
 print '#%i -- ICA component resembling the EOG' % eog_source_idx
 
 # As the subject did not constantly move her eyes, the movement artifacts
-# remain hidden when plotting single epochs (#4 looks unsuspicious in the
-# panel plot). However, plotting the identified source across epochs reveals
+# may remain hidden when plotting single epochs.
+# Plotting the identified source across epochs reveals
 # considerable EOG artifacts.
 
 # get maximum correlation index for EOG

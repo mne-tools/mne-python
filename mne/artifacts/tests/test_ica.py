@@ -59,7 +59,7 @@ epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
-start, stop = 0, 20  # if stop > 20 pca may fail in some cases
+start, stop = 0, 20  # if stop < 20 pca may fail in some cases
 
 
 @sklearn_test
@@ -72,7 +72,7 @@ def test_ica_core():
     n_components = [None, 3, 1.0]
     max_n_components = [None, 4]
     picks_ = [None, picks]
-    iter_raw_ica = product(noise_cov, n_components, max_n_components,
+    iter_ica_params = product(noise_cov, n_components, max_n_components,
                            picks_)
 
     # test init catchers
@@ -80,7 +80,7 @@ def test_ica_core():
     assert_raises(ValueError, ICA, n_components=1.3, max_n_components=2)
 
     # test essential core functionality
-    for n_cov, n_comp, max_n, pcks in iter_raw_ica:
+    for n_cov, n_comp, max_n, pcks in iter_ica_params:
       # Test ICA raw
         ica = ICA(noise_cov=n_cov, n_components=n_comp, max_n_components=max_n,
                   random_state=0)

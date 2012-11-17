@@ -70,14 +70,14 @@ class ICA(object):
         Noise covariance used for whitening. If None, channels are just
         z-scored.
     n_components : int | float | None
-        The number of components used for ICA decomposition. If int it must be smaller
-        then max_n_components. If None, all PCA components will be used. If float
-        betweem 0 and 1 components can will be selected by the cumulative explained
-        variance ratio.
+        The number of components used for ICA decomposition. If int, it must be
+        smaller then max_n_components. If None, all PCA components will be
+        used. If float between 0 and 1 components can will be selected by the
+        cumulative explained variance ratio.
     max_n_components : int | None
-        The number of components ised for PCA decomposition. If None, no dimension
-        reduction will be applied and max_n_components will equal the the number
-        of channels supplied on decomposing data.
+        The number of components used for PCA decomposition. If None, no
+        dimension reduction will be applied and max_n_components will equal
+        the the number of channels supplied on decomposing data.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -109,7 +109,7 @@ class ICA(object):
     max_n_components : int
         The number of PCA dimensions decomposed.
     index : ndarray
-        Integer array representing the sources. This is usefull for different
+        Integer array representing the sources. This is useful for different
         kinds of indexing and selection operations.
     verbose : bool, str, int, or None
         See above.
@@ -142,9 +142,9 @@ class ICA(object):
 
         if isinstance(n_components, float):
             if not 0 < n_components <= 1:
-                raise ValueError('For selecting ICA components by the explained '
-                                 'varianace of PCA components the float value'
-                                 ' must be between 0.0 and 1.0 ')
+                raise ValueError('For selecting ICA components by the '
+                                 'explained variance of PCA components the'
+                                 ' float value must be between 0.0 and 1.0 ')
             self._explained_var = n_components
             logger.info('Selecting pca_components via explained variance.')
         else:
@@ -176,7 +176,8 @@ class ICA(object):
         return s
 
     @verbose
-    def decompose_raw(self, raw, picks=None, start=None, stop=None, verbose=None):
+    def decompose_raw(self, raw, picks=None, start=None, stop=None,
+                      verbose=None):
         """Run the ICA decomposition on raw data
 
         Parameters
@@ -348,11 +349,11 @@ class ICA(object):
         picks = pick_types(epochs.info, include=self.ch_names,
                                exclude=epochs.info['bads'])
 
-        # special case of epochs aleready picked but fit unpicked.
+        # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compaible with '
+                               'provide Epochs compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                   len(picks)))
 
@@ -386,7 +387,7 @@ class ICA(object):
 
         Returns
         -------
-        out : isntance of mne.Raw
+        out : instance of mne.Raw
             Container object for ICA sources
 
         """
@@ -471,7 +472,7 @@ class ICA(object):
         if order is not None:
             if len(order) != sources.shape[0]:
                     raise ValueError('order and sources have to be of the '
-                                     'same lenght.')
+                                     'same length.')
             else:
                 sources = sources[order]
 
@@ -527,7 +528,7 @@ class ICA(object):
         if order is not None:
             if len(order) != sources.shape[source_dim]:
                 raise ValueError('order and sources have to be of the '
-                                 'same lenght.')
+                                 'same length.')
             else:
                 sources = (sources[:, order] if source_dim
                            else sources[order])
@@ -655,9 +656,9 @@ class ICA(object):
         exclude : list-like | None
             The source indices to remove. If None  all are used.
         n_pca_components:
-            The number of pca components to be unwhitened, where n_components
+            The number of PCA components to be unwhitened, where n_components
             is the lower bound and max_n_components the upper bound.
-            If greater than self.n_components, the pca components that were not
+            If greater than self.n_components, the PCA components that were not
             supplied to the ICA will get re-attached. This can be used to take
             back the PCA dimension reduction.
         start : int | None
@@ -705,9 +706,9 @@ class ICA(object):
         exclude : list-like | None
             The source indices to remove. If None  all are used.
         n_pca_components:
-            The number of pca components to be unwhitened, where n_components
+            The number of PCA components to be unwhitened, where n_components
             is the lower bound and max_n_components the upper bound.
-            If greater than self.n_components, the pca components that were not
+            If greater than self.n_components, the PCA components that were not
             supplied to the ICA will get re-attached. This can be used to take
             back the PCA dimension reduction.
         copy : bool
