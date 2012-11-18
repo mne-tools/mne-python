@@ -108,9 +108,6 @@ class ICA(object):
         The number of components used for ICA decomposition.
     max_n_components : int
         The number of PCA dimensions computed.
-    index : ndarray
-        Integer array representing the sources. This is useful for different
-        kinds of indexing and selection operations.
     verbose : bool, str, int, or None
         See above.
     """
@@ -158,7 +155,6 @@ class ICA(object):
         self.max_n_components = max_n_components
         self.ch_names = None
         self._mixing = None
-        self.index = None
 
     def __repr__(self):
         s = 'ICA '
@@ -228,7 +224,6 @@ class ICA(object):
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
         self.current_fit = 'raw'
-        self.index = np.arange(self.n_components)
 
         return self
 
@@ -286,7 +281,6 @@ class ICA(object):
         self._ica.fit(to_ica)
         self._mixing = self._ica.get_mixing_matrix().T
         self.current_fit = 'epochs'
-        self.index = np.arange(self.n_components)
 
         return self
 
@@ -823,7 +817,7 @@ class ICA(object):
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
                         tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
                         verbose=None):
-    """Find ECG peaks from one selected7 ICA source
+    """Find ECG peaks from one selected ICA source
 
     Parameters
     ----------
@@ -926,11 +920,9 @@ def _find_sources(sources, target, score_func):
 
 
 def _inverse_t_pca(X, pca):
-    """ Helper Function """
-    from sklearn.utils.extmath import safe_sparse_dot
-
+    """Helper Function"""
     components = pca.components_[np.arange(len(X.T))]
-    X_orig = safe_sparse_dot(X, components)
+    X_orig = np.dot(X, components)
 
     if pca.mean_ is not None:
         X_orig += pca.mean_

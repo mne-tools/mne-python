@@ -170,9 +170,8 @@ def test_ica_additional():
     # check lenght of scores
     [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
 
-    # check univariat stats
+    # check univariate stats
     scores = ica.find_sources_raw(raw, score_func=stats.skew)
-    assert_true(scores.shape == ica.index.shape)
     # check exception handling
     assert_raises(ValueError, ica.find_sources_raw, raw,
                   target=np.arange(1))
@@ -188,7 +187,6 @@ def test_ica_additional():
 
     # check univariat stats
     scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
-    assert_true(scores.shape == ica.index.shape)
 
     # check exception handling
     assert_raises(ValueError, ica.find_sources_epochs, epochs,
