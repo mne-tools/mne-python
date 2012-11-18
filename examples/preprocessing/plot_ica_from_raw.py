@@ -3,9 +3,12 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 25 sources.
+ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
-and displayed.
+and displayed. Subsequently, the cleaned data is compared
+with the uncleaned data. The last section shows how to export
+the sources into a fiff file for further processing and displaying, e.g.
+using mne_browse_raw.
 
 """
 print __doc__
@@ -35,11 +38,16 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude=raw.info['bads'])
 
 ###############################################################################
-# Setup ica seed decompose data, then access and plot sources.
+# Setup ICA seed decompose data, then access and plot sources.
 
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
+# Instead of the actual number of components we pass a float value
+# between 0 and 1 to select n_components by a percentage of
+# explained variance.
+
+ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
+          random_state=0)
 print ica
 
 # 1 minute exposure should be sufficient for artifact detection.
@@ -63,7 +71,7 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 # Automatically find the ECG component using correlation with ECG signal.
 
 # First, we create a helper function that iteratively applies the pearson
-# correlation functoon to sources and returns an array of r values
+# correlation function to sources and returns an array of r values
 # This is to illustrate the way ica.find_sources_raw works. Actually, this is
 # the default score_func.
 
@@ -96,15 +104,14 @@ pl.show()
 # We can do this by reordering the plot by our scores using order
 # and generating sort indices for the sources:
 
-ecg_order = np.abs(ecg_scores).argsort()
+ecg_order = np.abs(ecg_scores).argsort()[::-1]  # ascending order
+
 ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
-# for which the variance explantion in terms of \{r^2}\ exceeds 5 percent.
-# For convenience, we can use the ica.index attribute to get the indices.
-# (the indices depend on the number of components.)
+# for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.
 
-ecg_source_idx_updated = ica.index[np.abs(ecg_scores) ** 2 > .05]
+ecg_source_idx_updated = np.where(np.abs(ecg_scores) ** 2 > .05)[0]
 
 ###############################################################################
 # Automatically find the EOG component using correlation with EOG signal.
@@ -126,10 +133,14 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
 
-# join the detected artifact indices
-exclude = np.r_[ecg_source_idx_updated, eog_source_idx]
+# Join the detected artifact indices.
+exclude = np.r_[ecg_source_idx, eog_source_idx]
 
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude, copy=True)
+# Restore sources, use 64 PCA components which include the ICA cleaned sources
+# plus additional PCA components not supplied to ICA (up to rank 64).
+# This allows to control the trade-off between denoising and preserving data.
+raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude,
+                               n_pca_components=64, copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
@@ -174,12 +185,12 @@ pl.show()
 
 from mne.layouts import make_grid_layout
 
-ica_raw = ica.export_sources(raw, start=start, stop=3, picks=None)
+ica_raw = ica.export_sources(raw, start=start, stop=stop, picks=None)
 
 print ica_raw.ch_names
 
 ica_lout = make_grid_layout(ica_raw.info)
 
-# uncomment the following two line to save sources and layut
+# Uncomment the following two lines to save sources and layout.
 # ica_raw.save('ica_raw.fif')
 # ica_lout.save(os.path.join(os.environ['HOME'], '.mne/lout/ica.lout'))

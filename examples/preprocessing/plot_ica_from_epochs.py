@@ -3,7 +3,10 @@
 Compute ICA components on Epochs
 ================================
 
-25 ICA components are estimated and displayed.
+ICA is used to decompose raw data in 49 to 50 sources.
+The source matching the ECG is found automatically
+and displayed. Finally, the cleaned epochs are compared
+to the uncleaned epochs.
 
 """
 print __doc__
@@ -19,6 +22,9 @@ from mne.fiff import Raw
 from mne.artifacts.ica import ICA
 from mne.datasets import sample
 
+###############################################################################
+# Setup paths and prepare epochs data
+
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
@@ -27,8 +33,15 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude=raw.info['bads'])
 
-# setup ica seed
-ica = ICA(noise_cov=None, n_components=25, random_state=0)
+###############################################################################
+# Setup ICA seed decompose data, then access and plot sources.
+
+# Instead of the actual number of components here we pass a float value
+# between 0 and 1 to select n_components by a percentage of
+# explained variance.
+
+ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
+          random_state=0)
 print ica
 
 # get epochs
@@ -79,8 +92,8 @@ eog_source_idx = np.abs(eog_scores).argmax()
 print '#%i -- ICA component resembling the EOG' % eog_source_idx
 
 # As the subject did not constantly move her eyes, the movement artifacts
-# remain hidden when plotting single epochs (#4 looks unsuspicious in the
-# panel plot). However, plotting the identified source across epochs reveals
+# may remain hidden when plotting single epochs.
+# Plotting the identified source across epochs reveals
 # considerable EOG artifacts.
 
 # get maximum correlation index for EOG
@@ -100,8 +113,11 @@ pl.show()
 # join the detected artifact indices
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
+# Restore sources, use 64 PCA components which include the ICA cleaned sources
+# plus additional PCA components not supplied to ICA (up to rank 64).
+# This allows to control the trade-off between denoising and preserving data.
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=exclude,
-                                     copy=True)
+                                     n_pca_components=64, copy=True)
 
 # plot original epochs
 pl.figure()
