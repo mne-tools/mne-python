@@ -67,9 +67,10 @@ def test_ica_core():
     # setup parameter
     # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
-    n_components = [None, 3, 1.0]
-    max_n_components = [None, 4]
-    picks_ = [None, picks]
+    # removed None cases to speed up...
+    n_components = [3, 1.0]  # for future dbg add cases
+    max_n_components = [4]
+    picks_ = [picks]
     iter_ica_params = product(noise_cov, n_components, max_n_components,
                            picks_)
 

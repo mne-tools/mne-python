@@ -66,9 +66,6 @@ class ICA(object):
 
     Parameters
     ----------
-    noise_cov : None | instance of mne.cov.Covariance
-        Noise covariance used for whitening. If None, channels are just
-        z-scored.
     n_components : int | float | None
         The number of components used for ICA decomposition. If int, it must be
         smaller then max_n_components. If None, all PCA components will be
@@ -78,6 +75,9 @@ class ICA(object):
         The number of components used for PCA decomposition. If None, no
         dimension reduction will be applied and max_n_components will equal
         the number of channels supplied on decomposing data.
+    noise_cov : None | instance of mne.cov.Covariance
+        Noise covariance used for whitening. If None, channels are just
+        z-scored.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -115,9 +115,9 @@ class ICA(object):
         See above.
     """
     @verbose
-    def __init__(self, noise_cov=None, n_components=None,
-                 max_n_components=100, random_state=None, algorithm='parallel',
-                 fun='logcosh', fun_args=None, verbose=None):
+    def __init__(self, n_components, max_n_components=100, noise_cov=None,
+                 random_state=None, algorithm='parallel', fun='logcosh',
+                 fun_args=None, verbose=None):
         try:
             from sklearn.decomposition import FastICA  # to avoid strong dep.
         except ImportError:
