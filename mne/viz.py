@@ -319,6 +319,9 @@ def _plot_topo_imshow(epochs, show_func, layout, decim,
             pl.xticks([], ())
             pl.yticks([], ())
 
+    # Revert global pylab config
+    pl.rcParams['axes.facecolor'] = 'w'
+    pl.rcParams['axes.edgecolor'] = 'k'
     return fig
 
 
