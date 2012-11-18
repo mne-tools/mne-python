@@ -1,7 +1,7 @@
 """
-==================================
-Compute ICA components on Raw data
-==================================
+================================
+Find EOG events from ICA sources
+================================
 
 ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the EOG is found automatically
@@ -41,9 +41,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
+ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
           random_state=0)
-
 
 # For maximum rejection performance we will compute the decomposition on
 # the entire time range

@@ -40,9 +40,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 # between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
+ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
           random_state=0)
-
 print ica
 
 # get epochs

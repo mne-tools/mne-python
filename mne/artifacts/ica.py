@@ -396,7 +396,7 @@ class ICA(object):
                              'working. Please read raw data with '
                              'preload=True.')
 
-        # include 'reference' channels for comparison with ica
+        # include 'reference' channels for comparison with ICA
         if picks is None:
             picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
                                ecg=True, eog=True, stim=True)
