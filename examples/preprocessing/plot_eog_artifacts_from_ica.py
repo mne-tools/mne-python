@@ -38,7 +38,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
 # Instead of the actual number of components we pass a float value
-# between 0 and 1 to select n_components by the explained variance ratio.
+# between 0 and 1 to select n_components by a percentage of
+# explained variance.
 
 ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
           random_state=0)

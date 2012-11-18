@@ -22,8 +22,6 @@ except ImportError:
 
 sklearn_test = np.testing.dec.skipif(not have_sklearn,
                                      'scikit-learn not installed')
-#DBG
-__file__ = '.'
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')

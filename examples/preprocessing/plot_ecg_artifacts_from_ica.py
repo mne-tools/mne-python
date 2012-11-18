@@ -38,7 +38,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
 # Instead of the actual number of components we pass a float value
-# between 0 and 1 to select n_components by the explained variance ratio.
+# between 0 and 1 to select n_components by a percentage of
+# explained variance.
 
 ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
           random_state=0)
@@ -65,10 +66,9 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 # The function is internally modified to be applicable to 2D arrays and,
 # hence, returns product-moment correlation scores for each ICA source.
 
-#pick ecg affected chanel
-picks = pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
-                   include=['MEG 1531'])
-ecg = raw[picks, :][0]
+# pick ECG affected channel
+ch_idx = raw.ch_names.index('MEG 1531')
+ecg = raw[ch_idx, :][0]
 
 ecg = mne.filter.high_pass_filter(ecg.ravel(), raw.info['sfreq'], 1.0)
 
@@ -92,10 +92,8 @@ ecg_events = ica_find_ecg_events(raw=raw, ecg_source=ecg_source,
                                  event_id=event_id)
 
 # Read epochs
-picks = pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
-                   include=['MEG 1531'])
 tmin, tmax = -0.1, 0.1
-epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,
+epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=[ch_idx],
                     proj=False)
 
 data = epochs.get_data()

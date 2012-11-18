@@ -73,11 +73,11 @@ class ICA(object):
         The number of components used for ICA decomposition. If int, it must be
         smaller then max_n_components. If None, all PCA components will be
         used. If float between 0 and 1 components can will be selected by the
-        cumulative explained variance ratio.
+        cumulative percentage of explained variance.
     max_n_components : int | None
         The number of components used for PCA decomposition. If None, no
         dimension reduction will be applied and max_n_components will equal
-        the the number of channels supplied on decomposing data.
+        the number of channels supplied on decomposing data.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
@@ -107,7 +107,7 @@ class ICA(object):
     n_components : int
         The number of components used for ICA decomposition.
     max_n_components : int
-        The number of PCA dimensions decomposed.
+        The number of PCA dimensions computed.
     index : ndarray
         Integer array representing the sources. This is useful for different
         kinds of indexing and selection operations.

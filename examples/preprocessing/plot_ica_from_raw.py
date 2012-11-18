@@ -3,12 +3,12 @@
 Compute ICA components on Raw data
 ==================================
 
-ICA is used to decompose raw data in 49 to  50 sources.
+ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
 and displayed. Subsequently, the cleaned data is compared
 with the uncleaned data. The last section shows how to export
 the sources into a fiff file for further processing and displaying, e.g.
-using mne_brows_raw.
+using mne_browse_raw.
 
 """
 print __doc__
@@ -43,7 +43,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
 # Instead of the actual number of components we pass a float value
-# between 0 and 1 to select n_components by the explained variance ratio.
+# between 0 and 1 to select n_components by a percentage of
+# explained variance.
 
 ica = ICA(noise_cov=None, n_components=0.90, max_n_components=100,
           random_state=0)
@@ -109,10 +110,8 @@ ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
 # for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.
-# For convenience, we can use the ica.index attribute to get the indices.
-# (the indices depend on the number of components.)
 
-ecg_source_idx_updated = ica.index[np.abs(ecg_scores) ** 2 > .05]
+ecg_source_idx_updated = np.where(np.abs(ecg_scores) ** 2 > .05)[0]
 
 ###############################################################################
 # Automatically find the EOG component using correlation with EOG signal.
@@ -137,8 +136,8 @@ pl.show()
 # Join the detected artifact indices.
 exclude = np.r_[ecg_source_idx, eog_source_idx]
 
-# Restore sources, use 40 PCA components which include the ICA cleaned sources
-# plus additional PCA components not supplied to ICA (up to rank 40).
+# Restore sources, use 64 PCA components which include the ICA cleaned sources
+# plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving data.
 raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude,
                                n_pca_components=64, copy=True)
