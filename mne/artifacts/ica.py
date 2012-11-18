@@ -364,12 +364,13 @@ class ICA(object):
         sources = self._ica.transform(pca_data[:, self._comp_idx]).T
         sources = np.array(np.split(sources, len(epochs.events), 1))
 
-        epochs_sources = sources if not concatenate else np.hstack(sources)
+        if concatenate:
+            sources = np.hstack(sources)
 
-        return epochs_sources, pca_data
+        return sources, pca_data
 
     def export_sources(self, raw, picks=None, start=None, stop=None):
-        """ Export sources as raw object
+        """Export sources as raw object
 
         Parameters
         ----------
@@ -781,11 +782,10 @@ class ICA(object):
 
         return to_ica, pca
 
-    def _pick_sources(self, sources, pca_data, include, exclude, pca_components):
+    def _pick_sources(self, sources, pca_data, include, exclude,
+                      n_pca_components):
         """Helper function"""
-
-        if any([np.less(pca_components, self.n_components),
-                np.less(self.max_n_components, pca_components)]):
+        if not(self.n_components <= n_pca_components <= self.max_n_components):
             raise ValueError('n_pca_components must be between n_components'
                              ' and max_n_components.')
 
@@ -800,8 +800,8 @@ class ICA(object):
         pca_restored = np.dot(sources.T, mixing)
 
         # re-append deselected pca dimension if desired
-        if pca_components - self.n_components > 0:
-            add_components = np.arange(self.n_components, pca_components)
+        if n_pca_components - self.n_components > 0:
+            add_components = np.arange(self.n_components, n_pca_components)
             pca_reappend = pca_data[:, add_components]
             pca_restored = np.c_[pca_restored, pca_reappend]
 
@@ -871,7 +871,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
 
 @verbose
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
-                    h_freq=10, verbose=None):
+                        h_freq=10, verbose=None):
     """Locate EOG artifacts
 
     Parameters
