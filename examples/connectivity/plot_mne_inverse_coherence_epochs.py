@@ -77,16 +77,18 @@ n_sources = stc.data.shape[0]
 indices = seed_target_indices([seed_idx], np.arange(n_sources))
 
 # Compute inverse solution and for each epoch. By using "return_generator=True"
-# stcs will be a generator object instead of a list. This allows us so to compute
-# the coherence without having to keep all source estimates in memory.
+# stcs will be a generator object instead of a list. This allows us so to
+# compute the coherence without having to keep all source estimates in memory.
 
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_normal=True, return_generator=True)
 
-# Now we are ready to compute the coherence in the alpha and beta band
-fmin, fmax = (8., 20.), (13., 30.)
+# Now we are ready to compute the coherence in the alpha and beta band.
+# fmin and fmax specify the lower and upper freq. for each band, resp.
+fmin = (8., 13.)
+fmax = (13., 30.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 # Now we compute connectivity. To speed things up, we use 2 parallel jobs
@@ -120,10 +122,9 @@ for i, band in enumerate(['alpha', 'beta']):
 
 pl.figure()
 width = 0.5
-pos = np.arange(2)
+pos = np.arange(2) + 0.25
 pl.bar(pos, [aud_rh_coh['alpha'], aud_rh_coh['beta']], width)
 pl.ylabel('Coherence')
 pl.title('Cohrence left-right auditory')
 pl.xticks(pos + width / 2, ('alpha', 'beta'))
 pl.show()
-
