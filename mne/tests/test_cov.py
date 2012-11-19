@@ -161,3 +161,23 @@ def test_regularize_cov():
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
+
+
+def test_evoked_whiten():
+    """Test whitening of evoked data"""
+    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
+    cov = read_cov(cov_fname)
+
+    ###########################################################################
+    # Show result
+    picks = pick_types(evoked.info, meg=True, eeg=True,
+                        exclude=evoked.info['bads'])  # Pick channels to view
+
+    noise_cov = regularize(cov, evoked.info,
+                                   grad=0.1, mag=0.1, eeg=0.1)
+
+    evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
+    whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
+    mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
+    assert_true(np.all(mean_baseline < 1.))
+    assert_true(np.all(mean_baseline > 0.2))

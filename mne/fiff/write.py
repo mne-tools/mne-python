@@ -159,9 +159,9 @@ def start_file(fname):
         that the name ends with .fif or .fif.gz
     """
     if op.splitext(fname)[1].lower() == '.gz':
-        logger.info('Writing using gzip')
+        logger.debug('Writing using gzip')
         # defaults to compression level 9, which is barely smaller but much
-        # slower. 3 offers a good compromise.
+        # slower. 2 offers a good compromise.
         fid = gzip.open(fname, "wb", compresslevel=2)
     else:
         logger.debug('Writing using normal I/O')
@@ -268,9 +268,6 @@ def write_ch_info(fid, ch):
 
     fid.write(np.array(ch_name, dtype='>c').tostring())
     if len(ch_name) < 16:
-        # This code was replaced / simplified on 2012/11/13:
-        #dum = array.array('c', '\0' * (16 - len(ch_name)))
-        #dum.tofile(fid)
         fid.write('\0' * (16 - len(ch_name)))
 
 

@@ -8,6 +8,7 @@
 from math import floor, ceil
 import copy
 import warnings
+import os
 
 import numpy as np
 from scipy.signal import hilbert
@@ -57,10 +58,6 @@ class Raw(object):
         recommended to apply the projectors at this point as they are
         applied automatically later on (e.g. when computing inverse
         solutions).
-    whole_file : bool
-        If True, if preloading is True, the whole .fif file will be read
-        into memory before being processed. This requires more memory, but
-        can be faster for compressed fif files (.fif.gz).
 
     Attributes
     ----------
@@ -75,12 +72,11 @@ class Raw(object):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=None, proj_active=False, whole_file=False):
+                 verbose=None, proj_active=False):
 
         if not isinstance(fnames, list):
             fnames = [fnames]
 
-        self.whole_file = whole_file
         raws = [self._read_raw_file(fname, allow_maxshield, preload)
                 for fname in fnames]
 
@@ -126,7 +122,11 @@ class Raw(object):
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
-        fid, tree, _ = fiff_open(fname, preload=self.whole_file)
+
+        #   Read in the whole file if preload is on and .fif.gz (saves time)
+        ext = os.path.splitext(fname)[1].lower()
+        whole_file = preload if '.gz' in ext else False
+        fid, tree, _ = fiff_open(fname, preload=whole_file)
 
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree)

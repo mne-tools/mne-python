@@ -12,12 +12,14 @@ from ..fixes import _in1d, _copysign, _unravel_index
 
 
 def test_in1d():
+    """Test numpy.in1d() replacement"""
     a = np.arange(10)
     b = a[a % 2 == 0]
     assert_equal(_in1d(a, b).sum(), 5)
 
 
 def test_unravel_index():
+    """Test numpy.unravel_index() replacement"""
     assert_equal(_unravel_index(2, (2, 3)), (0, 2))
     assert_equal(_unravel_index(2,(2,2)), (1,0))
     assert_equal(_unravel_index(254,(17,94)), (2,66))
@@ -28,6 +30,7 @@ def test_unravel_index():
 
 
 def test_copysign():
+    """Test numpy.copysign() replacement"""
     a = np.array([-1, 1, -1])
     b = np.array([1, -1, 1])
 
