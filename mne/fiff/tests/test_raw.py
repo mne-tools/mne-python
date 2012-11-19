@@ -22,13 +22,13 @@ else:
     have_nitime = True
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
-
-fif_fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
-ctf_fname = op.join(op.dirname(__file__), 'data', 'test_ctf_raw.fif')
-fif_bad_marked_fname = op.join(op.dirname(__file__), 'data',
-                               'test_withbads_raw.fif')
-bad_file_works = op.join(op.dirname(__file__), 'data', 'test_bads.txt')
-bad_file_wrong = op.join(op.dirname(__file__), 'data', 'test_wrong_bads.txt')
+base_dir = op.join(op.dirname(__file__), 'data')
+fif_fname = op.join(base_dir, 'test_raw.fif')
+fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
+ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
+bad_file_works = op.join(base_dir, 'test_bads.txt')
+bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 
 
 def test_multiple_files():
@@ -179,10 +179,12 @@ def test_load_bad_channels():
 
 
 def test_io_raw():
-    """Test IO for raw data (Neuromag + CTF)
+    """Test IO for raw data (Neuromag + CTF + gz)
     """
-    for fname in [fif_fname, ctf_fname]:
-        raw = Raw(fname)
+    fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
+    fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
+    for fname_in, fname_out in zip(fnames_in, fnames_out):
+        raw = Raw(fname_in)
 
         nchan = raw.info['nchan']
         ch_names = raw.info['ch_names']
@@ -203,21 +205,21 @@ def test_io_raw():
         print "Number of picked channels : %d" % len(picks)
 
         # Writing with drop_small_buffer True
-        raw.save('raw.fif', picks, tmin=0, tmax=4, buffer_size_sec=3,
+        raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
                  drop_small_buffer=True)
-        raw2 = Raw('raw.fif')
+        raw2 = Raw(fname_out, preload=True)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
         assert_true(times2.max() <= 3)
 
         # Writing
-        raw.save('raw.fif', picks, tmin=0, tmax=5)
+        raw.save(fname_out, picks, tmin=0, tmax=5)
 
-        if fname == fif_fname:
+        if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_true(len(raw.info['dig']) == 146)
 
-        raw2 = Raw('raw.fif')
+        raw2 = Raw(fname_out)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
@@ -228,11 +230,9 @@ def test_io_raw():
                                   raw2.info['dev_head_t']['trans'])
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
 
-        if fname == fif_fname:
+        if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_array_almost_equal(raw.info['dig'][0]['r'],
                                       raw2.info['dig'][0]['r'])
-
-        fname = op.join(op.dirname(__file__), 'data', 'test_raw.fif')
 
 
 def test_io_complex():

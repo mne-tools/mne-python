@@ -144,7 +144,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
 
                 s = fidin.read(4 * 4)
                 tag = Tag(*struct.unpack(">iIii", s))
-                tag.data = np.fromfile(fidin, dtype='>B', count=tag.size)
+                tag.data = np.fromstring(fidin.read(tag.size), dtype='>B')
 
                 _write(fidout, tag.data, tag.kind, 1, tag.type, '>B')
 

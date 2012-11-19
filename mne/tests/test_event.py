@@ -7,27 +7,17 @@ from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, fiff)
 
 
-fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test-eve.fif')
-
-fname_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                  'test-eve-1.fif')
-
-fname_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                    'test-eve.eve')
-
-fname_txt_1 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                      'test-eve-1.eve')
+base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+fname = op.join(base_dir, 'test-eve.fif')
+fname_gz = op.join(base_dir, 'test-eve.fif.gz')
+fname_1 = op.join(base_dir, 'test-eve-1.fif')
+fname_txt = op.join(base_dir, 'test-eve.eve')
+fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
 
 # using mne_process_raw --raw test_raw.fif --eventsout test-mpr-eve.eve:
-fname_txt_mpr = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                        'test-mpr-eve.eve')
-
-fname_old_txt = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                        'test-eve-old-style.eve')
-
-raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                    'test_raw.fif')
+fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
+fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
+raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
 def test_io_events():
@@ -37,6 +27,13 @@ def test_io_events():
     events = read_events(fname)  # Use as the gold standard
     write_events('events.fif', events)
     events2 = read_events('events.fif')
+    assert_array_almost_equal(events, events2)
+
+    # Test binary fif.gz IO
+    events2 = read_events(fname_gz)  # Use as the gold standard
+    assert_array_almost_equal(events, events2)
+    write_events('events.fif.gz', events2)
+    events2 = read_events('events.fif.gz')
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO

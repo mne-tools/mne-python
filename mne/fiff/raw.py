@@ -8,6 +8,7 @@
 from math import floor, ceil
 import copy
 import warnings
+import os
 
 import numpy as np
 from scipy.signal import hilbert
@@ -121,7 +122,11 @@ class Raw(object):
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
-        fid, tree, _ = fiff_open(fname)
+
+        #   Read in the whole file if preload is on and .fif.gz (saves time)
+        ext = os.path.splitext(fname)[1].lower()
+        whole_file = preload if '.gz' in ext else False
+        fid, tree, _ = fiff_open(fname, preload=whole_file)
 
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree)

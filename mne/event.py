@@ -93,8 +93,8 @@ def read_events(filename, include=None, exclude=None):
     This function will discard the offset line (i.e., first line with zero
     event number) if it is present in a text file.
     """
-
-    if splitext(filename)[1].lower() == '.fif':
+    ext = splitext(filename)[1].lower()
+    if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
 
         #   Find the desired block
@@ -161,7 +161,8 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
-    if splitext(filename)[1].lower() == '.fif':
+    ext = splitext(filename)[1].lower()
+    if ext == '.fif' or ext == '.gz':
         #   Start writing...
         fid = start_file(filename)
 

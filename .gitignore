@@ -11,13 +11,16 @@
 *.lprof
 *.npy
 *.zip
+*.fif.gz
 *.tar.*
 *.egg*
 *.tmproj
 events.eve
 foo-lh.label
 foo.lout
+bar.lout
 foobar.lout
+epochs_data.mat
 memmap*.dat
 tmp-*.w
 tmtags

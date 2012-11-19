@@ -6,12 +6,14 @@
 import os.path as op
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_array_almost_equal, assert_equal,\
+                          assert_array_equal
 from nose.tools import assert_true
 
 from mne.fiff import read_evoked, write_evoked
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
+fname_gz = op.join(op.dirname(__file__), 'data', 'test-ave.fif.gz')
 
 try:
     import nitime
@@ -23,7 +25,7 @@ nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
 def test_io_evoked():
-    """Test IO for evoked data
+    """Test IO for evoked data (fif + gz)
     """
     ave = read_evoked(fname)
 
@@ -38,6 +40,11 @@ def test_io_evoked():
     assert_equal(ave.aspect_kind, ave2.aspect_kind)
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
+
+    # test compressed i/o
+    ave2 = read_evoked(fname_gz)
+    ave2.crop(tmin=0)
+    assert_array_equal(ave.data, ave2.data)
 
 
 def test_evoked_resample():

@@ -57,6 +57,8 @@ Changelog
 
    - Whitening of evoked data for plotting and quality checking by `Alex Gramfort`_
 
+   - Transparent I/O of gzipped fif files (as .fif.gz) by `Eric Larson`_
+
 API
 ~~~
 
