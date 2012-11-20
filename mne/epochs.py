@@ -218,7 +218,8 @@ class Epochs(object):
                                dtype=np.float) / sfreq
         self._epoch_stop = ep_len = len(self.times)
         if downsample:
-            self.times = self.times[0:ep_len:downsample]
+            i_start = n_times_min % downsample
+            self.times = self.times[i_start:ep_len:downsample]
             self._epoch_step = downsample
             self.info['sfreq'] /= downsample
         else:
