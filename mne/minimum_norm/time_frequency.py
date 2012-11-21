@@ -25,10 +25,10 @@ from .. import verbose
 
 @verbose
 def source_band_induced_power(epochs, inverse_operator, bands, label=None,
-                              lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
-                              df=1, use_fft=False, decim=1, baseline=None,
-                              baseline_mode='logratio', pca=True,
-                              n_jobs=1, dSPM=None, verbose=None):
+                              lambda2=1.0 / 9.0, method="dSPM", nave=1,
+                              n_cycles=5, df=1, use_fft=False, decim=1,
+                              baseline=None, baseline_mode='logratio',
+                              pca=True, n_jobs=1, dSPM=None, verbose=None):
     """Compute source space induced power in given frequency bands
 
     Parameters
@@ -45,6 +45,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
+    nave : int
+        The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
     df : float
@@ -84,9 +86,9 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                                       inverse_operator, frequencies,
                                       label=label,
                                       lambda2=lambda2, method=method,
-                                      n_cycles=n_cycles, decim=decim,
-                                      use_fft=use_fft, pca=pca, n_jobs=n_jobs,
-                                      with_plv=False)
+                                      nave=nave, n_cycles=n_cycles,
+                                      decim=decim, use_fft=use_fft, pca=pca,
+                                      n_jobs=n_jobs, with_plv=False)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -180,7 +182,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 
 @verbose
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                          lambda2=1.0 / 9.0, method="dSPM", n_cycles=5,
+                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                           decim=1, use_fft=False, pca=True, pick_normal=True,
                           n_jobs=1, with_plv=True, zero_mean=False,
                           verbose=None):
@@ -192,8 +194,6 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   Set up the inverse according to the parameters
     #
     epochs_data = epochs.get_data()
-
-    nave = len(epochs_data)  # XXX : can do better when no preload
 
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
@@ -249,10 +249,10 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
 @verbose
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
-                         lambda2=1.0 / 9.0, method="dSPM", n_cycles=5, decim=1,
-                         use_fft=False, pick_normal=False, baseline=None,
-                         baseline_mode='logratio', pca=True, n_jobs=1,
-                         dSPM=None, zero_mean=False, verbose=None):
+                         lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
+                         decim=1, use_fft=False, pick_normal=False,
+                         baseline=None, baseline_mode='logratio', pca=True,
+                         n_jobs=1, dSPM=None, zero_mean=False, verbose=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -271,6 +271,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
+    nave : int
+        The number of averages used to scale the noise covariance matrix.
     n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
     decim : int
@@ -309,9 +311,10 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 
     power, plv, vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
-                            label, lambda2, method, n_cycles, decim,
-                            use_fft, pick_normal=pick_normal, pca=pca,
-                            n_jobs=n_jobs)
+                            label=label, lambda2=lambda2, method=method,
+                            nave=nave, n_cycles=n_cycles, decim=decim,
+                            use_fft=use_fft, pick_normal=pick_normal,
+                            pca=pca, n_jobs=n_jobs)
 
     # Run baseline correction
     if baseline is not None:
