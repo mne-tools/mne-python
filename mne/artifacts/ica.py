@@ -755,8 +755,18 @@ class ICA(object):
         """ Helper Function """
         from sklearn.decomposition import RandomizedPCA
 
-        pca = RandomizedPCA(n_components=max_n_components, whiten=False,
-                            random_state=0)
+        # sklearn < 0.11 does not support random_state argument
+        kwargs = {'n_components': max_n_components, 'whiten': False}
+
+        aspec = inspect.getargspec(RandomizedPCA.__init__)
+        if 'random_state' not in aspec.args:
+            warnings.warn('RandomizedPCA does not support random_state '
+                          'argument. Use scikit-learn to version 0.11 '
+                          'or newer to get reproducible results.')
+        else:
+            kwargs['random_state'] = 0
+
+        pca = RandomizedPCA(**kwargs)
         pca_data = pca.fit_transform(data.T)
 
         if self._explained_var > 1.0:
