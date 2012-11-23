@@ -52,11 +52,11 @@ def stft(x, wsize, tstep=None, verbose=None):
     n_signals, T = x.shape
 
     ### Errors and warnings ###
-    if tstep is None:
-        tstep = wsize / 2
-
     if wsize % 4:
         raise ValueError('The window length must be a multiple of 4.')
+
+    if tstep is None:
+        tstep = wsize / 2
 
     if (wsize % tstep) or (tstep % 2):
         raise ValueError('The step size must be a multiple of 2 and a '
@@ -66,7 +66,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         raise ValueError('The step size must be smaller than half the '
                          'window length.')
 
-    n_step = int(ceil(T / tstep))
+    n_step = int(ceil(T / float(tstep))
     n_freq = wsize / 2 + 1
     logger.info("Number of frequencies: %d" % n_freq)
     logger.info("Number of time steps: %d" % n_step)
@@ -86,7 +86,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     swin = np.sqrt(wsize * swin)
 
     # Zero-padding and Pre-processing for edges
-    xp = np.zeros((n_signals, wsize - tstep + T + n_step * tstep - T),
+    xp = np.zeros((n_signals, wsize + (n_step - 1) * tstep),
                   dtype=x.dtype)
     xp[:, (wsize - tstep) / 2: (wsize - tstep) / 2 + T] = x
     x = xp
