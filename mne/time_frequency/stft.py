@@ -66,7 +66,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         raise ValueError('The step size must be smaller than half the '
                          'window length.')
 
-    n_step = int(ceil(T / float(tstep))
+    n_step = int(ceil(T / float(tstep)))
     n_freq = wsize / 2 + 1
     logger.info("Number of frequencies: %d" % n_freq)
     logger.info("Number of time steps: %d" % n_step)
