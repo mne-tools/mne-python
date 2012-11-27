@@ -113,7 +113,7 @@ def _get_clusters_st_1step(x_in, neighbors):
     return clusters
 
 
-def _get_clusters_st(x_in, neighbors, max_step=1):
+def _get_clusters_st_multistep(x_in, neighbors, max_step=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -180,12 +180,27 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     return clusters
 
 
+def _get_clusters_st(x_in, neighbors, max_step=1):
+    """Helper function to choose the most efficient version"""
+    if max_step == 1:
+        return _get_clusters_st_1step(x_in, neighbors)
+    else:
+        return _get_clusters_st_multistep(x_in, neighbors, max_step)
+
+
 def _get_components(x_in, connectivity, return_list=True):
     """get connected components from a mask and a connectivity matrix"""
     try:
         from sklearn.utils._csgraph import cs_graph_components
     except:
-        from scikits.learn.utils._csgraph import cs_graph_components
+        try:
+            from scikits.learn.utils._csgraph import cs_graph_components
+        except:
+            # in theory we might be able to shoehorn this into using
+            # _get_clusters_spatial if we transform connectivity into
+            # a neighbor list, and it might end up being faster anyway,
+            # but for now:
+            raise ValueError('scikits-learn must be installed')
 
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
@@ -378,10 +393,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
         if isinstance(connectivity, sparse.spmatrix):
             clusters = _get_components(x_in, connectivity)
         elif isinstance(connectivity, list):  # use temporal adjacency
-            if max_step == 1:
-                clusters = _get_clusters_st_1step(x_in, connectivity)
-            else:
-                clusters = _get_clusters_st(x_in, connectivity, max_step)
+            clusters = _get_clusters_st(x_in, connectivity, max_step)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
