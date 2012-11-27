@@ -5,8 +5,8 @@ from nose.tools import assert_true
 from scipy import sparse, linalg, stats
 
 from mne.stats.cluster_level import permutation_cluster_test, \
-                                    permutation_cluster_1samp_test
-import mne.stats as mnestats
+                                    permutation_cluster_1samp_test, \
+                                    spatio_temporal_cluster_1samp_test
 
 noiselevel = 20
 
@@ -128,7 +128,7 @@ def test_cluster_permutation_t_test_with_connectivity():
 
     # now use the other algorithm
     condition1_3 = np.reshape(condition1_2, (40, 2, 350))
-    out_connectivity_3 = mnestats.spatio_temporal_cluster_1samp_test(
+    out_connectivity_3 = spatio_temporal_cluster_1samp_test(
                              condition1_3, n_permutations=50,
                              connectivity=connectivity, max_step=0,
                              threshold=1.67, check_disjoint=True)
@@ -147,11 +147,11 @@ def test_cluster_permutation_t_test_with_connectivity():
     assert_true(len(data_1.intersection(data_2)) == len(data_1))
 
     # test new versus old method old method
-    out_connectivity_4 = mnestats.spatio_temporal_cluster_1samp_test(
+    out_connectivity_4 = spatio_temporal_cluster_1samp_test(
                              condition1_3, n_permutations=50,
                              connectivity=connectivity, max_step=2,
                              threshold=1.67)
-    out_connectivity_5 = mnestats.spatio_temporal_cluster_1samp_test(
+    out_connectivity_5 = spatio_temporal_cluster_1samp_test(
                              condition1_3, n_permutations=50,
                              connectivity=connectivity, max_step=1,
                              threshold=1.67)

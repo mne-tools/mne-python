@@ -62,7 +62,8 @@ def _reassign(check, clusters, base, num):
     # reconfigure check matrix
     check[check == num] = base
     # concatenate new values into clusters array
-    clusters[base - 1] = np.concatenate((clusters[base - 1], clusters[num - 1]))
+    clusters[base - 1] = np.concatenate((clusters[base - 1],
+                                         clusters[num - 1]))
     clusters[num - 1] = np.array([], dtype=int)
 
 
