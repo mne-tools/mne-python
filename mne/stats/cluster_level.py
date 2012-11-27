@@ -21,7 +21,99 @@ from ..fixes import in1d, unravel_index
 from .. import verbose
 
 
-def _get_clusters_st(x_in, neighbors, max_step=1):
+def _get_clusters_spatial(x_in, neighbors):
+    """Helper function to form spatial clusters using neighbor lists
+
+    This is equivalent to _get_components with n_times = 1, with a properly
+    reconfigured connectivity matrix (formed as "neighbors" list)
+    """
+    if not x_in.size == len(neighbors):
+        raise ValueError('x_in.size must be the same as len(neighbors)')
+    s = np.where(x_in)[0]
+    r = np.ones(s.shape, dtype=bool)
+    clusters = list()
+    next_ind = 0 if s.size > 0 else None
+    while next_ind is not None:
+        # put first point in a cluster, adjust remaining
+        t_inds = [next_ind]
+        r[next_ind] = False
+        icount = 1  # count of nodes in the current cluster
+        while icount <= len(t_inds):
+            ind = t_inds[icount - 1]
+            # look across other vertices
+            buddies = np.where(r)[0]
+            buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
+                                      assume_unique=True)]
+            t_inds += buddies.tolist()
+            r[buddies] = False
+            icount += 1
+        # this is equivalent to np.where(r)[0] for these purposes, but it's
+        # a little bit faster. Unfortunately there's no way to tell numpy
+        # just to find the first instance (to save checking every one):
+        next_ind = np.argmax(r)
+        if next_ind == 0:
+            next_ind = None
+        clusters.append(s[t_inds])
+    return clusters
+
+
+def _reassign(check, clusters, base, num):
+    """Helper function to reassign cluster numbers"""
+    # reconfigure check matrix
+    check[check == num] = base
+    # concatenate new values into clusters array
+    clusters[base - 1] = np.concatenate((clusters[base - 1], clusters[num - 1]))
+    clusters[num - 1] = np.array([], dtype=int)
+
+
+def _get_clusters_st_1step(x_in, neighbors):
+    """Directly calculate connectivity based on knowledge that time points are
+    only connected to adjacent neighbors for data organized as time x space.
+
+    This algorithm time increases linearly with the number of time points,
+    compared to with the square for the standard (graph) algorithm.
+
+    This algorithm creates clusters for each time point using a method more
+    efficient than the standard graph method (but otherwise equivalent), then
+    combines these clusters across time points in a reasonable way."""
+    n_src = len(neighbors)
+    n_times = int(x_in.shape[0] / n_src)
+    orig_shape = x_in.shape
+    x_in.shape = (n_times, n_src)
+
+    # start cluster numbering at 1 for diffing convenience
+    enum_offset = 1
+    clusters = list()
+    check = np.zeros(x_in.shape, dtype=int)
+    for ii, xa in enumerate(x_in):
+        c = _get_clusters_spatial(xa, neighbors)
+        for ci, cl in enumerate(c):
+            check[ii, cl] = ci + enum_offset
+        enum_offset += len(c)
+        # give them the correct offsets
+        c = [cl + ii * n_src for cl in c]
+        clusters += c
+
+    # now that each cluster has been assigned a unique number, combine them
+    diffs = np.logical_and(np.diff(check, axis=0) > 0, check[:-1] > 0)
+    # go through each time point
+    for check1, check2, d in zip(check[:-1], check[1:], diffs):
+        # go through each one that needs reassignment
+        n = check2[d]
+        for num in np.unique(n):
+            prevs = check1[d][num == n]
+            base = np.min(prevs)
+            for pr in np.unique(prevs[prevs != base]):
+                _reassign(check1, clusters, base, pr)
+            # reassign values
+            _reassign(check2, clusters, base, num)
+    # clean up clusters
+    clusters = [cl for cl in clusters if len(cl) > 0]
+    x_in.shape = orig_shape
+    return clusters
+
+
+def _get_clusters_st_multistep(x_in, neighbors, max_step=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -88,12 +180,27 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     return clusters
 
 
+def _get_clusters_st(x_in, neighbors, max_step=1):
+    """Helper function to choose the most efficient version"""
+    if max_step == 1:
+        return _get_clusters_st_1step(x_in, neighbors)
+    else:
+        return _get_clusters_st_multistep(x_in, neighbors, max_step)
+
+
 def _get_components(x_in, connectivity, return_list=True):
     """get connected components from a mask and a connectivity matrix"""
     try:
         from sklearn.utils._csgraph import cs_graph_components
     except:
-        from scikits.learn.utils._csgraph import cs_graph_components
+        try:
+            from scikits.learn.utils._csgraph import cs_graph_components
+        except:
+            # in theory we might be able to shoehorn this into using
+            # _get_clusters_spatial if we transform connectivity into
+            # a neighbor list, and it might end up being faster anyway,
+            # but for now:
+            raise ValueError('scikits-learn must be installed')
 
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
