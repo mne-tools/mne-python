@@ -530,108 +530,6 @@ class Raw(object):
         if self._preloaded:
             self._data = np.dot(self._projector, self._data)
 
-    @deprecated('band_pass_filter is deprecated please use raw.filter instead')
-    def band_pass_filter(self, picks, l_freq, h_freq, filter_length=None,
-                         n_jobs=1, verbose=None):
-        """Band-pass filter a subset of channels.
-
-        Applies a zero-phase band-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified inplace.
-
-        The Raw object has to be constructed using preload=True (or string).
-
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
-
-        Parameters
-        ----------
-        picks : list of int
-            Indices of channels to filter.
-        l_freq : float
-            Low cut-off frequency in Hz.
-        h_freq : float
-            High cut-off frequency in Hz.
-        filter_length : int (default: None)
-            Length of the filter to use. If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
-        n_jobs: int (default: 1)
-            Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
-        """
-        verbose = self.verbose if verbose is None else verbose
-        self.filter(l_freq, h_freq, picks, n_jobs=n_jobs, verbose=verbose,
-                    filter_length=filter_length)
-
-    @deprecated('high_pass_filter is deprecated please use raw.filter instead')
-    def high_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
-                         verbose=None):
-        """High-pass filter a subset of channels.
-
-        Applies a zero-phase high-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified inplace.
-
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
-
-        The Raw object has to be constructed using preload=True (or string).
-
-        Parameters
-        ----------
-        picks : list of int
-            Indices of channels to filter.
-        freq : float
-            Cut-off frequency in Hz.
-        filter_length : int (default: None)
-            Length of the filter to use. If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
-        n_jobs: int (default: 1)
-            Number of jobs to run in parallel.
-        verbose: int (default: 5)
-            Verbosity level.
-        """
-        verbose = self.verbose if verbose is None else verbose
-        self.filter(freq, None, picks, n_jobs=n_jobs, verbose=verbose,
-                    filter_length=filter_length)
-
-    @deprecated('low_pass_filter is deprecated please use raw.filter instead')
-    def low_pass_filter(self, picks, freq, filter_length=None, n_jobs=1,
-                        verbose=None):
-        """Low-pass filter a subset of channels.
-
-        Applies a zero-phase low-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified in-place.
-
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
-
-        The Raw object has to be constructed using preload=True (or string).
-
-        Parameters
-        ----------
-        picks : list of int
-            Indices of channels to filter.
-        freq : float
-            Cut-off frequency in Hz.
-        filter_length : int (default: None)
-            Length of the filter to use. If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
-        n_jobs: int (default: 1)
-            Number of jobs to run in parallel.
-        verbose: int (default: 5)
-            Verbosity level.
-        """
-        verbose = self.verbose if verbose is None else verbose
-        self.filter(None, freq, picks, n_jobs=n_jobs, verbose=verbose,
-                    filter_length=filter_length)
-
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
@@ -761,7 +659,8 @@ class Raw(object):
 
         finish_writing_raw(outfid)
 
-    @deprecated('time_to_index is deprecated please use time_as_index instead')
+    @deprecated('time_to_index is deprecated please use time_as_index instead.'
+                ' Will be removed in v0.7.')
     def time_to_index(self, *args):
         """Convert time to indices"""
         indices = []
@@ -968,8 +867,8 @@ class Raw(object):
 
         return new
 
-    def to_nitime(self, start=None, stop=None, use_first_samp=False, picks=None,
-                  copy=True):
+    def to_nitime(self, start=None, stop=None, use_first_samp=False,
+                  picks=None, copy=True):
         """ Raw data as nitime TimeSeries
 
         Parameters
@@ -984,7 +883,8 @@ class Raw(object):
             If True, the time returned is relative to the session onset, else
             relative to the recording onset.
         picks : array-like | None
-            Indices of channels to apply. If None, all channels will be exported.
+            Indices of channels to apply. If None, all channels will be
+            exported.
         copy : boolean | None
             Whether to copy the raw data or not.
 
