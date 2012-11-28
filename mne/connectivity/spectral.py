@@ -48,6 +48,12 @@ class _EpochMeanConEstBase(_AbstractConEstBase):
         self.n_cons = n_cons
         self.n_freqs = n_freqs
         self.n_times = n_times
+
+        if n_times == 0:
+            self.csd_shape = (n_cons, n_freqs)
+        else:
+            self.csd_shape = (n_cons, n_freqs, n_times)
+
         self.con_scores = None
 
     def start_epoch(self):
@@ -65,12 +71,7 @@ class _CohEstBase(_EpochMeanConEstBase):
         super(_CohEstBase, self).__init__(n_cons, n_freqs, n_times)
 
         # allocate space for accumulation of CSD
-        if n_times == 0:
-            acc_shape = (n_cons, n_freqs)
-        else:
-            acc_shape = (n_cons, n_freqs, n_times)
-
-        self._acc = np.zeros(acc_shape, dtype=np.complex128)
+        self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
         """Accumulate CSD for some connections"""
@@ -84,7 +85,7 @@ class _CohEst(_CohEstBase):
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape)
+            self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
         self.con_scores[con_idx] = np.abs(csd_mean)\
                                    / np.sqrt(psd_xx * psd_yy)
@@ -97,7 +98,7 @@ class _CohyEst(_CohEstBase):
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape,
+            self.con_scores = np.zeros(self.csd_shape,
                                        dtype=np.complex128)
         csd_mean = self._acc[con_idx] / n_epochs
         self.con_scores[con_idx] = csd_mean\
@@ -111,7 +112,7 @@ class _ImCohEst(_CohEstBase):
     def compute_con(self, con_idx, n_epochs, psd_xx, psd_yy):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape)
+            self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
         self.con_scores[con_idx] = np.imag(csd_mean)\
                                    / np.sqrt(psd_xx * psd_yy)
@@ -124,12 +125,8 @@ class _PLIEst(_EpochMeanConEstBase):
     def __init__(self, n_cons, n_freqs, n_times):
         super(_PLIEst, self).__init__(n_cons, n_freqs, n_times)
 
-        if n_times == 0:
-            acc_shape = (n_cons, n_freqs)
-        else:
-            acc_shape = (n_cons, n_freqs, n_times)
-
-        self._acc = np.zeros(acc_shape)
+        # allocate accumulator
+        self._acc = np.zeros(self.csd_shape)
 
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
@@ -138,7 +135,7 @@ class _PLIEst(_EpochMeanConEstBase):
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape)
+            self.con_scores = np.zeros(self.csd_shape)
         pli_mean = self._acc[con_idx] / n_epochs
         self.con_scores[con_idx] = np.abs(pli_mean)
 
@@ -150,7 +147,7 @@ class _PLIUnbiasedEst(_PLIEst):
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape)
+            self.con_scores = np.zeros(self.csd_shape)
         pli_mean = self._acc[con_idx] / n_epochs
 
         # See Vinck paper Eq. (30)
@@ -165,12 +162,9 @@ class _WPLIEst(_EpochMeanConEstBase):
 
     def __init__(self, n_cons, n_freqs, n_times):
         super(_WPLIEst, self).__init__(n_cons, n_freqs, n_times)
-        #store  both imag(csd) and abs(imag(csd))
-        if n_times == 0:
-            acc_shape = (n_cons, n_freqs, 2)
-        else:
-            acc_shape = (n_cons, n_freqs, n_times, 2)
 
+        #store  both imag(csd) and abs(imag(csd))
+        acc_shape = self.csd_shape + (2,)
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
@@ -182,11 +176,7 @@ class _WPLIEst(_EpochMeanConEstBase):
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            if self.n_times == 0:
-                con_shape = (self.n_cons, self.n_freqs)
-            else:
-                con_shape = (self.n_cons, self.n_freqs, self.n_times)
-            self.con_scores = np.zeros(con_shape)
+            self.con_scores = np.zeros(self.csd_shape)
 
         acc_mean = self._acc[con_idx] / n_epochs
         num = np.abs(acc_mean[:, Ellipsis, 0])
@@ -211,11 +201,7 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
     def __init__(self, n_cons, n_freqs, n_times):
         super(_WPLIDebiasedEst, self).__init__(n_cons, n_freqs, n_times)
         #store imag(csd), abs(imag(csd)), imag(csd)^2
-        if n_times == 0:
-            acc_shape = (n_cons, n_freqs, 3)
-        else:
-            acc_shape = (n_cons, n_freqs, n_times, 3)
-
+        acc_shape = self.csd_shape + (3,)
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
@@ -228,7 +214,7 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros((self.n_cons, self.n_freqs))
+            self.con_scores = np.zeros(self.csd_shape)
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
@@ -259,13 +245,9 @@ class _PPCEst(_EpochMeanConEstBase):
 
     def __init__(self, n_cons, n_freqs, n_times):
         super(_PPCEst, self).__init__(n_cons, n_freqs, n_times)
-        #store csd / abs(csd)
-        if n_times == 0:
-            acc_shape = (n_cons, n_freqs)
-        else:
-            acc_shape = (n_cons, n_freqs, n_times)
 
-        self._acc = np.zeros(acc_shape, dtype=np.complex128)
+        #store csd / abs(csd)
+        self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
 
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
@@ -280,7 +262,7 @@ class _PPCEst(_EpochMeanConEstBase):
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
-            self.con_scores = np.zeros(self._acc.shape)
+            self.con_scores = np.zeros(self.csd_shape)
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
@@ -311,7 +293,7 @@ def _epoch_spectral_connectivity(data, sfreq, spectral_mode, window_fun,
     if not accumulate_inplace:
         # instantiate methods only for this epoch (used in parallel mode)
         con_methods = [mtype(n_cons, n_freqs, n_times_spectrum)
-                             for mtype in con_method_types]
+                       for mtype in con_method_types]
 
     # compute tapered spectra
     if spectral_mode in ['multitaper', 'fourier']:
@@ -424,12 +406,18 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_low_bias=True, cwt_frequencies=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
-    """Compute various frequency-domain connectivity measures
+    """Compute various frequency-domain and time-frequency domain connectivity
+    measures
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
-    densities (CSD/PSD) Sxy(f) and Sxx(f), Syy(f), respectively,
-    which are computed using a multi-taper method.
+    densities (CSD/PSD) Sxy and Sxx, Syy.
+
+    The spectral densities can be estimated using a multi taper method with
+    digital prolate spheroidal sequence (DPSS) windows, a discrete Fourier
+    transform with Hanning windows, or a continuous wavelet transform using
+    Morlet wavelets. The spectral estimation mode is specified using the
+    "spectral_mode" parameter.
 
     By default, the connectivity between all signals is computed (only
     connections corresponding to the lower-triangular part of the
@@ -455,26 +443,26 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     'coh' : Coherence given by
 
-                     | E[Sxy(f)] |
-        C(f) = ---------------------------
-               sqrt(E[Sxx(f)] * E[Syy(f)])
+                 | E[Sxy] |
+        C = ---------------------
+            sqrt(E[Sxx] * E[Syy])
 
     'cohy' : Coherency given by
 
-                       E[Sxy(f)]
-        C(f) = ---------------------------
-               sqrt(E[Sxx(f)] * E[Syy(f)])
+                   E[Sxy]
+        C = ---------------------
+            sqrt(E[Sxx] * E[Syy])
 
     'imcoh' : Imaginary coherence [1] given by
 
-                      Im(E[Sxy(f)])
-        C(f) = --------------------------
-               sqrt(E[Sxx(f)] * E[Syy(f)])
+                  Im(E[Sxy])
+        C = ----------------------
+            sqrt(E[Sxx] * E[Syy])
 
 
     'pli' : Phase Lag Index (PLI) [2] given by
 
-        PLI(f) = |E[sign(Im(Sxy(f)))]|
+        PLI = |E[sign(Im(Sxy))]|
 
 
     'pli2_unbiased' : Unbiased squared PLI, see [3]
@@ -482,13 +470,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     'wpli' : Weighted Phase Lag Index (WPLI) [3] given by
 
-                   |E[Im(Sxy(f))]|
-        WPLI(f) = ------------------
-                   E[|Im(Sxy(f))|]
+                  |E[Im(Sxy)]|
+        WPLI = ------------------
+                  E[|Im(Sxy)|]
 
     'wpli2_debiased' : Debiased squared WPLI, see [3]
 
-    References:
+    References
+    ----------
 
     [1] Nolte et al. "Identifying true brain interaction from EEG data using
         the imaginary part of coherency" Clinical neurophysiology, vol. 115,
@@ -514,7 +503,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     indices : tuple of arrays | None
         Two arrays with indices of connections for which to compute
         connectivity. If None, all connections are computed.
-    sfreq : float<F6>
+    sfreq : float
         The sampling frequency.
     spectral_mode : str
         Spectrum estimation mode can be either: 'multitaper', 'fourier', or
@@ -534,11 +523,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
     tmin : float | None
-        Time to start connectivity estimation. Only supported if data is
-        Epochs or a list of SourceEstimate.
+        Time to start connectivity estimation.
     tmax : float | None
-        Time to end connectivity estimation. Only supported if data is
-        Epochs or a list of SourceEstimate.
+        Time to end connectivity estimation.
     mt_bandwidth : float
         The bandwidth of the multi taper windowing function in Hz.
     mt_adaptive : bool
@@ -562,12 +549,17 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     Returns
     -------
     con : array | list of arrays
-        Computed connectivity measure(s). If "indices" is None, the first
-        two dimensions have shape (n_signals, n_signals) otherwise the
-        first dimension is len(indices[0]). The remaining dimensions are
-        method dependent.
+        Computed connectivity measure(s). The shape of each array is either
+        (n_signals, n_signals, n_frequencies) mode: 'multitaper' or 'fourier'
+        (n_signals, n_signals, n_frequencies, n_times) mode: 'cwt_morlet'
+        when "indices" is None, or
+        (n_con, n_frequencies) mode: 'multitaper' or 'fourier'
+        (n_con, n_frequencies, n_times) mode: 'cwt_morlet'
+        when "indices" is specified and "n_con = len(indices[0])".
     freqs : array
         Frequency points at which the coherency was computed.
+    times : array
+        Time points for which the connectivity was computed.
     n_epochs : int
         Number of epochs used for computation.
     n_tapers : int
@@ -578,6 +570,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         parallel, my_epoch_spectral_connectivity, _ = \
                 parallel_func(_epoch_spectral_connectivity, n_jobs,
                               verbose=verbose)
+
+    # time points of input data
+    times_in = None
 
     # format fmin and fmax and check inputs
     if fmin is None:
@@ -624,23 +619,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     # if none of the comp_con functions needs the PSD, we don't estimate it
     accumulate_psd = any([n == 5 for n in n_comp_args])
 
-    # by default we assume time starts at zero
-    tmintmax_support = False
-    tmin_idx = None
-    tmax_idx = None
-    tmin_true = None
-    tmax_true = None
-
     if isinstance(data, Epochs):
-        tmin_true = data.times[0]
-        tmax_true = data.times[-1]
-        if tmin is not None:
-            tmin_idx = np.argmin(np.abs(data.times - tmin))
-            tmin_true = data.times[tmin_idx]
-        if tmax is not None:
-            tmax_idx = np.argmin(np.abs(data.times - tmax))
-            tmax_true = data.times[tmax_idx]
-        tmintmax_support = True
+        times_in = data.times  # input times for Epochs input type
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
@@ -649,27 +629,35 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     for epoch_block in _get_n_epochs(data, n_jobs):
 
         if epoch_idx == 0:
+            # initialize everything
             first_epoch = epoch_block[0]
 
             if isinstance(first_epoch, SourceEstimate):
-                tmin_true = first_epoch.times[0]
-                tmax_true = first_epoch.times[-1]
-                if tmin is not None:
-                    tmin_idx = np.argmin(np.abs(first_epoch.times - tmin))
-                    tmin_true = first_epoch.times[tmin_idx]
-                if tmax is not None:
-                    tmax_idx = np.argmin(np.abs(first_epoch.times - tmax))
-                    tmax_true = first_epoch.times[tmax_idx]
-                tmintmax_support = True
+                # input is a list of SourceEstimate
+                times_in = first_epoch.times
                 first_epoch = first_epoch.data
 
-            if not tmintmax_support and (tmin is not None or tmax is not None):
-                raise ValueError('tmin and tmax are only supported if data is '
-                                 'Epochs or a list of SourceEstimate')
+            if times_in is None:
+                # we are not using Epochs or SourceEstimate(s) as input
+                n_times_in = first_epoch.shape[1]
+                times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
+                                       endpoint=False)
+
+            tmin_idx = None
+            tmax_idx = None
+            tmin_true = times_in[0]
+            tmax_true = times_in[-1]
+            if tmin is not None:
+                tmin_idx = np.argmin(np.abs(times_in - tmin))
+                tmin_true = times_in[tmin_idx]
+            if tmax is not None:
+                tmax_idx = np.argmin(np.abs(times_in - tmax))
+                tmax_true = times_in[tmax_idx]
 
             # we want to include the sample at tmax_idx
             tmax_idx = tmax_idx + 1 if tmax_idx is not None else None
             n_signals, n_times = first_epoch[:, tmin_idx:tmax_idx].shape
+            times = times_in[tmin_idx:tmax_idx]
 
             if indices is None:
                 # only compute r for lower-triangular region
@@ -682,13 +670,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             logger.info('    computing connectivity for %d connections'
                         % n_cons)
-
-            # if we are not using Epochs or SourceEstimate, we assume time
-            # starts at zero
-            if tmin_true is None:
-                tmin_true = 0.
-            if tmax_true is None:
-                tmax_true = n_times / float(sfreq)
 
             logger.info('    using t=%0.3fs..%0.3fs for estimation (%d points)'
                         % (tmin_true, tmax_true, n_times))
@@ -706,7 +687,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                      'cwt_frequencies')
                 if any(cwt_frequencies > sfreq / 2):
                     raise ValueError('entries in cwt_frequencies cannot be '
-                                     'larger than Nyquist (sfreq/2)')
+                                     'larger than Nyquist (sfreq / 2)')
                 freqs_all = cwt_frequencies
             else:
                 raise ValueError('spectral_mode has an invalid value')
@@ -831,7 +812,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             else:
                 psd = None
 
-            # create instances of the connectivity methods
+            # create instances of the connectivity estimators
             con_methods = [mtype(n_cons, n_freqs, n_times_spectrum)
                            for mtype in con_method_types]
 
@@ -885,7 +866,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             epoch_idx += len(epoch_block)
 
     # normalize
-    n_epochs = epoch_idx + 1
+    n_epochs = epoch_idx
     if accumulate_psd:
         psd /= n_epochs
 
@@ -924,7 +905,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     if indices is None:
         # return all-to-all connectivity matrices
-        logger.info('    assembling 3D connectivity matrix')
+        logger.info('    assembling connectivity matrix')
         con_flat = con
         con = []
         for this_con_flat in con_flat:
@@ -944,4 +925,4 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         # for each band we return the frequencies that were averaged
         freqs = freqs_bands
 
-    return con, freqs, n_epochs, n_tapers
+    return con, freqs, times, n_epochs, n_tapers
