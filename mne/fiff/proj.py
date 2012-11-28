@@ -15,7 +15,6 @@ from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
 from .pick import pick_types
-from ..utils import deprecated
 from .. import verbose
 
 
@@ -317,30 +316,6 @@ def make_projector_info(info, include_active=True):
     proj, nproj, _ = make_projector(info['projs'], info['ch_names'],
                                     info['bads'], include_active)
     return proj, nproj
-
-
-@deprecated("Use mne.compute_proj_epochs")
-def compute_spatial_vectors(epochs, n_grad=2, n_mag=2, n_eeg=2):
-    """Compute SSP (spatial space projection) vectors
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs containing the artifact.
-    n_grad : int
-        Number of vectors for gradiometers.
-    n_mag : int
-        Number of vectors for gradiometers.
-    n_eeg : int
-        Number of vectors for gradiometers.
-
-    Returns
-    -------
-    projs: list
-        List of projection vectors.
-    """
-    import mne  # XXX : ugly due to circular mess in imports
-    return mne.compute_proj_epochs(epochs, n_grad, n_mag, n_eeg)
 
 
 @verbose
