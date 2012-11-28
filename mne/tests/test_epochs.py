@@ -45,7 +45,7 @@ def test_read_epochs():
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
-    epochs.average()
+    avg = epochs.average()
     data = epochs.get_data()
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
@@ -58,6 +58,14 @@ def test_read_epochs():
     epochs.drop_picks(eog_picks)
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
+
+    # test decim kwarg
+    epochs_decim = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                          baseline=(None, 0), decim=4)
+    ddata = epochs_decim.get_data()
+    assert_array_equal(data[:, :, epochs_decim._decim_idx], ddata)
+    davg = epochs_decim.average()
+    assert_array_equal(avg.data[:, epochs_decim._decim_idx], davg.data)
 
 
 def test_epochs_proj():
