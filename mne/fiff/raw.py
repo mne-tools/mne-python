@@ -448,6 +448,9 @@ class Raw(object):
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               addtional time points need to be temporaily stored in memory.
 
+        Note: self.info['lowpass'] and self.info['highpass'] are only updated
+              with picks=None.
+
         Parameters
         ----------
         l_freq : float | None
@@ -483,6 +486,15 @@ class Raw(object):
             h_freq = None
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
+
+            # update info
+            if h_freq is not None:
+                if h_freq < self.info['lowpass']:
+                    self.info['lowpass'] = h_freq
+            if l_freq is not None:
+                if l_freq > self.info['highpass']:
+                    self.info['highpass'] = l_freq
+
         if l_freq is None and h_freq is not None:
             self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
                                 fs, h_freq, filter_length=filter_length,
