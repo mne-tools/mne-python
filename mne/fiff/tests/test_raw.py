@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
 from copy import deepcopy
 import warnings
@@ -482,3 +483,14 @@ def test_raw_time_as_index():
     raw = Raw(fif_fname, preload=True)
     first_samp = raw.time_as_index([0], True)[0]
     assert_true(raw.first_samp == first_samp)
+
+
+def test_save():
+    """ Test saving raw"""
+    raw = Raw(fif_fname, preload=True)
+    assert_raises(ValueError, raw.save, fif_fname)
+    new_fname = op.join(op.abspath(op.curdir), 'break.fif')
+    raw.save(new_fname)
+    new_raw = Raw(new_fname)
+    assert_raises(ValueError, new_raw.save, new_fname)
+    os.remove(new_fname)

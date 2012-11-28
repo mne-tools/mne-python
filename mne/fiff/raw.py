@@ -9,6 +9,7 @@ from math import floor, ceil
 import copy
 import warnings
 import os
+import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
@@ -689,7 +690,9 @@ class Raw(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if any([fname == f for f in self.info['filenames']]):
+
+        if any([f in self.info['filenames'] for f in
+            [fname, op.split(fname)[-1]]]):
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
