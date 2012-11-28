@@ -219,6 +219,15 @@ class Epochs(object):
         self.times = self._raw_times = times
         self._epoch_stop = ep_len = len(self.times)
         if decim > 1:
+            new_sfreq = sfreq / decim
+            lowpass = self.info['lowpass']
+            if lowpass > 2.5 * new_sfreq:
+                msg = ("The raw file indicates a low-pass frequency of %g Hz. "
+                       "The decim=%i parameter will result in a sampling "
+                       "frequency of %g Hz, which can cause aliasing artifacts." %
+                       (lowpass, decim, new_sfreq))
+                warnings.warn(msg)
+            
             i_start = n_times_min % decim
             self._decim_idx = slice(i_start, ep_len, decim)
             self.times = self.times[self._decim_idx]
