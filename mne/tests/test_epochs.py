@@ -8,6 +8,7 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 import copy as cp
+import warnings
 
 from mne import fiff, Epochs, read_events, pick_events, \
                 equalize_epoch_counts, find_events
@@ -45,7 +46,7 @@ def test_read_epochs():
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
-    epochs.average()
+    evoked = epochs.average()
     data = epochs.get_data()
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
@@ -58,6 +59,24 @@ def test_read_epochs():
     epochs.drop_picks(eog_picks)
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
+
+    # test decim kwarg
+    with warnings.catch_warnings(record=True) as w:
+        epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            baseline=(None, 0), decim=4)
+        assert_equal(len(w), 1)
+
+    data_dec = epochs_dec.get_data()
+    assert_array_equal(data[:, :, epochs_dec._decim_idx], data_dec)
+
+    evoked_dec = epochs_dec.average()
+    assert_array_equal(evoked.data[:, epochs_dec._decim_idx], evoked_dec.data)
+
+    n = evoked.data.shape[1]
+    n_dec = evoked_dec.data.shape[1]
+    n_dec_min = n // 4
+    assert_true(n_dec_min <= n_dec <= n_dec_min + 1)
+    assert_true(evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
 
 def test_epochs_proj():
