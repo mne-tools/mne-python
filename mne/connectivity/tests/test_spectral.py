@@ -51,7 +51,10 @@ def test_spectral_connectivity():
     methods = ('coh', 'imcoh', 'cohy', 'pli', 'pli2_unbiased', 'wpli',
                'wpli2_debiased')
 
-    for spectral_mode in ['multitaper', 'fft']:
+    # define some frequencies for cwt
+    cwt_frequencies = np.arange(sfreq / 8, sfreq / 2, 5)
+
+    for spectral_mode in ['cwt_morlet']:
         for method in methods:
             if method == 'coh' and spectral_mode == 'multitaper':
                 # only check adaptive estimation for coh to reduce test time
@@ -61,7 +64,8 @@ def test_spectral_connectivity():
             for adaptive in check_adaptive:
                 con, freqs, n, _ = spectral_connectivity(data, method=method,
                         spectral_mode=spectral_mode, indices=None, sfreq=sfreq,
-                        mt_adaptive=adaptive, mt_low_bias=True)
+                        mt_adaptive=adaptive, mt_low_bias=True,
+                        cwt_frequencies=cwt_frequencies)
 
                 # test the simulated signal
                 if method == 'coh':
@@ -101,7 +105,8 @@ def test_spectral_connectivity():
                 con2, freqs2, n2, _ = spectral_connectivity(stc_data,
                         method=methods, spectral_mode=spectral_mode,
                         indices=indices, sfreq=sfreq, mt_adaptive=adaptive,
-                        mt_low_bias=True, tmin=tmin, tmax=tmax, n_jobs=2)
+                        mt_low_bias=True, tmin=tmin, tmax=tmax, n_jobs=2,
+                        cwt_frequencies=cwt_frequencies)
 
                 assert_true(isinstance(con2, list))
                 assert_true(len(con2) == 2)
@@ -116,8 +121,12 @@ def test_spectral_connectivity():
                 assert_array_almost_equal(con[indices], con2)
                 assert_true(n == n2)
 
+                if spectral_mode == 'cwt_morlet':
+                    # we dont support freq. averaging for this mode
+                    continue
+
                 # compute same connections for two bands, fskip=1, and f. avg.
-                fmin = (0, sfreq / 4)
+                fmin = (sfreq/8, sfreq / 4)
                 fmax = (sfreq / 4, sfreq / 2)
                 con3, freqs3, n3, _ = spectral_connectivity(data, method=method,
                         spectral_mode=spectral_mode, indices=indices,
