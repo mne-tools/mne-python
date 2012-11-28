@@ -221,7 +221,7 @@ class Epochs(object):
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
-            if lowpass > 2.5 * new_sfreq:
+            if  new_sfreq < 2.5 * lowpass:
                 msg = ("The raw file indicates a low-pass frequency of %g Hz. "
                        "The decim=%i parameter will result in a sampling "
                        "frequency of %g Hz, which can cause aliasing artifacts." %
