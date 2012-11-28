@@ -22,9 +22,9 @@ def seed_target_indices(seeds, targets):
 
     Parameters
     ----------
-    seeds : array of int
+    seeds : array of int | int
         Seed indices.
-    targets : array of int
+    targets : array of int | int
         Indices of signals for which to compute connectivity.
 
     Returns
@@ -32,6 +32,10 @@ def seed_target_indices(seeds, targets):
     indices : tuple of arrays
         The indices parameter used for connectivity computation.
     """
+    # make them arrays
+    seeds = np.asarray((seeds,)).ravel()
+    targets = np.asarray((targets,)).ravel()
+
     n_seeds = len(seeds)
     n_targets = len(targets)
 

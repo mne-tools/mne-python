@@ -15,8 +15,8 @@ n_times = 1000
 
 tmin = 0.
 tmax = (n_times - 1) / sfreq
-
 data = np.random.randn(n_epochs, n_signals, n_times)
+times_data = np.linspace(tmin, tmax, n_times)
 
 # simulate connectivity from 5Hz..15Hz
 fstart, fend = 5.0, 15.0
@@ -40,6 +40,8 @@ def test_spectral_connectivity():
 
     # First we test some invalid parameters:
     assert_raises(ValueError, spectral_connectivity, data, method='notamethod')
+    assert_raises(ValueError, spectral_connectivity, data,
+                  spectral_mode='notamode')
 
     # test invalid fmin fmax settings
     assert_raises(ValueError, spectral_connectivity, data, fmin=10, fmax=5)
@@ -52,9 +54,9 @@ def test_spectral_connectivity():
                'wpli2_debiased')
 
     # define some frequencies for cwt
-    cwt_frequencies = np.arange(sfreq / 8, sfreq / 2, 5)
+    cwt_frequencies = np.arange(3, fend + 5, 1)
 
-    for spectral_mode in ['cwt_morlet']:
+    for spectral_mode in ['multitaper', 'fourier', 'cwt_morlet']:
         for method in methods:
             if method == 'coh' and spectral_mode == 'multitaper':
                 # only check adaptive estimation for coh to reduce test time
@@ -62,39 +64,54 @@ def test_spectral_connectivity():
             else:
                 check_adaptive = [False]
             for adaptive in check_adaptive:
-                con, freqs, n, _ = spectral_connectivity(data, method=method,
-                        spectral_mode=spectral_mode, indices=None, sfreq=sfreq,
-                        mt_adaptive=adaptive, mt_low_bias=True,
-                        cwt_frequencies=cwt_frequencies)
+                con, freqs, times, n, _ = spectral_connectivity(data,
+                        method=method, spectral_mode=spectral_mode,
+                        indices=None, sfreq=sfreq, mt_adaptive=adaptive,
+                        mt_low_bias=True, cwt_frequencies=cwt_frequencies)
+
+                assert_true(n == n_epochs)
+                assert_array_almost_equal(times_data, times)
+
+                if spectral_mode == 'multitaper':
+                    upper_t = 0.95
+                    lower_t = 0.25
+                else:
+                    # other estimates have higher variance
+                    upper_t = 0.8
+                    lower_t = 0.5
 
                 # test the simulated signal
                 if method == 'coh':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # we see something for zero-lag
-                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] > 0.95))
+                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] > upper_t))
 
-                    idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                    assert_true(np.all(con[1, 0, :idx[0]] < 0.25))
-                    assert_true(np.all(con[1, 0, idx[1]:] < 0.25))
+                    if spectral_mode != 'cwt_morlet':
+                        idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
+                        assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
+                        assert_true(np.all(con[1, 0, idx[1]:] < lower_t))
                 elif method == 'cohy':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
                     assert_true(np.all(np.imag(con[1, 0, idx[0]:idx[1]])
-                                < 0.05))
+                                < lower_t))
                     # we see something for zero-lag
                     assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]])
-                                > 0.95))
+                                > upper_t))
 
                     idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                    assert_true(np.all(np.abs(con[1, 0, :idx[0]]) < 0.25))
-                    assert_true(np.all(np.abs(con[1, 0, idx[1]:]) < 0.25))
+                    if spectral_mode != 'cwt_morlet':
+                        assert_true(np.all(np.abs(con[1, 0, :idx[0]])
+                                    < lower_t))
+                        assert_true(np.all(np.abs(con[1, 0, idx[1]:])
+                                    < lower_t))
                 elif method == 'imcoh':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
-                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] < 0.05))
+                    assert_true(np.all(con[1, 0, idx[0]:idx[1]] < lower_t))
                     idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                    assert_true(np.all(con[1, 0, :idx[0]] < 0.25))
-                    assert_true(np.all(con[1, 0, idx[1]:] < 0.25))
+                    assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
+                    assert_true(np.all(con[1, 0, idx[1]:] < lower_t))
 
                 # compute same connections using indices and 2 jobs,
                 # also add a second method
@@ -102,7 +119,7 @@ def test_spectral_connectivity():
 
                 methods = (method, _CohEst)
                 stc_data = _stc_gen(data, sfreq, tmin)
-                con2, freqs2, n2, _ = spectral_connectivity(stc_data,
+                con2, freqs2, times2, n2, _ = spectral_connectivity(stc_data,
                         method=methods, spectral_mode=spectral_mode,
                         indices=indices, sfreq=sfreq, mt_adaptive=adaptive,
                         mt_low_bias=True, tmin=tmin, tmax=tmax, n_jobs=2,
@@ -120,18 +137,20 @@ def test_spectral_connectivity():
                 assert_array_almost_equal(freqs, freqs2)
                 assert_array_almost_equal(con[indices], con2)
                 assert_true(n == n2)
+                assert_array_almost_equal(times_data, times2)
 
                 if spectral_mode == 'cwt_morlet':
                     # we dont support freq. averaging for this mode
                     continue
 
                 # compute same connections for two bands, fskip=1, and f. avg.
-                fmin = (sfreq/8, sfreq / 4)
+                fmin = (sfreq / 8, sfreq / 4)
                 fmax = (sfreq / 4, sfreq / 2)
-                con3, freqs3, n3, _ = spectral_connectivity(data, method=method,
-                        spectral_mode=spectral_mode, indices=indices,
-                        sfreq=sfreq, fmin=fmin, fmax=fmax, fskip=1,
-                        faverage=True, mt_adaptive=adaptive, mt_low_bias=True)
+                con3, freqs3, times3, n3, _ = spectral_connectivity(data,
+                        method=method, spectral_mode=spectral_mode,
+                        indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
+                        fskip=1, faverage=True, mt_adaptive=adaptive,
+                        mt_low_bias=True)
 
                 assert_true(isinstance(freqs3, list))
                 assert_true(len(freqs3) == len(fmin))

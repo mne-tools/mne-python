@@ -39,7 +39,7 @@ exclude = raw.info['bads'] + ['MEG 2443']  # bads + 1 more
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude=exclude)
 
-# Create epochs for left-auditory condition
+# Create epochs for the visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
@@ -49,9 +49,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
-con, freqs, n_epochs, n_tapers = spectral_connectivity(epochs,
-    method='pli', sfreq=sfreq, fmin=fmin, fmax=fmax,
-    faverage=True, tmin=tmin, adaptive=False, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(epochs,
+    method='pli', spectral_mode='multitaper', sfreq=sfreq,
+    fmin=fmin, fmax=fmax, faverage=True, tmin=tmin,
+    mt_adaptive=False, n_jobs=2)
 
 # the epochs contain an EOG channel, which we remove now
 ch_names = epochs.ch_names
@@ -99,6 +100,15 @@ for val, nodes in zip(con_val, con_nodes):
                 vmin=vmin, vmax=vmax, tube_radius=0.002)
 
 mlab.scalarbar(title='Phase Lag Index (PLI)', nb_labels=4)
+
+# Add the sensor names for the connections shown
+nodes_shown = list(set([n[0] for n in con_nodes] +
+                       [n[1] for n in con_nodes]))
+
+for node in nodes_shown:
+    x, y, z = sens_loc[node]
+    mlab.text3d(x, y, z, raw.ch_names[picks[node]], scale=0.005,
+                color=(0, 0, 0))
 
 view = (-88.7, 40.8, 0.76, np.array([-3.9e-4, -8.5e-3, -1e-2]))
 mlab.view(*view)
