@@ -495,10 +495,10 @@ class Raw(object):
             # update info
             if h_freq is not None:
                 if h_freq < self.info['lowpass']:
-                    self.info['lowpass'] = h_freq
+                    self.info['lowpass'] = min(h_freq, self.info['lowpass'])
             if l_freq is not None:
                 if l_freq > self.info['highpass']:
-                    self.info['highpass'] = l_freq
+                    self.info['highpass'] = max(l_freq, self.info['highpass'])
 
         if l_freq is None and h_freq is not None:
             self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,

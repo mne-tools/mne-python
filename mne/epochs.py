@@ -221,17 +221,17 @@ class Epochs(object):
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
-            if  new_sfreq < 2.5 * lowpass:
+            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
                 msg = ("The raw file indicates a low-pass frequency of %g Hz. "
                        "The decim=%i parameter will result in a sampling "
-                       "frequency of %g Hz, which can cause aliasing artifacts." %
-                       (lowpass, decim, new_sfreq))
+                       "frequency of %g Hz, which can cause aliasing "
+                       "artifacts." % (lowpass, decim, new_sfreq))
                 warnings.warn(msg)
 
             i_start = n_times_min % decim
             self._decim_idx = slice(i_start, ep_len, decim)
             self.times = self.times[self._decim_idx]
-            self.info['sfreq'] /= decim
+            self.info['sfreq'] = new_sfreq
 
         # setup epoch rejection
         self._reject_setup()
@@ -316,7 +316,8 @@ class Epochs(object):
             epoch = np.dot(self._projector, epoch)
 
         # Run baseline correction
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean', copy=False)
+        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
+                        copy=False)
 
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
