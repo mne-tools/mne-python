@@ -41,7 +41,7 @@ def test_spectral_connectivity():
     # First we test some invalid parameters:
     assert_raises(ValueError, spectral_connectivity, data, method='notamethod')
     assert_raises(ValueError, spectral_connectivity, data,
-                  spectral_mode='notamode')
+                  mode='notamode')
 
     # test invalid fmin fmax settings
     assert_raises(ValueError, spectral_connectivity, data, fmin=10, fmax=5)
@@ -56,23 +56,23 @@ def test_spectral_connectivity():
     # define some frequencies for cwt
     cwt_frequencies = np.arange(3, fend + 5, 1)
 
-    for spectral_mode in ['multitaper', 'fourier', 'cwt_morlet']:
+    for mode in ['multitaper', 'fourier', 'cwt_morlet']:
         for method in methods:
-            if method == 'coh' and spectral_mode == 'multitaper':
+            if method == 'coh' and mode == 'multitaper':
                 # only check adaptive estimation for coh to reduce test time
                 check_adaptive = [False, True]
             else:
                 check_adaptive = [False]
             for adaptive in check_adaptive:
                 con, freqs, times, n, _ = spectral_connectivity(data,
-                        method=method, spectral_mode=spectral_mode,
+                        method=method, mode=mode,
                         indices=None, sfreq=sfreq, mt_adaptive=adaptive,
                         mt_low_bias=True, cwt_frequencies=cwt_frequencies)
 
                 assert_true(n == n_epochs)
                 assert_array_almost_equal(times_data, times)
 
-                if spectral_mode == 'multitaper':
+                if mode == 'multitaper':
                     upper_t = 0.95
                     lower_t = 0.25
                 else:
@@ -86,7 +86,7 @@ def test_spectral_connectivity():
                     # we see something for zero-lag
                     assert_true(np.all(con[1, 0, idx[0]:idx[1]] > upper_t))
 
-                    if spectral_mode != 'cwt_morlet':
+                    if mode != 'cwt_morlet':
                         idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
                         assert_true(np.all(con[1, 0, :idx[0]] < lower_t))
                         assert_true(np.all(con[1, 0, idx[1]:] < lower_t))
@@ -100,7 +100,7 @@ def test_spectral_connectivity():
                                 > upper_t))
 
                     idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
-                    if spectral_mode != 'cwt_morlet':
+                    if mode != 'cwt_morlet':
                         assert_true(np.all(np.abs(con[1, 0, :idx[0]])
                                     < lower_t))
                         assert_true(np.all(np.abs(con[1, 0, idx[1]:])
@@ -120,7 +120,7 @@ def test_spectral_connectivity():
                 methods = (method, _CohEst)
                 stc_data = _stc_gen(data, sfreq, tmin)
                 con2, freqs2, times2, n2, _ = spectral_connectivity(stc_data,
-                        method=methods, spectral_mode=spectral_mode,
+                        method=methods, mode=mode,
                         indices=indices, sfreq=sfreq, mt_adaptive=adaptive,
                         mt_low_bias=True, tmin=tmin, tmax=tmax, n_jobs=2,
                         cwt_frequencies=cwt_frequencies)
@@ -139,15 +139,15 @@ def test_spectral_connectivity():
                 assert_true(n == n2)
                 assert_array_almost_equal(times_data, times2)
 
-                if spectral_mode == 'cwt_morlet':
+                if mode == 'cwt_morlet':
                     # we dont support freq. averaging for this mode
                     continue
 
                 # compute same connections for two bands, fskip=1, and f. avg.
-                fmin = (sfreq / 8, sfreq / 4)
-                fmax = (sfreq / 4, sfreq / 2)
+                fmin = (sfreq / 8., sfreq / 4.)
+                fmax = (sfreq / 4., sfreq / 2.)
                 con3, freqs3, times3, n3, _ = spectral_connectivity(data,
-                        method=method, spectral_mode=spectral_mode,
+                        method=method, mode=mode,
                         indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
                         fskip=1, faverage=True, mt_adaptive=adaptive,
                         mt_low_bias=True)

@@ -92,13 +92,13 @@ fmax = (13., 30.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 # Now we compute connectivity. To speed things up, we use 2 parallel jobs
-# and use spectral_mode='fourier', which uses a FFT with a Hanning window
+# and use mode='fourier', which uses a FFT with a Hanning window
 # to compute the spectra (instead of multitaper estimation, which has a
 # lower variance but is slower). By using faverage=True, we directly
 # average the coherence in the alpha and beta band, i.e., we will only
 # get 2 frequency bins
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
-    method='coh', spectral_mode='fourier', indices=indices,
+    method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, mt_adaptive=False,
     n_jobs=2)
 
@@ -120,14 +120,18 @@ for i, band in enumerate(['alpha', 'beta']):
     # save the cohrence to plot later
     aud_rh_coh[band] = np.mean(coh_stc.label_stc(label_rh).data, axis=0)
 
-    # We could save the coherence, for visualization using e.g. mne_analyze
-    #coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
+    # Save the coherence for visualization using e.g. mne_analyze
+    coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
+
+# XXX : I would save only one stc containing all the bands so it's easy
+# to visualize in mne_analyze. Otherwise you have to switch between stcs
+# to see how it differs between bands.
 
 pl.figure()
 width = 0.5
 pos = np.arange(2) + 0.25
 pl.bar(pos, [aud_rh_coh['alpha'], aud_rh_coh['beta']], width)
 pl.ylabel('Coherence')
-pl.title('Cohrence left-right auditory')
+pl.title('Coherence left-right auditory')
 pl.xticks(pos + width / 2, ('alpha', 'beta'))
 pl.show()
