@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from struct import pack
 
 import logging
 logger = logging.getLogger('mne')
@@ -289,6 +290,22 @@ def read_surface(filepath):
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
     return coords, faces
+
+
+def write_surface(filepath, coords, faces, create_stamp=''):
+    """Write a Freesurfer surface mesh in triangular format."""
+    if len(create_stamp.splitlines()) > 1:
+        raise ValueError("create_stamp can only contain one line")
+    
+    fobj = open(filepath, 'w')
+    fobj.write(pack('>3B', 255, 255, 254))
+    fobj.writelines(('%s\n' % create_stamp, '\n'))
+    vnum = len(coords)
+    fnum = len(faces)
+    fobj.write(pack('>2i', vnum, fnum))
+    fobj.write(pack('>%if' % (3 * vnum), *np.ravel(coords)))
+    fobj.write(pack('>%ii' % (3 * fnum), *np.ravel(faces)))
+    fobj.close()
 
 
 ###############################################################################
