@@ -118,6 +118,28 @@ class _ImCohEst(_CohEstBase):
                                    / np.sqrt(psd_xx * psd_yy)
 
 
+class _PLVEst(_EpochMeanConEstBase):
+    """PLV Estimator"""
+    name = 'PLV'
+
+    def __init__(self, n_cons, n_freqs, n_times):
+        super(_PLVEst, self).__init__(n_cons, n_freqs, n_times)
+
+        # allocate accumulator
+        self._acc = np.zeros(self.csd_shape, dtype=np.complex128)
+
+    def accumulate(self, con_idx, csd_xy):
+        """Accumulate some connections"""
+        self._acc[con_idx] += csd_xy / np.abs(csd_xy)
+
+    def compute_con(self, con_idx, n_epochs):
+        """Compute final con. score for some connections"""
+        if self.con_scores is None:
+            self.con_scores = np.zeros(self.csd_shape)
+        plv = np.abs(self._acc / n_epochs)
+        self.con_scores[con_idx] = plv
+
+
 class _PLIEst(_EpochMeanConEstBase):
     """PLI Estimator"""
     name = 'PLI'
@@ -238,7 +260,7 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
 
 class _PPCEst(_EpochMeanConEstBase):
-    """Pairwise Phase Correlation (PPC) Estimator"""
+    """Pairwise Phase Consistency (PPC) Estimator"""
     #XXX: this is the same as in fieldtrip, but it is it actually
     # what is described in Vinck 2010?
     name = 'PPC'
@@ -393,9 +415,10 @@ def _check_method(method):
 
 
 # map names to estimator types
-CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
-                  'pli': _PLIEst, 'pli2_unbiased': _PLIUnbiasedEst,
-                  'wpli': _WPLIEst, 'wpli2_debiased': _WPLIDebiasedEst}
+_CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
+                   'plv': _PLVEst, 'pli': _PLIEst,
+                   'pli2_unbiased': _PLIUnbiasedEst, 'wpli': _WPLIEst,
+                   'wpli2_debiased': _WPLIDebiasedEst}
 
 
 @verbose
@@ -407,7 +430,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
     """Compute various frequency-domain and time-frequency domain connectivity
-    measures
+    measures.
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
@@ -459,22 +482,23 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         C = ----------------------
             sqrt(E[Sxx] * E[Syy])
 
+    'plv' : Phase-Locking Value (PLV) [2] given by
 
-    'pli' : Phase Lag Index (PLI) [2] given by
+        PLV = |E[Sxy/|Sxy|]|
+
+    'pli' : Phase Lag Index (PLI) [3] given by
 
         PLI = |E[sign(Im(Sxy))]|
 
+    'pli2_unbiased' : Unbiased squared PLI, see [4]
 
-    'pli2_unbiased' : Unbiased squared PLI, see [3]
-
-
-    'wpli' : Weighted Phase Lag Index (WPLI) [3] given by
+    'wpli' : Weighted Phase Lag Index (WPLI) [4] given by
 
                   |E[Im(Sxy)]|
         WPLI = ------------------
                   E[|Im(Sxy)|]
 
-    'wpli2_debiased' : Debiased squared WPLI, see [3]
+    'wpli2_debiased' : Debiased squared WPLI, see [4]
 
     References
     ----------
@@ -483,12 +507,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         the imaginary part of coherency" Clinical neurophysiology, vol. 115,
         no. 10, pp. 2292-2307, Oct. 2004.
 
-    [2] Stam et al. "Phase lag index: assessment of functional connectivity
+    [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human brain
+        mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
+
+    [3] Stam et al. "Phase lag index: assessment of functional connectivity
         from multi channel EEG and MEG with diminished bias from common
         sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
         Nov. 2007.
 
-    [3] Vinck et al. "An improved index of phase-synchronization for electro-
+    [4] Vinck et al. "An improved index of phase-synchronization for electro-
         physiological data in the presence of volume-conduction, noise and
         sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 
@@ -594,8 +621,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     n_methods = len(method)
     con_method_types = []
     for m in method:
-        if m in CON_METHOD_MAP:
-            method = CON_METHOD_MAP[m]
+        if m in _CON_METHOD_MAP:
+            method = _CON_METHOD_MAP[m]
             con_method_types.append(method)
         elif isinstance(m, basestring):
             raise ValueError('%s is not a valid connectivity method')

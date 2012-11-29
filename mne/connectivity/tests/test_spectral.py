@@ -50,7 +50,7 @@ def test_spectral_connectivity():
     assert_raises(ValueError, spectral_connectivity, data, fmin=(11,),
                   fmax=(12, 15))
 
-    methods = ('coh', 'imcoh', 'cohy', 'pli', 'pli2_unbiased', 'wpli',
+    methods = ('coh', 'imcoh', 'cohy', 'plv', 'pli', 'pli2_unbiased', 'wpli',
                'wpli2_debiased')
 
     # define some frequencies for cwt
