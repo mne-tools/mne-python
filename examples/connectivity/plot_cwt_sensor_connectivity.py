@@ -60,7 +60,7 @@ indices = seed_target_indices(seed, targets)
 
 # Define wavelet frequencies and number of cycles
 cwt_frequencies = np.arange(7, 30, 2)
-cwt_n_cycles = cwt_frequencies / float(7)
+cwt_n_cycles = cwt_frequencies / 7.
 
 # Run the connectivity analysis using 2 parallel jobs
 sfreq = raw.info['sfreq']  # the sampling frequency

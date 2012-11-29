@@ -120,14 +120,18 @@ for i, band in enumerate(['alpha', 'beta']):
     # save the cohrence to plot later
     aud_rh_coh[band] = np.mean(coh_stc.label_stc(label_rh).data, axis=0)
 
-    # We could save the coherence, for visualization using e.g. mne_analyze
-    #coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
+    # Save the coherence for visualization using e.g. mne_analyze
+    coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
+
+# XXX : I would save only one stc containing all the bands so it's easy
+# to visualize in mne_analyze. Otherwise you have to switch between stcs
+# to see how it differs between bands.
 
 pl.figure()
 width = 0.5
 pos = np.arange(2) + 0.25
 pl.bar(pos, [aud_rh_coh['alpha'], aud_rh_coh['beta']], width)
 pl.ylabel('Coherence')
-pl.title('Cohrence left-right auditory')
+pl.title('Coherence left-right auditory')
 pl.xticks(pos + width / 2, ('alpha', 'beta'))
 pl.show()
