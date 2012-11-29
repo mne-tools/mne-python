@@ -211,15 +211,16 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     for e in evoked:
         tmin = float(e.first) / e.info['sfreq']
         tstep = 1.0 / e.info['sfreq']
-        stc = _make_sparse_stc(X[:, cnt:(cnt + len(e.times))], active_set,
-                               forward, tmin, tstep)
+        Xe = X[:, cnt:(cnt + len(e.times))]
+        stc = _make_sparse_stc(Xe, active_set, forward, tmin, tstep)
         stcs.append(stc)
+        cnt += len(e.times)
 
         if return_residual:
             sel = [forward['sol']['row_names'].index(c) for c in ch_names]
             r = deepcopy(e)
             r = pick_channels_evoked(r, include=ch_names)
-            r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], X)
+            r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], Xe)
             residual.append(r)
 
     logger.info('[done]')
