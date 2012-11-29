@@ -87,8 +87,7 @@ class _CohEst(_CohEstBase):
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
-        self.con_scores[con_idx] = np.abs(csd_mean)\
-                                   / np.sqrt(psd_xx * psd_yy)
+        self.con_scores[con_idx] = np.abs(csd_mean) / np.sqrt(psd_xx * psd_yy)
 
 
 class _CohyEst(_CohEstBase):
@@ -101,8 +100,7 @@ class _CohyEst(_CohEstBase):
             self.con_scores = np.zeros(self.csd_shape,
                                        dtype=np.complex128)
         csd_mean = self._acc[con_idx] / n_epochs
-        self.con_scores[con_idx] = csd_mean\
-                                   / np.sqrt(psd_xx * psd_yy)
+        self.con_scores[con_idx] = csd_mean / np.sqrt(psd_xx * psd_yy)
 
 
 class _ImCohEst(_CohEstBase):
@@ -114,8 +112,7 @@ class _ImCohEst(_CohEstBase):
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
         csd_mean = self._acc[con_idx] / n_epochs
-        self.con_scores[con_idx] = np.imag(csd_mean)\
-                                   / np.sqrt(psd_xx * psd_yy)
+        self.con_scores[con_idx] = np.imag(csd_mean) / np.sqrt(psd_xx * psd_yy)
 
 
 class _PLVEst(_EpochMeanConEstBase):
