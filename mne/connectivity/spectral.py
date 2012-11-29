@@ -241,14 +241,13 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
         sum_abs_im_csd = self._acc[con_idx, ..., 1]
         sum_sq_im_csd = self._acc[con_idx, ..., 2]
 
-        denom = (sum_abs_im_csd ** 2 - sum_sq_im_csd)
+        denom = sum_abs_im_csd ** 2 - sum_sq_im_csd
 
         # handle zeros in denominator
         z_denom = np.where(denom == 0.)
         denom[z_denom] = 1.
 
-        con = (sum_im_csd ** 2 - sum_sq_im_csd)\
-              / denom
+        con = (sum_im_csd ** 2 - sum_sq_im_csd) / denom
 
         # where we had zeros in denominator, we set con to zero
         con[z_denom] = 0.
@@ -285,13 +284,13 @@ class _PPCEst(_EpochMeanConEstBase):
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
-        con = (self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs)\
-              / (n_epochs * (n_epochs - 1))
+        con = ((self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs)
+               / (n_epochs * (n_epochs - 1.)))
 
         self.con_scores[con_idx] = np.real(con)
 
 
-########################################################################
+###############################################################################
 
 
 def _epoch_spectral_connectivity(data, sfreq, mode, window_fun,
@@ -299,6 +298,8 @@ def _epoch_spectral_connectivity(data, sfreq, mode, window_fun,
                                  idx_map, block_size, psd, accumulate_psd,
                                  con_method_types, con_methods,
                                  accumulate_inplace=True):
+    """Connectivity estimation for one epoch see spectral_connectivity"""
+
     n_cons = len(idx_map[0])
 
     if wavelets is not None:
@@ -308,7 +309,6 @@ def _epoch_spectral_connectivity(data, sfreq, mode, window_fun,
         n_times_spectrum = 0
         n_freqs = np.sum(freq_mask)
 
-    """Connectivity estimation for one epoch see spectral_connectivity"""
     if not accumulate_inplace:
         # instantiate methods only for this epoch (used in parallel mode)
         con_methods = [mtype(n_cons, n_freqs, n_times_spectrum)
@@ -433,7 +433,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     All methods are based on estimates of the cross- and power spectral
     densities (CSD/PSD) Sxy and Sxx, Syy.
 
-    The spectral densities can be estimated using a multi taper method with
+    The spectral densities can be estimated using a multitaper method with
     digital prolate spheroidal sequence (DPSS) windows, a discrete Fourier
     transform with Hanning windows, or a continuous wavelet transform using
     Morlet wavelets. The spectral estimation mode is specified using the
@@ -535,7 +535,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     fmin : float | tuple of floats
         The lower frequency of interest. Multiple bands are defined using
         a tuple, e.g., (8., 20.) for two bands with 8Hz and 20Hz lower freq.
-        By default, the frequency corresponing to 5 cycles is used.
+        If None the frequency corresponding to an epoch length of 5 cycles
+        is used.
     fmax : float | tuple of floats
         The upper frequency of interest. Multiple bands are dedined using
         a tuple, e.g. (13., 30.) for two band with 13Hz and 30Hz upper freq.
@@ -551,12 +552,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     tmax : float | None
         Time to end connectivity estimation.
     mt_bandwidth : float
-        The bandwidth of the multi taper windowing function in Hz.
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'multitaper' mode.
     mt_adaptive : bool
         Use adaptive weights to combine the tapered spectra into PSD.
+        Only used in 'multitaper' mode.
     mt_low_bias : bool
         Only use tapers with more than 90% spectral concentration within
-        bandwidth.
+        bandwidth. Only used in 'multitaper' mode.
     cwt_frequencies : array
         Array of frequencies of interest. Only used in 'cwt_morlet' mode.
     cwt_n_cycles: float | array of float
@@ -587,9 +590,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     n_epochs : int
         Number of epochs used for computation.
     n_tapers : int
-        The number of DPSS tapers used.
+        The number of DPSS tapers used. Only defined in 'multitaper' mode.
+        Otherwise is returned None.
     """
-
     if n_jobs > 1:
         parallel, my_epoch_spectral_connectivity, _ = \
                 parallel_func(_epoch_spectral_connectivity, n_jobs,
@@ -717,7 +720,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 raise ValueError('mode has an invalid value')
 
             # check that fmin corresponds to at least 5 cycles
-            five_cycle_freq = 5 * sfreq / float(n_times)
+            five_cycle_freq = 5. * sfreq / float(n_times)
 
             if any(np.isnan(fmin)):
                 if len(fmin) > 1:
@@ -732,8 +735,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             # create a frequency mask for all bands
             freq_mask = np.zeros(len(freqs_all), dtype=np.bool)
             for f_lower, f_upper in zip(fmin, fmax):
-                freq_mask |= ((freqs_all >= f_lower)
-                              & (freqs_all <= f_upper))
+                freq_mask |= ((freqs_all >= f_lower) & (freqs_all <= f_upper))
 
             # possibly skip frequency points
             for pos in xrange(fskip):
@@ -812,7 +814,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
                 # get the Morlet wavelets
                 wavelets = morlet(sfreq, freqs,
-                                  n_cycles=cwt_n_cycles, zero_mean=False)
+                                  n_cycles=cwt_n_cycles, zero_mean=True)
                 eigvals = None
                 n_tapers = None
                 window_fun = None
