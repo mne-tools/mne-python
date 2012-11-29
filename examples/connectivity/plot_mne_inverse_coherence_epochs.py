@@ -110,22 +110,18 @@ print freqs[1]
 # Generate a source estimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.
 # Note: We use a hack to save the frequency axis as time
+tmin = np.mean(freqs[0])
+tstep = np.mean(freqs[1]) - tmin
+coh_stc = mne.SourceEstimate(coh, vertices=stc.vertno, tmin=1e-3 * tmin,
+                             tstep=1e-3 * tstep)
+
+# Save the coherence for visualization using e.g. mne_analyze
+#coh_stc.save('seed_coh_alpha_beta_vertno_%d' % (seed_vertno))
+
+# Plot the average coherence inside label_rh for each band
 aud_rh_coh = dict()  # store the coherence for each band
-for i, band in enumerate(['alpha', 'beta']):
-    tstep = np.mean(np.diff(freqs[i])) / 1e3
-
-    coh_stc = mne.SourceEstimate(coh[:, i][:, None], vertices=stc.vertno,
-        tmin=1e-3 * np.mean(freqs[i]), tstep=1)
-
-    # save the cohrence to plot later
-    aud_rh_coh[band] = np.mean(coh_stc.label_stc(label_rh).data, axis=0)
-
-    # Save the coherence for visualization using e.g. mne_analyze
-    coh_stc.save('seed_coh_%s_vertno_%d' % (band, seed_vertno))
-
-# XXX : I would save only one stc containing all the bands so it's easy
-# to visualize in mne_analyze. Otherwise you have to switch between stcs
-# to see how it differs between bands.
+aud_rh_coh['alpha'] = np.mean(coh_stc.label_stc(label_rh).data[:, 0], axis=0)
+aud_rh_coh['beta'] = np.mean(coh_stc.label_stc(label_rh).data[:, 1], axis=0)
 
 pl.figure()
 width = 0.5
