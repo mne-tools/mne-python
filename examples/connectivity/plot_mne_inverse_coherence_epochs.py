@@ -92,13 +92,13 @@ fmax = (13., 30.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 # Now we compute connectivity. To speed things up, we use 2 parallel jobs
-# and use spectral_mode='fourier', which uses a FFT with a Hanning window
+# and use mode='fourier', which uses a FFT with a Hanning window
 # to compute the spectra (instead of multitaper estimation, which has a
 # lower variance but is slower). By using faverage=True, we directly
 # average the coherence in the alpha and beta band, i.e., we will only
 # get 2 frequency bins
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
-    method='coh', spectral_mode='fourier', indices=indices,
+    method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, mt_adaptive=False,
     n_jobs=2)
 

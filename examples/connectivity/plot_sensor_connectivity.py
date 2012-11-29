@@ -50,7 +50,7 @@ fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(epochs,
-    method='pli', spectral_mode='multitaper', sfreq=sfreq,
+    method='pli', mode='multitaper', sfreq=sfreq,
     fmin=fmin, fmax=fmax, faverage=True, tmin=tmin,
     mt_adaptive=False, n_jobs=2)
 
