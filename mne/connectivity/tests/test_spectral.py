@@ -144,8 +144,8 @@ def test_spectral_connectivity():
                     continue
 
                 # compute same connections for two bands, fskip=1, and f. avg.
-                fmin = (sfreq / 8, sfreq / 4)
-                fmax = (sfreq / 4, sfreq / 2)
+                fmin = (sfreq / 8., sfreq / 4.)
+                fmax = (sfreq / 4., sfreq / 2.)
                 con3, freqs3, times3, n3, _ = spectral_connectivity(data,
                         method=method, mode=mode,
                         indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax,
