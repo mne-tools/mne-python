@@ -1,5 +1,4 @@
 
-
 .. _ch_interactive_analysis:
 
 ====================
@@ -129,7 +128,7 @@ options:
 
 .. note:: Strictly speaking, trigger mask value zero would    mean that all trigger inputs are ignored. However, for convenience,    setting the mask to zero or not setting it at all has the same effect    as 0xFFFFFFFF, *i.e.*, all bits set.
 
-.. note:: The digital trigger channel can also be set with    the MNE_ENV_TRIGGER_CH environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_analyze .    Using the ``--digtrig`` option supersedes the MNE_ENV_TRIGGER_CH    environment variable.
+.. note:: The digital trigger channel can also be set with    the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_analyze .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
 
 .. note:: The digital trigger channel mask can also be    set with the MNE_TRIGGER_CH_MASK environment variable. Using the ``--digtrigmask`` option    supersedes the MNE_TRIGGER_CH_MASK environment variable.
 
