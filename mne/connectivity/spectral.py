@@ -189,8 +189,8 @@ class _WPLIEst(_EpochMeanConEstBase):
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
         im_csd = np.imag(csd_xy)
-        self._acc[con_idx, Ellipsis, 0] += im_csd
-        self._acc[con_idx, Ellipsis, 1] += np.abs(im_csd)
+        self._acc[con_idx, ..., 0] += im_csd
+        self._acc[con_idx, ..., 1] += np.abs(im_csd)
 
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
@@ -198,8 +198,8 @@ class _WPLIEst(_EpochMeanConEstBase):
             self.con_scores = np.zeros(self.csd_shape)
 
         acc_mean = self._acc[con_idx] / n_epochs
-        num = np.abs(acc_mean[:, Ellipsis, 0])
-        denom = acc_mean[:, Ellipsis, 1]
+        num = np.abs(acc_mean[:, ..., 0])
+        denom = acc_mean[:, ..., 1]
 
         # handle zeros in denominator
         z_denom = np.where(denom == 0.)
@@ -226,9 +226,9 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
         im_csd = np.imag(csd_xy)
-        self._acc[con_idx, Ellipsis, 0] += im_csd
-        self._acc[con_idx, Ellipsis, 1] += np.abs(im_csd)
-        self._acc[con_idx, Ellipsis, 2] += im_csd ** 2
+        self._acc[con_idx, ..., 0] += im_csd
+        self._acc[con_idx, ..., 1] += np.abs(im_csd)
+        self._acc[con_idx, ..., 2] += im_csd ** 2
 
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
@@ -237,9 +237,9 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
-        sum_im_csd = self._acc[con_idx, Ellipsis, 0]
-        sum_abs_im_csd = self._acc[con_idx, Ellipsis, 1]
-        sum_sq_im_csd = self._acc[con_idx, Ellipsis, 2]
+        sum_im_csd = self._acc[con_idx, ..., 0]
+        sum_abs_im_csd = self._acc[con_idx, ..., 1]
+        sum_sq_im_csd = self._acc[con_idx, ..., 2]
 
         denom = (sum_abs_im_csd ** 2 - sum_sq_im_csd)
 
