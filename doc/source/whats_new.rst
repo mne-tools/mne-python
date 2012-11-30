@@ -59,7 +59,7 @@ Changelog
 
    - Transparent I/O of gzipped fif files (as .fif.gz) by `Eric Larson`_
 
-   - Spectral connectivity by `Martin Luessi`_
+   - Spectral connectivity estimation in sensor and source space by `Martin Luessi`_
 
 API
 ~~~
