@@ -53,6 +53,7 @@ if __name__ == "__main__":
          packages=['mne', 'mne.tests',
                    'mne.artifacts', 'mne.artifacts.tests',
                    'mne.beamformer', 'mne.beamformer.tests',
+                   'mne.connectivity', 'mne.connectivity.tests',
                    'mne.data',
                    'mne.datasets', 'mne.datasets.sample',
                    'mne.fiff', 'mne.fiff.tests',
@@ -64,7 +65,7 @@ if __name__ == "__main__":
                    'mne.tests',
                    'mne.stats', 'mne.stats.tests',
                    'mne.time_frequency', 'mne.time_frequency.tests'],
-         package_data={'mne': ['data/mne_analyze.sel']},
+         package_data={'mne': ['data/*.sel', 'layouts/*.lout']},
          scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
                   'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
                   'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py'])
