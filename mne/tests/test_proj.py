@@ -4,6 +4,8 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+import copy as cp
+
 from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
@@ -16,8 +18,8 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 
-def test_compute_proj():
-    """Test SSP computation"""
+def test_compute_proj_epochs():
+    """Test SSP computation on epochs"""
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = Raw(raw_fname, preload=True)
@@ -76,15 +78,19 @@ def test_compute_proj():
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_array_equal(proj, proj_par)
 
+
+def test_compute_proj_raw():
+    """Test SSP computation on raw"""
     # Test that the raw projectors work
-    for ii in (1, 2, 4, 8, 12, 24):
+    raw_time = 6.5  # Do shorter amount for speed
+    for ii in (1, 2, 4, 6):
         raw = Raw(raw_fname)
-        projs = compute_proj_raw(raw, duration=ii-0.1, n_grad=1, n_mag=1,
-                                 n_eeg=0)
+        projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
+                                 n_grad=1, n_mag=1, n_eeg=0)
 
         # test that you can compute the projection matrix
         projs = activate_proj(projs)
-        proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
+        proj, nproj, U = make_projector(projs, raw.ch_names, bads=[])
 
         assert_true(nproj == 2)
         assert_true(U.shape[1] == 2)
@@ -94,12 +100,13 @@ def test_compute_proj():
         raw.save('foo_%d_raw.fif' % ii)
 
     # Test that purely continuous (no duration) raw projection works
-    raw = Raw(raw_fname)
-    projs = compute_proj_raw(raw, duration=None, n_grad=1, n_mag=1, n_eeg=0)
+    raw = Raw(raw_fname, preload=True)
+    projs = compute_proj_raw(raw, duration=None, stop=raw_time,
+                             n_grad=1, n_mag=1, n_eeg=0)
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
-    proj, nproj, U = make_projector(projs, epochs.ch_names, bads=[])
+    proj, nproj, U = make_projector(projs, raw.ch_names, bads=[])
 
     assert_true(nproj == 2)
     assert_true(U.shape[1] == 2)
@@ -107,3 +114,13 @@ def test_compute_proj():
     # test that you can save them
     raw.info['projs'] += projs
     raw.save('foo_rawproj_continuous_raw.fif')
+
+    # test resampled-data projector, upsampling instead of downsampling
+    # here to save an extra filtering (raw would have to be LP'ed to be equiv)
+    raw_resamp = cp.deepcopy(raw)
+    raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2)
+    projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,
+                             n_grad=1, n_mag=1, n_eeg=0)
+    projs = activate_proj(projs)
+    proj_new, _, _ = make_projector(projs, raw.ch_names, bads=[])
+    assert_array_almost_equal(proj_new, proj, 4)
