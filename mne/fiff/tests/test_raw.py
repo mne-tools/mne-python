@@ -408,6 +408,31 @@ def test_filter():
     assert_array_equal(data, bp_data)
 
 
+def test_resample():
+    """ Test resample (with I/O) """
+    raw = Raw(fif_fname, preload=True)
+    raw_resamp = deepcopy(raw)
+    sfreq = raw.info['sfreq']
+    # test parallel on upsample
+    raw_resamp.resample(sfreq * 2, n_jobs=2)
+    raw_resamp.save('raw_resamp.fif')
+    raw_resamp = Raw('raw_resamp.fif', preload=True)
+    assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
+    assert_true(raw.n_times == raw_resamp.n_times / 2)
+    assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
+    assert_true(raw._data.shape[0] == raw_resamp._data.shape[0])
+    # test non-parallel on downsample
+    raw_resamp.resample(sfreq, n_jobs=1)
+    assert_true(raw_resamp.info['sfreq'] == sfreq)
+    assert_true(raw._data.shape == raw_resamp._data.shape)
+    assert_true(raw.first_samp == raw_resamp.first_samp)
+    assert_true(raw.last_samp == raw.last_samp)
+    # upsampling then downsampling doubles resampling error, but this still
+    # works (hooray). Note that the stim channels had to be sub-sampled
+    # without filtering to be accurately preserved
+    assert_array_almost_equal(raw._data, raw_resamp._data)
+
+
 def test_hilbert():
     """ Test computation of analytic signal using hilbert """
     raw = Raw(fif_fname, preload=True)

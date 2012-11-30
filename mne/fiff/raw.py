@@ -26,7 +26,8 @@ from .tag import read_tag
 from .pick import pick_types
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
-from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
+from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
+                     resample
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -515,6 +516,77 @@ class Raw(object):
                                 filter_length=filter_length,
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
+
+    @verbose
+    def resample(self, sfreq, npad=100, window='boxcar',
+                 stim_picks=None, n_jobs=1, verbose=None):
+        """Resample data channels.
+
+        Resamples all channels. The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        WARNING: The intended purpose of this function is primarily to speed
+        up computations (e.g., projection calculation) when precise timing
+        of events is not required, as downsampling raw data effectively
+        jitters trigger timings. It is generally recommended not to epoch
+        downsampled data, but instead epoch and then downsample, as epoching
+        downsampled data jitters triggers.
+
+        Parameters
+        ----------
+        sfreq : float
+            New sample rate to use.
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+        stim_picks : array of int | None
+            Stim channels. These channels are simply subsampled or
+            supersampled (without applying any filtering). This reduces
+            resampling artifacts in stim channels, but may lead to missing
+            triggers. If None, stim channels are automatically chosen using
+            mne.fiff.pick_types(raw.info, meg=False, stim=True).
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        """
+        if self._preloaded:
+            o_sfreq = self.info['sfreq']
+            # resample each channel separately to save memory
+            if n_jobs == 1:
+                new_data = np.array([resample(d, sfreq, o_sfreq, npad, 0,
+                                              window) for d in self._data])
+            else:
+                # use parallel function
+                parallel, my_resample, _ = parallel_func(resample, n_jobs)
+                new_data = np.array(parallel(my_resample(d, sfreq, o_sfreq,
+                                                          npad, 0)
+                                             for d in self._data))
+
+            # Now deal with the stim channels
+            if stim_picks is None:
+                stim_picks = pick_types(self.info, meg=False, stim=True)
+            stim_picks = np.asanyarray(stim_picks)
+            if len(stim_picks) > 0:
+                # figure out which points in old data to subsample
+                ratio = float(o_sfreq) / sfreq
+                stim_inds = np.floor(np.arange(new_data.shape[1])
+                                               * ratio).astype(int)
+                for sp in stim_picks:
+                    new_data[sp] = self._data[sp][stim_inds]
+
+            # adjust affected variables
+            self._data = new_data
+            self.info['sfreq'] = sfreq
+            ratio = sfreq / float(o_sfreq)
+            self.first_samp = int(self.first_samp * ratio)
+            self.last_samp = self.first_samp + self._data.shape[1] - 1
+        else:
+            raise RuntimeError('Can only resample preloaded data')
 
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.
