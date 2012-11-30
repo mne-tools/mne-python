@@ -183,23 +183,22 @@ class _WPLIEst(_EpochMeanConEstBase):
         super(_WPLIEst, self).__init__(n_cons, n_freqs, n_times)
 
         #store  both imag(csd) and abs(imag(csd))
-        acc_shape = self.csd_shape + (2,)
+        acc_shape = (2,) + self.csd_shape
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
         im_csd = np.imag(csd_xy)
-        self._acc[con_idx, ..., 0] += im_csd
-        self._acc[con_idx, ..., 1] += np.abs(im_csd)
+        self._acc[0, con_idx] += im_csd
+        self._acc[1, con_idx] += np.abs(im_csd)
 
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
         if self.con_scores is None:
             self.con_scores = np.zeros(self.csd_shape)
 
-        acc_mean = self._acc[con_idx] / n_epochs
-        num = np.abs(acc_mean[:, ..., 0])
-        denom = acc_mean[:, ..., 1]
+        num = np.abs(self._acc[0, con_idx])
+        denom = self._acc[1, con_idx]
 
         # handle zeros in denominator
         z_denom = np.where(denom == 0.)
@@ -220,15 +219,15 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
     def __init__(self, n_cons, n_freqs, n_times):
         super(_WPLIDebiasedEst, self).__init__(n_cons, n_freqs, n_times)
         #store imag(csd), abs(imag(csd)), imag(csd)^2
-        acc_shape = self.csd_shape + (3,)
+        acc_shape = (3,) + self.csd_shape
         self._acc = np.zeros(acc_shape)
 
     def accumulate(self, con_idx, csd_xy):
         """Accumulate some connections"""
         im_csd = np.imag(csd_xy)
-        self._acc[con_idx, ..., 0] += im_csd
-        self._acc[con_idx, ..., 1] += np.abs(im_csd)
-        self._acc[con_idx, ..., 2] += im_csd ** 2
+        self._acc[0, con_idx] += im_csd
+        self._acc[1, con_idx] += np.abs(im_csd)
+        self._acc[2, con_idx] += im_csd ** 2
 
     def compute_con(self, con_idx, n_epochs):
         """Compute final con. score for some connections"""
@@ -237,9 +236,9 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
-        sum_im_csd = self._acc[con_idx, ..., 0]
-        sum_abs_im_csd = self._acc[con_idx, ..., 1]
-        sum_sq_im_csd = self._acc[con_idx, ..., 2]
+        sum_im_csd = self._acc[0, con_idx]
+        sum_abs_im_csd = self._acc[1, con_idx]
+        sum_sq_im_csd = self._acc[2, con_idx]
 
         denom = sum_abs_im_csd ** 2 - sum_sq_im_csd
 
@@ -257,8 +256,6 @@ class _WPLIDebiasedEst(_EpochMeanConEstBase):
 
 class _PPCEst(_EpochMeanConEstBase):
     """Pairwise Phase Consistency (PPC) Estimator"""
-    #XXX: this is the same as in fieldtrip, but it is it actually
-    # what is described in Vinck 2010?
     name = 'PPC'
 
     def __init__(self, n_cons, n_freqs, n_times):
@@ -291,8 +288,6 @@ class _PPCEst(_EpochMeanConEstBase):
 
 
 ###############################################################################
-
-
 def _epoch_spectral_connectivity(data, sfreq, mode, window_fun,
                                  eigvals, wavelets, freq_mask, mt_adaptive,
                                  idx_map, block_size, psd, accumulate_psd,
@@ -413,7 +408,7 @@ def _check_method(method):
 
 # map names to estimator types
 _CON_METHOD_MAP = {'coh': _CohEst, 'cohy': _CohyEst, 'imcoh': _ImCohEst,
-                   'plv': _PLVEst, 'pli': _PLIEst,
+                   'plv': _PLVEst, 'ppc': _PPCEst, 'pli': _PLIEst,
                    'pli2_unbiased': _PLIUnbiasedEst, 'wpli': _WPLIEst,
                    'wpli2_debiased': _WPLIDebiasedEst}
 
@@ -483,19 +478,22 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
         PLV = |E[Sxy/|Sxy|]|
 
-    'pli' : Phase Lag Index (PLI) [3] given by
+    'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator of squared
+            PLV [3].
+
+    'pli' : Phase Lag Index (PLI) [4] given by
 
         PLI = |E[sign(Im(Sxy))]|
 
-    'pli2_unbiased' : Unbiased squared PLI, see [4]
+    'pli2_unbiased' : Unbiased estimator of squared PLI [5].
 
-    'wpli' : Weighted Phase Lag Index (WPLI) [4] given by
+    'wpli' : Weighted Phase Lag Index (WPLI) [5] given by
 
                   |E[Im(Sxy)]|
         WPLI = ------------------
                   E[|Im(Sxy)|]
 
-    'wpli2_debiased' : Debiased squared WPLI, see [4]
+    'wpli2_debiased' : Debiased estimator of squared WPLI [5].
 
     References
     ----------
@@ -507,12 +505,16 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human brain
         mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
 
-    [3] Stam et al. "Phase lag index: assessment of functional connectivity
+    [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
+        rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
+        pp. 112-122, May 2010.
+
+    [4] Stam et al. "Phase lag index: assessment of functional connectivity
         from multi channel EEG and MEG with diminished bias from common
         sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
         Nov. 2007.
 
-    [4] Vinck et al. "An improved index of phase-synchronization for electro-
+    [5] Vinck et al. "An improved index of phase-synchronization for electro-
         physiological data in the presence of volume-conduction, noise and
         sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 
@@ -625,7 +627,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             method = _CON_METHOD_MAP[m]
             con_method_types.append(method)
         elif isinstance(m, basestring):
-            raise ValueError('%s is not a valid connectivity method')
+            raise ValueError('%s is not a valid connectivity method' % m)
         else:
             # add custom method
             method_valid, msg = _check_method(m)
@@ -749,6 +751,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             freq_idx_bands = [np.where((freqs >= fl) & (freqs <= fu))[0]
                               for fl, fu in zip(fmin, fmax)]
             freqs_bands = [freqs[freq_idx] for freq_idx in freq_idx_bands]
+
+            # make sure we don't have empty bands
+            for i, n_f_band in enumerate([len(f) for f in freqs_bands]):
+                if n_f_band == 0:
+                    raise ValueError('There are no frequency points between '
+                        '%0.1fHz and %0.1fHz. Change the band specification '
+                        '(fmin, fmax) or the frequency resolution.'
+                        % (fmin[i], fmax[i]))
 
             if n_bands == 1:
                 logger.info('    frequencies: %0.1fHz..%0.1fHz (%d points)'
