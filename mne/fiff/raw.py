@@ -76,7 +76,12 @@ class Raw(object):
                  verbose=None, proj_active=False):
 
         if not isinstance(fnames, list):
-            fnames = [fnames]
+            if not op.isabs(fnames):
+                fnames = op.abspath(fnames)
+            fnames = [op.abspath(fnames)]
+        else:
+            fnames = [op.abspath(f) if not op.isabs(fnames)
+                      else f for f in fnames]
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload)
                 for fname in fnames]
@@ -690,9 +695,8 @@ class Raw(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-
-        if any([f in self.info['filenames'] for f in
-            [fname, op.split(fname)[-1]]]):
+        fname = op.abspath(fname)
+        if fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
