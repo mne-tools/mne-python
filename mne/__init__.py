@@ -38,6 +38,7 @@ from .selection import read_selection
 from .dipole import read_dip
 from . import artifacts
 from . import beamformer
+from . import connectivity
 from . import datasets
 from . import fiff
 from . import layouts
