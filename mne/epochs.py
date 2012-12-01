@@ -440,13 +440,13 @@ class Epochs(object):
             epoch = self._data[self._current]
             self._current += 1
         else:
-            if self._current >= len(self.events):
-                raise StopIteration
-            epoch = self._get_epoch_from_disk(self._current)
-            self._current += 1
-            is_good, _ = self._is_good_epoch(epoch)
-            if not is_good:
-                return self.next()
+            is_good = False
+            while not is_good:
+                if self._current >= len(self.events):
+                    raise StopIteration
+                epoch = self._get_epoch_from_disk(self._current)
+                self._current += 1
+                is_good, _ = self._is_good_epoch(epoch)
 
         return epoch
 
@@ -866,46 +866,26 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
     """
     bad_list = list()
     has_printed = False
-    if reject is not None:
-        for key, thresh in reject.iteritems():
-            idx = channel_type_idx[key]
-            name = key.upper()
-            if len(idx) > 0:
-                e_idx = e[idx]
-                deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                idx_deltas = np.where(deltas > thresh)[0]
+    for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
+        if refl is not None:
+            for key, thresh in refl.iteritems():
+                idx = channel_type_idx[key]
+                name = key.upper()
+                if len(idx) > 0:
+                    e_idx = e[idx]
+                    deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
+                    idx_deltas = np.where(f(deltas, thresh))[0]
 
-                if len(idx_deltas) > 0:
-                    ch_name = [ch_names[idx[i]] for i in idx_deltas]
-                    if (not has_printed):
-                        logger.info('    Rejecting epoch based on %s : %s'
-                                    % (name, ch_name))
-                        has_printed = True
-                    if not full_report:
-                        return False
-                    else:
-                        bad_list.extend(ch_name)
-
-    if flat is not None:
-        for key, thresh in flat.iteritems():
-            idx = channel_type_idx[key]
-            name = key.upper()
-            if len(idx) > 0:
-                e_idx = e[idx]
-                deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                idx_min_delta = np.argmin(deltas)
-                delta = deltas[idx_min_delta]
-                if delta < thresh:
-                    ch_name = ch_names[idx[idx_min_delta]]
-                    if (not has_printed):
-                        logger.info('    Rejecting flat epoch based on %s : '
-                                    '%s (%s < %s).' % (name, ch_name, delta,
-                                                       thresh))
-                        has_printed = True
-                    if not full_report:
-                        return False
-                    else:
-                        bad_list.append(ch_name)
+                    if len(idx_deltas) > 0:
+                        ch_name = [ch_names[idx[i]] for i in idx_deltas]
+                        if (not has_printed):
+                            logger.info('    Rejecting %s epoch based on %s : '
+                                        '%s' % (t, name, ch_name))
+                            has_printed = True
+                        if not full_report:
+                            return False
+                        else:
+                            bad_list.extend(ch_name)
 
     if not full_report:
         return True
