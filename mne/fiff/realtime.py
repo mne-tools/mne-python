@@ -42,7 +42,6 @@ class ClientSocket(object):
 #===============================================================================
 class CmdClientSocket(ClientSocket):
     """Define Class CmdClientSocket."""
-
     #===========================================================================
     def __init__(self, p_Host, p_iPort):
         """Method __init__."""
@@ -57,11 +56,11 @@ class CmdClientSocket(ClientSocket):
 
         self.m_ClientSock.setblocking(0)
         t_Buf = []; chunk = ''; begin = time.time()
-        while 1:
-            #if you got some data, then break after wait sec
+        while True:
+            #if we got some data, then break after wait sec
             if t_Buf and time.time() - begin > self.m_fTimeout:
                 break
-            #if you got no data at all, wait a little longer
+            #if we got no data at all, wait a little longer
             elif time.time() - begin > self.m_fTimeout * 2:
                 break
             try:
@@ -92,8 +91,6 @@ class CmdClientSocket(ClientSocket):
     def stopAll(self, p_aliasOrId):
         """stopAll."""
         self.sendCommand('stop-all')
-
-
 
 
 #*******************************************************************************
