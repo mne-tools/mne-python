@@ -653,7 +653,7 @@ class Epochs(object):
         Parameters
         ----------
         fname : str
-            The name of the file
+            The name of the file.
         """
         # Create the file and save the essentials
         fid = start_file(fname)
@@ -923,9 +923,9 @@ def read_epochs(fname, proj=True, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the file
+        The name of the file.
     proj : bool, optional
-        Apply SSP projection vectors
+        Apply SSP projection vectors.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
