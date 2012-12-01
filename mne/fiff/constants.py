@@ -39,6 +39,7 @@ FIFF.FIFFB_REF                = 118
 FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
+FIFF.FIFFB_EPOCHS             = 122
 
 FIFF.FIFFB_PROJ               = 313
 FIFF.FIFFB_PROJ_ITEM          = 314
@@ -137,7 +138,8 @@ FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
 FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
 FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
 FIFF.FIFF_DATA_SKIP_SAMP = 303    # Data skip in samples
-
+FIFF.FIFF_MNE_BASELINE_MIN   = 304    # Time of baseline beginning
+FIFF.FIFF_MNE_BASELINE_MAX   = 305    # Time of baseline end
 #
 # Different aspects of data
 #

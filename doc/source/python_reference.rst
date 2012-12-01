@@ -58,6 +58,7 @@ Functions reference
    write_bem_surface
    read_source_spaces
    vertex_to_mni
+   read_epochs
    equalize_epoch_counts
    read_stc
    write_stc
