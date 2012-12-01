@@ -76,12 +76,9 @@ class Raw(object):
                  verbose=None, proj_active=False):
 
         if not isinstance(fnames, list):
-            if not op.isabs(fnames):
-                fnames = op.abspath(fnames)
-            fnames = [op.abspath(fnames)]
+            fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
         else:
-            fnames = [op.abspath(f) if not op.isabs(fnames)
-                      else f for f in fnames]
+            fnames = [op.abspath(f) if not op.isabs(f) else f for f in fnames]
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload)
                 for fname in fnames]
