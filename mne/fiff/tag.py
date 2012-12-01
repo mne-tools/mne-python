@@ -115,7 +115,7 @@ def read_tag(fid, pos=None):
                 # Find dimensions and return to the beginning of tag data
                 pos = fid.tell()
                 fid.seek(tag.size - 4, 1)
-                ndim = np.fromstring(fid.read(4), dtype='>i4')
+                ndim = int(np.fromstring(fid.read(4), dtype='>i4'))
                 fid.seek(-(ndim + 1) * 4, 1)
                 dims = np.fromstring(fid.read(4 * ndim), dtype='>i4')[::-1]
                 #
@@ -123,8 +123,8 @@ def read_tag(fid, pos=None):
                 #
                 fid.seek(pos, 0)
 
-                if ndim != 2:
-                    raise Exception('Only two-dimensional matrices are '
+                if ndim > 3:
+                    raise Exception('Only 2 or 3-dimensional matrices are '
                                      'supported at this time')
 
                 matrix_type = data_type & tag.type

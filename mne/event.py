@@ -6,7 +6,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import numpy as np
 from os.path import splitext
 
@@ -63,6 +62,30 @@ def pick_events(events, include=None, exclude=None):
     return events
 
 
+def _read_events_fif(fid, tree):
+    #   Find the desired block
+    events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
+
+    if len(events) == 0:
+        fid.close()
+        raise ValueError('Could not find event data')
+
+    events = events[0]
+
+    for d in events['directory']:
+        kind = d.kind
+        pos = d.pos
+        if kind == FIFF.FIFF_MNE_EVENT_LIST:
+            tag = read_tag(fid, pos)
+            event_list = tag.data
+            break
+    else:
+        raise ValueError('Could not find any events')
+
+    event_list = event_list.reshape(len(event_list) / 3, 3)
+    return event_list
+
+
 def read_events(filename, include=None, exclude=None):
     """Reads events from fif or text file
 
@@ -96,30 +119,8 @@ def read_events(filename, include=None, exclude=None):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-
-        #   Find the desired block
-        events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
-
-        if len(events) == 0:
-            fid.close()
-            raise ValueError('Could not find event data')
-
-        events = events[0]
-
-        for d in events['directory']:
-            kind = d.kind
-            pos = d.pos
-            if kind == FIFF.FIFF_MNE_EVENT_LIST:
-                tag = read_tag(fid, pos)
-                event_list = tag.data
-                fid.close()
-                break
-        else:
-            fid.close()
-            raise ValueError('Could not find any events')
-
-        event_list = event_list.reshape(len(event_list) / 3, 3)
-
+        event_list = _read_events_fif(fid, tree)
+        fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
