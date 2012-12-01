@@ -685,8 +685,8 @@ class Epochs(object):
             bmin, bmax = self.baseline
             bmin = self.times[0] if bmin is None else bmin
             bmax = self.times[-1] if bmax is None else bmax
-            write_float(fid, FIFF.FIFF_BASELINE_MIN, bmin)
-            write_float(fid, FIFF.FIFF_BASELINE_MAX, bmax)
+            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
 
         # The epochs itself
         decal = np.empty(self.info['nchan'])
@@ -695,7 +695,6 @@ class Epochs(object):
 
         data = self.get_data()
         data *= decal[None, :, None]
-        data = data.reshape(len(data), -1) # reshape to stored in 2d
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
         end_block(fid, FIFF.FIFFB_EPOCHS)
@@ -980,10 +979,10 @@ def read_epochs(fname, proj=True, verbose=None):
         elif kind == FIFF.FIFF_EPOCH:
             tag = read_tag(fid, pos)
             data = tag.data
-        elif kind == FIFF.FIFF_BASELINE_MIN:
+        elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
             tag = read_tag(fid, pos)
             bmin = float(tag.data)
-        elif kind == FIFF.FIFF_BASELINE_MAX:
+        elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
             tag = read_tag(fid, pos)
             bmax = float(tag.data)
 
@@ -1002,9 +1001,6 @@ def read_epochs(fname, proj=True, verbose=None):
     # Read the data
     if data is None:
         raise ValueError('Epochs data not found')
-
-    nchan = len(info['chs'])
-    data = data.reshape(len(data), nchan, -1)  # reshape as stored in 2d
 
     if data.shape[2] != nsamp:
         fid.close()
