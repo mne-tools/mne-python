@@ -703,7 +703,6 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
-
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
 
@@ -918,100 +917,98 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs = Epochs(None, None, None, None, None)
 
     logger.info('Reading %s ...' % fname)
-    fid, tree, _ = fiff_open(fname)
+    f, tree, _ = fiff_open(fname)
 
-    #   Read the measurement info
-    info, meas = read_meas_info(fid, tree)
-    info['filename'] = fname
+    with f as fid:
+        #   Read the measurement info
+        info, meas = read_meas_info(fid, tree)
+        info['filename'] = fname
 
-    events = _read_events_fif(fid, tree)
+        events = _read_events_fif(fid, tree)
 
-    #   Locate the data of interest
-    processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
-    if len(processed) == 0:
+        #   Locate the data of interest
+        processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        if len(processed) == 0:
+            raise ValueError('Could not find processed data')
+
+        epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
+        if len(epochs_node) == 0:
+            raise ValueError('Could not find epochs data')
+
+        my_epochs = epochs_node[0]
+
+        # Now find the data in the block
+        comment = None
+        data = None
+        bmin, bmax = None, None
+
+        for k in range(my_epochs['nent']):
+            kind = my_epochs['directory'][k].kind
+            pos = my_epochs['directory'][k].pos
+            if kind == FIFF.FIFF_FIRST_SAMPLE:
+                tag = read_tag(fid, pos)
+                first = int(tag.data)
+            elif kind == FIFF.FIFF_LAST_SAMPLE:
+                tag = read_tag(fid, pos)
+                last = int(tag.data)
+            elif kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comment = tag.data
+            elif kind == FIFF.FIFF_EPOCH:
+                tag = read_tag(fid, pos)
+                data = tag.data
+            elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                tag = read_tag(fid, pos)
+                bmin = float(tag.data)
+            elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                tag = read_tag(fid, pos)
+                bmax = float(tag.data)
+
+        if bmin is not None or bmax is not None:
+            baseline = (bmin, bmax)
+
+        nsamp = last - first + 1
+        logger.info('    Found the data of interest:')
+        logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                    % (1000 * first / info['sfreq'],
+                       1000 * last / info['sfreq'], comment))
+        if info['comps'] is not None:
+            logger.info('        %d CTF compensation matrices available'
+                                                   % len(info['comps']))
+
+        # Read the data
+        if data is None:
+            raise ValueError('Epochs data not found')
+
+        if data.shape[2] != nsamp:
+            raise ValueError('Incorrect number of samples (%d instead of %d)'
+                             % (data.shape[2], nsamp))
+
+        # Calibrate
+        cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
+        data = cals[None, :, None] * data
+
+        times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
+        tmin = times[0]
+        tmax = times[-1]
+
+        # Put it all together
+        epochs.preload = True
+        epochs._bad_dropped = True
+        epochs.events = events
+        epochs._data = data
+        epochs.info = info
+        epochs.tmin = tmin
+        epochs.tmax = tmax
+        epochs.name = comment
+        epochs.times = times
+        epochs.data = data
+        epochs.proj = proj
+        epochs._projector, epochs.info = setup_proj(info)
+        epochs.ch_names = info['ch_names']
+        epochs.baseline = baseline
+        epochs.event_id = int(np.unique(events[:, 2]))
         fid.close()
-        raise ValueError('Could not find processed data')
-
-    epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
-    if len(epochs_node) == 0:
-        fid.close()
-        raise ValueError('Could not find epochs data')
-
-    my_epochs = epochs_node[0]
-
-    # Now find the data in the block
-    comment = None
-    data = None
-    bmin, bmax = None, None
-
-    for k in range(my_epochs['nent']):
-        kind = my_epochs['directory'][k].kind
-        pos = my_epochs['directory'][k].pos
-        if kind == FIFF.FIFF_FIRST_SAMPLE:
-            tag = read_tag(fid, pos)
-            first = int(tag.data)
-        elif kind == FIFF.FIFF_LAST_SAMPLE:
-            tag = read_tag(fid, pos)
-            last = int(tag.data)
-        elif kind == FIFF.FIFF_COMMENT:
-            tag = read_tag(fid, pos)
-            comment = tag.data
-        elif kind == FIFF.FIFF_EPOCH:
-            tag = read_tag(fid, pos)
-            data = tag.data
-        elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
-            tag = read_tag(fid, pos)
-            bmin = float(tag.data)
-        elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-            tag = read_tag(fid, pos)
-            bmax = float(tag.data)
-
-    if bmin is not None or bmax is not None:
-        baseline = (bmin, bmax)
-
-    nsamp = last - first + 1
-    logger.info('    Found the data of interest:')
-    logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                % (1000 * first / info['sfreq'],
-                   1000 * last / info['sfreq'], comment))
-    if info['comps'] is not None:
-        logger.info('        %d CTF compensation matrices available'
-                                               % len(info['comps']))
-
-    # Read the data
-    if data is None:
-        raise ValueError('Epochs data not found')
-
-    if data.shape[2] != nsamp:
-        fid.close()
-        raise ValueError('Incorrect number of samples (%d instead of %d)'
-                          % (data.shape[2], nsamp))
-
-    # Calibrate
-    cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-    data = cals[None, :, None] * data
-
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-    tmin = times[0]
-    tmax = times[-1]
-
-    # Put it all together
-    epochs.preload = True
-    epochs._bad_dropped = True
-    epochs.events = events
-    epochs._data = data
-    epochs.info = info
-    epochs.tmin = tmin
-    epochs.tmax = tmax
-    epochs.name = comment
-    epochs.times = times
-    epochs.data = data
-    epochs.proj = proj
-    epochs._projector, epochs.info = setup_proj(info)
-    epochs.ch_names = info['ch_names']
-    epochs.baseline = baseline
-    epochs.event_id = int(np.unique(events[:, 2]))
-    fid.close()
 
     return epochs
 
