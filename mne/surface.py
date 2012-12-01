@@ -312,7 +312,7 @@ def write_surface(filepath, coords, faces, create_stamp=''):
 # Write
 
 def write_bem_surface(fname, surf):
-    """Read one bem surface
+    """Write one bem surface
 
     Parameters
     ----------
@@ -320,7 +320,7 @@ def write_bem_surface(fname, surf):
         File to write
 
     surf : dict
-        A surface structued as obtained with read_bem_surfaces
+        A surface structured as obtained with read_bem_surfaces
     """
 
     # Create the file and save the essentials
