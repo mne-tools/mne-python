@@ -1008,7 +1008,6 @@ def read_epochs(fname, proj=True, verbose=None):
         epochs.ch_names = info['ch_names']
         epochs.baseline = baseline
         epochs.event_id = int(np.unique(events[:, 2]))
-        fid.close()
 
     return epochs
 
