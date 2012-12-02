@@ -63,10 +63,9 @@ mode = 'ratio'  # set mode for baseline rescaling
 ###############################################################################
 # Show topography of power.
 
-plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
-                mode=mode, decim=decim, vmin=0., vmax=14)
 title = 'Induced power - MNE sample data'
-pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
+plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
+                mode=mode, decim=decim, vmin=0., vmax=14, title=title)
 pl.show()
 
 ###############################################################################
@@ -74,9 +73,8 @@ pl.show()
 
 mode = None  # no baseline rescaling for PLV
 
-plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
-                     baseline=baseline, mode=mode, decim=decim)
-
 title = 'Phase locking value - MNE sample data'
-pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
+plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
+                     baseline=baseline, mode=mode, decim=decim, title=title)
+
 pl.show()

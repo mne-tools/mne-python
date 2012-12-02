@@ -152,8 +152,11 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 
 
 def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
-                  vmax=None, cmap=None, layout_scale=0.945):
+                  vmax=None, cmap=None, layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
+
+    Note: Clicking on the time-frequency map of an individual sensor opens a
+    new figure showing the time-frequency map of the selected sensor.
 
     Parameters
     ----------
@@ -163,7 +166,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
         The time-frequency data. Must have the same channels as Epochs.
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout: instance of Layout
+    layout : instance of Layout
         System specific sensor positions
     colorbar : bool
         If true, colorbar will be added to the plot
@@ -176,6 +179,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
     layout_scale: float
         scaling factor for adjusting the relative size of the layout
         on the canvas
+    title : str
+        The figure title.
 
     Returns
     -------
@@ -190,16 +195,23 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
 
+    tfr_onpick = partial(_imshow_tfr_onpick, title=title, vmin=vmin, vmax=vmax,
+                           times=epochs.times, freq=freq)
+
     fig = _plot_topo_imshow(epochs, tfr_imshow, layout, decim=1,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap, layout_scale=layout_scale)
+                            cmap=cmap, layout_scale=layout_scale,
+                            title=title, onpick_callback=tfr_onpick)
     return fig
 
 
 def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
                     decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
-                    layout_scale=0.945, dB=True):
+                    layout_scale=0.945, dB=True, title=None):
     """Plot induced power on sensor layout
+
+    Note: Clicking on the induced power map of an individual sensor opens a
+    new figure showing the induced power map of the selected sensor.
 
     Parameters
     ----------
@@ -209,9 +221,9 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         First return value from mne.time_frequency.induced_power
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout: instance of Layout
+    layout : instance of Layout
         System specific sensor positions
-    baseline: tuple or list of length 2
+    baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -219,7 +231,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or z-score (power is divided by standard
         deviation of power during baseline after subtracting the mean,
@@ -235,11 +247,13 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         minimum value mapped to upppermost color
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values
-    layout_scale: float
+    layout_scale : float
         scaling factor for adjusting the relative size of the layout
         on the canvas
-    dB: boolean
+    dB : boolean
         If True, log10 will be applied to the data.
+    title : str
+        Title of the figure.
 
     Returns
     -------
@@ -260,16 +274,24 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
 
+    power_onpick = partial(_imshow_tfr_onpick, title=title, vmin=vmin,
+                           vmax=vmax, times=epochs.times, freq=freq)
+
     fig = _plot_topo_imshow(epochs, power_imshow, layout, decim=decim,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap, layout_scale=layout_scale)
+                            cmap=cmap, layout_scale=layout_scale,
+                            title=title, onpick_callback=power_onpick)
     return fig
 
 
 def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
                          mode='mean', decim=1, colorbar=True, vmin=None,
-                         vmax=None, cmap=None, layout_scale=0.945):
-    """Plot phase locking values on sensor layout
+                         vmax=None, cmap=None, layout_scale=0.945,
+                         title=None):
+    """Plot phase locking values (PLV) on sensor layout
+
+    Note: Clicking on the PLV map of an individual sensor opens a new figure
+    showing the PLV map of the selected sensor.
 
     Parameters
     ----------
@@ -280,9 +302,9 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         mne.time_frequency.induced_power.
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout: instance of Layout
+    layout : instance of Layout
         System specific sensor positions.
-    baseline: tuple or list of length 2
+    baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -290,7 +312,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    mode: 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
         Do baseline correction with ratio (phase is divided by mean
         phase during baseline) or z-score (phase is divided by standard
         deviation of phase during baseline after subtracting the mean,
@@ -306,10 +328,11 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         minimum value mapped to upppermost color
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values
-    layout_scale: float
+    layout_scale : float
         scaling factor for adjusting the relative size of the layout
         on the canvas.
-
+    title : str
+        Title of the figure.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figrue
@@ -327,15 +350,20 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
 
+    phase_onpick = partial(_imshow_tfr_onpick, vmin=vmin, vmax=vmax,
+                           times=epochs.times, freq=freq, title=title)
+
     fig = _plot_topo_imshow(epochs, phase_imshow, layout, decim=decim,
                             colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap,  layout_scale=layout_scale)
+                            cmap=cmap,  layout_scale=layout_scale,
+                            title=title, onpick_callback=phase_onpick)
 
     return fig
 
 
 def _plot_topo_imshow(epochs, show_func, layout, decim,
-                      vmin, vmax, colorbar, cmap, layout_scale):
+                      vmin, vmax, colorbar, cmap, layout_scale,
+                      title=None, onpick_callback=None):
     """Helper function: plot tfr on sensor layout"""
     import pylab as pl
     if cmap is None:
@@ -359,10 +387,19 @@ def _plot_topo_imshow(epochs, show_func, layout, decim,
         if name in ch_names:
             ax = pl.axes(pos[idx], axisbg='k')
             ch_idx = ch_names.index(name)
+            # hack to inlcude channel name, so we can show it in callback
+            ax.__dict__['_mne_ch_name'] = name
             show_func(ax, ch_idx, 1e3 * epochs.times[0],
                       1e3 * epochs.times[-1], vmin, vmax)
             pl.xticks([], ())
             pl.yticks([], ())
+
+    # register callback
+    if onpick_callback is not None:
+        fig.canvas.mpl_connect('pick_event', onpick_callback)
+
+    if title is not None:
+        pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
 
     # Revert global pylab config
     pl.rcParams['axes.facecolor'] = 'w'
@@ -374,14 +411,38 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
     """ Aux Function """
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax)
+              vmin=vmin, vmax=vmax, picker=True)
+
+
+def _imshow_tfr_onpick(event, title=None, vmin=None, vmax=None, times=None,
+                       freq=None):
+    """Onpick callback that shows tfr for a single channel in a new figure"""
+    artist = event.artist
+    try:
+        import pylab as pl
+        data = artist.get_array()
+        pl.figure()
+        pl.imshow(data, aspect='auto', origin='lower', vmin=vmin, vmax=vmax,
+                  extent=[times[0], times[-1], freq[0], freq[-1]])
+        pl.colorbar()
+        if title is not None:
+            pl.title(title + ' ' + artist.axes._mne_ch_name)
+        else:
+            pl.title(artist.axes._mne_ch_name)
+        pl.xlabel('Time (s)')
+        pl.ylabel('Frequency (Hz)')
+    except Exception as err:
+        # matplotlib silently ignores exceptions in event handlers, so we print
+        # it here to know what went wrong
+        print err
+        raise err
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
-                                 fontsize=18, bgcolor=(.05, 0, .1), opacity=0.2,
-                                 brain_color=(0.7, ) * 3, show=True,
-                                 high_resolution=False, fig_name=None,
-                                 fig_number=None, labels=None,
+                                 fontsize=18, bgcolor=(.05, 0, .1),
+                                 opacity=0.2, brain_color=(0.7, ) * 3,
+                                 show=True, high_resolution=False,
+                                 fig_name=None, fig_number=None, labels=None,
                                  modes=['cone', 'sphere'],
                                  scale_factors=[1, 0.6],
                                  verbose=None, **kwargs):
