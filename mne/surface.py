@@ -296,16 +296,15 @@ def write_surface(filepath, coords, faces, create_stamp=''):
     """Write a Freesurfer surface mesh in triangular format."""
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
-    
-    fobj = open(filepath, 'w')
-    fobj.write(pack('>3B', 255, 255, 254))
-    fobj.writelines(('%s\n' % create_stamp, '\n'))
-    vnum = len(coords)
-    fnum = len(faces)
-    fobj.write(pack('>2i', vnum, fnum))
-    fobj.write(pack('>%if' % (3 * vnum), *np.ravel(coords)))
-    fobj.write(pack('>%ii' % (3 * fnum), *np.ravel(faces)))
-    fobj.close()
+
+    with open(filepath, 'w') as fobj:
+        fobj.write(pack('>3B', 255, 255, 254))
+        fobj.writelines(('%s\n' % create_stamp, '\n'))
+        vnum = len(coords)
+        fnum = len(faces)
+        fobj.write(pack('>2i', vnum, fnum))
+        fobj.write(pack('>%if' % (3 * vnum), *np.ravel(coords)))
+        fobj.write(pack('>%ii' % (3 * fnum), *np.ravel(faces)))
 
 
 ###############################################################################
