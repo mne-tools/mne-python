@@ -571,21 +571,22 @@ class Raw(object):
             # for speed and to save memory
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
             new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                                          npad, 0)
-                                              for d in data_chunk)))
+                                                npad, 0) for d in data_chunk)))
+            new_ntimes = new_data[ri].shape[1]
 
-            # Now deal with the stim channels
-            if len(stim_picks) > 0:
-                # figure out which points in old data to subsample
-                stim_inds = np.floor(np.arange(new_data[ri].shape[1])
-                                               / ratio).astype(int)
-                for sp in stim_picks:
-                    new_data[ri][sp] = data_chunk[sp][:, stim_inds]
+            # Now deal with the stim channels. In empirical testing, it was
+            # faster to resample all channels (above) and then replace the
+            # stim channels than it was to only resample the proper subset
+            # of channels and then use np.insert() to restore the stims
+
+            # figure out which points in old data to subsample
+            stim_inds = np.floor(np.arange(new_ntimes) / ratio).astype(int)
+            for sp in stim_picks:
+                new_data[ri][sp] = data_chunk[sp][:, stim_inds]
 
             self._first_samps[ri] = int(self._first_samps[ri] * ratio)
-            self._last_samps[ri] = self._first_samps[ri] + \
-                                   new_data[ri].shape[1] - 1
-            self._raw_lengths[ri] = new_data[ri].shape[1]
+            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
+            self._raw_lengths[ri] = new_ntimes
 
         # adjust affected variables
         self._data = np.concatenate(new_data, axis=1)
