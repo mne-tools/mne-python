@@ -12,9 +12,11 @@
 *.npy
 *.zip
 *.fif.gz
+*.nii.gz
 *.tar.*
 *.egg*
 *.tmproj
+.DS_Store
 events.eve
 foo-lh.label
 foo.lout
@@ -33,6 +35,7 @@ doc/_build/
 doc/build/
 doc/auto_examples/
 doc/modules/generated/
+doc/source/generated/
 pip-log.txt
 .coverage
 tags
