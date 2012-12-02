@@ -26,7 +26,8 @@ from .tag import read_tag
 from .pick import pick_types
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
-from ..filter import low_pass_filter, high_pass_filter, band_pass_filter
+from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
+                     resample
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -515,6 +516,83 @@ class Raw(object):
                                 filter_length=filter_length,
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth)
+
+    @verbose
+    def resample(self, sfreq, npad=100, window='boxcar',
+                 stim_picks=None, n_jobs=1, verbose=None):
+        """Resample data channels.
+
+        Resamples all channels. The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        WARNING: The intended purpose of this function is primarily to speed
+        up computations (e.g., projection calculation) when precise timing
+        of events is not required, as downsampling raw data effectively
+        jitters trigger timings. It is generally recommended not to epoch
+        downsampled data, but instead epoch and then downsample, as epoching
+        downsampled data jitters triggers.
+
+        Parameters
+        ----------
+        sfreq : float
+            New sample rate to use.
+        npad : int
+            Amount to pad the start and end of the data. If None,
+            a (hopefully) sensible choice is used.
+        window : string or tuple
+            Window to use in resampling. See scipy.signal.resample.
+        stim_picks : array of int | None
+            Stim channels. These channels are simply subsampled or
+            supersampled (without applying any filtering). This reduces
+            resampling artifacts in stim channels, but may lead to missing
+            triggers. If None, stim channels are automatically chosen using
+            mne.fiff.pick_types(raw.info, meg=False, stim=True).
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        """
+        if not self._preloaded:
+            raise RuntimeError('Can only resample preloaded data')
+
+        o_sfreq = self.info['sfreq']
+        offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
+        new_data = list()
+        # set up stim channel processing
+        if stim_picks is None:
+            stim_picks = pick_types(self.info, meg=False, stim=True)
+        stim_picks = np.asanyarray(stim_picks)
+        ratio = sfreq / float(o_sfreq)
+        for ri in range(len(self._raw_lengths)):
+            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+            # use parallel function to resample each channel separately
+            # for speed and to save memory
+            parallel, my_resample, _ = parallel_func(resample, n_jobs)
+            new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
+                                                npad, 0) for d in data_chunk)))
+            new_ntimes = new_data[ri].shape[1]
+
+            # Now deal with the stim channels. In empirical testing, it was
+            # faster to resample all channels (above) and then replace the
+            # stim channels than it was to only resample the proper subset
+            # of channels and then use np.insert() to restore the stims
+
+            # figure out which points in old data to subsample
+            stim_inds = np.floor(np.arange(new_ntimes) / ratio).astype(int)
+            for sp in stim_picks:
+                new_data[ri][sp] = data_chunk[sp][:, stim_inds]
+
+            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
+            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
+            self._raw_lengths[ri] = new_ntimes
+
+        # adjust affected variables
+        self._data = np.concatenate(new_data, axis=1)
+        self.first_samp = self._first_samps[0]
+        self.last_samp = self.first_samp + self._data.shape[1] - 1
+        self.info['sfreq'] = sfreq
 
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.
@@ -1265,7 +1343,7 @@ def _check_raw_compatibility(raw):
         if not raw[ri].info['bads'] == raw[0].info['bads']:
             raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
         if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
-            raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
+            raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) \
                    == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)

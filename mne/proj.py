@@ -203,15 +203,12 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         else:
             data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
         if not stop:
-            stop = (raw.last_samp - raw.first_samp + 1) / raw.info['sfreq']
+            stop = raw.n_times / raw.info['sfreq']
     else:
         # convert to sample indices
-        start = raw.time_as_index(start)[0]
-        if stop:
-            stop = raw.time_to_indx(stop)
-            stop = min(stop[0], raw.last_samp - raw.fist_samp + 1)
-        else:
-            stop = raw.last_samp - raw.first_samp + 1
+        start = max(raw.time_as_index(start)[0], 0)
+        stop = raw.time_as_index(stop)[0] if stop else raw.n_times
+        stop = min(stop, raw.n_times)
         data, times = raw[:, start:stop]
         data = np.dot(data, data.T)  # compute data covariance
         # convert back to times

@@ -264,14 +264,17 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     start = start[0] + raw.first_samp
     if stop is not None:
         stop = raw.time_as_index(stop)
-        stop = min([stop[0] + raw.fist_samp, raw.last_samp + 1])
+        stop = min([stop[0] + raw.first_samp, raw.last_samp + 1])
     else:
         stop = raw.last_samp + 1
+    if not isinstance(id, int):
+        raise ValueError('id must be an integer')
     # Make sure we don't go out the end of the file:
     stop -= np.ceil(raw.info['sfreq'] * duration)
     ts = np.arange(start, stop, raw.info['sfreq'] * duration).astype(int)
     n_events = len(ts)
-    events = np.c_[ts, np.zeros(n_events), id * np.ones(n_events)]
+    events = np.c_[ts, np.zeros(n_events, dtype=int),
+                   id * np.ones(n_events, dtype=int)]
     return events
 
 
