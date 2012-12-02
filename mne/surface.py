@@ -293,18 +293,20 @@ def read_surface(filepath):
 
 
 def write_surface(fname, coords, faces, create_stamp=''):
-    """Write a triangular Freesurfer surface mesh (same data format
-    as returned by read_surface()).
+    """Write a triangular Freesurfer surface mesh
+
+    Accepts the the same data format as is returned by read_surface().
+
 
     Parameters
     ----------
     fname : str
         File to write.
 
-    coords : array [n by 3]
+    coords : array, shape=(n_vertices, 3)
         Coordinate points.
 
-    faces : int array [m by 3]
+    faces : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
 
