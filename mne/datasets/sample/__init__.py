@@ -25,13 +25,15 @@ def data_path(path='.', force_update=False):
     ----------
     dir : string
         Location of where to look for the sample dataset.
-        If not set. The data will be automatically downloaded in
-        the local folder.
+        If not found, the data will be automatically downloaded to
+        the specified folder.
     force_update : bool
         Force update of the sample dataset even if a local copy exists.
     """
     # lazy import so things do not become visible outside
+    import os
     import os.path as op
+    import shutil
     from warnings import warn
     from distutils.version import LooseVersion
 
@@ -40,16 +42,31 @@ def data_path(path='.', force_update=False):
     archive_name = "MNE-sample-data-processed.tar.gz"
     url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/" + archive_name
     folder_name = "MNE-sample-data"
+    folder_path = op.join(path, folder_name)
+    rm_archive = False
 
     martinos_path = '/homes/6/gramfort/cluster/work/data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
-    if not op.exists(op.join(path, folder_name)) or force_update:
+    if not op.exists(folder_path) or force_update:
         if op.exists(martinos_path):
             archive_name = martinos_path
         elif op.exists(neurospin_path):
             archive_name = neurospin_path
-        elif not op.exists(archive_name):
+        else:
+            rm_archive = True
+            if op.exists(archive_name):
+                msg = ("Archive already exists at %r. Overwrite it "
+                       "(y/n)?" % archive_name)
+                answer = raw_input(msg)
+                if answer.lower() == 'y':
+                    os.remove(archive_name)
+                else:
+                    err = ("Archive file already exists at target location "
+                           "%r." % archive_name)
+                    raise IOError(err)
+
+            archive_name = op.join(path, archive_name)
             import urllib
             print "Downloading data, please Wait (1.3 GB)..."
             print url
@@ -57,10 +74,14 @@ def data_path(path='.', force_update=False):
             open(archive_name, 'wb').write(opener.read())
             print
 
+        if op.exists(folder_path):
+            shutil.rmtree(folder_path)
+
         import tarfile
         print "Decompressiong the archive: " + archive_name
         tarfile.open(archive_name, "r:gz").extractall(path=path)
-        print
+        if rm_archive:
+            os.remove(archive_name)
 
     path = op.join(path, folder_name)
 
