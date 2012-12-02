@@ -23,7 +23,7 @@ def data_path(path='.', force_update=False):
 
     Parameters
     ----------
-    dir : string
+    path : string
         Location of where to look for the sample dataset.
         If not found, the data will be automatically downloaded to
         the specified folder.
@@ -54,6 +54,7 @@ def data_path(path='.', force_update=False):
         elif op.exists(neurospin_path):
             archive_name = neurospin_path
         else:
+            archive_name = op.join(path, archive_name)
             rm_archive = True
             if op.exists(archive_name):
                 msg = ("Archive already exists at %r. Overwrite it "
@@ -66,7 +67,6 @@ def data_path(path='.', force_update=False):
                            "%r." % archive_name)
                     raise IOError(err)
 
-            archive_name = op.join(path, archive_name)
             import urllib
             print "Downloading data, please Wait (1.3 GB)..."
             print url
