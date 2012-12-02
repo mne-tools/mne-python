@@ -409,7 +409,7 @@ def test_filter():
 
 
 def test_resample():
-    """ Test resample (with I/O) """
+    """ Test resample (with I/O and multiple files) """
     raw = Raw(fif_fname, preload=True)
     raw_resamp = deepcopy(raw)
     sfreq = raw.info['sfreq']
@@ -431,6 +431,25 @@ def test_resample():
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
     assert_array_almost_equal(raw._data, raw_resamp._data)
+
+    # now check multiple file support w/resampling, as order of operations
+    # (concat, resample) should not affect our data
+    raw1 = deepcopy(raw)
+    raw2 = deepcopy(raw)
+    raw3 = deepcopy(raw)
+    raw4 = deepcopy(raw)
+    raw1 = concatenate_raws([raw1, raw2])
+    raw1.resample(10)
+    raw3.resample(10)
+    raw4.resample(10)
+    raw3 = concatenate_raws([raw3, raw4])
+    assert_array_equal(raw1._data, raw3._data)
+    assert_array_equal(raw1._first_samps, raw3._first_samps)
+    assert_array_equal(raw1._last_samps, raw3._last_samps)
+    assert_array_equal(raw1._raw_lengths, raw3._raw_lengths)
+    assert_equal(raw1.first_samp, raw3.first_samp)
+    assert_equal(raw1.last_samp, raw3.last_samp)
+    assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
 
 
 def test_hilbert():

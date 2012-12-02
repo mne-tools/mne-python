@@ -554,39 +554,44 @@ class Raw(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if self._preloaded:
-            o_sfreq = self.info['sfreq']
-            # resample each channel separately to save memory
-            if n_jobs == 1:
-                new_data = np.array([resample(d, sfreq, o_sfreq, npad, 0,
-                                              window) for d in self._data])
-            else:
-                # use parallel function
-                parallel, my_resample, _ = parallel_func(resample, n_jobs)
-                new_data = np.array(parallel(my_resample(d, sfreq, o_sfreq,
+        if not self._preloaded:
+            raise RuntimeError('Can only resample preloaded data')
+
+        o_sfreq = self.info['sfreq']
+        offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
+        new_data = list()
+        # set up stim channel processing
+        if stim_picks is None:
+            stim_picks = pick_types(self.info, meg=False, stim=True)
+        stim_picks = np.asanyarray(stim_picks)
+        ratio = sfreq / float(o_sfreq)
+        for ri in range(len(self._raw_lengths)):
+            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+            # use parallel function to resample each channel separately
+            # for speed and to save memory
+            parallel, my_resample, _ = parallel_func(resample, n_jobs)
+            new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
                                                           npad, 0)
-                                             for d in self._data))
+                                              for d in data_chunk)))
 
             # Now deal with the stim channels
-            if stim_picks is None:
-                stim_picks = pick_types(self.info, meg=False, stim=True)
-            stim_picks = np.asanyarray(stim_picks)
             if len(stim_picks) > 0:
                 # figure out which points in old data to subsample
-                ratio = float(o_sfreq) / sfreq
-                stim_inds = np.floor(np.arange(new_data.shape[1])
-                                               * ratio).astype(int)
+                stim_inds = np.floor(np.arange(new_data[ri].shape[1])
+                                               / ratio).astype(int)
                 for sp in stim_picks:
-                    new_data[sp] = self._data[sp][stim_inds]
+                    new_data[ri][sp] = data_chunk[sp][:, stim_inds]
 
-            # adjust affected variables
-            self._data = new_data
-            self.info['sfreq'] = sfreq
-            ratio = sfreq / float(o_sfreq)
-            self.first_samp = int(self.first_samp * ratio)
-            self.last_samp = self.first_samp + self._data.shape[1] - 1
-        else:
-            raise RuntimeError('Can only resample preloaded data')
+            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
+            self._last_samps[ri] = self._first_samps[ri] + \
+                                   new_data[ri].shape[1] - 1
+            self._raw_lengths[ri] = new_data[ri].shape[1]
+
+        # adjust affected variables
+        self._data = np.concatenate(new_data, axis=1)
+        self.first_samp = self._first_samps[0]
+        self.last_samp = self.first_samp + self._data.shape[1] - 1
+        self.info['sfreq'] = sfreq
 
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.
@@ -1337,7 +1342,7 @@ def _check_raw_compatibility(raw):
         if not raw[ri].info['bads'] == raw[0].info['bads']:
             raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
         if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
-            raise ValueError('ra[%d][\'info\'][\'sfreq\'] must match' % ri)
+            raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) \
                    == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
