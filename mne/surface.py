@@ -293,7 +293,26 @@ def read_surface(filepath):
 
 
 def write_surface(fname, coords, faces, create_stamp=''):
-    """Write a Freesurfer surface mesh in triangular format."""
+    """Write a triangular Freesurfer surface mesh (same data format
+    as returned by read_surface()).
+
+    Parameters
+    ----------
+    fname : str
+        File to write.
+
+    coords : array [n by 3]
+        Coordinate points.
+
+    faces : int array [m by 3]
+        Triangulation (each line contains indexes for three points which
+        together form a face).
+
+    create_stamp : str
+        Comment that is written to the beginning of the file. Can not contain
+        line breaks.
+
+    """
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
