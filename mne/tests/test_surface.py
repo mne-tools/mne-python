@@ -1,12 +1,11 @@
 import os
 import os.path as op
 
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne.datasets import sample
 from mne import read_bem_surfaces, write_bem_surface, read_surface, \
                 write_surface
-from numpy.ma.testutils import assert_array_equal
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
