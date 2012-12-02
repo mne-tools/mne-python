@@ -464,43 +464,42 @@ def write_evoked(fname, evoked):
         evoked = [evoked]
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_file(fname) as fid:
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_id(fid, FIFF.FIFF_BLOCK_ID)
+        if evoked[0].info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
 
-    start_block(fid, FIFF.FIFFB_MEAS)
-    write_id(fid, FIFF.FIFF_BLOCK_ID)
-    if evoked[0].info['meas_id'] is not None:
-        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
+        # Write measurement info
+        write_meas_info(fid, evoked[0].info)
 
-    # Write measurement info
-    write_meas_info(fid, evoked[0].info)
+        # One or more evoked data sets
+        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        for e in evoked:
+            start_block(fid, FIFF.FIFFB_EVOKED)
 
-    # One or more evoked data sets
-    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-    for e in evoked:
-        start_block(fid, FIFF.FIFFB_EVOKED)
+            # Comment is optional
+            if len(e.comment) > 0:
+                write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-        # Comment is optional
-        if len(e.comment) > 0:
-            write_string(fid, FIFF.FIFF_COMMENT, e.comment)
+            # First and last sample
+            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
+            write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
-        # First and last sample
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
+            # The epoch itself
+            start_block(fid, FIFF.FIFFB_ASPECT)
 
-        # The epoch itself
-        start_block(fid, FIFF.FIFFB_ASPECT)
+            write_int(fid, FIFF.FIFF_ASPECT_KIND, e.aspect_kind)
+            write_int(fid, FIFF.FIFF_NAVE, e.nave)
 
-        write_int(fid, FIFF.FIFF_ASPECT_KIND, e.aspect_kind)
-        write_int(fid, FIFF.FIFF_NAVE, e.nave)
+            decal = np.zeros((e.info['nchan'], e.info['nchan']))
+            for k in range(e.info['nchan']):
+                decal[k, k] = 1.0 / e.info['chs'][k]['cal']
 
-        decal = np.zeros((e.info['nchan'], e.info['nchan']))
-        for k in range(e.info['nchan']):
-            decal[k, k] = 1.0 / e.info['chs'][k]['cal']
+            write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, e.data))
+            end_block(fid, FIFF.FIFFB_ASPECT)
+            end_block(fid, FIFF.FIFFB_EVOKED)
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, e.data))
-        end_block(fid, FIFF.FIFFB_ASPECT)
-        end_block(fid, FIFF.FIFFB_EVOKED)
-
-    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-    end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
+        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        end_block(fid, FIFF.FIFFB_MEAS)
+        end_file(fid)

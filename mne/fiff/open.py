@@ -51,7 +51,9 @@ def fiff_open(fname, preload=False, verbose=None):
     if preload:
         # note that cStringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid = cStringIO.StringIO(fid.read())
+        fid_new = cStringIO.StringIO(fid.read())
+        fid.close()
+        fid = fid_new
 
     tag = read_tag_info(fid)
 

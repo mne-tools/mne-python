@@ -656,52 +656,51 @@ class Epochs(object):
             The name of the file.
         """
         # Create the file and save the essentials
-        fid = start_file(fname)
+        with start_file(fname) as fid:
+            start_block(fid, FIFF.FIFFB_MEAS)
+            write_id(fid, FIFF.FIFF_BLOCK_ID)
+            if self.info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
 
-        start_block(fid, FIFF.FIFFB_MEAS)
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
+            # Write measurement info
+            write_meas_info(fid, self.info)
 
-        # Write measurement info
-        write_meas_info(fid, self.info)
+            # One or more evoked data sets
+            start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+            start_block(fid, FIFF.FIFFB_EPOCHS)
 
-        # One or more evoked data sets
-        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        start_block(fid, FIFF.FIFFB_EPOCHS)
+            start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+            end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            # First and last sample
+            first = -int(np.sum(self.times < 0))
+            last = int(np.sum(self.times > 0))
+            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
+            write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
 
-        # First and last sample
-        first = -int(np.sum(self.times < 0))
-        last = int(np.sum(self.times > 0))
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+            # save baseline
+            if self.baseline is not None:
+                bmin, bmax = self.baseline
+                bmin = self.times[0] if bmin is None else bmin
+                bmax = self.times[-1] if bmax is None else bmax
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
 
-        # save baseline
-        if self.baseline is not None:
-            bmin, bmax = self.baseline
-            bmin = self.times[0] if bmin is None else bmin
-            bmax = self.times[-1] if bmax is None else bmax
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+            # The epochs itself
+            decal = np.empty(self.info['nchan'])
+            for k in range(self.info['nchan']):
+                decal[k] = 1.0 / self.info['chs'][k]['cal']
 
-        # The epochs itself
-        decal = np.empty(self.info['nchan'])
-        for k in range(self.info['nchan']):
-            decal[k] = 1.0 / self.info['chs'][k]['cal']
+            data = self.get_data()
+            data *= decal[None, :, None]
 
-        data = self.get_data()
-        data *= decal[None, :, None]
+            write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+            end_block(fid, FIFF.FIFFB_EPOCHS)
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-        end_block(fid, FIFF.FIFFB_EPOCHS)
-
-        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
+            end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+            end_block(fid, FIFF.FIFFB_MEAS)
+            end_file(fid)
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames

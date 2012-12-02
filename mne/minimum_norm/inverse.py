@@ -293,82 +293,80 @@ def write_inverse_operator(fname, inv, verbose=None):
     logger.info('Write inverse operator decomposition in %s...' % fname)
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_file(fname) as fid:
+        start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
-    start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+        logger.info('    Writing inverse operator info...')
 
-    logger.info('    Writing inverse operator info...')
+        write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
+        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+        write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
+                           inv['source_nn'])
+        write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
 
-    write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
-    write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
-                       inv['source_nn'])
-    write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
+        #
+        #   The eigenleads and eigenfields
+        #
+        if inv['eigen_leads_weighted']:
+            write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
+                               _transpose_named_matrix(inv['eigen_leads']))
+        else:
+            write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
+                               _transpose_named_matrix(inv['eigen_leads']))
 
-    #
-    #   The eigenleads and eigenfields
-    #
-    if inv['eigen_leads_weighted']:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED,
-                           _transpose_named_matrix(inv['eigen_leads']))
-    else:
-        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
-                           _transpose_named_matrix(inv['eigen_leads']))
+        write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS,
+                           inv['eigen_fields'])
+        logger.info('[done]')
+        #
+        #   write the covariance matrices
+        #
+        logger.info('    Writing noise covariance matrix.')
+        write_cov(fid, inv['noise_cov'])
 
-    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    logger.info('[done]')
-    #
-    #   write the covariance matrices
-    #
-    logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
+        logger.info('    Writing source covariance matrix.')
+        write_cov(fid, inv['source_cov'])
+        #
+        #   write the various priors
+        #
+        logger.info('    Writing orientation priors.')
+        if inv['orient_prior'] is not None:
+            write_cov(fid, inv['orient_prior'])
+        write_cov(fid, inv['depth_prior'])
 
-    logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
-    #
-    #   write the various priors
-    #
-    logger.info('    Writing orientation priors.')
-    if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
-    write_cov(fid, inv['depth_prior'])
+        if inv['fmri_prior'] is not None:
+            write_cov(fid, inv['fmri_prior'])
 
-    if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
+        #
+        #   Parent MRI data
+        #
+        start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        #   write the MRI <-> head coordinate transformation
+        write_coord_trans(fid, inv['mri_head_t'])
+        end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
-    #
-    #   Parent MRI data
-    #
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    #   write the MRI <-> head coordinate transformation
-    write_coord_trans(fid, inv['mri_head_t'])
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        #
+        #   Parent MEG measurement info
+        #
+        write_forward_meas_info(fid, inv['info'])
 
-    #
-    #   Parent MEG measurement info
-    #
-    write_forward_meas_info(fid, inv['info'])
+        #
+        #   Write the source spaces
+        #
+        if 'src' in inv:
+            write_source_spaces(fid, inv['src'])
 
-    #
-    #   Write the source spaces
-    #
-    if 'src' in inv:
-        write_source_spaces(fid, inv['src'])
+        #
+        #  We also need the SSP operator
+        #
+        write_proj(fid, inv['projs'])
+        #
+        #   Done!
+        #
 
-    #
-    #  We also need the SSP operator
-    #
-    write_proj(fid, inv['projs'])
-    #
-    #   Done!
-    #
-
-    end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
-    end_file(fid)
-
-    fid.close()
+        end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+        end_file(fid)
 
 
 ###############################################################################

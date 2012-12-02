@@ -233,8 +233,7 @@ class Raw(object):
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])
         for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * \
-                      info['chs'][k]['cal']
+            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
         raw.cals = cals
         raw.rawdir = rawdir
@@ -681,7 +680,7 @@ class Raw(object):
         fname = op.abspath(fname)
         if fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
-                               ' Please use a different filename.')
+                             ' Please use a different filename.')
 
         if self._preloaded:
             if np.iscomplexobj(self._data):
@@ -1007,7 +1006,7 @@ class _RawShell():
 
 @verbose
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
-    verbose=None, proj=None):
+                     verbose=None, proj=None):
     """Read a chunck of raw data
 
     Parameters
@@ -1345,7 +1344,7 @@ def _check_raw_compatibility(raw):
         if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
             raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) \
-                   == set(raw[0].info['ch_names']):
+                == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)

@@ -311,22 +311,21 @@ def read_label(filename):
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
     """
-    fid = open(filename, 'r')
-    comment = fid.readline().replace('\n', '')[1:]
-    nv = int(fid.readline())
-    data = np.empty((5, nv))
-    for i, line in enumerate(fid):
-        data[:, i] = line.split()
+    with open(filename, 'r') as fid:
+        comment = fid.readline().replace('\n', '')[1:]
+        nv = int(fid.readline())
+        data = np.empty((5, nv))
+        for i, line in enumerate(fid):
+            data[:, i] = line.split()
 
-    basename = os.path.basename(filename)
-    if basename.endswith('lh.label') or basename.startswith('lh.'):
-        hemi = 'lh'
-    elif basename.endswith('rh.label') or basename.startswith('rh.'):
-        hemi = 'rh'
-    else:
-        raise ValueError('Cannot find which hemisphere it is. File should end'
-                         ' with lh.label or rh.label')
-    fid.close()
+        basename = os.path.basename(filename)
+        if basename.endswith('lh.label') or basename.startswith('lh.'):
+            hemi = 'lh'
+        elif basename.endswith('rh.label') or basename.startswith('rh.'):
+            hemi = 'rh'
+        else:
+            raise ValueError('Cannot find which hemisphere it is. File should '
+                             'end with lh.label or rh.label')
 
     label = Label(vertices=np.array(data[0], dtype=np.int32),
                   pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
@@ -359,16 +358,16 @@ def write_label(filename, label, verbose=None):
 
     logger.info('Saving label to : %s' % filename)
 
-    fid = open(filename, 'wb')
-    n_vertices = len(label.vertices)
-    data = np.zeros((n_vertices, 5), dtype=np.float)
-    data[:, 0] = label.vertices
-    data[:, 1:4] = 1e3 * label.pos
-    data[:, 4] = label.values
-    fid.write("#%s\n" % label.comment)
-    fid.write("%d\n" % n_vertices)
-    for d in data:
-        fid.write("%d %f %f %f %f\n" % tuple(d))
+    with open(filename, 'wb') as fid:
+        n_vertices = len(label.vertices)
+        data = np.zeros((n_vertices, 5), dtype=np.float)
+        data[:, 0] = label.vertices
+        data[:, 1:4] = 1e3 * label.pos
+        data[:, 4] = label.values
+        fid.write("#%s\n" % label.comment)
+        fid.write("%d\n" % n_vertices)
+        for d in data:
+            fid.write("%d %f %f %f %f\n" % tuple(d))
 
     return label
 

@@ -118,9 +118,10 @@ def read_events(filename, include=None, exclude=None):
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
-        fid, tree, _ = fiff_open(filename)
-        event_list = _read_events_fif(fid, tree)
-        fid.close()
+        f, tree, _ = fiff_open(filename)
+        with f as fid:
+            event_list = _read_events_fif(fid, tree)
+            fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
@@ -165,17 +166,14 @@ def write_events(filename, event_list):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...
-        fid = start_file(filename)
-
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
-        end_file(fid)
+        with start_file(filename) as fid:
+            start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, event_list.T)
+            end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            end_file(fid)
     else:
-        f = open(filename, 'w')
-        [f.write('%6d %6d %3d\n' % tuple(e)) for e in event_list]
-        f.close()
+        with open(filename, 'w') as f:
+            [f.write('%6d %6d %3d\n' % tuple(e)) for e in event_list]
 
 
 @verbose

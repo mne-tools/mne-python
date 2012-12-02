@@ -43,9 +43,9 @@ def write_proj(fname, projs):
     projs: list
         The list of projection vectors.
     """
-    fid = fiff.write.start_file(fname)
-    fiff.proj.write_proj(fid, projs)
-    fiff.write.end_file(fid)
+    with fiff.write.start_file(fname) as fid:
+        fiff.proj.write_proj(fid, projs)
+        fiff.write.end_file(fid)
 
 
 @verbose
