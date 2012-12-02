@@ -75,7 +75,7 @@ def write_float_matrix(fid, kind, mat):
     FIFFT_MATRIX = 1 << 30
     FIFFT_MATRIX_FLOAT = FIFF.FIFFT_FLOAT | FIFFT_MATRIX
 
-    data_size = 4 * mat.size + 4 * 3
+    data_size = 4 * mat.size + 4 * (mat.ndim + 1)
 
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_MATRIX_FLOAT, dtype='>i4').tostring())
@@ -83,10 +83,9 @@ def write_float_matrix(fid, kind, mat):
     fid.write(np.array(FIFF.FIFFV_NEXT_SEQ, dtype='>i4').tostring())
     fid.write(np.array(mat, dtype='>f4').tostring())
 
-    dims = np.empty(3, dtype=np.int32)
-    dims[0] = mat.shape[1]
-    dims[1] = mat.shape[0]
-    dims[2] = 2
+    dims = np.empty(mat.ndim + 1, dtype=np.int32)
+    dims[:mat.ndim] = mat.shape[::-1]
+    dims[-1] = mat.ndim
     fid.write(np.array(dims, dtype='>i4').tostring())
 
 

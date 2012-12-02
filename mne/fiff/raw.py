@@ -9,6 +9,7 @@ from math import floor, ceil
 import copy
 import warnings
 import os
+import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
@@ -75,7 +76,9 @@ class Raw(object):
                  verbose=None, proj_active=False):
 
         if not isinstance(fnames, list):
-            fnames = [fnames]
+            fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
+        else:
+            fnames = [op.abspath(f) if not op.isabs(f) else f for f in fnames]
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload)
                 for fname in fnames]
@@ -597,7 +600,8 @@ class Raw(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if any([fname == f for f in self.info['filenames']]):
+        fname = op.abspath(fname)
+        if fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 

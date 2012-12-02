@@ -14,13 +14,21 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger('mne')
 
-import fiff
+from . import fiff
+from .fiff.write import start_file, start_block, end_file, end_block, \
+                    write_int, write_float_matrix, write_float, \
+                    write_id
+from .fiff.meas_info import read_meas_info, write_meas_info
+from .fiff.open import fiff_open
+from .fiff.tree import dir_tree_find
+from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
 from .fiff.pick import pick_types, channel_indices_by_type
 from .fiff.proj import setup_proj
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample
+from .event import _read_events_fif
 from . import verbose
 
 
@@ -146,6 +154,9 @@ class Epochs(object):
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
                  decim=1, verbose=None):
+        if raw is None:
+            return
+
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -636,6 +647,63 @@ class Epochs(object):
         new.raw = raw
         return new
 
+    def save(self, fname):
+        """Save epochs in a fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the file.
+        """
+        # Create the file and save the essentials
+        fid = start_file(fname)
+
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_id(fid, FIFF.FIFF_BLOCK_ID)
+        if self.info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
+
+        # Write measurement info
+        write_meas_info(fid, self.info)
+
+        # One or more evoked data sets
+        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        start_block(fid, FIFF.FIFFB_EPOCHS)
+
+        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
+        # First and last sample
+        first = -int(np.sum(self.times < 0))
+        last = int(np.sum(self.times > 0))
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
+        write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+
+        # save baseline
+        if self.baseline is not None:
+            bmin, bmax = self.baseline
+            bmin = self.times[0] if bmin is None else bmin
+            bmax = self.times[-1] if bmax is None else bmax
+            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+
+        # The epochs itself
+        decal = np.empty(self.info['nchan'])
+        for k in range(self.info['nchan']):
+            decal[k] = 1.0 / self.info['chs'][k]['cal']
+
+        data = self.get_data()
+        data *= decal[None, :, None]
+
+        write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+        end_block(fid, FIFF.FIFFB_EPOCHS)
+
+        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        end_block(fid, FIFF.FIFFB_MEAS)
+        end_file(fid)
+
+
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
 
@@ -846,6 +914,126 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             return True, None
         else:
             return False, bad_list
+
+
+@verbose
+def read_epochs(fname, proj=True, verbose=None):
+    """Read epochs from a fif file
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file.
+    proj : bool, optional
+        Apply SSP projection vectors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The epochs
+    """
+    epochs = Epochs(None, None, None, None, None)
+
+    logger.info('Reading %s ...' % fname)
+    fid, tree, _ = fiff_open(fname)
+
+    #   Read the measurement info
+    info, meas = read_meas_info(fid, tree)
+    info['filename'] = fname
+
+    events = _read_events_fif(fid, tree)
+
+    #   Locate the data of interest
+    processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+    if len(processed) == 0:
+        fid.close()
+        raise ValueError('Could not find processed data')
+
+    epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
+    if len(epochs_node) == 0:
+        fid.close()
+        raise ValueError('Could not find epochs data')
+
+    my_epochs = epochs_node[0]
+
+    # Now find the data in the block
+    comment = None
+    data = None
+    bmin, bmax = None, None
+
+    for k in range(my_epochs['nent']):
+        kind = my_epochs['directory'][k].kind
+        pos = my_epochs['directory'][k].pos
+        if kind == FIFF.FIFF_FIRST_SAMPLE:
+            tag = read_tag(fid, pos)
+            first = int(tag.data)
+        elif kind == FIFF.FIFF_LAST_SAMPLE:
+            tag = read_tag(fid, pos)
+            last = int(tag.data)
+        elif kind == FIFF.FIFF_COMMENT:
+            tag = read_tag(fid, pos)
+            comment = tag.data
+        elif kind == FIFF.FIFF_EPOCH:
+            tag = read_tag(fid, pos)
+            data = tag.data
+        elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
+            tag = read_tag(fid, pos)
+            bmin = float(tag.data)
+        elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+            tag = read_tag(fid, pos)
+            bmax = float(tag.data)
+
+    if bmin is not None or bmax is not None:
+        baseline = (bmin, bmax)
+
+    nsamp = last - first + 1
+    logger.info('    Found the data of interest:')
+    logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                % (1000 * first / info['sfreq'],
+                   1000 * last / info['sfreq'], comment))
+    if info['comps'] is not None:
+        logger.info('        %d CTF compensation matrices available'
+                                               % len(info['comps']))
+
+    # Read the data
+    if data is None:
+        raise ValueError('Epochs data not found')
+
+    if data.shape[2] != nsamp:
+        fid.close()
+        raise ValueError('Incorrect number of samples (%d instead of %d)'
+                          % (data.shape[2], nsamp))
+
+    # Calibrate
+    cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
+    data = cals[None, :, None] * data
+
+    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
+    tmin = times[0]
+    tmax = times[-1]
+
+    # Put it all together
+    epochs.preload = True
+    epochs._bad_dropped = True
+    epochs.events = events
+    epochs._data = data
+    epochs.info = info
+    epochs.tmin = tmin
+    epochs.tmax = tmax
+    epochs.name = comment
+    epochs.times = times
+    epochs.data = data
+    epochs.proj = proj
+    epochs._projector, epochs.info = setup_proj(info)
+    epochs.ch_names = info['ch_names']
+    epochs.baseline = baseline
+    epochs.event_id = int(np.unique(events[:, 2]))
+    fid.close()
+
+    return epochs
 
 
 def bootstrap(epochs, random_state=None):

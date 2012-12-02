@@ -833,10 +833,52 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
+def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
+                              label=None, nave=1, pick_normal=False, dSPM=None,
+                              verbose=None):
+    """ see apply_inverse_epochs """
+    method = _check_method(method, dSPM)
+
+    _chech_ch_names(inverse_operator, epochs.info)
+
+    #
+    #   Set up the inverse according to the parameters
+    #
+    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    #
+    #   Pick the correct channels from the data
+    #
+    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    logger.info('Computing inverse...')
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+
+    tstep = 1.0 / epochs.info['sfreq']
+    tmin = epochs.times[0]
+
+    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+                   and not pick_normal)
+
+    for k, e in enumerate(epochs):
+        logger.info("Processing epoch : %d" % (k + 1))
+        sol = np.dot(K, e[sel])  # apply imaging kernel
+
+        if is_free_ori:
+            logger.info('combining the current components...')
+            sol = combine_xyz(sol)
+
+        if noise_norm is not None:
+            sol *= noise_norm
+
+        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+
+    logger.info('[done]')
+
+
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_normal=False, dSPM=None,
-                         verbose=None):
+                         return_generator=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -861,6 +903,9 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -869,43 +914,15 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stc : list of SourceEstimate
         The source estimates for all epochs.
     """
-    method = _check_method(method, dSPM)
 
-    _chech_ch_names(inverse_operator, epochs.info)
+    stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
+                                     method=method, label=label, nave=nave,
+                                     pick_normal=pick_normal, dSPM=dSPM,
+                                     verbose=verbose)
 
-    #
-    #   Set up the inverse according to the parameters
-    #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
-    #
-    #   Pick the correct channels from the data
-    #
-    sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
-    logger.info('Picked %d channels from the data' % len(sel))
-    logger.info('Computing inverse...')
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
-
-    stcs = list()
-    tstep = 1.0 / epochs.info['sfreq']
-    tmin = epochs.times[0]
-
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
-
-    for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d" % (k + 1))
-        sol = np.dot(K, e[sel])  # apply imaging kernel
-
-        if is_free_ori:
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-
-        if noise_norm is not None:
-            sol *= noise_norm
-
-        stcs.append(SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep))
-
-    logger.info('[done]')
+    if not return_generator:
+        # return a list
+        stcs = [stc for stc in stcs]
 
     return stcs
 

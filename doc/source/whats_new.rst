@@ -59,6 +59,10 @@ Changelog
 
    - Transparent I/O of gzipped fif files (as .fif.gz) by `Eric Larson`_
 
+   - Spectral connectivity estimation in sensor and source space by `Martin Luessi`_
+
+   - Read and write Epochs in FIF files by  `Alex Gramfort`_
+
 API
 ~~~
    - Added nave parameter to source_induced_power() and source_band_induced_power(), use nave=1 by default (wrong nave was used before).

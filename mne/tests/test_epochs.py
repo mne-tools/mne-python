@@ -11,7 +11,7 @@ import copy as cp
 import warnings
 
 from mne import fiff, Epochs, read_events, pick_events, \
-                equalize_epoch_counts, find_events
+                equalize_epoch_counts, find_events, read_epochs
 from mne.epochs import bootstrap
 
 try:
@@ -41,8 +41,8 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 
-def test_read_epochs():
-    """Test reading epochs from raw files
+def test_read_write_epochs():
+    """Test epochs from raw files with IO as fif file
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
@@ -77,6 +77,25 @@ def test_read_epochs():
     n_dec_min = n // 4
     assert_true(n_dec_min <= n_dec <= n_dec_min + 1)
     assert_true(evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
+
+    # test IO
+    epochs.save('test-epo.fif')
+    epochs_read = read_epochs('test-epo.fif')
+
+    assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
+    assert_array_equal(epochs_read.times, epochs.times)
+    assert_array_almost_equal(epochs_read.average().data, evoked.data)
+    assert_equal(epochs_read.proj, epochs.proj)
+    bmin, bmax = epochs.baseline
+    if bmin is None:
+        bmin = epochs.times[0]
+    if bmax is None:
+        bmax = epochs.times[-1]
+    baseline = (bmin, bmax)
+    assert_array_almost_equal(epochs_read.baseline, baseline)
+    assert_array_almost_equal(epochs_read.tmin, epochs.tmin, 2)
+    assert_array_almost_equal(epochs_read.tmax, epochs.tmax, 2)
+    assert_equal(epochs_read.event_id, epochs.event_id)
 
 
 def test_epochs_proj():

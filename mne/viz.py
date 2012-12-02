@@ -151,6 +151,51 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
+def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
+                  vmax=None, cmap=None, layout_scale=0.945):
+    """Plot time-frequency data on sensor layout
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    tfr : 3D-array shape=(n_sensors, n_freqs, n_times)
+        The time-frequency data. Must have the same channels as Epochs.
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout: instance of Layout
+        System specific sensor positions
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        minimum value mapped to lowermost color
+    vmax : float
+        minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of time-frequency data at sensor locations
+    """
+
+    if vmin is None:
+        vmin = tfr.min()
+    if vmax is None:
+        vmax = tfr.max()
+
+    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
+
+    fig = _plot_topo_imshow(epochs, tfr_imshow, layout, decim=1,
+                            colorbar=colorbar, vmin=vmin, vmax=vmax,
+                            cmap=cmap, layout_scale=layout_scale)
+    return fig
+
+
 def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
                     decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
                     layout_scale=0.945, dB=True):

@@ -58,6 +58,7 @@ Functions reference
    write_bem_surface
    read_source_spaces
    vertex_to_mni
+   read_epochs
    equalize_epoch_counts
    read_stc
    write_stc
@@ -212,6 +213,19 @@ Functions reference
    yule_walker
    ar_raw
    iir_filter_raw
+
+.. automodule:: mne.connectivity
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.connectivity
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   spectral_connectivity
+   seed_target_indices
 
 .. automodule:: mne.simulation
  :no-members:
