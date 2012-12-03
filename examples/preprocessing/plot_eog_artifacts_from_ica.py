@@ -21,7 +21,7 @@ import pylab as pl
 
 import mne
 from mne.fiff import Raw, pick_types
-from mne.artifacts.ica import ICA, ica_find_eog_events
+from mne.preprocessing.ica import ICA, ica_find_eog_events
 from mne.datasets import sample
 
 data_path = sample.data_path('..')

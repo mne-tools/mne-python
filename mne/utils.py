@@ -17,6 +17,8 @@ import sys
 
 # Following deprecated class copied from scikit-learn
 
+# force show of DeprecationWarning even on python 2.7
+warnings.simplefilter('default')
 
 class deprecated(object):
     """Decorator to mark a function or class as deprecated.

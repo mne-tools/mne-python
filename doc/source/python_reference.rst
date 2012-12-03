@@ -22,7 +22,7 @@ Classes reference
    mne.SourceEstimate
    mne.Label
    mne.BiHemiLabel
-   mne.artifacts.ICA
+   mne.preprocessing.ICA
 
 Functions reference
 ===================
@@ -181,16 +181,18 @@ Functions reference
    plot_topo_image_epochs
    mne_analyze_colormap
 
-.. automodule:: mne.artifacts
+.. automodule:: mne.preprocessing
  :no-members:
  :no-inherited-members:
 
-.. currentmodule:: mne.artifacts
+.. currentmodule:: mne.preprocessing
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
+   compute_proj_ecg
+   compute_proj_eog
    find_eog_events
    find_ecg_events
    ica_find_eog_events
