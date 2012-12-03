@@ -5,6 +5,8 @@ import logging
 logger = logging.getLogger('mne')
 
 from .. import verbose
+from .. utils import deprecated
+
 
 @verbose
 def peak_finder(x0, thresh=None, extrema=1, verbose=None):

@@ -1,6 +1,6 @@
 from numpy.testing import assert_array_equal
 
-from mne.artifacts.peak_finder import peak_finder
+from mne.preprocessing.peak_finder import peak_finder
 
 
 def test_peak_finder():

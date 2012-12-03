@@ -56,7 +56,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
     print 'Implementing ECG and EOG artifact rejection on data'
 
     if ecg:
-        ecg_events, _, _  = mne.artifacts.find_ecg_events(raw_in)
+        ecg_events, _, _  = mne.preprocessing.find_ecg_events(raw_in)
         print "Writing ECG events in %s" % ecg_event_fname
         mne.write_events(ecg_event_fname, ecg_events)
 
@@ -73,7 +73,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
             print "Error while running : %s" % command
 
     if eog:
-        eog_events = mne.artifacts.find_eog_events(raw_in)
+        eog_events = mne.preprocessing.find_eog_events(raw_in)
         print "Writing EOG events in %s" % eog_event_fname
         mne.write_events(eog_event_fname, eog_events)
 

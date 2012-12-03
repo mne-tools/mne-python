@@ -51,7 +51,6 @@ if __name__ == "__main__":
              ],
          platforms='any',
          packages=['mne', 'mne.tests',
-                   'mne.artifacts', 'mne.artifacts.tests',
                    'mne.beamformer', 'mne.beamformer.tests',
                    'mne.connectivity', 'mne.connectivity.tests',
                    'mne.data',

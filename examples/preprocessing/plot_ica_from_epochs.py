@@ -19,7 +19,7 @@ import matplotlib.pylab as pl
 import numpy as np
 import mne
 from mne.fiff import Raw
-from mne.artifacts.ica import ICA
+from mne.preprocessing.ica import ICA
 from mne.datasets import sample
 
 ###############################################################################
