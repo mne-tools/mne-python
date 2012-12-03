@@ -74,7 +74,6 @@ con[np.where(indices[1] == seed)] = 1.0
 # Show topography of connectivity from seed
 import pylab as pl
 layout = read_layout('Vectorview-all')
-plot_topo_tfr(epochs, con, freqs, layout)
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
-pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
+plot_topo_tfr(epochs, con, freqs, layout, title=title)
 pl.show()

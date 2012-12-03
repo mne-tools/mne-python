@@ -25,6 +25,10 @@ from .fiff.proj import make_projector, activate_proj
 from . import verbose
 
 
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
+          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
+
+
 def _clean_names(names):
     """ Remove white-space on topo matching
 
@@ -46,25 +50,415 @@ def _clean_names(names):
     return [n.replace(' ', '') if ' ' in n else n for n in names]
 
 
-def plot_topo(evoked, layout):
-    """Plot 2D topographies
-    """
-    ch_names = _clean_names(evoked.info['ch_names'])
-    times = evoked.times
-    data = evoked.data
-
+def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
+               cmap, layout_scale, title=None, x_label=None, y_label=None):
+    """Helper function to plot on sensor layout"""
     import pylab as pl
-    pl.rcParams['axes.edgecolor'] = 'w'
-    pl.figure(facecolor='k')
-    for name in _clean_names(layout.names):
-        if name in ch_names:
-            idx = ch_names.index(name)
-            ax = pl.axes(layout.pos[idx], axisbg='k')
-            ax.plot(times, data[idx, :], 'w')
-            pl.xticks([], ())
-            pl.yticks([], ())
+    orig_facecolor = pl.rcParams['axes.facecolor']
+    orig_edgecolor = pl.rcParams['axes.edgecolor']
+    try:
+        if cmap is None:
+            cmap = pl.cm.jet
+        ch_names = _clean_names(info['ch_names'])
+        pl.rcParams['axes.facecolor'] = 'k'
+        fig = pl.figure(facecolor='k')
+        pos = layout.pos.copy()
+        tmin, tmax = times[0], times[-1]
+        if colorbar:
+            pos[:, :2] *= layout_scale
+            pl.rcParams['axes.edgecolor'] = 'k'
+            sm = pl.cm.ScalarMappable(cmap=cmap,
+                                      norm=pl.normalize(vmin=vmin, vmax=vmax))
+            sm.set_array(np.linspace(vmin, vmax))
+            ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+            cb = fig.colorbar(sm, ax=ax)
+            cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
+            pl.setp(cb_yticks, color='w')
+        pl.rcParams['axes.edgecolor'] = 'w'
+        for idx, name in enumerate(_clean_names(layout.names)):
+            if name in ch_names:
+                ax = pl.axes(pos[idx], axisbg='k')
+                ch_idx = ch_names.index(name)
+                # hack to inlcude channel idx and name, to use in callback
+                ax.__dict__['_mne_ch_name'] = name
+                ax.__dict__['_mne_ch_idx'] = ch_idx
+                show_func(ax, ch_idx, tmin, tmax, vmin, vmax)
+                pl.xticks([], ())
+                pl.yticks([], ())
 
-    pl.rcParams['axes.edgecolor'] = 'k'
+        # register callback
+        callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
+                           tmax=tmax, vmin=vmin, vmax=vmax, colorbar=colorbar,
+                           title=title, x_label=x_label, y_label=y_label)
+
+        fig.canvas.mpl_connect('pick_event', callback)
+
+        if title is not None:
+            pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
+
+    finally:
+        # Revert global pylab config
+        pl.rcParams['axes.facecolor'] = orig_facecolor
+        pl.rcParams['axes.edgecolor'] = orig_edgecolor
+
+    return fig
+
+
+def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
+                      vmin=None, vmax=None, colorbar=False, title=None,
+                      x_label=None, y_label=None):
+    """Onpick callback that shows a single channel in a new figure"""
+    artist = event.artist
+    try:
+        import pylab as pl
+        ch_idx = artist.axes._mne_ch_idx
+        pl.figure()
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax)
+        if colorbar:
+            pl.colorbar()
+        if title is not None:
+            pl.title(title + ' ' + artist.axes._mne_ch_name)
+        else:
+            pl.title(artist.axes._mne_ch_name)
+        if x_label is not None:
+            pl.xlabel(x_label)
+        if y_label is not None:
+            pl.ylabel(y_label)
+    except Exception as err:
+        # matplotlib silently ignores exceptions in event handlers, so we print
+        # it here to know what went wrong
+        print err
+        raise err
+
+
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
+    """ Aux function to show time-freq map on topo """
+    extent = (tmin, tmax, freq[0], freq[-1])
+    ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
+              vmin=vmin, vmax=vmax, picker=True)
+
+
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data=None):
+    """ Aux function to show time series on topo """
+    import pylab as pl
+    line_color = pl.rcParams['axes.edgecolor']
+    times = np.linspace(tmin, tmax, data.shape[1])
+    # use large tol for picker so we can click anywhere in the axes
+    ax.plot(times, data[ch_idx], line_color, picker=1e9)
+
+
+def plot_topo(evoked, layout, layout_scale=0.945, title=None):
+    """Plot 2D topography of evoked responses.
+
+    Clicking on the plot of an individual sensor opens a new figure showing
+    the evoked response for the selected sensor.
+
+    Parameters
+    ----------
+    evoked : Evoked
+        The evoked response to plot.
+    layout : instance of Layout
+        System specific sensor positions
+    layout_scale: float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas
+    title : str
+        Title of the figure.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of evoked responses at sensor locations
+    """
+
+    plot_fun = partial(_plot_timeseries, data=evoked.data)
+
+    fig = _plot_topo(evoked.info, evoked.times, plot_fun, layout,
+                     decim=1, colorbar=False, vmin=0, vmax=0,
+                     cmap=None, layout_scale=layout_scale, title=title,
+                     x_label='Time (s)')
+    return fig
+
+
+def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
+                  vmax=None, cmap=None, layout_scale=0.945, title=None):
+    """Plot time-frequency data on sensor layout
+
+    Clicking on the time-frequency map of an individual sensor opens a
+    new figure showing the time-frequency map of the selected sensor.
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    tfr : 3D-array shape=(n_sensors, n_freqs, n_times)
+        The time-frequency data. Must have the same channels as Epochs.
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout : instance of Layout
+        System specific sensor positions
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        Minimum value mapped to lowermost color
+    vmax : float
+        Minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale: float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas
+    title : str
+        Title of the figure.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of time-frequency data at sensor locations
+    """
+
+    if vmin is None:
+        vmin = tfr.min()
+    if vmax is None:
+        vmax = tfr.max()
+
+    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
+
+    fig = _plot_topo(epochs.info, epochs.times, tfr_imshow, layout,
+                     decim=1, colorbar=colorbar, vmin=vmin, vmax=vmax,
+                     cmap=cmap, layout_scale=layout_scale, title=title,
+                     x_label='Time (s)', y_label='Frequency (Hz)')
+    return fig
+
+
+def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
+                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
+                    layout_scale=0.945, dB=True, title=None):
+    """Plot induced power on sensor layout
+
+    Clicking on the induced power map of an individual sensor opens a
+    new figure showing the induced power map of the selected sensor.
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs used to generate the power
+    power : 3D-array
+        First return value from mne.time_frequency.induced_power
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout : instance of Layout
+        System specific sensor positions
+    baseline : tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+    If None, baseline no correction will be performed.
+    decim : integer
+        Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        Minimum value mapped to lowermost color
+    vmax : float
+        Minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale : float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas
+    dB : bool
+        If True, log10 will be applied to the data.
+    title : str
+        Title of the figure.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Images of induced power at sensor locations
+    """
+    if mode is not None:
+        if baseline is None:
+            baseline = epochs.baseline
+        times = epochs.times[::decim] * 1e3
+        power = rescale(power.copy(), times, baseline, mode)
+    if dB:
+        power = 20 * np.log10(power)
+    if vmin is None:
+        vmin = power.min()
+    if vmax is None:
+        vmax = power.max()
+
+    power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
+
+    fig = _plot_topo(epochs.info, epochs.times, power_imshow, layout,
+                     decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
+                     cmap=cmap, layout_scale=layout_scale, title=title,
+                     x_label='Time (s)', y_label='Frequency (Hz)')
+    return fig
+
+
+def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
+                         mode='mean', decim=1, colorbar=True, vmin=None,
+                         vmax=None, cmap=None, layout_scale=0.945,
+                         title=None):
+    """Plot phase locking values (PLV) on sensor layout
+
+    Clicking on the PLV map of an individual sensor opens a new figure
+    showing the PLV map of the selected sensor.
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs used to generate the phase locking value
+    phase_lock : 3D-array
+        Phase locking value, second return value from
+        mne.time_frequency.induced_power.
+    freq : array-like
+        Frequencies of interest as passed to induced_power
+    layout : instance of Layout
+        System specific sensor positions.
+    baseline : tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
+        Do baseline correction with ratio (phase is divided by mean
+        phase during baseline) or z-score (phase is divided by standard
+        deviation of phase during baseline after subtracting the mean,
+        phase = [phase - mean(phase_baseline)] / std(phase_baseline)).
+        If None, baseline no correction will be performed.
+    decim : integer
+        Increment for selecting each nth time slice
+    colorbar : bool
+        If true, colorbar will be added to the plot
+    vmin : float
+        Minimum value mapped to lowermost color
+    vmax : float
+        Minimum value mapped to upppermost color
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values
+    layout_scale : float
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas.
+    title : str
+        Title of the figure.
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figrue
+        Phase lock images at sensor locations
+    """
+    if mode is not None:  # do baseline correction
+        if baseline is None:
+            baseline = epochs.baseline
+        times = epochs.times[::decim] * 1e3
+        phase = rescale(phase.copy(), times, baseline, mode)
+    if vmin is None:
+        vmin = phase.min()
+    if vmax is None:
+        vmax = phase.max()
+
+    phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
+
+    fig = _plot_topo(epochs.info, epochs.times, phase_imshow, layout,
+                     decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
+                     cmap=cmap, layout_scale=layout_scale, title=title,
+                     x_label='Time (s)', y_label='Frequency (Hz)')
+
+    return fig
+
+
+def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
+                     data=None, epochs=None, sigma=None,
+                     order=None, scaling=None):
+    """Aux function to plot erfimage on sensor topography"""
+
+    this_data = data[:, ch_idx, :].copy()
+    ch_type = channel_type(epochs.info, ch_idx)
+    this_data *= scaling[ch_type]
+
+    this_order = order
+    if callable(order):
+        this_order = order(epochs.times, this_data)
+
+    if this_order is not None:
+        this_data = this_data[this_order]
+
+    this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
+
+    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
+              origin='lower', vmin=vmin, vmax=vmax, picker=True)
+
+
+def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
+                           vmax=None, colorbar=True, order=None,
+                           cmap=None, layout_scale=.95, title=None):
+    """Plot Event Related Potential / Fields image on topographies
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs.
+    layout: instance of Layout
+        System specific sensor positions.
+    sigma : float
+        The standard deviation of the Gaussian smoothing to apply along
+        the epoch axis to apply in the image.
+    vmin : float
+        The min value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers.
+    vmax : float
+        The max value in the image. The unit is uV for EEG channels,
+        fT for magnetometers and fT/cm for gradiometers.
+    colorbar : bool
+        Display or not a colorbar.
+    order : None | array of int | callable
+        If not None, order is used to reorder the epochs on the y-axis
+        of the image. If it's an array of int it should be of length
+        the number of good epochs. If it's a callable the arguments
+        passed are the times vector and the data as 2d array
+        (data.shape[1] == len(times)).
+    cmap : instance of matplotlib.pylab.colormap
+        Colors to be mapped to the values.
+    layout_scale: float
+        scaling factor for adjusting the relative size of the layout
+        on the canvas.
+    title : str
+        Title of the figure.
+    Returns
+    -------
+    fig : instacne fo matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+    data = epochs.get_data()
+    if vmin is None:
+        vmin = data.min()
+    if vmax is None:
+        vmax = data.max()
+
+    erf_imshow = partial(_erfimage_imshow, scaling=scaling,
+                         data=data, epochs=epochs, sigma=sigma)
+
+    fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
+                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                     layout_scale=layout_scale, title=title,
+                     x_label='Time (s)', y_label='Epoch')
+
+    return fig
 
 
 def plot_evoked(evoked, picks=None, unit=True, show=True,
@@ -145,297 +539,6 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         pass
     if show:
         pl.show()
-
-
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
-          '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
-
-
-def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
-                  vmax=None, cmap=None, layout_scale=0.945, title=None):
-    """Plot time-frequency data on sensor layout
-
-    Note: Clicking on the time-frequency map of an individual sensor opens a
-    new figure showing the time-frequency map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    tfr : 3D-array shape=(n_sensors, n_freqs, n_times)
-        The time-frequency data. Must have the same channels as Epochs.
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        minimum value mapped to lowermost color
-    vmax : float
-        minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
-        Colors to be mapped to the values
-    layout_scale: float
-        scaling factor for adjusting the relative size of the layout
-        on the canvas
-    title : str
-        The figure title.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        Images of time-frequency data at sensor locations
-    """
-
-    if vmin is None:
-        vmin = tfr.min()
-    if vmax is None:
-        vmax = tfr.max()
-
-    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
-
-    tfr_onpick = partial(_imshow_tfr_onpick, title=title, vmin=vmin, vmax=vmax,
-                           times=epochs.times, freq=freq)
-
-    fig = _plot_topo_imshow(epochs, tfr_imshow, layout, decim=1,
-                            colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap, layout_scale=layout_scale,
-                            title=title, onpick_callback=tfr_onpick)
-    return fig
-
-
-def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
-                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
-                    layout_scale=0.945, dB=True, title=None):
-    """Plot induced power on sensor layout
-
-    Note: Clicking on the induced power map of an individual sensor opens a
-    new figure showing the induced power map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the power
-    power : 3D-array
-        First return value from mne.time_frequency.induced_power
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions
-    baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
-        Do baseline correction with ratio (power is divided by mean
-        power during baseline) or z-score (power is divided by standard
-        deviation of power during baseline after subtracting the mean,
-        power = [power - mean(power_baseline)] / std(power_baseline))
-    If None, baseline no correction will be performed.
-    decim : integer
-        Increment for selecting each nth time slice
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        minimum value mapped to lowermost color
-    vmax : float
-        minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
-        Colors to be mapped to the values
-    layout_scale : float
-        scaling factor for adjusting the relative size of the layout
-        on the canvas
-    dB : boolean
-        If True, log10 will be applied to the data.
-    title : str
-        Title of the figure.
-
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figure
-        Images of induced power at sensor locations
-    """
-    if mode is not None:
-        if baseline is None:
-            baseline = epochs.baseline
-        times = epochs.times[::decim] * 1e3
-        power = rescale(power.copy(), times, baseline, mode)
-    if dB:
-        power = 20 * np.log10(power)
-    if vmin is None:
-        vmin = power.min()
-    if vmax is None:
-        vmax = power.max()
-
-    power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
-
-    power_onpick = partial(_imshow_tfr_onpick, title=title, vmin=vmin,
-                           vmax=vmax, times=epochs.times, freq=freq)
-
-    fig = _plot_topo_imshow(epochs, power_imshow, layout, decim=decim,
-                            colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap, layout_scale=layout_scale,
-                            title=title, onpick_callback=power_onpick)
-    return fig
-
-
-def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
-                         mode='mean', decim=1, colorbar=True, vmin=None,
-                         vmax=None, cmap=None, layout_scale=0.945,
-                         title=None):
-    """Plot phase locking values (PLV) on sensor layout
-
-    Note: Clicking on the PLV map of an individual sensor opens a new figure
-    showing the PLV map of the selected sensor.
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs used to generate the phase locking value
-    phase_lock : 3D-array
-        Phase locking value, second return value from
-        mne.time_frequency.induced_power.
-    freq : array-like
-        Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions.
-    baseline : tuple or list of length 2
-        The time interval to apply rescaling / baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal to (None, None) all the time
-        interval is used.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | None
-        Do baseline correction with ratio (phase is divided by mean
-        phase during baseline) or z-score (phase is divided by standard
-        deviation of phase during baseline after subtracting the mean,
-        phase = [phase - mean(phase_baseline)] / std(phase_baseline)).
-        If None, baseline no correction will be performed.
-    decim : integer
-        Increment for selecting each nth time slice
-    colorbar : bool
-        If true, colorbar will be added to the plot
-    vmin : float
-        minimum value mapped to lowermost color
-    vmax : float
-        minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
-        Colors to be mapped to the values
-    layout_scale : float
-        scaling factor for adjusting the relative size of the layout
-        on the canvas.
-    title : str
-        Title of the figure.
-    Returns
-    -------
-    fig : Instance of matplotlib.figure.Figrue
-        Phase lock images at sensor locations
-    """
-    if mode is not None:  # do baseline correction
-        if baseline is None:
-            baseline = epochs.baseline
-        times = epochs.times[::decim] * 1e3
-        phase = rescale(phase.copy(), times, baseline, mode)
-    if vmin is None:
-        vmin = phase.min()
-    if vmax is None:
-        vmax = phase.max()
-
-    phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
-
-    phase_onpick = partial(_imshow_tfr_onpick, vmin=vmin, vmax=vmax,
-                           times=epochs.times, freq=freq, title=title)
-
-    fig = _plot_topo_imshow(epochs, phase_imshow, layout, decim=decim,
-                            colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap,  layout_scale=layout_scale,
-                            title=title, onpick_callback=phase_onpick)
-
-    return fig
-
-
-def _plot_topo_imshow(epochs, show_func, layout, decim,
-                      vmin, vmax, colorbar, cmap, layout_scale,
-                      title=None, onpick_callback=None):
-    """Helper function: plot tfr on sensor layout"""
-    import pylab as pl
-    if cmap is None:
-        cmap = pl.cm.jet
-    ch_names = _clean_names(epochs.info['ch_names'])
-    pl.rcParams['axes.facecolor'] = 'k'
-    fig = pl.figure(facecolor='k')
-    pos = layout.pos.copy()
-    if colorbar:
-        pos[:, :2] *= layout_scale
-        pl.rcParams['axes.edgecolor'] = 'k'
-        sm = pl.cm.ScalarMappable(cmap=cmap,
-                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
-        sm.set_array(np.linspace(vmin, vmax))
-        ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
-        cb = fig.colorbar(sm, ax=ax)
-        cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
-        pl.setp(cb_yticks, color='w')
-    pl.rcParams['axes.edgecolor'] = 'w'
-    for idx, name in enumerate(_clean_names(layout.names)):
-        if name in ch_names:
-            ax = pl.axes(pos[idx], axisbg='k')
-            ch_idx = ch_names.index(name)
-            # hack to inlcude channel name, so we can show it in callback
-            ax.__dict__['_mne_ch_name'] = name
-            show_func(ax, ch_idx, 1e3 * epochs.times[0],
-                      1e3 * epochs.times[-1], vmin, vmax)
-            pl.xticks([], ())
-            pl.yticks([], ())
-
-    # register callback
-    if onpick_callback is not None:
-        fig.canvas.mpl_connect('pick_event', onpick_callback)
-
-    if title is not None:
-        pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
-
-    # Revert global pylab config
-    pl.rcParams['axes.facecolor'] = 'w'
-    pl.rcParams['axes.edgecolor'] = 'k'
-    return fig
-
-
-def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
-    """ Aux Function """
-    extent = (tmin, tmax, freq[0], freq[-1])
-    ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax, picker=True)
-
-
-def _imshow_tfr_onpick(event, title=None, vmin=None, vmax=None, times=None,
-                       freq=None):
-    """Onpick callback that shows tfr for a single channel in a new figure"""
-    artist = event.artist
-    try:
-        import pylab as pl
-        data = artist.get_array()
-        pl.figure()
-        pl.imshow(data, aspect='auto', origin='lower', vmin=vmin, vmax=vmax,
-                  extent=[times[0], times[-1], freq[0], freq[-1]])
-        pl.colorbar()
-        if title is not None:
-            pl.title(title + ' ' + artist.axes._mne_ch_name)
-        else:
-            pl.title(artist.axes._mne_ch_name)
-        pl.xlabel('Time (s)')
-        pl.ylabel('Frequency (Hz)')
-    except Exception as err:
-        # matplotlib silently ignores exceptions in event handlers, so we print
-        # it here to know what went wrong
-        print err
-        raise err
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
@@ -771,27 +874,49 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     return viewer
 
 
+def _plot_ica_panel_onpick(event, sources=None, ylims=None):
+    """Onpick callback for plot_ica_panel"""
+    artist = event.artist
+    try:
+        import pylab as pl
+        pl.figure()
+        src_idx = artist._mne_src_idx
+        component = artist._mne_component
+        pl.plot(sources[src_idx], 'r')
+        pl.ylim(ylims)
+        pl.grid(linestyle='-', color='gray', linewidth=.25)
+        pl.title(component)
+    except Exception as err:
+        # matplotlib silently ignores exceptions in event handlers, so we print
+        # it here to know what went wrong
+        print err
+        raise err
+
+
 @verbose
 def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    source_idx=None, ncol=3, nrow=10, verbose=None):
     """Create panel plots of ICA sources
 
+    Clicking on the plot of an individual source opens a new figure showing
+    the source.
+
     Parameters
     ----------
     sources : ndarray
-        sources as drawn from ica.get_sources.
+        Sources as drawn from ica.get_sources.
     start : int
         x-axis start index. If None from the beginning.
     stop : int
         x-axis stop index. If None to the end.
     n_components : int
-        number of components fitted.
+        Number of components fitted.
     source_idx : array-like
-        indices for subsetting the sources.
+        Indices for subsetting the sources.
     ncol : int
-        number of panel-columns.
+        Number of panel-columns.
     nrow : int
-        number of panel-rows.
+        Number of panel-rows.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -831,10 +956,14 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         xs.grid(linestyle='-', color='gray', linewidth=.25)
         if idx < n_components:
             component = '[%i]' % idx
-            xs.plot(sources[idx], linewidth=0.5, color='red')
+            this_ax = xs.plot(sources[idx], linewidth=0.5, color='red',
+                              picker=1e9)
             xs.text(0.05, .95, component,
                     transform=panel_axes[row, col].transAxes,
                     verticalalignment='top')
+            # emebed idx and comp. name to use in callback
+            this_ax[0].__dict__['_mne_src_idx'] = idx
+            this_ax[0].__dict__['_mne_component'] = component
             pl.ylim(ylims)
         else:
             # Make extra subplots invisible
@@ -851,6 +980,10 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
             xs.yaxis.tick_right()
 
         pl.setp(xtl, rotation=90.)
+
+    # register callback
+    callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
+    fig.canvas.mpl_connect('pick_event', callback)
 
     return fig
 
@@ -947,83 +1080,6 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         pl.show()
 
     return figs
-
-
-def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
-                     data=None, epochs=None, sigma=None,
-                     order=None, scaling=None):
-    """ Aux Function """
-
-    this_data = data[:, ch_idx, :]
-    ch_type = channel_type(epochs.info, ch_idx)
-    this_data *= scaling[ch_type]
-
-    this_order = order
-    if callable(order):
-        this_order = order(epochs.times, this_data)
-
-    if this_order is not None:
-        this_data = this_data[this_order]
-
-    this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
-
-    ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
-              origin='lower', vmin=vmin, vmax=vmax)
-
-
-def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
-                           vmax=None, colorbar=True, order=None,
-                           cmap=None, layout_scale=.95):
-    """Plot Event Related Potential / Fields image on topographies
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The epochs.
-    layout: instance of Layout
-        System specific sensor positions.
-    sigma : float
-        The standard deviation of the Gaussian smoothing to apply along
-        the epoch axis to apply in the image.
-    vmin : float
-        The min value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
-    vmax : float
-        The max value in the image. The unit is uV for EEG channels,
-        fT for magnetometers and fT/cm for gradiometers.
-    colorbar : bool
-        Display or not a colorbar.
-    order : None | array of int | callable
-        If not None, order is used to reorder the epochs on the y-axis
-        of the image. If it's an array of int it should be of length
-        the number of good epochs. If it's a callable the arguments
-        passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times)).
-    cmap : instance of matplotlib.pylab.colormap
-        Colors to be mapped to the values.
-    layout_scale: float
-        scaling factor for adjusting the relative size of the layout
-        on the canvas.
-
-    Returns
-    -------
-    fig : instacne fo matplotlib figure
-        Figure distributing one image per channel across sensor topography.
-    """
-    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
-    data = epochs.get_data()
-    if vmin is None:
-        vmin = data.min()
-    if vmax is None:
-        vmax = data.max()
-    erf_imshow = partial(_erfimage_imshow, scaling=scaling,
-                         data=data, epochs=epochs, sigma=sigma)
-
-    fig = _plot_topo_imshow(epochs, erf_imshow, layout, decim=1,
-                            colorbar=colorbar, vmin=vmin, vmax=vmax,
-                            cmap=cmap, layout_scale=layout_scale)
-
-    return fig
 
 
 def mne_analyze_colormap(limits=[5, 10, 15]):
