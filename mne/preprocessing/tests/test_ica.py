@@ -11,8 +11,8 @@ from scipy import stats
 from itertools import product
 
 from mne import fiff, Epochs, read_events, cov
-from mne.artifacts import ICA, ica_find_ecg_events, ica_find_eog_events
-from mne.artifacts.ica import score_funcs
+from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events
+from mne.preprocessing.ica import score_funcs
 
 have_sklearn = True
 try:
