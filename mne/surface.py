@@ -249,9 +249,23 @@ def read_curvature(filepath):
     return bin_curv
 
 
-def read_surface(filepath):
-    """Load in a Freesurfer surface mesh in triangular format."""
-    with open(filepath, "rb") as fobj:
+def read_surface(fname):
+    """Load a Freesurfer surface mesh in triangular format
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file containing the surface.
+
+    Returns
+    -------
+    coords : array, shape=(n_vertices, 3)
+        Coordinate points.
+    faces : int array, shape=(n_faces, 3)
+        Triangulation (each line contains indexes for three points which
+        together form a face).
+    """
+    with open(fname, "rb") as fobj:
         magic = _fread3(fobj)
         if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
             nvert = _fread3(fobj)
@@ -286,7 +300,7 @@ def read_surface(filepath):
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
             raise ValueError("%s does not appear to be a Freesurfer surface"
-                             % filepath)
+                             % fname)
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
     return coords, faces
@@ -295,25 +309,20 @@ def read_surface(filepath):
 def write_surface(fname, coords, faces, create_stamp=''):
     """Write a triangular Freesurfer surface mesh
 
-    Accepts the the same data format as is returned by read_surface().
-
+    Accepts the same data format as is returned by read_surface().
 
     Parameters
     ----------
     fname : str
         File to write.
-
     coords : array, shape=(n_vertices, 3)
         Coordinate points.
-
     faces : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
-
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
         line breaks.
-
     """
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
@@ -338,7 +347,6 @@ def write_bem_surface(fname, surf):
     ----------
     fname : string
         File to write
-
     surf : dict
         A surface structured as obtained with read_bem_surfaces
     """
