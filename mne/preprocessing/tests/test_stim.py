@@ -10,7 +10,7 @@ from nose.tools import assert_true
 
 from mne.fiff import Raw
 from mne.event import read_events
-from mne.artifacts.stim import eliminate_stim_artifact
+from mne.preprocessing.stim import eliminate_stim_artifact
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
