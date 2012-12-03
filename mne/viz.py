@@ -67,8 +67,9 @@ def plot_topo(evoked, layout):
     pl.rcParams['axes.edgecolor'] = 'k'
 
 
-def plot_evoked(evoked, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None):
+def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
+                proj=False, xlim='tight', hline=None, misc_scale=1,
+                misc_name='misc', misc_unit='AU'):
     """Plot evoked data
 
     Parameters
@@ -90,6 +91,13 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         If true SSP projections are applied before display.
     hline : list of floats | None
         The values at which show an horizontal line.
+    misc_scale : int
+        Sclaing for misc channels.
+    misc_name : str
+        Label for misc channels. Default is 'misc'.
+    misc_unit : str
+        Unit label for misc. Default is 'AU', arbitrary units.
+
     """
     import pylab as pl
     pl.clf()
@@ -98,17 +106,17 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
     types = [channel_type(evoked.info, idx) for idx in picks]
     n_channel_types = 0
     channel_types = []
-    for t in ['eeg', 'grad', 'mag']:
+    for t in ['eeg', 'grad', 'mag', 'misc']:
         if t in types:
             n_channel_types += 1
             channel_types.append(t)
 
     counter = 1
     times = 1e3 * evoked.times  # time in miliseconds
-    for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
-                           [1e6, 1e13, 1e15],
-                           ['EEG', 'Gradiometers', 'Magnetometers'],
-                           ['uV', 'fT/cm', 'fT']):
+    for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag', 'misc'],
+                           [1e6, 1e13, 1e15, misc_scale],
+                           ['EEG', 'Gradiometers', 'Magnetometers', misc_name],
+                           ['uV', 'fT/cm', 'fT', misc_unit]):
         if unit is False:
             scaling = 1.0
             ch_unit = 'NA'  # no unit
@@ -912,7 +920,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
 def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None,
-                           cmap=None, layout_scale=.95):
+                           cmap=None, layout_scale=.95, misc_scale=1):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -943,13 +951,15 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     layout_scale: float
         scaling factor for adjusting the relative size of the layout
         on the canvas.
+    misc_scale : int
+        The sclae to be applied for misc channels.
 
     Returns
     -------
     fig : instacne fo matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+    scaling = dict(eeg=1e6, grad=1e13, mag=1e15, misc=misc_scale)
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
