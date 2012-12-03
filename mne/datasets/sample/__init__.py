@@ -45,7 +45,7 @@ def data_path(path='.', force_update=False):
     folder_path = op.join(path, folder_name)
     rm_archive = False
 
-    martinos_path = '/homes/6/gramfort/cluster/work/data/' + archive_name
+    martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
     if not op.exists(folder_path) or force_update:
