@@ -267,15 +267,15 @@ def write_meas_info(fid, info, data_type=None):
 
     if len(blocks) > 0 and 'filename' in info and \
             info['filename'] is not None:
-        fid2, tree, _ = fiff_open(info['filename'])
-        for block in blocks:
-            nodes = dir_tree_find(tree, block)
-            copy_tree(fid2, tree['id'], nodes, fid)
-            if block == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
-                have_hpi_result = True
-            if block == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
-                have_isotrak = True
-        fid2.close()
+        f2, tree, _ = fiff_open(info['filename'])
+        with f2 as fid2:
+            for block in blocks:
+                nodes = dir_tree_find(tree, block)
+                copy_tree(fid2, tree['id'], nodes, fid)
+                if block == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
+                    have_hpi_result = True
+                if block == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
+                    have_isotrak = True
 
     #
     #    megacq parameters

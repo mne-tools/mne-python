@@ -88,36 +88,35 @@ def transform_coordinates(filename, pos, orig, dest):
     transform_coordinates('all-trans.fif', np.eye(3), 'mri', 'mni_tal')
     """
     #   Read the fif file containing all necessary transformations
-    fid, tree, directory = fiff_open(filename)
+    f, tree, directory = fiff_open(filename)
+    with f as fid:
+        coord_names = dict(mri=FIFF.FIFFV_COORD_MRI,
+                           meg=FIFF.FIFFV_COORD_HEAD,
+                           mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
+                           fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL)
 
-    coord_names = dict(mri=FIFF.FIFFV_COORD_MRI,
-                       meg=FIFF.FIFFV_COORD_HEAD,
-                       mni_tal=FIFF.FIFFV_MNE_COORD_MNI_TAL,
-                       fs_tal=FIFF.FIFFV_MNE_COORD_FS_TAL)
+        orig = coord_names[orig]
+        dest = coord_names[dest]
 
-    orig = coord_names[orig]
-    dest = coord_names[dest]
-
-    T0 = T1 = T2 = T3plus = T3minus = None
-    for d in directory:
-        if d.kind == FIFF.FIFF_COORD_TRANS:
-            tag = read_tag(fid, d.pos)
-            trans = tag.data
-            if (trans['from'] == FIFF.FIFFV_COORD_MRI and
-                trans['to'] == FIFF.FIFFV_COORD_HEAD):
-                T0 = invert_transform(trans)
-            elif (trans['from'] == FIFF.FIFFV_COORD_MRI and
-                  trans['to'] == FIFF.FIFFV_MNE_COORD_RAS):
-                T1 = trans
-            elif (trans['from'] == FIFF.FIFFV_MNE_COORD_RAS and
-                  trans['to'] == FIFF.FIFFV_MNE_COORD_MNI_TAL):
-                T2 = trans
-            elif trans['from'] == FIFF.FIFFV_MNE_COORD_MNI_TAL:
-                if trans['to'] == FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ:
-                    T3plus = trans
-                elif trans['to'] == FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ:
-                    T3minus = trans
-    fid.close()
+        T0 = T1 = T2 = T3plus = T3minus = None
+        for d in directory:
+            if d.kind == FIFF.FIFF_COORD_TRANS:
+                tag = read_tag(fid, d.pos)
+                trans = tag.data
+                if (trans['from'] == FIFF.FIFFV_COORD_MRI and
+                        trans['to'] == FIFF.FIFFV_COORD_HEAD):
+                    T0 = invert_transform(trans)
+                elif (trans['from'] == FIFF.FIFFV_COORD_MRI and
+                      trans['to'] == FIFF.FIFFV_MNE_COORD_RAS):
+                    T1 = trans
+                elif (trans['from'] == FIFF.FIFFV_MNE_COORD_RAS and
+                      trans['to'] == FIFF.FIFFV_MNE_COORD_MNI_TAL):
+                    T2 = trans
+                elif trans['from'] == FIFF.FIFFV_MNE_COORD_MNI_TAL:
+                    if trans['to'] == FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ:
+                        T3plus = trans
+                    elif trans['to'] == FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ:
+                        T3minus = trans
     #
     #   Check we have everything we need
     #

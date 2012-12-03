@@ -60,9 +60,9 @@ class Covariance(dict):
             return
 
         # Reading
-        fid, tree, _ = fiff_open(fname)
-        self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
-        fid.close()
+        f, tree, _ = fiff_open(fname)
+        with f as fid:
+            self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
 
     @property
     def data(self):

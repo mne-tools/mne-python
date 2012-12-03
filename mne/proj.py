@@ -27,8 +27,9 @@ def read_proj(fname):
     projs: list
         The list of projection vectors.
     """
-    fid, tree, _ = fiff.fiff_open(fname)
-    projs = fiff.proj.read_proj(fid, tree)
+    f, tree, _ = fiff.fiff_open(fname)
+    with f as fid:
+        projs = fiff.proj.read_proj(fid, tree)
     return projs
 
 

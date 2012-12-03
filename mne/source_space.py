@@ -117,8 +117,10 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src: list
         The list of source spaces.
     """
-    fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    return src
 
 
 @verbose

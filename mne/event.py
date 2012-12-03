@@ -67,7 +67,6 @@ def _read_events_fif(fid, tree):
     events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
 
     if len(events) == 0:
-        fid.close()
         raise ValueError('Could not find event data')
 
     events = events[0]
@@ -121,7 +120,6 @@ def read_events(filename, include=None, exclude=None):
         f, tree, _ = fiff_open(filename)
         with f as fid:
             event_list = _read_events_fif(fid, tree)
-            fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors

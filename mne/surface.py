@@ -58,52 +58,52 @@ def read_bem_surfaces(fname, add_geom=False, verbose=None):
     #
     #   Open the file, create directory
     #
-    fid, tree, _ = fiff_open(fname)
-    #
-    #   Find BEM
-    #
-    bem = dir_tree_find(tree, FIFFB_BEM)
-    if bem is None:
-        fid.close()
-        raise ValueError('BEM data not found')
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        #
+        #   Find BEM
+        #
+        bem = dir_tree_find(tree, FIFFB_BEM)
+        if bem is None:
+            raise ValueError('BEM data not found')
 
-    bem = bem[0]
-    #
-    #   Locate all surfaces
-    #
-    bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
-    if bemsurf is None:
-        fid.close()
-        raise ValueError('BEM surface data not found')
+        bem = bem[0]
+        #
+        #   Locate all surfaces
+        #
+        bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
+        if bemsurf is None:
+            raise ValueError('BEM surface data not found')
 
-    logger.info('    %d BEM surfaces found' % len(bemsurf))
-    #
-    #   Coordinate frame possibly at the top level
-    #
-    tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
-    if tag is not None:
-        coord_frame = tag.data
-    #
-    #   Read all surfaces
-    #
-    surf = []
-    for bsurf in bemsurf:
-        logger.info('    Reading a surface...')
-        this = _read_bem_surface(fid, bsurf, coord_frame)
-        logger.info('[done]')
-        if add_geom:
-            _complete_surface_info(this)
-        surf.append(this)
+        logger.info('    %d BEM surfaces found' % len(bemsurf))
+        #
+        #   Coordinate frame possibly at the top level
+        #
+        tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
+        if tag is not None:
+            coord_frame = tag.data
+        #
+        #   Read all surfaces
+        #
+        surf = []
+        for bsurf in bemsurf:
+            logger.info('    Reading a surface...')
+            this = _read_bem_surface(fid, bsurf, coord_frame)
+            logger.info('[done]')
+            if add_geom:
+                _complete_surface_info(this)
+            surf.append(this)
 
-    logger.info('    %d BEM surfaces read' % len(surf))
-
-    fid.close()
+        logger.info('    %d BEM surfaces read' % len(surf))
 
     return surf
 
 
 def _read_bem_surface(fid, this, def_coord_frame):
     """Read one bem surface
+
+    Note that it's assumed that fid has been opened with a "with" statement so
+    that fid.close() wil automatically be called if an error is thrown here.
     """
     res = dict()
     #
@@ -124,14 +124,12 @@ def _read_bem_surface(fid, this, def_coord_frame):
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NNODE)
     if tag is None:
-        fid.close()
         raise ValueError('Number of vertices not found')
 
     res['np'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
     if tag is None:
-        fid.close()
         raise ValueError('Number of triangles not found')
     else:
         res['ntri'] = int(tag.data)
@@ -150,12 +148,10 @@ def _read_bem_surface(fid, this, def_coord_frame):
     #
     tag = find_tag(fid, this, FIFF_BEM_SURF_NODES)
     if tag is None:
-        fid.close()
         raise ValueError('Vertex data not found')
 
     res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
     if res['rr'].shape[0] != res['np']:
-        fid.close()
         raise ValueError('Vertex information is incorrect')
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
@@ -164,17 +160,14 @@ def _read_bem_surface(fid, this, def_coord_frame):
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:
-            fid.close()
             raise ValueError('Vertex normal information is incorrect')
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
     if tag is None:
-        fid.close()
         raise ValueError('Triangulation not found')
 
     res['tris'] = tag.data - 1  # index start at 0 in Python
     if res['tris'].shape[0] != res['ntri']:
-        fid.close()
         raise ValueError('Triangulation information is incorrect')
 
     return res

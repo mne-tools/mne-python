@@ -844,7 +844,6 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         # Locate all maps
         maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
         if len(maps) == 0:
-            fid.close()
             raise ValueError('Morphing map data not found')
 
         # Find the correct ones
