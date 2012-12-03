@@ -31,7 +31,7 @@ from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
                       is_fixed_orient, compute_orient_prior
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
-                           write_source_spaces, label_src_vertno_sel
+                           write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import SourceEstimate
 from .. import verbose
@@ -355,7 +355,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   Write the source spaces
     #
     if 'src' in inv:
-        write_source_spaces(fid, inv['src'])
+        write_source_spaces_to_fid(fid, inv['src'])
 
     #
     #  We also need the SSP operator

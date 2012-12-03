@@ -1,9 +1,10 @@
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from mne.datasets import sample
-from mne import read_source_spaces, vertex_to_mni
+from mne import read_source_spaces, vertex_to_mni, write_source_spaces
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
@@ -13,7 +14,6 @@ fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 def test_read_source_spaces():
     """Testing reading of source space meshes
     """
-    src = read_source_spaces(fname, add_geom=False)
     src = read_source_spaces(fname, add_geom=True)
 
     # 3D source space
@@ -32,6 +32,17 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.min() >= 0)
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
+def test_write_source_space():
+    src0 = read_source_spaces(fname, add_geom=False)
+    write_source_spaces('tmp.fif', src0)
+    src1 = read_source_spaces('tmp.fif')
+    for s0, s1 in zip(src0, src1):
+        for name in ['nearest', 'dist', 'nuse', 'dist_limit', 'pinfo', 'ntri',
+                     'nearest_dist', 'np', 'type', 'id']:
+            assert_true(s0[name] == s1[name])
+        for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri', 'coord_frame',
+                     'use_tris', 'tris']:
+            assert_array_equal(s0[name], s1[name])
 
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
