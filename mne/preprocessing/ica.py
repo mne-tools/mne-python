@@ -25,7 +25,6 @@ from ..fiff import pick_types, pick_channels
 from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
-from .. utils import deprecated
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -56,9 +55,6 @@ score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
 
 
 __all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs']
-
-_preprocessing = ('The artifacts module will no longer be supported.'
-                  ' Please use the preprocessing module instead.')
 
 
 class ICA(object):
@@ -115,7 +111,6 @@ class ICA(object):
     verbose : bool, str, int, or None
         See above.
     """
-    @deprecated(_preprocessing)
     @verbose
     def __init__(self, n_components, max_n_components=100, noise_cov=None,
                  random_state=None, algorithm='parallel', fun='logcosh',
@@ -176,7 +171,6 @@ class ICA(object):
 
         return s
 
-    @deprecated(_preprocessing)
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
                       verbose=None):
@@ -233,7 +227,6 @@ class ICA(object):
 
         return self
 
-    @deprecated(_preprocessing)
     @verbose
     def decompose_epochs(self, epochs, picks=None, verbose=None):
         """Run the ICA decomposition on epochs
@@ -291,7 +284,6 @@ class ICA(object):
 
         return self
 
-    @deprecated(_preprocessing)
     def get_sources_raw(self, raw, start=None, stop=None):
         """Estimate raw sources given the unmixing matrix
 
@@ -325,7 +317,6 @@ class ICA(object):
 
         return raw_sources, pca_data
 
-    @deprecated(_preprocessing)
     def get_sources_epochs(self, epochs, concatenate=False):
         """Estimate epochs sources given the unmixing matrix
 
@@ -372,7 +363,6 @@ class ICA(object):
 
         return sources, pca_data
 
-    @deprecated(_preprocessing)
     def export_sources(self, raw, picks=None, start=None, stop=None):
         """Export sources as raw object
 
@@ -439,7 +429,6 @@ class ICA(object):
 
         return out
 
-    @deprecated(_preprocessing)
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=10,
                          show=True):
@@ -492,7 +481,6 @@ class ICA(object):
 
         return fig
 
-    @deprecated(_preprocessing)
     def plot_sources_epochs(self, epochs, epoch_idx=None, order=None,
                             start=None, stop=None, n_components=None,
                             source_idx=None, ncol=3, nrow=10, show=True):
@@ -549,7 +537,6 @@ class ICA(object):
 
         return fig
 
-    @deprecated(_preprocessing)
     def find_sources_raw(self, raw, target=None, score_func='pearsonr',
                          start=None, stop=None):
         """Find sources based on own distribution or based on similarity to
@@ -606,7 +593,6 @@ class ICA(object):
 
         return _find_sources(sources, target, score_func)
 
-    @deprecated(_preprocessing)
     def find_sources_epochs(self, epochs, target=None, score_func='pearsonr'):
         """Find sources based on relations between source and target
 
@@ -651,7 +637,6 @@ class ICA(object):
 
         return _find_sources(np.hstack(sources), target, score_func)
 
-    @deprecated(_preprocessing)
     def pick_sources_raw(self, raw, include=None, exclude=None,
                          n_pca_components=64, start=None, stop=None,
                          copy=True):
@@ -703,7 +688,6 @@ class ICA(object):
         raw[picks, start:stop] = recomposed
         return raw
 
-    @deprecated(_preprocessing)
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
                             n_pca_components=64, copy=True):
         """Recompose epochs
@@ -839,7 +823,6 @@ class ICA(object):
         return out.T
 
 
-@deprecated(_preprocessing)
 @verbose
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
                         tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
@@ -890,7 +873,6 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
     return ecg_events
 
 
-@deprecated(_preprocessing)
 @verbose
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
                         h_freq=10, verbose=None):

@@ -6,14 +6,8 @@ import numpy as np
 from scipy import signal, interpolate
 
 from ..fiff import pick_types
-from .. utils import deprecated
 
 
-_preprocessing = ('The artifacts module will no longer be supported.'
-                  ' Please use the preprocessing module instead.')
-
-
-@deprecated(_preprocessing)
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                             tmax=0.01, mode='linear'):
     """Eliminates stimulations artifacts from raw data

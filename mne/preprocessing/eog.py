@@ -6,14 +6,8 @@ logger = logging.getLogger('mne')
 from .peak_finder import peak_finder
 from .. import fiff, verbose
 from ..filter import band_pass_filter
-from .. utils import deprecated
 
 
-_preprocessing = ('The artifacts module will no longer be supported.'
-                  ' Please use the preprocessing module instead.')
-
-
-@deprecated(_preprocessing)
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
     """Locate EOG artifacts
@@ -62,7 +56,6 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
     return eog_events
 
 
-@deprecated(_preprocessing)
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
     """Helper function"""
 

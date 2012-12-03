@@ -5,7 +5,14 @@ import logging
 logger = logging.getLogger('mne')
 
 from .. import verbose
+from .. utils import deprecated
 
+
+_preprocessing = ('The artifacts module will no longer be supported.'
+                  ' Please use the preprocessing module instead.')
+
+
+@deprecated(_preprocessing)
 @verbose
 def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     """Noise tolerant fast peak finding algorithm

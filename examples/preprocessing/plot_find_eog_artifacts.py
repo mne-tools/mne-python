@@ -27,7 +27,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = fiff.Raw(raw_fname)
 
 event_id = 998
-eog_events = mne.artifacts.find_eog_events(raw, event_id)
+eog_events = mne.preprocessing.find_eog_events(raw, event_id)
 
 # Read epochs
 picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=True)

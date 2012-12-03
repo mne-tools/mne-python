@@ -5,13 +5,8 @@ logger = logging.getLogger('mne')
 
 from .. import fiff, verbose
 from ..filter import band_pass_filter
-from ..utils import deprecated
-
-_preprocessing = ('The artifacts module will no longer be supported.'
-                  ' Please use the preprocessing module instead.')
 
 
-@deprecated(_preprocessing)
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
                  l_freq=5, h_freq=35, tstart=0):
     """Detect QRS component in ECG channels.
@@ -92,7 +87,6 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     return clean_events
 
 
-@deprecated(_preprocessing)
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
                     l_freq=5, h_freq=35, qrs_threshold=0.6, verbose=None):
