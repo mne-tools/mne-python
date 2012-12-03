@@ -17,7 +17,7 @@ from .fiff.open import fiff_open
 from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
-                        write_coord_trans
+                        write_coord_trans, start_file, end_file
 from .surface import read_surface
 from .utils import get_subjects_dir
 from . import verbose
@@ -418,7 +418,7 @@ def _get_vertno(src):
 # Write routines
 
 @verbose
-def write_source_spaces(fid, src, verbose=None):
+def write_source_spaces_to_fid(fid, src, verbose=None):
     """Write the source spaces to a FIF file
 
     Parameters
@@ -437,6 +437,24 @@ def write_source_spaces(fid, src, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         logger.info('[done]')
     logger.info('    %d source spaces written' % len(src))
+
+
+@verbose
+def write_source_spaces(fname, src, verbose=None):
+    """Write source spaces to a file
+
+    Parameters
+    ----------
+    fname : str
+        File to write.
+    src : list
+        The list of source spaces (as returned by read_source_spaces).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    fid = start_file(fname)
+    write_source_spaces_to_fid(fid, src, verbose)
+    end_file(fid)
 
 
 def _write_one_source_space(fid, this, verbose=None):
