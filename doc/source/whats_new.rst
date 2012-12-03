@@ -73,6 +73,8 @@ API
 
    - Use raw.time_as_index instead of time_to_index (still works but is deprecated).
 
+   - The artifacts module (mne.artifacts) is now merged into mne.preprocessing
+
 .. _changes_0_4:
 
 Version 0.4

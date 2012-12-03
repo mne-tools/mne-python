@@ -4,16 +4,17 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import copy as cp
+from warnings import warn
+import numpy as np
 
 import logging
 logger = logging.getLogger('mne')
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs, verbose
 from ..fiff import pick_types, make_eeg_average_ref_proj
-from ..artifacts import find_ecg_events, find_eog_events
-from warnings import warn
+from .ecg import find_ecg_events
+from .eog import find_eog_events
 
 
 @verbose
