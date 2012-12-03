@@ -64,33 +64,31 @@ def read_selection(name, fname=None, verbose=None):
     for n in name:
         name_found[n] = False
 
-    fid = open(fname, 'r')
-    sel = []
+    with open(fname, 'r') as fid:
+        sel = []
 
-    for line in fid:
-        line = line.strip()
+        for line in fid:
+            line = line.strip()
 
-        # skip blank lines and comments
-        if len(line) == 0 or line[0] == '#':
-            continue
+            # skip blank lines and comments
+            if len(line) == 0 or line[0] == '#':
+                continue
 
-        # get the name of the selection in the file
-        pos = line.find(':')
-        if pos < 0:
-            logger.info('":" delimiter not found in selections file, '
-                        'skipping line')
-            continue
+            # get the name of the selection in the file
+            pos = line.find(':')
+            if pos < 0:
+                logger.info('":" delimiter not found in selections file, '
+                            'skipping line')
+                continue
 
-        sel_name_file = line[:pos]
+            sel_name_file = line[:pos]
 
-        # search for substring match with name provided
-        for n in name:
-            if sel_name_file.find(n) >= 0:
-                sel.extend(line[pos + 1:].split('|'))
-                name_found[n] = True
-                break
-
-    fid.close()
+            # search for substring match with name provided
+            for n in name:
+                if sel_name_file.find(n) >= 0:
+                    sel.extend(line[pos + 1:].split('|'))
+                    name_found[n] = True
+                    break
 
     # make sure we found at least one match for each name
     for n, found in name_found.iteritems():

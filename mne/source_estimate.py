@@ -46,40 +46,37 @@ def read_stc(filename):
     read_source_estimate
 
     """
-    fid = open(filename, 'rb')
+    with open(filename, 'rb') as fid:
+        stc = dict()
 
-    stc = dict()
+        fid.seek(0, 2)  # go to end of file
+        file_length = fid.tell()
+        fid.seek(0, 0)  # go to beginning of file
 
-    fid.seek(0, 2)  # go to end of file
-    file_length = fid.tell()
-    fid.seek(0, 0)  # go to beginning of file
+        # read tmin in ms
+        stc['tmin'] = float(np.fromfile(fid, dtype=">f4", count=1))
+        stc['tmin'] /= 1000.0
 
-    # read tmin in ms
-    stc['tmin'] = float(np.fromfile(fid, dtype=">f4", count=1))
-    stc['tmin'] /= 1000.0
+        # read sampling rate in ms
+        stc['tstep'] = float(np.fromfile(fid, dtype=">f4", count=1))
+        stc['tstep'] /= 1000.0
 
-    # read sampling rate in ms
-    stc['tstep'] = float(np.fromfile(fid, dtype=">f4", count=1))
-    stc['tstep'] /= 1000.0
+        # read number of vertices/sources
+        vertices_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
-    # read number of vertices/sources
-    vertices_n = int(np.fromfile(fid, dtype=">u4", count=1))
+        # read the source vector
+        stc['vertices'] = np.fromfile(fid, dtype=">u4", count=vertices_n)
 
-    # read the source vector
-    stc['vertices'] = np.fromfile(fid, dtype=">u4", count=vertices_n)
+        # read the number of timepts
+        data_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
-    # read the number of timepts
-    data_n = int(np.fromfile(fid, dtype=">u4", count=1))
+        if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
+            raise ValueError('incorrect stc file size')
 
-    if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
-        raise ValueError('incorrect stc file size')
+        # read the data matrix
+        stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
+        stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
 
-    # read the data matrix
-    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
-    stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
-
-    # close the file
-    fid.close()
     return stc
 
 
@@ -99,26 +96,21 @@ def write_stc(filename, tmin, tstep, vertices, data):
     data: 2D array
         The data matrix (nvert * ntime)
     """
-    fid = open(filename, 'wb')
-
-    # write start time in ms
-    fid.write(np.array(1000 * tmin, dtype='>f4').tostring())
-    # write sampling rate in ms
-    fid.write(np.array(1000 * tstep, dtype='>f4').tostring())
-    # write number of vertices
-    fid.write(np.array(vertices.shape[0], dtype='>u4').tostring())
-    # write the vertex indices
-    fid.write(np.array(vertices, dtype='>u4').tostring())
-
-    # write the number of timepts
-    fid.write(np.array(data.shape[1], dtype='>u4').tostring())
-    #
-    # write the data
-    #
-    fid.write(np.array(data.T, dtype='>f4').tostring())
-
-    # close the file
-    fid.close()
+    with open(filename, 'wb') as fid:
+        # write start time in ms
+        fid.write(np.array(1000 * tmin, dtype='>f4').tostring())
+        # write sampling rate in ms
+        fid.write(np.array(1000 * tstep, dtype='>f4').tostring())
+        # write number of vertices
+        fid.write(np.array(vertices.shape[0], dtype='>u4').tostring())
+        # write the vertex indices
+        fid.write(np.array(vertices, dtype='>u4').tostring())
+        # write the number of timepts
+        fid.write(np.array(data.shape[1], dtype='>u4').tostring())
+        #
+        # write the data
+        #
+        fid.write(np.array(data.T, dtype='>f4').tostring())
 
 
 def _read_3(fid):
@@ -150,28 +142,25 @@ def read_w(filename):
            data           The data matrix (nvert long)
     """
 
-    fid = open(filename, 'rb')
+    with open(filename, 'rb') as fid:
+        # skip first 2 bytes
+        fid.read(2)
 
-    # skip first 2 bytes
-    fid.read(2)
+        # read number of vertices/sources (3 byte integer)
+        vertices_n = int(_read_3(fid))
 
-    # read number of vertices/sources (3 byte integer)
-    vertices_n = int(_read_3(fid))
+        vertices = np.zeros((vertices_n), dtype=np.int32)
+        data = np.zeros((vertices_n), dtype=np.float32)
 
-    vertices = np.zeros((vertices_n), dtype=np.int32)
-    data = np.zeros((vertices_n), dtype=np.float32)
+        # read the vertices and data
+        for i in range(vertices_n):
+            vertices[i] = _read_3(fid)
+            data[i] = np.fromfile(fid, dtype='>f4', count=1)
 
-    # read the vertices and data
-    for i in range(vertices_n):
-        vertices[i] = _read_3(fid)
-        data[i] = np.fromfile(fid, dtype='>f4', count=1)
+        w = dict()
+        w['vertices'] = vertices
+        w['data'] = data
 
-    w = dict()
-    w['vertices'] = vertices
-    w['data'] = data
-
-    # close the file
-    fid.close()
     return w
 
 
@@ -212,23 +201,19 @@ def write_w(filename, vertices, data):
 
     assert(len(vertices) == len(data))
 
-    fid = open(filename, 'wb')
+    with open(filename, 'wb') as fid:
+        # write 2 zero bytes
+        fid.write(np.zeros((2), dtype=np.uint8).tostring())
 
-    # write 2 zero bytes
-    fid.write(np.zeros((2), dtype=np.uint8).tostring())
+        # write number of vertices/sources (3 byte integer)
+        vertices_n = len(vertices)
+        _write_3(fid, vertices_n)
 
-    # write number of vertices/sources (3 byte integer)
-    vertices_n = len(vertices)
-    _write_3(fid, vertices_n)
-
-    # write the vertices and data
-    for i in range(vertices_n):
-        _write_3(fid, vertices[i])
-        #XXX: without float() endianness is wrong, not sure why
-        fid.write(np.array(float(data[i]), dtype='>f4').tostring())
-
-    # close the file
-    fid.close()
+        # write the vertices and data
+        for i in range(vertices_n):
+            _write_3(fid, vertices[i])
+            #XXX: without float() endianness is wrong, not sure why
+            fid.write(np.array(float(data[i]), dtype='>f4').tostring())
 
 
 def read_source_estimate(fname):
@@ -854,34 +839,32 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                              '  mne_make_morph_maps --from %s --to %s'
                              % (subject_from, subject_to))
 
-    fid, tree, _ = fiff_open(name)
+    f, tree, _ = fiff_open(name)
+    with f as fid:
+        # Locate all maps
+        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+        if len(maps) == 0:
+            raise ValueError('Morphing map data not found')
 
-    # Locate all maps
-    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-    if len(maps) == 0:
-        fid.close()
-        raise ValueError('Morphing map data not found')
+        # Find the correct ones
+        left_map = None
+        right_map = None
+        for m in maps:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+            if tag.data == subject_from:
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+                if tag.data == subject_to:
+                    #  Names match: which hemishere is this?
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        left_map = tag.data
+                        logger.info('    Left-hemisphere map read.')
+                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        right_map = tag.data
+                        logger.info('    Right-hemisphere map read.')
 
-    # Find the correct ones
-    left_map = None
-    right_map = None
-    for m in maps:
-        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-        if tag.data == subject_from:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-            if tag.data == subject_to:
-                #  Names match: which hemishere is this?
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    left_map = tag.data
-                    logger.info('    Left-hemisphere map read.')
-                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    right_map = tag.data
-                    logger.info('    Right-hemisphere map read.')
-
-    fid.close()
     if left_map is None:
         raise ValueError('Left hemisphere map not found in %s' % name)
 

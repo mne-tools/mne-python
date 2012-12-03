@@ -60,9 +60,9 @@ class Covariance(dict):
             return
 
         # Reading
-        fid, tree, _ = fiff_open(fname)
-        self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
-        fid.close()
+        f, tree, _ = fiff_open(fname)
+        with f as fid:
+            self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
 
     @property
     def data(self):
@@ -78,15 +78,13 @@ class Covariance(dict):
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
-        fid = start_file(fname)
-
         try:
-            fiff.write_cov(fid, self)
+            with start_file(fname) as fid:
+                fiff.write_cov(fid, self)
+                end_file(fid)
         except Exception as inst:
             os.remove(fname)
             raise inst
-
-        end_file(fid)
 
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape

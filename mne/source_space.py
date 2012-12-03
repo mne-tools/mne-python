@@ -117,8 +117,10 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src: list
         The list of source spaces.
     """
-    fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    return src
 
 
 @verbose
@@ -575,34 +577,31 @@ def _freesurfer_read_talxfm(fname, verbose=None):
     Adapted from freesurfer m-files.
     """
 
-    fid = open(fname, 'r')
+    with open(fname, 'r') as fid:
+        logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
-    logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
-
-    # read lines until we get the string 'Linear_Transform', which precedes
-    # the data transformation matrix
-    got_it = False
-    comp = 'Linear_Transform'
-    for line in fid:
-        if line[:len(comp)] == comp:
-            # we have the right line, so don't read any more
-            got_it = True
-            break
-
-    if got_it:
-        xfm = list()
-        # read the transformation matrix (3x4)
-        for ii, line in enumerate(fid):
-            digs = [float(s) for s in line.strip('\n;').split()]
-            xfm.append(digs)
-            if ii == 2:
+        # read lines until we get the string 'Linear_Transform', which precedes
+        # the data transformation matrix
+        got_it = False
+        comp = 'Linear_Transform'
+        for line in fid:
+            if line[:len(comp)] == comp:
+                # we have the right line, so don't read any more
+                got_it = True
                 break
-        # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
-        xfm = np.array(xfm)
-        fid.close()
-    else:
-        fid.close()
-        raise ValueError('failed to find \'Linear_Transform\' string in xfm '
-                         'file:\n%s' % fname)
+
+        if got_it:
+            xfm = list()
+            # read the transformation matrix (3x4)
+            for ii, line in enumerate(fid):
+                digs = [float(s) for s in line.strip('\n;').split()]
+                xfm.append(digs)
+                if ii == 2:
+                    break
+            # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
+            xfm = np.array(xfm)
+        else:
+            raise ValueError('failed to find \'Linear_Transform\' string in '
+                             'xfm file:\n%s' % fname)
 
     return xfm

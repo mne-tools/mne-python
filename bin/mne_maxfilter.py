@@ -138,6 +138,5 @@ if __name__ == '__main__':
                     linefreq, mx_args, overwrite)
 
     if origin_out is not None:
-        fid = open(origin_out, 'w')
-        fid.write(origin + '\n')
-        fid.close()
+        with open(origin_out, 'w') as fid:
+            fid.write(origin + '\n')

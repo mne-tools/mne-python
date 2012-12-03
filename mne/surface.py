@@ -58,52 +58,52 @@ def read_bem_surfaces(fname, add_geom=False, verbose=None):
     #
     #   Open the file, create directory
     #
-    fid, tree, _ = fiff_open(fname)
-    #
-    #   Find BEM
-    #
-    bem = dir_tree_find(tree, FIFFB_BEM)
-    if bem is None:
-        fid.close()
-        raise ValueError('BEM data not found')
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        #
+        #   Find BEM
+        #
+        bem = dir_tree_find(tree, FIFFB_BEM)
+        if bem is None:
+            raise ValueError('BEM data not found')
 
-    bem = bem[0]
-    #
-    #   Locate all surfaces
-    #
-    bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
-    if bemsurf is None:
-        fid.close()
-        raise ValueError('BEM surface data not found')
+        bem = bem[0]
+        #
+        #   Locate all surfaces
+        #
+        bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
+        if bemsurf is None:
+            raise ValueError('BEM surface data not found')
 
-    logger.info('    %d BEM surfaces found' % len(bemsurf))
-    #
-    #   Coordinate frame possibly at the top level
-    #
-    tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
-    if tag is not None:
-        coord_frame = tag.data
-    #
-    #   Read all surfaces
-    #
-    surf = []
-    for bsurf in bemsurf:
-        logger.info('    Reading a surface...')
-        this = _read_bem_surface(fid, bsurf, coord_frame)
-        logger.info('[done]')
-        if add_geom:
-            _complete_surface_info(this)
-        surf.append(this)
+        logger.info('    %d BEM surfaces found' % len(bemsurf))
+        #
+        #   Coordinate frame possibly at the top level
+        #
+        tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
+        if tag is not None:
+            coord_frame = tag.data
+        #
+        #   Read all surfaces
+        #
+        surf = []
+        for bsurf in bemsurf:
+            logger.info('    Reading a surface...')
+            this = _read_bem_surface(fid, bsurf, coord_frame)
+            logger.info('[done]')
+            if add_geom:
+                _complete_surface_info(this)
+            surf.append(this)
 
-    logger.info('    %d BEM surfaces read' % len(surf))
-
-    fid.close()
+        logger.info('    %d BEM surfaces read' % len(surf))
 
     return surf
 
 
 def _read_bem_surface(fid, this, def_coord_frame):
     """Read one bem surface
+
+    Note that it's assumed that fid has been opened with a "with" statement so
+    that fid.close() wil automatically be called if an error is thrown here.
     """
     res = dict()
     #
@@ -124,14 +124,12 @@ def _read_bem_surface(fid, this, def_coord_frame):
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NNODE)
     if tag is None:
-        fid.close()
         raise ValueError('Number of vertices not found')
 
     res['np'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
     if tag is None:
-        fid.close()
         raise ValueError('Number of triangles not found')
     else:
         res['ntri'] = int(tag.data)
@@ -150,12 +148,10 @@ def _read_bem_surface(fid, this, def_coord_frame):
     #
     tag = find_tag(fid, this, FIFF_BEM_SURF_NODES)
     if tag is None:
-        fid.close()
         raise ValueError('Vertex data not found')
 
     res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
     if res['rr'].shape[0] != res['np']:
-        fid.close()
         raise ValueError('Vertex information is incorrect')
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
@@ -164,17 +160,14 @@ def _read_bem_surface(fid, this, def_coord_frame):
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:
-            fid.close()
             raise ValueError('Vertex normal information is incorrect')
 
     tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
     if tag is None:
-        fid.close()
         raise ValueError('Triangulation not found')
 
     res['tris'] = tag.data - 1  # index start at 0 in Python
     if res['tris'].shape[0] != res['ntri']:
-        fid.close()
         raise ValueError('Triangulation information is incorrect')
 
     return res
@@ -220,44 +213,44 @@ def _complete_surface_info(this, verbose=None):
 ###############################################################################
 # Handle freesurfer
 
-def _fread3(fobj):
+def _fread3(fid):
     """Docstring"""
-    b1, b2, b3 = np.fromfile(fobj, ">u1", 3)
+    b1, b2, b3 = np.fromfile(fid, ">u1", 3)
     return (b1 << 16) + (b2 << 8) + b3
 
 
-def _fread3_many(fobj, n):
+def _fread3_many(fid, n):
     """Read 3-byte ints from an open binary file object."""
-    b1, b2, b3 = np.fromfile(fobj, ">u1",
+    b1, b2, b3 = np.fromfile(fid, ">u1",
                              3 * n).reshape(-1, 3).astype(np.int).T
     return (b1 << 16) + (b2 << 8) + b3
 
 
 def read_curvature(filepath):
     """Load in curavature values from the ?h.curv file."""
-    with open(filepath, "rb") as fobj:
-        magic = _fread3(fobj)
+    with open(filepath, "rb") as fid:
+        magic = _fread3(fid)
         if magic == 16777215:
-            vnum = np.fromfile(fobj, ">i4", 3)[0]
-            curv = np.fromfile(fobj, ">f4", vnum)
+            vnum = np.fromfile(fid, ">i4", 3)[0]
+            curv = np.fromfile(fid, ">f4", vnum)
         else:
             vnum = magic
-            _fread3(fobj)
-            curv = np.fromfile(fobj, ">i2", vnum) / 100
+            _fread3(fid)
+            curv = np.fromfile(fid, ">i2", vnum) / 100
         bin_curv = 1 - np.array(curv != 0, np.int)
     return bin_curv
 
 
 def read_surface(filepath):
     """Load in a Freesurfer surface mesh in triangular format."""
-    with open(filepath, "rb") as fobj:
-        magic = _fread3(fobj)
+    with open(filepath, "rb") as fid:
+        magic = _fread3(fid)
         if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
-            nvert = _fread3(fobj)
-            nquad = _fread3(fobj)
-            coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float)
+            nvert = _fread3(fid)
+            nquad = _fread3(fid)
+            coords = np.fromfile(fid, ">i2", nvert * 3).astype(np.float)
             coords = coords.reshape(-1, 3) / 100.0
-            quads = _fread3_many(fobj, nquad * 4)
+            quads = _fread3_many(fid, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
             #   Face splitting follows
@@ -277,12 +270,12 @@ def read_surface(filepath):
                     nface += 1
 
         elif magic == 16777214:  # Triangle file
-            create_stamp = fobj.readline()
-            _ = fobj.readline()
-            vnum = np.fromfile(fobj, ">i4", 1)[0]
-            fnum = np.fromfile(fobj, ">i4", 1)[0]
-            coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
-            faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
+            create_stamp = fid.readline()
+            _ = fid.readline()
+            vnum = np.fromfile(fid, ">i4", 1)[0]
+            fnum = np.fromfile(fid, ">i4", 1)[0]
+            coords = np.fromfile(fid, ">f4", vnum * 3).reshape(vnum, 3)
+            faces = np.fromfile(fid, ">i4", fnum * 3).reshape(fnum, 3)
         else:
             raise ValueError("%s does not appear to be a Freesurfer surface"
                              % filepath)
@@ -307,25 +300,25 @@ def write_bem_surface(fname, surf):
     """
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_file(fname) as fid:
+        start_block(fid, FIFFB_BEM)
+        start_block(fid, FIFFB_BEM_SURF)
 
-    start_block(fid, FIFFB_BEM)
-    start_block(fid, FIFFB_BEM_SURF)
+        write_int(fid, FIFF_BEM_SURF_ID, surf['id'])
+        write_float(fid, FIFF_BEM_SIGMA, surf['sigma'])
+        write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
+        write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
+        write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
+        write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
 
-    write_int(fid, FIFF_BEM_SURF_ID, surf['id'])
-    write_float(fid, FIFF_BEM_SIGMA, surf['sigma'])
-    write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
-    write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
-    write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
-    write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
+        if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
+            write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS,
+                               surf['nn'])
 
-    if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
-        write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, surf['nn'])
+        # index start at 0 in Python
+        write_int_matrix(fid, FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
 
-    # index start at 0 in Python
-    write_int_matrix(fid, FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
+        end_block(fid, FIFFB_BEM_SURF)
+        end_block(fid, FIFFB_BEM)
 
-    end_block(fid, FIFFB_BEM_SURF)
-    end_block(fid, FIFFB_BEM)
-
-    end_file(fid)
+        end_file(fid)

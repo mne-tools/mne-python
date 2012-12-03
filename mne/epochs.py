@@ -656,53 +656,51 @@ class Epochs(object):
             The name of the file.
         """
         # Create the file and save the essentials
-        fid = start_file(fname)
+        with start_file(fname) as fid:
+            start_block(fid, FIFF.FIFFB_MEAS)
+            write_id(fid, FIFF.FIFF_BLOCK_ID)
+            if self.info['meas_id'] is not None:
+                write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
 
-        start_block(fid, FIFF.FIFFB_MEAS)
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
+            # Write measurement info
+            write_meas_info(fid, self.info)
 
-        # Write measurement info
-        write_meas_info(fid, self.info)
+            # One or more evoked data sets
+            start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+            start_block(fid, FIFF.FIFFB_EPOCHS)
 
-        # One or more evoked data sets
-        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        start_block(fid, FIFF.FIFFB_EPOCHS)
+            start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+            end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+            # First and last sample
+            first = -int(np.sum(self.times < 0))
+            last = int(np.sum(self.times > 0))
+            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
+            write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
 
-        # First and last sample
-        first = -int(np.sum(self.times < 0))
-        last = int(np.sum(self.times > 0))
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+            # save baseline
+            if self.baseline is not None:
+                bmin, bmax = self.baseline
+                bmin = self.times[0] if bmin is None else bmin
+                bmax = self.times[-1] if bmax is None else bmax
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+                write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
 
-        # save baseline
-        if self.baseline is not None:
-            bmin, bmax = self.baseline
-            bmin = self.times[0] if bmin is None else bmin
-            bmax = self.times[-1] if bmax is None else bmax
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+            # The epochs itself
+            decal = np.empty(self.info['nchan'])
+            for k in range(self.info['nchan']):
+                decal[k] = 1.0 / self.info['chs'][k]['cal']
 
-        # The epochs itself
-        decal = np.empty(self.info['nchan'])
-        for k in range(self.info['nchan']):
-            decal[k] = 1.0 / self.info['chs'][k]['cal']
+            data = self.get_data()
+            data *= decal[None, :, None]
 
-        data = self.get_data()
-        data *= decal[None, :, None]
+            write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+            end_block(fid, FIFF.FIFFB_EPOCHS)
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-        end_block(fid, FIFF.FIFFB_EPOCHS)
-
-        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
-
+            end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+            end_block(fid, FIFF.FIFFB_MEAS)
+            end_file(fid)
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
@@ -918,100 +916,97 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs = Epochs(None, None, None, None, None)
 
     logger.info('Reading %s ...' % fname)
-    fid, tree, _ = fiff_open(fname)
+    f, tree, _ = fiff_open(fname)
 
-    #   Read the measurement info
-    info, meas = read_meas_info(fid, tree)
-    info['filename'] = fname
+    with f as fid:
+        #   Read the measurement info
+        info, meas = read_meas_info(fid, tree)
+        info['filename'] = fname
 
-    events = _read_events_fif(fid, tree)
+        events = _read_events_fif(fid, tree)
 
-    #   Locate the data of interest
-    processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
-    if len(processed) == 0:
-        fid.close()
-        raise ValueError('Could not find processed data')
+        #   Locate the data of interest
+        processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
+        if len(processed) == 0:
+            raise ValueError('Could not find processed data')
 
-    epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
-    if len(epochs_node) == 0:
-        fid.close()
-        raise ValueError('Could not find epochs data')
+        epochs_node = dir_tree_find(tree, FIFF.FIFFB_EPOCHS)
+        if len(epochs_node) == 0:
+            raise ValueError('Could not find epochs data')
 
-    my_epochs = epochs_node[0]
+        my_epochs = epochs_node[0]
 
-    # Now find the data in the block
-    comment = None
-    data = None
-    bmin, bmax = None, None
+        # Now find the data in the block
+        comment = None
+        data = None
+        bmin, bmax = None, None
 
-    for k in range(my_epochs['nent']):
-        kind = my_epochs['directory'][k].kind
-        pos = my_epochs['directory'][k].pos
-        if kind == FIFF.FIFF_FIRST_SAMPLE:
-            tag = read_tag(fid, pos)
-            first = int(tag.data)
-        elif kind == FIFF.FIFF_LAST_SAMPLE:
-            tag = read_tag(fid, pos)
-            last = int(tag.data)
-        elif kind == FIFF.FIFF_COMMENT:
-            tag = read_tag(fid, pos)
-            comment = tag.data
-        elif kind == FIFF.FIFF_EPOCH:
-            tag = read_tag(fid, pos)
-            data = tag.data
-        elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
-            tag = read_tag(fid, pos)
-            bmin = float(tag.data)
-        elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
-            tag = read_tag(fid, pos)
-            bmax = float(tag.data)
+        for k in range(my_epochs['nent']):
+            kind = my_epochs['directory'][k].kind
+            pos = my_epochs['directory'][k].pos
+            if kind == FIFF.FIFF_FIRST_SAMPLE:
+                tag = read_tag(fid, pos)
+                first = int(tag.data)
+            elif kind == FIFF.FIFF_LAST_SAMPLE:
+                tag = read_tag(fid, pos)
+                last = int(tag.data)
+            elif kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comment = tag.data
+            elif kind == FIFF.FIFF_EPOCH:
+                tag = read_tag(fid, pos)
+                data = tag.data
+            elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
+                tag = read_tag(fid, pos)
+                bmin = float(tag.data)
+            elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
+                tag = read_tag(fid, pos)
+                bmax = float(tag.data)
 
-    if bmin is not None or bmax is not None:
-        baseline = (bmin, bmax)
+        if bmin is not None or bmax is not None:
+            baseline = (bmin, bmax)
 
-    nsamp = last - first + 1
-    logger.info('    Found the data of interest:')
-    logger.info('        t = %10.2f ... %10.2f ms (%s)'
-                % (1000 * first / info['sfreq'],
-                   1000 * last / info['sfreq'], comment))
-    if info['comps'] is not None:
-        logger.info('        %d CTF compensation matrices available'
-                                               % len(info['comps']))
+        nsamp = last - first + 1
+        logger.info('    Found the data of interest:')
+        logger.info('        t = %10.2f ... %10.2f ms (%s)'
+                    % (1000 * first / info['sfreq'],
+                       1000 * last / info['sfreq'], comment))
+        if info['comps'] is not None:
+            logger.info('        %d CTF compensation matrices available'
+                                                   % len(info['comps']))
 
-    # Read the data
-    if data is None:
-        raise ValueError('Epochs data not found')
+        # Read the data
+        if data is None:
+            raise ValueError('Epochs data not found')
 
-    if data.shape[2] != nsamp:
-        fid.close()
-        raise ValueError('Incorrect number of samples (%d instead of %d)'
-                          % (data.shape[2], nsamp))
+        if data.shape[2] != nsamp:
+            raise ValueError('Incorrect number of samples (%d instead of %d)'
+                             % (data.shape[2], nsamp))
 
-    # Calibrate
-    cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-    data = cals[None, :, None] * data
+        # Calibrate
+        cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
+        data = cals[None, :, None] * data
 
-    times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-    tmin = times[0]
-    tmax = times[-1]
+        times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
+        tmin = times[0]
+        tmax = times[-1]
 
-    # Put it all together
-    epochs.preload = True
-    epochs._bad_dropped = True
-    epochs.events = events
-    epochs._data = data
-    epochs.info = info
-    epochs.tmin = tmin
-    epochs.tmax = tmax
-    epochs.name = comment
-    epochs.times = times
-    epochs.data = data
-    epochs.proj = proj
-    epochs._projector, epochs.info = setup_proj(info)
-    epochs.ch_names = info['ch_names']
-    epochs.baseline = baseline
-    epochs.event_id = int(np.unique(events[:, 2]))
-    fid.close()
+        # Put it all together
+        epochs.preload = True
+        epochs._bad_dropped = True
+        epochs.events = events
+        epochs._data = data
+        epochs.info = info
+        epochs.tmin = tmin
+        epochs.tmax = tmax
+        epochs.name = comment
+        epochs.times = times
+        epochs.data = data
+        epochs.proj = proj
+        epochs._projector, epochs.info = setup_proj(info)
+        epochs.ch_names = info['ch_names']
+        epochs.baseline = baseline
+        epochs.event_id = int(np.unique(events[:, 2]))
 
     return epochs
 

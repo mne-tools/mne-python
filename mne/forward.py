@@ -106,6 +106,9 @@ def _block_diag(A, n):
 
 def _read_one(fid, node):
     """Read all interesting stuff for one forward solution
+
+    Note that it's assumed that fid has been opened with a "with" statement so
+    that fid.close() wil automatically be called if an error is thrown here.
     """
     if node is None:
         return None
@@ -114,25 +117,21 @@ def _read_one(fid, node):
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
-        fid.close()
         raise ValueError('Source orientation tag not found')
     one['source_ori'] = int(tag.data)
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
-        fid.close()
         raise ValueError('Coordinate frame tag not found')
     one['coord_frame'] = int(tag.data)
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
-        fid.close()
         raise ValueError('Number of sources not found')
     one['nsource'] = int(tag.data)
 
     tag = find_tag(fid, node, FIFF.FIFF_NCHAN)
     if tag is None:
-        fid.close()
         raise ValueError('Number of channels not found')
     one['nchan'] = int(tag.data)
 
@@ -141,7 +140,6 @@ def _read_one(fid, node):
                                             FIFF.FIFF_MNE_FORWARD_SOLUTION)
         one['sol'] = _transpose_named_matrix(one['sol'])
     except Exception as inst:
-        fid.close()
         raise 'Forward solution data not found (%s)' % inst
 
     try:
@@ -154,14 +152,12 @@ def _read_one(fid, node):
     if one['sol']['data'].shape[0] != one['nchan'] or \
                 (one['sol']['data'].shape[1] != one['nsource'] and
                  one['sol']['data'].shape[1] != 3 * one['nsource']):
-        fid.close()
         raise ValueError('Forward solution matrix has wrong dimensions')
 
     if one['sol_grad'] is not None:
         if one['sol_grad']['data'].shape[0] != one['nchan'] or \
                 (one['sol_grad']['data'].shape[1] != 3 * one['nsource'] and
                  one['sol_grad']['data'].shape[1] != 3 * 3 * one['nsource']):
-            fid.close()
             raise ValueError('Forward solution gradient matrix has '
                              'wrong dimensions')
 
@@ -185,7 +181,6 @@ def read_forward_meas_info(tree, fid):
     """
     parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
     if len(parent_meg) == 0:
-        fid.close()
         raise ValueError('No parent MEG information found in operator')
     parent_meg = parent_meg[0]
 
@@ -206,7 +201,6 @@ def read_forward_meas_info(tree, fid):
     #   Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
     if tag is None:
-        fid.close()
         raise ValueError('MEG/head coordinate transformation not found')
     else:
         cand = tag.data
@@ -254,123 +248,114 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
-    fid, tree, _ = fiff_open(fname)
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        #   Find all forward solutions
+        fwds = dir_tree_find(tree, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
+        if len(fwds) == 0:
+            raise ValueError('No forward solutions in %s' % fname)
 
-    #   Find all forward solutions
-    fwds = dir_tree_find(tree, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
-    if len(fwds) == 0:
-        fid.close()
-        raise ValueError('No forward solutions in %s' % fname)
+        #   Parent MRI data
+        parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        if len(fwds) == 0:
+            raise ValueError('No parent MRI information in %s' % fname)
+        parent_mri = parent_mri[0]
 
-    #   Parent MRI data
-    parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    if len(fwds) == 0:
-        fid.close()
-        raise ValueError('No parent MRI information in %s' % fname)
-    parent_mri = parent_mri[0]
+        try:
+            src = read_source_spaces_from_tree(fid, tree, add_geom=False)
+        except Exception as inst:
+            raise ValueError('Could not read the source spaces (%s)' % inst)
 
-    try:
-        src = read_source_spaces_from_tree(fid, tree, add_geom=False)
-    except Exception as inst:
-        fid.close()
-        raise ValueError('Could not read the source spaces (%s)' % inst)
+        for s in src:
+            s['id'] = find_source_space_hemi(s)
 
-    for s in src:
-        s['id'] = find_source_space_hemi(s)
+        fwd = None
 
-    fwd = None
+        #   Locate and read the forward solutions
+        megnode = None
+        eegnode = None
+        for k in range(len(fwds)):
+            tag = find_tag(fid, fwds[k], FIFF.FIFF_MNE_INCLUDED_METHODS)
+            if tag is None:
+                raise ValueError('Methods not listed for one of the forward '
+                                 'solutions')
 
-    #   Locate and read the forward solutions
-    megnode = None
-    eegnode = None
-    for k in range(len(fwds)):
-        tag = find_tag(fid, fwds[k], FIFF.FIFF_MNE_INCLUDED_METHODS)
+            if tag.data == FIFF.FIFFV_MNE_MEG:
+                megnode = fwds[k]
+            elif tag.data == FIFF.FIFFV_MNE_EEG:
+                eegnode = fwds[k]
+
+        megfwd = _read_one(fid, megnode)
+        if megfwd is not None:
+            if is_fixed_orient(megfwd):
+                ori = 'fixed'
+            else:
+                ori = 'free'
+            logger.info('    Read MEG forward solution (%d sources, %d channels, '
+                        '%s orientations)' % (megfwd['nsource'], megfwd['nchan'],
+                                              ori))
+
+        eegfwd = _read_one(fid, eegnode)
+        if eegfwd is not None:
+            if is_fixed_orient(eegfwd):
+                ori = 'fixed'
+            else:
+                ori = 'free'
+            logger.info('    Read EEG forward solution (%d sources, %d channels, '
+                         '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
+                                               ori))
+
+        #   Merge the MEG and EEG solutions together
+        if megfwd is not None and eegfwd is not None:
+            if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
+                    megfwd['source_ori'] != eegfwd['source_ori'] or
+                    megfwd['nsource'] != eegfwd['nsource'] or
+                    megfwd['coord_frame'] != eegfwd['coord_frame']):
+                raise ValueError('The MEG and EEG forward solutions do not match')
+
+            fwd = megfwd
+            fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
+            fwd['sol']['nrow'] = fwd['sol']['nrow'] + eegfwd['sol']['nrow']
+
+            fwd['sol']['row_names'] = fwd['sol']['row_names'] + \
+                                      eegfwd['sol']['row_names']
+            if fwd['sol_grad'] is not None:
+                fwd['sol_grad']['data'] = np.r_[fwd['sol_grad']['data'],
+                                                eegfwd['sol_grad']['data']]
+                fwd['sol_grad']['nrow'] = fwd['sol_grad']['nrow'] + \
+                                          eegfwd['sol_grad']['nrow']
+                fwd['sol_grad']['row_names'] = fwd['sol_grad']['row_names'] + \
+                                               eegfwd['sol_grad']['row_names']
+
+            fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
+            logger.info('    MEG and EEG forward solutions combined')
+        elif megfwd is not None:
+            fwd = megfwd
+        else:
+            fwd = eegfwd
+
+        del megfwd
+        del eegfwd
+
+        #   Get the MRI <-> head coordinate transformation
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
         if tag is None:
-            fid.close()
-            raise ValueError('Methods not listed for one of the forward '
-                             'solutions')
-
-        if tag.data == FIFF.FIFFV_MNE_MEG:
-            megnode = fwds[k]
-        elif tag.data == FIFF.FIFFV_MNE_EEG:
-            eegnode = fwds[k]
-
-    megfwd = _read_one(fid, megnode)
-    if megfwd is not None:
-        if is_fixed_orient(megfwd):
-            ori = 'fixed'
+            raise ValueError('MRI/head coordinate transformation not found')
         else:
-            ori = 'free'
-        logger.info('    Read MEG forward solution (%d sources, %d channels, '
-                    '%s orientations)' % (megfwd['nsource'], megfwd['nchan'],
-                                          ori))
+            mri_head_t = tag.data
+            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
+                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
+                mri_head_t = invert_transform(mri_head_t)
+                if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
+                    or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
+                    raise ValueError('MRI/head coordinate transformation not '
+                                     'found')
+        fwd['mri_head_t'] = mri_head_t
 
-    eegfwd = _read_one(fid, eegnode)
-    if eegfwd is not None:
-        if is_fixed_orient(eegfwd):
-            ori = 'fixed'
-        else:
-            ori = 'free'
-        logger.info('    Read EEG forward solution (%d sources, %d channels, '
-                     '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
-                                           ori))
-
-    #   Merge the MEG and EEG solutions together
-    if megfwd is not None and eegfwd is not None:
-        if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
-                megfwd['source_ori'] != eegfwd['source_ori'] or
-                megfwd['nsource'] != eegfwd['nsource'] or
-                megfwd['coord_frame'] != eegfwd['coord_frame']):
-            fid.close()
-            raise ValueError('The MEG and EEG forward solutions do not match')
-
-        fwd = megfwd
-        fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
-        fwd['sol']['nrow'] = fwd['sol']['nrow'] + eegfwd['sol']['nrow']
-
-        fwd['sol']['row_names'] = fwd['sol']['row_names'] + \
-                                  eegfwd['sol']['row_names']
-        if fwd['sol_grad'] is not None:
-            fwd['sol_grad']['data'] = np.r_[fwd['sol_grad']['data'],
-                                            eegfwd['sol_grad']['data']]
-            fwd['sol_grad']['nrow'] = fwd['sol_grad']['nrow'] + \
-                                      eegfwd['sol_grad']['nrow']
-            fwd['sol_grad']['row_names'] = fwd['sol_grad']['row_names'] + \
-                                           eegfwd['sol_grad']['row_names']
-
-        fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        logger.info('    MEG and EEG forward solutions combined')
-    elif megfwd is not None:
-        fwd = megfwd
-    else:
-        fwd = eegfwd
-
-    del megfwd
-    del eegfwd
-
-    #   Get the MRI <-> head coordinate transformation
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
-    if tag is None:
-        fid.close()
-        raise ValueError('MRI/head coordinate transformation not found')
-    else:
-        mri_head_t = tag.data
-        if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
-                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
-            mri_head_t = invert_transform(mri_head_t)
-            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
-                or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
-                fid.close()
-                raise ValueError('MRI/head coordinate transformation not '
-                                 'found')
-    fwd['mri_head_t'] = mri_head_t
-
-    #
-    # get parent MEG info
-    #
-    fwd['info'] = read_forward_meas_info(tree, fid)
-
-    fid.close()
+        #
+        # get parent MEG info
+        #
+        fwd['info'] = read_forward_meas_info(tree, fid)
 
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
