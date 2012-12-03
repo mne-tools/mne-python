@@ -78,14 +78,13 @@ class Covariance(dict):
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
-        with start_file(fname) as fid:
-            try:
+        try:
+            with start_file(fname) as fid:
                 fiff.write_cov(fid, self)
-            except Exception as inst:
-                os.remove(fname)
-                raise inst
-
-            end_file(fid)
+                end_file(fid)
+        except Exception as inst:
+            os.remove(fname)
+            raise inst
 
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape
