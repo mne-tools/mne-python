@@ -461,12 +461,11 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked(evoked, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None,
-                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
-                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
-                titles=dict(eeg='EEG', grad='Gradiometers',
-                            mag='Magnetometers')):
+def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
+                proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
+                grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
+                mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
+                mag='Magnetometers')):
     """Plot evoked data
 
     Parameters
@@ -496,10 +495,10 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         The titles associated with the channels.
     """
 
-    if scalings.keys() != units.keys():
+    if scalings.keys() != units.keys() != titles.keys():
         raise ValueError('Scalings and units must have the same keys.')
     else:
-        plot_channels = sorted(scalings)
+        channel_types = sorted(scalings.keys())
 
     import pylab as pl
     pl.clf()
@@ -507,15 +506,15 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         picks = range(evoked.info['nchan'])
     types = [channel_type(evoked.info, idx) for idx in picks]
     n_channel_types = 0
-    channel_types = []
-    for t in plot_channels:
+    ch_types_used = []
+    for t in channel_types:
         if t in types:
             n_channel_types += 1
-            channel_types.append(t)
+            ch_types_used.append(t)
 
     counter = 1
     times = 1e3 * evoked.times  # time in miliseconds
-    for t, scaling, name, ch_unit in zip(plot_channels, scalings.values(),
+    for t, scaling, name, ch_unit in zip(ch_types_used, scalings.values(),
                                          titles.values(), units.values()):
         if unit is False:
             scaling = 1.0
