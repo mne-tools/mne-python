@@ -514,8 +514,9 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
 
     counter = 1
     times = 1e3 * evoked.times  # time in miliseconds
-    for t, scaling, name, ch_unit in zip(ch_types_used, scalings.values(),
-                                         titles.values(), units.values()):
+    for t in ch_types_used:
+        ch_unit = units[t]
+        scaling = scalings[t]
         if unit is False:
             scaling = 1.0
             ch_unit = 'NA'  # no unit
@@ -536,7 +537,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
                 pl.xlim(xlim)
             if ylim is not None and t in ylim:
                 pl.ylim(ylim[t])
-            pl.title(name + ' (%d channels)' % len(D))
+            pl.title(titles[t] + ' (%d channels)' % len(D))
             pl.xlabel('time (ms)')
             counter += 1
             pl.ylabel('data (%s)' % ch_unit)
