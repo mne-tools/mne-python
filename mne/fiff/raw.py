@@ -604,7 +604,8 @@ class Raw(object):
 
         Limit the data from the raw file to go between specific times. Note
         that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). Data are modified in-place.
+        functions (e.g., time_as_index, or Epochs). Data are modified in-place,
+        and new first_samp and last_samp are set accordingly.
 
         Parameters
         ----------
