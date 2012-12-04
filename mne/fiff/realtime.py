@@ -199,15 +199,15 @@ class DataClientSocket(ClientSocket):
                 comps = list()
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_CTF_COMP:
                     tag = self.read_tag()
-                    if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MNE_CTF_COMP_DATA:
+                    if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MNE_CTF_COMdata:
                         comp = [];
-                        while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_CTF_COMP_DATA:
+                        while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_CTF_COMdata:
                             tag = self.read_tag()
                             if tag.kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
                                 comp['ctfkind'] = tag.data
                             elif tag.kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
                                 comp['save_calibrated'] = tag.data
-                            elif tag.kind == FIFF.FIFF_MNE_CTF_COMP_DATA:
+                            elif tag.kind == FIFF.FIFF_MNE_CTF_COMdata:
                                 comp['data'] = tag.data
                     comps.append(comp)
                 info['comps'] = comps
@@ -285,32 +285,31 @@ class DataClientSocket(ClientSocket):
 
         return self._client_id
 
-    def send_fiff_command(self, p_Cmd, p_data = None):
+    def send_fiff_command(self, command, data = None):
         """Method send_fiff_command."""
 
         kind = 3700 #FIFF.FIFF_MNE_RT_COMMAND            = 3700;    	% Fiff Real-Time Command
         type = 0 #FIFF.FIFFT_VOID;
         size = 4
-        if p_data is not None:
-            size += len(p_data) # first 4 bytes are the command code
+        if data is not None:
+            size += len(data) # first 4 bytes are the command code
         next = 0
 
 
         #msg = "%d%d%d%d" % (kind, type, size, next)#unfortunately with this its not working:
-        np.array(kind, dtype='>i4').tostring()
+        msg = np.array(kind, dtype='>i4').tostring()
         msg += np.array(type, dtype='>i4').tostring()
         msg += np.array(size, dtype='>i4').tostring()
         msg += np.array(next, dtype='>i4').tostring()
 
-        msg += np.array(p_Cmd, dtype='>i4').tostring()
-        if p_data is not None:
-            msg += np.array(p_data, dtype='>c').tostring()
+        msg += np.array(command, dtype='>i4').tostring()
+        if data is not None:
+            msg += np.array(data, dtype='>c').tostring()
 
         self._client_sock.sendall(msg)
 
     def read_tag(self):
         """Method read_tag."""
-
         #set socket to blocking mode
         self._client_sock.setblocking(1)
         #
@@ -373,12 +372,12 @@ class DataClientSocket(ClientSocket):
 #                    if matrix_type == FIFF.FIFFT_INT
 #                                 tag.data = zeros(el_size/4, 1);
 #                                 for i = 1:el_size/4
-#                                     tag.data(i) = p_DataInputStream.readInt;%idata = fread(fid,dims(1)*dims(2),'int32=>int32');
+#                                     tag.data(i) = dataInputStream.readInt;%idata = fread(fid,dims(1)*dims(2),'int32=>int32');
 #                                 end
 #                    elif matrix_type == FIFF.FIFFT_JULIAN
 #                                 tag.data = zeros(el_size/4, 1);
 #                                 for i = 1:el_size/4
-#                                     tag.data(i) = p_DataInputStream.readInt;%idata = fread(fid,dims(1)*dims(2),'int32=>int32');
+#                                     tag.data(i) = dataInputStream.readInt;%idata = fread(fid,dims(1)*dims(2),'int32=>int32');
 #                                 end
                     if matrix_type == FIFF.FIFFT_FLOAT:
                         tmp = self._client_sock.recv(el_size)
