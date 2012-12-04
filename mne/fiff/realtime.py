@@ -9,11 +9,12 @@
 import socket
 import sys
 import time
-
+import struct
 import numpy as np
 
+from scipy import linalg
 from .constants import FIFF
-
+from .tag import Tag
 
 class ClientSocket(object):
     """Define Class ClientSocket."""
@@ -70,13 +71,14 @@ class CmdClientSocket(ClientSocket):
 
     def request_meas_info(self, alias_or_id):
         """request_meas_info."""
-        alias_or_id = 'measinfo ' + alias_or_id
-        self.send_command(alias_or_id)
+        # ToDo parse whether alias_or_id is string or num
+        cmd = 'measinfo %d' % alias_or_id
+        self.send_command(cmd)
 
     def request_meas(self, alias_or_id):
         """request_meas."""
-        alias_or_id = 'meas ' + alias_or_id
-        self.send_command(alias_or_id)
+        cmd = 'meas %d' % alias_or_id
+        self.send_command(cmd)
 
     def stop_all(self):
         """stop_all."""
@@ -90,7 +92,7 @@ class DataClientSocket(ClientSocket):
         super(DataClientSocket, self).__init__(host, port)
         self._client_id = -1
 
-    def read_info(self, command):
+    def read_info(self):
         """Method readInfo reads the measurement info."""
         
         block_start_read = False
@@ -100,8 +102,7 @@ class DataClientSocket(ClientSocket):
         #
         #ToDo Time Out
         while block_start_read != True:
-            tag = mne_rt_data_client.read_tag()
-
+            tag = self.read_tag()
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MEAS_INFO:
                 sys.stdout.write('FIFF_BLOCK_START FIFFB_MEAS_INFO\n')
                 block_start_read = True
@@ -154,7 +155,7 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_ISOTRAK:
                 dig = [];
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_ISOTRAK:
-                    tag = self._client_sock.read_tag();
+                    tag = self.read_tag();
                     if tag.kind == FIFF.FIFF_DIG_POINT:
                         dig.append(tag.data)
                         dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -165,26 +166,28 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_PROJ:
                 projs = list()
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_PROJ:
-                    tag = self._client_sock.read_tag();
+                    tag = self.read_tag();
                     if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_PROJ_ITEM:
-                        proj = [];
+                        proj = dict();
+                        data = dict();
                         while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_PROJ_ITEM:
-                            tag = self._client_sock.read_tag()
+                            tag = self.read_tag()
                             if tag.kind == FIFF.FIFF_NAME:
                                 proj['desc'] = tag.data
                             elif tag.kind == FIFF.FIFF_PROJ_ITEM_KIND:
                                 proj['kind'] = int(tag.data)
                             elif tag.kind == FIFF.FIFF_NCHAN:
-                                proj['data']['ncol'] = int(tag.data)
+                                data['ncol'] = int(tag.data)
                             elif tag.kind == FIFF.FIFF_PROJ_ITEM_NVEC:
-                                proj['data']['nrow'] = int(tag.data)
+                                data['nrow'] = int(tag.data)
                             elif tag.kind == FIFF.FIFF_MNE_PROJ_ITEM_ACTIVE:
                                 proj['active'] = bool(tag.data)
                             elif tag.kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
-                                proj['data']['col_names'] = tag.data.split(':')
+                                data['col_names'] = tag.data.split(':')
                             elif tag.kind == FIFF.FIFF_PROJ_ITEM_VECTORS:
-                                proj['data']['data'] = tag.data
-                                
+                                data['data'] = tag.data
+                        
+                        proj['data'] = data
                         projs.append(proj)
                     
                 info['projs'] = projs
@@ -216,22 +219,22 @@ class DataClientSocket(ClientSocket):
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_BAD_CHANNELS:
                     tag = self.read_tag()
                     if tag.kind == FIFF.FIFF_MNE_CH_NAME_LIST:
-                        info.bads = tag.data.split(':')
+                        bads = tag.data.split(':')
                         
-                info.bads = bads
+                info['bads'] = bads
             #
             #    General
             #
             if tag.kind == FIFF.FIFF_SFREQ:
-                info.sfreq = float(tag.data)
+                info['sfreq'] = float(tag.data)
             elif tag.kind == FIFF.FIFF_HIGHPASS:
-                info.highpass = float(tag.data)
+                info['highpass'] = float(tag.data)
             elif tag.kind == FIFF.FIFF_LOWPASS:
-                info.lowpass = float(tag.data)
+                info['lowpass'] = float(tag.data)
             elif tag.kind == FIFF.FIFF_NCHAN:
-                info.nchan = int(tag.data)
+                info['nchan'] = int(tag.data)
             elif tag.kind == FIFF.FIFF_MEAS_DATE:
-                info.highpass = tag.data
+                info['highpass'] = tag.data
             
             if tag.kind == FIFF.FIFF_CH_INFO:
                 chs.append(tag.data);
@@ -247,15 +250,14 @@ class DataClientSocket(ClientSocket):
 
     def set_client_alias(self, alias):
         """Method set_client_alias."""
-        
-        self.sendFiffCommand(2, alias) # MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
+        self.send_fiff_command(2, alias) # MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
     
     def get_client_id(self):
         """Method set_client_alias."""
             
         if self._client_id == -1:
 
-            self.sendFiffCommand(1) # MNE_RT.MNE_RT_GET_CLIENT_ID == 1
+            self.send_fiff_command(1) # MNE_RT.MNE_RT_GET_CLIENT_ID == 1
 
             # ID is send as answer
             tag = self.read_tag();
@@ -264,8 +266,8 @@ class DataClientSocket(ClientSocket):
                 
         return self._client_id
 
-    def sendFiffCommand(self, p_Cmd, p_data = None):
-        """Method sendFiffCommand."""
+    def send_fiff_command(self, p_Cmd, p_data = None):
+        """Method send_fiff_command."""
 
         kind = 3700 #FIFF.FIFF_MNE_RT_COMMAND            = 3700;    	% Fiff Real-Time Command
         type = 0 #FIFF.FIFFT_VOID;
@@ -359,20 +361,20 @@ class DataClientSocket(ClientSocket):
                         tmp = self._client_sock.recv(el_size)
                         tag.data = np.fromstring(tmp, dtype='>f4') #fdata = fread(fid,dims(1)*dims(2),'single=>double');
 #                        tag.data = swapbytes(tag.data);
-                    else:
-                        raise Exception('Cannot handle a matrix of type %d yet' % matrix_type)
+                    else:#Raise no exception during real-time acquisition
+                        sys.stdout.write('Cannot handle a matrix of type %d yet\n' % matrix_type)
                     
                     
                     # ToDo consider 3D case --> do that by using tag->size
-
-                    dims[0] = np.fromstring(self._client_sock.recv(4), dtype='>i4')
-                    dims[1] = np.fromstring(self._client_sock.recv(4), dtype='>i4')
+                    dims = list()
+                    dims.append(np.fromstring(self._client_sock.recv(4), dtype='>i4'))
+                    dims.append(np.fromstring(self._client_sock.recv(4), dtype='>i4'))
                     
                     ndim = np.fromstring(self._client_sock.recv(4), dtype='>i4')
                     
                     tag.data = tag.data.reshape(dims)
-                else:
-                    raise Exception('Cannot handle other than dense or sparse matrices yet')
+                else:#Raise no exception during real-time acquisition
+                    sys.stdout.write('Cannot handle other than dense or sparse matrices yet\n')
             else:
                 #
                 #   All other data types
@@ -460,8 +462,8 @@ class DataClientSocket(ClientSocket):
                     tag.data['ch_name'] = ''.join(
                                         ch_name[:np.where(ch_name == '')[0][0]])
 
-                else:
-                    raise Exception('Unimplemented tag data type %s' % tag.type)
+                else:#Raise no exception during real-time acquisition
+                    sys.stdout.write('Unimplemented tag data type %s\n' % tag.type)
 
         # if tag.next ~= FIFF.FIFFV_NEXT_SEQ
         #     fseek(fid,tag.next,'bof');
