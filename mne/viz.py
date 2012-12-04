@@ -462,7 +462,11 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 
 def plot_evoked(evoked, picks=None, unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None):
+                ylim=None, proj=False, xlim='tight', hline=None,
+                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
+                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
+                titles=dict(eeg='EEG', grad='Gradiometers',
+                            mag='Magnetometers')):
     """Plot evoked data
 
     Parameters
@@ -484,7 +488,19 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
         If true SSP projections are applied before display.
     hline : list of floats | None
         The values at which show an horizontal line.
+    units : dict
+        The units of the channel types used for axes lables.
+    scalings : dict
+        The scalings of the channel types to be applied for plotting.
+    titles : dict
+        The titles associated with the channels.
     """
+
+    if scalings.keys() != units.keys():
+        raise ValueError('Scalings and units must have the same keys.')
+    else:
+        plot_channels = sorted(scalings)
+
     import pylab as pl
     pl.clf()
     if picks is None:
@@ -492,17 +508,15 @@ def plot_evoked(evoked, picks=None, unit=True, show=True,
     types = [channel_type(evoked.info, idx) for idx in picks]
     n_channel_types = 0
     channel_types = []
-    for t in ['eeg', 'grad', 'mag']:
+    for t in plot_channels:
         if t in types:
             n_channel_types += 1
             channel_types.append(t)
 
     counter = 1
     times = 1e3 * evoked.times  # time in miliseconds
-    for t, scaling, name, ch_unit in zip(['eeg', 'grad', 'mag'],
-                           [1e6, 1e13, 1e15],
-                           ['EEG', 'Gradiometers', 'Magnetometers'],
-                           ['uV', 'fT/cm', 'fT']):
+    for t, scaling, name, ch_unit in zip(plot_channels, scalings.values(),
+                                         titles.values(), units.values()):
         if unit is False:
             scaling = 1.0
             ch_unit = 'NA'  # no unit
