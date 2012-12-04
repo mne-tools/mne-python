@@ -57,7 +57,9 @@ epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
-start, stop = 0, 20  # if stop < 20 pca may fail in some cases
+start, stop = 0, 10  # if stop < 20 pca may fail in some cases, but we're
+                     # okay on this file
+raw.crop(0, 10)
 
 
 @sklearn_test

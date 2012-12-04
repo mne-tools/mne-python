@@ -646,7 +646,7 @@ class Raw(object):
         if self._preloaded:
             self._data = self._data[:, smin:smax + 1]
         self.first_samp = self._first_samps[0]
-        self.last_samp = self.first_samp + self._data.shape[1] - 1
+        self.last_samp = self.first_samp + (smax - smin)
 
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.

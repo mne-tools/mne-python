@@ -23,12 +23,10 @@ else:
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
 
-raw_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                    'test_raw.fif')
-event_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                     'test-eve.fif')
-evoked_nf_name = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                         'test-nf-ave.fif')
+base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+event_name = op.join(base_dir, 'test-eve.fif')
+evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
