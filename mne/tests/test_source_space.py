@@ -14,7 +14,7 @@ fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 def test_read_source_spaces():
     """Testing reading of source space meshes
     """
-    src = read_source_spaces(fname, add_geom=True)
+    src, _ = read_source_spaces(fname, add_geom=True)
 
     # 3D source space
     lh_points = src[0]['rr']
@@ -36,9 +36,9 @@ def test_read_source_spaces():
 def test_write_source_space():
     """Test writing and reading of source spaces
     """
-    src0 = read_source_spaces(fname, add_geom=True)
-    write_source_spaces('tmp.fif', src0)
-    src1 = read_source_spaces('tmp.fif')
+    src0, info0 = read_source_spaces(fname, add_geom=False)
+    write_source_spaces('tmp.fif', src0, info0)
+    src1, info1 = read_source_spaces('tmp.fif')
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id']:
             assert_true(s0[name] == s1[name])
@@ -56,6 +56,8 @@ def test_write_source_space():
                     assert_true(all(p1 == p2))
         # The above "if s0[name] is not None" can be removed once the sample
         # dataset is updated to have a source space with distance info
+    for name in ['working_dir', 'command_line']:
+        assert_true(info0[name] == info1[name])
 
 
 def test_vertex_to_mni():
@@ -64,10 +66,10 @@ def test_vertex_to_mni():
     # these were random vertices pulled from "sample" in mne_analyze
     # but mne_analyze won't load the xfm file! So we must use fsaverage,
     # which is sily because the xfm is the identity matrix..
-    #vertices = [109445, 82962, 137444]
-    #coords = [[-33.3, 11.5, 50.7], [51.8, -15.4, 30.5], [37.6, 38.4, 57.1]]
-    #hemi = [0, 1, 1]
-    #coords_2 = vertex_to_mni(vertices, hemis, 'sample')
+    # vertices = [109445, 82962, 137444]
+    # coords = [[-33.3, 11.5, 50.7], [51.8, -15.4, 30.5], [37.6, 38.4, 57.1]]
+    # hemi = [0, 1, 1]
+    # coords_2 = vertex_to_mni(vertices, hemis, 'sample')
     vertices = [148611, 157229, 95466]
     coords = [[-55.7, -36.6, -9.6], [-48.5, -35.7, -1.1], [44.0, -34.9, -0.9]]
     hemis = [0, 0, 1]  # , 1]

@@ -90,7 +90,7 @@ def test_label_io():
 def test_stc_to_label():
     """Test stc_to_label
     """
-    src = read_source_spaces(src_fname)
+    src, _ = read_source_spaces(src_fname)
     stc = read_source_estimate(stc_fname)
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)

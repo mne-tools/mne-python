@@ -18,7 +18,7 @@ from .fiff.open import fiff_open
 from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
-                        write_coord_trans, start_file, end_file
+                        write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
 from .utils import get_subjects_dir
 from . import verbose
@@ -106,7 +106,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     Parameters
     ----------
-    fname: string
+    fname : str
         The name of the file.
     add_geom: bool, optional (default False)
         Add geometry information to the surfaces.
@@ -115,11 +115,28 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     Returns
     -------
-    src: list
+    src : list
         The list of source spaces.
+    info : dict
+        Information about the creation of the source space file.
     """
     fid, tree, _ = fiff_open(fname)
-    return read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+
+    info = {}
+    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+    if node:
+        node = node[0]
+        for p in range(node['nent']):
+            kind = node['directory'][p].kind
+            pos = node['directory'][p].pos
+            tag = read_tag(fid, pos)
+            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
+                info['working_dir'] = tag.data
+            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
+                info['command_line'] = tag.data
+
+    src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
+    return src, info
 
 
 @verbose
@@ -308,6 +325,10 @@ def _read_one_source_space(fid, this, verbose=None):
     if (res['dist'] is not None):
         logger.info('Distance information added...')
 
+    tag = find_tag(fid, this, 410)
+    if tag is not None:
+        res['subject_HIS_id'] = tag.data
+
     return res
 
 
@@ -441,7 +462,7 @@ def write_source_spaces_to_fid(fid, src, verbose=None):
 
 
 @verbose
-def write_source_spaces(fname, src, verbose=None):
+def write_source_spaces(fname, src, info={}, verbose=None):
     """Write source spaces to a file
 
     Parameters
@@ -450,11 +471,31 @@ def write_source_spaces(fname, src, verbose=None):
         File to write.
     src : list
         The list of source spaces (as returned by read_source_spaces).
+    info : dict
+        Information about the creation of the source space file.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MNE)
+
+    if info:
+        start_block(fid, FIFF.FIFFB_MNE_ENV)
+
+        write_id(fid, FIFF.FIFF_BLOCK_ID)
+
+        data = info.get('working_dir', None)
+        if data:
+            write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
+        data = info.get('command_line', None)
+        if data:
+            write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
+
+        end_block(fid, FIFF.FIFFB_MNE_ENV)
+
     write_source_spaces_to_fid(fid, src, verbose)
+
+    end_block(fid, FIFF.FIFFB_MNE)
     end_file(fid)
 
 
@@ -467,6 +508,10 @@ def _write_one_source_space(fid, this, verbose=None):
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 2)
     else:
         raise ValueError('Unknown source space type (%d)' % this['type'])
+
+    data = this.get('subject_HIS_id', None)
+    if data:
+        write_string(fid, 410, data)
 
     if this['type'] == 'vol':
 
