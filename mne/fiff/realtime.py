@@ -296,7 +296,8 @@ class DataClientSocket(ClientSocket):
         next = 0
 
 
-        msg = np.array(kind, dtype='>i4').tostring()
+        #msg = "%d%d%d%d" % (kind, type, size, next)#unfortunately with this its not working:
+        np.array(kind, dtype='>i4').tostring()
         msg += np.array(type, dtype='>i4').tostring()
         msg += np.array(size, dtype='>i4').tostring()
         msg += np.array(next, dtype='>i4').tostring()
