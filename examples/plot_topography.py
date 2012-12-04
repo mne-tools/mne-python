@@ -28,7 +28,6 @@ layout = read_layout('Vectorview-all')
 
 ###############################################################################
 # Show topography
-plot_topo(evoked, layout)
 title = 'MNE sample data (condition : %s)' % evoked.comment
-pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
+plot_topo(evoked, layout, title=title)
 pl.show()
