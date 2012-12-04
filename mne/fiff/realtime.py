@@ -16,8 +16,8 @@ import sys
 import time
 
 import numpy as np
-import tag
 
+from .tag import FIFF
 from .constants import FIFF
 
 
@@ -101,13 +101,19 @@ class CmdClientSocket(ClientSocket):
 
 
 
+
+
+
+
 #===============================================================================
 class DataClientSocket(ClientSocket):
     """Define Class CmdClientSocket."""     
     #===========================================================================
     def __init__(self, p_Host, p_iPort):
         """Method __init__."""
-        super(CmdClientSocket, self).__init__(p_Host, p_iPort)
+        super(DataClientSocket, self).__init__(p_Host, p_iPort)
+        
+        self.m_clientID = -1
     
     #===========================================================================    
     def readInfo(self, p_sCommand):
@@ -266,6 +272,59 @@ class DataClientSocket(ClientSocket):
         
         return info
         
+        
+    #===========================================================================  
+    def setClientAlias(self, alias):
+        """Method setClientAlias."""
+        
+        self.sendFiffCommand(2, alias)#MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
+    
+        
+    #=========================================================================== 
+    def getClientId(self):
+        """Method setClientAlias."""
+            
+        if self.m_clientID == -1:
+
+            self.sendFiffCommand(1) # MNE_RT.MNE_RT_GET_CLIENT_ID == 1
+
+            # ID is send as answer
+            tag = self.readTag();
+            if tag.kind == 3701:  #FIFF.FIFF_MNE_RT_CLIENT_ID):
+                self.m_clientID = tag.data
+                
+        return self.m_clientID
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    #=========================================================================== 
+    def sendFiffCommand(self, p_Cmd, p_data = None):
+        """Method sendFiffCommand."""
+
+        kind = 3700 #FIFF.FIFF_MNE_RT_COMMAND            = 3700;    	% Fiff Real-Time Command
+        type = 0 #FIFF.FIFFT_VOID;
+        size = 4
+        if p_data is not None:
+            size += len(p_data) # first 4 bytes are the command code
+        next = 0
+        
+        
+        msg = np.array(kind, dtype='>i4').tostring()
+        msg += np.array(type, dtype='>i4').tostring()
+        msg += np.array(size, dtype='>i4').tostring()
+        msg += np.array(next, dtype='>i4').tostring()
+        
+        msg += np.array(p_Cmd, dtype='>i4').tostring()
+        if p_data is not None:
+            msg += np.array(p_data, dtype='>c').tostring()
+
+        self.m_ClientSock.sendall(msg)
         
     #===========================================================================    
     def readTag(self):
@@ -467,10 +526,28 @@ class DataClientSocket(ClientSocket):
 
 #*******************************************************************************
 # Here we go: Cmd Client
-t_cmdClientSocket = CmdClientSocket('localhost', 10034)
 
-data = t_cmdClientSocket.sendCommand('meas')
-sys.stdout.write('Server reply: %s\n' % data)
+# create command client
+t_cmdClient = CmdClientSocket('localhost', 4217)
 
-t_cmdClientSocket.close()
+# create data client
+t_dataClient = DataClientSocket('localhost', 4218)
+
+
+# set data client alias -> for convinience (optional)
+t_dataClient.setClientAlias('mne_ex_python') # used in option 2 later on
+
+# example commands
+t_helpInfo = t_cmdClient.sendCommand('help')
+sys.stdout.write('### Help ###\n%s' % t_helpInfo)
+t_clistInfo = t_cmdClient.sendCommand('clist')
+sys.stdout.write('### Client List ###\n%s' % t_clistInfo)
+t_conInfo = t_cmdClient.sendCommand('conlist')
+sys.stdout.write('### Connector List ###\n%s' % t_conInfo)
+
+t_aliasOrId = t_dataClient.getClientId()
+
+
+t_cmdClient.close()
+t_dataClient.close()
 
