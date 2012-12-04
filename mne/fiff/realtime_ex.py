@@ -52,6 +52,13 @@ while is_running:
     if kind == FIFF.FIFF_DATA_BUFFER:
         #do processing here
         sys.stdout.write('buffer available\n')
+        
+        import pylab as pl
+        pl.figure(1)
+        pl.plot(raw_buffer.T)
+        pl.show()
+        #ToDo this figure is blocking -> replace it by non-blocking display
+        
     elif kind == FIFF.FIFF_BLOCK_END and raw_buffer == FIFF.FIFFB_RAW_DATA:
         is_running = False
 
