@@ -247,6 +247,24 @@ class DataClientSocket(ClientSocket):
         info['chs'] = chs
         
         return info
+    
+    def read_raw_buffer(self, nchan):
+        """Method read_raw_buffer."""
+        data = []
+        kind = []
+
+        tag = self.read_tag();
+            
+        kind = tag.kind
+            
+        if tag.kind == FIFF.FIFF_DATA_BUFFER:
+            nsamples = (tag.size)/4/nchan
+            data = tag.data.reshape(nchan, nsamples)
+        else:
+            data = tag.data
+            
+        return data
+
 
     def set_client_alias(self, alias):
         """Method set_client_alias."""
@@ -290,6 +308,9 @@ class DataClientSocket(ClientSocket):
         
     def read_tag(self):
         """Method read_tag."""
+        
+        #set socket to blocking mode
+        self._client_sock.setblocking(1)
         #
         # read the tag info
         #
