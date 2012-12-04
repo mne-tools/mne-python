@@ -416,6 +416,10 @@ def verbose(function):
             return ret
         else:
             return function(*args, **kwargs)
+
+    # set __wrapped__ attribute so ?? in IPython gets the right source
+    dec.__wrapped__ = function
+
     return dec
 
 
