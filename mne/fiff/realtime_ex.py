@@ -32,16 +32,31 @@ sys.stdout.write('### Connector List ###\n%s' % con_info)
 
 #get the ID actual not necessary, we can use the set alias 'mne_ex_python'
 data_client_id = data_client.get_client_id()
-
 sys.stdout.write('ID %d\n' % data_client_id)
 
 #read info
 cmd_client.request_meas_info(data_client_id)
 info = data_client.read_info()
 
+#start measurement
+cmd_client.request_meas(data_client_id);
+
+is_running = True
+max_buffers = 100
+count = 0
+while is_running:
+    sys.stdout.write("read buffer...\n")
+
+    data_client.read_raw_buffer(info['nchan'])
+
+    count += 1;
+    if count >= max_buffers:
+        cmd_client.stop_all()
+        is_running = False
+
+
 
 
 # close command and data socket
 cmd_client.close()
 data_client.close()
-

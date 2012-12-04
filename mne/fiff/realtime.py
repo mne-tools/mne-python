@@ -248,6 +248,24 @@ class DataClientSocket(ClientSocket):
 
         return info
 
+    def read_raw_buffer(self, nchan):
+        """Method read_raw_buffer."""
+        data = []
+        kind = []
+
+        tag = self.read_tag();
+
+        kind = tag.kind
+
+        if tag.kind == FIFF.FIFF_DATA_BUFFER:
+            nsamples = (tag.size)/4/nchan
+            data = tag.data.reshape(nchan, nsamples)
+        else:
+            data = tag.data
+
+        return data
+
+
     def set_client_alias(self, alias):
         """Method set_client_alias."""
         self.send_fiff_command(2, alias) # MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
@@ -290,6 +308,9 @@ class DataClientSocket(ClientSocket):
 
     def read_tag(self):
         """Method read_tag."""
+
+        #set socket to blocking mode
+        self._client_sock.setblocking(1)
         #
         # read the tag info
         #
