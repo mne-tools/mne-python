@@ -62,7 +62,7 @@ from sklearn.cluster.spectral import spectral_embedding
 def order_func(times, data):
     this_data = data[:, (times > 0.0) & (times < 0.350)]
     return np.argsort(spectral_embedding(np.corrcoef(this_data),
-                      n_components=1, random_state=0)).ravel()
+                      n_components=1, random_state=0).ravel())
 
 good_pick = 97  # channel with a clear evoked response
 bad_pick = 98  # channel with no evoked response
