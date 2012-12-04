@@ -1,4 +1,3 @@
-#===============================================================================
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
@@ -7,129 +6,105 @@
 #
 # License: BSD (3-clause)
 
-#===============================================================================
-# Imports
-#===============================================================================
-
 import socket
 import sys
 import time
 
 import numpy as np
 
-from .tag import FIFF
 from .constants import FIFF
 
 
-#===============================================================================
 class ClientSocket(object):
     """Define Class ClientSocket."""
-    #===========================================================================
-    def __init__(self, p_Host, p_iPort, p_fTimeout = 0.5):
+    def __init__(self, host, port, timeout = 0.5):
         """Method __init__."""
         # Create a TCP/IP socket
-        self.m_ClientSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.m_fTimeout = p_fTimeout
-        self.connect(p_Host, p_iPort)
-    
-    #===========================================================================
-    def connect(self, p_Host, p_iPort):
-        """Method connect."""
-        t_serverAddress = (p_Host, p_iPort)
-        sys.stdout.write("Connecting to %s port %s\n" % t_serverAddress)
-        self.m_ClientSock.connect(t_serverAddress)
+        self._client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._timeout = timeout
+        self.connect(host, port)
 
-    #===========================================================================
+    def connect(self, host, port):
+        """Method connect."""
+        server_address = (host, port)
+        sys.stdout.write("Connecting to %s port %s\n" % server_address)
+        self._client_sock.connect(server_address)
+
     def close(self):
         """Method close."""
-        self.m_ClientSock.close();
+        self._client_sock.close();
 
 
-#===============================================================================
 class CmdClientSocket(ClientSocket):
     """Define Class CmdClientSocket."""     
-    #===========================================================================
-    def __init__(self, p_Host, p_iPort):
+    def __init__(self, host, port):
         """Method __init__."""
-        super(CmdClientSocket, self).__init__(p_Host, p_iPort)
-    
-    #===========================================================================    
-    def sendCommand(self, p_sCommand):
-        """Method sendCommand."""
-        sys.stdout.write('%s\n' % p_sCommand)
-        p_sCommand += '\n'
-        self.m_ClientSock.sendall(p_sCommand)
+        super(CmdClientSocket, self).__init__(host, port)
+  
+    def send_command(self, command):
+        """Method send_command."""
+        sys.stdout.write('%s\n' % command)
+        command += '\n'
+        self._client_sock.sendall(command)
         
-        self.m_ClientSock.setblocking(0)
-        t_Buf = []; chunk = ''; begin = time.time()
+        self._client_sock.setblocking(0)
+        buf, chunk, begin = [], '', time.time()
         while True:
             #if we got some data, then break after wait sec
-            if t_Buf and time.time() - begin > self.m_fTimeout:
+            if buf and time.time() - begin > self._timeout:
                 break
             #if we got no data at all, wait a little longer
-            elif time.time() - begin > self.m_fTimeout * 2:
+            elif time.time() - begin > self._timeout * 2:
                 break
             try:
-                chunk = self.m_ClientSock.recv(8192)
+                chunk = self._client_sock.recv(8192)
                 if chunk:
-                    t_Buf.append(chunk)
+                    buf.append(chunk)
                     begin=time.time()
                 else:
                     time.sleep(0.1)
             except:
                 pass
         
-        return ''.join(t_Buf)
+        return ''.join(buf)
 
-    #===========================================================================
-    def requestMeasInfo(self, p_aliasOrId):
-        """requestMeasInfo."""
-        p_aliasOrId = 'measinfo ' + p_aliasOrId
-        self.sendCommand(p_aliasOrId)
+    def request_meas_info(self, alias_or_id):
+        """request_meas_info."""
+        alias_or_id = 'measinfo ' + alias_or_id
+        self.send_command(alias_or_id)
 
-    #===========================================================================
-    def requestMeas(self, p_aliasOrId):
-        """requestMeas."""
-        p_aliasOrId = 'meas ' + p_aliasOrId
-        self.sendCommand(p_aliasOrId)
+    def request_meas(self, alias_or_id):
+        """request_meas."""
+        alias_or_id = 'meas ' + alias_or_id
+        self.send_command(alias_or_id)
 
-    #===========================================================================
-    def stopAll(self, p_aliasOrId):
-        """stopAll."""
-        self.sendCommand('stop-all')
+    def stop_all(self):
+        """stop_all."""
+        self.send_command('stop-all')
 
 
-
-
-
-
-
-
-#===============================================================================
 class DataClientSocket(ClientSocket):
     """Define Class CmdClientSocket."""     
-    #===========================================================================
-    def __init__(self, p_Host, p_iPort):
+    def __init__(self, host, port):
         """Method __init__."""
-        super(DataClientSocket, self).__init__(p_Host, p_iPort)
-        
-        self.m_clientID = -1
-    
-    #===========================================================================    
-    def readInfo(self, p_sCommand):
+        super(DataClientSocket, self).__init__(host, port)
+        self._client_id = -1
+
+    def read_info(self, command):
         """Method readInfo reads the measurement info."""
         
-        t_bReadMeasBlockStart = False
-        t_bReadMeasBlockEnd = False
+        block_start_read = False
+        block_end_read = False
         #
         # Find the start
         #
-        while t_bReadMeasBlockStart != True:
-            tag = mne_rt_data_client.read_tag(obj.m_DataInputStream);
+        #ToDo Time Out
+        while block_start_read != True:
+            tag = mne_rt_data_client.read_tag()
 
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MEAS_INFO:
-                sys.stdout.write('FIFF_BLOCK_START FIFFB_MEAS_INFO\n'); 
-                t_bReadMeasBlockStart = true;
+                sys.stdout.write('FIFF_BLOCK_START FIFFB_MEAS_INFO\n')
+                block_start_read = True
 
         #
         # Parse until the endblock
@@ -151,14 +126,14 @@ class DataClientSocket(ClientSocket):
         dev_head_t_read = False;
         ctf_head_t_read = False;
         
-        while t_bReadMeasBlockEnd != True:
-            tag = self.readTag();
+        while block_end_read != True:
+            tag = self.read_tag();
             #
             #  megacq parameters
             #
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_DACQ_PARS:
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_DACQ_PARS:
-                    tag = self.readTag()
+                    tag = self.read_tag()
                     if tag.kind == FIFF.FIFF_DACQ_PARS:
                         info['acq_pars'] = tag.data
                     elif tag.kind == FIFF.FIFF_DACQ_STIM:
@@ -179,7 +154,7 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_ISOTRAK:
                 dig = [];
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_ISOTRAK:
-                    tag = self.m_ClientSock.readTag();
+                    tag = self._client_sock.read_tag();
                     if tag.kind == FIFF.FIFF_DIG_POINT:
                         dig.append(tag.data)
                         dig[-1]['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -190,11 +165,11 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_PROJ:
                 projs = list()
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_PROJ:
-                    tag = self.m_ClientSock.readTag();
+                    tag = self._client_sock.read_tag();
                     if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_PROJ_ITEM:
                         proj = [];
                         while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_PROJ_ITEM:
-                            tag = self.m_ClientSock.readTag()
+                            tag = self._client_sock.read_tag()
                             if tag.kind == FIFF.FIFF_NAME:
                                 proj['desc'] = tag.data
                             elif tag.kind == FIFF.FIFF_PROJ_ITEM_KIND:
@@ -220,11 +195,11 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MNE_CTF_COMP:
                 comps = list()
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_CTF_COMP:
-                    tag = self.readTag()
+                    tag = self.read_tag()
                     if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MNE_CTF_COMP_DATA:
                         comp = [];
                         while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_CTF_COMP_DATA:
-                            tag = self.readTag()
+                            tag = self.read_tag()
                             if tag.kind == FIFF.FIFF_MNE_CTF_COMP_KIND:
                                 comp['ctfkind'] = tag.data
                             elif tag.kind == FIFF.FIFF_MNE_CTF_COMP_CALIBRATED:
@@ -239,7 +214,7 @@ class DataClientSocket(ClientSocket):
             if tag.kind == FIFF.FIFF_BLOCK_START and tag.data == FIFF.FIFFB_MNE_BAD_CHANNELS:
                 bads = []
                 while tag.kind != FIFF.FIFF_BLOCK_END or tag.data != FIFF.FIFFB_MNE_BAD_CHANNELS:
-                    tag = self.readTag()
+                    tag = self.read_tag()
                     if tag.kind == FIFF.FIFF_MNE_CH_NAME_LIST:
                         info.bads = tag.data.split(':')
                         
@@ -258,52 +233,37 @@ class DataClientSocket(ClientSocket):
             elif tag.kind == FIFF.FIFF_MEAS_DATE:
                 info.highpass = tag.data
             
-                
-            
             if tag.kind == FIFF.FIFF_CH_INFO:
                 chs.append(tag.data);
             
             # END MEAS INFO
             if tag.kind == FIFF.FIFF_BLOCK_END and tag.data == FIFF.FIFFB_MEAS_INFO:
                 sys.stdout.write('FIFF_BLOCK_END FIFFB_MEAS_INFO\n'); 
-                t_bReadMeasBlockEnd = True
+                block_end_read = True
             
         info['chs'] = chs
         
         return info
+
+    def set_client_alias(self, alias):
+        """Method set_client_alias."""
         
-        
-    #===========================================================================  
-    def setClientAlias(self, alias):
-        """Method setClientAlias."""
-        
-        self.sendFiffCommand(2, alias)#MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
+        self.sendFiffCommand(2, alias) # MNE_RT.MNE_RT_SET_CLIENT_ALIAS == 2
     
-        
-    #=========================================================================== 
-    def getClientId(self):
-        """Method setClientAlias."""
+    def get_client_id(self):
+        """Method set_client_alias."""
             
-        if self.m_clientID == -1:
+        if self._client_id == -1:
 
             self.sendFiffCommand(1) # MNE_RT.MNE_RT_GET_CLIENT_ID == 1
 
             # ID is send as answer
-            tag = self.readTag();
+            tag = self.read_tag();
             if tag.kind == 3701:  #FIFF.FIFF_MNE_RT_CLIENT_ID):
-                self.m_clientID = tag.data
+                self._client_id = tag.data
                 
-        return self.m_clientID
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    #=========================================================================== 
+        return self._client_id
+
     def sendFiffCommand(self, p_Cmd, p_data = None):
         """Method sendFiffCommand."""
 
@@ -324,29 +284,27 @@ class DataClientSocket(ClientSocket):
         if p_data is not None:
             msg += np.array(p_data, dtype='>c').tostring()
 
-        self.m_ClientSock.sendall(msg)
+        self._client_sock.sendall(msg)
         
-    #===========================================================================    
-    def readTag(self):
-        """Method readTag."""
+    def read_tag(self):
+        """Method read_tag."""
         #
         # read the tag info
         #
-        tag = self.readTagInfo()
+        tag = self.read_tag_info()
 
         #
         # read the tag data
         #
-        tag = self.readTagData(tag)
+        tag = self.read_tag_data(tag)
         
         return tag
         
-
-    def readTagData(self, p_tagInfo, pos = None):
-        """Method readTag."""
+    def read_tag_data(self, p_tagInfo, pos = None):
+        """Method read_tag."""
 
         if pos is not None:
-            self.m_ClientSock.recv(pos);
+            self._client_sock.recv(pos);
 
         tag = p_tagInfo;
 
@@ -398,7 +356,7 @@ class DataClientSocket(ClientSocket):
 #                                     tag.data(i) = p_DataInputStream.readInt;%idata = fread(fid,dims(1)*dims(2),'int32=>int32');
 #                                 end
                     if matrix_type == FIFF.FIFFT_FLOAT:
-                        tmp = self.m_ClientSock.recv(el_size)
+                        tmp = self._client_sock.recv(el_size)
                         tag.data = np.fromstring(tmp, dtype='>f4') #fdata = fread(fid,dims(1)*dims(2),'single=>double');
 #                        tag.data = swapbytes(tag.data);
                     else:
@@ -407,10 +365,10 @@ class DataClientSocket(ClientSocket):
                     
                     # ToDo consider 3D case --> do that by using tag->size
 
-                    dims[0] = np.fromstring(self.m_ClientSock.recv(4), dtype='>i4')
-                    dims[1] = np.fromstring(self.m_ClientSock.recv(4), dtype='>i4')
+                    dims[0] = np.fromstring(self._client_sock.recv(4), dtype='>i4')
+                    dims[1] = np.fromstring(self._client_sock.recv(4), dtype='>i4')
                     
-                    ndim = np.fromstring(self.m_ClientSock.recv(4), dtype='>i4')
+                    ndim = np.fromstring(self._client_sock.recv(4), dtype='>i4')
                     
                     tag.data = tag.data.reshape(dims)
                 else:
@@ -424,49 +382,49 @@ class DataClientSocket(ClientSocket):
                 #   Simple types
                 #
                 if tag.type == FIFF.FIFFT_INT:
-                    tag.data = np.fromstring(self.m_ClientSock.recv(tag.size), dtype=">i4")
+                    tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">i4")
                 elif tag.type == FIFF.FIFFT_FLOAT:
-                    tag.data = np.fromstring(self.m_ClientSock.recv(tag.size), dtype=">f4")
+                    tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">f4")
                 elif tag.type == FIFF.FIFFT_STRING:
-                    tag.data = np.fromstring(self.m_ClientSock.recv(tag.size), dtype=">c")
+                    tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">c")
                     tag.data = ''.join(tag.data)                          
                 elif tag.type == FIFF.FIFFT_ID_STRUCT:
                     tag.data = dict()
-                    tag.data['version'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['version'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['machid'] = np.fromstring(self.m_ClientSock.recv(8), dtype=">i4")
-                    tag.data['secs'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['usecs'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
+                    tag.data['version'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['version'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['machid'] = np.fromstring(self._client_sock.recv(8), dtype=">i4")
+                    tag.data['secs'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['usecs'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
                 elif tag.type == FIFF.FIFFT_DIG_POINT_STRUCT:
                     tag.data = dict()
-                    tag.data['kind'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['ident'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['r'] = np.fromstring(self.m_ClientSock.recv(12), dtype=">f4")
+                    tag.data['kind'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['ident'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['r'] = np.fromstring(self._client_sock.recv(12), dtype=">f4")
                     tag.data['coord_frame'] = 0
                 elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                     tag.data = dict()
-                    tag.data['from'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['to'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    rot = np.fromstring(self.m_ClientSock.recv(36), dtype=">f4").reshape(3, 3)
-                    move = np.fromstring(self.m_ClientSock.recv(12), dtype=">f4")
+                    tag.data['from'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['to'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    rot = np.fromstring(self._client_sock.recv(36), dtype=">f4").reshape(3, 3)
+                    move = np.fromstring(self._client_sock.recv(12), dtype=">f4")
                     tag.data['trans'] = np.r_[np.c_[rot, move], np.array([[0], [0], [0], [1]]).T]
                     #
                     # Skip over the inverse transformation
                     # It is easier to just use inverse of trans in Matlab
                     #
-                    self.m_ClientSock.recv(12 * 4) #fseek(fid,12*4,'cof');
+                    self._client_sock.recv(12 * 4) #fseek(fid,12*4,'cof');
                 elif tag.type == FIFF.FIFFT_CH_INFO_STRUCT:
                     d = dict()
-                    d['scanno'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    d['logno'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    d['kind'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    d['range'] = float(np.fromstring(self.m_ClientSock.recv(4), dtype=">f4"))
-                    d['cal'] = float(np.fromstring(self.m_ClientSock.recv(4), dtype=">f4"))
-                    d['coil_type'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
+                    d['scanno'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    d['logno'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    d['kind'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    d['range'] = float(np.fromstring(self._client_sock.recv(4), dtype=">f4"))
+                    d['cal'] = float(np.fromstring(self._client_sock.recv(4), dtype=">f4"))
+                    d['coil_type'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
                     #
                     #   Read the coil coordinate system definition
                     #
-                    d['loc'] = np.fromstring(self.m_ClientSock.recv(48), dtype=">f4")
+                    d['loc'] = np.fromstring(self._client_sock.recv(48), dtype=">f4")
                     d['coil_trans'] = None
                     d['eeg_loc'] = None
                     d['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
@@ -490,12 +448,12 @@ class DataClientSocket(ClientSocket):
                     #
                     #   Unit and exponent
                     #
-                    tag.data['unit'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
-                    tag.data['unit_mul'] = int(np.fromstring(self.m_ClientSock.recv(4), dtype=">i4"))
+                    tag.data['unit'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
+                    tag.data['unit_mul'] = int(np.fromstring(self._client_sock.recv(4), dtype=">i4"))
                     #
                     #   Handle the channel name
                     #
-                    ch_name = np.fromstring(self.m_ClientSock.recv(16), dtype=">c")
+                    ch_name = np.fromstring(self._client_sock.recv(16), dtype=">c")
                     #
                     # Omit nulls
                     #
@@ -511,43 +469,13 @@ class DataClientSocket(ClientSocket):
 
         return tag
 
-    def readTagInfo(self, pos = None):
+    def read_tag_info(self, pos = None):
         """Read Tag info"""
         
         if pos is not None:
-            self.m_ClientSock.recv(pos);
+            self._client_sock.recv(pos);
         
-        s = self.m_ClientSock.recv(4 * 4)
+        s = self._client_sock.recv(4 * 4)
         tag = Tag(*struct.unpack(">iiii", s))
         
         return tag
-    
-
-
-#*******************************************************************************
-# Here we go: Cmd Client
-
-# create command client
-t_cmdClient = CmdClientSocket('localhost', 4217)
-
-# create data client
-t_dataClient = DataClientSocket('localhost', 4218)
-
-
-# set data client alias -> for convinience (optional)
-t_dataClient.setClientAlias('mne_ex_python') # used in option 2 later on
-
-# example commands
-t_helpInfo = t_cmdClient.sendCommand('help')
-sys.stdout.write('### Help ###\n%s' % t_helpInfo)
-t_clistInfo = t_cmdClient.sendCommand('clist')
-sys.stdout.write('### Client List ###\n%s' % t_clistInfo)
-t_conInfo = t_cmdClient.sendCommand('conlist')
-sys.stdout.write('### Connector List ###\n%s' % t_conInfo)
-
-t_aliasOrId = t_dataClient.getClientId()
-
-
-t_cmdClient.close()
-t_dataClient.close()
-
