@@ -443,28 +443,35 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
     # make sure our arithmetic will work
     ratio = float(up) / down
 
-    # add some padding at beginning and end to make scipy's FFT
-    # method work a little cleaner
-    pad_shape = np.array(x.shape, dtype=np.int)
-    pad_shape[axis] = npad
+    if axis > len(x.shape):
+        raise ValueError('x does not have %d axes' % axis)
+
     x_len = x.shape[axis]
-    keep = np.zeros(x_len, dtype='bool')
-    # set the pad at both ends to be the first value to reduce ringing there
-    keep[0] = True
-    pad = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
-    # do the padding
-    x_padded = np.concatenate((pad, x, pad), axis=axis)
-    new_len = ratio*x_padded.shape[axis]
+    if x_len > 0:
+        # add some padding at beginning and end to make scipy's FFT
+        # method work a little cleaner
+        pad_shape = np.array(x.shape, dtype=np.int)
+        pad_shape[axis] = npad
+        keep = np.zeros(x_len, dtype='bool')
+        # set the pad at both ends to be the first value to reduce ringing there
+        keep[0] = True
+        pad = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
+        # do the padding
+        x_padded = np.concatenate((pad, x, pad), axis=axis)
+        new_len = ratio*x_padded.shape[axis]
 
-    # do the resampling using scipy's FFT-based resample function
-    # use of the 'flat' window is recommended for minimal ringing
-    y = signal.resample(x_padded, new_len, axis=axis, window=window)
+        # do the resampling using scipy's FFT-based resample function
+        # use of the 'flat' window is recommended for minimal ringing
+        y = signal.resample(x_padded, new_len, axis=axis, window=window)
 
-    # now let's trim it back to the correct size (if there was padding)
-    to_remove = np.round(ratio*npad)
-    if to_remove > 0:
-        keep = np.ones((new_len), dtype='bool')
-        keep[:to_remove] = False
-        keep[-to_remove:] = False
-        y = np.compress(keep, y, axis=axis)
+        # now let's trim it back to the correct size (if there was padding)
+        to_remove = np.round(ratio*npad)
+        if to_remove > 0:
+            keep = np.ones((new_len), dtype='bool')
+            keep[:to_remove] = False
+            keep[-to_remove:] = False
+            y = np.compress(keep, y, axis=axis)
+    else:
+        warnings.warn('x has zero length along axis=%d, returning a copy of x' % axis)
+        y = x.copy()
     return y
