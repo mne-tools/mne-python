@@ -42,20 +42,23 @@ info = data_client.read_info()
 cmd_client.request_meas(data_client_id);
 
 is_running = True
-max_buffers = 100
+max_nbuffers = 10
 count = 0
 while is_running:
     sys.stdout.write("read buffer...\n")
 
-    data_client.read_raw_buffer(info['nchan'])
+    kind, raw_buffer = data_client.read_raw_buffer(info['nchan'])
 
-    count += 1;
-    if count >= max_buffers:
-        cmd_client.stop_all()
+    if kind == FIFF.FIFF_DATA_BUFFER:
+        #do processing here
+        sys.stdout.write('buffer available\n')
+    elif kind == FIFF.FIFF_BLOCK_END and raw_buffer == FIFF.FIFFB_RAW_DATA:
         is_running = False
 
-
-
+    count += 1;
+    if count >= max_nbuffers:
+        cmd_client.stop_all()
+        is_running = False
 
 # close command and data socket
 cmd_client.close()
