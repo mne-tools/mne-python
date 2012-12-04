@@ -19,6 +19,7 @@ def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
     for average in [False, True]:
         raw = Raw(raw_fname, preload=True)
+        raw.crop(10.0)
         # For speed, let's not filter here (must also not reject then)
         projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
                                     ch_name='MEG 1531', bads=['MEG 2443'],
@@ -74,6 +75,7 @@ def test_compute_proj_eog():
 def test_compute_proj_parallel():
     """Test computation of ExG projectors using parallelization"""
     raw = Raw(raw_fname, preload=True)
+    raw.crop(0, 10)
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,
                                 avg_ref=True, no_proj=False, n_jobs=1,
@@ -82,6 +84,7 @@ def test_compute_proj_parallel():
     raw.close()
 
     raw = Raw(raw_fname, preload=True)
+    raw.crop(0, 10)
     projs_2, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                   bads=['MEG 2443'], average=False,
                                   avg_ref=True, no_proj=False, n_jobs=2,

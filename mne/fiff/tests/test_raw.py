@@ -456,7 +456,6 @@ def test_resample():
     """ Test resample (with I/O and multiple files) """
     raw = Raw(fif_fname, preload=True)
     raw.crop(0, 3)
-    #print raw.n_times
     raw_resamp = deepcopy(raw)
     sfreq = raw.info['sfreq']
     # test parallel on upsample
