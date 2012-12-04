@@ -32,9 +32,104 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 
 
+def test_crop():
+    """Test cropping raw files
+    """
+    # split a concatenated file to test a difficult case
+    raw = Raw([fif_fname, fif_fname], preload=True)
+    split_size = 3.  # in seconds
+    sfreq = raw.info['sfreq']
+    nsamp = (raw.last_samp - raw.first_samp)
+    """
+    tmins = np.round(np.arange(0., nsamp, split_size * sfreq))
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+
+    # going in revere order so the last fname is the first file (need it later)
+    raws = [None] * len(tmins)
+    for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
+        raws[ri] = deepcopy(raw)
+        raws[ri].crop(tmin, tmax)
+    # test concatenation of split file
+    all_raw_1 = concatenate_raws(raws, preload=True)
+
+    all_raw_2 = deepcopy(raw)
+    all_raw_2.crop(0, None)
+    for ar in [all_raw_1, all_raw_2]:
+        assert_true(raw.first_samp == ar.first_samp)
+        assert_true(raw.last_samp == ar.last_samp)
+        assert_array_equal(raw[:, :][0], ar[:, :][0])
+    """
+    # do an annoying case (off-by-one splitting)
+    tmins = np.r_[0., np.round(np.arange(2., nsamp, split_size * sfreq))]
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+    raws = [None] * len(tmins)
+    for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
+        raws[ri] = deepcopy(raw)
+        raws[ri].crop(tmin, tmax)
+    all_raw_2 = concatenate_raws(raws, preload=True)
+    assert_true(raw.first_samp == all_raw_2.first_samp)
+    print (raw.last_samp, all_raw_2.last_samp)
+    print all_raw_2._raw_lengths
+    print all_raw_2._first_samps
+    print all_raw_2._last_samps
+    assert_true(raw.last_samp == all_raw_2.last_samp)
+    assert_array_equal(raw[:, :][0], all_raw_2[:, :][0])
+
+
+def test_resample():
+    """ Test resample (with I/O and multiple files) """
+    raw = Raw(fif_fname, preload=True)
+    raw.crop(0, None)
+    #print raw.n_times
+    raw_resamp = deepcopy(raw)
+    sfreq = raw.info['sfreq']
+    # test parallel on upsample
+    raw_resamp.resample(sfreq * 2, n_jobs=2)
+    raw_resamp.save('raw_resamp.fif')
+    raw_resamp = Raw('raw_resamp.fif', preload=True)
+    assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
+    assert_true(raw.n_times == raw_resamp.n_times / 2)
+    assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
+    assert_true(raw._data.shape[0] == raw_resamp._data.shape[0])
+    # test non-parallel on downsample
+    raw_resamp.resample(sfreq, n_jobs=1)
+    assert_true(raw_resamp.info['sfreq'] == sfreq)
+    assert_true(raw._data.shape == raw_resamp._data.shape)
+    assert_true(raw.first_samp == raw_resamp.first_samp)
+    assert_true(raw.last_samp == raw.last_samp)
+    # upsampling then downsampling doubles resampling error, but this still
+    # works (hooray). Note that the stim channels had to be sub-sampled
+    # without filtering to be accurately preserved
+    assert_array_almost_equal(raw._data, raw_resamp._data)
+
+    # now check multiple file support w/resampling, as order of operations
+    # (concat, resample) should not affect our data
+    raw1 = deepcopy(raw)
+    raw2 = deepcopy(raw)
+    raw3 = deepcopy(raw)
+    raw4 = deepcopy(raw)
+    raw1 = concatenate_raws([raw1, raw2])
+    raw1.resample(10)
+    raw3.resample(10)
+    raw4.resample(10)
+    raw3 = concatenate_raws([raw3, raw4])
+    assert_array_equal(raw1._data, raw3._data)
+    assert_array_equal(raw1._first_samps, raw3._first_samps)
+    assert_array_equal(raw1._last_samps, raw3._last_samps)
+    assert_array_equal(raw1._raw_lengths, raw3._raw_lengths)
+    assert_equal(raw1.first_samp, raw3.first_samp)
+    assert_equal(raw1.last_samp, raw3.last_samp)
+    assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
+
+
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
+    raise ValueError('me')
 
     # split file
     raw = Raw(fif_fname, preload=True)
@@ -46,7 +141,7 @@ def test_multiple_files():
     tmaxs /= sfreq
     tmins /= sfreq
 
-    # going in revere order so the last fname is the first file (need it later)
+    # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
         fname = 'test_raw_split-%d_raw.fif' % ri
@@ -406,50 +501,6 @@ def test_filter():
     bp_data, _ = raw_bp[picks_meg[4:], :]
 
     assert_array_equal(data, bp_data)
-
-
-def test_resample():
-    """ Test resample (with I/O and multiple files) """
-    raw = Raw(fif_fname, preload=True)
-    raw_resamp = deepcopy(raw)
-    sfreq = raw.info['sfreq']
-    # test parallel on upsample
-    raw_resamp.resample(sfreq * 2, n_jobs=2)
-    raw_resamp.save('raw_resamp.fif')
-    raw_resamp = Raw('raw_resamp.fif', preload=True)
-    assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
-    assert_true(raw.n_times == raw_resamp.n_times / 2)
-    assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
-    assert_true(raw._data.shape[0] == raw_resamp._data.shape[0])
-    # test non-parallel on downsample
-    raw_resamp.resample(sfreq, n_jobs=1)
-    assert_true(raw_resamp.info['sfreq'] == sfreq)
-    assert_true(raw._data.shape == raw_resamp._data.shape)
-    assert_true(raw.first_samp == raw_resamp.first_samp)
-    assert_true(raw.last_samp == raw.last_samp)
-    # upsampling then downsampling doubles resampling error, but this still
-    # works (hooray). Note that the stim channels had to be sub-sampled
-    # without filtering to be accurately preserved
-    assert_array_almost_equal(raw._data, raw_resamp._data)
-
-    # now check multiple file support w/resampling, as order of operations
-    # (concat, resample) should not affect our data
-    raw1 = deepcopy(raw)
-    raw2 = deepcopy(raw)
-    raw3 = deepcopy(raw)
-    raw4 = deepcopy(raw)
-    raw1 = concatenate_raws([raw1, raw2])
-    raw1.resample(10)
-    raw3.resample(10)
-    raw4.resample(10)
-    raw3 = concatenate_raws([raw3, raw4])
-    assert_array_equal(raw1._data, raw3._data)
-    assert_array_equal(raw1._first_samps, raw3._first_samps)
-    assert_array_equal(raw1._last_samps, raw3._last_samps)
-    assert_array_equal(raw1._raw_lengths, raw3._raw_lengths)
-    assert_equal(raw1.first_samp, raw3.first_samp)
-    assert_equal(raw1.last_samp, raw3.last_samp)
-    assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
 
 
 def test_hilbert():

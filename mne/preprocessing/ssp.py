@@ -47,9 +47,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Number of SSP vectors for magnetometers.
     n_eeg : int
         Number of SSP vectors for EEG.
-    l_freq : float
+    l_freq : float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float
+    h_freq : float | None
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
@@ -207,9 +207,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Number of SSP vectors for magnetometers.
     n_eeg : int
         Number of SSP vectors for EEG.
-    l_freq : float
+    l_freq : float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float
+    h_freq : float | None
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
@@ -288,9 +288,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Number of SSP vectors for magnetometers.
     n_eeg : int
         Number of SSP vectors for EEG.
-    l_freq : float
+    l_freq : float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float
+    h_freq : float | None
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
