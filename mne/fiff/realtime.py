@@ -256,14 +256,15 @@ class DataClientSocket(ClientSocket):
         tag = self.read_tag();
             
         kind = tag.kind
-            
+        
         if tag.kind == FIFF.FIFF_DATA_BUFFER:
             nsamples = (tag.size)/4/nchan
+ #           sys.stdout.write("size %d\n" % len(tag.data))
             data = tag.data.reshape(nchan, nsamples)
         else:
             data = tag.data
             
-        return data
+        return (kind, data)
 
 
     def set_client_alias(self, alias):
@@ -407,7 +408,19 @@ class DataClientSocket(ClientSocket):
                 if tag.type == FIFF.FIFFT_INT:
                     tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">i4")
                 elif tag.type == FIFF.FIFFT_FLOAT:
-                    tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">f4")
+                    if tag.size < 50000:
+                        tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">f4")
+                    else:
+                        total_len=0;total_data=''
+                        sock_data='';recv_size=8192
+                        while total_len < tag.size:
+                            if tag.size - total_len < recv_size:
+                                recv_size = tag.size - total_len;
+                            sock_data = self._client_sock.recv(recv_size)
+                            total_data += sock_data
+                            total_len=len(total_data)
+                        tag.data = np.fromstring(total_data, dtype=">f4")
+                        
                 elif tag.type == FIFF.FIFFT_STRING:
                     tag.data = np.fromstring(self._client_sock.recv(tag.size), dtype=">c")
                     tag.data = ''.join(tag.data)                          
