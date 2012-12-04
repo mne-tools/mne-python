@@ -38,7 +38,6 @@ from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw
 from .selection import read_selection
 from .dipole import read_dip
-from . import artifacts
 from . import beamformer
 from . import connectivity
 from . import datasets
