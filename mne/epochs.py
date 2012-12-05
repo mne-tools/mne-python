@@ -31,6 +31,7 @@ from .filter import resample
 from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
+from .fixes import _in1d
 
 
 class Epochs(object):
@@ -110,7 +111,7 @@ class Epochs(object):
         Measurement info
 
     event_ids : dict
-        Labels mapped to event_ids.
+        Names of  of conditions corresponding to event_ids.
 
     ch_names: list of string
         List of channels' names
@@ -128,7 +129,7 @@ class Epochs(object):
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
-    average(picks=None) : self
+    average(picks=None) : Evoked
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
 
@@ -146,6 +147,14 @@ class Epochs(object):
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
+    as_data_frame : as_data_frame
+        Export Epochs object as Pandas DataFrame for subsequent statistical
+        analyses.
+
+    to_nitime : TimeSeries
+        Export Epochs object as nitime TimeSeries object for subsequent
+        analyses.
+
     Notes
     -----
     For indexing and slicing:
@@ -155,6 +164,13 @@ class Epochs(object):
     epochs[idx] : Epochs
         Return Epochs object with a subset of epochs (supports single
         index and python style slicing)
+
+    For subset selection using categorial labels:
+
+    epochs['name'] : Epochs
+        Return Epochs object with a subset of epochs corresponding to an
+        experimental condition as specified by event_id.
+
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
@@ -169,7 +185,9 @@ class Epochs(object):
         self.name = name
         if isinstance(event_id, dict):
             if not all([isinstance(v, int) for v in event_id.values()]):
-                raise ValueError('Events must be of type integer')
+                raise ValueError('Event IDs must be of type integer')
+            if not all([isinstance(k, str) for k in event_id]):
+                raise ValueError('Event names must be of type str')
             self.event_ids = event_id
         else:
             self.event_ids = {name: event_id}
@@ -223,7 +241,7 @@ class Epochs(object):
         self.events = events
         self._events = {}
         if event_id is not None:
-            overlap = np.in1d(events[:, 2], event_id.values())
+            overlap = _in1d(events[:, 2], event_id.values())
             selected = np.logical_and(events[:, 1] == 0, overlap)
             self.events = events[selected]
 
