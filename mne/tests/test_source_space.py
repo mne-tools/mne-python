@@ -32,17 +32,31 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.min() >= 0)
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
+
 def test_write_source_space():
-    src0 = read_source_spaces(fname, add_geom=False)
+    """Test writing and reading of source spaces
+    """
+    src0 = read_source_spaces(fname, add_geom=True)
     write_source_spaces('tmp.fif', src0)
     src1 = read_source_spaces('tmp.fif')
     for s0, s1 in zip(src0, src1):
-        for name in ['nearest', 'dist', 'nuse', 'dist_limit', 'pinfo', 'ntri',
-                     'nearest_dist', 'np', 'type', 'id']:
+        for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id']:
             assert_true(s0[name] == s1[name])
         for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri', 'coord_frame',
-                     'use_tris', 'tris']:
+                     'use_tris', 'tris', 'nearest', 'nearest_dist']:
             assert_array_equal(s0[name], s1[name])
+        for name in ['dist']:
+            if s0[name] is not None:
+                assert_true(s1[name].shape == s0[name].shape)
+                assert_true(len((s0['dist'] - s1['dist']).data) == 0)
+        for name in ['pinfo']:
+            if s0[name] is not None:
+                assert_true(len(s0[name]) == len(s1[name]))
+                for p1, p2 in zip(s0[name], s1[name]):
+                    assert_true(all(p1 == p2))
+        # The above "if s0[name] is not None" can be removed once the sample
+        # dataset is updated to have a source space with distance info
+
 
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
