@@ -43,8 +43,10 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int | None
-        The id of the event to consider. If None all events are used.
+    event_id : int | None | dict
+        The id of the event to consider. If None, all events are used. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3)
 
     tmin : float
         Start time before event
@@ -209,10 +211,19 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
+        self._events = {}
         if event_id is not None:
-            selected = np.logical_and(events[:, 1] == 0,
-                                      events[:, 2] == event_id)
-            self.events = self.events[selected]
+            if not isinstance(event_id, dict):
+                selected = np.logical_and(events[:, 1] == 0,
+                                          events[:, 2] == event_id)
+                self._events['all'] = selected
+            else:
+                selected = dict((k, np.logical_and(events[:, 1] == 0,
+                                 events[:, 2] == v)) for k, v in
+                                 self.event_id.items())
+                self._events.update(selected)
+            self.events = np.concatenate([self.events[v] for v in
+                                          self._events.values()])
 
         n_events = len(self.events)
 
@@ -463,26 +474,35 @@ class Epochs(object):
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
-        if not self._bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will be "
-                          "inaccurate. Use drop_bad_epochs() or preload=True")
+        epochs = self.copy()
+        if not isinstance(key, str):
+            if not self._bad_dropped:
+                warnings.warn("Bad epochs have not been dropped, indexing will"
+                              " be inaccurate. Use drop_bad_epochs() or"
+                              " preload=True")
 
-        epochs = cp.copy(self)  # XXX : should use deepcopy but breaks ...
-        epochs.events = np.atleast_2d(self.events[key])
+            epochs.events = np.atleast_2d(self.events[key])
 
-        if self.preload:
-            if isinstance(key, slice):
-                epochs._data = self._data[key]
-            else:
-                key = np.atleast_1d(key)
-                epochs._data = self._data[key]
+            if self.preload:
+                if isinstance(key, slice):
+                    epochs._data = self._data[key]
+                else:
+                    key = np.atleast_1d(key)
+                    epochs._data = self._data[key]
+        else:
+            epochs.events = self._events[key]
+            if self.preload:
+                epochs._data[epochs.events[:, 0]]
+
         return epochs
 
-    def average(self, picks=None):
+    def average(self, event_name=None, picks=None):
         """Compute average of epochs
 
         Parameters
         ----------
+        event_name : str
+            The name of the event. If None, all events will be used.
         picks: None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
@@ -492,6 +512,7 @@ class Epochs(object):
         evoked : Evoked instance
             The averaged epochs
         """
+
         return self._compute_mean_or_stderr(picks, 'ave')
 
     def standard_error(self, picks=None):
@@ -510,23 +531,30 @@ class Epochs(object):
         """
         return self._compute_mean_or_stderr(picks, 'stderr')
 
-    def _compute_mean_or_stderr(self, picks, mode='ave'):
-        """Compute the mean or std over epochs and return Evoked"""
-        if mode == 'stderr':
-            _do_std = True
+    def _get_ev_ids(self, event_name):
+        """Aux function: get event ids"""
+        if event_name not in ['all', None]:
+            name, ids = self._events[event_name], event_name
         else:
-            _do_std = False
+            name, ids = None, self.events
+        return name, ids
+
+    def _compute_mean_or_stderr(self, event_name, picks, mode='ave'):
+        """Compute the mean or std over epochs and return Evoked"""
+
+        _do_std = True if mode == 'stderr' else False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
+        name, ev_ids = self._get_ev_ids(event_name)
         if self.preload:
-            n_events = len(self.events)
+            n_events = len(ev_ids)
             if not _do_std:
-                data = np.mean(self._data, axis=0)
+                data = np.mean(self._data[ev_ids], axis=0)
             else:
-                data = np.std(self._data, axis=0)
-            assert len(self.events) == len(self._data)
+                data = np.std(self._data[ev_ids], axis=0)
+            assert len(self.events[ev_ids]) == len(self._data[ev_ids])
         else:
             data = np.zeros((n_channels, n_times))
             n_events = 0
@@ -545,7 +573,7 @@ class Epochs(object):
 
         evoked.data = data
         evoked.times = self.times.copy()
-        evoked.comment = self.name
+        evoked.comment = self.name if name is None else name
         evoked.nave = n_events
         evoked.first = -int(np.sum(self.times < 0))
         evoked.last = int(np.sum(self.times > 0))
@@ -643,9 +671,8 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
-        raw = self.raw.copy()
         new = deepcopy(self)
-        new.raw = raw
+        new.raw = self.raw.copy()
         return new
 
     def save(self, fname):
@@ -703,7 +730,6 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
-
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
