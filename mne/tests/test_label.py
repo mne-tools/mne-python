@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.datasets import sample
-from mne import label_time_courses, read_label, write_label, stc_to_label, \
+from mne import label_time_courses, read_label, stc_to_label, \
                read_source_estimate, read_source_spaces, grow_labels
 from mne.label import Label
 
@@ -90,7 +90,7 @@ def test_label_io():
 def test_stc_to_label():
     """Test stc_to_label
     """
-    src, _ = read_source_spaces(src_fname)
+    src = read_source_spaces(src_fname)
     stc = read_source_estimate(stc_fname)
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
