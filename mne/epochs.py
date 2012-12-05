@@ -121,11 +121,11 @@ class Epochs(object):
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
-    average() : self
+    average(picks=None) : self
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
 
-    standard_error() : self
+    standard_error(picks=None) : self
         Return Evoked object containing standard error over epochs as a
         2D array [n_channels x n_times].
 
@@ -478,39 +478,39 @@ class Epochs(object):
                 epochs._data = self._data[key]
         return epochs
 
-    def average(self, keep_only_data_channels=True):
+    def average(self, picks=None):
         """Compute average of epochs
 
         Parameters
         ----------
-        keep_only_data_channels: bool
-            If False, all channels with be kept. Otherwise
-            only MEG and EEG channels are kept.
+        picks: None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
 
         Returns
         -------
         evoked : Evoked instance
             The averaged epochs
         """
-        return self._compute_mean_or_stderr(keep_only_data_channels, 'ave')
+        return self._compute_mean_or_stderr(picks, 'ave')
 
-    def standard_error(self, keep_only_data_channels=True):
+    def standard_error(self, picks=None):
         """Compute standard error over epochs
 
         Parameters
         ----------
-        keep_only_data_channels: bool
-            If False, all channels with be kept. Otherwise
-            only MEG and EEG channels are kept.
+        picks: None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
 
         Returns
         -------
         evoked : Evoked instance
             The standard error over epochs
         """
-        return self._compute_mean_or_stderr(keep_only_data_channels, 'stderr')
+        return self._compute_mean_or_stderr(picks, 'stderr')
 
-    def _compute_mean_or_stderr(self, keep_only_data_channels, mode='ave'):
+    def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked"""
         if mode == 'stderr':
             _do_std = True
@@ -556,18 +556,19 @@ class Epochs(object):
             evoked.data /= np.sqrt(evoked.nave)
 
         # dropping EOG, ECG and STIM channels. Keeping only data
-        if keep_only_data_channels:
-            data_picks = pick_types(evoked.info, meg=True, eeg=True,
+        if picks is None:
+            picks = pick_types(evoked.info, meg=True, eeg=True,
                                     stim=False, eog=False, ecg=False,
                                     emg=False)
-            if len(data_picks) == 0:
+            if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
-            evoked.info['chs'] = [evoked.info['chs'][k] for k in data_picks]
-            evoked.info['ch_names'] = [evoked.info['ch_names'][k]
-                                       for k in data_picks]
-            evoked.info['nchan'] = len(data_picks)
-            evoked.data = evoked.data[data_picks]
+        picks = np.sort(picks)  # make sure channel order does not change
+        evoked.info['chs'] = [evoked.info['chs'][k] for k in picks]
+        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
+                                   for k in picks]
+        evoked.info['nchan'] = len(picks)
+        evoked.data = evoked.data[picks]
         return evoked
 
     def crop(self, tmin=None, tmax=None, copy=False):
