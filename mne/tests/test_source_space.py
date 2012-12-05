@@ -1,7 +1,7 @@
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces
