@@ -43,10 +43,11 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int | None | dict
-        The id of the event to consider. If None, all events are used. If dict,
+    event_id : int | dict
+        The id of the event to consider. If dict,
         the keys can later be used to acces associated events. Example:
-        dict(auditory=1, visual=3)
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the str value resulting from the name parameter as key.
 
     tmin : float
         Start time before event
@@ -107,6 +108,9 @@ class Epochs(object):
     info: dict
         Measurement info
 
+    event_ids : dict
+        Labels mapped to event_ids.
+
     ch_names: list of string
         List of channels' names
 
@@ -161,10 +165,15 @@ class Epochs(object):
 
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
-        self.event_id = event_id
+        self.name = name
+        if isinstance(event_id, dict):
+            if not all([isinstance(v, int) for v in event_id.values()]):
+                raise ValueError('Events must be of type integer')
+            self.event_ids = event_id
+        else:
+            self.event_ids = {name: event_id}
         self.tmin = tmin
         self.tmax = tmax
-        self.name = name
         self.keep_comp = keep_comp
         self.dest_comp = dest_comp
         self.baseline = baseline
@@ -213,17 +222,9 @@ class Epochs(object):
         self.events = events
         self._events = {}
         if event_id is not None:
-            if not isinstance(event_id, dict):
-                selected = np.logical_and(events[:, 1] == 0,
-                                          events[:, 2] == event_id)
-                self._events['all'] = selected
-            else:
-                selected = dict((k, np.logical_and(events[:, 1] == 0,
-                                 events[:, 2] == v)) for k, v in
-                                 self.event_id.items())
-                self._events.update(selected)
-            self.events = np.concatenate([self.events[v] for v in
-                                          self._events.values()])
+            overlap = np.in1d(events[:, 2], event_id.values())
+            selected = np.logical_and(events[:, 1] == 0, overlap)
+            self.events = events[selected]
 
         n_events = len(self.events)
 
@@ -489,20 +490,21 @@ class Epochs(object):
                 else:
                     key = np.atleast_1d(key)
                     epochs._data = self._data[key]
+        elif key not in self.event_ids:
+            raise KeyError('Event "%s" is not in Epochs.' % key)
         else:
-            epochs.events = self._events[key]
+            epochs.events = self._get_events(key)
             if self.preload:
                 epochs._data[epochs.events[:, 0]]
 
         return epochs
 
-    def average(self, event_name=None, picks=None):
+    def average(self, picks=None):
         """Compute average of epochs
 
         Parameters
         ----------
-        event_name : str
-            The name of the event. If None, all events will be used.
+
         picks: None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
@@ -531,15 +533,15 @@ class Epochs(object):
         """
         return self._compute_mean_or_stderr(picks, 'stderr')
 
-    def _get_ev_ids(self, event_name):
+    def _get_events(self, event_name):
         """Aux function: get event ids"""
-        if event_name not in ['all', None]:
-            name, ids = self._events[event_name], event_name
-        else:
-            name, ids = None, self.events
-        return name, ids
+        ids = None
+        if event_name in self.event_ids:
+            ids = self.events[self.events[0:, 2] == self.event_ids[event_name]]
 
-    def _compute_mean_or_stderr(self, event_name, picks, mode='ave'):
+        return ids
+
+    def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked"""
 
         _do_std = True if mode == 'stderr' else False
@@ -547,14 +549,13 @@ class Epochs(object):
         evoked.info = cp.deepcopy(self.info)
         n_channels = len(self.ch_names)
         n_times = len(self.times)
-        name, ev_ids = self._get_ev_ids(event_name)
         if self.preload:
-            n_events = len(ev_ids)
+            n_events = len(self.events)
             if not _do_std:
-                data = np.mean(self._data[ev_ids], axis=0)
+                data = np.mean(self._data, axis=0)
             else:
-                data = np.std(self._data[ev_ids], axis=0)
-            assert len(self.events[ev_ids]) == len(self._data[ev_ids])
+                data = np.std(self._data, axis=0)
+            assert len(self.events) == len(self._data)
         else:
             data = np.zeros((n_channels, n_times))
             n_events = 0
@@ -573,7 +574,7 @@ class Epochs(object):
 
         evoked.data = data
         evoked.times = self.times.copy()
-        evoked.comment = self.name if name is None else name
+        evoked.comment = self.name
         evoked.nave = n_events
         evoked.first = -int(np.sum(self.times < 0))
         evoked.last = int(np.sum(self.times > 0))
