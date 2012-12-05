@@ -8,13 +8,16 @@ from mne.connectivity.spectral import _CohEst
 from mne import SourceEstimate
 from mne.filter import band_pass_filter
 
-sfreq = 100.
+sfreq = 50.
 n_signals = 3
-n_epochs = 30
-n_times = 1000
+n_epochs = 10
+n_times = 500
 
 tmin = 0.
 tmax = (n_times - 1) / sfreq
+# Use a case known to have no spurious correlations (it would bad if nosetests
+# could randomly fail):
+np.random.seed(0)
 data = np.random.randn(n_epochs, n_signals, n_times)
 times_data = np.linspace(tmin, tmax, n_times)
 
@@ -58,7 +61,7 @@ def test_spectral_connectivity():
     modes = ['multitaper', 'fourier', 'cwt_morlet']
 
     # define some frequencies for cwt
-    cwt_frequencies = np.arange(3, 40, 1)
+    cwt_frequencies = np.arange(3, 24.5, 1)
 
     for mode in modes:
         for method in methods:
@@ -93,11 +96,11 @@ def test_spectral_connectivity():
 
                 if mode == 'multitaper':
                     upper_t = 0.95
-                    lower_t = 0.25
+                    lower_t = 0.5
                 else:
                     # other estimates have higher variance
                     upper_t = 0.8
-                    lower_t = 0.6
+                    lower_t = 0.75
 
                 # test the simulated signal
                 if method == 'coh':
