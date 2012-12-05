@@ -44,7 +44,7 @@ exclude = raw.info['bads'] + ['MEG 2443']  # bads + 1 more
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude=exclude)
 
-# Create epochs for left-auditory condition
+# Create epochs for left-visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
