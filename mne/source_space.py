@@ -5,6 +5,7 @@
 
 import numpy as np
 import os.path as op
+from scipy import sparse
 
 import logging
 logger = logging.getLogger('mne')
@@ -510,34 +511,20 @@ def _write_one_source_space(fid, this, verbose=None):
         write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_USE_TRIANGLES,
                          this['use_tris'] + 1)
 
-    # #   Patch-related information
-    # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST)
-    # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST)
-    #
-    # if tag1 is None or tag2 is None:
-    #     res['nearest'] = None
-    #     res['nearest_dist'] = None
-    # else:
-    #     res['nearest'] = tag1.data
-    #     res['nearest_dist'] = tag2.data.T
-    #
-    # res['pinfo'] = patch_info(res['nearest'])
-    # if res['pinfo'] is not None:
-    #     logger.info('Patch information added...')
-    #
-    # #   Distances
-    # tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
-    # tag2 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT)
-    # if tag1 is None or tag2 is None:
-    #     res['dist'] = None
-    #     res['dist_limit'] = None
-    # else:
-    #     res['dist'] = tag1.data
-    #     res['dist_limit'] = tag2.data
-    #    #   Add the upper triangle
-    #     res['dist'] = res['dist'] + res['dist'].T
-    # if (res['dist'] is not None):
-    #     logger.info('Distance information added...')
+    #   Patch-related information
+    if this['nearest'] is not None:
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST, this['nearest'])
+        write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST,
+                  this['nearest_dist'])
+
+    #   Distances
+    if this['dist'] is not None:
+        # Save only lower triangle
+        dists = this['dist'].copy()
+        dists = sparse.triu(dists, format=dists.format)
+        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
+        write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
+                           this['dist_limit'])
 
 
 @verbose
