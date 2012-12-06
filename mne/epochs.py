@@ -242,6 +242,7 @@ class Epochs(object):
             resample_on_load['window'] = resample_on_load.get('window',
                                                               'boxcar')
             resample_on_load['n_jobs'] = resample_on_load.get('n_jobs', 1)
+            n_jobs = resample_on_load['n_jobs']
             self.info['sfreq'] = resample_on_load['sfreq']
             self._resample_on_load = resample_on_load
             # this also changes the time vector
@@ -251,6 +252,9 @@ class Epochs(object):
             times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) \
                     / sfreq
             self.times = times
+            self._load_parallel, self._load_resample, _ = \
+                parallel_func(resample, n_jobs)
+
         else:
             self._resample_on_load = None
 
@@ -347,9 +351,9 @@ class Epochs(object):
             npad = self._resample_on_load['npad']
             window = self._resample_on_load['window']
             n_jobs = self._resample_on_load['n_jobs']
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            epoch = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
-                           npad, 1) for d in np.array_split(epoch, n_jobs)))
+            epoch = self._load_parallel(self._load_resample(d, sfreq, o_sfreq,
+                              npad, 1) for d in np.array_split(epoch, n_jobs))
+            epoch = np.concatenate(epoch)
 
         return epoch
 
