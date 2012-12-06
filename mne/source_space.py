@@ -43,7 +43,6 @@ class SourceSpaces(list):
     info : dict
         Dictionary with information about the creation of the source space
         file. Has keys 'working_dir' and 'command_line'.
-
     """
     def __init__(self, source_spaces, info=None):
         super(SourceSpaces, self).__init__(source_spaces)
@@ -52,7 +51,28 @@ class SourceSpaces(list):
         else:
             self.info = dict(info)
 
+    def __repr__(self):
+        ss_repr = []
+        for ss in self:
+            ss_type = ss['type']
+            if ss_type == 'vol':
+                r = "'vol', shape=%s, n_used=%i" % (repr(ss['shape']), ss['nuse'])
+            elif ss_type == 'surf':
+                r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
+            else:
+                r = "%r" % ss_type
+            ss_repr.append('<%s>' % r)
+        ss_repr = ', '.join(ss_repr)
+        return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
+
     def save(self, fname):
+        """Save the source spaces to a fif file
+
+        Parameters
+        ----------
+        fname : str
+            File to write.
+        """
         write_source_spaces(fname, self)
 
 
@@ -153,6 +173,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     """
     fid, tree, _ = fiff_open(fname)
 
+    info = {'fname': fname}
     node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
     if node:
         node = node[0]
@@ -165,8 +186,6 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
                 info['working_dir'] = tag.data
             elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
                 info['command_line'] = tag.data
-    else:
-        info = None
 
     src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
     src = SourceSpaces(src, info)
@@ -361,7 +380,7 @@ def _read_one_source_space(fid, this, verbose=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
     if tag is not None:
-        res['subject_HIS_id'] = tag.data
+        res['subject_his_id'] = tag.data
 
     return res
 
@@ -511,16 +530,15 @@ def write_source_spaces(fname, src, verbose=None):
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
 
-    info = getattr(src, 'info', None)
-    if info:
+    if src.info:
         start_block(fid, FIFF.FIFFB_MNE_ENV)
 
         write_id(fid, FIFF.FIFF_BLOCK_ID)
 
-        data = info.get('working_dir', None)
+        data = src.info.get('working_dir', None)
         if data:
             write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
-        data = info.get('command_line', None)
+        data = src.info.get('command_line', None)
         if data:
             write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
 
@@ -542,7 +560,7 @@ def _write_one_source_space(fid, this, verbose=None):
     else:
         raise ValueError('Unknown source space type (%d)' % this['type'])
 
-    data = this.get('subject_HIS_id', None)
+    data = this.get('subject_his_id', None)
     if data:
         write_string(fid, FIFF.FIFF_SUBJ_HIS_ID, data)
 
