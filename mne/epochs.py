@@ -30,7 +30,7 @@ from .utils import check_random_state
 from .filter import resample
 from .event import _read_events_fif
 from . import verbose
-from .fixes import _in1d
+from .fixes import in1d
 
 
 class Epochs(object):
@@ -146,11 +146,11 @@ class Epochs(object):
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
-    as_data_frame : as_data_frame
+    as_data_frame() : DataFrame
         Export Epochs object as Pandas DataFrame for subsequent statistical
         analyses.
 
-    to_nitime : TimeSeries
+    to_nitime() : TimeSeries
         Export Epochs object as nitime TimeSeries object for subsequent
         analyses.
 
@@ -238,11 +238,9 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
-        self._events = {}
-        if event_id is not None:
-            overlap = _in1d(events[:, 2], event_id.values())
-            selected = np.logical_and(events[:, 1] == 0, overlap)
-            self.events = events[selected]
+        overlap = in1d(events[:, 2], self.event_ids.values())
+        selected = np.logical_and(events[:, 1] == 0, overlap)
+        self.events = events[selected]
 
         n_events = len(self.events)
 
