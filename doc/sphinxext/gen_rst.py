@@ -316,16 +316,17 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                 my_stdout = Tee(sys.stdout, my_buffer)
                 sys.stdout = my_stdout
                 my_globals = {'pl': plt}
-                my_locals = {}
-                execfile(os.path.basename(src_file), my_globals, my_locals)
+                execfile(os.path.basename(src_file), my_globals)
                 time_elapsed = time() - t0
                 sys.stdout = orig_stdout
                 my_stdout = my_buffer.getvalue()
 
                 # get functions/objects of our package
                 package_code_obj = {}
-                for var_name, var in my_locals.iteritems():
+                for var_name, var in my_globals.iteritems():
                     if not hasattr(var, '__module__'):
+                        continue
+                    if not isinstance(var.__module__, basestring):
                         continue
                     if var.__module__.startswith('mne'):
                         # get the type as a string with other things stripped
@@ -351,16 +352,17 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                         fun_name = match[:-1]
                         # find if it is an mne function
                         try:
-                            exec('this_fun = %s' % fun_name, my_globals,
-                                 my_locals)
+                            exec('this_fun = %s' % fun_name, my_globals)
                         except Exception as err:
                             print 'extracting function failed'
                             print err
                             continue
-                        this_fun = my_locals['this_fun']
+                        this_fun = my_globals['this_fun']
                         if not inspect.isfunction(this_fun):
                             continue
                         if not hasattr(this_fun, '__module__'):
+                            continue
+                        if not isinstance(this_fun.__module__, basestring):
                             continue
                         if not this_fun.__module__.startswith('mne'):
                             continue
@@ -383,7 +385,7 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                     codeobj_fname = example_file[:-3] + '_codeobj.pickle'
                     fid = open(codeobj_fname, 'wb')
                     cPickle.dump(package_code_obj, fid,
-                                 cPickle.HIGHEST_PROTOCOL )
+                                 cPickle.HIGHEST_PROTOCOL)
                     fid.close()
                 if '__doc__' in my_globals:
                     # The __doc__ is often printed in the example, we
@@ -489,7 +491,7 @@ def embed_code_links(app, exception):
         for fname in filenames:
             print 'processing: %s' % fname
             subpath = dirpath[len(html_example_dir):]
-            pickle_fname = example_dir + '/' + subpath +'/'\
+            pickle_fname = example_dir + '/' + subpath + '/'\
                            + fname[:-5] + '_codeobj.pickle'
             if os.path.exists(pickle_fname):
                 # we have a pickle file with the local :-)
@@ -502,7 +504,7 @@ def embed_code_links(app, exception):
                 for name, pname in package_code_obj.iteritems():
                     if pname in package_generated:
                         link = (rel_link + '/generated/%s.html' % pname)
-                        dest_fname =  os.path.join(dirpath, link)
+                        dest_fname = os.path.join(dirpath, link)
                         if not os.path.exists(dest_fname):
                             continue
                         parts = name.split('.')
@@ -525,10 +527,10 @@ def embed_code_links(app, exception):
 
 def setup(app):
     app.connect('builder-inited', generate_example_rst)
+    app.add_config_value('plot_gallery', True, 'html')
 
     # embed links after build is finished
     app.connect('build-finished', embed_code_links)
-    app.add_config_value('plot_gallery', True, 'html')
 
     # Sphinx hack: sphinx copies generated images to the build directory
     #  each time the docs are made.  If the desired image name already
