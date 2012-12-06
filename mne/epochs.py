@@ -651,7 +651,6 @@ class Epochs(object):
                                          npad, 0) for d in new_data))
             new_data.shape = orig_dims + (new_data.shape[1],)
             self._data = new_data
-            #self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
             self.times = (np.arange(self._data.shape[2], dtype=np.float)
