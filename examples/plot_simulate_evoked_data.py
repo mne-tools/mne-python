@@ -24,7 +24,7 @@ from mne.simulation import generate_sparse_stc, generate_evoked
 data_path = sample.data_path('.')
 
 raw = mne.fiff.Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
-proj = mne.read_proj(data_path + '/MEG/sample/ecg_proj.fif')
+proj = mne.read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
