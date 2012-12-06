@@ -28,6 +28,7 @@ from .fiff.proj import setup_proj
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample
+from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
 
@@ -617,7 +618,9 @@ class Epochs(object):
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
-    def resample(self, sfreq, npad=100, window='boxcar'):
+    @verbose
+    def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
+                 verbose=None):
         """Resample preloaded data
 
         Parameters
@@ -625,14 +628,30 @@ class Epochs(object):
         sfreq: float
             New sample rate to use
         npad : int
-            Amount to pad the start and end of the data. If None,
-            a (hopefully) sensible choice is used.
+            Amount to pad the start and end of the data.
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Notes
+        -----
+        For some data, it may be more accurate to use npad=0 to reduce
+        artifacts. This is dataset dependent -- check your data!
         """
         if self.preload:
             o_sfreq = self.info['sfreq']
-            self._data = resample(self._data, sfreq, o_sfreq, npad, 2, window)
+            orig_dims = self._data.shape[:2]
+            new_data = self._data
+            new_data.shape = (np.prod(orig_dims), self._data.shape[2])
+            parallel, my_resample, _ = parallel_func(resample, n_jobs)
+            new_data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
+                           npad, 1) for d in np.array_split(new_data, n_jobs)))
+            new_data.shape = orig_dims + (new_data.shape[1],)
+            self._data = new_data
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
             self.times = (np.arange(self._data.shape[2], dtype=np.float)
