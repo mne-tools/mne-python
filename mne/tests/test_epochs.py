@@ -340,6 +340,14 @@ def test_resample():
     assert_raises(ValueError, Epochs, raw, events[:10], event_id, tmin, tmax,
                   picks=picks, baseline=(None, 0), preload=False,
                   reject=reject, flat=flat, resample_on_load=r, decim=2)
+    r = dict(n_jobs=2, npad=0)
+    assert_raises(ValueError, Epochs, raw, events[:10], event_id, tmin, tmax,
+                  picks=picks, baseline=(None, 0), preload=False,
+                  reject=reject, flat=flat, resample_on_load=r, decim=2)
+    r = 1
+    assert_raises(ValueError, Epochs, raw, events[:10], event_id, tmin, tmax,
+                  picks=picks, baseline=(None, 0), preload=False,
+                  reject=reject, flat=flat, resample_on_load=r, decim=2)
 
 
 def test_bootstrap():
