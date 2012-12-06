@@ -3,7 +3,10 @@
 Compare Evoked Reponses for Different Conditions
 ================================================
 
-In this example, epochs of different 
+In this example, an Epochs object will be
+created which includes several conditions. Tt is
+then demonstrated how to access different
+conditions by name
 
 """
 
@@ -39,30 +42,27 @@ events = mne.read_events(event_fname)
 include = []  # or stim channels ['STI 014']
 exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
 
+#   Set up amplitude-peak rejection values for MEG channels
+reject = dict(grad=4000e-13, mag=4e-12)
+
 # pick EEG channels
 picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                                             include=include, exclude=exclude)
 
 # Create epochs including different events
 epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,
-                    picks=picks, baseline=(None, 0), reject=dict(eog=150e-6))
+                    picks=picks, baseline=(None, 0), reject=reject)
 
-# access sub-epochs by conditions labels
-epochs_au, epochs_vi = epochs['audio_l'], epochs['visual_r']
-
-print epochs_au, epochs_au
-
-layout = read_layout('Vectorview-all')
-
-evoked_au, evoked_vi = epochs_au.average(), epochs_vi.average()
-
+# Generate list of evoked objects from conditions names
+evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 
 ###############################################################################
 # Show topography for two different conditions
 
+layout = read_layout('Vectorview-all.lout')
+
 pl.close('all')
-for evoked in [evoked_au, evoked_vi]:
-    pl.figure()
-    title = 'MNE sample data (condition : %s)' % evoked.comment
-    plot_topo(evoked, layout, title=title)
-    pl.show()
+pl.figure()
+title = 'MNE sample data - left audio and visual responses'
+plot_topo(evokeds, layout, color=['y', 'g'], title=title)
+pl.show()
