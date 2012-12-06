@@ -83,8 +83,7 @@ def test_compute_proj_raw():
     """Test SSP computation on raw"""
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
-    raw = Raw(raw_fname, preload=True)
-    raw.crop(0, raw_time)
+    raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
     for ii in (0.25, 0.5, 1, 2):
         projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
