@@ -45,11 +45,13 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int | dict
+    event_id : int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to acces associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
-        the str value resulting from the name parameter as key.
+        the id as string. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
 
     tmin : float
         Start time before event
@@ -110,7 +112,7 @@ class Epochs(object):
     info: dict
         Measurement info
 
-    event_ids : dict
+    event_id : dict
         Names of  of conditions corresponding to event_ids.
 
     ch_names: list of string
@@ -188,9 +190,11 @@ class Epochs(object):
                 raise ValueError('Event IDs must be of type integer')
             if not all([isinstance(k, str) for k in event_id]):
                 raise ValueError('Event names must be of type str')
-            self.event_ids = event_id
+            self.event_id = event_id
         elif isinstance(event_id, int):
-            self.event_ids = {name: event_id}
+            self.event_id = {str(event_id): event_id}
+        elif event_id is None:
+            self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
         else:
             raise ValueError('event_id must be dict or int.')
         self.tmin = tmin
@@ -241,7 +245,7 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
-        overlap = in1d(events[:, 2], self.event_ids.values())
+        overlap = in1d(events[:, 2], self.event_id.values())
         selected = np.logical_and(events[:, 1] == 0, overlap)
         self.events = events[selected]
 
@@ -509,7 +513,7 @@ class Epochs(object):
                 else:
                     key = np.atleast_1d(key)
                     epochs._data = self._data[key]
-        elif key not in self.event_ids:
+        elif key not in self.event_id:
             raise KeyError('Event "%s" is not in Epochs.' % key)
         else:
             epochs.events = self._get_events(key)
@@ -557,8 +561,8 @@ class Epochs(object):
     def _get_events(self, event_name):
         """Aux function: get event ids"""
         ids = None
-        if event_name in self.event_ids:
-            ids = self.events[self.events[0:, 2] == self.event_ids[event_name]]
+        if event_name in self.event_id:
+            ids = self.events[self.events[0:, 2] == self.event_id[event_name]]
 
         return ids
 
@@ -660,7 +664,7 @@ class Epochs(object):
         tmask = (self.times >= tmin) & (self.times <= tmax)
         tidx = np.where(tmask)[0]
 
-        this_epochs = self if not copy else cp.deepcopy(self)
+        this_epochs = self if not copy else self.copy()
         this_epochs.tmin = this_epochs.times[tidx[0]]
         this_epochs.tmax = this_epochs.times[tidx[-1]]
         this_epochs.times = this_epochs.times[tmask]
@@ -1077,7 +1081,7 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs._projector, epochs.info = setup_proj(info)
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
-    epochs.event_id = int(np.unique(events[:, 2]))
+    epochs.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
     fid.close()
 
     return epochs
@@ -1104,7 +1108,7 @@ def bootstrap(epochs, random_state=None):
                            'in the constructor.')
 
     rng = check_random_state(random_state)
-    epochs_bootstrap = cp.deepcopy(epochs)
+    epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
