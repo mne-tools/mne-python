@@ -118,37 +118,24 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
 
     Parameters
     ----------
-    fid: file descriptor
+    fid : file descriptor
         An open file descriptor.
-    tree: dict
+    tree : dict
         The FIF tree structure if source is a file id.
-    add_geom: bool, optional (default False)
+    add_geom : bool, optional (default False)
         Add geometry information to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    src: list
-        The list of source spaces.
+    src : SourceSpaces
+        The source spaces.
     """
     #   Find all source spaces
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
         raise ValueError('No source spaces found')
-
-    info = dict()
-    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
-    if node:
-        node = node[0]
-        for p in range(node['nent']):
-            kind = node['directory'][p].kind
-            pos = node['directory'][p].pos
-            tag = read_tag(fid, pos)
-            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
-                info['working_dir'] = tag.data
-            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
-                info['command_line'] = tag.data
 
     src = list()
     for s in spaces:
@@ -160,7 +147,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
 
         src.append(this)
 
-    src = SourceSpaces(src, info)
+    src = SourceSpaces(src)
     logger.info('    %d source spaces read' % len(spaces))
 
     return src
@@ -174,7 +161,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     ----------
     fname : str
         The name of the file.
-    add_geom: bool, optional (default False)
+    add_geom : bool, optional (default False)
         Add geometry information to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -188,6 +175,19 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
                                        verbose=verbose)
     src.info['fname'] = fname
+
+    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+    if node:
+        node = node[0]
+        for p in range(node['nent']):
+            kind = node['directory'][p].kind
+            pos = node['directory'][p].pos
+            tag = read_tag(fid, pos)
+            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
+                src.info['working_dir'] = tag.data
+            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
+                src.info['command_line'] = tag.data
+
     return src
 
 
