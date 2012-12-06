@@ -14,6 +14,9 @@ import traceback
 import glob
 import sys
 from StringIO import StringIO
+import cPickle
+import re
+import inspect
 
 import matplotlib
 matplotlib.use('Agg')
@@ -25,6 +28,7 @@ MAX_NB_LINES_STDOUT = 20
 
 ###############################################################################
 # A tee object to redict streams to multiple outputs
+
 
 class Tee(object):
 
@@ -275,7 +279,7 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                                'time_%s.txt' % base_image_name)
     thumb_file = os.path.join(thumb_dir, fname[:-3] + '.png')
     time_elapsed = 0
-    if plot_gallery and fname.startswith('plot'):
+    if plot_gallery:
         # generate the plot as png image if file name
         # starts with plot and if it is more recent than an
         # existing image.
@@ -316,6 +320,73 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                 time_elapsed = time() - t0
                 sys.stdout = orig_stdout
                 my_stdout = my_buffer.getvalue()
+
+                # get functions/objects of our package
+                package_code_obj = {}
+                for var_name, var in my_globals.iteritems():
+                    if not hasattr(var, '__module__'):
+                        continue
+                    if not isinstance(var.__module__, basestring):
+                        continue
+                    if var.__module__.startswith('mne'):
+                        # get the type as a string with other things stripped
+                        tstr = str(type(var))
+                        tstr = tstr[tstr.find('\'')\
+                               + 1:tstr.rfind('\'')].split('.')[-1]
+                        # see if we can import it using a shortened module path
+                        module_path = '.'.join(var.__module__.split('.')[:-1])
+                        try:
+                            exec('from %s import %s' % (module_path, tstr))
+                        except ImportError:
+                            module_path = var.__module__
+                        full_name = module_path + '.' + tstr
+                        package_code_obj[var_name] = full_name
+
+                # find package functions
+                funregex = re.compile('[\w.]+\(')
+                fid = open(src_file, 'rt')
+                for line in fid.readlines():
+                    if line.startswith('#'):
+                        continue
+                    for match in funregex.findall(line):
+                        fun_name = match[:-1]
+                        # find if it is an mne function
+                        try:
+                            exec('this_fun = %s' % fun_name, my_globals)
+                        except Exception as err:
+                            print 'extracting function failed'
+                            print err
+                            continue
+                        this_fun = my_globals['this_fun']
+                        if not inspect.isfunction(this_fun):
+                            continue
+                        if not hasattr(this_fun, '__module__'):
+                            continue
+                        if not isinstance(this_fun.__module__, basestring):
+                            continue
+                        if not this_fun.__module__.startswith('mne'):
+                            continue
+                        # ok, we have an mne function :-)
+                        # see if we can import it using a shortened module path
+                        fun_name_short = fun_name.split('.')[-1]
+                        module_path =\
+                            '.'.join(this_fun.__module__.split('.')[:-1])
+                        try:
+                            exec('from %s import %s' % (module_path,
+                                                        fun_name_short))
+                        except ImportError:
+                            module_path = this_fun.__module__
+                        full_name = module_path + '.' + fun_name_short
+                        package_code_obj[fun_name] = full_name
+
+                fid.close()
+                if len(package_code_obj) > 0:
+                    # save the dictionary, so we can later add hyperlinks
+                    codeobj_fname = example_file[:-3] + '_codeobj.pickle'
+                    fid = open(codeobj_fname, 'wb')
+                    cPickle.dump(package_code_obj, fid,
+                                 cPickle.HIGHEST_PROTOCOL)
+                    fid.close()
                 if '__doc__' in my_globals:
                     # The __doc__ is often printed in the example, we
                     # don't with to echo it
@@ -346,7 +417,8 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                     # Set the fig_num figure as the current figure as we can't
                     # save a figure that's not the current figure.
                     plt.figure(fig_num)
-                    facecolor = plt.gcf().get_facecolor() # hack to keep black bg
+                    # hack to keep black bg
+                    facecolor = plt.gcf().get_facecolor()
                     if facecolor == (0.0, 0.0, 0.0, 1.0):
                         plt.savefig(image_path % fig_num, facecolor='black')
                     else:
@@ -403,9 +475,62 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
     f.flush()
 
 
+def embed_code_links(app, exception):
+    """Embed links to documentation into example code"""
+    if exception is not None:
+        return
+    print 'Embedding mne-python links in examples..'
+    example_dir = os.path.join(app.builder.srcdir, 'auto_examples')
+    html_example_dir = os.path.abspath(app.builder.outdir + '/auto_examples')
+    package_generated = glob.glob(app.builder.outdir + '/generated/*.html')
+    package_generated = [os.path.split(p)[-1][:-5] for p in package_generated]
+    link_pattern = '<a href="%s">%s</a>'
+    orig_pattern = '<span class="n">%s</span>'
+    period = '<span class="o">.</span>'
+    for dirpath, _, filenames in os.walk(html_example_dir):
+        for fname in filenames:
+            print 'processing: %s' % fname
+            subpath = dirpath[len(html_example_dir):]
+            pickle_fname = example_dir + '/' + subpath + '/'\
+                           + fname[:-5] + '_codeobj.pickle'
+            if os.path.exists(pickle_fname):
+                # we have a pickle file with the local :-)
+                fid = open(pickle_fname, 'rb')
+                package_code_obj = cPickle.load(fid)
+                fid.close()
+                str_repl = {}
+                # detect "how deep" we are for relative links
+                rel_link = '/'.join(['..'] * len(subpath.split('/')))
+                for name, pname in package_code_obj.iteritems():
+                    if pname in package_generated:
+                        link = (rel_link + '/generated/%s.html' % pname)
+                        dest_fname = os.path.join(dirpath, link)
+                        if not os.path.exists(dest_fname):
+                            continue
+                        parts = name.split('.')
+                        name_html = orig_pattern % parts[0]
+                        for part in parts[1:]:
+                            name_html += period + orig_pattern % part
+                        str_repl[name_html] = link_pattern % (link, name_html)
+                if len(str_repl) > 0:
+                    fid = open(os.path.join(dirpath, fname), 'rt')
+                    lines_in = fid.readlines()
+                    fid.close()
+                    fid = open(os.path.join(dirpath, fname), 'wt')
+                    for line in lines_in:
+                        for name, link in str_repl.iteritems():
+                            line = line.replace(name, link)
+                        fid.write(line)
+                    fid.close()
+    print '[done]'
+
+
 def setup(app):
     app.connect('builder-inited', generate_example_rst)
     app.add_config_value('plot_gallery', True, 'html')
+
+    # embed links after build is finished
+    app.connect('build-finished', embed_code_links)
 
     # Sphinx hack: sphinx copies generated images to the build directory
     #  each time the docs are made.  If the desired image name already
