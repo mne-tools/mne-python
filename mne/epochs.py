@@ -721,7 +721,7 @@ class Epochs(object):
         self.raw = raw
         new.raw = raw
 
-        return raw
+        return new
 
     def save(self, fname):
         """Save epochs in a fif file
