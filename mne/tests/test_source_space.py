@@ -15,6 +15,7 @@ def test_read_source_spaces():
     """Testing reading of source space meshes
     """
     src = read_source_spaces(fname, add_geom=True)
+    print src
 
     # 3D source space
     lh_points = src[0]['rr']
@@ -41,7 +42,7 @@ def test_write_source_space():
     src1 = read_source_spaces('tmp.fif')
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
-                     'subject_HIS_id']:
+                     'subject_his_id']:
             assert_true(s0[name] == s1[name])
         for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri', 'coord_frame',
                      'use_tris', 'tris', 'nearest', 'nearest_dist']:
