@@ -188,8 +188,10 @@ class Epochs(object):
             if not all([isinstance(k, str) for k in event_id]):
                 raise ValueError('Event names must be of type str')
             self.event_ids = event_id
-        else:
+        elif isinstance(event_id, int):
             self.event_ids = {name: event_id}
+        else:
+            raise ValueError('event_id must be dict or int.')
         self.tmin = tmin
         self.tmax = tmax
         self.keep_comp = keep_comp

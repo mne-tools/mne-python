@@ -388,8 +388,10 @@ def test_access_by_name():
                  tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
                  tmin, tmax, picks=picks)
-    epochs = Epochs(raw, events, dict(a=1, b=2), tmin, tmax, picks=picks)
-    assert_raises(KeyError, epochs.__getitem__, 'foo')
+    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+                 tmin, tmax, picks=picks)
+    epochs = Epochs(raw, events, 'foo', tmin, tmax, picks=picks)
+    assert_raises(KeyError, epochs.__getitem__, 'bar')
 
     data = epochs['a'].get_data()
     event_a = events[events[:, 2] == 1]
