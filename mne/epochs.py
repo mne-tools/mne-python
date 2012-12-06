@@ -696,9 +696,13 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
+        raw = self.raw
+        del self.raw
         new = deepcopy(self)
-        new.raw = self.raw.copy()
-        return new
+        self.raw = raw
+        new.raw = raw
+
+        return raw
 
     def save(self, fname):
         """Save epochs in a fif file
