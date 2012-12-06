@@ -618,6 +618,7 @@ class Epochs(object):
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
+    @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
                  verbose=None):
         """Resample preloaded data
