@@ -4,7 +4,7 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 import copy as cp
@@ -322,6 +322,24 @@ def test_resample():
                     reject=reject, flat=flat)
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
     assert_array_equal(data_up, epochs._data)
+
+    # use resample_on_load instead of on-the-fly resampling
+    r = dict(sfreq=sfreq_normal * 2, n_jobs=2, npad=0)
+    epochs_2 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat, resample_on_load=r)
+    assert_array_equal(data_up, epochs_2._data)
+    assert_array_almost_equal(epochs_2.times, epochs.times)
+    # now without preload
+    epochs_2 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=False,
+                    reject=reject, flat=flat, resample_on_load=r)
+    assert_array_equal(data_up, epochs_2.get_data())
+    assert_array_almost_equal(epochs_2.times, epochs.times)
+    # make sure we throw an error in case decim is on, too
+    assert_raises(ValueError, Epochs, raw, events[:10], event_id, tmin, tmax,
+                  picks=picks, baseline=(None, 0), preload=False,
+                  reject=reject, flat=flat, resample_on_load=r, decim=2)
 
 
 def test_bootstrap():

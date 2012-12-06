@@ -39,26 +39,19 @@ class Epochs(object):
     Parameters
     ----------
     raw : Raw object
-        A instance of Raw
-
+        A instance of Raw.
     events : array, of shape [n_events, 3]
-        Returned by the read_events function
-
+        Returned by the read_events function.
     event_id : int | None
         The id of the event to consider. If None all events are used.
-
     tmin : float
-        Start time before event
-
+        Start time before event.
     tmax : float
-        End time after event
-
+        End time after event.
     name : string
         Comment that describes the Evoked data created.
-
     keep_comp : boolean
-        Apply CTF gradient compensation
-
+        Apply CTF gradient compensation.
     baseline: None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -67,12 +60,10 @@ class Epochs(object):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-
     reject : dict
         Epoch rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -83,20 +74,22 @@ class Epochs(object):
                       eeg=40e-6, # uV (EEG channels)
                       eog=250e-6 # uV (EOG channels)
                       )
-
     flat : dict
         Epoch rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-
     proj : bool, optional
-        Apply SSP projection vectors
-
+        Apply SSP projection vectors.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
         here. If data is not properly filtered, aliasing artifacts may occur.
-
+    resample_on_load : dict | None
+        Parameters to use in resampling the data from the raw file upon import.
+        If None, no resampling is performed. Note that if resample is not None,
+        decim must be 1 (and vice-versa). In the dict instance, 'sfreq'
+        should be the entry with the desired new sampling rate, while 'npad',
+        'n_jobs', and 'window' are optional arguments (see resample() method).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -104,16 +97,13 @@ class Epochs(object):
     Attributes
     ----------
     info: dict
-        Measurement info
-
+        Measurement info.
     ch_names: list of string
-        List of channels' names
-
+        List of channels' names.
     drop_log: list of lists
         This list (same length as events) contains the channel(s),
         if any, that caused an event in the original event list
         to be dropped by drop_bad_epochs().
-
     verbose : bool, str, int, or None
         See above.
 
@@ -121,22 +111,17 @@ class Epochs(object):
     -------
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
-
     average(picks=None) : self
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
-
     standard_error(picks=None) : self
         Return Evoked object containing standard error over epochs as a
         2D array [n_channels x n_times].
-
     drop_bad_epochs() : None
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations, and is done automatically by preload=True.
-
     drop_epochs() : self, indices
         Drop a set of epochs (both from preloaded data and event list).
-
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
@@ -154,10 +139,12 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, verbose=None):
+                 decim=1, resample_on_load=None, verbose=None):
         if raw is None:
             return
 
+        if not decim == 1 and resample_on_load is not None:
+            raise ValueError('decim and resample (during loading) cannot both be used')
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
         self.event_id = event_id
@@ -245,6 +232,28 @@ class Epochs(object):
             self.times = self.times[self._decim_idx]
             self.info['sfreq'] = new_sfreq
 
+        # Deal with resample-on-load changes
+        if resample_on_load is not None:
+            if not isinstance(resample_on_load, dict) or \
+                    not 'sfreq' in resample_on_load.keys():
+                raise ValueError('If resample_on_load is not None, it must be '
+                                 'a dict instance with the entry ''sfreq''')
+            resample_on_load['npad'] = resample_on_load.get('npad', 100)
+            resample_on_load['window'] = resample_on_load.get('window',
+                                                              'boxcar')
+            resample_on_load['n_jobs'] = resample_on_load.get('n_jobs', 1)
+            self.info['sfreq'] = resample_on_load['sfreq']
+            self._resample_on_load = resample_on_load
+            # this also changes the time vector
+            sfreq = float(self.info['sfreq'])
+            n_times_min = int(round(tmin * sfreq))
+            n_times_max = int(round(tmax * sfreq))
+            times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) \
+                    / sfreq
+            self.times = times
+        else:
+            self._resample_on_load = None
+
         # setup epoch rejection
         self._reject_setup()
 
@@ -307,7 +316,7 @@ class Epochs(object):
     @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
         """Load one epoch from disk"""
-        sfreq = self.raw.info['sfreq']
+        o_sfreq = self.raw.info['sfreq']
 
         if self.events.ndim == 1:
             # single event
@@ -317,7 +326,7 @@ class Epochs(object):
 
         # Read a data segment
         first_samp = self.raw.first_samp
-        start = int(round(event_samp + self.tmin * sfreq)) - first_samp
+        start = int(round(event_samp + self.tmin * o_sfreq)) - first_samp
         stop = start + self._epoch_stop
         if start < 0:
             return None
@@ -333,6 +342,14 @@ class Epochs(object):
 
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
+        elif self._resample_on_load is not None:
+            sfreq = self.info['sfreq']
+            npad = self._resample_on_load['npad']
+            window = self._resample_on_load['window']
+            n_jobs = self._resample_on_load['n_jobs']
+            parallel, my_resample, _ = parallel_func(resample, n_jobs)
+            epoch = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
+                           npad, 1) for d in np.array_split(epoch, n_jobs)))
 
         return epoch
 
