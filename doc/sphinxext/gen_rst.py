@@ -354,7 +354,9 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                             exec('this_fun = %s' % fun_name, my_globals,
                                  my_locals)
                         except Exception as err:
+                            print 'extracting function failed'
                             print err
+                            continue
                         this_fun = my_locals['this_fun']
                         if not inspect.isfunction(this_fun):
                             continue
