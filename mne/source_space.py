@@ -137,6 +137,19 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     if len(spaces) == 0:
         raise ValueError('No source spaces found')
 
+    info = dict()
+    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+    if node:
+        node = node[0]
+        for p in range(node['nent']):
+            kind = node['directory'][p].kind
+            pos = node['directory'][p].pos
+            tag = read_tag(fid, pos)
+            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
+                info['working_dir'] = tag.data
+            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
+                info['command_line'] = tag.data
+
     src = list()
     for s in spaces:
         logger.info('    Reading a source space...')
@@ -147,6 +160,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
 
         src.append(this)
 
+    src = SourceSpaces(src, info)
     logger.info('    %d source spaces read' % len(spaces))
 
     return src
@@ -169,26 +183,11 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     -------
     src : SourceSpaces
         The source spaces.
-
     """
     fid, tree, _ = fiff_open(fname)
-
-    info = {'fname': fname}
-    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
-    if node:
-        node = node[0]
-        info = dict()
-        for p in range(node['nent']):
-            kind = node['directory'][p].kind
-            pos = node['directory'][p].pos
-            tag = read_tag(fid, pos)
-            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
-                info['working_dir'] = tag.data
-            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
-                info['command_line'] = tag.data
-
-    src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom)
-    src = SourceSpaces(src, info)
+    src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                       verbose=verbose)
+    src.info['fname'] = fname
     return src
 
 
