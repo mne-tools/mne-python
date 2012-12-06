@@ -107,7 +107,6 @@ def test_stc_methods():
     assert_true(np.round(t, 3) == 0.123)
 
     stc = read_source_estimate(fname)
-    print stc.data.shape
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
     # note that using no padding for this STC actually reduces edge ringing...

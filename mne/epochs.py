@@ -648,8 +648,8 @@ class Epochs(object):
             new_data = self._data
             new_data.shape = (np.prod(orig_dims), self._data.shape[2])
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data = np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                         npad, 0) for d in new_data))
+            new_data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
+                           npad, 1) for d in np.array_split(new_data, n_jobs)))
             new_data.shape = orig_dims + (new_data.shape[1],)
             self._data = new_data
             # adjust indirectly affected variables

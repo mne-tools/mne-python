@@ -501,8 +501,8 @@ class SourceEstimate(object):
         # use parallel function to resample each source separately
         # for speed and to save memory
         parallel, my_resample, _ = parallel_func(resample, n_jobs)
-        self.data = np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                      npad, 0) for d in self.data))
+        self.data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
+                          npad, 1) for d in np.array_split(self.data, n_jobs)))
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()

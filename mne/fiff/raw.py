@@ -552,6 +552,11 @@ class Raw(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Notes
+        -----
+        For some data, it may be more accurate to use npad=0 to reduce
+        artifacts. This is dataset dependent -- check your data!
         """
         if not self._preloaded:
             raise RuntimeError('Can only resample preloaded data')
@@ -567,7 +572,7 @@ class Raw(object):
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             # use parallel function to resample each channel separately
-            # for speed and to save memory
+            # for speed and to save memory (faster not to use array_split, too)
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
             new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
                                                 npad, 0) for d in data_chunk)))
