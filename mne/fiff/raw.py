@@ -538,8 +538,7 @@ class Raw(object):
         sfreq : float
             New sample rate to use.
         npad : int
-            Amount to pad the start and end of the data. If None,
-            a (hopefully) sensible choice is used.
+            Amount to pad the start and end of the data.
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
         stim_picks : array of int | None

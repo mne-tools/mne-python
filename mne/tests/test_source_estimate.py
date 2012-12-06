@@ -1,6 +1,7 @@
 import os.path as op
 from nose.tools import assert_true, assert_raises
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -82,7 +83,7 @@ def test_stc_arithmetic():
 
 
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin(), and center_of_mass()
+    """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
     """
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc = read_source_estimate(fname)
@@ -104,6 +105,19 @@ def test_stc_methods():
     # XXX Should design a fool-proof test case, but here were the results:
     assert_true(vertex == 92717)
     assert_true(np.round(t, 3) == 0.123)
+
+    stc = read_source_estimate(fname)
+    print stc.data.shape
+    stc_new = deepcopy(stc)
+    o_sfreq = 1.0 / stc.tstep
+    # note that using no padding for this STC actually reduces edge ringing...
+    stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
+    assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
+    assert_true(stc_new.tstep == stc.tstep / 2)
+    stc_new.resample(o_sfreq, npad=0)
+    assert_true(stc_new.data.shape[1] == stc.data.shape[1])
+    assert_true(stc_new.tstep == stc.tstep)
+    assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
 def test_morph_data():
