@@ -506,30 +506,32 @@ class Epochs(object):
         epochs = self.copy()
 
         if self.preload:
-            self._data = data
+            self._data, epochs._data = data, data
 
-        if not isinstance(key, str):
-            if not self._bad_dropped:
-                warnings.warn("Bad epochs have not been dropped, indexing will"
-                              " be inaccurate. Use drop_bad_epochs() or"
-                              " preload=True")
+        if not self._bad_dropped:
+            warnings.warn("Bad epochs have not been dropped, indexing will"
+                          " be inaccurate. Use drop_bad_epochs() or"
+                        " preload=True")
 
+        if isinstance(key, str):
+            if key not in self.event_id:
+                raise KeyError('Event "%s" is not in Epochs.' % key)
+
+            epochs.events = self._get_events(key)
+
+            if self.preload:
+                select = epochs.events[:, 0]
+
+            epochs.name = (key if epochs.name == 'Unknown'
+                           else 'epochs_%s' % key)
+        else:
             epochs.events = np.atleast_2d(self.events[key])
 
             if self.preload:
-                if isinstance(key, slice):
-                    epochs._data = self._data[key]
-                else:
-                    key = np.atleast_1d(key)
-                    epochs._data = self._data[key]
-        elif key not in self.event_id:
-            raise KeyError('Event "%s" is not in Epochs.' % key)
-        else:
-            epochs.events = self._get_events(key)
-            if self.preload:
-                epochs._data = epochs._data[epochs.events[:, 0]]
-            epochs.name = (key if epochs.name == 'Unknown'
-                           else 'epochs_%s' % key)
+                select = key if isinstance(key, slice) else np.atleast_1d(key)
+
+        if self.preload:
+            epochs._data = epochs._data[select]
 
         return epochs
 
