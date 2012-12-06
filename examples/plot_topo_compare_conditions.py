@@ -1,7 +1,9 @@
 """
-===============================================
-Compare Evoked Reponses fo Different Conditions
-===============================================
+================================================
+Compare Evoked Reponses for Different Conditions
+================================================
+
+In this example, epochs of different
 
 """
 
@@ -42,8 +44,8 @@ picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                                             include=include, exclude=exclude)
 
 # Create epochs including different events
-epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax, picks=picks,
-                  baseline=(None, 0), reject=dict(eog=150e-6))
+epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,
+                    picks=picks, baseline=(None, 0), reject=dict(eog=150e-6))
 
 # access sub-epochs by conditions labels
 epochs_au, epochs_vi = epochs['audio_l'], epochs['visual_r']

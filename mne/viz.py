@@ -138,16 +138,16 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data=None):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color):
     """ Aux function to show time series on topo """
-    import pylab as pl
-    line_color = pl.rcParams['axes.edgecolor']
     times = np.linspace(tmin, tmax, data.shape[1])
     # use large tol for picker so we can click anywhere in the axes
-    ax.plot(times, data[ch_idx], line_color, picker=1e9)
+    assert all([isinstance(e, list) for e in (data, color)])
+    for data_, color in zip(data, color):
+        ax.plot(times, data_[ch_idx], color, picker=1e9)
 
 
-def plot_topo(evoked, layout, layout_scale=0.945, title=None):
+def plot_topo(evoked, layout, color, layout_scale=0.945, title=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -155,13 +155,14 @@ def plot_topo(evoked, layout, layout_scale=0.945, title=None):
 
     Parameters
     ----------
-    evoked : Evoked
+    evoked : list of Evoked | Evoked
         The evoked response to plot.
     layout : instance of Layout
         System specific sensor positions
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
+    color : list of color objects | color objects
     title : str
         Title of the figure.
 
@@ -170,10 +171,24 @@ def plot_topo(evoked, layout, layout_scale=0.945, title=None):
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    if not isinstance(evoked, list):
+        evoked = [evoked]
 
-    plot_fun = partial(_plot_timeseries, data=evoked.data)
+    if not isinstance(color, list):
+        color = [color]
 
-    fig = _plot_topo(evoked.info, evoked.times, plot_fun, layout,
+    ref_info = evoked[0].info
+    if not all([e.info == ref_info] for e in evoked):
+        raise ValueError('All evoked.info must be the same')
+
+    ref_times = evoked[0].times
+    if not all([len(e.times) == len(ref_times)] for e in evoked):
+        raise ValueError('All evoked.times must be the same')
+
+    plot_fun = partial(_plot_timeseries, data=(e.data for e in evoked),
+                       color=color)
+
+    fig = _plot_topo(ref_info, ref_times, plot_fun, layout,
                      decim=1, colorbar=False, vmin=0, vmax=0,
                      cmap=None, layout_scale=layout_scale, title=title,
                      x_label='Time (s)')

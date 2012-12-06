@@ -517,7 +517,8 @@ class Epochs(object):
             if key not in self.event_id:
                 raise KeyError('Event "%s" is not in Epochs.' % key)
 
-            epochs.events = self._get_events(key)
+            key_match = self.events[0:, 2] == self.event_id[key]
+            epochs.events = self.events[key_match]
 
             if self.preload:
                 select = epochs.events[:, 0]
@@ -526,7 +527,6 @@ class Epochs(object):
                            else 'epochs_%s' % key)
         else:
             epochs.events = np.atleast_2d(self.events[key])
-
             if self.preload:
                 select = key if isinstance(key, slice) else np.atleast_1d(key)
 
@@ -568,14 +568,6 @@ class Epochs(object):
             The standard error over epochs
         """
         return self._compute_mean_or_stderr(picks, 'stderr')
-
-    def _get_events(self, event_name):
-        """Aux function: get event ids"""
-        ids = None
-        if event_name in self.event_id:
-            ids = self.events[self.events[0:, 2] == self.event_id[event_name]]
-
-        return ids
 
     def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked"""
