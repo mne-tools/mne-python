@@ -599,7 +599,7 @@ class Raw(object):
         self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
 
-    def crop(self, tmin=0.0, tmax=None):
+    def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
 
         Limit the data from the raw file to go between specific times. Note
@@ -613,8 +613,17 @@ class Raw(object):
             New start time (must be >= 0).
         tmax : float | None
             New end time of the data (cannot exceed data duration).
+        copy : bool
+            If False Raw is cropped in place.
+
+        Returns
+        -------
+        raw : instance of Raw
+            The cropped raw object.
         """
-        max_time = (self.n_times - 1) / self.info['sfreq']
+
+        raw = self.copy() if copy is True else self
+        max_time = (raw.n_times - 1) / raw.info['sfreq']
         if tmax is None:
             tmax = max_time
 
@@ -626,27 +635,28 @@ class Raw(object):
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin = self.time_as_index(tmin)
-        smax = self.time_as_index(tmax)
-        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
+        smin = raw.time_as_index(tmin)
+        smax = raw.time_as_index(tmax)
+        cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                      dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
         keepers = np.where(keepers)[0]
-        self._first_samps = np.atleast_1d(self._first_samps[keepers])
+        raw._first_samps = np.atleast_1d(raw._first_samps[keepers])
         # Adjust first_samp of first used file!
-        self._first_samps[0] += smin - cumul_lens[keepers[0]]
-        self._last_samps = np.atleast_1d(self._last_samps[keepers])
-        self._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        self._raw_lengths = self._last_samps - self._first_samps + 1
-        self.fids = [f for fi, f in enumerate(self.fids) if fi in keepers]
-        self.rawdirs = [r for ri, r in enumerate(self.rawdirs)
+        raw._first_samps[0] += smin - cumul_lens[keepers[0]]
+        raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
+        raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
+        raw._raw_lengths = raw._last_samps - raw._first_samps + 1
+        raw.fids = [f for fi, f in enumerate(raw.fids) if fi in keepers]
+        raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
                         if ri in keepers]
-        if self._preloaded:
-            self._data = self._data[:, smin:smax + 1]
-        self.first_samp = self._first_samps[0]
-        self.last_samp = self.first_samp + (smax - smin)
+        if raw._preloaded:
+            raw._data = raw._data[:, smin:smax + 1]
+        raw.first_samp = raw._first_samps[0]
+        raw.last_samp = raw.first_samp + (smax - smin)
+        return raw
 
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.

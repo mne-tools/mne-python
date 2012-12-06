@@ -378,8 +378,7 @@ def test_preload_modify():
 def test_filter():
     """ Test filtering and Raw.apply_function interface """
 
-    raw = Raw(fif_fname, preload=True)
-    raw.crop(0, 10)
+    raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
@@ -424,8 +423,7 @@ def test_crop():
     tmins /= sfreq
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = deepcopy(raw)
-        raws[ri].crop(tmin, tmax)
+        raws[ri] = raw.crop(tmin, tmax, True)
     all_raw_2 = concatenate_raws(raws, preload=True)
     assert_true(raw.first_samp == all_raw_2.first_samp)
     assert_true(raw.last_samp == all_raw_2.last_samp)
@@ -440,12 +438,11 @@ def test_crop():
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = deepcopy(raw)
-        raws[ri].crop(tmin, tmax)
+        raws[ri].crop(tmin, tmax, False)
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=True)
 
-    all_raw_2 = deepcopy(raw)
-    all_raw_2.crop(0, None)
+    all_raw_2 = raw.crop(0, None, True)
     for ar in [all_raw_1, all_raw_2]:
         assert_true(raw.first_samp == ar.first_samp)
         assert_true(raw.last_samp == ar.last_samp)
@@ -454,8 +451,7 @@ def test_crop():
 
 def test_resample():
     """ Test resample (with I/O and multiple files) """
-    raw = Raw(fif_fname, preload=True)
-    raw.crop(0, 3)
+    raw = Raw(fif_fname, preload=True).crop(0, 3, False)
     raw_resamp = deepcopy(raw)
     sfreq = raw.info['sfreq']
     # test parallel on upsample

@@ -578,16 +578,16 @@ class Epochs(object):
         Parameters
         ----------
         tmin : float
-            Start time of selection in seconds
+            Start time of selection in seconds.
         tmax : float
-            End time of selection in seconds
+            End time of selection in seconds.
         copy : bool
-            If False epochs is cropped in place
+            If False epochs is cropped in place.
 
         Returns
         -------
         epochs : Epochs instance
-            The bootstrap samples
+            The cropped epochs.
         """
         if not self.preload:
             raise RuntimeError('Modifying data of epochs is only supported '
