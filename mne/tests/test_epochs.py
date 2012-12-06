@@ -292,30 +292,36 @@ def test_crop():
 def test_resample():
     """Test of resample of epochs
     """
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
     data_normal = cp.deepcopy(epochs.get_data())
     times_normal = cp.deepcopy(epochs.times)
     sfreq_normal = epochs.info['sfreq']
     # upsample by 2
-    epochs.resample(sfreq_normal * 2)
+    epochs.resample(sfreq_normal * 2, npad=0)
     data_up = cp.deepcopy(epochs.get_data())
     times_up = cp.deepcopy(epochs.times)
     sfreq_up = epochs.info['sfreq']
     # downsamply by 2, which should match
-    epochs.resample(sfreq_normal)
+    epochs.resample(sfreq_normal, npad=0)
     data_new = cp.deepcopy(epochs.get_data())
     times_new = cp.deepcopy(epochs.times)
     sfreq_new = epochs.info['sfreq']
-
     assert_true(data_up.shape[2] == 2 * data_normal.shape[2])
     assert_true(sfreq_up == 2 * sfreq_normal)
     assert_true(sfreq_new == sfreq_normal)
     assert_true(len(times_up) == 2 * len(times_normal))
     assert_array_almost_equal(times_new, times_normal, 10)
     assert_true(data_up.shape[2] == 2 * data_normal.shape[2])
-    assert_array_almost_equal(data_new, data_normal, 2)
+    assert_array_almost_equal(data_new, data_normal, 5)
+
+    # use parallel
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True,
+                    reject=reject, flat=flat)
+    epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
+    assert_array_equal(data_up, epochs._data)
 
 
 def test_bootstrap():

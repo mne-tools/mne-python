@@ -471,7 +471,9 @@ class SourceEstimate(object):
         self.data = self.data[:, mask]
         self._update_times()
 
-    def resample(self, sfreq, npad=100, window='boxcar'):
+    @verbose
+    def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
+                 verbose=None):
         """Resample data
 
         Parameters
@@ -479,17 +481,28 @@ class SourceEstimate(object):
         sfreq : float
             New sample rate to use.
         npad : int
-            Amount to pad the start and end of the data. If None,
-            a (hopefully) sensible choice is used.
+            Amount to pad the start and end of the data.
         window : string or tuple
             Window to use in resampling. See scipy.signal.resample.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
         Notes
         -----
+        For some data, it may be more accurate to use npad=0 to reduce
+        artifacts. This is dataset dependent -- check your data!
+
         Note that the sample rate of the original data is inferred from tstep.
         """
         o_sfreq = 1.0 / self.tstep
-        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        # use parallel function to resample each source separately
+        # for speed and to save memory
+        parallel, my_resample, _ = parallel_func(resample, n_jobs)
+        self.data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
+                          npad, 1) for d in np.array_split(self.data, n_jobs)))
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
