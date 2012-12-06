@@ -501,7 +501,7 @@ class Epochs(object):
 
         if self.preload:
             data = self._data
-            del self.data
+            del self._data
 
         epochs = self.copy()
 
