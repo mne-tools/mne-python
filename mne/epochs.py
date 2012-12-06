@@ -518,7 +518,7 @@ class Epochs(object):
         else:
             epochs.events = self._get_events(key)
             if self.preload:
-                epochs._data[epochs.events[:, 0]]
+                epochs._data = epochs._data[epochs.events[:, 0]]
             epochs.name = (key if epochs.name == 'Unknown'
                            else 'epochs_%s' % key)
 
