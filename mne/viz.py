@@ -20,10 +20,13 @@ from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
-from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, activate_proj
-from . import verbose
+# from .fiff.pick import channel_type, pick_types
+# from .fiff.proj import make_projector, activate_proj
+# from . import verbose
 
+from mne.fiff.pick import channel_type, pick_types
+from mne.fiff.proj import make_projector, activate_proj
+from mne import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -138,16 +141,17 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
     """ Aux function to show time series on topo """
-    times = np.linspace(tmin, tmax, data.shape[1])
     # use large tol for picker so we can click anywhere in the axes
-    assert all([isinstance(e, list) for e in (data, color)])
     for data_, color in zip(data, color):
+        if color is None:
+            import pylab as pl
+            color = pl.rcParams['axes.edgecolor']
         ax.plot(times, data_[ch_idx], color, picker=1e9)
 
 
-def plot_topo(evoked, layout, color, layout_scale=0.945, title=None):
+def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -171,24 +175,23 @@ def plot_topo(evoked, layout, color, layout_scale=0.945, title=None):
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
-    if not isinstance(evoked, list):
-        evoked = [evoked]
 
-    if not isinstance(color, list):
-        color = [color]
+    evoked, color = (e if isinstance(e, list) else [e]
+                     for e in (evoked, color))
 
-    ref_info = evoked[0].info
-    if not all([e.info == ref_info] for e in evoked):
-        raise ValueError('All evoked.info must be the same')
-
-    ref_times = evoked[0].times
-    if not all([len(e.times) == len(ref_times)] for e in evoked):
+    times = evoked[0].times
+    if not all([(e.times == times).all() for e in evoked]):
         raise ValueError('All evoked.times must be the same')
 
-    plot_fun = partial(_plot_timeseries, data=(e.data for e in evoked),
-                       color=color)
+    ch_names = evoked[0].ch_names
+    if not all([e.ch_names == ch_names for e in evoked]):
+        raise ValueError('All evoked.picks must be the same')
 
-    fig = _plot_topo(ref_info, ref_times, plot_fun, layout,
+    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
+                       color=color, times=times)
+
+    info = evoked[0].info
+    fig = _plot_topo(info, times, plot_fun, layout,
                      decim=1, colorbar=False, vmin=0, vmax=0,
                      cmap=None, layout_scale=layout_scale, title=title,
                      x_label='Time (s)')
