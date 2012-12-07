@@ -13,6 +13,7 @@ logger = logging.getLogger('mne')
 
 
 from .utils import check_indices
+from ..fixes import tril_indices
 from ..parallel import parallel_func
 from .. import Epochs, SourceEstimate
 from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
@@ -690,7 +691,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             if indices is None:
                 # only compute r for lower-triangular region
-                indices_use = np.tril_indices(n_signals, -1)
+                indices_use = tril_indices(n_signals, -1)
             else:
                 indices_use = check_indices(indices)
 
