@@ -4,9 +4,9 @@ Compare Evoked Reponses for Different Conditions
 ================================================
 
 In this example, an Epochs object for visual and
-auditory responses is created . Both conditions
+auditory responses is created. Both conditions
 are then accessed by their respective names to
-create a sensor layout plot of  the related
+create a sensor layout plot of the related
 evoked responses.
 
 """
