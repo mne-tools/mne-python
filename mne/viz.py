@@ -3,6 +3,7 @@
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
 
@@ -145,9 +146,6 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
     """ Aux function to show time series on topo """
     # use large tol for picker so we can click anywhere in the axes
     for data_, color in zip(data, color):
-        if color is None:
-            import pylab as pl
-            color = pl.rcParams['axes.edgecolor']
         ax.plot(times, data_[ch_idx], color, picker=1e9)
 
 
@@ -178,6 +176,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
 
     evoked, color = (e if isinstance(e, list) else [e]
                      for e in (evoked, color))
+
+    color = [c if c is not None else 'w' for c in color]
 
     times = evoked[0].times
     if not all([(e.times == times).all() for e in evoked]):
