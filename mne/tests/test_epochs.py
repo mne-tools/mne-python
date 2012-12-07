@@ -11,7 +11,7 @@ import copy as cp
 import warnings
 
 from mne import fiff, Epochs, read_events, pick_events, \
-                equalize_epoch_counts, find_events, read_epochs
+                equalize_epoch_counts, read_epochs
 from mne.epochs import bootstrap
 
 try:

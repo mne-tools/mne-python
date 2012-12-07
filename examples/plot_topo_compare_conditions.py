@@ -3,10 +3,11 @@
 Compare Evoked Reponses for Different Conditions
 ================================================
 
-In this example, an Epochs object will be
-created which includes several conditions. Tt is
-then demonstrated how to access different
-conditions by name
+In this example, an Epochs object for visual and
+auditory responses is created . Both conditions
+are then accessed by their respective names to
+create a sensor layout plot of  the related
+evoked responses.
 
 """
 
@@ -40,7 +41,7 @@ events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
+exclude = raw.info['bads']  # bads
 
 #   Set up amplitude-peak rejection values for MEG channels
 reject = dict(grad=4000e-13, mag=4e-12)
@@ -63,6 +64,6 @@ layout = read_layout('Vectorview-all.lout')
 
 pl.close('all')
 pl.figure()
-title = 'MNE sample data - left audio and visual responses'
+title = 'MNE sample data - left auditory and visual'
 plot_topo(evokeds, layout, color=['y', 'g'], title=title)
 pl.show()
