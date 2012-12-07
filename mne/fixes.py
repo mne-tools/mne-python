@@ -168,6 +168,19 @@ else:
     in1d = np.in1d
 
 
+def _tril_indices(n, k=0):
+    """Replacement for tril_indices that is provided for numpy >= 1.4"""
+    mask = np.greater_equal(np.subtract.outer(np.arange(n), np.arange(n)), -k)
+    indices = np.where(mask)
+
+    return indices
+
+if not hasattr(np, 'tril_indices'):
+    tril_indices = _tril_indices
+else:
+    tril_indices = np.tril_indices
+
+
 def _unravel_index(indices, dims):
     """Add support for multiple indices in unravel_index that is provided
     for numpy >= 1.4"""

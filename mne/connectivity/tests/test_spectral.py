@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
+from mne.fixes import tril_indices
 from mne.connectivity import spectral_connectivity
 from mne.connectivity.spectral import _CohEst
 
@@ -137,7 +138,7 @@ def test_spectral_connectivity():
 
                 # compute same connections using indices and 2 jobs,
                 # also add a second method
-                indices = np.tril_indices(n_signals, -1)
+                indices = tril_indices(n_signals, -1)
 
                 test_methods = (method, _CohEst)
                 stc_data = _stc_gen(data, sfreq, tmin)
