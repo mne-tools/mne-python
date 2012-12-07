@@ -31,6 +31,7 @@ from .filter import resample
 from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
+from .fixes import in1d
 
 
 class Epochs(object):
@@ -44,8 +45,13 @@ class Epochs(object):
     events : array, of shape [n_events, 3]
         Returned by the read_events function
 
-    event_id : int | None
-        The id of the event to consider. If None all events are used.
+    event_id : int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
 
     tmin : float
         Start time before event
@@ -106,6 +112,9 @@ class Epochs(object):
     info: dict
         Measurement info
 
+    event_id : dict
+        Names of  of conditions corresponding to event_ids.
+
     ch_names: list of string
         List of channels' names
 
@@ -122,7 +131,7 @@ class Epochs(object):
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
 
-    average(picks=None) : self
+    average(picks=None) : Evoked
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
 
@@ -140,6 +149,14 @@ class Epochs(object):
     resample() : self, int, int, int, string or list
         Resample preloaded data.
 
+    as_data_frame() : DataFrame
+        Export Epochs object as Pandas DataFrame for subsequent statistical
+        analyses.
+
+    to_nitime() : TimeSeries
+        Export Epochs object as nitime TimeSeries object for subsequent
+        analyses.
+
     Notes
     -----
     For indexing and slicing:
@@ -149,6 +166,13 @@ class Epochs(object):
     epochs[idx] : Epochs
         Return Epochs object with a subset of epochs (supports single
         index and python style slicing)
+
+    For subset selection using categorial labels:
+
+    epochs['name'] : Epochs
+        Return Epochs object with a subset of epochs corresponding to an
+        experimental condition as specified by event_id.
+
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
@@ -160,10 +184,21 @@ class Epochs(object):
 
         self.raw = raw
         self.verbose = raw.verbose if verbose is None else verbose
-        self.event_id = event_id
+        self.name = name
+        if isinstance(event_id, dict):
+            if not all([isinstance(v, int) for v in event_id.values()]):
+                raise ValueError('Event IDs must be of type integer')
+            if not all([isinstance(k, str) for k in event_id]):
+                raise ValueError('Event names must be of type str')
+            self.event_id = event_id
+        elif isinstance(event_id, int):
+            self.event_id = {str(event_id): event_id}
+        elif event_id is None:
+            self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
+        else:
+            raise ValueError('event_id must be dict or int.')
         self.tmin = tmin
         self.tmax = tmax
-        self.name = name
         self.keep_comp = keep_comp
         self.dest_comp = dest_comp
         self.baseline = baseline
@@ -210,10 +245,9 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
-        if event_id is not None:
-            selected = np.logical_and(events[:, 1] == 0,
-                                      events[:, 2] == event_id)
-            self.events = self.events[selected]
+        overlap = in1d(events[:, 2], self.event_id.values())
+        selected = np.logical_and(events[:, 1] == 0, overlap)
+        self.events = events[selected]
 
         n_events = len(self.events)
 
@@ -464,19 +498,41 @@ class Epochs(object):
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
-        if not self._bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will be "
-                          "inaccurate. Use drop_bad_epochs() or preload=True")
-
-        epochs = cp.copy(self)  # XXX : should use deepcopy but breaks ...
-        epochs.events = np.atleast_2d(self.events[key])
 
         if self.preload:
-            if isinstance(key, slice):
-                epochs._data = self._data[key]
-            else:
-                key = np.atleast_1d(key)
-                epochs._data = self._data[key]
+            data = self._data
+            del self._data
+
+        epochs = self.copy()
+
+        if self.preload:
+            self._data, epochs._data = data, data
+
+        if not self._bad_dropped:
+            warnings.warn("Bad epochs have not been dropped, indexing will"
+                          " be inaccurate. Use drop_bad_epochs() or"
+                        " preload=True")
+
+        if isinstance(key, str):
+            if key not in self.event_id:
+                raise KeyError('Event "%s" is not in Epochs.' % key)
+
+            key_match = self.events[0:, 2] == self.event_id[key]
+            epochs.events = self.events[key_match]
+
+            if self.preload:
+                select = epochs.events[:, 0]
+
+            epochs.name = (key if epochs.name == 'Unknown'
+                           else 'epochs_%s' % key)
+        else:
+            epochs.events = np.atleast_2d(self.events[key])
+            if self.preload:
+                select = key if isinstance(key, slice) else np.atleast_1d(key)
+
+        if self.preload:
+            epochs._data = epochs._data[select]
+
         return epochs
 
     def average(self, picks=None):
@@ -484,6 +540,7 @@ class Epochs(object):
 
         Parameters
         ----------
+
         picks: None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
@@ -493,6 +550,7 @@ class Epochs(object):
         evoked : Evoked instance
             The averaged epochs
         """
+
         return self._compute_mean_or_stderr(picks, 'ave')
 
     def standard_error(self, picks=None):
@@ -513,10 +571,8 @@ class Epochs(object):
 
     def _compute_mean_or_stderr(self, picks, mode='ave'):
         """Compute the mean or std over epochs and return Evoked"""
-        if mode == 'stderr':
-            _do_std = True
-        else:
-            _do_std = False
+
+        _do_std = True if mode == 'stderr' else False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
         n_channels = len(self.ch_names)
@@ -611,7 +667,7 @@ class Epochs(object):
         tmask = (self.times >= tmin) & (self.times <= tmax)
         tidx = np.where(tmask)[0]
 
-        this_epochs = self if not copy else cp.deepcopy(self)
+        this_epochs = self if not copy else self.copy()
         this_epochs.tmin = this_epochs.times[tidx[0]]
         this_epochs.tmax = this_epochs.times[tidx[-1]]
         this_epochs.times = this_epochs.times[tmask]
@@ -662,9 +718,12 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
-        raw = self.raw.copy()
+        raw = self.raw
+        del self.raw
         new = deepcopy(self)
+        self.raw = raw
         new.raw = raw
+
         return new
 
     def save(self, fname):
@@ -722,7 +781,6 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
-
 
     def as_data_frame(self, frame=True):
         """Get the epochs as Pandas panel of data frames
@@ -1030,7 +1088,7 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs._projector, epochs.info = setup_proj(info)
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
-    epochs.event_id = int(np.unique(events[:, 2]))
+    epochs.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
     fid.close()
 
     return epochs
@@ -1057,7 +1115,7 @@ def bootstrap(epochs, random_state=None):
                            'in the constructor.')
 
     rng = check_random_state(random_state)
-    epochs_bootstrap = cp.deepcopy(epochs)
+    epochs_bootstrap = epochs.copy()
     n_events = len(epochs_bootstrap.events)
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]

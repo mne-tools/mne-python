@@ -3,9 +3,11 @@
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
 
+import warnings
 from itertools import cycle
 from functools import partial
 import copy
@@ -23,7 +25,6 @@ from mne.baseline import rescale
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
-
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -138,16 +139,14 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data=None):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
     """ Aux function to show time series on topo """
-    import pylab as pl
-    line_color = pl.rcParams['axes.edgecolor']
-    times = np.linspace(tmin, tmax, data.shape[1])
     # use large tol for picker so we can click anywhere in the axes
-    ax.plot(times, data[ch_idx], line_color, picker=1e9)
+    for data_, color in zip(data, color):
+        ax.plot(times, data_[ch_idx], color, picker=1e9)
 
 
-def plot_topo(evoked, layout, layout_scale=0.945, title=None):
+def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -155,13 +154,17 @@ def plot_topo(evoked, layout, layout_scale=0.945, title=None):
 
     Parameters
     ----------
-    evoked : Evoked
+    evoked : list of Evoked | Evoked
         The evoked response to plot.
     layout : instance of Layout
         System specific sensor positions
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
+    color : list of color objects | color object | None
+        Everything matplotlib accepts to specify colors. If not list-like,
+        the color specified will be repeated. If None, colors are
+        automatically drawn.
     title : str
         Title of the figure.
 
@@ -170,10 +173,37 @@ def plot_topo(evoked, layout, layout_scale=0.945, title=None):
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    if not type(evoked) in (tuple, list):
+        evoked = [evoked]
 
-    plot_fun = partial(_plot_timeseries, data=evoked.data)
+    if type(color) in (tuple, list):
+        if len(color) != len(evoked):
+            raise ValueError('Lists of evoked objects and colors'
+                             ' must have the same length')
+    elif color is None:
+        colors = ['w'] + COLORS
+        stop = (slice(len(evoked)) if len(evoked) < len(colors)
+                else slice(len(colors)))
+        color = cycle(colors[stop])
+        if len(evoked) > len(colors):
+            warnings.warn('More evoked objects then colors available.'
+                          'You should pass a list of unique colors.')
+    else:
+        color = cycle([color])
 
-    fig = _plot_topo(evoked.info, evoked.times, plot_fun, layout,
+    times = evoked[0].times
+    if not all([(e.times == times).all() for e in evoked]):
+        raise ValueError('All evoked.times must be the same')
+
+    ch_names = evoked[0].ch_names
+    if not all([e.ch_names == ch_names for e in evoked]):
+        raise ValueError('All evoked.picks must be the same')
+
+    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
+                       color=color, times=times)
+
+    info = evoked[0].info
+    fig = _plot_topo(info, times, plot_fun, layout,
                      decim=1, colorbar=False, vmin=0, vmax=0,
                      cmap=None, layout_scale=layout_scale, title=title,
                      x_label='Time (s)')

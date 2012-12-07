@@ -4,14 +4,14 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy as np
 import copy as cp
 import warnings
 
 from mne import fiff, Epochs, read_events, pick_events, \
-                equalize_epoch_counts, find_events, read_epochs
+                equalize_epoch_counts, read_epochs
 from mne.epochs import bootstrap
 
 try:
@@ -385,3 +385,19 @@ def test_epoch_eq():
     assert_true(epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts(epochs_1, epochs_2)
     assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])
+
+
+def test_access_by_name():
+    assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
+                 tmax, picks=picks)
+    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+                 tmin, tmax, picks=picks)
+    assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
+                 tmin, tmax, picks=picks)
+    assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax, picks=picks)
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    assert_raises(KeyError, epochs.__getitem__, 'bar')
+
+    data = epochs['a'].get_data()
+    event_a = events[events[:, 2] == 1]
+    assert_true(len(data) == len(event_a))
