@@ -21,13 +21,9 @@ from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
-# from .fiff.pick import channel_type, pick_types
-# from .fiff.proj import make_projector, activate_proj
-# from . import verbose
-
-from mne.fiff.pick import channel_type, pick_types
-from mne.fiff.proj import make_projector, activate_proj
-from mne import verbose
+from .fiff.pick import channel_type, pick_types
+from .fiff.proj import make_projector, activate_proj
+from . import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
