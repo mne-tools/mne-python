@@ -39,14 +39,14 @@ tmax = 0.5
 raw = Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-#   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
+#   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
 exclude = raw.info['bads']  # bads
 
 #   Set up amplitude-peak rejection values for MEG channels
 reject = dict(grad=4000e-13, mag=4e-12)
 
-# pick EEG channels
+# pick MEG channels
 picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                                             include=include, exclude=exclude)
 
