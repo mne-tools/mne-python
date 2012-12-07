@@ -27,16 +27,25 @@ in: inplace # just a shortcut
 inplace:
 	$(PYTHON) setup.py build_ext -i
 
-test: in
+sample_data: $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
+	@echo "Target needs sample data"
+
+$(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
+	wget ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
+	tar xvzf MNE-sample-data-processed.tar.gz
+	mv MNE-sample-data examples/
+
+test: in sample_data
 	$(NOSETESTS) mne
-test-doc:
+
+test-doc: sample_data
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
-test-coverage:
+test-coverage: sample_data
 	rm -rf coverage .coverage
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
-test-profile:
+test-profile: sample_data
 	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
