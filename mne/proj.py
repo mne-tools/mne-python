@@ -123,6 +123,11 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     event_id = epochs.event_id
     if event_id is None:
         event_id = 0
+    else:
+        if len(event_id.keys()) == 0:
+            event_id = 0
+        else:
+            event_id = event_id[event_id.keys()[0]]
     desc_prefix = "%-d-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
 
