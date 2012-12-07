@@ -604,8 +604,9 @@ class Raw(object):
 
         Limit the data from the raw file to go between specific times. Note
         that the new tmin is assumed to be t=0 for all subsequently called
-        functions (e.g., time_as_index, or Epochs). Data are modified in-place,
-        and new first_samp and last_samp are set accordingly.
+        functions (e.g., time_as_index, or Epochs). New first_samp and
+        last_samp are set accordingly. And data are modified in-place when
+        called with copy=False.
 
         Parameters
         ----------
@@ -621,7 +622,6 @@ class Raw(object):
         raw : instance of Raw
             The cropped raw object.
         """
-
         raw = self.copy() if copy is True else self
         max_time = (raw.n_times - 1) / raw.info['sfreq']
         if tmax is None:
@@ -683,7 +683,6 @@ class Raw(object):
         remove_existing : bool
             Remove the projection vectors currently in the file.
         """
-
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
 
