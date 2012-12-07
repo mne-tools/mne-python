@@ -11,7 +11,6 @@ from .fiff.tag import read_tag, find_tag
 from .fiff.tree import dir_tree_find
 from .fiff.write import start_file, end_file, start_block, end_block, \
                    write_coord_trans, write_dig_point, write_int
-# from . import verbose
 
 
 def read_trans(fname):
