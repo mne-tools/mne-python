@@ -7,8 +7,87 @@ logger = logging.getLogger('mne')
 
 from .fiff import FIFF
 from .fiff.open import fiff_open
-from .fiff.tag import read_tag
-from . import verbose
+from .fiff.tag import read_tag, find_tag
+from .fiff.tree import dir_tree_find
+from .fiff.write import start_file, end_file, start_block, end_block, \
+                   write_coord_trans, write_dig_point, write_int
+# from . import verbose
+
+
+def read_trans(fname):
+    """Read a -trans.fif file
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file.
+
+    Returns
+    -------
+    info : dict
+        The contents of the trans file.
+    """
+    info = {}
+    fid, tree, _ = fiff_open(fname)
+    block = dir_tree_find(tree, FIFF.FIFFB_MNE)[0]
+
+    tag = find_tag(fid, block, FIFF.FIFF_COORD_TRANS)
+    info.update(tag.data)
+
+    isotrak = dir_tree_find(block, FIFF.FIFFB_ISOTRAK)
+    isotrak = isotrak[0]
+
+    tag = find_tag(fid, isotrak, FIFF.FIFF_MNE_COORD_FRAME)
+    if tag is None:
+        coord_frame = 0
+    else:
+        coord_frame = int(tag.data)
+
+    info['dig'] = dig = []
+    for k in range(isotrak['nent']):
+        kind = isotrak['directory'][k].kind
+        pos = isotrak['directory'][k].pos
+        if kind == FIFF.FIFF_DIG_POINT:
+            tag = read_tag(fid, pos)
+            tag.data['coord_frame'] = coord_frame
+            dig.append(tag.data)
+
+    fid.close()
+    return info
+
+
+def write_trans(fname, info):
+    """Write a -trans.fif file
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file.
+    info : dict
+        Trans file data, as returned by read_trans.
+    """
+    fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MNE)
+
+    write_coord_trans(fid, info)
+
+    dig = info['dig']
+    if dig:
+        start_block(fid, FIFF.FIFFB_ISOTRAK)
+
+        coord_frames = set(d['coord_frame'] for d in dig)
+        if len(coord_frames) > 1:
+            raise ValueError("dig points in different coord_frames")
+        coord_frame = coord_frames.pop()
+        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
+
+        for d in dig:
+            write_dig_point(fid, d)
+        end_block(fid, FIFF.FIFFB_ISOTRAK)
+
+    end_block(fid, FIFF.FIFFB_MNE)
+    end_file(fid)
+
 
 def invert_transform(trans):
     """Invert a transformation between coordinate systems

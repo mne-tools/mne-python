@@ -80,6 +80,8 @@ Functions reference
    parse_config
    read_reject_parameters
    transform_coordinates
+   read_trans
+   write_trans
    read_proj
    write_proj
    compute_proj_epochs
