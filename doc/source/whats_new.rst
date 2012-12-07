@@ -31,6 +31,9 @@ Changelog
 
    - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Saving ICA sources to FIF files and creating ICA topography layouts by
+     `Denis Engemann`_
+
    - Export epochs data to the pandas library by `Denis Engemann`_
 
    - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
@@ -49,7 +52,7 @@ Changelog
 
    - Adding options for morphing by `Eric Larson`_
 
-   - Plotting functions for time frequency topographies by `Denis Engemann`_ and `Alex Gramfort`_
+   - Plotting functions for time frequency topographies and epochs images by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Plotting ERP/ERF images by `Alex Gramfort`_
 
@@ -61,9 +64,13 @@ Changelog
 
    - Spectral connectivity estimation in sensor and source space by `Martin Luessi`_
 
-   - Read and write Epochs in FIF files by  `Alex Gramfort`_
+   - Read and write Epochs in FIF files by `Alex Gramfort`_
 
    - Resampling of Raw, Epochs, and Evoked by `Eric Larson`_
+
+   - Creating epochs objects for different conditions and accessing them via name by `Denis Engemann`_
+
+   - Visualizing evoked responses from different conditions in one topography plot by `Denis Engemann`_ and `Alex Gramfort`_
 
 API
 ~~~

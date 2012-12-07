@@ -7,6 +7,7 @@
 #
 # License: Simplified BSD
 
+import warnings
 from itertools import cycle
 from functools import partial
 import copy
@@ -160,7 +161,10 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
-    color : list of color objects | color objects
+    color : list of color objects | color object | None
+        Everything matplotlib accepts to specify colors. If not list-like,
+        the color specified will be repeated. If None, colors are
+        automatically drawn.
     title : str
         Title of the figure.
 
@@ -169,11 +173,23 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    if not type(evoked) in (tuple, list):
+        evoked = [evoked]
 
-    evoked, color = (e if isinstance(e, list) else [e]
-                     for e in (evoked, color))
-
-    color = [c if c is not None else 'w' for c in color]
+    if type(color) in (tuple, list):
+        if len(color) != len(evoked):
+            raise ValueError('Lists of evoked objects and colors'
+                             ' must have the same length')
+    elif color is None:
+        colors = ['w'] + COLORS
+        stop = (slice(len(evoked)) if len(evoked) < len(colors)
+                else slice(len(colors)))
+        color = cycle(colors[stop])
+        if len(evoked) > len(colors):
+            warnings.warn('More evoked objects then colors available.'
+                          'You should pass a list of unique colors.')
+    else:
+        color = cycle([color])
 
     times = evoked[0].times
     if not all([(e.times == times).all() for e in evoked]):
