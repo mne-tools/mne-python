@@ -65,12 +65,18 @@ def test_io_inverse_operator():
     """
     for inv in [inverse_operator, inverse_operator_vol]:
         inv_init = copy.deepcopy(inv)
-        for out_file in ['test-inv.fif', 'test-inv.fif.gz']:
-            write_inverse_operator(out_file, inv)
-            this_inv = read_inverse_operator(out_file)
+        out_file = 'test-inv.fif'
+        write_inverse_operator(out_file, inv)
+        this_inv = read_inverse_operator(out_file)
+        _compare(inv, inv_init)
+        _compare(inv, this_inv)
 
-            _compare(inv, inv_init)
-            _compare(inv, this_inv)
+    # just do one example for .gz, as it should generalize
+    inv = inverse_operator
+    out_file  = 'test-inv.fif.gz'
+    write_inverse_operator(out_file, inv)
+    this_inv = read_inverse_operator(out_file)
+    _compare(inv, this_inv)
 
 
 def test_apply_inverse_operator():
@@ -79,6 +85,7 @@ def test_apply_inverse_operator():
     With and without precomputed inverse operator.
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    evoked.crop(0, 0.1)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert_true(stc.data.min() > 0)
@@ -96,7 +103,6 @@ def test_apply_inverse_operator():
     assert_true(stc.data.mean() > 0.1)
 
     # Test MNE inverse computation starting from forward operator
-    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
 
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,

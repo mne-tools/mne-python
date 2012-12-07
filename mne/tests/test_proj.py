@@ -82,9 +82,9 @@ def test_compute_proj_epochs():
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
     # Test that the raw projectors work
-    raw_time = 6.5  # Do shorter amount for speed
-    for ii in (1, 2, 4, 6):
-        raw = Raw(raw_fname)
+    raw_time = 2.5  # Do shorter amount for speed
+    raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
+    for ii in (0.25, 0.5, 1, 2):
         projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
 
@@ -100,7 +100,6 @@ def test_compute_proj_raw():
         raw.save('foo_%d_raw.fif' % ii)
 
     # Test that purely continuous (no duration) raw projection works
-    raw = Raw(raw_fname, preload=True)
     projs = compute_proj_raw(raw, duration=None, stop=raw_time,
                              n_grad=1, n_mag=1, n_eeg=0)
 

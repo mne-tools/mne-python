@@ -35,7 +35,6 @@ bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
-
     # split file
     raw = Raw(fif_fname, preload=True)
     split_size = 10.  # in seconds
@@ -46,7 +45,7 @@ def test_multiple_files():
     tmaxs /= sfreq
     tmins /= sfreq
 
-    # going in revere order so the last fname is the first file (need it later)
+    # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
         fname = 'test_raw_split-%d_raw.fif' % ri
@@ -203,7 +202,6 @@ def test_io_raw():
         picks = pick_types(raw.info, meg=True, eeg=False,
                            stim=True, misc=True, include=include,
                            exclude=raw.info['bads'])
-        print "Number of picked channels : %d" % len(picks)
 
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
@@ -380,7 +378,7 @@ def test_preload_modify():
 def test_filter():
     """ Test filtering and Raw.apply_function interface """
 
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
@@ -408,9 +406,52 @@ def test_filter():
     assert_array_equal(data, bp_data)
 
 
+def test_crop():
+    """Test cropping raw files
+    """
+    # split a concatenated file to test a difficult case
+    raw = Raw([fif_fname, fif_fname], preload=True)
+    split_size = 10.  # in seconds
+    sfreq = raw.info['sfreq']
+    nsamp = (raw.last_samp - raw.first_samp + 1)
+
+    # do an annoying case (off-by-one splitting)
+    tmins = np.r_[1., np.round(np.arange(0., nsamp - 1, split_size * sfreq))]
+    tmins = np.sort(tmins)
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp - 1]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+    raws = [None] * len(tmins)
+    for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
+        raws[ri] = raw.crop(tmin, tmax, True)
+    all_raw_2 = concatenate_raws(raws, preload=True)
+    assert_true(raw.first_samp == all_raw_2.first_samp)
+    assert_true(raw.last_samp == all_raw_2.last_samp)
+    assert_array_equal(raw[:, :][0], all_raw_2[:, :][0])
+
+    tmins = np.round(np.arange(0., nsamp - 1, split_size * sfreq))
+    tmaxs = np.concatenate((tmins[1:] - 1, [nsamp - 1]))
+    tmaxs /= sfreq
+    tmins /= sfreq
+
+    # going in revere order so the last fname is the first file (need it later)
+    raws = [None] * len(tmins)
+    for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
+        raws[ri] = deepcopy(raw)
+        raws[ri].crop(tmin, tmax, False)
+    # test concatenation of split file
+    all_raw_1 = concatenate_raws(raws, preload=True)
+
+    all_raw_2 = raw.crop(0, None, True)
+    for ar in [all_raw_1, all_raw_2]:
+        assert_true(raw.first_samp == ar.first_samp)
+        assert_true(raw.last_samp == ar.last_samp)
+        assert_array_equal(raw[:, :][0], ar[:, :][0])
+
+
 def test_resample():
     """ Test resample (with I/O and multiple files) """
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=True).crop(0, 3, False)
     raw_resamp = deepcopy(raw)
     sfreq = raw.info['sfreq']
     # test parallel on upsample
