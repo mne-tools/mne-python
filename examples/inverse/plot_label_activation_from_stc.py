@@ -3,6 +3,9 @@
 Extracting time course from source_estimate object
 ==================================================
 
+Load a SourceEstimate object from stc files and extract the time course
+of activation in individual labels, as well as in a complex label formed
+through merging two labels.
 
 """
 # Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
@@ -45,8 +48,8 @@ plt.axes([.1, .275, .85, .625])
 hl = plt.plot(stc.times, stc_lh.data.mean(0), 'b')
 hr = plt.plot(stc.times, stc_rh.data.mean(0), 'g')
 hb = plt.plot(stc.times, stc_bh.data.mean(0), 'r')
-plt.xlabel('Time [s]')
-plt.ylabel('Source amplitude [dSPM]')
+plt.xlabel('Time (s)')
+plt.ylabel('Source amplitude (dSPM)')
 plt.xlim(stc.times[0], stc.times[-1])
 
 # add a legend including center-of-mass mni coordinates to the plot
