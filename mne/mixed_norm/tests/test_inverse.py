@@ -2,6 +2,8 @@
 #
 # License: Simplified BSD
 
+import time
+
 import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
@@ -41,12 +43,17 @@ label = read_label(fname_label)
 def test_MxNE_inverse():
     """Test MxNE inverse computation"""
     alpha = 60  # spatial regularization parameter
+    tic_FISTA = time.time()
     stc_FISTA = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-4, active_set_size=10, solver='FISTA')
+                     maxit=1000, tol=1e-8, active_set_size=10, solver='FISTA')
+    toc_FISTA = time.time()
+    tic_CD = time.time()
     stc_CD = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-4, active_set_size=10, solver='CD')
+                     maxit=1000, tol=1e-8, active_set_size=10, solver='CD')
+    toc_CD = time.time()
     assert_array_almost_equal(stc_FISTA.times, evoked.times, 5)
     assert_array_almost_equal(stc_CD.times, evoked.times, 5)
     assert_array_almost_equal(stc_FISTA.data, stc_CD.data, 5)
     assert_true(stc_FISTA.vertno[1][0] in label.vertices)
     assert_true(stc_CD.vertno[1][0] in label.vertices)
+    assert_true(toc_FISTA - tic_FISTA > toc_CD - tic_CD)
