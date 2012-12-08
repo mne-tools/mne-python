@@ -41,8 +41,12 @@ label = read_label(fname_label)
 def test_MxNE_inverse():
     """Test MxNE inverse computation"""
     alpha = 60  # spatial regularization parameter
-    stc = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=500, tol=1e-4, active_set_size=10)
-
-    assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][0] in label.vertices)
+    stc_FISTA = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
+                     maxit=1000, tol=1e-4, active_set_size=10, solver='FISTA')
+    stc_CD = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
+                     maxit=1000, tol=1e-4, active_set_size=10, solver='CD')
+    assert_array_almost_equal(stc_FISTA.times, evoked.times, 5)
+    assert_array_almost_equal(stc_CD.times, evoked.times, 5)
+    assert_array_almost_equal(stc_FISTA.data, stc_CD.data, 5)
+    assert_true(stc_FISTA.vertno[1][0] in label.vertices)
+    assert_true(stc_CD.vertno[1][0] in label.vertices)

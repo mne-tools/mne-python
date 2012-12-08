@@ -5,7 +5,8 @@
 import time
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+from nose.tools import assert_true
 
 from mne.mixed_norm.optim import mixed_norm_solver
 
@@ -20,18 +21,22 @@ def test_l21_MxNE():
     X[0] = 3
     X[4] = -2
     M = np.dot(G, X)
+    tic_FISTA = time.time()
     X_hat_FISTA, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
                             solver='FISTA')
+    toc_FISTA = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
+    tic_CD = time.time()
     X_hat_CD, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
                             solver='CD')
+    toc_CD = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    assert_array_equal(np.around(X_hat_FISTA, decimals=3),
-                       np.around(X_hat_CD, decimals=3))
+    assert_array_almost_equal(X_hat_FISTA, X_hat_CD, 5)
+    assert_true(toc_FISTA - tic_FISTA > toc_CD - tic_CD)
 
     X_hat, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
@@ -42,8 +47,7 @@ def test_l21_MxNE():
                             active_set_size=2, debias=True,
                             solver='CD')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    assert_array_equal(np.around(X_hat_FISTA, decimals=3),
-                       np.around(X_hat_CD, decimals=3))
+    assert_array_almost_equal(X_hat_FISTA, X_hat_CD, 5)
 
     X_hat, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
@@ -53,5 +57,4 @@ def test_l21_MxNE():
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=1, debias=True, n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(np.around(X_hat_FISTA, decimals=3),
-                       np.around(X_hat_CD, decimals=3))
+    assert_array_almost_equal(X_hat_FISTA, X_hat_CD, 5)
