@@ -154,7 +154,7 @@ def read_events(filename, include=None, exclude=None):
         else:
             raise ValueError('Unknown number of columns in event text file')
 
-        event_list, mappings = lines[:, goods], None
+        event_list = lines[:, goods]
         if event_list.shape[0] > 0 and event_list[0, 2] == 0:
             event_list = event_list[1:]
 
