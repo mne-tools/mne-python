@@ -521,7 +521,7 @@ class Epochs(object):
             epochs.events = self.events[key_match]
 
             if self.preload:
-                select = epochs.events[:, 0]
+                select = key_match
 
             epochs.name = (key if epochs.name == 'Unknown'
                            else 'epochs_%s' % key)
