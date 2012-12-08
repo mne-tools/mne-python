@@ -70,6 +70,8 @@ def _read_events_fif(fid, tree):
         fid.close()
         raise ValueError('Could not find event data')
 
+    mappings = dir_tree_find(tree, FIFF.FIFF_DESCRIPTION)
+
     events = events[0]
 
     for d in events['directory']:
@@ -82,8 +84,22 @@ def _read_events_fif(fid, tree):
     else:
         raise ValueError('Could not find any events')
 
+    if mappings:
+        for d in mappings['directory']:
+            kind = d.kind
+            pos = d.pos
+            if kind == FIFF.FIFF_DESCRIPTION:
+                tag = read_tag(fid, pos)
+                event_list = tag.data
+                break
+    else:
+        mappings = None
+
+    if mappings is not None:
+        m_ = (m.split(':') for m in mappings.split(';'))
+        mappings = dict((k, str(v)) for k, v in m_)
     event_list = event_list.reshape(len(event_list) / 3, 3)
-    return event_list
+    return event_list, mappings
 
 
 def read_events(filename, include=None, exclude=None):
@@ -119,7 +135,7 @@ def read_events(filename, include=None, exclude=None):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        event_list = _read_events_fif(fid, tree)
+        event_list, _ = _read_events_fif(fid, tree)
         fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
@@ -138,7 +154,7 @@ def read_events(filename, include=None, exclude=None):
         else:
             raise ValueError('Unknown number of columns in event text file')
 
-        event_list = lines[:, goods]
+        event_list, mappings = lines[:, goods], None
         if event_list.shape[0] > 0 and event_list[0, 2] == 0:
             event_list = event_list[1:]
 

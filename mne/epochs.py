@@ -17,7 +17,7 @@ logger = logging.getLogger('mne')
 from . import fiff
 from .fiff.write import start_file, start_block, end_file, end_block, \
                     write_int, write_float_matrix, write_float, \
-                    write_id
+                    write_id, write_string
 from .fiff.meas_info import read_meas_info, write_meas_info
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -718,11 +718,15 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
-        raw = self.raw
-        del self.raw
+        if hasattr(self, 'raw'):
+            raw = self.raw
+            del self.raw
+
         new = deepcopy(self)
-        self.raw = raw
-        new.raw = raw
+
+        if hasattr(self, 'raw'):
+            self.raw = raw
+            new.raw = raw
 
         return new
 
@@ -751,6 +755,9 @@ class Epochs(object):
 
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
         write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+        mapping_ = ';'.join([k + ':' + str(v) for k, v in
+                             self.event_id.items()])
+        write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
         # First and last sample
@@ -1002,7 +1009,7 @@ def read_epochs(fname, proj=True, verbose=None):
     info, meas = read_meas_info(fid, tree)
     info['filename'] = fname
 
-    events = _read_events_fif(fid, tree)
+    events, mappings = _read_events_fif(fid, tree)
 
     #   Locate the data of interest
     processed = dir_tree_find(meas, FIFF.FIFFB_PROCESSED_DATA)
@@ -1088,7 +1095,8 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs._projector, epochs.info = setup_proj(info)
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
-    epochs.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
+    epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
+                       if mappings is None else mappings)
     fid.close()
 
     return epochs
