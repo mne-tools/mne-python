@@ -161,7 +161,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                        init=None, n_orient=1):
-    """Solves L21 inverse problem with proximag iterations and FISTA"""
+    """Solves L21 inverse problem with proximal iterations and FISTA"""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
@@ -233,7 +233,6 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
 
     if init is None:
         X = np.zeros((n_sources, n_times))
-        active_set = np.arange(n_sources)
     else:
         X, active_set = init
 
