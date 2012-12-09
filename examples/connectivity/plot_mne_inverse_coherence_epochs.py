@@ -65,7 +65,7 @@ stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_normal=True)
 
 # Restrict the source estimate to the label in the left auditory cortex
-stc_label = stc.label_stc(label_lh)
+stc_label = stc.in_label(label_lh)
 
 # Find number and index of vertex with most power
 src_pow = np.sum(stc_label.data ** 2, axis=1)
@@ -120,8 +120,8 @@ coh_stc = mne.SourceEstimate(coh, vertices=stc.vertno, tmin=1e-3 * tmin,
 
 # Plot the average coherence inside label_rh for each band
 aud_rh_coh = dict()  # store the coherence for each band
-aud_rh_coh['alpha'] = np.mean(coh_stc.label_stc(label_rh).data[:, 0], axis=0)
-aud_rh_coh['beta'] = np.mean(coh_stc.label_stc(label_rh).data[:, 1], axis=0)
+aud_rh_coh['alpha'] = np.mean(coh_stc.in_label(label_rh).data[:, 0], axis=0)
+aud_rh_coh['beta'] = np.mean(coh_stc.in_label(label_rh).data[:, 1], axis=0)
 
 pl.figure()
 width = 0.5
