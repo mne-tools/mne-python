@@ -119,13 +119,13 @@ def test_label_time_course():
     values, times, vertices = label_time_courses(label_fname, stc_fname)
     stc = read_source_estimate(stc_fname)
     label_lh = read_label(label_fname)
-    stc_lh = stc.label_stc(label_lh)
+    stc_lh = stc.in_label(label_lh)
     assert_array_almost_equal(stc_lh.data, values)
     assert_array_almost_equal(stc_lh.times, times)
     assert_array_almost_equal(stc_lh.vertno[0], vertices)
 
     label_rh = read_label(label_rh_fname)
-    stc_rh = stc.label_stc(label_rh)
+    stc_rh = stc.in_label(label_rh)
     label_bh = label_rh + label_lh
-    stc_bh = stc.label_stc(label_bh)
+    stc_bh = stc.in_label(label_bh)
     assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))

@@ -33,9 +33,9 @@ aud_lh = mne.read_label(meg_path + '/labels/Aud-lh.label')
 aud_rh = mne.read_label(meg_path + '/labels/Aud-rh.label')
 
 # extract the time course for different labels from the stc
-stc_lh = stc.label_stc(aud_lh)
-stc_rh = stc.label_stc(aud_rh)
-stc_bh = stc.label_stc(aud_lh + aud_rh)
+stc_lh = stc.in_label(aud_lh)
+stc_rh = stc.in_label(aud_rh)
+stc_bh = stc.in_label(aud_lh + aud_rh)
 
 # calculate center of mass and transform to mni coordinates
 vtx, _, t_lh = stc_lh.center_of_mass('sample')
