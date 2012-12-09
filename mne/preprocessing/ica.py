@@ -743,9 +743,10 @@ class ICA(object):
             data *= pre_whitener
         else:  # pick cov
             ncov = deepcopy(self.noise_cov)
-            if ncov.ch_names != self.ch_names:
-                ncov['data'] = ncov.data[picks][:, picks]
-            assert data.shape[0] == ncov.data.shape[0]
+            if data.shape[0] != ncov['data'].shape[0]:
+                ncov['data'] = ncov['data'][picks][:, picks]
+                assert data.shape[0] == ncov['data'].shape[0]
+
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = np.dot(pre_whitener, data)
 
