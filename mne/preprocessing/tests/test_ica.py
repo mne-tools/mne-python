@@ -152,9 +152,9 @@ def test_ica_additional():
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
-    test_cov2['bads'].append('MEG 0112')
     ica = ICA(noise_cov=test_cov2, n_components=3, max_n_components=4)
-    assert_raises(RuntimeError, ica.decompose_raw, raw)
+    ica.decompose_raw(raw, picks[:5])
+    assert_true(ica.n_components < 5)
 
     ica = ICA(n_components=3, max_n_components=4)
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
