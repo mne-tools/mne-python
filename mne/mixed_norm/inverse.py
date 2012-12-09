@@ -88,7 +88,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=None):
 def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
-               solver='CD', return_residual=False, verbose=None):
+               solver='auto', return_residual=False, verbose=None):
     """Mixed-norm estimate (MxNE)
 
     Compute L1/L2 mixed-norm solution on evoked data.
@@ -133,8 +133,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    solver : 'FISTA' | 'CD'
-        The algorithm to use for the optimization.
+    solver : 'prox' | 'cd' | 'auto'
+        The algorithm to use for the optimization. prox stands for
+        proximal interations using the FISTA algorithm while cd uses
+        coordinate descent. cd is only available for fixed orientation.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None

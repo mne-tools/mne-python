@@ -2,6 +2,7 @@
 #
 # License: Simplified BSD
 
+import warnings
 from math import sqrt
 import numpy as np
 from scipy import linalg
@@ -158,9 +159,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
 
 @verbose
-def _mixed_norm_solver_FISTA(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
+def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                        init=None, n_orient=1):
-    """Solves L21 inverse problem with FISTA"""
+    """Solves L21 inverse problem with proximag iterations and FISTA"""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
@@ -222,9 +223,11 @@ def _mixed_norm_solver_FISTA(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
 
 @verbose
-def _mixed_norm_solver_CD(MultiTaskLasso, M, G, alpha, maxit=10000, tol=1e-8,
+def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
                           verbose=None, init=None, n_orient=1):
     """Solves L21 inverse problem with coordinate descent"""
+    from sklearn.linear_model.coordinate_descent import MultiTaskLasso
+
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
@@ -235,8 +238,8 @@ def _mixed_norm_solver_CD(MultiTaskLasso, M, G, alpha, maxit=10000, tol=1e-8,
         X, active_set = init
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol, normalize=False,
-                         fit_intercept=False, max_iter=maxit)\
-                         .fit(G, M, coef_init=X.T)
+                         fit_intercept=False, max_iter=maxit).fit(G, M,
+                         coef_init=X.T)
     X = clf.coef_.T
     active_set = np.any(X, axis=1)
     X = X[active_set]
@@ -247,7 +250,7 @@ def _mixed_norm_solver_CD(MultiTaskLasso, M, G, alpha, maxit=10000, tol=1e-8,
 @verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
-                      solver='FISTA'):
+                      solver='auto'):
     """Solves L21 inverse solver with active set strategy
 
     Algorithm is detailed in:
@@ -274,7 +277,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         Debias source estimates
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
-    solver : 'FISTA' | 'CD'
+    solver : 'prox' | 'cd' | 'auto'
         The algorithm to use for the optimization.
 
     Returns
@@ -292,32 +295,36 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     logger.info("-- ALPHA MAX : %s" % alpha_max)
     alpha = float(alpha)
 
-    if solver == 'CD':
-        if n_orient == 1:
-            try:
-                from sklearn.linear_model.coordinate_descent \
-                                    import MultiTaskLasso
-            except ImportError:
-                import warnings
-                warnings.warn("Scikit-learn cannot be found.")
-                warnings.warn("Using FISTA instead of coordinate descent")
-                solver = 'FISTA'
-        else:
-            import warnings
-            warnings.warn("Coordinate descent is only available for fixed \
-                            orientation.")
-            warnings.warn("Using FISTA instead of coordinate descent")
-            solver = 'FISTA'
+    has_sklearn = True
+    try:
+        from sklearn.linear_model.coordinate_descent import MultiTaskLasso
+    except ImportError:
+        has_sklearn = False
 
-    if solver == 'CD':
-        l21_solver = lambda M, G, init: _mixed_norm_solver_CD(MultiTaskLasso,
-                                            M, G, alpha,
-                                            maxit=maxit, tol=tol,
-                                            init=init, n_orient=n_orient)
+    if solver == 'auto':
+        if has_sklearn and (n_orient == 1):
+            solver = 'cd'
+        else:
+            solver = 'prox'
+
+    if solver == 'cd':
+        if n_orient == 1 and not has_sklearn:
+            warnings.warn("Scikit-learn cannot be found. "
+                          "Using proximal iterations instead of coordinate "
+                          "descent.")
+            solver = 'prox'
+        if n_orient > 1:
+            warnings.warn("Coordinate descent is only available for fixed "
+                          "orientation. Using proximal iterations instead of "
+                          "coordinate descent")
+            solver = 'prox'
+
+    if solver == 'cd':
+        logger.info("Using coordinate descent")
+        l21_solver = _mixed_norm_solver_cd
     else:
-        l21_solver = lambda M, G, init: _mixed_norm_solver_FISTA(M, G, alpha,
-                                            maxit=maxit, tol=tol,
-                                            init=init, n_orient=n_orient)
+        logger.info("Using proximal iterations")
+        l21_solver = _mixed_norm_solver_prox
 
     init = None
 
@@ -329,7 +336,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         if n_orient > 1:
             active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
         for k in xrange(maxit):
-            X, as_, E = l21_solver(M, G[:, active_set], init)
+            X, as_, E = l21_solver(M, G[:, active_set], alpha,
+                                   maxit=maxit, tol=tol, init=init,
+                                   n_orient=n_orient)
             as_ = np.where(active_set)[0][as_]
             gap, pobj, dobj, R = dgap_l21(M, G, X, as_, alpha, n_orient)
             logger.info('gap = %s, pobj = %s' % (gap, pobj))
@@ -364,7 +373,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         active_set = np.zeros_like(active_set)
         active_set[as_] = True
     else:
-        X, active_set, E = l21_solver(M, G, init)
+        X, active_set, E = l21_solver(M, G, alpha, maxit=maxit, tol=tol,
+                                     init=init, n_orient=n_orient)
 
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)

@@ -1,4 +1,5 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: Simplified BSD
 
@@ -43,17 +44,17 @@ label = read_label(fname_label)
 def test_MxNE_inverse():
     """Test MxNE inverse computation"""
     alpha = 60  # spatial regularization parameter
-    tic_FISTA = time.time()
-    stc_FISTA = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-8, active_set_size=10, solver='FISTA')
-    toc_FISTA = time.time()
-    tic_CD = time.time()
-    stc_CD = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-8, active_set_size=10, solver='CD')
-    toc_CD = time.time()
-    assert_array_almost_equal(stc_FISTA.times, evoked.times, 5)
-    assert_array_almost_equal(stc_CD.times, evoked.times, 5)
-    assert_array_almost_equal(stc_FISTA.data, stc_CD.data, 5)
-    assert_true(stc_FISTA.vertno[1][0] in label.vertices)
-    assert_true(stc_CD.vertno[1][0] in label.vertices)
-    assert_true(toc_FISTA - tic_FISTA > toc_CD - tic_CD)
+    tic_prox = time.time()
+    stc_prox = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
+                     maxit=1000, tol=1e-8, active_set_size=10, solver='prox')
+    toc_prox = time.time()
+    tic_cd = time.time()
+    stc_cd = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
+                     maxit=1000, tol=1e-8, active_set_size=10, solver='cd')
+    toc_cd = time.time()
+    assert_array_almost_equal(stc_prox.times, evoked.times, 5)
+    assert_array_almost_equal(stc_cd.times, evoked.times, 5)
+    assert_array_almost_equal(stc_prox.data, stc_cd.data, 5)
+    assert_true(stc_prox.vertno[1][0] in label.vertices)
+    assert_true(stc_cd.vertno[1][0] in label.vertices)
+    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
