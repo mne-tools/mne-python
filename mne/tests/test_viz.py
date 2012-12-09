@@ -5,6 +5,8 @@ from mne import fiff, read_events, Epochs
 from mne.layouts import read_layout
 from mne.viz import plot_topo
 
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -22,10 +24,10 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0))
 evoked = epochs.average()
 
+
 def test_plot_topo():
     """Test plotting of ERP topography
     """
-
     layout = read_layout('Vectorview-all')
 
     # Show topography
