@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import tempfile
 import os
 import os.path as op
 from copy import deepcopy
@@ -31,6 +32,8 @@ fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 
+tempdir = tempfile.mkdtemp()
+
 
 def test_multiple_files():
     """Test loading multiple files simultaneously
@@ -48,7 +51,7 @@ def test_multiple_files():
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
     for ri in range(len(tmins) - 1, -1, -1):
-        fname = 'test_raw_split-%d_raw.fif' % ri
+        fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
     events = [find_events(r) for r in raws]
@@ -153,8 +156,8 @@ def test_load_bad_channels():
     # Test normal case
     raw.load_bad_channels(bad_file_works)
     # Write it out, read it in, and check
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
+    raw.save(op.join(tempdir, 'foo_raw.fif'))
+    raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
     assert_equal(correct_bads, raw_new.info['bads'])
     # Reset it
     raw.info['bads'] = []
@@ -167,14 +170,14 @@ def test_load_bad_channels():
         raw.load_bad_channels(bad_file_wrong, force=True)
         assert_equal(len(w), 1)
         # write it out, read it in, and check
-        raw.save('foo_raw.fif')
-        raw_new = Raw('foo_raw.fif')
+        raw.save(op.join(tempdir, 'foo_raw.fif'))
+        raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
         assert_equal(correct_bads, raw_new.info['bads'])
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
-    raw.save('foo_raw.fif')
-    raw_new = Raw('foo_raw.fif')
+    raw.save(op.join(tempdir, 'foo_raw.fif'))
+    raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
     assert_equal([], raw_new.info['bads'])
 
 
@@ -184,6 +187,7 @@ def test_io_raw():
     fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
     fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
     for fname_in, fname_out in zip(fnames_in, fnames_out):
+        fname_out = op.join(tempdir, fname_out)
         raw = Raw(fname_in)
 
         nchan = raw.info['nchan']
@@ -254,17 +258,17 @@ def test_io_complex():
         raw_cp._data[picks, start:stop] += imag_rand
         # this should throw an error because it's complex
         with warnings.catch_warnings(record=True) as w:
-            raw_cp.save('raw.fif', picks, tmin=0, tmax=5)
+            raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5)
             # warning only gets thrown on first instance
             assert_equal(len(w), 1 if di == 0 else 0)
 
-        raw2 = Raw('raw.fif')
+        raw2 = Raw(op.join(tempdir, 'raw.fif'))
         raw2_data, _ = raw2[picks, :]
         n_samp = raw2_data.shape[1]
         assert_array_almost_equal(raw2_data[:, :n_samp],
                                   raw_cp._data[picks, :n_samp])
         # with preloading
-        raw2 = Raw('raw.fif', preload=True)
+        raw2 = Raw(op.join(tempdir, 'raw.fif'), preload=True)
         raw2_data, _ = raw2[picks, :]
         n_samp = raw2_data.shape[1]
         assert_array_almost_equal(raw2_data[:, :n_samp],
@@ -327,8 +331,8 @@ def test_proj():
         raw = Raw(fif_fname, preload=preload, proj_active=False)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save('raw.fif', proj_active=True)
-        raw2 = Raw('raw.fif', proj_active=False)
+        raw.save(op.join(tempdir, 'raw.fif'), proj_active=True)
+        raw2 = Raw(op.join(tempdir, 'raw.fif'), proj_active=False)
         data_proj_2, _ = raw2[:, 0:2]
         assert_array_almost_equal(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
@@ -366,7 +370,7 @@ def test_preload_modify():
             else:
                 raise err
 
-        tmp_fname = 'raw.fif'
+        tmp_fname = op.join(tempdir, 'raw.fif')
         raw.save(tmp_fname)
 
         raw_new = Raw(tmp_fname)
@@ -456,8 +460,8 @@ def test_resample():
     sfreq = raw.info['sfreq']
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
-    raw_resamp.save('raw_resamp.fif')
-    raw_resamp = Raw('raw_resamp.fif', preload=True)
+    raw_resamp.save(op.join(tempdir, 'raw_resamp.fif'))
+    raw_resamp = Raw(op.join(tempdir, 'raw_resamp.fif'), preload=True)
     assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
     assert_true(raw.n_times == raw_resamp.n_times / 2)
     assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
@@ -575,7 +579,7 @@ def test_save():
     raw = Raw(fif_fname, preload=True)
     assert_raises(ValueError, raw.save, fif_fname)
     new_fname = op.join(op.abspath(op.curdir), 'break.fif')
-    raw.save(new_fname)
-    new_raw = Raw(new_fname)
+    raw.save(op.join(tempdir, new_fname))
+    new_raw = Raw(op.join(tempdir, new_fname))
     assert_raises(ValueError, new_raw.save, new_fname)
     os.remove(new_fname)
