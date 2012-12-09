@@ -98,7 +98,7 @@ def test_read_write_epochs():
     epochs.event_id.pop('1')
     epochs.event_id.update({'a': 1})
     epochs.save(op.join(base_dir, 'foo_events.fif'))
-    epochs_read2 = read_epochs('foo_events.fif')
+    epochs_read2 = read_epochs(op.join(base_dir, 'foo_events.fif'))
     assert_equal(epochs_read2.event_id, epochs.event_id)
 
 

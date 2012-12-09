@@ -70,8 +70,6 @@ def _read_events_fif(fid, tree):
         fid.close()
         raise ValueError('Could not find event data')
 
-    mappings = dir_tree_find(tree, FIFF.FIFF_DESCRIPTION)
-
     events = events[0]
 
     for d in events['directory']:
@@ -84,20 +82,22 @@ def _read_events_fif(fid, tree):
     else:
         raise ValueError('Could not find any events')
 
-    if mappings:
-        for d in mappings['directory']:
-            kind = d.kind
-            pos = d.pos
-            if kind == FIFF.FIFF_DESCRIPTION:
-                tag = read_tag(fid, pos)
-                event_list = tag.data
-                break
+    mappings = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
+    mappings = mappings[0]
+
+    for d in mappings['directory']:
+        kind = d.kind
+        pos = d.pos
+        if kind == FIFF.FIFF_DESCRIPTION:
+            tag = read_tag(fid, pos)
+            mappings = tag.data
+            break
     else:
         mappings = None
 
     if mappings is not None:
         m_ = (m.split(':') for m in mappings.split(';'))
-        mappings = dict((k, str(v)) for k, v in m_)
+        mappings = dict((k, int(v)) for k, v in m_)
     event_list = event_list.reshape(len(event_list) / 3, 3)
     return event_list, mappings
 

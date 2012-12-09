@@ -718,15 +718,11 @@ class Epochs(object):
     def copy(self):
         """ Return copy of Epochs instance
         """
-        if hasattr(self, 'raw'):
-            raw = self.raw
-            del self.raw
-
+        raw = self.raw
+        del self.raw
         new = deepcopy(self)
-
-        if hasattr(self, 'raw'):
-            self.raw = raw
-            new.raw = raw
+        self.raw = raw
+        new.raw = raw
 
         return new
 
