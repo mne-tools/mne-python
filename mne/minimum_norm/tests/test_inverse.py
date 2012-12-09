@@ -1,3 +1,4 @@
+import tempfile
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
@@ -38,6 +39,8 @@ raw = fiff.Raw(fname_raw)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
+tempdir = tempfile.mkdtemp()
+
 
 def _compare(a, b):
     if isinstance(a, dict):
@@ -65,7 +68,7 @@ def test_io_inverse_operator():
     """
     for inv in [inverse_operator, inverse_operator_vol]:
         inv_init = copy.deepcopy(inv)
-        out_file = 'test-inv.fif'
+        out_file = op.join(tempdir, 'test-inv.fif')
         write_inverse_operator(out_file, inv)
         this_inv = read_inverse_operator(out_file)
         _compare(inv, inv_init)
@@ -73,7 +76,7 @@ def test_io_inverse_operator():
 
     # just do one example for .gz, as it should generalize
     inv = inverse_operator
-    out_file  = 'test-inv.fif.gz'
+    out_file  = op.join(tempdir, 'test-inv.fif.gz')
     write_inverse_operator(out_file, inv)
     this_inv = read_inverse_operator(out_file)
     _compare(inv, this_inv)
@@ -154,8 +157,8 @@ def test_inverse_operator_volume():
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
-    stc.save('tmp-vl.stc')
-    stc2 = read_source_estimate('tmp-vl.stc')
+    stc.save(op.join(tempdir, 'tmp-vl.stc'))
+    stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
     assert_true(np.all(stc.data > 0))
     assert_true(np.all(stc.data < 35))
     assert_array_almost_equal(stc.data, stc2.data)

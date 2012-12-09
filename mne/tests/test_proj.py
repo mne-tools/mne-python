@@ -1,3 +1,4 @@
+import tempfile
 import os.path as op
 from nose.tools import assert_true
 
@@ -18,6 +19,9 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 
+tempdir = tempfile.mkdtemp()
+
+ 
 def test_compute_proj_epochs():
     """Test SSP computation on epochs"""
     event_id, tmin, tmax = 1, -0.2, 0.3
@@ -33,8 +37,9 @@ def test_compute_proj_epochs():
 
     evoked = epochs.average()
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1)
-    write_proj('proj.fif.gz', projs)
-    for p_fname in [proj_fname, proj_gz_fname, 'proj.fif.gz']:
+    write_proj(op.join(tempdir, 'proj.fif.gz'), projs)
+    for p_fname in [proj_fname, proj_gz_fname,
+                    op.join(tempdir, 'proj.fif.gz')]:
         projs2 = read_proj(p_fname)
 
         assert_true(len(projs) == len(projs2))
@@ -65,7 +70,7 @@ def test_compute_proj_epochs():
     # test that you can save them
     epochs.info['projs'] += projs
     evoked = epochs.average()
-    evoked.save('foo.fif')
+    evoked.save(op.join(tempdir,'foo.fif'))
 
     projs = read_proj(proj_fname)
 
@@ -97,7 +102,7 @@ def test_compute_proj_raw():
 
         # test that you can save them
         raw.info['projs'] += projs
-        raw.save('foo_%d_raw.fif' % ii)
+        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii))
 
     # Test that purely continuous (no duration) raw projection works
     projs = compute_proj_raw(raw, duration=None, stop=raw_time,
@@ -112,7 +117,7 @@ def test_compute_proj_raw():
 
     # test that you can save them
     raw.info['projs'] += projs
-    raw.save('foo_rawproj_continuous_raw.fif')
+    raw.save(op.join(tempdir, 'foo_rawproj_continuous_raw.fif'))
 
     # test resampled-data projector, upsampling instead of downsampling
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)

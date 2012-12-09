@@ -1,3 +1,4 @@
+import tempfile
 import os.path as op
 
 from nose.tools import assert_true
@@ -19,26 +20,28 @@ fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
 fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
+tempdir = tempfile.mkdtemp()
+
 
 def test_io_events():
     """Test IO for events
     """
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    write_events('events.fif', events)
-    events2 = read_events('events.fif')
+    write_events(op.join(tempdir,'events.fif'), events)
+    events2 = read_events(op.join(tempdir, 'events.fif'))
     assert_array_almost_equal(events, events2)
 
     # Test binary fif.gz IO
     events2 = read_events(fname_gz)  # Use as the gold standard
     assert_array_almost_equal(events, events2)
-    write_events('events.fif.gz', events2)
-    events2 = read_events('events.fif.gz')
+    write_events(op.join(tempdir, 'events.fif.gz'), events2)
+    events2 = read_events(op.join(tempdir, 'events.fif.gz'))
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
-    write_events('events.eve', events)
-    events2 = read_events('events.eve')
+    write_events(op.join(tempdir, 'events.eve'), events)
+    events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
     events2 = read_events(fname_txt_mpr)
     assert_array_almost_equal(events, events2)
@@ -46,28 +49,28 @@ def test_io_events():
     # Test old format text file IO
     events2 = read_events(fname_old_txt)
     assert_array_almost_equal(events, events2)
-    write_events('events.eve', events)
-    events2 = read_events('events.eve')
+    write_events(op.join(tempdir, 'events.eve'), events)
+    events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
 
     # Test event selection
-    a = read_events('events.fif', include=1)
-    b = read_events('events.fif', include=[1])
-    c = read_events('events.fif', exclude=[2, 3, 4, 5, 32])
-    d = read_events('events.fif', include=1, exclude=[2, 3])
+    a = read_events(op.join(tempdir, 'events.fif'), include=1)
+    b = read_events(op.join(tempdir, 'events.fif'), include=[1])
+    c = read_events(op.join(tempdir, 'events.fif'), exclude=[2, 3, 4, 5, 32])
+    d = read_events(op.join(tempdir, 'events.fif'), include=1, exclude=[2, 3])
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
-    write_events('events.fif', events)
-    events2 = read_events('events.fif')
+    write_events(op.join(tempdir, 'events.fif'), events)
+    events2 = read_events(op.join(tempdir, 'events.fif'))
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
-    write_events('events.eve', events)
-    events2 = read_events('events.eve')
+    write_events(op.join(tempdir, 'events.eve'), events)
+    events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
 
 

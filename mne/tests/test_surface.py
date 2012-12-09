@@ -1,3 +1,4 @@
+import tempfile
 import os
 import os.path as op
 
@@ -12,6 +13,8 @@ data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'subjects', 'sample', 'bem',
                                         'sample-5120-5120-5120-bem-sol.fif')
 
+tempdir = tempfile.mkdtemp()
+
 
 def test_io_bem_surfaces():
     """Testing reading of bem surfaces
@@ -20,8 +23,9 @@ def test_io_bem_surfaces():
     surf = read_bem_surfaces(fname, add_geom=False)
     print "Number of surfaces : %d" % len(surf)
 
-    write_bem_surface('bem_surf.fif', surf[0])
-    surf_read = read_bem_surfaces('bem_surf.fif', add_geom=False)
+    write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
+    surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
+                                  add_geom=False)
 
     for key in surf[0].keys():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])
@@ -32,8 +36,7 @@ def test_io_surface():
     """
     fname = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.inflated')
     pts, tri = read_surface(fname)
-    write_surface('tmp', pts, tri)
-    c_pts, c_tri = read_surface('tmp')
+    write_surface(op.join(tempdir, 'tmp'), pts, tri)
+    c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
     assert_array_equal(pts, c_pts)
     assert_array_equal(tri, c_tri)
-    os.remove('tmp')
