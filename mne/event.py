@@ -82,8 +82,24 @@ def _read_events_fif(fid, tree):
     else:
         raise ValueError('Could not find any events')
 
+    mappings = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
+    mappings = mappings[0]
+
+    for d in mappings['directory']:
+        kind = d.kind
+        pos = d.pos
+        if kind == FIFF.FIFF_DESCRIPTION:
+            tag = read_tag(fid, pos)
+            mappings = tag.data
+            break
+    else:
+        mappings = None
+
+    if mappings is not None:
+        m_ = (m.split(':') for m in mappings.split(';'))
+        mappings = dict((k, int(v)) for k, v in m_)
     event_list = event_list.reshape(len(event_list) / 3, 3)
-    return event_list
+    return event_list, mappings
 
 
 def read_events(filename, include=None, exclude=None):
@@ -119,7 +135,7 @@ def read_events(filename, include=None, exclude=None):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        event_list = _read_events_fif(fid, tree)
+        event_list, _ = _read_events_fif(fid, tree)
         fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
