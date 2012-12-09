@@ -21,7 +21,7 @@ proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 
 tempdir = tempfile.mkdtemp()
 
- 
+
 def test_compute_proj_epochs():
     """Test SSP computation on epochs"""
     event_id, tmin, tmax = 1, -0.2, 0.3
