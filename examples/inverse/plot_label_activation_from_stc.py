@@ -3,8 +3,9 @@
 Extracting time course from source_estimate object
 ==================================================
 
-Load a SourceEstimate object from stc files and extract the time course
-of activation in individual labels, as well as in a complex label formed
+Load a SourceEstimate object from stc files and
+extract the time course of activation in individual
+labels, as well as in a complex label formed
 through merging two labels.
 
 """
