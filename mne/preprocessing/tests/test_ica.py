@@ -5,6 +5,7 @@
 import os
 import os.path as op
 from nose.tools import assert_true, assert_raises
+from copy import deepcopy
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from scipy import stats
@@ -149,6 +150,11 @@ def test_ica_core():
 def test_ica_additional():
     # Test additional functionality
     stop2 = 500
+
+    test_cov2 = deepcopy(test_cov)
+    ica = ICA(noise_cov=test_cov2, n_components=3, max_n_components=4)
+    ica.decompose_raw(raw, picks[:5])
+    assert_true(ica.n_components < 5)
 
     ica = ICA(n_components=3, max_n_components=4)
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
