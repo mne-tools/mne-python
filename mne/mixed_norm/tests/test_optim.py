@@ -22,60 +22,60 @@ def test_l21_MxNE():
     X[4] = -2
     M = np.dot(G, X)
 
-    tic_FISTA = time.time()
-    X_hat_FISTA, active_set, _ = mixed_norm_solver(M,
+    tic_prox = time.time()
+    X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
-                            solver='FISTA')
-    toc_FISTA = time.time()
+                            solver='prox')
+    toc_prox = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    tic_CD = time.time()
-    X_hat_CD, active_set, _ = mixed_norm_solver(M,
+    tic_cd = time.time()
+    X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
-                            solver='CD')
-    toc_CD = time.time()
+                            solver='cd')
+    toc_cd = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    assert_array_almost_equal(X_hat_FISTA, X_hat_CD, 5)
-    assert_true(toc_FISTA - tic_FISTA > toc_CD - tic_CD)
+    assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
+    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
 
-    tic_FISTA = time.time()
-    X_hat_FISTA, active_set, _ = mixed_norm_solver(M,
+    tic_prox = time.time()
+    X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
-                            solver='FISTA')
-    toc_FISTA = time.time()
+                            solver='prox')
+    toc_prox = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    tic_CD = time.time()
-    X_hat_CD, active_set, _ = mixed_norm_solver(M,
+    tic_cd = time.time()
+    X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
-                            solver='CD')
-    toc_CD = time.time()
+                            solver='cd')
+    toc_cd = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    assert_array_almost_equal(X_hat_FISTA, X_hat_CD, 5)
-    assert_true(toc_FISTA - tic_FISTA > toc_CD - tic_CD)
+    assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
+    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
 
-    X_hat_FISTA, active_set, _ = mixed_norm_solver(M,
+    X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
-                            n_orient=2, solver='FISTA')
+                            n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    X_hat_CD, active_set, _ = mixed_norm_solver(M,
+    X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
-                            n_orient=2, solver='CD')
+                            n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    assert_array_equal(X_hat_FISTA, X_hat_CD)
+    assert_array_equal(X_hat_prox, X_hat_cd)
 
-    X_hat_FISTA, active_set, _ = mixed_norm_solver(M,
+    X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
                             n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    X_hat_CD, active_set, _ = mixed_norm_solver(M,
+    X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
-                            n_orient=5, solver='CD')
+                            n_orient=5, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    assert_array_equal(X_hat_FISTA, X_hat_CD)
+    assert_array_equal(X_hat_prox, X_hat_cd)
