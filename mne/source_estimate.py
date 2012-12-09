@@ -684,7 +684,7 @@ class SourceEstimate(object):
 
         return vertices, values
 
-    def label_stc(self, label):
+    def in_label(self, label):
         """Returns a SourceEstimate object restricted to a label
 
         SourceEstimate contains the time course of
