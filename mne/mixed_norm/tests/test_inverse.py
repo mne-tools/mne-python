@@ -57,4 +57,3 @@ def test_MxNE_inverse():
     assert_array_almost_equal(stc_prox.data, stc_cd.data, 5)
     assert_true(stc_prox.vertno[1][0] in label.vertices)
     assert_true(stc_cd.vertno[1][0] in label.vertices)
-    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
