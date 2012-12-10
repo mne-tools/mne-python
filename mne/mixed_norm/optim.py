@@ -322,9 +322,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         logger.info("Using proximal iterations")
         l21_solver = _mixed_norm_solver_prox
 
-    X_init = None
-
     if active_set_size is not None:
+        X_init = None
         n_sensors, n_times = M.shape
         idx_large_corr = np.argsort(groups_norm2(np.dot(G.T, M), n_orient))
         active_set = np.zeros(n_positions, dtype=np.bool)
@@ -368,8 +367,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         active_set = np.zeros_like(active_set)
         active_set[as_] = True
     else:
-        X, active_set, E = l21_solver(M, G, alpha, maxit=maxit, tol=tol,
-                                     init=X_init, n_orient=n_orient)
+        X, active_set, E = l21_solver(M, G, alpha, maxit=maxit,
+                                      tol=tol, n_orient=n_orient)
 
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
