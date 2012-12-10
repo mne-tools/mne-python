@@ -80,7 +80,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold (only for ECG).
     filter_method : str
-        Method for filtering ('iir' or 'fir').
+        Method for filtering ('iir' or 'fft').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
