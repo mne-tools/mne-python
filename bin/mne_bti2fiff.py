@@ -443,6 +443,7 @@ class RawBTi(Raw):
         logger.info('Ready.')
         self._data[pick_mag] *= 1e-15  # put data in Tesla
 
+        # remove subclass helper attributes to create a proper Raw object.
         for attr in self.__dict__:
             if attr not in Raw.__dict__:
                 del attr
@@ -587,9 +588,7 @@ class RawBTi(Raw):
         cnt, dtp = count, dtype
         with open(self._data_file, 'rb') as f:
             shape = (ntsl, self.info['nchan'])
-            print shape
             data = np.fromfile(f, dtype=dtp, count=cnt)
-            print data.shape, self._data_file
 
         return data.reshape(shape).T
 
