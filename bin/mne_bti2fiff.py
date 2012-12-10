@@ -73,77 +73,77 @@ def read_bti_ascii(bti_hdr_fname):
 
     """
     with open(bti_hdr_fname, 'r') as f:
-        info = (l for l in f if not l.startswith('#'))
+        info_ = (l for l in f.read().split('\n') if not l.startswith('#'))
+        _pre_parsed = {}
+        this_key = None
+        for line in info_:
+            if line.isupper() and line.endswith(':'):
+                this_key = line.strip(':')
+                _pre_parsed[this_key] = []
+            elif this_key is not None:
+                _pre_parsed[this_key].append(line)
 
-    _pre_parsed = {}
-    this_key = None
-    for line in info:
-        if line.isupper() and line.endswith(':'):
-            this_key = line.strip(':')
-            _pre_parsed[this_key] = []
-        else:
-            _pre_parsed[this_key].append(line)
+        info = {}
+        for field, params in _pre_parsed.iteritems():
+            if field in (BTI.HDR_FILEINFO, BTI.HDR_CH_NAMES, BTI.HDR_DATAFILE):
+                if field == BTI.HDR_DATAFILE:
+                    sep = ' : '
+                elif field == BTI.HDR_FILEINFO:
+                    sep = ':'
+                else:
+                    sep = None
 
-    info = {}
-    for field, params in _pre_parsed.iteritems():
-        if field in (BTI.HDR_FILEINFO, BTI.HDR_CH_NAMES, BTI.HDR_DATAFILE):
-            if field == BTI.HDR_DATAFILE:
-                sep = ' : '
-            elif field == BTI.HDR_FILEINFO:
-                sep = ':'
-            else:
-                sep = None
+                mapping = (e.strip().split(sep) for e in params)
+                mapping = [(k.strip(), v.strip()) for k, v in mapping]
 
-            mapping = (e.strip().split(sep) for e in params)
-            mapping = [(k.strip(), v.strip()) for k, v in mapping]
+                if field == BTI.HDR_CH_NAMES:
+                    info[field] = mapping
+                else:
+                    info[field] = dict(mapping)
 
-            if field == BTI.HDR_CH_NAMES:
-                info[field] = mapping
-            else:
-                info[field] = dict(mapping)
+            if field == BTI.HDR_CH_GROUPS:
+                ch_groups = {}
+                for p in params:
+                    if p.endswith('channels'):
+                        ch_groups['CHANNELS'] = int(p.strip().split(' ')[0])
+                    elif 'MEG' in p:
+                        ch_groups['MEG'] = int(p.strip().split(' ')[0])
+                    elif 'REFERENCE' in p:
+                        ch_groups['REF'] = int(p.strip().split(' ')[0])
+                    elif 'EEG' in p:
+                        ch_groups['EEG'] = int(p.strip().split(' ')[0])
+                    elif 'TRIGGER' in p:
+                        ch_groups['TRIGGER'] = int(p.strip().split(' ')[0])
+                    elif 'UTILITY' in p:
+                        ch_groups['UTILITY'] = int(p.strip().split(' ')[0])
+                info[BTI.HDR_CH_GROUPS] = ch_groups
 
-        elif field == BTI.HDR_CH_GROUPS:
-            ch_groups = {}
-            for p in params:
-                if p.endswith('channels'):
-                    ch_groups['CHANNELS'] = int(p.strip().split(' ')[0])
-                elif 'MEG' in p:
-                    ch_groups['MEG'] = int(p.strip().split(' ')[0])
-                elif 'REFERENCE' in p:
-                    ch_groups['REF'] = int(p.strip().split(' ')[0])
-                elif 'EEG' in p:
-                    ch_groups['EEG'] = int(p.strip().split(' ')[0])
-                elif 'TRIGGER' in p:
-                    ch_groups['TRIGGER'] = int(p.strip().split(' ')[0])
-                elif 'UTILITY' in p:
-                    ch_groups['UTILITY'] = int(p.strip().split(' ')[0])
-            info[BTI.HDR_CH_GROUPS] = ch_groups
+            elif field == BTI.HDR_CH_CAL:
+                ch_cal = []
+                ch_fields = ['ch_name', 'group', 'cal', 'unit']
+                for p in params:
+                    this_ch_info = p.strip().split()
+                    ch_cal.append(dict(zip(ch_fields, this_ch_info)))
+                info[BTI.HDR_CH_CAL] = ch_cal
 
-        elif field == BTI.HDR_CH_CAL:
-            ch_cal = []
-            ch_fields = ['ch_name', 'group', 'cal', 'unit']
-            for p in params:
-                this_ch_info = p.strip().split()
-                ch_cal.append(dict(zip(ch_fields, this_ch_info)))
-            info[BTI.HDR_CH_CAL] = ch_cal
+        for field, params in _pre_parsed.items():
+            if field == BTI.HDR_CH_TRANS:
+                sensor_trans = {}
+                idx = 0
+                for p in params:
+                    if "|" in p:
+                        k, d, _ = p.strip().split("|")
+                        if k.strip().isalnum():
+                            current_chan = info[BTI.HDR_CH_NAMES][idx][0]
+                            sensor_trans[current_chan] = d.strip()
+                            idx += 1
+                        else:
+                            sensor_trans[current_chan] += ', ' + d.strip()
+            info[BTI.HDR_CH_TRANS] = sensor_trans
 
-        elif field == BTI.HDR_CH_TRANS:
-            sensor_trans = {}
-            idx = 0
-            for p in params:
-                if "|" in p:
-                    k, d, _ = p.strip().split("|")
-                    if k.strip().isalnum():
-                        current_chan = info[BTI.HDR_CH_NAMES][idx][0]
-                        sensor_trans[current_chan] = d.strip()
-                        idx += 1
-                    else:
-                        sensor_trans[current_chan] += ', ' + d.strip()
-        info[BTI.HDR_CH_TRANS] = sensor_trans
-
-    tsl, duration = _pre_parsed['LONGEST EPOCH'][0].split(', ')
-    info['FILEINFO']['Time slices'] = tsl.split(': ')[1]
-    info['FILEINFO']['Total duration'] = duration.strip()
+        tsl, duration = _pre_parsed['LONGEST EPOCH'][0].split(', ')
+        info['FILEINFO']['Time slices'] = tsl.split(': ')[1]
+        info['FILEINFO']['Total duration'] = duration.strip()
 
     return info
 
@@ -412,40 +412,39 @@ class RawBTi(Raw):
         logger.info('Creating Neuromag info structure ...')
         info = self._create_raw_info()
 
-        # get the scaling right
-        pick_mag = pick_types(info, meg='mag', eeg=False, misc=False,
-                              eog=False, ecg=False)
-        self._data[pick_mag] *= 1e-15  # put data in Tesla
-
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         cals = np.zeros(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
+        self.verbose = verbose
         self.cals = cals
         self.rawdir = None
         self.proj = None
         self.comp = None
-        self.verbose = verbose
-        self.fid = None
+        self.fids = []
         self._preloaded = True
-        self._times = np.arange(self.first_samp, \
-                                self.last_samp + 1) / info['sfreq']
-        self._projectors = [None]
         self._projector_hashes = [None]
         self.info = info
 
         logger.info('Reading raw data from %s...' % data_fname)
-        self._data = self._read_4D_data() if not data else data
+        # rescale
+        pick_mag = pick_types(info, meg='mag', eeg=False, misc=False,
+                              eog=False, ecg=False)
+        self._data = self._read_data() if not data else data
+        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         assert len(self._data) == len(self.info['ch_names'])
+        self._times = np.arange(self.first_samp, \
+                                self.last_samp + 1) / info['sfreq']
+        self._projectors = [None]
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                    self.first_samp, self.last_samp,
                    float(self.first_samp) / info['sfreq'],
                    float(self.last_samp) / info['sfreq']))
         logger.info('Ready.')
+        self._data[pick_mag] *= 1e-15  # put data in Tesla
 
-        for attr in self.__dict__():
-            if attr not in Raw.__dict():
+        for attr in self.__dict__:
+            if attr not in Raw.__dict__:
                 del attr
 
     @verbose
@@ -463,17 +462,16 @@ class RawBTi(Raw):
         info['meas_date'] = np.array([sec, 0], dtype=np.int32)
         info['sfreq'] = float(self.hdr['FILEINFO']['Sample Frequency'][:-2])
         info['nchan'] = int(self.hdr['CHANNEL GROUPS']['CHANNELS'])
-        ch_names = np.array([(e[0], i) for i, e in
-                                enumerate(self.hdr['CHANNEL LABELS'], 1)])
+        ch_names = [e[0] for e in self.hdr['CHANNEL LABELS']]
 
-        info['ch_names'] = list(_rename_channels(ch_names[:, 0].tolist()))
-        ch_mapping = dict(zip(* info['ch_names']))
+        info['ch_names'] = list(_rename_channels(ch_names))
+        ch_mapping = dict(zip(ch_names, info['ch_names']))
 
         sensor_trans = dict((ch_mapping[k], v) for k, v in
                              self.hdr['CHANNEL XFM'].items())
         info['bads'] = []  # TODO
 
-        fspec = self.info.get('DATAFILE', 'PDF')
+        fspec = info.get('DATAFILE', None)
         if fspec is not None:
             fspec = fspec.split(',')[2].split('ord')[0]
             ffreqs = fspec.replace('fwsbp', '').split('-')
@@ -582,16 +580,18 @@ class RawBTi(Raw):
 
         return info
 
-    def _read_4D_data(self, count=-1, dtype=np.float32):
+    def _read_data(self, count=-1, dtype=np.float32):
         """ Reads data from binary string file (dumped: time slices x channels)
         """
         ntsl = int(self.hdr['FILEINFO']['Time slices'].replace(' slices', ''))
         cnt, dtp = count, dtype
         with open(self._data_file, 'rb') as f:
             shape = (ntsl, self.info['nchan'])
-            data = np.fromfile(file=f, dtype=dtp, ount=cnt).reshape(shape)
+            print shape
+            data = np.fromfile(f, dtype=dtp, count=cnt)
+            print data.shape, self._data_file
 
-        return data.T
+        return data.reshape(shape).T
 
 
 if __name__ == '__main__':
@@ -644,8 +644,9 @@ if __name__ == '__main__':
         out_fname = data_fname.split('.data')[0] + '_raw.fif'
 
     raw = RawBTi(hdr_fname=hdr_fname, data_fname=data_fname,
-                 head_shape=head_shape_fname, dev_head_t=dev_head_t_fname,
-                 adjust=rotation_x, trasnlation=translation, sep=seperator,
+                 head_shape_fname=head_shape_fname,
+                 dev_head_t=dev_head_t_fname, adjust=rotation_x,
+                 translation=translation, sep=seperator,
                  use_hpi=use_hpi, verbose=verbose)
 
     raw.save(out_fname)
