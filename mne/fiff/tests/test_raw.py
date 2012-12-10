@@ -404,11 +404,11 @@ def test_filter():
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
 
     raw_lp_iir = deepcopy(raw)
-    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, iir_order=4)
+    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
     raw_hp_iir = deepcopy(raw)
-    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, iir_order=4)
+    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
     raw_bp_iir = deepcopy(raw)
-    raw_bp_iir.filter(4.0, 8.0, picks=picks, iir_order=4)
+    raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
     lp_data_iir, _ = raw_lp_iir[picks, :]
     hp_data_iir, _ = raw_hp_iir[picks, :]
     bp_data_iir, _ = raw_bp_iir[picks, :]
