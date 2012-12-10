@@ -249,6 +249,8 @@ def _estimate_ringing_samples(b, a):
 def _get_coeffs_from_params(iir_params, Wp, Ws, btype):
     """Helper function to decode IIR parameters"""
     # If the filter has been designed, we're good to go
+    a = None
+    b = None
     if 'a' in iir_params and 'b' in iir_params:
         [b, a] = [iir_params['b'], iir_params['a']]
     else:
@@ -271,6 +273,9 @@ def _get_coeffs_from_params(iir_params, Wp, Ws, btype):
                                  ' ''gpass'' (or ''N'') entries')
             [b, a] = iirdesign(Wp, Ws, iir_params['gpass'],
                                iir_params['gstop'], ftype=ftype)
+
+    if a is None or b is None:
+        raise RuntimeError('coefficients could not be created from iir_params')
 
     # now deal with padding
     if not 'padlen' in iir_params:

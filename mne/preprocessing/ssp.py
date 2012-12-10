@@ -23,7 +23,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      verbose=None):
+                      filter_method, verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -79,6 +79,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Start artifact detection after tstart seconds.
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold (only for ECG).
+    filter_method : str
+        Method for filtering ('iir' or 'fir').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -150,7 +152,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=raw.info['bads'] + bads)
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-               n_jobs=n_jobs, iir_order=4)
+               n_jobs=n_jobs, method=filter_method)
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
@@ -185,7 +187,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
                      eog=250e-6), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0., qrs_threshold=0.6, verbose=None):
+                     tstart=0., qrs_threshold=0.6, filter_method='fft',
+                     verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -239,6 +242,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Start artifact detection after tstart seconds.
     qrs_threshold : float
         Between 0 and 1. qrs detection threshold.
+    filter_method : str
+        Method for filtering ('iir' or 'fft').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -254,7 +259,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
                         reject, flat, bads, avg_ref, no_proj, event_id,
-                        ecg_l_freq, ecg_h_freq, tstart, qrs_threshold)
+                        ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
+                        filter_method)
 
     return projs, ecg_events
 
@@ -266,7 +272,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                      eog=np.inf), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=998, eog_l_freq=1, eog_h_freq=10, tstart=0.,
-                     verbose=None):
+                     filter_method='fft', verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -318,6 +324,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         High pass frequency applied for filtering E0G channel.
     tstart : float
         Start artifact detection after tstart seconds.
+    filter_method : str
+        Method for filtering ('iir' or 'fft').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -333,6 +341,6 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
                         reject, flat, bads, avg_ref, no_proj, event_id,
-                        eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6)
+                        eog_l_freq, eog_h_freq, tstart, 0.6, filter_method)
 
     return projs, eog_events
