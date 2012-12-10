@@ -112,7 +112,8 @@ class Raw(object):
             self.apply_projector()
 
     def __del__(self):
-        if hasattr(self, '_data') and isinstance(self._data, np.memmap):
+        # remove file for memmap
+        if hasattr(self, '_data') and hasattr(self._data, 'filename'):
             os.remove(self._data.filename)
 
     def _preload_data(self, preload):
