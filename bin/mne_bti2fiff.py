@@ -335,10 +335,10 @@ def _rename_channels(names):
     for i, name in enumerate(names, 1):
         if name.startswith('A'):
             name = 'MEG %3.3d' % i
+        elif name == 'RESPONSE':
+            name = 'SRI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif name == 'RESPONSE':
-            name = 'RSP 001'
         elif name.startswith('EOG'):
             name = 'EOG %3.3d' % eog.next()
         elif name == 'ECG':
@@ -599,25 +599,25 @@ if __name__ == '__main__':
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option('--hdr_fname', dest='hdr_fname',
+    parser.add_option('-i', '--hdr_fname', dest='hdr_fname',
                     help='Input data header file ', metavar='FILE')
-    parser.add_option('--data_fname', dest='data_fname',
+    parser.add_option('-d', '--data_fname', dest='data_fname',
                     help='Input data file ', metavar='FILE')
-    parser.add_option('--head_shape_fname', dest='head_shape_fname',
+    parser.add_option('-s', '--head_shape_fname', dest='head_shape_fname',
                     help='Headshape file name', metavar='FILE')
-    parser.add_option('--dev_head_t_fname', dest='dev_head_t_fname',
+    parser.add_option('-t', '--dev_head_t_fname', dest='dev_head_t_fname',
                       help='Device head transform file name', metavar='FILE')
     parser.add_option('-o', '--out_fname', dest='out_fname', default='as_data_fname')
-    parser.add_option('-rx', '--rotation_x', dest='rotation_x', type='float',
+    parser.add_option('-r', '--rotation_x', dest='rotation_x', type='float',
                     help='Compensatory rotation about Neuromag x axis, deg',
                     default=2.0)
-    parser.add_option('-t', '--translation', dest='translation', type='tuple',
+    parser.add_option('-T', '--translation', dest='translation', type='str',
                     help='Default translation, meter',
                     default=(0.00, 0.020, 0.11))
     parser.add_option('-u', '--use_hpi', dest='use_hpi',
                     help='Use all or onlye the first three HPI coils',
                     default=False)
-    parser.add_option('-s', '--seperator', dest='seperator', type='str',
+    parser.add_option('-S', '--seperator', dest='seperator', type='str',
                     help='seperator used for date parsing', default='-')
     parser.add_option('-v', '--verbose', dest='verbose',
                     help='Print single processing steps to command line',
