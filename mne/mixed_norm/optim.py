@@ -174,7 +174,7 @@ def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
         gram = None
 
     if init is None:
-        X = np.zeros((n_sources, n_times))
+        X = 0.0
         R = M.copy()
         if gram is not None:
             R = np.dot(G.T, R)
@@ -230,14 +230,12 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
 
-    if init is None:
-        X = np.zeros((n_sources, n_times))
-    else:
-        X = init
+    if init is not None:
+        init = init.T
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol, normalize=False,
                          fit_intercept=False, max_iter=maxit).fit(G, M,
-                         coef_init=X.T)
+                         coef_init=init)
     X = clf.coef_.T
     active_set = np.any(X, axis=1)
     X = X[active_set]
