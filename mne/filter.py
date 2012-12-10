@@ -290,6 +290,11 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
     Fs1 = Fp1 - l_trans_bandwidth in Hz
     Fs2 = Fp2 + h_trans_bandwidth in Hz
     """
+
+    method = method.lower()
+    if method not in ['fft', 'iir']:
+        raise RuntimeError('method should be fft or iir (not %s)' % method)
+
     Fs = float(Fs)
     Fp1 = float(Fp1)
     Fp2 = float(Fp2)
@@ -302,7 +307,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'too low (%0.1fHz). Increase Fp1 or reduce '
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
-    if method.lower() is 'fft':
+    if method == 'fft':
         xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
                      filter_length)
     else:
@@ -357,9 +362,14 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                               Fp  Fp+trans_bandwidth
 
     """
+
+    method = method.lower()
+    if method not in ['fft', 'iir']:
+        raise RuntimeError('method should be fft or iir (not %s)' % method)
+
     Fs = float(Fs)
     Fp = float(Fp)
-    if method.lower() is 'fft':
+    if method == 'fft':
         Fstop = Fp + trans_bandwidth
         xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
                      filter_length)
@@ -416,6 +426,10 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     where Fstop = Fp - trans_bandwidth
     """
 
+    method = method.lower()
+    if method not in ['fft', 'iir']:
+        raise RuntimeError('method should be fft or iir (not %s)' % method)
+
     Fs = float(Fs)
     Fp = float(Fp)
 
@@ -425,7 +439,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                          '(%0.1fHz). Increase Fp or reduce transition '
                          'bandwidth (trans_bandwidth)' % Fstop)
 
-    if method.lower() is 'fft':
+    if method == 'fft':
         xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
     else:
         [b, a] = butter(iir_order, Fp / (Fs / 2), btype='high')
