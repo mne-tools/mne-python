@@ -375,17 +375,20 @@ class RawBTi(Raw):
     data : bool | array-like
         if array-like custom data matching the header info to be used
         instead of the data from data_fname
-    adjust : int | None
+    rotation_x : float | int | None
         Degrees to tilt x-axis for sensor frame misalignment.
         If None, no adjustment will be applied.
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
-    sep : str
+    separator : str
         seperator used for dates.
     use_hpi : bool
         Whether to treat hpi coils as digitization points or not. If
         False, HPI coils will be discarded.
+    force_units : bool | float
+        If True and MEG sensors are scaled to 1, data will be scaled to base_units.
+        If float, data will be scaled to the value supplied.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -396,8 +399,8 @@ class RawBTi(Raw):
     """
     @verbose
     def __init__(self, hdr_fname, data_fname, head_shape_fname, dev_head_t=None,
-                 data=None, sep='-', adjust=2, translation=(0.0, 0.02, 0.11),
-                 use_hpi=False, verbose=True):
+                 data=None, seperator='-', rotation_x=2, translation=(0.0, 0.02, 0.11),
+                 use_hpi=False, force_units=False, verbose=True):
 
         logger.info('Opening 4-D header file %s...' % hdr_fname)
         self.hdr = read_bti_ascii(hdr_fname)
@@ -405,9 +408,9 @@ class RawBTi(Raw):
         self._data_file = data_fname
         self.head_shape_fname = head_shape_fname
         self._dev_head_t = dev_head_t
-        self.sep = sep
+        self.sep = seperator
         self._use_hpi = use_hpi
-        self.bti_to_nm = _get_m_to_nm(adjust, translation)
+        self.bti_to_nm = _get_m_to_nm(rotation_x, translation)
 
         logger.info('Creating Neuromag info structure ...')
         info = self._create_raw_info()
@@ -428,8 +431,6 @@ class RawBTi(Raw):
 
         logger.info('Reading raw data from %s...' % data_fname)
         # rescale
-        pick_mag = pick_types(info, meg='mag', eeg=False, misc=False,
-                              eog=False, ecg=False)
         self._data = self._read_data() if not data else data
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         assert len(self._data) == len(self.info['ch_names'])
@@ -440,13 +441,19 @@ class RawBTi(Raw):
                    self.first_samp, self.last_samp,
                    float(self.first_samp) / info['sfreq'],
                    float(self.last_samp) / info['sfreq']))
-        logger.info('Ready.')
-        self._data[pick_mag] *= 1e-15  # put data in Tesla
+
+        if force_units is not None:
+            pick_mag = pick_types(info, meg='mag', eeg=False, misc=False,
+                                  eog=False, ecg=False)
+            scale = 1e-15 if force_units != True else force_units
+            logger.info('    Scaling raw data to %s' % str(scale))
+            self._data[pick_mag] *= scale
 
         # remove subclass helper attributes to create a proper Raw object.
         for attr in self.__dict__:
             if attr not in Raw.__dict__:
                 del attr
+        logger.info('Ready.')
 
     @verbose
     def _create_raw_info(self):
@@ -477,8 +484,8 @@ class RawBTi(Raw):
             fspec = fspec.split(',')[2].split('ord')[0]
             ffreqs = fspec.replace('fwsbp', '').split('-')
         else:
-            logger.info('Cannot fint any filter specification' \
-                  '\n No filter info will be set.')
+            logger.info('... Cannot find any filter specification' \
+                  ' No filter info will be set.')
             ffreqs = 0, 1000
 
         info['highpass'], info['lowpass'] = ffreqs
@@ -579,6 +586,7 @@ class RawBTi(Raw):
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
         info['dev_head_t']['trans'] = nm_dev_head_t
 
+        logger.info('Done.')
         return info
 
     def _read_data(self, count=-1, dtype=np.float32):
@@ -618,6 +626,8 @@ if __name__ == '__main__':
                     default=False)
     parser.add_option('-S', '--seperator', dest='seperator', type='str',
                     help='seperator used for date parsing', default='-')
+    parser.add_option('-f', '--force_units', dest='force_units',
+                    help='Scaling applied meg channels.', default=False)
     parser.add_option('-v', '--verbose', dest='verbose',
                     help='Print single processing steps to command line',
                     default=True)
@@ -633,6 +643,7 @@ if __name__ == '__main__':
     translation = options.translation
     seperator = options.seperator
     use_hpi = options.use_hpi
+    force_units = options.force_units
     verbose = options.verbose
 
     if any([o is None for o in [data_fname,  hdr_fname]]):
@@ -644,9 +655,9 @@ if __name__ == '__main__':
 
     raw = RawBTi(hdr_fname=hdr_fname, data_fname=data_fname,
                  head_shape_fname=head_shape_fname,
-                 dev_head_t=dev_head_t_fname, adjust=rotation_x,
-                 translation=translation, sep=seperator,
-                 use_hpi=use_hpi, verbose=verbose)
+                 dev_head_t=dev_head_t_fname, rotation_x=rotation_x,
+                 translation=translation, seperator=seperator,
+                 use_hpi=use_hpi, force_units=force_units, verbose=verbose)
 
     raw.save(out_fname)
     raw.close()
