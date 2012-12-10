@@ -63,13 +63,15 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
-    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45) for x in eog])
+    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45, iir_order=4)
+                        for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
 
     # easier to detect peaks with filtering.
-    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq)
+    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq,
+                               iir_order=4)
 
     # detecting eog blinks and generating event file
 
