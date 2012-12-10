@@ -452,7 +452,7 @@ class Raw(object):
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               verbose=None):
+               iir_order=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase band-pass filter to the channels selected by
@@ -488,6 +488,9 @@ class Raw(object):
             Width of the transition band at the high cut-off frequency in Hz.
         n_jobs: int
             Number of jobs to run in parallel.
+        iir_order: int | None
+            If not None, butterworth IIR filtering is used with the given
+            order. 4th order filtering generally gives good results.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -511,17 +514,20 @@ class Raw(object):
         if l_freq is None and h_freq is not None:
             self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
                                 fs, h_freq, filter_length=filter_length,
-                                trans_bandwidth=l_trans_bandwidth)
+                                trans_bandwidth=l_trans_bandwidth,
+                                iir_order=iir_order)
         if l_freq is not None and h_freq is None:
             self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
                                 fs, l_freq, filter_length=filter_length,
-                                trans_bandwidth=h_trans_bandwidth)
+                                trans_bandwidth=h_trans_bandwidth,
+                                iir_order=iir_order)
         if l_freq is not None and h_freq is not None:
             self.apply_function(band_pass_filter, picks, None, n_jobs, verbose,
                                 fs, l_freq, h_freq,
                                 filter_length=filter_length,
                                 l_trans_bandwidth=l_trans_bandwidth,
-                                h_trans_bandwidth=h_trans_bandwidth)
+                                h_trans_bandwidth=h_trans_bandwidth,
+                                iir_order=iir_order)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',

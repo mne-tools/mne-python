@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
-from scipy.signal import freqz
+from scipy.signal import freqz, butter, filtfilt
 from scipy import signal
 
 from .utils import firwin2  # back port for old scipy
@@ -239,7 +239,8 @@ def _filter(x, Fs, freq, gain, filter_length=None):
 
 
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
-                     l_trans_bandwidth=0.5, h_trans_bandwidth=0.5):
+                     l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                     iir_order=None):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -262,6 +263,9 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+    iir_order: int | None
+        If not None, butterworth IIR filtering is used with the given
+        order. 4th order filtering generally gives good results.
 
     Returns
     -------
@@ -296,13 +300,19 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'too low (%0.1fHz). Increase Fp1 or reduce '
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
-    xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
-                 filter_length)
+    if iir_order is None:
+        xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
+                     filter_length)
+    else:
+        [b, a] = butter(iir_order, [float(Fp1) / (Fs / 2),
+                                    float(Fp2) / (Fs / 2)], btype='bandpass')
+        xf = filtfilt(b, a, x, padtype=None)
 
     return xf
 
 
-def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
+def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
+                    iir_order=None):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -321,6 +331,9 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
+    iir_order: int | None
+        If not None, butterworth IIR filtering is used with the given
+        order. 4th order filtering generally gives good results.
 
     Returns
     -------
@@ -340,17 +353,23 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
                               Fp  Fp+trans_bandwidth
 
     """
-    Fs = float(Fs)
-    Fp = float(Fp)
+    if iir_order is None:
+        Fs = float(Fs)
+        Fp = float(Fp)
 
-    Fstop = Fp + trans_bandwidth
+        Fstop = Fp + trans_bandwidth
 
-    xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0], filter_length)
+        xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
+                     filter_length)
+    else:
+        [b, a] = butter(iir_order, float(Fp) / (Fs / 2), btype='low')
+        xf = filtfilt(b, a, x, padtype=None)
 
     return xf
 
 
-def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
+def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
+                     iir_order=None):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -369,6 +388,9 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
+    iir_order: int | None
+        If not None, butterworth IIR filtering is used with the given
+        order. 4th order filtering generally gives good results.
 
     Returns
     -------
@@ -399,7 +421,12 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5):
                          '(%0.1fHz). Increase Fp or reduce transition '
                          'bandwidth (trans_bandwidth)' % Fstop)
 
-    xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
+    if iir_order is None:
+        xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
+    else:
+        [b, a] = butter(iir_order, float(Fp) / (Fs / 2),
+                        btype='high')
+        xf = filtfilt(b, a, x, padtype=None)
 
     return xf
 

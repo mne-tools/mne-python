@@ -380,9 +380,9 @@ def test_preload_modify():
 
 
 def test_filter():
-    """ Test filtering and Raw.apply_function interface """
-
+    """ Test filtering (FIR and IIR) and Raw.apply_function interface """
     raw = Raw(fif_fname, preload=True).crop(0, 10, False)
+    sig_dec = 11
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
@@ -390,7 +390,7 @@ def test_filter():
     raw_lp.filter(0., 4.0, picks=picks, n_jobs=2)
 
     raw_hp = deepcopy(raw)
-    raw_lp.filter(8.0, None, picks=picks, n_jobs=2)
+    raw_hp.filter(8.0, None, picks=picks, n_jobs=2)
 
     raw_bp = deepcopy(raw)
     raw_bp.filter(4.0, 8.0, picks=picks)
@@ -401,13 +401,27 @@ def test_filter():
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
 
-    assert_array_almost_equal(data, lp_data + hp_data + bp_data)
+    assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
+
+    raw_lp_iir = deepcopy(raw)
+    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, iir_order=4)
+    raw_hp_iir = deepcopy(raw)
+    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, iir_order=4)
+    raw_bp_iir = deepcopy(raw)
+    raw_bp_iir.filter(4.0, 8.0, picks=picks, iir_order=4)
+    lp_data_iir, _ = raw_lp_iir[picks, :]
+    hp_data_iir, _ = raw_hp_iir[picks, :]
+    bp_data_iir, _ = raw_bp_iir[picks, :]
+    summation = lp_data_iir + hp_data_iir + bp_data_iir
+    assert_array_almost_equal(data[:, 100:-100], summation[:, 100:-100],
+                              sig_dec)
 
     # make sure we didn't touch other channels
     data, _ = raw[picks_meg[4:], :]
     bp_data, _ = raw_bp[picks_meg[4:], :]
-
     assert_array_equal(data, bp_data)
+    bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
+    assert_array_equal(data, bp_data_iir)
 
 
 def test_crop():
