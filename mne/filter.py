@@ -240,7 +240,7 @@ def _filter(x, Fs, freq, gain, filter_length=None):
 
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     iir_order=None):
+                     iir_order=4, method='fft'):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -263,9 +263,11 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
-    iir_order: int | None
-        If not None, butterworth IIR filtering is used with the given
-        order. 4th order filtering generally gives good results.
+    iir_order: int
+        Use the given order for butterworth IIR filtering.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
+        filtering (via filtfilt).
 
     Returns
     -------
@@ -300,19 +302,19 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'too low (%0.1fHz). Increase Fp1 or reduce '
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
-    if iir_order is None:
+    if method.lower() is 'fft':
         xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
                      filter_length)
     else:
-        [b, a] = butter(iir_order, [float(Fp1) / (Fs / 2),
-                                    float(Fp2) / (Fs / 2)], btype='bandpass')
+        [b, a] = butter(iir_order, [Fp1 / (Fs / 2), Fp2 / (Fs / 2)],
+                        btype='bandpass')
         xf = filtfilt(b, a, x, padtype=None)
 
     return xf
 
 
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    iir_order=None):
+                    iir_order=4, method='fft'):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -331,9 +333,11 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
-    iir_order: int | None
-        If not None, butterworth IIR filtering is used with the given
-        order. 4th order filtering generally gives good results.
+    iir_order: int
+        Use the given order for butterworth IIR filtering.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
+        filtering (via filtfilt).
 
     Returns
     -------
@@ -353,23 +357,21 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                               Fp  Fp+trans_bandwidth
 
     """
-    if iir_order is None:
-        Fs = float(Fs)
-        Fp = float(Fp)
-
+    Fs = float(Fs)
+    Fp = float(Fp)
+    if method.lower() is 'fft':
         Fstop = Fp + trans_bandwidth
-
         xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
                      filter_length)
     else:
-        [b, a] = butter(iir_order, float(Fp) / (Fs / 2), btype='low')
+        [b, a] = butter(iir_order, Fp / (Fs / 2), btype='low')
         xf = filtfilt(b, a, x, padtype=None)
 
     return xf
 
 
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     iir_order=None):
+                     iir_order=4, method='fft'):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -388,9 +390,11 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
-    iir_order: int | None
-        If not None, butterworth IIR filtering is used with the given
-        order. 4th order filtering generally gives good results.
+    iir_order: int
+        Use the given order for butterworth IIR filtering.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
+        filtering (via filtfilt).
 
     Returns
     -------
@@ -421,11 +425,10 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                          '(%0.1fHz). Increase Fp or reduce transition '
                          'bandwidth (trans_bandwidth)' % Fstop)
 
-    if iir_order is None:
+    if method.lower() is 'fft':
         xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
     else:
-        [b, a] = butter(iir_order, float(Fp) / (Fs / 2),
-                        btype='high')
+        [b, a] = butter(iir_order, Fp / (Fs / 2), btype='high')
         xf = filtfilt(b, a, x, padtype=None)
 
     return xf
