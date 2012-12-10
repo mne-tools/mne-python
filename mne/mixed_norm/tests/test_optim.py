@@ -2,11 +2,8 @@
 #
 # License: Simplified BSD
 
-import time
-
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_true
 
 from mne.mixed_norm.optim import mixed_norm_solver
 
@@ -22,39 +19,29 @@ def test_l21_MxNE():
     X[4] = -2
     M = np.dot(G, X)
 
-    tic_prox = time.time()
     X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
                             solver='prox')
-    toc_prox = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    tic_cd = time.time()
     X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
                             solver='cd')
-    toc_cd = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
-    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
 
-    tic_prox = time.time()
     X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
                             solver='prox')
-    toc_prox = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    tic_cd = time.time()
     X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
                             solver='cd')
-    toc_cd = time.time()
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
-    assert_true(toc_prox - tic_prox > toc_cd - tic_cd)
 
     X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
