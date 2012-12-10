@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import tempfile
 import os.path as op
 
 import numpy as np
@@ -23,6 +24,8 @@ else:
     have_nitime = True
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
+tempdir = tempfile.mkdtemp()
+
 
 def test_io_evoked():
     """Test IO for evoked data (fif + gz)
@@ -31,8 +34,8 @@ def test_io_evoked():
 
     ave.crop(tmin=0)
 
-    write_evoked('evoked.fif', ave)
-    ave2 = read_evoked('evoked.fif')
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+    ave2 = read_evoked(op.join(tempdir, 'evoked.fif'))
 
     assert_array_almost_equal(ave.data, ave2.data)
     assert_array_almost_equal(ave.times, ave2.times)
@@ -54,14 +57,14 @@ def test_evoked_resample():
     ave = read_evoked(fname)
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal)
-    write_evoked('evoked.fif', ave)
-    ave_up = read_evoked('evoked.fif')
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+    ave_up = read_evoked(op.join(tempdir, 'evoked.fif'))
 
     # compare it to the original
     ave_normal = read_evoked(fname)
 
     # and compare the original to the downsampled upsampled version
-    ave_new = read_evoked('evoked.fif')
+    ave_new = read_evoked(op.join(tempdir, 'evoked.fif'))
     ave_new.resample(sfreq_normal)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
@@ -81,8 +84,8 @@ def test_io_multi_evoked():
     """Test IO for multiple evoked datasets
     """
     aves = read_evoked(fname, [0, 1, 2, 3])
-    write_evoked('evoked.fif', aves)
-    aves2 = read_evoked('evoked.fif', [0, 1, 2, 3])
+    write_evoked(op.join(tempdir, 'evoked.fif'), aves)
+    aves2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1, 2, 3])
     for [ave, ave2] in zip(aves, aves2):
         assert_array_almost_equal(ave.data, ave2.data)
         assert_array_almost_equal(ave.times, ave2.times)

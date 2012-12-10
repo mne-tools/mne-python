@@ -1,3 +1,8 @@
+# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
+import tempfile
 import os.path as op
 
 from nose.tools import assert_true
@@ -22,31 +27,33 @@ erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 
 raw = Raw(raw_fname, preload=True)
 
+tempdir = tempfile.mkdtemp()
+
 
 def test_io_cov():
     """Test IO for noise covariance matrices
     """
     cov = read_cov(cov_fname)
-    cov.save('cov.fif')
-    cov2 = read_cov('cov.fif')
+    cov.save(op.join(tempdir, 'cov.fif'))
+    cov2 = read_cov(op.join(tempdir, 'cov.fif'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save('cov.fif.gz')
-    cov2 = read_cov('cov.fif.gz')
+    cov2.save(op.join(tempdir, 'cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
     assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
-    cov_sel.save('cov.fif')
+    cov_sel.save(op.join(tempdir, 'cov.fif'))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save('cov.fif.gz')
-    cov2 = read_cov('cov.fif.gz')
+    cov2.save(op.join(tempdir, 'cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
 
@@ -60,8 +67,8 @@ def test_cov_estimation_on_raw_segment():
                 / linalg.norm(cov.data, ord='fro') < 1e-4)
 
     # test IO when computation done in Python
-    cov.save('test-cov.fif')  # test saving
-    cov_read = read_cov('test-cov.fif')
+    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
+    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_true(cov_read.ch_names == cov.ch_names)
     assert_true(cov_read.nfree == cov.nfree)
     assert_array_almost_equal(cov.data, cov_read.data)
@@ -116,8 +123,8 @@ def test_cov_estimation_with_triggers():
             / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # test IO when computation done in Python
-    cov.save('test-cov.fif')  # test saving
-    cov_read = read_cov('test-cov.fif')
+    cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
+    cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_true(cov_read.ch_names == cov.ch_names)
     assert_true(cov_read.nfree == cov.nfree)
     assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')

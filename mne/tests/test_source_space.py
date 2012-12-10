@@ -1,3 +1,4 @@
+import tempfile
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
@@ -9,6 +10,8 @@ from mne import read_source_spaces, vertex_to_mni, write_source_spaces
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
+
+tempdir = tempfile.mkdtemp()
 
 
 def test_read_source_spaces():
@@ -38,8 +41,8 @@ def test_write_source_space():
     """Test writing and reading of source spaces
     """
     src0 = read_source_spaces(fname, add_geom=False)
-    write_source_spaces('tmp.fif', src0)
-    src1 = read_source_spaces('tmp.fif')
+    write_source_spaces(op.join(tempdir, 'tmp.fif'), src0)
+    src1 = read_source_spaces(op.join(tempdir, 'tmp.fif'))
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
                      'subject_his_id']:

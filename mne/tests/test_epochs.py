@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import tempfile
 import os.path as op
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -37,6 +38,8 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
+
+tempdir = tempfile.mkdtemp()
 
 
 def test_read_write_epochs():
@@ -77,8 +80,8 @@ def test_read_write_epochs():
     assert_true(evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
     # test IO
-    epochs.save('test-epo.fif')
-    epochs_read = read_epochs('test-epo.fif')
+    epochs.save(op.join(tempdir, 'test-epo.fif'))
+    epochs_read = read_epochs(op.join(tempdir, 'test-epo.fif'))
 
     assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
     assert_array_equal(epochs_read.times, epochs.times)
@@ -97,8 +100,8 @@ def test_read_write_epochs():
 
     epochs.event_id.pop('1')
     epochs.event_id.update({'a': 1})
-    epochs.save(op.join(base_dir, 'foo_events.fif'))
-    epochs_read2 = read_epochs(op.join(base_dir, 'foo_events.fif'))
+    epochs.save(op.join(tempdir, 'foo-epo.fif'))
+    epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'))
     assert_equal(epochs_read2.event_id, epochs.event_id)
 
 
@@ -147,8 +150,8 @@ def test_evoked_standard_error():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
-    fiff.write_evoked('evoked.fif', evoked)
-    evoked2 = fiff.read_evoked('evoked.fif', [0, 1])
+    fiff.write_evoked(op.join(tempdir, 'evoked.fif'), evoked)
+    evoked2 = fiff.read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
     assert_true(evoked2[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
     assert_true(evoked2[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
     for ave, ave2 in zip(evoked, evoked2):

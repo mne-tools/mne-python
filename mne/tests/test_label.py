@@ -1,3 +1,4 @@
+import tempfile
 import os
 import os.path as op
 import numpy as np
@@ -18,6 +19,8 @@ label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
+
+tempdir = tempfile.mkdtemp()
 
 
 def assert_labels_equal(l0, l1, decimal=5):
@@ -82,8 +85,8 @@ def test_label_io():
     """Test IO of label files
     """
     label = read_label(label_fname)
-    label.save('foo')
-    label2 = read_label('foo-lh.label')
+    label.save(op.join(tempdir, 'foo'))
+    label2 = read_label(op.join(tempdir, 'foo-lh.label'))
     assert_labels_equal(label, label2)
 
 

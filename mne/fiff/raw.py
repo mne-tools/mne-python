@@ -111,6 +111,11 @@ class Raw(object):
         if proj_active:
             self.apply_projector()
 
+    def __del__(self):
+        # remove file for memmap
+        if hasattr(self, '_data') and hasattr(self._data, 'filename'):
+            os.remove(self._data.filename)
+
     def _preload_data(self, preload):
         """This function actually preloads the data"""
         if isinstance(preload, basestring):
