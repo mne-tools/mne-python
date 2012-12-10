@@ -1041,8 +1041,7 @@ def _get_subject_sphere_tris(subject, subjects_dir):
 
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None,
-               mne_root=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None):
     """Morph a source estimate from one subject to another
 
     Parameters
@@ -1074,10 +1073,6 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    mne_root : str, or None
-        Root directory for MNE. If None, the environment variable MNE_ROOT
-        is used. mne_root is only used for computation of vertices to use
-        (i.e., when "grade" is an integer).
 
     Returns
     -------
@@ -1091,8 +1086,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     logger.info('Morphing data...')
     subjects_dir = get_subjects_dir(subjects_dir)
-    nearest = grade_to_vertices(subject_to, grade, subjects_dir, mne_root,
-                                n_jobs)
+    nearest = grade_to_vertices(subject_to, grade, subjects_dir, n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
@@ -1196,8 +1190,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
 
 
 @verbose
-def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
-                      n_jobs=1, verbose=None):
+def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
+                      verbose=None):
     """Convert a grade to source space vertices for a given subject
 
     Parameters
@@ -1214,10 +1208,6 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
         computing vertex locations.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment
-    mne_root : str, or None
-        Root directory for MNE. If None, the environment variable MNE_ROOT
-        is used. mne_root is only used for computation of vertices to use
-        (i.e., when "grade" is an integer).
     n_jobs : int
         Number of jobs to run in parallel
     verbose : bool, str, int, or None
@@ -1242,7 +1232,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, mne_root=None,
             vertices = grade
         else:
             # find which vertices to use in "to mesh"
-            ico = _get_ico_tris(grade, return_surf=True, mne_root=mne_root)
+            ico = _get_ico_tris(grade, return_surf=True)
             lhs /= np.sqrt(np.sum(lhs ** 2, axis=1))[:, None]
             rhs /= np.sqrt(np.sum(rhs ** 2, axis=1))[:, None]
 
@@ -1367,18 +1357,13 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
 
 
 @verbose
-def grade_to_tris(grade, mne_root=None, verbose=None):
+def grade_to_tris(grade, verbose=None):
     """Get tris defined for a certain grade
 
     Parameters
     ----------
     grade : int
         Grade of an icosahedral mesh.
-
-    mne_root : str, or None
-        Root directory for mne (needed to find icos.fif). If None, MNE_ROOT
-        environment variable is used.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1388,7 +1373,7 @@ def grade_to_tris(grade, mne_root=None, verbose=None):
         2-element list containing Nx3 arrays of tris, suitable for use in
         spatio_temporal_tris_connectivity.
     """
-    a = _get_ico_tris(grade, None, False, mne_root)
+    a = _get_ico_tris(grade, None, False)
     tris = np.concatenate((a, a + (np.max(a) + 1)))
     return tris
 
@@ -1580,12 +1565,10 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
 
 
 @verbose
-def _get_ico_tris(grade, verbose=None, return_surf=False, mne_root=None):
+def _get_ico_tris(grade, verbose=None, return_surf=False):
     """Get triangles for ico surface."""
-    mne_root = os.environ.get('MNE_ROOT', mne_root)
-    if mne_root is None:
-        raise Exception('Please set MNE_ROOT environment variable.')
-    ico_file_name = os.path.join(mne_root, 'share', 'mne', 'icos.fif')
+    ico_file_name = os.path.join(os.path.dirname(__file__), 'data',
+                                 'icos.fif.gz')
     surfaces = read_bem_surfaces(ico_file_name)
     for s in surfaces:
         if s['id'] == (9000 + grade):
