@@ -340,7 +340,7 @@ FIFF.FIFF_MNE_CTF_COMP_CALIBRATED   = 3582     # Are the coefficients calibrated
 #
 # 3601... values associated with ICA decomposition
 #
-FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA insterface parameters
+FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA interface parameters
 FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3602     # ICA channel names
 FIFF.FIFF_MNE_ICA_WHITENER          = 3603     # ICA whitener
 FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3604     # _PCA parameters
