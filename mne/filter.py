@@ -3,6 +3,7 @@ import numpy as np
 from scipy.fftpack import fft, ifft
 from scipy.signal import freqz, filtfilt, iirdesign, iirfilter, filter_dict
 from scipy import signal
+from copy import deepcopy
 
 from .utils import firwin2  # back port for old scipy
 
@@ -246,17 +247,106 @@ def _estimate_ringing_samples(b, a):
     return np.where(np.abs(h) > 0.001 * np.max(np.abs(h)))[0][-1]
 
 
-def _get_coeffs_from_params(iir_params, Wp, Ws, btype):
-    """Helper function to decode IIR parameters"""
-    # If the filter has been designed, we're good to go
+def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
+                         f_pass=None, f_stop=None, sfreq=None, btype=None,
+                         return_copy=True):
+    """Use IIR parameters to get filtering coefficients
+
+    This function works like a wrapper for iirdesign and iirfilter in
+    scipy.signal to make filter coefficients for IIR filtering. It also
+    estimates the number of padding samples based on the filter ringing.
+    It creates a new iir_params dict (or updates the one passed to the
+    function) with the filter coefficients ('b' and 'a') and an estimate
+    of the padding necessary ('padlen') so IIR filtering can be performed.
+
+    Parameters
+    ----------
+    iir_params: dict
+        Dictionary of parameters to use for IIR filtering.
+        If iir_params['b'] and iir_params['a'] exist, these will be used
+        as coefficients to perform IIR filtering. Otherwise, if
+        iir_params['N'] and iir_params['ftype'] exist, these will be used
+        with scipy.signal.iirfilter to make a filter. Otherwise, if
+        iir_params['gpass'] and iir_params['gstop'] exist, these will be
+        used with scipy.signal.iirdesign to design a filter.
+        iir_params['padlen'] defines the number of samples to pad (and
+        an estimate will be calculated if it is not given). See Notes for
+        more details.
+    f_pass: float or list of float
+        Frequency for the pass-band. Low-pass and high-pass filters should
+        be a float, band-pass should be a 2-element list of float.
+    f_stop: float or list of float
+        Stop-band frequency (same size as f_pass). Not used if the order 'N'
+        is specified in iir_params.
+    btype: str
+        Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'.
+    return_copy: bool
+        If False, the 'b', 'a', and 'padlen' entries in iir_params will be
+        set inplace (if they weren't already). Otherwise, a new iir_params
+        instance will be created and returned with these entries.
+
+    Returns
+    -------
+    iir_params: dict
+        Updated iir_params dict, with the entries (set only if they didn't
+        exist before) for 'b', 'a', and 'padlen' for IIR filtering.
+            b: ndarray of float
+            Denominator coefficients for IIR filtering.
+            a: ndarray of float
+            Numerator coefficients for IIR filtering.
+            padlen: int
+            Estimate of the number of samples to pad IIR filtering.
+
+    Notes
+    -----
+    This function triages calls to scipy.signal.iirfilter and iirdesign
+    based on the input arguments (see descriptions of these functions
+    and scipy's scipy.signal.filter_design documentation for details).
+
+    Examples
+    --------
+    iir_params can have several forms. Consider constructing a low-pass
+    filter at 40 Hz with 1000 Hz sampling rate.
+
+    In the most basic (2-parameter) form of iir_params, the order of the
+    filter 'N' and the type of filtering 'ftype' are specified. To get
+    coefficients for a 4th-order Butterworth filter, this would be:
+
+    >>> iir_params = dict(N=4, ftype='butter')
+    >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
+    >>> print (len(iir_params['b']), len(iir_params['a']), iir_params['padlen'])
+    (5, 5, 82)
+
+    Filters can also be constructed using filter design methods. To get a
+    40 Hz Chebyshev type 1 lowpass with specific gain characteristics in the
+    pass and stop bands (assuming the desired stop band is at 45 Hz), this
+    would be a filter with much longer ringing:
+
+    >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20)
+    >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
+    >>> print (len(iir_params['b']), len(iir_params['a']), iir_params['padlen'])
+    (6, 6, 439)
+
+    Padding and/or filter coefficients can also be manually specified. For
+    a 3-sample moving window with no padding during filtering, for example,
+    one can just do:
+
+    >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
+    >>> iir_params = construct_iir_filter(iir_params, return_copy=False)
+    >>> print (iir_params['b'], iir_params['a'], iir_params['padlen'])
+    (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
+
+    """
     a = None
     b = None
+    # if the filter has been designed, we're good to go
     if 'a' in iir_params and 'b' in iir_params:
         [b, a] = [iir_params['b'], iir_params['a']]
     else:
-        # Ensure we have a valid ftype
+        # ensure we have a valid ftype
         if not 'ftype' in iir_params:
-            raise RuntimeError('ftype must be an entry in iir_params')
+            raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
+                               'and ''a'' are not specified')
         ftype = iir_params['ftype']
         if not ftype in filter_dict:
             raise RuntimeError('ftype must be in filter_dict from '
@@ -264,10 +354,12 @@ def _get_coeffs_from_params(iir_params, Wp, Ws, btype):
                                '%s' % ftype)
 
         # use order-based design
+        Wp = np.asanyarray(f_pass) / (float(sfreq) / 2)
         if 'N' in iir_params:
             [b, a] = iirfilter(iir_params['N'], Wp, btype=btype, ftype=ftype)
         else:
             # use gpass / gstop design
+            Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
             if not 'gpass' in iir_params or not 'gstop' in iir_params:
                 raise ValueError('iir_params must have at least ''gstop'' and'
                                  ' ''gpass'' (or ''N'') entries')
@@ -283,12 +375,16 @@ def _get_coeffs_from_params(iir_params, Wp, Ws, btype):
     else:
         padlen = iir_params['padlen']
 
-    return [b, a, padlen]
+    if return_copy:
+        iir_params = deepcopy(iir_params)
+
+    iir_params.update(dict(b=b, a=a, padlen=padlen))
+    return iir_params
 
 
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     iir_params=dict(N=4, ftype='butter'), method='fft'):
+                     method='fft', iir_params=dict(N=4, ftype='butter')):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -311,20 +407,12 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
     iir_params: dict
         Dictionary of parameters to use for IIR filtering.
-        If iir_params['b'] and iir_params['a'] exist, these will be used
-        as coefficients to perform IIR filtering. Otherwise, if
-        iir_params['N'] and iir_params['ftype'] exist, these will be used
-        with scipy.signal.iirfilter to design a filter. Otherwise, if
-        iir_params['gpass'] and iir_params['gstop'] exist, these will be
-        used with scipy.signal.iirdesign to design a filter.
-        iir_params['padlen'] defines the number of samples to pad (and
-        an estimate will be calculated if it is not given).
-    method: str
-        'fft' will use overlap-add FIR filtering. Other methods that use IIR
-        filtering (via filtfilt) are: 'butter', 'cheby1', 'cheby2', 'ellip',
-        'bessel', and 'window-sinc' (see scipy.signal).
+        See mne.filter.construct_iir_filter for details.
 
     Returns
     -------
@@ -364,20 +452,19 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2], [0, 0, 1, 1, 0, 0],
-                     filter_length)
+        xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2],
+                     [0, 0, 1, 1, 0, 0], filter_length)
     else:
-        [b, a, padlen] = _get_coeffs_from_params(iir_params,
-                                              [Fp1 / (Fs / 2), Fp2 / (Fs / 2)],
-                                              [Fs1 / (Fs / 2), Fs2 / (Fs / 2)],
-                                              'bandpass')
-        xf = filtfilt(b, a, x, padlen=padlen)
+        iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
+                                          [Fs1, Fs2], Fs, 'bandpass')
+        padlen = min(iir_params['padlen'], len(x))
+        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
 
     return xf
 
 
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    iir_params=dict(N=4, ftype='butter'), method='fft'):
+                    method='fft', iir_params=dict(N=4, ftype='butter')):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -396,19 +483,12 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
     iir_params: dict
         Dictionary of parameters to use for IIR filtering.
-        If iir_params['b'] and iir_params['a'] exist, these will be used
-        as coefficients to perform IIR filtering. Otherwise, if
-        iir_params['N'] and iir_params['ftype'] exist, these will be used
-        with scipy.signal.iirfilter to design a filter. Otherwise, if
-        iir_params['gpass'] and iir_params['gstop'] exist, these will be
-        used with scipy.signal.iirdesign to design a filter.
-        iir_params['padlen'] defines the number of samples to pad (and
-        an estimate will be calculated if it is not given).
-    method: str
-        'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
-        filtering (via filtfilt).
+        See mne.filter.construct_iir_filter for details.
 
     Returns
     -------
@@ -440,15 +520,15 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
                      filter_length)
     else:
-        [b, a, padlen] = _get_coeffs_from_params(iir_params, Fp / (Fs / 2),
-                                                 Fstop / (Fs / 2), 'low')
-        xf = filtfilt(b, a, x, padlen=padlen)
+        iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
+        padlen = min(iir_params['padlen'], len(x))
+        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
 
     return xf
 
 
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     iir_params=dict(N=4, ftype='butter'), method='fft'):
+                     method='fft', iir_params=dict(N=4, ftype='butter')):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -467,19 +547,12 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
+    method: str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
     iir_params: dict
         Dictionary of parameters to use for IIR filtering.
-        If iir_params['b'] and iir_params['a'] exist, these will be used
-        as coefficients to perform IIR filtering. Otherwise, if
-        iir_params['N'] and iir_params['ftype'] exist, these will be used
-        with scipy.signal.iirfilter to design a filter. Otherwise, if
-        iir_params['gpass'] and iir_params['gstop'] exist, these will be
-        used with scipy.signal.iirdesign to design a filter.
-        iir_params['padlen'] defines the number of samples to pad (and
-        an estimate will be calculated if it is not given).
-    method: str
-        'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
-        filtering (via filtfilt).
+        See mne.filter.construct_iir_filter for details.
 
     Returns
     -------
@@ -515,11 +588,12 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                          'bandwidth (trans_bandwidth)' % Fstop)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1], filter_length)
+        xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1],
+                     filter_length)
     else:
-        [b, a, padlen] = _get_coeffs_from_params(iir_params, Fp / (Fs / 2),
-                                                 Fstop / (Fs / 2), 'high')
-        xf = filtfilt(b, a, x, padlen=padlen)
+        iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
+        padlen = min(iir_params['padlen'], len(x))
+        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
 
     return xf
 
@@ -529,23 +603,23 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
 
     Parameters
     ----------
-    x : n-d array
-        Signal to resample
-    up : float
-        Factor to upsample by
-    down : float
-        Factor to downsample by
-    npad : integer
-        Number of samples to use at the beginning and end for padding
-    axis : integer
-        Axis of the array to operate on
-    window : string or tuple
-        See scipy.signal.resample for description
+    x: n-d array
+        Signal to resample.
+    up: float
+        Factor to upsample by.
+    down: float
+        Factor to downsample by.
+    npad: integer
+        Number of samples to use at the beginning and end for padding.
+    axis: integer
+        Axis of the array to operate on.
+    window: string or tuple
+        See scipy.signal.resample for description.
 
     Returns
     -------
-    xf : array
-        x filtered
+    xf: array
+        x filtered.
 
     Notes
     -----
@@ -573,25 +647,26 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
         pad_shape = np.array(x.shape, dtype=np.int)
         pad_shape[axis] = npad
         keep = np.zeros(x_len, dtype='bool')
-        # set the pad at both ends to be the first value to reduce ringing there
+        # pad both ends because signal is not assumed periodic
         keep[0] = True
         pad = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
         # do the padding
         x_padded = np.concatenate((pad, x, pad), axis=axis)
-        new_len = ratio*x_padded.shape[axis]
+        new_len = ratio * x_padded.shape[axis]
 
         # do the resampling using scipy's FFT-based resample function
         # use of the 'flat' window is recommended for minimal ringing
         y = signal.resample(x_padded, new_len, axis=axis, window=window)
 
         # now let's trim it back to the correct size (if there was padding)
-        to_remove = np.round(ratio*npad)
+        to_remove = np.round(ratio * npad)
         if to_remove > 0:
             keep = np.ones((new_len), dtype='bool')
             keep[:to_remove] = False
             keep[-to_remove:] = False
             y = np.compress(keep, y, axis=axis)
     else:
-        warnings.warn('x has zero length along axis=%d, returning a copy of x' % axis)
+        warnings.warn('x has zero length along axis=%d, returning a copy of '
+                      'x' % axis)
         y = x.copy()
     return y

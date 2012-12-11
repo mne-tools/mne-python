@@ -200,6 +200,21 @@ Functions reference
    ica_find_eog_events
    ica_find_ecg_events
 
+.. automodule:: mne.filter
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.filter
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   band_pass_filter
+   construct_iir_filter
+   high_pass_filter
+   low_pass_filter
+
 .. automodule:: mne.time_frequency
  :no-members:
  :no-inherited-members:
