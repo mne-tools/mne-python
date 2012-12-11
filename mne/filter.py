@@ -328,7 +328,7 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
     (6, 6, 439)
 
     Padding and/or filter coefficients can also be manually specified. For
-    a 3-sample moving window with no padding during filtering, for example,
+    a 10-sample moving window with no padding during filtering, for example,
     one can just do:
 
     >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
