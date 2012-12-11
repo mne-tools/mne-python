@@ -163,35 +163,39 @@ def test_ica_additional():
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
 
-    ica = ICA(n_components=3, max_n_components=4)
-    ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
-    sources = ica.get_sources_epochs(epochs)
-    assert_true(sources.shape[1] == ica.n_components)
+    for cov in (None, test_cov):
+        ica = ICA(noise_cov=cov, n_components=3, max_n_components=4)
+        ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
+        sources = ica.get_sources_epochs(epochs)
+        assert_true(sources.shape[1] == ica.n_components)
 
-    # test reading and writing
-    test_ica_fname = op.join(op.dirname(__file__), 'ica_test.fif')
-    ica.save(test_ica_fname)
-    ica_read = read_ica(test_ica_fname)
-    assert_true(ica.ch_names == ica_read.ch_names)
-    assert_array_almost_equal(ica._ica.unmixing_matrix_.astype,
-                              ica_read._ica.unmixing_matrix_)
-    assert_array_almost_equal(ica._mixing, ica_read._mixing)
-    assert_array_almost_equal(ica._pca.components_,
-                       ica_read._pca.components_)
-    assert_array_almost_equal(ica._pca.exaplained_variance_,
-                              ica_read._pca.exaplained_variance_)
-    assert_array_almost_equal(ica._pre_whitener_,
-                              ica_read._pca._pre_whitener_)
+        # test reading and writing
+        test_ica_fname = op.join(op.dirname(__file__), 'ica_test.fif')
+        ica.save(test_ica_fname)
+        ica_read = read_ica(test_ica_fname)
 
-    assert_raises(RuntimeError, ica_read.decompose_raw, raw)
+        assert_true(ica.ch_names == ica_read.ch_names)
+        assert_array_almost_equal(ica._ica.unmixing_matrix_,
+                                  ica_read._ica.unmixing_matrix_)
+        assert_array_almost_equal(ica._mixing, ica_read._mixing)
+        assert_array_almost_equal(ica._pca.components_,
+                           ica_read._pca.components_)
+        assert_array_almost_equal(ica._pca.mean_,
+                                  ica_read._pca.mean_)
+        assert_array_almost_equal(ica._pca.explained_variance_,
+                                  ica_read._pca.explained_variance_)
+        assert_array_almost_equal(ica._pre_whitener,
+                                  ica_read._pre_whitener)
+
+        assert_raises(RuntimeError, ica_read.decompose_raw, raw)
 
     sources = ica.get_sources_raw(raw)
     sources2 = ica_read.get_sources_raw(raw)
     assert_array_almost_equal(sources, sources2)
 
-    _raw1 = ica.pick_sources_raw(raw, picks=[1])
-    _raw2 = ica_read.pick_sources_raw(raw, picks=[1])
-    assert_true(_raw1[:, :][0] == _raw2[:, :][0])
+    _raw1 = ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+    _raw2 = ica_read.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+    assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     # score funcs raw
 

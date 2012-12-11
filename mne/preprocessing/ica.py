@@ -24,8 +24,8 @@ from .eog import _find_eog_events
 from ..cov import compute_whitener
 from .. import Covariance
 from ..fiff import pick_types, pick_channels
-from ..fiff.write import write_double_matrix, write_float_matrix, write_string, \
-                         write_float, write_name_list, start_block, end_block
+from ..fiff.write import write_double_matrix, write_string, \
+                         write_name_list, start_block, end_block
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
@@ -382,6 +382,7 @@ class ICA(object):
             The absolute path of the file name to save the ICA session into.
 
         """
+        logger.info('Wrting ica session to %s...' % fname)
         fid = start_file(fname)
 
         try:
@@ -767,7 +768,7 @@ class ICA(object):
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
         if self.noise_cov is None:  # use standardization as whitener
-            pre_whitener = np.std(data) ** -1
+            pre_whitener = np.atleast_1d(np.std(data)) ** -1
             data *= pre_whitener
         elif not hasattr(self, '_pre_whitener'):  # pick cov
             ncov = deepcopy(self.noise_cov)
@@ -779,6 +780,7 @@ class ICA(object):
             data = np.dot(pre_whitener, data)
         else:
             data = np.dot(self._pre_whitener, data)
+            pre_whitener = self._pre_whitener
 
         return data, pre_whitener
 
@@ -1022,43 +1024,47 @@ def _write_ica(fid, ica):
     ica:
         The instance of ICA to write
     """
-    # FIFF.FIFF_MNE_ICA_WHITENER          = 3601     # ICA whitener
-    # FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3602     # _PCA parameters
-    # FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3603     # _PCA components
-    # FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3604     # _PCA explained variance
-    # FIFF.FIFF_MNE_ICA_PARAMS            = 3605     # _ICA parameters
-    # FIFF.FIFF_MNE_ICA_UNMIXING          = 3606     # _ICA unmixinx matrix
-    # FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3607     # ICA channel names
-    # FIFF.FIFF_MNE_ICA_INSTANCE_PARAMS   = 3608     # ICA instance parameters
+    #FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA insterface parameters
+    #FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3602     # ICA channel names
+    #FIFF.FIFF_MNE_ICA_WHITENER          = 3603     # ICA whitener
+    #FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3604     # _PCA parameters
+    #FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3605     # _PCA components
+    #FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3606     # _PCA explained variance
+    #FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3607     # _PCA mean
+    #FIFF.FIFF_MNE_ICA_PARAMS            = 3608     # _ICA parameters
+    #FIFF.FIFF_MNE_ICA_UNMIXING          = 3609     # _ICA unmixinx matrix
 
-    rs, _pca = ica._pca.random_state, ica._pca
+    _pca = ica._pca
     _pca_params = _pca.get_params()
-    _pca_params['random_state'] = (rs if any([isinstance(rs, int),
-                                  rs is None]) else 0)
+
     _ica = ica._ica
     _ica_params = _ica.get_params()
+
     for key in ('fun_args', 'fun_prime'):
         if _ica_params.get(key, None):
             _ica_params[key] = _serialize(_ica_params[key], '#')
         else:
             _ica_params[key] = str(None)
 
-    ica_params = dict(noise_cov=ica.noise_cov,
-                      max_n_components=ica.max_n_components,
-                      n_components=ica.n_components,
-                      current_fit=ica.current_fit)
+    ica_interface = dict(noise_cov=ica.noise_cov,
+                         max_n_components=ica.max_n_components,
+                         n_components=ica.n_components,
+                         current_fit=ica.current_fit,
+                         _explained_var=ica._explained_var
+                         )
 
     start_block(fid, FIFF.FIFFB_ICA)
+
+    #   ICA interface params
+    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
+                 _serialize(ica_interface))
 
     #   Channel names
     if ica.ch_names is not None:
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     #   Whitener
-    if isinstance(ica._pre_whitener, float):
-        write_float(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
-    else:
-        write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
 
     #   _PCA parameters
     write_string(fid, FIFF.FIFF_MNE_ICA_PCA_PARAMS, _serialize(_pca_params))
@@ -1069,19 +1075,17 @@ def _write_ica(fid, ica):
     #   _PCA explained_variance_
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
                        _pca.explained_variance_)
+    #   _PCA mean_
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_MEAN, _pca.mean_)
+
     #   _ICA parameters
     write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(_ica_params))
 
     #   _ICA unmixing
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, _ica.unmixing_matrix_)
 
-    #   ICA instance params
-    write_string(fid, FIFF.FIFF_MNE_ICA_INSTANCE_PARAMS,
-                 _serialize(ica_params))
-
     #   Done!
     end_block(fid, FIFF.FIFFB_ICA)
-    return ica_params
 
 
 @verbose
@@ -1115,7 +1119,10 @@ def read_ica(fname):
     for d in my_ica_data['directory']:
         kind = d.kind
         pos = d.pos
-        if kind == FIFF.FIFF_MNE_ROW_NAMES:
+        if kind == FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS:
+            tag = read_tag(fid, pos)
+            ica_interface = tag.data
+        elif kind == FIFF.FIFF_MNE_ROW_NAMES:
             tag = read_tag(fid, pos)
             ch_names = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_WHITENER:
@@ -1130,48 +1137,50 @@ def read_ica(fname):
         elif kind == FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR:
             tag = read_tag(fid, pos)
             explained_variance_ = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PCA_MEAN:
+            tag = read_tag(fid, pos)
+            mean_ = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_PARAMS:
             tag = read_tag(fid, pos)
             _ica_params = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_UNMIXING:
             tag = read_tag(fid, pos)
             unmixing_matrix_ = tag.data
-        elif kind == FIFF.FIFF_MNE_ICA_INSTANCE_PARAMS:
-            tag = read_tag(fid, pos)
-            ica_params = tag.data
 
     fid.close()
 
     _pca_params = _deserialize(_pca_params)
     if _pca_params['random_state'] == np.random.RandomState.__name__:
         _pca_params['random_state'] = np.random.RandomState()
-        logger.warning('Creating new RandomState object. '
-                        'The ensueing random state will not match the '
-                        'random state from PCA fit time.')
+        logger.warning('Creating new RandomState object. The ensueing random '
+                       'state will not match the random state from '
+                       'PCA fit time.')
 
-    ica_params = _deserialize(ica_params)
-    current_fit = ica_params.pop('current_fit')
-    if ica_params['noise_cov'] == Covariance.__name__:
-        logger.warning('The noise covariance used on fit cannot be'
-                       ' restored but whitener drawn from the covariance'
-                       ' is available.')
+    interface = _deserialize(ica_interface)
+    current_fit = interface.pop('current_fit')
+    _explained_var = interface.pop('_explained_var')
+    if interface['noise_cov'] == Covariance.__name__:
+        logger.warning('The noise covariance used on fit cannot be restored but'
+                       'thewhitener drawn from the covariance is available.')
 
     logger.info('Now restoring ICA session ...')
-    ica = ICA(**ica_params)
+
+    _ica = FastICA(**_deserialize(_ica_params))
+    _ica.unmixing_matrix_ = unmixing_matrix_
+    _pca = RandomizedPCA(**_pca_params)
+    _pca.components_ = components_
+    _pca.mean_ = mean_
+    _pca.explained_variance_ = explained_variance_
+    _pca.explained_variance_ratio_ = explained_variance_ / \
+                                     explained_variance_.sum()
+    ica = ICA(**interface)
+    ica._ica, ica._pca = _ica, _pca
     ica.current_fit = current_fit
-    ica._pca = RandomizedPCA(**_pca_params)
-    ica._pca.components_ = components_
-    ica._pca.explained_variance_ = explained_variance_
-    ica._pca.explained_variance_ratio_ = explained_variance_ / \
-                                         explained_variance_.sum()
-    ica._ica = FastICA(**_deserialize(_ica_params))
-    ica._ica.unmixing_matrix_ = unmixing_matrix_
-    expl_var = ica._pca.explained_variance_ratio_[:ica.n_components].cumsum()[-1]
-    ica._explained_var = np.round(expl_var, 3)
-    ica._mixing = ica._ica.get_mixing_matrix().T
     ica.ch_names = ch_names.split(':')
-    ica._pre_whitener = _pre_whitener
     ica._comp_idx = np.arange(ica.n_components)
+    ica._pre_whitener = _pre_whitener
+    ica._explained_var = _explained_var
+    ica._mixing = _ica.get_mixing_matrix().T
 
     logger.info('Ready.')
 
