@@ -27,7 +27,7 @@ from .pick import pick_types
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     resample, _get_coeffs_from_params
+                     resample, construct_iir_filter
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -452,7 +452,7 @@ class Raw(object):
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               iir_params=dict(N=4, ftype='butter'), method='fft',
+               method='fft', iir_params=dict(N=4, ftype='butter'),
                verbose=None):
         """Filter a subset of channels.
 
@@ -489,19 +489,12 @@ class Raw(object):
             Width of the transition band at the high cut-off frequency in Hz.
         n_jobs: int
             Number of jobs to run in parallel.
+        method: str
+            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            forward-backward filtering (via filtfilt).
         iir_params: dict
             Dictionary of parameters to use for IIR filtering.
-            If iir_params['b'] and iir_params['a'] exist, these will be used
-            as coefficients to perform IIR filtering. Otherwise, if
-            iir_params['N'] and iir_params['ftype'] exist, these will be used
-            with scipy.signal.iirfilter to design a filter. Otherwise, if
-            iir_params['gpass'] and iir_params['gstop'] exist, these will be
-            used with scipy.signal.iirdesign to design a filter.
-            iir_params['padlen'] defines the number of samples to pad (and
-            an estimate will be calculated if it is not given).
-        method: str
-            'fft' will use overlap-add FIR filtering, 'iir' will use butterworth
-            filtering (via filtfilt).
+            See mne.filter.construct_iir_filter for details.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -522,48 +515,36 @@ class Raw(object):
             if l_freq is not None and l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
 
-        fs_2 = fs / 2
         # make a local copy since we're going to modify it for speed
-        iir_params = copy.deepcopy(iir_params)
         if l_freq is None and h_freq is not None:
-            Fp = float(h_freq) / fs_2
-            Fstop = Fp + h_trans_bandwidth / fs_2
-            [b, a, padlen] = _get_coeffs_from_params(iir_params, Fp, Fstop,
-                                                     'lowpass')
-            iir_params['b'] = b
-            iir_params['a'] = a
-            iir_params['padlen'] = padlen
+            if method.lower() == 'iir':
+                iir_params = construct_iir_filter(iir_params, h_freq,
+                                                  h_freq + h_trans_bandwidth,
+                                                  fs, 'lowpass')
             self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
                                 fs, h_freq, filter_length=filter_length,
                                 trans_bandwidth=l_trans_bandwidth,
-                                iir_params=iir_params, method=method)
+                                method=method, iir_params=iir_params)
         if l_freq is not None and h_freq is None:
-            Fp = float(l_freq) / fs_2
-            Fstop = Fp - l_trans_bandwidth / fs_2
-            [b, a, padlen] = _get_coeffs_from_params(iir_params, Fp, Fstop,
-                                                     'highpass')
-            iir_params['b'] = b
-            iir_params['a'] = a
-            iir_params['padlen'] = padlen
+            if method.lower() == 'iir':
+                iir_params = construct_iir_filter(iir_params, l_freq,
+                                                  l_freq - l_trans_bandwidth,
+                                                  fs, 'highpass')
             self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
                                 fs, l_freq, filter_length=filter_length,
                                 trans_bandwidth=h_trans_bandwidth,
-                                iir_params=iir_params, method=method)
+                                method=method, iir_params=iir_params)
         if l_freq is not None and h_freq is not None:
-            Fp = [float(l_freq) / fs_2, float(h_freq) / fs_2]
-            Fstop = [Fp[0] - l_trans_bandwidth / fs_2,
-                     Fp[1] + h_trans_bandwidth / fs_2]
-            [b, a, padlen] = _get_coeffs_from_params(iir_params, Fp, Fstop,
-                                                     'bandpass')
-            iir_params['b'] = b
-            iir_params['a'] = a
-            iir_params['padlen'] = padlen
+            if method.lower() == 'iir':
+                iir_params = construct_iir_filter(iir_params, [l_freq, h_freq],
+                     [l_freq - l_trans_bandwidth, h_freq + h_trans_bandwidth],
+                     fs, 'bandpass')
             self.apply_function(band_pass_filter, picks, None, n_jobs, verbose,
                                 fs, l_freq, h_freq,
                                 filter_length=filter_length,
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth,
-                                iir_params=iir_params, method=method)
+                                method=method, iir_params=iir_params)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',

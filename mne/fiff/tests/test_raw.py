@@ -387,13 +387,13 @@ def test_filter():
     picks = picks_meg[:4]
 
     raw_lp = deepcopy(raw)
-    raw_lp.filter(0., 4.0, picks=picks, n_jobs=2)
+    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
 
     raw_hp = deepcopy(raw)
-    raw_hp.filter(8.0, None, picks=picks, n_jobs=2)
+    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
 
     raw_bp = deepcopy(raw)
-    raw_bp.filter(4.0, 8.0, picks=picks)
+    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
 
     data, _ = raw[picks, :]
 

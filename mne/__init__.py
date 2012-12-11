@@ -42,6 +42,7 @@ from . import beamformer
 from . import connectivity
 from . import datasets
 from . import fiff
+from . import filter
 from . import layouts
 from . import minimum_norm
 from . import mixed_norm
