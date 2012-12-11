@@ -24,8 +24,8 @@ from .eog import _find_eog_events
 from ..cov import compute_whitener
 from .. import Covariance
 from ..fiff import pick_types, pick_channels
-from ..fiff.write import write_double_matrix, write_string, write_int, \
-                         write_name_list, start_block, end_block
+from ..fiff.write import write_double_matrix, write_float_matrix, write_string, \
+                         write_float, write_name_list, start_block, end_block
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
@@ -1055,8 +1055,8 @@ def _write_ica(fid, ica):
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     #   Whitener
-    if isinstance(ica._pre_whitener, int):
-        write_int(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+    if isinstance(ica._pre_whitener, float):
+        write_float(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
     else:
         write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
 

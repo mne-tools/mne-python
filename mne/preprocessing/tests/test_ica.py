@@ -7,7 +7,7 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 from scipy import stats
 from itertools import product
 
