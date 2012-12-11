@@ -497,6 +497,7 @@ class RawBTi(Raw):
         chs = []
 
         # get 4-D head_dev_t needed for appropriate
+        sensor_coord_frame = FIFF.FIFFV_COORD_DEVICE
         if isinstance(self._dev_head_t, str):
             logger.info('... Reading device to head transform from %s.' %
                         self._dev_head_t)
@@ -512,52 +513,56 @@ class RawBTi(Raw):
         else:
             logger.info('... No device to head transform specified. '
                         'Using identity transform instead')
+            sensor_coord_frame = FIFF.FIFFV_COORD_HEAD
             bti_sys_trans = np.array(BTI.T_IDENT, np.float32)
 
         logger.info('... Setting channel info structure.')
-        for idx, chan in enumerate(info['ch_names'], 1):
+        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping.items(), 1):
             chan_info = dict((k, v) for k, v in zip(FIFF_INFO_CHS_FIELDS,
                              FIFF_INFO_CHS_DEFAULTS))
-            chan_info['ch_name'] = chan
+            chan_info['ch_name'] = chan_vv
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
 
-            if any([chan.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
-                t = _m_to_nm_coil_trans(sensor_trans[chan], bti_sys_trans,
+            if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
+                t = _m_to_nm_coil_trans(sensor_trans[chan_vv], bti_sys_trans,
                                         self.bti_to_nm)
                 chan_info['coil_trans'] = t
                 chan_info['loc'] = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
                 chan_info['logno'] = idx
 
-            if chan.startswith('MEG'):
+            if chan_vv.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                chan_info['coord_frame'] = sensor_coord_frame
                 chan_info['unit'] = FIFF.FIFF_UNIT_T
 
-            elif chan.startswith('RFM'):
+            elif chan_vv.startswith('RFM'):
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_POINT_MAGNETOMETER
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_MAG
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['unit'] = FIFF.FIFF_UNIT_T
 
-            elif chan.startswith('RFG'):
+            elif chan_vv.startswith('RFG'):
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_AXIAL_GRAD_5CM
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['unit'] = FIFF.FIFF_UNIT_T_M
+                if chan_4d in ('GxxA', 'GyyA'):
+                    chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
+                elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
+                    chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
 
-            elif chan == 'STI 014':
+            elif chan_vv == 'STI 014':
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            elif chan.startswith('EOG'):
+            elif chan_vv.startswith('EOG'):
                 chan_info['kind'] = FIFF.FIFFV_EOG_CH
-            elif chan == 'ECG 001':
+            elif chan_vv == 'ECG 001':
                 chan_info['kind'] = FIFF.FIFFV_ECG_CH
-            elif chan == 'RSP 001':
+            elif chan_vv == 'RSP 001':
                 chan_info['kind'] = FIFF.FIFFV_RESP_CH
-            elif chan.startswith('EXT'):
+            elif chan_vv.startswith('EXT'):
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
-            elif chan.startswith('UTL'):
+            elif chan_vv.startswith('UTL'):
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
 
             chs.append(chan_info)
