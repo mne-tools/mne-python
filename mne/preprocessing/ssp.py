@@ -23,7 +23,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, verbose=None):
+                      filter_method, iir_params=dict(ftype='butter', N=4),
+                      verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -31,64 +32,67 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 
     Parameters
     ----------
-    mode : string ('ECG', or 'EOG')
+    mode: string ('ECG', or 'EOG')
         What type of events to detect.
-    raw : mne.fiff.Raw
+    raw: mne.fiff.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event: mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-    tmin : float
+    tmin: float
         Time before event in seconds.
-    tmax : float
+    tmax: float
         Time after event in seconds.
-    n_grad : int
+    n_grad: int
         Number of SSP vectors for gradiometers.
-    n_mag : int
+    n_mag: int
         Number of SSP vectors for magnetometers.
-    n_eeg : int
+    n_eeg: int
         Number of SSP vectors for EEG.
-    l_freq : float | None
+    l_freq: float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float | None
+    h_freq: float | None
         Filter high cut-off frequency in Hz.
-    average : bool
+    average: bool
         Compute SSP after averaging.
-    filter_length : int
+    filter_length: int
         Number of taps to use for filtering.
-    n_jobs : int
+    n_jobs: int
         Number of jobs to run in parallel.
-    ch_name : string (or None)
+    ch_name: string (or None)
         Channel to use for ECG event detection.
-    reject : dict
+    reject: dict
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat: dict
         Epoch flat configuration (see Epochs).
-    bads : list
+    bads: list
         List with (additional) bad channels.
-    avg_ref : bool
+    avg_ref: bool
         Add EEG average reference proj.
-    no_proj : bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file.
-    event_id : int
+    event_id: int
         ID to use for events.
-    exg_l_freq : float
+    exg_l_freq: float
         Low pass frequency applied for filtering EXG channel.
-    exg_h_freq : float
+    exg_h_freq: float
         High pass frequency applied for filtering EXG channel.
-    tstart : float
+    tstart: float
         Start artifact detection after tstart seconds.
-    qrs_threshold : float
+    qrs_threshold: float
         Between 0 and 1. qrs detection threshold (only for ECG).
-    filter_method : str
+    filter_method: str
         Method for filtering ('iir' or 'fft').
-    verbose : bool, str, int, or None
+    iir_params: dict
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details.
+    verbose: bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    proj : list
+    proj: list
         Computed SSP projectors.
-    events : ndarray
+    events: ndarray
         Detected events.
     """
     if not raw._preloaded:
@@ -152,7 +156,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=raw.info['bads'] + bads)
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
-               n_jobs=n_jobs, method=filter_method)
+               n_jobs=n_jobs, method=filter_method, iir_params=iir_params)
 
     epochs = Epochs(raw, events, None, tmin, tmax, baseline=None, preload=True,
                     picks=picks, reject=reject, flat=flat, proj=True)
@@ -188,7 +192,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      eog=250e-6), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold=0.6, filter_method='fft',
-                     verbose=None):
+                     iir_params=dict(ftype='butter', N=4), verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -196,62 +200,65 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw: mne.fiff.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event: mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-    tmin : float
+    tmin: float
         Time before event in seconds.
-    tmax : float
+    tmax: float
         Time after event in seconds.
-    n_grad : int
+    n_grad: int
         Number of SSP vectors for gradiometers.
-    n_mag : int
+    n_mag: int
         Number of SSP vectors for magnetometers.
-    n_eeg : int
+    n_eeg: int
         Number of SSP vectors for EEG.
-    l_freq : float | None
+    l_freq: float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float | None
+    h_freq: float | None
         Filter high cut-off frequency in Hz.
-    average : bool
+    average: bool
         Compute SSP after averaging.
-    filter_length : int
+    filter_length: int
         Number of taps to use for filtering.
-    n_jobs : int
+    n_jobs: int
         Number of jobs to run in parallel.
-    ch_name : string (or None)
+    ch_name: string (or None)
         Channel to use for ECG detection (Required if no ECG found).
-    reject : dict
+    reject: dict
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat: dict
         Epoch flat configuration (see Epochs).
-    bads : list
+    bads: list
         List with (additional) bad channels.
-    avg_ref : bool
+    avg_ref: bool
         Add EEG average reference proj.
-    no_proj : bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file.
-    event_id : int
+    event_id: int
         ID to use for events.
-    ecg_l_freq : float
+    ecg_l_freq: float
         Low pass frequency applied for filtering ECG channel.
-    ecg_h_freq : float
+    ecg_h_freq: float
         High pass frequency applied for filtering ECG channel.
-    tstart : float
+    tstart: float
         Start artifact detection after tstart seconds.
-    qrs_threshold : float
+    qrs_threshold: float
         Between 0 and 1. qrs detection threshold.
-    filter_method : str
+    filter_method: str
         Method for filtering ('iir' or 'fft').
-    verbose : bool, str, int, or None
+    iir_params: dict
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details.
+    verbose: bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    proj : list
+    proj: list
         Computed SSP projectors.
-    ecg_events : ndarray
+    ecg_events: ndarray
         Detected ECG events.
     """
 
@@ -260,7 +267,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                         average, filter_length, n_jobs, ch_name,
                         reject, flat, bads, avg_ref, no_proj, event_id,
                         ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
-                        filter_method)
+                        filter_method, iir_params)
 
     return projs, ecg_events
 
@@ -270,9 +277,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=4096, n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
-                     eog=np.inf), flat=None, bads=[], avg_ref=False, no_proj=False,
-                     event_id=998, eog_l_freq=1, eog_h_freq=10, tstart=0.,
-                     filter_method='fft', verbose=None):
+                     eog=np.inf), flat=None, bads=[], avg_ref=False,
+                     no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
+                     tstart=0., filter_method='fft',
+                     iir_params=dict(ftype='butter', N=4), verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -280,60 +288,60 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw: mne.fiff.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event: mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
-    tmin : float
+    tmin: float
         Time before event in seconds.
-    tmax : float
+    tmax: float
         Time after event in seconds.
-    n_grad : int
+    n_grad: int
         Number of SSP vectors for gradiometers.
-    n_mag : int
+    n_mag: int
         Number of SSP vectors for magnetometers.
-    n_eeg : int
+    n_eeg: int
         Number of SSP vectors for EEG.
-    l_freq : float | None
+    l_freq: float | None
         Filter low cut-off frequency in Hz.
-    h_freq : float | None
+    h_freq: float | None
         Filter high cut-off frequency in Hz.
-    average : bool
+    average: bool
         Compute SSP after averaging.
-    preload : string (or True)
+    preload: string (or True)
         Temporary file used during computaion.
-    filter_length : int
+    filter_length: int
         Number of taps to use for filtering.
-    n_jobs : int
+    n_jobs: int
         Number of jobs to run in parallel.
-    reject : dict
+    reject: dict
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat: dict
         Epoch flat configuration (see Epochs).
-    bads : list
+    bads: list
         List with (additional) bad channels.
-    avg_ref : bool
+    avg_ref: bool
         Add EEG average reference proj.
-    no_proj : bool
+    no_proj: bool
         Exclude the SSP projectors currently in the fiff file.
-    event_id : int
+    event_id: int
         ID to use for events.
-    eog_l_freq : float
+    eog_l_freq: float
         Low pass frequency applied for filtering E0G channel.
-    eog_h_freq : float
+    eog_h_freq: float
         High pass frequency applied for filtering E0G channel.
-    tstart : float
+    tstart: float
         Start artifact detection after tstart seconds.
-    filter_method : str
+    filter_method: str
         Method for filtering ('iir' or 'fft').
-    verbose : bool, str, int, or None
+    verbose: bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    proj : list
+    proj: list
         Computed SSP projectors.
-    eog_events : ndarray
+    eog_events: ndarray
         Detected ECG events.
     """
 
