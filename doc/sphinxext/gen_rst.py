@@ -16,7 +16,7 @@ import sys
 from StringIO import StringIO
 import cPickle
 import re
-import inspect
+import urllib2
 
 import matplotlib
 matplotlib.use('Agg')
@@ -43,6 +43,94 @@ class Tee(object):
     def flush(self):
         self.file1.flush()
         self.file2.flush()
+
+###############################################################################
+# Documentation link resolver objects
+
+
+class DocLinkResolver(object):
+    """ Resolver for packages that document each object/function on an
+        individual page """
+    def __init__(self, doc_base_url, relative=False):
+        if relative and doc_base_url.startswith('http'):
+            raise ValueError('relative and http url not supported')
+        self.doc_base_url = doc_base_url
+        self.relative = relative
+        self._link_cache = {}
+
+    def get_link(self, cobj):
+        """Get a valid link, False if not found"""
+        link = (self.doc_base_url + '/' + cobj['module_short'] + '.'
+                + cobj['name'] + '.html')
+        if link.startswith('http://'):
+            try:
+                resp = urllib2.urlopen(link)
+                if resp.code != 200:
+                    link = False
+            except urllib2.HTTPError:
+                link = False
+        else:
+            # assume it is a local file
+            if not os.path.exists(link):
+                link = False
+
+        if link is not False:
+            # make a link that highlights the occurence
+            link = link + '#' + cobj['module_short'] + '.' + cobj['name']
+
+        return link
+
+    def resolve(self, cobj, this_url):
+        """Resolve the link to the documentation, returns None if not found"""
+        link = self._link_cache.get(cobj['name'], None)
+        if link is None:
+            # we don't have it cached
+            link = self.get_link(cobj)
+            # cache it for the future
+            self._link_cache[cobj['name']] = link
+
+        if link is False or link is None:
+            # failed to resolve
+            return None
+
+        if self.relative:
+            link = os.path.relpath(link, start=this_url)
+            # for some reason, the relative link goes one directory too high up
+            link = link[3:]
+
+        return link
+
+
+class SinglePageDocLinkResolver(DocLinkResolver):
+    """ Resolver for packages that use pages that document several items """
+
+    def __init__(self,  doc_pages_url, extra_modules_test=None):
+        super(SinglePageDocLinkResolver, self).__init__(self, None)
+        # get all the pages
+        doc_pages_html = []
+        for url in doc_pages_url:
+            try:
+                resp = urllib2.urlopen(url)
+                html = resp.read()
+                doc_pages_html.append(html)
+            except urllib2.HTTPError:
+                print 'error when retrieving %s' % url
+                doc_pages_html.append('')
+        self.doc_pages_html = doc_pages_html
+        self.doc_pages_url = doc_pages_url
+        self.extra_modules_test = extra_modules_test
+
+    def get_link(self, cobj):
+        comb_names = [cobj['module_short'] + '.' + cobj['name']]
+        if self.extra_modules_test is not None:
+            for mod in self.extra_modules_test:
+                comb_names.append(mod + '.' + cobj['name'])
+        for comb_name in comb_names:
+            # find if the item we search for appears in any of the pages
+            for html, url in zip(self.doc_pages_html, self.doc_pages_url):
+                if html.find(comb_name) >= 0:
+                    return url + '#' + comb_name
+        return False
 
 ###############################################################################
 rst_template = """
@@ -244,6 +332,24 @@ def generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery):
     <div style="clear: both"></div>
     """)  # clear at the end of the section
 
+# modules for which we embed links into example code
+DOCMODULES = ['mne', 'matplotlib', 'numpy', 'mayavi']
+
+
+def get_short_module_name(module_name, obj_name):
+    """ Get the shortest possible module name """
+    parts = module_name.split('.')
+    short_name = module_name
+    for i in range(len(parts) - 1, 0, -1):
+        short_name = '.'.join(parts[:i])
+        try:
+            exec('from %s import %s' % (short_name, obj_name))
+        except ImportError:
+            # get the last working module name
+            short_name = '.'.join(parts[:(i + 1)])
+            break
+    return short_name
+
 
 def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
     """ Generate the rst file for a given example.
@@ -321,28 +427,29 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                 sys.stdout = orig_stdout
                 my_stdout = my_buffer.getvalue()
 
-                # get functions/objects of our package
-                package_code_obj = {}
+                # get variables so we can later add links to the documentation
+                example_code_obj = {}
                 for var_name, var in my_globals.iteritems():
                     if not hasattr(var, '__module__'):
                         continue
                     if not isinstance(var.__module__, basestring):
                         continue
-                    if var.__module__.startswith('mne'):
-                        # get the type as a string with other things stripped
-                        tstr = str(type(var))
-                        tstr = tstr[tstr.find('\'')\
-                               + 1:tstr.rfind('\'')].split('.')[-1]
-                        # see if we can import it using a shortened module path
-                        module_path = '.'.join(var.__module__.split('.')[:-1])
-                        try:
-                            exec('from %s import %s' % (module_path, tstr))
-                        except ImportError:
-                            module_path = var.__module__
-                        full_name = module_path + '.' + tstr
-                        package_code_obj[var_name] = full_name
+                    if var.__module__.split('.')[0] not in DOCMODULES:
+                        continue
 
-                # find package functions
+                    # get the type as a string with other things stripped
+                    tstr = str(type(var))
+                    tstr = (tstr[tstr.find('\'')
+                            + 1:tstr.rfind('\'')].split('.')[-1])
+                    # get shortened module name
+                    module_short = get_short_module_name(var.__module__,
+                                                         tstr)
+                    cobj = {'name': tstr, 'module': var.__module__,
+                            'module_short': module_short,
+                            'obj_type': 'object'}
+                    example_code_obj[var_name] = cobj
+
+                # find functions so we can later add links to the documentation
                 funregex = re.compile('[\w.]+\(')
                 fid = open(src_file, 'rt')
                 for line in fid.readlines():
@@ -350,7 +457,6 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                         continue
                     for match in funregex.findall(line):
                         fun_name = match[:-1]
-                        # find if it is an mne function
                         try:
                             exec('this_fun = %s' % fun_name, my_globals)
                         except Exception as err:
@@ -358,33 +464,31 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                             print err
                             continue
                         this_fun = my_globals['this_fun']
-                        if not inspect.isfunction(this_fun):
+                        if not callable(this_fun):
                             continue
                         if not hasattr(this_fun, '__module__'):
                             continue
                         if not isinstance(this_fun.__module__, basestring):
                             continue
-                        if not this_fun.__module__.startswith('mne'):
+                        if this_fun.__module__.split('.')[0] not in DOCMODULES:
                             continue
-                        # ok, we have an mne function :-)
-                        # see if we can import it using a shortened module path
+
+                        # get shortened module name
                         fun_name_short = fun_name.split('.')[-1]
-                        module_path =\
-                            '.'.join(this_fun.__module__.split('.')[:-1])
-                        try:
-                            exec('from %s import %s' % (module_path,
-                                                        fun_name_short))
-                        except ImportError:
-                            module_path = this_fun.__module__
-                        full_name = module_path + '.' + fun_name_short
-                        package_code_obj[fun_name] = full_name
+                        module_short = get_short_module_name(
+                            this_fun.__module__, fun_name_short)
+                        cobj = {'name': fun_name_short,
+                                'module': this_fun.__module__,
+                                'module_short': module_short,
+                                'obj_type': 'function'}
+                        example_code_obj[fun_name] = cobj
 
                 fid.close()
-                if len(package_code_obj) > 0:
+                if len(example_code_obj) > 0:
                     # save the dictionary, so we can later add hyperlinks
                     codeobj_fname = example_file[:-3] + '_codeobj.pickle'
                     fid = open(codeobj_fname, 'wb')
-                    cPickle.dump(package_code_obj, fid,
+                    cPickle.dump(example_code_obj, fid,
                                  cPickle.HIGHEST_PROTOCOL)
                     fid.close()
                 if '__doc__' in my_globals:
@@ -476,47 +580,73 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 
 
 def embed_code_links(app, exception):
-    """Embed links to documentation into example code"""
+    """Embed hyperlinks to documentation into example code"""
     if exception is not None:
         return
-    print 'Embedding mne-python links in examples..'
+    print 'Embedding documentation hyperlinks in examples..'
+
+    # Add resolvers for the packages for which we want to show links
+    doc_resolvers = {}
+    doc_resolvers['mne'] = DocLinkResolver(
+        os.path.abspath(os.path.join(app.builder.outdir, 'generated')),
+        relative=True)
+
+    doc_resolvers['numpy'] = DocLinkResolver(
+        'http://docs.scipy.org/doc/numpy-1.6.0/reference/generated')
+
+    # matplotlib and mayavi document several items on the same page
+    doc_resolvers['matplotlib'] = SinglePageDocLinkResolver(
+        ['http://matplotlib.org/api/pyplot_api.html'])
+
+    mayavi_base = 'http://docs.enthought.com/mayavi/mayavi/auto/'
+    doc_resolvers['mayavi'] = SinglePageDocLinkResolver(
+        [mayavi_base + 'mlab_helper_functions.html',
+         mayavi_base + 'mlab_figure.html',
+         mayavi_base + 'mlab_decorations.html',
+         mayavi_base + 'mlab_camera.html',
+         mayavi_base + 'mlab_other_functions.html'],
+        extra_modules_test=['mayavi.mlab'])
+
     example_dir = os.path.join(app.builder.srcdir, 'auto_examples')
     html_example_dir = os.path.abspath(app.builder.outdir + '/auto_examples')
-    package_generated = glob.glob(app.builder.outdir + '/generated/*.html')
-    package_generated = [os.path.split(p)[-1][:-5] for p in package_generated]
+
+    # patterns for replacement
     link_pattern = '<a href="%s">%s</a>'
     orig_pattern = '<span class="n">%s</span>'
     period = '<span class="o">.</span>'
+
     for dirpath, _, filenames in os.walk(html_example_dir):
         for fname in filenames:
-            print 'processing: %s' % fname
+            print '\tprocessing: %s' % fname
+            full_fname = os.path.join(html_example_dir, dirpath, fname)
             subpath = dirpath[len(html_example_dir):]
-            pickle_fname = example_dir + '/' + subpath + '/'\
-                           + fname[:-5] + '_codeobj.pickle'
+            pickle_fname = (example_dir + '/' + subpath + '/' + fname[:-5]
+                            + '_codeobj.pickle')
             if os.path.exists(pickle_fname):
-                # we have a pickle file with the local :-)
+                # we have a pickle file with the objects to embed links for
                 fid = open(pickle_fname, 'rb')
-                package_code_obj = cPickle.load(fid)
+                example_code_obj = cPickle.load(fid)
                 fid.close()
                 str_repl = {}
-                # detect "how deep" we are for relative links
-                rel_link = '/'.join(['..'] * len(subpath.split('/')))
-                for name, pname in package_code_obj.iteritems():
-                    if pname in package_generated:
-                        link = (rel_link + '/generated/%s.html' % pname)
-                        dest_fname = os.path.join(dirpath, link)
-                        if not os.path.exists(dest_fname):
-                            continue
+                # generate replacement strings with the links
+                for name, cobj in example_code_obj.iteritems():
+                    this_module = cobj['module'].split('.')[0]
+                    if this_module not in doc_resolvers:
+                        continue
+                    link = doc_resolvers[this_module].resolve(cobj,
+                                                              full_fname)
+                    if link is not None:
                         parts = name.split('.')
                         name_html = orig_pattern % parts[0]
                         for part in parts[1:]:
                             name_html += period + orig_pattern % part
                         str_repl[name_html] = link_pattern % (link, name_html)
+                # do the replacement in the html file
                 if len(str_repl) > 0:
-                    fid = open(os.path.join(dirpath, fname), 'rt')
+                    fid = open(full_fname, 'rt')
                     lines_in = fid.readlines()
                     fid.close()
-                    fid = open(os.path.join(dirpath, fname), 'wt')
+                    fid = open(full_fname, 'wt')
                     for line in lines_in:
                         for name, link in str_repl.iteritems():
                             line = line.replace(name, link)
