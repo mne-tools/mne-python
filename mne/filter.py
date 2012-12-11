@@ -247,7 +247,7 @@ def _estimate_ringing_samples(b, a):
     return np.where(np.abs(h) > 0.001 * np.max(np.abs(h)))[0][-1]
 
 
-def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
+def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
                          f_pass=None, f_stop=None, sfreq=None, btype=None,
                          return_copy=True):
     """Use IIR parameters to get filtering coefficients
@@ -265,8 +265,8 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
         Dictionary of parameters to use for IIR filtering.
         If iir_params['b'] and iir_params['a'] exist, these will be used
         as coefficients to perform IIR filtering. Otherwise, if
-        iir_params['N'] and iir_params['ftype'] exist, these will be used
-        with scipy.signal.iirfilter to make a filter. Otherwise, if
+        iir_params['order'] and iir_params['ftype'] exist, these will be
+        used with scipy.signal.iirfilter to make a filter. Otherwise, if
         iir_params['gpass'] and iir_params['gstop'] exist, these will be
         used with scipy.signal.iirdesign to design a filter.
         iir_params['padlen'] defines the number of samples to pad (and
@@ -276,10 +276,11 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
         Frequency for the pass-band. Low-pass and high-pass filters should
         be a float, band-pass should be a 2-element list of float.
     f_stop: float or list of float
-        Stop-band frequency (same size as f_pass). Not used if the order 'N'
-        is specified in iir_params.
+        Stop-band frequency (same size as f_pass). Not used if 'order' is
+        specified in iir_params.
     btype: str
-        Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'.
+        Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'
+        (or analogous string representations known to scipy.signal).
     return_copy: bool
         If False, the 'b', 'a', and 'padlen' entries in iir_params will be
         set inplace (if they weren't already). Otherwise, a new iir_params
@@ -290,12 +291,6 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
     iir_params: dict
         Updated iir_params dict, with the entries (set only if they didn't
         exist before) for 'b', 'a', and 'padlen' for IIR filtering.
-            b: ndarray of float
-            Denominator coefficients for IIR filtering.
-            a: ndarray of float
-            Numerator coefficients for IIR filtering.
-            padlen: int
-            Estimate of the number of samples to pad IIR filtering.
 
     Notes
     -----
@@ -312,7 +307,7 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
     filter 'N' and the type of filtering 'ftype' are specified. To get
     coefficients for a 4th-order Butterworth filter, this would be:
 
-    >>> iir_params = dict(N=4, ftype='butter')
+    >>> iir_params = dict(order=4, ftype='butter')
     >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
     >>> print (len(iir_params['b']), len(iir_params['a']), iir_params['padlen'])
     (5, 5, 82)
@@ -355,8 +350,9 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
 
         # use order-based design
         Wp = np.asanyarray(f_pass) / (float(sfreq) / 2)
-        if 'N' in iir_params:
-            [b, a] = iirfilter(iir_params['N'], Wp, btype=btype, ftype=ftype)
+        if 'order' in iir_params:
+            [b, a] = iirfilter(iir_params['order'], Wp, btype=btype,
+                               ftype=ftype)
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
@@ -384,7 +380,7 @@ def construct_iir_filter(iir_params=dict(b=[1], a=[1, 0], padlen=0),
 
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(N=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter')):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -464,7 +460,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    method='fft', iir_params=dict(N=4, ftype='butter')):
+                    method='fft', iir_params=dict(order=4, ftype='butter')):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -528,7 +524,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(N=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter')):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.

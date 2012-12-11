@@ -23,7 +23,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, iir_params=dict(ftype='butter', N=4),
+                      filter_method, iir_params=dict(order=4, ftype='butter'),
                       verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
@@ -192,7 +192,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      eog=250e-6), flat=None, bads=[], avg_ref=False, no_proj=False,
                      event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold=0.6, filter_method='fft',
-                     iir_params=dict(ftype='butter', N=4), verbose=None):
+                     iir_params=dict(order=4, ftype='butter'), verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -280,7 +280,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog=np.inf), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
                      tstart=0., filter_method='fft',
-                     iir_params=dict(ftype='butter', N=4), verbose=None):
+                     iir_params=dict(order=4, ftype='butter'), verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -349,6 +349,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, None,
                         reject, flat, bads, avg_ref, no_proj, event_id,
-                        eog_l_freq, eog_h_freq, tstart, 0.6, filter_method)
+                        eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6,
+                        filter_method=filter_method, iir_params=iir_params)
 
     return projs, eog_events
