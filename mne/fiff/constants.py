@@ -340,14 +340,15 @@ FIFF.FIFF_MNE_CTF_COMP_CALIBRATED   = 3582     # Are the coefficients calibrated
 #
 # 3601... values associated with ICA decomposition
 #
-FIFF.FIFF_MNE_ICA_WHITENER          = 3601     # ICA whitener
-FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3602     # _PCA parameters
-FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3603     # _PCA components
-FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3604     # _PCA explained variance
-FIFF.FIFF_MNE_ICA_PARAMS            = 3605     # _ICA parameters
-FIFF.FIFF_MNE_ICA_UNMIXING          = 3606     # _ICA unmixinx matrix
-FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3607     # ICA channel names
-FIFF.FIFF_MNE_ICA_INSTANCE_PARAMS   = 3608     # ICA instance parameters
+FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA insterface parameters
+FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3602     # ICA channel names
+FIFF.FIFF_MNE_ICA_WHITENER          = 3603     # ICA whitener
+FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3604     # _PCA parameters
+FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3605     # _PCA components
+FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3606     # _PCA explained variance
+FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3607     # _PCA mean
+FIFF.FIFF_MNE_ICA_PARAMS            = 3608     # _ICA parameters
+FIFF.FIFF_MNE_ICA_UNMIXING          = 3609     # _ICA unmixinx matrix
 #
 # Fiff values associated with MNE computations
 #
