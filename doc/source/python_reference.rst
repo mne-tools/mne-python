@@ -197,6 +197,7 @@ Functions reference
    compute_proj_eog
    find_eog_events
    find_ecg_events
+   read_ica
    ica_find_eog_events
    ica_find_ecg_events
 

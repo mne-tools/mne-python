@@ -1024,20 +1024,9 @@ def _write_ica(fid, ica):
     ica:
         The instance of ICA to write
     """
-    #FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA insterface parameters
-    #FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3602     # ICA channel names
-    #FIFF.FIFF_MNE_ICA_WHITENER          = 3603     # ICA whitener
-    #FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3604     # _PCA parameters
-    #FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3605     # _PCA components
-    #FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3606     # _PCA explained variance
-    #FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3607     # _PCA mean
-    #FIFF.FIFF_MNE_ICA_PARAMS            = 3608     # _ICA parameters
-    #FIFF.FIFF_MNE_ICA_UNMIXING          = 3609     # _ICA unmixinx matrix
 
-    _pca = ica._pca
+    _pca, _ica = ica._pca, ica._ica
     _pca_params = _pca.get_params()
-
-    _ica = ica._ica
     _ica_params = _ica.get_params()
 
     for key in ('fun_args', 'fun_prime'):
@@ -1052,6 +1041,10 @@ def _write_ica(fid, ica):
                          current_fit=ica.current_fit,
                          _explained_var=ica._explained_var
                          )
+    try:  # first try to get new attribute.
+        unmixing_matrix_ = ica._ica.components_
+    except:
+        unmixing_matrix_ = ica._ica.unmixing_matrix_
 
     start_block(fid, FIFF.FIFFB_ICA)
 
@@ -1082,7 +1075,7 @@ def _write_ica(fid, ica):
     write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(_ica_params))
 
     #   _ICA unmixing
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, _ica.unmixing_matrix_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, unmixing_matrix_)
 
     #   Done!
     end_block(fid, FIFF.FIFFB_ICA)
@@ -1160,13 +1153,18 @@ def read_ica(fname):
     current_fit = interface.pop('current_fit')
     _explained_var = interface.pop('_explained_var')
     if interface['noise_cov'] == Covariance.__name__:
-        logger.warning('The noise covariance used on fit cannot be restored but'
-                       'thewhitener drawn from the covariance is available.')
+        logger.warning('The noise covariance used on fit cannot be restored.'
+                       'The whitener drawn from the covariance will be used.')
 
     logger.info('Now restoring ICA session ...')
 
     _ica = FastICA(**_deserialize(_ica_params))
-    _ica.unmixing_matrix_ = unmixing_matrix_
+
+    try:  # try to set an attribute, hoping it won't work.
+        _ica.unmixing_matrix_ = unmixing_matrix_
+    except:
+        _ica.components_ = unmixing_matrix_
+
     _pca = RandomizedPCA(**_pca_params)
     _pca.components_ = components_
     _pca.mean_ = mean_

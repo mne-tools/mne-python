@@ -10,6 +10,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from scipy import stats
 from itertools import product
+import tempfile
+tempdir = tempfile.mkdtemp()
 
 from mne import fiff, Epochs, read_events, cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
@@ -25,14 +27,14 @@ except ImportError:
 sklearn_test = np.testing.dec.skipif(not have_sklearn,
                                      'scikit-learn not installed')
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+raw_fname = op.join(op.dirname(tempdir), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
-event_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+event_name = op.join(op.dirname(tempdir), '..', '..', 'fiff', 'tests',
                      'data', 'test-eve.fif')
-evoked_nf_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+evoked_nf_name = op.join(op.dirname(tempdir), '..', '..', 'fiff', 'tests',
                          'data', 'test-nf-ave.fif')
 
-test_cov_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+test_cov_name = op.join(op.dirname(tempdir), '..', '..', 'fiff', 'tests',
                         'data', 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -163,20 +165,24 @@ def test_ica_additional():
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
 
+    # test reading and writing
+    test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=3, max_n_components=4)
         ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
         assert_true(sources.shape[1] == ica.n_components)
 
-        # test reading and writing
-        test_ica_fname = op.join(op.dirname(__file__), 'ica_test.fif')
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
-        assert_array_almost_equal(ica._ica.unmixing_matrix_,
-                                  ica_read._ica.unmixing_matrix_)
+        try:
+            assert_array_almost_equal(ica._ica.unmixing_matrix_,
+                                      ica_read._ica.unmixing_matrix_)
+        except:
+            assert_array_almost_equal(ica._ica.components_,
+                                      ica_read._ica.components_)
         assert_array_almost_equal(ica._mixing, ica_read._mixing)
         assert_array_almost_equal(ica._pca.components_,
                            ica_read._pca.components_)
@@ -188,15 +194,15 @@ def test_ica_additional():
                                   ica_read._pre_whitener)
 
         assert_raises(RuntimeError, ica_read.decompose_raw, raw)
+        sources = ica.get_sources_raw(raw)
+        sources2 = ica_read.get_sources_raw(raw)
+        assert_array_almost_equal(sources, sources2)
 
-    sources = ica.get_sources_raw(raw)
-    sources2 = ica_read.get_sources_raw(raw)
-    assert_array_almost_equal(sources, sources2)
+        _raw1 = ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+        _raw2 = ica_read.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+        assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
-    _raw1 = ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
-    _raw2 = ica_read.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
-    assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
-
+    os.remove(test_ica_fname)
     # score funcs raw
 
     sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,
