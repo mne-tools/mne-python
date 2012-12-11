@@ -63,7 +63,6 @@ evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 layout = read_layout('Vectorview-all.lout')
 
 pl.close('all')
-pl.figure()
 title = 'MNE sample data - left auditory and visual'
 plot_topo(evokeds, layout, color=['y', 'g'], title=title)
 pl.show()
