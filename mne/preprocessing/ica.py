@@ -62,7 +62,8 @@ score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
                    if getargspec(f).args == ['x', 'y']))
 
 
-__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs']
+__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs',
+           'read_ica']
 
 
 class ICA(object):
@@ -768,7 +769,7 @@ class ICA(object):
         if self.noise_cov is None:  # use standardization as whitener
             pre_whitener = np.std(data) ** -1
             data *= pre_whitener
-        else:  # pick cov
+        elif not hasattr(self, '_pre_whitener'):  # pick cov
             ncov = deepcopy(self.noise_cov)
             if data.shape[0] != ncov['data'].shape[0]:
                 ncov['data'] = ncov['data'][picks][:, picks]
@@ -776,6 +777,8 @@ class ICA(object):
 
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = np.dot(pre_whitener, data)
+        else:
+            data = np.dot(self._pre_whitener, data)
 
         return data, pre_whitener
 
@@ -1042,7 +1045,8 @@ def _write_ica(fid, ica):
 
     ica_params = dict(noise_cov=ica.noise_cov,
                       max_n_components=ica.max_n_components,
-                      n_components=ica.n_components)
+                      n_components=ica.n_components,
+                      current_fit=ica.current_fit)
 
     start_block(fid, FIFF.FIFFB_ICA)
 
@@ -1137,9 +1141,24 @@ def read_ica(fname):
             ica_params = tag.data
 
     fid.close()
+    _pca_params = _deserialize(_pca_params)
+    if _pca_params['random_state'] == np.random.RandomState.__name__:
+        _pca_params['random_state'] = np.random.RandomState()
+        logger.warning('Creating new RandomState object. '
+                        'The ensueing random state will not match the '
+                        'random state from PCA fit time.')
+
+    ica_params = _deserialize(ica_params)
+    current_fit = ica_params.pop('current_fit')
+    if ica_params['noise_cov'] == Covariance.__name__:
+        logger.warning('The noise covariance used on fit cannot be'
+                       ' restored but whitener drawn from the covariance'
+                       ' is available.')
+
     logger.info('Now restoring ICA session ...')
-    ica = ICA(**_deserialize(ica_params))
-    ica._pca = RandomizedPCA(**_deserialize(_pca_params))
+    ica = ICA(**ica_params)
+    ica.current_fit = current_fit
+    ica._pca = RandomizedPCA(**_pca_params)
     ica._pca.components_ = components_
     ica._pca.explained_variance_ = explained_variance_
     ica._pca.explained_variance_ratio_ = explained_variance_ / \
@@ -1148,9 +1167,10 @@ def read_ica(fname):
     ica._ica.unmixing_matrix_ = unmixing_matrix_
     expl_var = ica._pca.explained_variance_ratio_[:ica.n_components].cumsum()[-1]
     ica._explained_var = np.round(expl_var, 3)
-    ica._mixing = ica._ica.get_mixing_matrix()
+    ica._mixing = ica._ica.get_mixing_matrix().T
     ica.ch_names = ch_names.split(':')
     ica._pre_whitener = _pre_whitener
+    ica._comp_idx = np.arange(ica.n_components)
 
     logger.info('Ready.')
 
