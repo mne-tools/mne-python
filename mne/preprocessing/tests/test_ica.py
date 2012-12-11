@@ -7,12 +7,13 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import stats
 from itertools import product
 
 from mne import fiff, Epochs, read_events, cov
-from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events
+from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
+                              read_ica
 from mne.preprocessing.ica import score_funcs
 
 have_sklearn = True
@@ -167,9 +168,31 @@ def test_ica_additional():
     sources = ica.get_sources_epochs(epochs)
     assert_true(sources.shape[1] == ica.n_components)
 
+    # test reading and writing
+    test_ica_fname = op.join(op.dirname(__file__), 'ica_test.fif')
+    ica.save(test_ica_fname)
+    ica_read = read_ica(test_ica_fname)
+    assert_true(ica.ch_names == ica_read.ch_names)
+    assert_array_almost_equal(ica._ica.unmixing_matrix_,
+                              ica_read._ica.unmixing_matrix_)
+    assert_array_almost_equal(ica._mixing, ica_read._mixing)
+    assert_array_almost_equal(ica._pca.components_,
+                       ica_read._pca.components_)
+    assert_array_almost_equal(ica._pca.exaplained_variance_,
+                              ica_read._pca.exaplained_variance_)
+
+    assert_raises(RuntimeError, ica_read.decompose_raw, raw)
+
     sources = ica.get_sources_raw(raw)
+    sources2 = ica_read.get_sources_raw(raw)
+    assert_array_almost_equal(sources, sources2)
+
+    _raw1 = ica.pick_sources_raw(raw, picks=[1])
+    _raw2 = ica_read.pick_sources_raw(raw, picks=[1])
+    assert_true(_raw1[:, :][0] == _raw2[:, :][0])
 
     # score funcs raw
+
     sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,
             start=0, stop=10) for  n, f in score_funcs.items()]
 
