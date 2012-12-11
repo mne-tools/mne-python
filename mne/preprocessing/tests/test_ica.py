@@ -27,10 +27,15 @@ except ImportError:
 sklearn_test = np.testing.dec.skipif(not have_sklearn,
                                      'scikit-learn not installed')
 
-raw_fname = op.join(tempdir, 'test_raw.fif')
-event_name = op.join(tempdir, 'test-eve.fif')
-evoked_nf_name = op.join(tempdir, 'test-nf-ave.fif')
-test_cov_name = op.join(tempdir, 'test-cov.fif')
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+                    'test_raw.fif')
+event_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                     'data', 'test-eve.fif')
+evoked_nf_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                         'data', 'test-nf-ave.fif')
+
+test_cov_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                        'data', 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
