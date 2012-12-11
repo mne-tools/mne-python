@@ -23,16 +23,16 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from mne.fiff import pick_types, pick_channels
-from mne.fiff.write import write_float_matrix, write_string, write_int, \
+from ..fiff import pick_types, pick_channels
+from ..fiff.write import write_float_matrix, write_string, write_int, \
                          write_name_list, start_block, end_block
-from mne.fiff.tree import dir_tree_find
-from mne.fiff.open import fiff_open
-from mne.fiff.tag import read_tag
-from mne.fiff.constants import Bunch, FIFF
+from ..fiff.tree import dir_tree_find
+from ..fiff.open import fiff_open
+from ..fiff.tag import read_tag
+from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
-from mne.fiff.write import start_file, end_file
+from ..fiff.write import start_file, end_file
 
 
 def _make_xy_sfunc(func, ndim_output=False):
