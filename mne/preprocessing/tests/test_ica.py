@@ -173,13 +173,15 @@ def test_ica_additional():
     ica.save(test_ica_fname)
     ica_read = read_ica(test_ica_fname)
     assert_true(ica.ch_names == ica_read.ch_names)
-    assert_array_almost_equal(ica._ica.unmixing_matrix_,
+    assert_array_almost_equal(ica._ica.unmixing_matrix_.astype,
                               ica_read._ica.unmixing_matrix_)
     assert_array_almost_equal(ica._mixing, ica_read._mixing)
     assert_array_almost_equal(ica._pca.components_,
                        ica_read._pca.components_)
     assert_array_almost_equal(ica._pca.exaplained_variance_,
                               ica_read._pca.exaplained_variance_)
+    assert_array_almost_equal(ica._pre_whitener_,
+                              ica_read._pca._pre_whitener_)
 
     assert_raises(RuntimeError, ica_read.decompose_raw, raw)
 

@@ -24,7 +24,7 @@ from .eog import _find_eog_events
 from ..cov import compute_whitener
 from .. import Covariance
 from ..fiff import pick_types, pick_channels
-from ..fiff.write import write_float_matrix, write_string, write_int, \
+from ..fiff.write import write_double_matrix, write_string, write_int, \
                          write_name_list, start_block, end_block
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
@@ -1058,22 +1058,22 @@ def _write_ica(fid, ica):
     if isinstance(ica._pre_whitener, int):
         write_int(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
     else:
-        write_float_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+        write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
 
     #   _PCA parameters
     write_string(fid, FIFF.FIFF_MNE_ICA_PCA_PARAMS, _serialize(_pca_params))
 
     #   _PCA components_
-    write_float_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS, _pca.components_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS, _pca.components_)
 
     #   _PCA explained_variance_
-    write_float_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
                        _pca.explained_variance_)
     #   _ICA parameters
     write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(_ica_params))
 
     #   _ICA unmixing
-    write_float_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, _ica.unmixing_matrix_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, _ica.unmixing_matrix_)
 
     #   ICA instance params
     write_string(fid, FIFF.FIFF_MNE_ICA_INSTANCE_PARAMS,
@@ -1141,6 +1141,7 @@ def read_ica(fname):
             ica_params = tag.data
 
     fid.close()
+
     _pca_params = _deserialize(_pca_params)
     if _pca_params['random_state'] == np.random.RandomState.__name__:
         _pca_params['random_state'] = np.random.RandomState()
