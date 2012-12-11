@@ -452,7 +452,7 @@ class Raw(object):
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=dict(N=4, ftype='butter'),
+               method='fft', iir_params=dict(order=4, ftype='butter'),
                verbose=None):
         """Filter a subset of channels.
 
