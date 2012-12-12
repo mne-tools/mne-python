@@ -81,63 +81,100 @@ import numpy as np
 from mne.fiff import Raw
 from mne.datasets import sample
 
-from pandas.stats.api import rolling_mean
+import pandas as pd
 
 # turn on interactive mode
 pl.ion()
 
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = Raw(raw_fname)
-events = mne.find_events(raw, stim_channel='STI 014')
-raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=True, eog=True,
+events = mne.read_events(event_fname)
+
+raw.info['bads'] = ['MEG 2443']
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude=raw.info['bads'])
 
-tmin, tmax, event_id = -0.2, 0.5, 1
+tmin, tmax = -0.2, 0.5
 baseline = (None, 0)
 reject = dict(grad=4000e-13, eog=150e-6)
+
+event_id = dict(auditory_l=1, visual_l=3)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
                     baseline=baseline, preload=False, reject=reject)
 
-epochs_df = epochs.as_data_frame()
 
-meg_chs = [c for c in epochs.ch_names if c.startswith("MEG")]
+###############################################################################
+# Export DataFrame
 
-# display some channels.
-epochs_df.ix['epoch 11', :4].head(20)
+# The following parameters will scale the channels and times plotting
+# friendly. The info columns 'epoch' and 'time' will be used as hierarchical
+# index whereas the condition is treated as categorial data.
 
-# plot single epoch.
-epochs_df.ix['epoch 11'].plot(legend=False, xlim=(0, 105), title='epoch 11')
+index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
-# split by timeslices using hierarchical index.
-grouped_tsl = epochs_df[meg_chs].groupby(level='time slices')
+df = epochs.as_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
+                         index=index)
 
-# then apply mean to each group and create a plot.
-grouped_tsl.mean().plot(legend=0, title='MEG average', xlim=(0, 105))
+# Create MEG channel selector and drop EOG channel.
+meg_chs = [c for c in df.columns if 'MEG' in c]
 
-# apply arbitrary numpy function.
-grouped_tsl.agg(np.std).plot(legend=0, title='MEG std', xlim=(0, 105))
+df.pop('EOG 061')
 
-# smooth using a rolling mean then average and finally plot.
-grouped_tsl.apply(lambda x: rolling_mean(x.mean(), 10)).plot(legend=False,
-                                                             xlim=(0, 105))
+# Pandas is using this index objects to treat acces the higher dimensionals
+# of the data which are in first place represented flat as 2D.
+print df.index.names, df.index.levels
+
+# Inspecting the index object unveils that 'epoch', 'time' are used
+# for subsetting data. We can take advantage of that by using the
+# .ix attriute:
+
+# plot some channels across for the first three epochs using multi index
+xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
+df.ix[:3, sel].plot(xticks=xticks)
+
+# slice the time starting at t0 in epoch 2 and ending 500ms after
+# the base line in epoch 3.
+df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
+
+# Note: To take more advantage of the index was set from floating values
+# to int values. To get back the original values you can
+# repeat epochs.times * n_epochs times.
+
+# We now want add
+
+# slit by condition using hierarchical index.
+grouped = df.groupby('condition', level='epoch')
+
+# print condition aggregate statistics for some channels
+print grouped.aggregate(np.mean, np.std)
+
+# # then apply mean to each group and create a plot.
+# grouped_tsl.mean().plot(legend=0, title='MEG average', xlim=(0, 105))
+
+# # apply arbitrary numpy function.
+# grouped_tsl.agg(np.std).plot(legend=0, title='MEG std', xlim=(0, 105))
+
+# # smooth using a rolling mean then average and finally plot.
+# grouped_tsl.apply(lambda x: rolling_mean(x.mean(), 10)).plot(legend=False,
+#                                                              xlim=(0, 105))
 
 # apply individual functions to channels.
-grouped_tsl.agg({"MEG 0113": np.mean, "MEG 0213": np.median})
+# grouped_tsl.agg({"MEG 0113": np.mean, "MEG 0213": np.median})
 
-# investigate epochs using hierarchical index.
-grouped_epochs = epochs_df[meg_chs].groupby(level='epochs')
+# # investigate epochs using hierarchical index.
+# grouped_epochs = epochs_df[meg_chs].groupby(level='epochs')
 
-subgroup = grouped_epochs.max().ix['epoch 1':'epoch 12']
+# subgroup = grouped_epochs.max().ix['epoch 1':'epoch 12']
 
-subgroup.plot(kind='barh', legend=0)
+# subgroup.plot(kind='barh', legend=0)
 
-# create string table for dumping into file.
-result_table = subgroup.to_string()
+# # create string table for dumping into file.
+# result_table = subgroup.to_string()
 
-# investigate a specific channel's std across epochs.
-chn = "MEG 0113"
-grouped_epochs.std()[chn].plot(title=chn, xlim=(0, 55))
+# # investigate a specific channel's std across epochs.
+# chn = "MEG 0113"
+# grouped_epochs.std()[chn].plot(title=chn, xlim=(0, 55))

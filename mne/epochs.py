@@ -23,7 +23,7 @@ from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
-from .fiff.pick import pick_types, channel_indices_by_type
+from .fiff.pick import pick_types, channel_indices_by_type, channel_type
 from .fiff.proj import setup_proj
 from .baseline import rescale
 from .utils import check_random_state
@@ -785,34 +785,92 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
-    def as_data_frame(self, frame=True):
+    def as_data_frame(self, picks, index=['epoch', 'time'],
+                      scale_time_unit=1e3, scalings=dict(mag=1e15, grad=1e13,
+                      eeg=1e6)):
         """Get the epochs as Pandas panel of data frames
 
-        Parameters
-        ----------
-        frame : boolean
-            If frame, data frame will be returned with a hierarchical
-            epochs * time-slices index, else a panel object of
-            channels * time-slices data frames for each epoch.
+        Export epochs data in tabular structure with MEG channels as columns
+        and three additional info columns 'epoch', 'condition', and 'time'.
+        The format matches a long table format commonly used to represent
+        repeated measures in within-subject designs.
 
         Returns
         -------
-        out : depending on arguments
-            data frame object or panel object
-
+        df : instance of DataFrame
+            Epochs exported into tabular data structure.
+        picks : None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
+        index : list of str | None
+            Column to be used as index for the data. Valid string options
+            are 'epoch', 'time' and 'condition'. If None, all three info columns
+            will be included in the table as categorial data.
+        scale_time_unit : float
+            Scaling to be applied to time units.
+        scalings : dict | None
+            Scaling to be applied to the channels picked. If None, no scaling
+            will be applied.
         """
-        import pandas as pd
-        data = self.get_data()
-        epoch_ids = ["epoch %i" % (i + 1) for i in np.arange(data.shape[0])]
+        try:
+            import pandas as pd
+        except:
+            raise RuntimeError('For this method you need an installation of '
+                               'the Pandas library.')
 
-        out = pd.Panel(data=data, items=epoch_ids, major_axis=self.ch_names)
-        if frame:
-            out = out.swapaxes(0, 1).to_frame()
-            out.index.names = ["epochs", "time slices"]
+        info_cols = ['condition', 'epoch', 'time']
+        if index is not None:
+            invalid_choices = [e for e in index if not e in info_cols]
+            if invalid_choices:
+                options = [', '.join(e) for e in [invalid_choices, info_cols]]
+                raise ValueError('[%s] is not un valid options. Valid index'
+                                 'options are \'None\' or %s' % tuple(options))
+
+        if picks is None:
+            picks = range(self.info['nchan'])
         else:
-            out.swapaxes(1, 2)
+            if not in1d(picks, np.arange(len(self.events))).all():
+                raise ValueError('At least one picked channel is not present in'
+                                 ' this eppochs instance.')
 
-        return out
+        data = self.get_data()[:, picks, :]
+        shape = data.shape
+        data = np.hstack(data).T
+
+        types = [channel_type(self.info, idx) for idx in picks]
+        n_channel_types = 0
+        ch_types_used = []
+        for t in scalings.keys():
+            if t in types:
+                n_channel_types += 1
+                ch_types_used.append(t)
+
+        for t in ch_types_used:
+            scaling = scalings[t]
+            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+            if len(idx) > 0:
+                data[:, idx] *= scaling
+
+        id_swapped = dict((v, k) for k, v in self.event_id.items())
+        names = [id_swapped[k] for k in self.events[:, 2]]
+        condition = np.repeat(names, shape[2])
+        time = np.tile(self.times, shape[0]) * scale_time_unit
+        # natural enumeration so I will let it start with 1
+        epoch = np.repeat(np.arange(shape[0]), shape[2])
+        assert len(time) == len(data) == len(condition) == len(epoch)
+
+        col_names = [self.ch_names[k] for k in picks]
+
+        df = pd.DataFrame(data, columns=col_names)
+        insert_info = zip((0, 1, 2), info_cols, [condition, epoch, time])
+        [df.insert(i, k, v) for i, k, v in insert_info]
+
+        if index is not None:
+            df.set_index(index, inplace=True)
+            if 'time' in df.index.names:
+                df.index.levels[1] = df.index.levels[1].astype(int)
+
+        return df
 
     def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
                   copy=True, use_first_samp=False):
