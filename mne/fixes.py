@@ -254,6 +254,9 @@ else:
 
 
 # imported from scipy git master on 2012/12/12
+from scipy.signal._arraytools import axis_slice, axis_reverse, odd_ext, \
+                                     even_ext, const_ext
+from scipy.signal import lfilter_zi, lfilter
 
 def _filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None):
     """A forward-backward filter.
