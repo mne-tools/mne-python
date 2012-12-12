@@ -11,6 +11,7 @@ from scipy import signal
 
 from ..fixes import _in1d, _tril_indices, _copysign, _unravel_index
 from ..fixes import _firwin2 as mne_firwin2
+from ..fixes import _filtfilt as mne_filtfilt
 
 
 def test_in1d():
@@ -62,3 +63,9 @@ def test_firwin2():
     taps1 = mne_firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])
     taps2 = signal.firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])
     assert_array_equal(taps1, taps2)
+
+def test_filtfilt():
+    x = np.r_[1, np.zeros(100)]
+    # Filter with an impulse
+    y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
+    assert_array_equal(x, y)
