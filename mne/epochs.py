@@ -873,7 +873,7 @@ class Epochs(object):
 
         return epochs_ts
 
-    def equalize_event_counts(self, *args, **kwargs):
+    def equalize_event_counts(self, event_ids, method='mintime'):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occuring as close as possible in
@@ -899,14 +899,18 @@ class Epochs(object):
 
         Parameters
         ----------
-        event_id1, event_id2, ... : sequence of str or list (of str)
-            The event types to equalize. If event_id1 (or any other entry) is
-            a list of str, these event_ids will be grouped together before
-            equalizing trial counts across conditions.
+        event_ids: list
+            The event types to equalize. Each entry in the list can either be
+            a str (single event) or a list of str. In the case where one of
+            the entries is a list of str, event_ids in that list will be
+            grouped together before equalizing trial counts across conditions.
         method : str
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will
             be minimized.
+        return_copy: bool
+            If True, a copy of epochs will be returned. Otherwise, the
+            function will operate in-place.
 
         Returns
         -------
@@ -915,8 +919,8 @@ class Epochs(object):
 
         Notes
         ----
-        This function operates on epochs in-place. For example (if
-        epochs.event_ids were {'Left': 1, 'Right': 2, 'Visual':3}:
+        For example (if epochs.event_ids were {'Left': 1, 'Right': 2,
+        'Visual':3}:
 
             epochs.equalize_event_counts(['Left', 'Right'], 'Nonspatial')
 
@@ -924,13 +928,12 @@ class Epochs(object):
         the total number of trials in the 'Left' and 'Right' conditions.
         """
         self.drop_bad_epochs()
-        eq_list = args
-        method = kwargs.get('method', 'mintime')
+        event_ids = event_ids
         if not self._bad_dropped:
             self.drop_bad_epochs()
         # figure out how to equalize
         eq_inds = list()
-        for eq in eq_list:
+        for eq in event_ids:
             eq = np.atleast_1d(eq)
             # eq is now a list of types
             key_match = np.zeros(self.events.shape[0])
@@ -948,31 +951,35 @@ class Epochs(object):
         return indices
 
 
-def combine_event_ids(epochs, to_collapse, new_event_id):
+def combine_event_ids(epochs, old_event_ids, new_event_id, return_copy=True):
     """Collapse event_ids from an epochs instance into a new event_id
 
     Parameters
     ----------
     epochs: instance of Epochs
         The epochs to operate on.
-    to_collapse: str, or list
+    old_event_ids: str, or list
         Conditions to collapse together.
     new_event_id: dict, or int
         A one-element dict (or a single integer) for the new
         condition. Note that for safety, this cannot be any
         existing id (in epochs.event_id.values()).
+    return_copy: bool
+        If True, a copy of epochs will be returned. Otherwise, the
+        function will operate in-place.
 
     Notes
     -----
-    This function operates on epochs in-place. For example (if
-    epochs.event_ids were {'Left': 1, 'Right': 2}:
+    This For example (if epochs.event_ids were {'Left': 1, 'Right': 2}:
 
         combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
 
     would create a 'Directional' entry in epochs.event_id replacing
     'Left' and 'Right' (combining their trials).
     """
-    to_collapse = np.asanyarray(to_collapse)
+    if return_copy:
+        epochs = epochs.copy()
+    old_event_ids = np.asanyarray(old_event_ids)
     if isinstance(new_event_id, int):
         new_event_id = {str(new_event_id): new_event_id}
     else:
@@ -987,19 +994,20 @@ def combine_event_ids(epochs, to_collapse, new_event_id):
         raise ValueError('new_event_id value must not already exist')
     # could use .pop() here, but if a latter one doesn't exist, we're
     # in trouble, so run them all here and pop() later
-    old_event_ids = np.array([epochs.event_id[key] for key in to_collapse])
+    old_event_nums = np.array([epochs.event_id[key] for key in old_event_ids])
     # find the ones to replace
     inds = np.any(epochs.events[:, 2][:, np.newaxis] ==
-                  old_event_ids[np.newaxis, :], axis=1)
+                  old_event_nums[np.newaxis, :], axis=1)
     # replace the event numbers in the events list
     epochs.events[inds, 2] = new_event_num
     # delete old entries
-    [epochs.event_id.pop(key) for key in to_collapse]
+    [epochs.event_id.pop(key) for key in old_event_ids]
     # add the new entry
     epochs.event_id.update(new_event_id)
+    return epochs
 
 
-def equalize_epoch_counts(*args, **kwargs):
+def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances
 
     It tries to make the remaining epochs occuring as close as possible in
@@ -1020,21 +1028,19 @@ def equalize_epoch_counts(*args, **kwargs):
 
     Parameters
     ----------
-    e1, e2, ... : sequence of Epochs instances
+    epochs_list: list of Epochs instances
         The Epochs instances to equalize trial counts for.
     method : str
         If 'truncate', events will be truncated from the end of each event
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    epochs_list = args
     if not all([isinstance(e, Epochs) for e in epochs_list]):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
     [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
     event_times = [e.events[:, 0] for e in epochs_list]
-    method = kwargs.get('method', 'mintime')
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
         e.drop_epochs(inds)
