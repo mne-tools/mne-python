@@ -407,22 +407,22 @@ def test_epoch_eq():
                     tmin, tmax, picks=picks)
     epochs.drop_bad_epochs()
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    epochs.equalize_condition_counts('a', 'b')
+    epochs.equalize_event_counts('a', 'b')
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] == new_shapes[1])
     assert_true(new_shapes[2] == new_shapes[2])
     assert_true(new_shapes[3] == new_shapes[3])
     # now with two conditions collapsed
     old_shapes = new_shapes
-    epochs.equalize_condition_counts(['a', 'b'], 'c')
+    epochs.equalize_event_counts(['a', 'b'], 'c')
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2])
     assert_true(new_shapes[3] == old_shapes[3])
-    assert_raises(KeyError, epochs.equalize_condition_counts, 1, 'a')
+    assert_raises(KeyError, epochs.equalize_event_counts, 1, 'a')
 
     # now let's combine conditions
     old_shapes = new_shapes
-    epochs.equalize_condition_counts(['a', 'b'], ['c', 'd'])
+    epochs.equalize_event_counts(['a', 'b'], ['c', 'd'])
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(old_shapes[0] + old_shapes[1] == new_shapes[0] + new_shapes[1])
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2] + new_shapes[3])

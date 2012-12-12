@@ -873,7 +873,7 @@ class Epochs(object):
 
         return epochs_ts
 
-    def equalize_condition_counts(self, *args, **kwargs):
+    def equalize_event_counts(self, *args, **kwargs):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occuring as close as possible in
@@ -898,14 +898,24 @@ class Epochs(object):
 
         Parameters
         ----------
-        e1, e2, ... : sequence of Epochs instances
-            The Epochs instances to equalize trial counts for.
+        event_id1, event_id2, ... : sequence of str or list (of str)
+            The event types to equalize. If event_id1 (or any other entry) is
+            a list of str, these event_ids will be grouped together before
+            equalizing trial counts across conditions.
         method : str
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will be
             minimized.
 
+        Notes
+        ----
+        This function operates on epochs in-place. For example (if
+        epochs.event_ids were {'Left': 1, 'Right': 2, 'Visual':3}:
 
+            epochs.equalize_event_counts(['Left', 'Right'], 'Nonspatial')
+
+        would equalize the number of trials in the 'Nonspatial' condition with
+        the total number of trials in the 'Left' and 'Right' conditions.
         """
         eq_list = args
         method = kwargs.get('method', 'mintime')
@@ -943,10 +953,13 @@ class Epochs(object):
 
         Notes
         -----
-        This function operates on epochs in-place. Example (if
+        This function operates on epochs in-place. For example (if
         epochs.event_ids were {'Left': 1, 'Right': 2}:
 
-            epochs.combine_conditions(['Left', 'Right'], {'Directional', 12})
+            epochs.combine_event_ids(['Left', 'Right'], {'Directional', 12})
+
+        would create a 'Directional' entry in epochs.event_id replacing
+        'Left' and 'Right' (combining their trials).
         """
         to_collapse = np.asanyarray(to_collapse)
         if isinstance(new_event_id, int):
