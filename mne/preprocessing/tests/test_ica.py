@@ -7,7 +7,7 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import stats
 from itertools import product
 import tempfile
@@ -178,19 +178,19 @@ def test_ica_additional():
 
         assert_true(ica.ch_names == ica_read.ch_names)
         try:
-            assert_array_almost_equal(ica._ica.unmixing_matrix_,
+            assert_array_equal(ica._ica.unmixing_matrix_,
                                       ica_read._ica.unmixing_matrix_)
         except:
-            assert_array_almost_equal(ica._ica.components_,
+            assert_array_equal(ica._ica.components_,
                                       ica_read._ica.components_)
-        assert_array_almost_equal(ica._mixing, ica_read._mixing)
-        assert_array_almost_equal(ica._pca.components_,
+        assert_array_equal(ica._mixing, ica_read._mixing)
+        assert_array_equal(ica._pca.components_,
                            ica_read._pca.components_)
-        assert_array_almost_equal(ica._pca.mean_,
+        assert_array_equal(ica._pca.mean_,
                                   ica_read._pca.mean_)
-        assert_array_almost_equal(ica._pca.explained_variance_,
+        assert_array_equal(ica._pca.explained_variance_,
                                   ica_read._pca.explained_variance_)
-        assert_array_almost_equal(ica._pre_whitener,
+        assert_array_equal(ica._pre_whitener,
                                   ica_read._pre_whitener)
 
         assert_raises(RuntimeError, ica_read.decompose_raw, raw)
