@@ -40,6 +40,7 @@ FIFF.FIFFB_SMSH_RAW_DATA      = 119
 FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
 FIFF.FIFFB_EPOCHS             = 122
+FIFF.FIFFB_ICA                = 123
 
 FIFF.FIFFB_PROJ               = 313
 FIFF.FIFFB_PROJ_ITEM          = 314
@@ -336,6 +337,18 @@ FIFF.FIFF_MNE_MORPH_MAP_TO           = 3572     # Which subject is this map to
 FIFF.FIFF_MNE_CTF_COMP_KIND         = 3580     # What kind of compensation
 FIFF.FIFF_MNE_CTF_COMP_DATA         = 3581     # The compensation data itself
 FIFF.FIFF_MNE_CTF_COMP_CALIBRATED   = 3582     # Are the coefficients calibrated?
+#
+# 3601... values associated with ICA decomposition
+#
+FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS  = 3601     # ICA interface parameters
+FIFF.FIFF_MNE_ICA_CHANNEL_NAMES     = 3602     # ICA channel names
+FIFF.FIFF_MNE_ICA_WHITENER          = 3603     # ICA whitener
+FIFF.FIFF_MNE_ICA_PCA_PARAMS        = 3604     # _PCA parameters
+FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3605     # _PCA components
+FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3606     # _PCA explained variance
+FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3607     # _PCA mean
+FIFF.FIFF_MNE_ICA_PARAMS            = 3608     # _ICA parameters
+FIFF.FIFF_MNE_ICA_UNMIXING          = 3609     # _ICA unmixinx matrix
 #
 # Fiff values associated with MNE computations
 #

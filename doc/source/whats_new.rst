@@ -31,8 +31,10 @@ Changelog
 
    - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Saving ICA sources to FIF files and creating ICA topography layouts by
+   - Saving ICA sources to fif files and creating ICA topography layouts by
      `Denis Engemann`_
+
+   - Save and restore ICA session to and from fif by `Denis Engemann`_
 
    - Export epochs data to the pandas library by `Denis Engemann`_
 

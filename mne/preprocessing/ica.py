@@ -9,6 +9,7 @@ import inspect
 import warnings
 from inspect import getargspec, isfunction
 
+import os
 import logging
 logger = logging.getLogger('mne')
 
@@ -21,10 +22,17 @@ from .ecg import qrs_detector
 from .eog import _find_eog_events
 
 from ..cov import compute_whitener
+from .. import Covariance
 from ..fiff import pick_types, pick_channels
+from ..fiff.write import write_double_matrix, write_string, \
+                         write_name_list, start_block, end_block
+from ..fiff.tree import dir_tree_find
+from ..fiff.open import fiff_open
+from ..fiff.tag import read_tag
 from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
+from ..fiff.write import start_file, end_file
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -54,7 +62,8 @@ score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
                    if getargspec(f).args == ['x', 'y']))
 
 
-__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs']
+__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs',
+           'read_ica']
 
 
 class ICA(object):
@@ -362,6 +371,30 @@ class ICA(object):
             sources = np.hstack(sources)
 
         return sources, pca_data
+
+    @verbose
+    def save(self, fname):
+        """ Store ICA session into a fiff file.
+
+        Parameters
+        ----------
+        fname : str
+            The absolute path of the file name to save the ICA session into.
+
+        """
+        if self.current_fit == 'unfitted':
+            raise RuntimeError('No fit available. Please first fit ICA '
+                               'decomposition.')
+
+        logger.info('Wrting ica session to %s...' % fname)
+        fid = start_file(fname)
+
+        try:
+            _write_ica(fid, self)
+        except Exception as inst:
+            os.remove(fname)
+            raise inst
+        end_file(fid)
 
     def export_sources(self, raw, picks=None, start=None, stop=None):
         """Export sources as raw object
@@ -739,9 +772,9 @@ class ICA(object):
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
         if self.noise_cov is None:  # use standardization as whitener
-            pre_whitener = np.std(data) ** -1
+            pre_whitener = np.atleast_1d(np.std(data)) ** -1
             data *= pre_whitener
-        else:  # pick cov
+        elif not hasattr(self, '_pre_whitener'):  # pick cov
             ncov = deepcopy(self.noise_cov)
             if data.shape[0] != ncov['data'].shape[0]:
                 ncov['data'] = ncov['data'][picks][:, picks]
@@ -749,6 +782,9 @@ class ICA(object):
 
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = np.dot(pre_whitener, data)
+        else:
+            data = np.dot(self._pre_whitener, data)
+            pre_whitener = self._pre_whitener
 
         return data, pre_whitener
 
@@ -939,3 +975,215 @@ def _inverse_t_pca(X, pca):
         X_orig += pca.mean_
 
     return X_orig
+
+
+def _serialize(dict_, outer_sep=';', inner_sep=':'):
+    """Aux function"""
+
+    s = []
+    for k, v in dict_.items():
+        if callable(v):
+            v = v.__name__
+        for cls in (np.random.RandomState, Covariance):
+            if isinstance(v, cls):
+                v = cls.__name__
+        else:
+            v = str(v)
+        s.append(k + inner_sep + v)
+
+    return outer_sep.join(s)
+
+
+def _deserialize(str_, outer_sep=';', inner_sep=':'):
+    """Aux function"""
+
+    out = {}
+    for mapping in str_.split(outer_sep):
+        k, v = mapping.split(inner_sep)
+        if v == 'None':
+            out[k] = None
+        elif v == 'True':
+            out[k] = True
+        elif v == 'False':
+            out[k] = False
+        elif any([v.isdigit(), all([v[0] == '-', v[1:].isdigit()])]):
+            out[k] = int(v)
+        elif any([c.isdigit() for c in v]) and \
+             any([e in v for e in ['e-', '.', 'e']]):
+            out[k] = float(v)
+        else:
+            out[k] = v
+
+    return out
+
+
+def _write_ica(fid, ica):
+    """Write an ICA object
+
+    Parameters
+    ----------
+    fid: file
+        The file descriptor
+
+    ica:
+        The instance of ICA to write
+    """
+
+    _pca, _ica = ica._pca, ica._ica
+    _pca_params = _pca.get_params()
+    _ica_params = _ica.get_params()
+
+    for key in ('fun_args', 'fun_prime'):
+        if _ica_params.get(key, None):
+            _ica_params[key] = _serialize(_ica_params[key], '#')
+        else:
+            _ica_params[key] = str(None)
+
+    ica_interface = dict(noise_cov=ica.noise_cov,
+                         max_n_components=ica.max_n_components,
+                         n_components=ica.n_components,
+                         current_fit=ica.current_fit,
+                         _explained_var=ica._explained_var
+                         )
+    try:  # first try to get new attribute.
+        unmixing_matrix_ = ica._ica.components_
+    except:
+        unmixing_matrix_ = ica._ica.unmixing_matrix_
+
+    start_block(fid, FIFF.FIFFB_ICA)
+
+    #   ICA interface params
+    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
+                 _serialize(ica_interface))
+
+    #   Channel names
+    if ica.ch_names is not None:
+        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
+
+    #   Whitener
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
+
+    #   _PCA parameters
+    write_string(fid, FIFF.FIFF_MNE_ICA_PCA_PARAMS, _serialize(_pca_params))
+
+    #   _PCA components_
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS, _pca.components_)
+
+    #   _PCA explained_variance_
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
+                       _pca.explained_variance_)
+    #   _PCA mean_
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_MEAN, _pca.mean_)
+
+    #   _ICA parameters
+    write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(_ica_params))
+
+    #   _ICA unmixing
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, unmixing_matrix_)
+
+    #   Done!
+    end_block(fid, FIFF.FIFFB_ICA)
+
+
+@verbose
+def read_ica(fname):
+    """ Restore ICA sessions from fif file.
+
+    Parameters
+    ----------
+    fname : str
+        Absolute path to fif file containing ICA matrixes
+
+    Returns
+    -------
+    ica : instance of ICA
+
+    """
+    try:
+            from sklearn.decomposition import FastICA, RandomizedPCA
+    except ImportError:
+            raise Exception('the scikit-learn package is missing and '
+                            'required for ICA')
+
+    logger.info('Reading %s ...' % fname)
+    fid, tree, _ = fiff_open(fname)
+    ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
+    if len(ica_data) == 0:
+        fid.close()
+        raise ValueError('Could not find ICA data')
+
+    my_ica_data = ica_data[0]
+    for d in my_ica_data['directory']:
+        kind = d.kind
+        pos = d.pos
+        if kind == FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS:
+            tag = read_tag(fid, pos)
+            ica_interface = tag.data
+        elif kind == FIFF.FIFF_MNE_ROW_NAMES:
+            tag = read_tag(fid, pos)
+            ch_names = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_WHITENER:
+            tag = read_tag(fid, pos)
+            _pre_whitener = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PCA_PARAMS:
+            tag = read_tag(fid, pos)
+            _pca_params = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PCA_COMPONENTS:
+            tag = read_tag(fid, pos)
+            components_ = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR:
+            tag = read_tag(fid, pos)
+            explained_variance_ = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PCA_MEAN:
+            tag = read_tag(fid, pos)
+            mean_ = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_PARAMS:
+            tag = read_tag(fid, pos)
+            _ica_params = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_UNMIXING:
+            tag = read_tag(fid, pos)
+            unmixing_matrix_ = tag.data
+
+    fid.close()
+
+    _pca_params = _deserialize(_pca_params)
+    if _pca_params['random_state'] == np.random.RandomState.__name__:
+        _pca_params['random_state'] = np.random.RandomState()
+        logger.warning('Creating new RandomState object. The ensueing random '
+                       'state will not match the random state from '
+                       'PCA fit time.')
+
+    interface = _deserialize(ica_interface)
+    current_fit = interface.pop('current_fit')
+    _explained_var = interface.pop('_explained_var')
+    if interface['noise_cov'] == Covariance.__name__:
+        logger.warning('The noise covariance used on fit cannot be restored.'
+                       'The whitener drawn from the covariance will be used.')
+
+    logger.info('Now restoring ICA session ...')
+
+    _ica = FastICA(**_deserialize(_ica_params))
+
+    try:  # try to set an attribute, hoping it won't work.
+        _ica.unmixing_matrix_ = unmixing_matrix_
+    except:
+        _ica.components_ = unmixing_matrix_
+
+    _pca = RandomizedPCA(**_pca_params)
+    _pca.components_ = components_
+    _pca.mean_ = mean_
+    _pca.explained_variance_ = explained_variance_
+    _pca.explained_variance_ratio_ = explained_variance_ / \
+                                     explained_variance_.sum()
+    ica = ICA(**interface)
+    ica._ica, ica._pca = _ica, _pca
+    ica.current_fit = current_fit
+    ica.ch_names = ch_names.split(':')
+    ica._comp_idx = np.arange(ica.n_components)
+    ica._pre_whitener = _pre_whitener
+    ica._explained_var = _explained_var
+    ica._mixing = _ica.get_mixing_matrix().T
+
+    logger.info('Ready.')
+
+    return ica
