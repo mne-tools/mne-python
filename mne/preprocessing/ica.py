@@ -1024,11 +1024,9 @@ def _write_ica(fid, ica):
     ----------
     fid: file
         The file descriptor
-
     ica:
         The instance of ICA to write
     """
-
     _pca, _ica = ica._pca, ica._ica
     _pca_params = _pca.get_params()
     _ica_params = _ica.get_params()
@@ -1097,13 +1095,12 @@ def read_ica(fname):
     Returns
     -------
     ica : instance of ICA
-
     """
     try:
-            from sklearn.decomposition import FastICA, RandomizedPCA
+        from sklearn.decomposition import FastICA, RandomizedPCA
     except ImportError:
-            raise Exception('the scikit-learn package is missing and '
-                            'required for ICA')
+        raise Exception('the scikit-learn package is missing and '
+                        'required for ICA')
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
@@ -1164,7 +1161,7 @@ def read_ica(fname):
 
     _ica = FastICA(**_deserialize(_ica_params))
 
-    try:  # try to set an attribute, hoping it won't work.
+    try:  # try to set an attribute (won't work with all sklearn versions)
         _ica.unmixing_matrix_ = unmixing_matrix_
     except:
         _ica.components_ = unmixing_matrix_

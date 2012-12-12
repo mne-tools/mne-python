@@ -200,7 +200,8 @@ ica_lout = make_grid_layout(ica_raw.info)
 # ica.save('my_ica.fif')
 #
 # You can later restore the session by saying:
-# from mne.preporcesing import read_ica('my_ica.fif')
+# >>> from mne.preprocessing import read_ica
+# >>> read_ica('my_ica.fif')
 #
 # The ICA functionality exposed in this example will then be available at
 # at any later point in time provided the data have the same structure as the
