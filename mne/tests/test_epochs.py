@@ -11,9 +11,8 @@ import numpy as np
 import copy as cp
 import warnings
 
-from mne import fiff, Epochs, read_events, pick_events, \
-                equalize_epoch_counts, read_epochs
-from mne.epochs import bootstrap
+from mne import fiff, Epochs, read_events, pick_events, read_epochs
+from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 
 try:
     import nitime
@@ -426,8 +425,9 @@ def test_epoch_eq():
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(old_shapes[0] + old_shapes[1] == new_shapes[0] + new_shapes[1])
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2] + new_shapes[3])
-    assert_raises(ValueError, epochs.combine_event_ids, ['a', 'b'], {'ab': 1})
-    epochs.combine_event_ids(['a', 'b'], {'ab': 12})
+    assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'],
+                  {'ab': 1})
+    combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
     caught = 0
     for key in ['a', 'b']:
         try:
@@ -437,7 +437,7 @@ def test_epoch_eq():
     assert_raises(caught == 2)
     assert_true(not np.any(epochs.events[:, 2] == 1))
     assert_true(not np.any(epochs.events[:, 2] == 2))
-    epochs.combine_event_ids(['c', 'd'], {'cd': 34})
+    combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
     assert_true(np.all(np.logical_or(epochs.events[:, 2] == 12,
                                      epochs.events[:, 2] == 34)))
     assert_true(epochs['ab'].events.shape[0] == old_shapes[0] + old_shapes[1])

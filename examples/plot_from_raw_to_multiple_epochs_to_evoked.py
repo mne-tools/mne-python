@@ -19,13 +19,14 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
+from mne.epochs import combine_event_ids
 data_path = sample.data_path('.')
 
 ###############################################################################
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR':4}
+event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
 tmin = -0.2
 tmax = 0.5
 
@@ -39,15 +40,15 @@ exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
 picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
-                                            include=include, exclude=exclude)
+                        include=include, exclude=exclude)
 # Read epochs
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))
 # Let's equalize the trial counts in each condition
 epochs.equalize_event_counts('AudL', 'AudR', 'VisL', 'VisR')
 # Now let's combine some conditions
-epochs.combine_event_ids(['AudL', 'AudR'], {'Auditory': 12})
-epochs.combine_event_ids(['VisL', 'VisR'], {'Visual': 34})
+combine_event_ids(epochs, ['AudL', 'AudR'], {'Auditory': 12})
+combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34})
 
 # average epochs and get Evoked datasets
 evoked_auditory = epochs['Auditory'].average()

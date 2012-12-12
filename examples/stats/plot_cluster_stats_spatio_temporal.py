@@ -24,7 +24,8 @@ import pylab as pl
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris, equalize_epoch_counts, SourceEstimate, read_surface
+    grade_to_tris, SourceEstimate, read_surface
+from mne.epochs import equalize_epoch_counts
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample

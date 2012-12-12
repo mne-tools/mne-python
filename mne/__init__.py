@@ -28,7 +28,7 @@ from .surface import read_bem_surfaces, read_surface, write_bem_surface, \
                      write_surface
 from .source_space import read_source_spaces, vertex_to_mni, \
                           write_source_spaces
-from .epochs import Epochs, equalize_epoch_counts, read_epochs
+from .epochs import Epochs, read_epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
                    BiHemiLabel
@@ -41,6 +41,7 @@ from .dipole import read_dip
 from . import beamformer
 from . import connectivity
 from . import datasets
+from . import epochs
 from . import fiff
 from . import filter
 from . import layouts

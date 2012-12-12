@@ -877,17 +877,18 @@ class Epochs(object):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occuring as close as possible in
-        time. This method works based on the idea that if there happened to be some
-        time-varying (like on the scale of minutes) noise characteristics during
-        a recording, they could be compensated for (to some extent) in the
-        equalization process. This method thus seeks to reduce any of those effects
-        by minimizing the differences in the times of the events in the two sets of
-        epochs. For example, if one had event times [1, 2, 3, 4, 120, 121] and the
-        other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
-        [1, 2] in the first epochs and not [20, 21].
+        time. This method works based on the idea that if there happened to be
+        some time-varying (like on the scale of minutes) noise characteristics
+        during a recording, they could be compensated for (to some extent) in
+        the equalization process. This method thus seeks to reduce any of
+        those effects by minimizing the differences in the times of the events
+        in the two sets of epochs. For example, if one had event times
+        [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
+        it would remove events at times [1, 2] in the first epochs and not
+        [20, 21].
 
-        Note that this operates in-place, and will call drop_bad_epochs() if bad
-        epochs have not yet been dropped.
+        Note that this operates in-place, and will call drop_bad_epochs() if
+        bad epochs have not yet been dropped.
 
         For example:
 
@@ -904,8 +905,13 @@ class Epochs(object):
             equalizing trial counts across conditions.
         method : str
             If 'truncate', events will be truncated from the end of each event
-            list. If 'mintime', timing differences between each event list will be
-            minimized.
+            list. If 'mintime', timing differences between each event list will
+            be minimized.
+
+        Returns
+        -------
+        indices: array of int
+            Indices from the original events list that were dropped.
 
         Notes
         ----
@@ -917,6 +923,7 @@ class Epochs(object):
         would equalize the number of trials in the 'Nonspatial' condition with
         the total number of trials in the 'Left' and 'Right' conditions.
         """
+        self.drop_bad_epochs()
         eq_list = args
         method = kwargs.get('method', 'mintime')
         if not self._bad_dropped:
@@ -938,54 +945,58 @@ class Epochs(object):
                                   for eq, inds in zip(eq_inds, indices)])
         # actually remove the indices
         self.drop_epochs(indices)
+        return indices
 
-    def combine_event_ids(self, to_collapse, new_event_id):
-        """Collapse event_ids into a new event_id
 
-        Parameters
-        ----------
-        to_collapse: str, or list
-            Conditions to collapse together.
-        new_event_id: dict, or int
-            A one-element dict (or a single integer) for the new
-            condition. Note that for safety, this cannot be any
-            existing id (in epochs.event_id.values()).
+def combine_event_ids(epochs, to_collapse, new_event_id):
+    """Collapse event_ids from an epochs instance into a new event_id
 
-        Notes
-        -----
-        This function operates on epochs in-place. For example (if
-        epochs.event_ids were {'Left': 1, 'Right': 2}:
+    Parameters
+    ----------
+    epochs: instance of Epochs
+        The epochs to operate on.
+    to_collapse: str, or list
+        Conditions to collapse together.
+    new_event_id: dict, or int
+        A one-element dict (or a single integer) for the new
+        condition. Note that for safety, this cannot be any
+        existing id (in epochs.event_id.values()).
 
-            epochs.combine_event_ids(['Left', 'Right'], {'Directional', 12})
+    Notes
+    -----
+    This function operates on epochs in-place. For example (if
+    epochs.event_ids were {'Left': 1, 'Right': 2}:
 
-        would create a 'Directional' entry in epochs.event_id replacing
-        'Left' and 'Right' (combining their trials).
-        """
-        to_collapse = np.asanyarray(to_collapse)
-        if isinstance(new_event_id, int):
-            new_event_id = {str(event_id): event_id}
-        else:
-            if not isinstance(new_event_id, dict):
-                raise ValueError('new_event_id must be a dict or int')
-            if not len(new_event_id.keys()) == 1:
-                raise ValueError('new_event_id dict must have one entry')
-        new_event_num = new_event_id.values()[0]
-        if not isinstance(new_event_num, int):
-            raise ValueError('new_event_id value must be an integer')
-        if new_event_num in self.event_id.values():
-            raise ValueError('new_event_id value must not already exist')
-        # could use .pop() here, but if a latter one doesn't exist, we're
-        # in trouble, so run them all here and pop() later
-        old_event_ids = np.array([self.event_id[key] for key in to_collapse])
-        # find the ones to replace
-        inds = np.any(self.events[:, 2][:, np.newaxis] ==
-                      old_event_ids[np.newaxis, :], axis=1)
-        # replace the event numbers in the events list
-        self.events[inds, 2] = new_event_num
-        # delete old entries
-        [self.event_id.pop(key) for key in to_collapse]
-        # add the new entry
-        self.event_id.update(new_event_id)
+        combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
+
+    would create a 'Directional' entry in epochs.event_id replacing
+    'Left' and 'Right' (combining their trials).
+    """
+    to_collapse = np.asanyarray(to_collapse)
+    if isinstance(new_event_id, int):
+        new_event_id = {str(new_event_id): new_event_id}
+    else:
+        if not isinstance(new_event_id, dict):
+            raise ValueError('new_event_id must be a dict or int')
+        if not len(new_event_id.keys()) == 1:
+            raise ValueError('new_event_id dict must have one entry')
+    new_event_num = new_event_id.values()[0]
+    if not isinstance(new_event_num, int):
+        raise ValueError('new_event_id value must be an integer')
+    if new_event_num in epochs.event_id.values():
+        raise ValueError('new_event_id value must not already exist')
+    # could use .pop() here, but if a latter one doesn't exist, we're
+    # in trouble, so run them all here and pop() later
+    old_event_ids = np.array([epochs.event_id[key] for key in to_collapse])
+    # find the ones to replace
+    inds = np.any(epochs.events[:, 2][:, np.newaxis] ==
+                  old_event_ids[np.newaxis, :], axis=1)
+    # replace the event numbers in the events list
+    epochs.events[inds, 2] = new_event_num
+    # delete old entries
+    [epochs.event_id.pop(key) for key in to_collapse]
+    # add the new entry
+    epochs.event_id.update(new_event_id)
 
 
 def equalize_epoch_counts(*args, **kwargs):
