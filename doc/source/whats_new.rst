@@ -74,6 +74,7 @@ Changelog
 
    - Support for L21 MxNE solver using coordinate descent using scikit-learn by `Alex Gramfort`_ and `Daniel Strohmeier`_
 
+   - Support IIR filters (butterworth, chebyshev, bessel, etc.) by `Eric Larson`_
 
 API
 ~~~
