@@ -382,6 +382,10 @@ class ICA(object):
             The absolute path of the file name to save the ICA session into.
 
         """
+        if self.current_fit == 'unfitted':
+            raise RuntimeError('No fit available. Please first fit ICA '
+                               'decomposition.')
+
         logger.info('Wrting ica session to %s...' % fname)
         fid = start_file(fname)
 

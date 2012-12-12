@@ -160,6 +160,7 @@ def test_ica_additional():
     assert_true(ica.n_components < 5)
 
     ica = ICA(n_components=3, max_n_components=4)
+    assert_raises(RuntimeError, ica.save, '')
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
 
     # epochs extraction from raw fit
