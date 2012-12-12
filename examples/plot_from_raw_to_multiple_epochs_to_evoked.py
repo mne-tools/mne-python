@@ -1,14 +1,16 @@
 """
-========================================================
-Extract epochs, average and save evoked response to disk
-========================================================
+====================================================================
+Extract epochs for multiple conditions, save evoked response to disk
+====================================================================
 
-This script shows how to read the epochs from a raw file given
-a list of events. The epochs are averaged to produce evoked
-data and then saved to disk.
+This script shows how to read the epochs for multiple conditions from
+a raw file given a list of events. The epochs are averaged to produce
+evoked data and then saved to disk.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
