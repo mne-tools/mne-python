@@ -151,7 +151,8 @@ def test_ica_core():
 
 @sklearn_test
 def test_ica_additional():
-    # Test additional functionality
+    """Test additional functionality
+    """
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
@@ -178,12 +179,15 @@ def test_ica_additional():
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
+        a = ica._ica.unmixing_matrix_
+        b = ica_read._ica.unmixing_matrix_
+        assert_array_equal(a, b)
         try:
-            assert_array_equal(ica._ica.unmixing_matrix_,
-                                      ica_read._ica.unmixing_matrix_)
+            a = ica._ica.components_
+            b = ica_read._ica.components_
         except:
-            assert_array_equal(ica._ica.components_,
-                                      ica_read._ica.components_)
+            pass
+        assert_array_equal(a, b)
         assert_array_equal(ica._mixing, ica_read._mixing)
         assert_array_equal(ica._pca.components_,
                            ica_read._pca.components_)
