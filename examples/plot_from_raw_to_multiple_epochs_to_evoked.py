@@ -47,10 +47,8 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
 # Let's equalize the trial counts in each condition
 epochs.equalize_event_counts(['AudL', 'AudR', 'VisL', 'VisR'])
 # Now let's combine some conditions
-combine_event_ids(epochs, ['AudL', 'AudR'], {'Auditory': 12},
-                  return_copy=False)
-combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34},
-                  return_copy=False)
+combine_event_ids(epochs, ['AudL', 'AudR'], {'Auditory': 12}, copy=False)
+combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34}, copy=False)
 
 # average epochs and get Evoked datasets
 evoked_auditory = epochs['Auditory'].average()
