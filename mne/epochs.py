@@ -326,7 +326,7 @@ class Epochs(object):
         ----------
         indices : array of ints or bools
             Set epochs to remove by specifying indices to remove or a boolean
-            mask to apply (where zeros get removed). Events are
+            mask to apply (where True values get removed). Events are
             correspondingly modified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
@@ -334,7 +334,7 @@ class Epochs(object):
         """
         indices = np.asarray(indices)
         if indices.dtype == bool:
-            indices = np.where(np.logical_not(indices))[0]
+            indices = np.where(indices)[0]
         self.events = np.delete(self.events, indices, axis=0)
         if(self.preload):
             self._data = np.delete(self._data, indices, axis=0)
@@ -873,7 +873,7 @@ class Epochs(object):
 
         return epochs_ts
 
-    def equalize_event_counts(self, event_ids, method='mintime'):
+    def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
 
         It tries to make the remaining epochs occuring as close as possible in
@@ -890,13 +890,6 @@ class Epochs(object):
         Note that this operates in-place, and will call drop_bad_epochs() if
         bad epochs have not yet been dropped.
 
-        For example:
-
-            epochs.equalize_condition_counts('Auditory', ['Visual', 'Tactile'])
-
-        would equalize the number of auditory and non-auditory (visual and
-        tactile) trials.
-
         Parameters
         ----------
         event_ids: list
@@ -908,50 +901,55 @@ class Epochs(object):
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will
             be minimized.
-        return_copy: bool
+        copy: bool
             If True, a copy of epochs will be returned. Otherwise, the
             function will operate in-place.
 
         Returns
         -------
+        epochs: instance of Epochs
+            The modified Epochs instance.
         indices: array of int
             Indices from the original events list that were dropped.
 
         Notes
         ----
-        For example (if epochs.event_ids were {'Left': 1, 'Right': 2,
-        'Visual':3}:
+        For example (if epochs.event_id was {'Left': 1, 'Right': 2,
+        'Nonspatial':3}:
 
             epochs.equalize_event_counts(['Left', 'Right'], 'Nonspatial')
 
         would equalize the number of trials in the 'Nonspatial' condition with
         the total number of trials in the 'Left' and 'Right' conditions.
         """
-        self.drop_bad_epochs()
+        if copy is True:
+            epochs = self.copy()
+        else:
+            epochs = self
         event_ids = event_ids
-        if not self._bad_dropped:
-            self.drop_bad_epochs()
+        if not epochs._bad_dropped:
+            epochs.drop_bad_epochs()
         # figure out how to equalize
         eq_inds = list()
         for eq in event_ids:
             eq = np.atleast_1d(eq)
             # eq is now a list of types
-            key_match = np.zeros(self.events.shape[0])
+            key_match = np.zeros(epochs.events.shape[0])
             for key in eq:
-                key_match = np.logical_or(key_match, self._key_match(key))
+                key_match = np.logical_or(key_match, epochs._key_match(key))
             eq_inds.append(np.where(key_match)[0])
 
-        event_times = [self.events[eq, 0] for eq in eq_inds]
+        event_times = [epochs.events[eq, 0] for eq in eq_inds]
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
         indices = np.concatenate([eq[inds]
                                   for eq, inds in zip(eq_inds, indices)])
+        epochs.drop_epochs(indices)
         # actually remove the indices
-        self.drop_epochs(indices)
-        return indices
+        return epochs, indices
 
 
-def combine_event_ids(epochs, old_event_ids, new_event_id, return_copy=True):
+def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     """Collapse event_ids from an epochs instance into a new event_id
 
     Parameters
@@ -964,20 +962,20 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, return_copy=True):
         A one-element dict (or a single integer) for the new
         condition. Note that for safety, this cannot be any
         existing id (in epochs.event_id.values()).
-    return_copy: bool
+    copy: bool
         If True, a copy of epochs will be returned. Otherwise, the
         function will operate in-place.
 
     Notes
     -----
-    This For example (if epochs.event_ids were {'Left': 1, 'Right': 2}:
+    This For example (if epochs.event_id was {'Left': 1, 'Right': 2}:
 
         combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
 
     would create a 'Directional' entry in epochs.event_id replacing
     'Left' and 'Right' (combining their trials).
     """
-    if return_copy:
+    if copy:
         epochs = epochs.copy()
     old_event_ids = np.asanyarray(old_event_ids)
     if isinstance(new_event_id, int):

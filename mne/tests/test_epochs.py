@@ -406,14 +406,14 @@ def test_epoch_eq():
                     tmin, tmax, picks=picks)
     epochs.drop_bad_epochs()
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
-    epochs.equalize_event_counts(['a', 'b'])
+    epochs.equalize_event_counts(['a', 'b'], copy=False)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] == new_shapes[1])
     assert_true(new_shapes[2] == new_shapes[2])
     assert_true(new_shapes[3] == new_shapes[3])
     # now with two conditions collapsed
     old_shapes = new_shapes
-    epochs.equalize_event_counts([['a', 'b'], 'c'])
+    epochs.equalize_event_counts([['a', 'b'], 'c'], copy=False)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2])
     assert_true(new_shapes[3] == old_shapes[3])
@@ -421,14 +421,14 @@ def test_epoch_eq():
 
     # now let's combine conditions
     old_shapes = new_shapes
-    epochs.equalize_event_counts([['a', 'b'], ['c', 'd']])
+    epochs = epochs.equalize_event_counts([['a', 'b'], ['c', 'd']])[0]
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(old_shapes[0] + old_shapes[1] == new_shapes[0] + new_shapes[1])
     assert_true(new_shapes[0] + new_shapes[1] == new_shapes[2] + new_shapes[3])
     assert_raises(ValueError, combine_event_ids, epochs, ['a', 'b'],
                   {'ab': 1})
 
-    combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, return_copy=False)
+    combine_event_ids(epochs, ['a', 'b'], {'ab': 12}, copy=False)
     caught = 0
     for key in ['a', 'b']:
         try:
@@ -438,7 +438,7 @@ def test_epoch_eq():
     assert_raises(caught == 2)
     assert_true(not np.any(epochs.events[:, 2] == 1))
     assert_true(not np.any(epochs.events[:, 2] == 2))
-    combine_event_ids(epochs, ['c', 'd'], {'cd': 34}, return_copy=False)
+    epochs = combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
     assert_true(np.all(np.logical_or(epochs.events[:, 2] == 12,
                                      epochs.events[:, 2] == 34)))
     assert_true(epochs['ab'].events.shape[0] == old_shapes[0] + old_shapes[1])
