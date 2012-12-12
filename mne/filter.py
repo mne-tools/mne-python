@@ -2,11 +2,10 @@ import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
 from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
-from fixes import filtfilt
 from scipy import signal
 from copy import deepcopy
 
-from .utils import firwin2  # back port for old scipy
+from .fixes import firwin2, filtfilt  # back port for old scipy
 
 
 def is_power2(num):
