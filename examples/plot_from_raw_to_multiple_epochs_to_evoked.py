@@ -45,7 +45,7 @@ picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))
 # Let's equalize the trial counts in each condition
-epochs.equalize_event_counts(['AudL', 'AudR', 'VisL', 'VisR'])
+epochs.equalize_event_counts(['AudL', 'AudR', 'VisL', 'VisR'], copy=False)
 # Now let's combine some conditions
 combine_event_ids(epochs, ['AudL', 'AudR'], {'Auditory': 12}, copy=False)
 combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34}, copy=False)
