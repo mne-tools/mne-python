@@ -786,7 +786,7 @@ class Epochs(object):
         end_file(fid)
 
     def as_data_frame(self, picks, index=['epoch', 'time'],
-                      scale_time_unit=1e3, scalings=dict(mag=1e15, grad=1e13,
+                      scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
                       eeg=1e6)):
         """Get the epochs as Pandas panel of data frames
 
@@ -854,7 +854,7 @@ class Epochs(object):
         id_swapped = dict((v, k) for k, v in self.event_id.items())
         names = [id_swapped[k] for k in self.events[:, 2]]
         condition = np.repeat(names, shape[2])
-        time = np.tile(self.times, shape[0]) * scale_time_unit
+        time = np.tile(self.times, shape[0]) * scale_time
         # natural enumeration so I will let it start with 1
         epoch = np.repeat(np.arange(shape[0]), shape[2])
         assert len(time) == len(data) == len(condition) == len(epoch)

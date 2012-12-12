@@ -144,13 +144,16 @@ df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
 # to int values. To get back the original values you can
 # repeat epochs.times * n_epochs times.
 
-# We now want add
+# We now want to add condition to the DataFrame to make use of Pandas
+# pivoting functionality.
+df.set_index('condition', append=True, inplace=True)
 
-# slit by condition using hierarchical index.
-grouped = df.groupby('condition', level='epoch')
+# We will now split the DataFrame into a group of DataFrames
+# according to condition and epoch number.
+grouped = df.groupby(level=['epoch', 'condition'])
 
-# print condition aggregate statistics for some channels
-print grouped.aggregate(np.mean, np.std)
+# print condition aggregate statistics for one channels
+print  grouped['MEG 0113'].describe()
 
 # # then apply mean to each group and create a plot.
 # grouped_tsl.mean().plot(legend=0, title='MEG average', xlim=(0, 105))
