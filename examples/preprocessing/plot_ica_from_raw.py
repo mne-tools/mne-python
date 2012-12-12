@@ -194,3 +194,14 @@ ica_lout = make_grid_layout(ica_raw.info)
 # Uncomment the following two lines to save sources and layout.
 # ica_raw.save('ica_raw.fif')
 # ica_lout.save(os.path.join(os.environ['HOME'], '.mne/lout/ica.lout'))
+
+################################################################################
+# To save an ICA session you can say:
+# ica.save('my_ica.fif')
+#
+# You can later restore the session by saying:
+# from mne.preporcesing import read_ica('my_ica.fif')
+#
+# The ICA functionality exposed in this example will then be available at
+# at any later point in time provided the data have the same structure as the
+# data initially supplied to ICA.
