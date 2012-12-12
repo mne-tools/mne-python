@@ -1,7 +1,8 @@
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
-from scipy.signal import freqz, filtfilt, iirdesign, iirfilter, filter_dict
+from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
+from fixes import filtfilt
 from scipy import signal
 from copy import deepcopy
 
