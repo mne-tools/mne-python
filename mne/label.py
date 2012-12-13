@@ -727,6 +727,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, subjects_dir=None, verbose=None):
     """ Read labels from FreeSurfer parcellation
 
+    Note: Only cortical labels will be returned.
+
     Parameters
     ----------
     subject: str
