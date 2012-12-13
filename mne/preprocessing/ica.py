@@ -774,7 +774,7 @@ class ICA(object):
     def mixing_matrix(self):
         """The ICA mixing matrix"""
         if hasattr(self, '_unmixing'):
-            out = linalg.pinv(self._unmixing).T
+            out = linalg.pinv(self._unmixing)
         else:
             out = None
         return out
@@ -839,14 +839,18 @@ class ICA(object):
                                       self._explained_var)[0])
             to_ica = pca_data[:, self._comp_idx]
             self.n_components = len(self._comp_idx)
-
         self._ica.fit(to_ica)
         try:  # this will work for sklearn > 0.13
-            self._unmixing = self._ica.components_
+            self._unmixing = self._ica.components.T
         except:
-            self._unmixing = self._ica.unmixing_matrix
-        self.current_fit = caller
+            if self._ica.unmixing_matrix_.shape[0] == self.n_components:
+                self._unmixing = self._ica.unmixing_matrix_
+                warnings.warn('Unexpected matrix shape. Probably you are '
+                              'using an outdate version of scikit-learn')
+            else:
+                self._unmixing = self._ica.unmixing_matrix_.T
 
+        self.current_fit = caller
         self._pca = Bunch()
         for attr in ['explained_variance_', 'explained_variance_ratio_',
                      'mean_', 'components_']:

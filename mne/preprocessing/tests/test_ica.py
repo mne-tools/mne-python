@@ -57,9 +57,6 @@ test_cov = cov.read_cov(test_cov_name)
 epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
-epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                         baseline=(None, 0), preload=True)
-
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
@@ -147,6 +144,7 @@ def test_ica_core():
 
             assert_array_almost_equal(epochs2.get_data(),
                                       epochs.get_data())
+
 
 @sklearn_test
 def test_ica_additional():
