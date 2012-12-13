@@ -185,7 +185,7 @@ print max_latency
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
 
-# Finally, we will remove the index to create a proper data table usable that
+# Finally, we will remove the index to create a proper data table that
 # can be used with statistical packages like statsmodels or R.
 
 final_df = max_latency.reset_index()

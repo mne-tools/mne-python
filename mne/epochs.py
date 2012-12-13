@@ -788,7 +788,7 @@ class Epochs(object):
     def as_data_frame(self, picks, index=['epoch', 'time'],
                       scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
                       eeg=1e6)):
-        """Get the epochs as Pandas panel of data frames
+        """Get the epochs as Pandas DataFrame
 
         Export epochs data in tabular structure with MEG channels as columns
         and three additional info columns 'epoch', 'condition', and 'time'.
@@ -806,7 +806,7 @@ class Epochs(object):
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info columns
             will be included in the table as categorial data.
-        scale_time_unit : float
+        scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, no scaling
@@ -855,7 +855,6 @@ class Epochs(object):
         names = [id_swapped[k] for k in self.events[:, 2]]
         condition = np.repeat(names, shape[2])
         time = np.tile(self.times, shape[0]) * scale_time
-        # natural enumeration so I will let it start with 1
         epoch = np.repeat(np.arange(shape[0]), shape[2])
         assert len(time) == len(data) == len(condition) == len(epoch)
 
