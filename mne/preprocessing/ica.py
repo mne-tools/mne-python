@@ -846,7 +846,7 @@ class ICA(object):
             if self._ica.unmixing_matrix_.shape[0] == self.n_components:
                 self._unmixing = self._ica.unmixing_matrix_
                 warnings.warn('Unexpected matrix shape. Probably you are '
-                              'using an outdate version of scikit-learn')
+                              'using an outdated version (<= 0.11) of sklearn.')
             else:
                 self._unmixing = self._ica.unmixing_matrix_.T
 
