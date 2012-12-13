@@ -320,18 +320,21 @@ class Epochs(object):
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
-        """Drop epochs based on indices
+        """Drop epochs based on indices or boolean mask
 
         Parameters
         ----------
-        indices : array of ints
-            Set epochs to remove using indices. Events are
+        indices : array of ints or bools
+            Set epochs to remove by specifying indices to remove or a boolean
+            mask to apply (where True values get removed). Events are
             correspondingly modified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
         indices = np.asarray(indices)
+        if indices.dtype == bool:
+            indices = np.where(indices)[0]
         self.events = np.delete(self.events, indices, axis=0)
         if(self.preload):
             self._data = np.delete(self._data, indices, axis=0)
@@ -495,6 +498,13 @@ class Epochs(object):
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
 
+
+    def _key_match(self, key):
+        """Helper function for event dict use"""
+        if key not in self.event_id:
+            raise KeyError('Event "%s" is not in Epochs.' % key)
+        return self.events[:, 2] == self.event_id[key]
+
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
@@ -514,10 +524,7 @@ class Epochs(object):
                         " preload=True")
 
         if isinstance(key, str):
-            if key not in self.event_id:
-                raise KeyError('Event "%s" is not in Epochs.' % key)
-
-            key_match = self.events[0:, 2] == self.event_id[key]
+            key_match = self._key_match(key)
             epochs.events = self.events[key_match]
 
             if self.preload:
@@ -866,8 +873,139 @@ class Epochs(object):
 
         return epochs_ts
 
+    def equalize_event_counts(self, event_ids, method='mintime', copy=True):
+        """Equalize the number of trials in each condition
 
-def equalize_epoch_counts(*args):
+        It tries to make the remaining epochs occuring as close as possible in
+        time. This method works based on the idea that if there happened to be
+        some time-varying (like on the scale of minutes) noise characteristics
+        during a recording, they could be compensated for (to some extent) in
+        the equalization process. This method thus seeks to reduce any of
+        those effects by minimizing the differences in the times of the events
+        in the two sets of epochs. For example, if one had event times
+        [1, 2, 3, 4, 120, 121] and the other one had [3.5, 4.5, 120.5, 121.5],
+        it would remove events at times [1, 2] in the first epochs and not
+        [20, 21].
+
+        Note that this operates in-place, and will call drop_bad_epochs() if
+        bad epochs have not yet been dropped.
+
+        Parameters
+        ----------
+        event_ids: list
+            The event types to equalize. Each entry in the list can either be
+            a str (single event) or a list of str. In the case where one of
+            the entries is a list of str, event_ids in that list will be
+            grouped together before equalizing trial counts across conditions.
+        method : str
+            If 'truncate', events will be truncated from the end of each event
+            list. If 'mintime', timing differences between each event list will
+            be minimized.
+        copy: bool
+            If True, a copy of epochs will be returned. Otherwise, the
+            function will operate in-place.
+
+        Returns
+        -------
+        epochs: instance of Epochs
+            The modified Epochs instance.
+        indices: array of int
+            Indices from the original events list that were dropped.
+
+        Notes
+        ----
+        For example (if epochs.event_id was {'Left': 1, 'Right': 2,
+        'Nonspatial':3}:
+
+            epochs.equalize_event_counts(['Left', 'Right'], 'Nonspatial')
+
+        would equalize the number of trials in the 'Nonspatial' condition with
+        the total number of trials in the 'Left' and 'Right' conditions.
+        """
+        if copy is True:
+            epochs = self.copy()
+        else:
+            epochs = self
+        event_ids = event_ids
+        if not epochs._bad_dropped:
+            epochs.drop_bad_epochs()
+        # figure out how to equalize
+        eq_inds = list()
+        for eq in event_ids:
+            eq = np.atleast_1d(eq)
+            # eq is now a list of types
+            key_match = np.zeros(epochs.events.shape[0])
+            for key in eq:
+                key_match = np.logical_or(key_match, epochs._key_match(key))
+            eq_inds.append(np.where(key_match)[0])
+
+        event_times = [epochs.events[eq, 0] for eq in eq_inds]
+        indices = _get_drop_indices(event_times, method)
+        # need to re-index indices
+        indices = np.concatenate([eq[inds]
+                                  for eq, inds in zip(eq_inds, indices)])
+        epochs.drop_epochs(indices)
+        # actually remove the indices
+        return epochs, indices
+
+
+def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
+    """Collapse event_ids from an epochs instance into a new event_id
+
+    Parameters
+    ----------
+    epochs: instance of Epochs
+        The epochs to operate on.
+    old_event_ids: str, or list
+        Conditions to collapse together.
+    new_event_id: dict, or int
+        A one-element dict (or a single integer) for the new
+        condition. Note that for safety, this cannot be any
+        existing id (in epochs.event_id.values()).
+    copy: bool
+        If True, a copy of epochs will be returned. Otherwise, the
+        function will operate in-place.
+
+    Notes
+    -----
+    This For example (if epochs.event_id was {'Left': 1, 'Right': 2}:
+
+        combine_event_ids(epochs, ['Left', 'Right'], {'Directional': 12})
+
+    would create a 'Directional' entry in epochs.event_id replacing
+    'Left' and 'Right' (combining their trials).
+    """
+    if copy:
+        epochs = epochs.copy()
+    old_event_ids = np.asanyarray(old_event_ids)
+    if isinstance(new_event_id, int):
+        new_event_id = {str(new_event_id): new_event_id}
+    else:
+        if not isinstance(new_event_id, dict):
+            raise ValueError('new_event_id must be a dict or int')
+        if not len(new_event_id.keys()) == 1:
+            raise ValueError('new_event_id dict must have one entry')
+    new_event_num = new_event_id.values()[0]
+    if not isinstance(new_event_num, int):
+        raise ValueError('new_event_id value must be an integer')
+    if new_event_num in epochs.event_id.values():
+        raise ValueError('new_event_id value must not already exist')
+    # could use .pop() here, but if a latter one doesn't exist, we're
+    # in trouble, so run them all here and pop() later
+    old_event_nums = np.array([epochs.event_id[key] for key in old_event_ids])
+    # find the ones to replace
+    inds = np.any(epochs.events[:, 2][:, np.newaxis] ==
+                  old_event_nums[np.newaxis, :], axis=1)
+    # replace the event numbers in the events list
+    epochs.events[inds, 2] = new_event_num
+    # delete old entries
+    [epochs.event_id.pop(key) for key in old_event_ids]
+    # add the new entry
+    epochs.event_id.update(new_event_id)
+    return epochs
+
+
+def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances
 
     It tries to make the remaining epochs occuring as close as possible in
@@ -882,38 +1020,47 @@ def equalize_epoch_counts(*args):
 
     Note that this operates on the Epochs instances in-place.
 
-    It chooses the epochs to eliminate by minimizing the differences in timing
-    between Epochs instances with more trials and the Epochs instance with the
-    fewest trials. This function will also call drop_bad_epochs() on any epochs
-    instance that hasn't yet had bad epochs dropped.
-
     Example:
 
-    equalize_epoch_counts(epochs1, epochs2)
+        equalize_epoch_counts(epochs1, epochs2)
 
     Parameters
     ----------
-    e1, e2, ... : sequence of Epochs instances
+    epochs_list: list of Epochs instances
         The Epochs instances to equalize trial counts for.
     method : str
         If 'truncate', events will be truncated from the end of each event
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    epochs_list = args
     if not all([isinstance(e, Epochs) for e in epochs_list]):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
     [e.drop_bad_epochs() if not e._bad_dropped else None for e in epochs_list]
+    event_times = [e.events[:, 0] for e in epochs_list]
+    indices = _get_drop_indices(event_times, method)
+    for e, inds in zip(epochs_list, indices):
+        e.drop_epochs(inds)
 
-    small_idx = np.argmin([e.events.shape[0] for e in epochs_list])
-    small_e_times = epochs_list[small_idx].events[:, 0]
-    for e in epochs_list:
-        mask = _minimize_time_diff(small_e_times, e.events[:, 0])
-        indices = np.where(np.logical_not(mask))[0]
-        e.drop_epochs(indices)
 
+def _get_drop_indices(event_times, method):
+    """Helper to get indices to drop from multiple event timing lists"""
+    small_idx = np.argmin([e.shape[0] for e in event_times])
+    small_e_times = event_times[small_idx]
+    if not method in ['mintime', 'truncate']:
+        raise ValueError('method must be either mintime or truncate, not '
+                         '%s' % method)
+    indices = list()
+    for e in event_times:
+        if method == 'mintime':
+            mask = _minimize_time_diff(small_e_times, e)
+        else:
+            mask = np.ones(e.shape[0], dtype=bool)
+            mask[small_e_times.shape[0]:] = False
+        indices.append(np.where(np.logical_not(mask))[0])
+
+    return indices
 
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""

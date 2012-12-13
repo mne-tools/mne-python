@@ -60,7 +60,6 @@ Functions reference
    read_source_spaces
    vertex_to_mni
    read_epochs
-   equalize_epoch_counts
    read_stc
    write_stc
    read_w
@@ -216,6 +215,19 @@ Functions reference
    construct_iir_filter
    high_pass_filter
    low_pass_filter
+
+.. automodule:: mne.epochs
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.epochs
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   combine_event_ids
+   equalize_epoch_counts
 
 .. automodule:: mne.time_frequency
  :no-members:
