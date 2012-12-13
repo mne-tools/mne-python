@@ -149,7 +149,6 @@ df.ix[:3, sel].plot(xticks=xticks)
 
 # slice the time starting at t0 in epoch 2 and ending 500ms after
 # the base line in epoch 3.
-pl.figure()
 df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
 
 # Note: To take more advantage of the index was set from floating values
