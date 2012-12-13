@@ -28,11 +28,11 @@ Export Options
 ~~~~~~~~~~~~~~
 The pandas exporter comes with a few options worth being commented.
 
-Pandas DataFrame objects use so a called hierarchical index. This can be
-thought of as array of unique tuples, in our case, representing the higher
-dimensional MEG data in a 2D data table. The column names are the
-channel names from the epoch object. The channels can be accessed like entries
-of a dictionary:
+Pandas DataFrame objects use a so called hierarchical index. This can be
+thought of as an array of unique tuples, in our case, representing the higher
+dimensional MEG data in a 2D data table. The column names are the channel names
+from the epoch object. The channels can be accessed like entries of a
+dictionary:
 
     df['MEG 2333']
 
@@ -41,7 +41,7 @@ Epochs and time slices can be accessed with the .ix method:
     epochs_df.ix[(1, 2), 'MEG 2333']
 
 However, it is also possible to include this index as regular categorial data
-columns, which yields a long table format typically used for repeated measure
+columns which yields a long table format typically used for repeated measure
 designs. To take control of this feature, on export, you can specify which
 of the three dimensions 'condition', 'epoch' and 'time' is passed to the Pandas
 index using the index parameter. Note that this decision is revertible any time,
@@ -142,59 +142,56 @@ print df.index.names, df.index.levels
 # .ix attribute, where in this case the first position indexes the MultiIndex
 # and the second the columns, that is, channels.
 
-# plot some channels across for the first three epochs using
-
+# Plot some channels across the first three epochs
 xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
 df.ix[:3, sel].plot(xticks=xticks)
 
 # slice the time starting at t0 in epoch 2 and ending 500ms after
-# the base line in epoch 3.
+# the base line in epoch 3. Note that the second part of the tuple
+# represents time in milliseconds from stimulus onset.
 df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
 
-# Note: To take more advantage of the index was set from floating values
-# to int values. To restore the original values you can e.g. say
+# Note: For convenience the index was converted from floating point values
+# to integer values. To restore the original values you can e.g. say
 # df['times'] = np.tile(epoch.times, len(epochs_times)
 
-# We now want to add 'condition' to the DataFrame to make expose
-# Pandas pivoting functionality.
+# We now want to add 'condition' to the DataFrame to expose some Pandas
+# pivoting functionality.
 
 df.set_index('condition', append=True, inplace=True)
 
-# The DataFrame now is split into subsets reflecting a
-# crossing between condition and trial number.
-# For demonstration purposes we only take the first 10 epochs
-# The idea is that we can broadcast operations into each cell simultaneously.
+# The DataFrame is split into subsets reflecting a crossing between condition
+# and trial number. The idea is that we can broadcast operations into each cell
+# simultaneously.
 
 grouped = df.groupby(level=['condition', 'epoch'])
 
-# you can think of it as a dict:
-print grouped.groups['visual_r', 6][:10]
-
-# print condition aggregate statistics for one channels
+# Print condition aggregate statistics for one channel
 print  grouped['MEG 1332'].describe()
 
-# plot the mean response according to condition.
+# Plot the mean response according to condition.
 pl.figure()
 grouped['MEG 1332'].mean().plot(kind='bar', title='Mean MEG Response')
 
-# We can even accomplish more complicated task with in a few lines.
-# Assume we wanted to know the time slice with the maximum response
+# We can even accomplish more complicated tasks in a few lines calling
+# apply method and passing a function. Assume we wanted to know the time
+# slice of the maximum response for each condition. We index at 1 because
+# The second subindex represents time.
 
 max_latency = grouped['MEG 1332'].apply(lambda x: x.index[x.argmax()][1])
 
 print max_latency
 
-# plot
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
 
-# finally we will remove the index to create a data table usable for
-# use with statistical packages like statsmodels or R.
+# Finally, we will remove the index to create a proper data table usable that
+# can be used with statistical packages like statsmodels or R.
 
 final_df = max_latency.reset_index()
 
-# The index is now write into regular columns so it can be used as factor.
+# The index is now written into regular columns so it can be used as factor.
 print final_df
 
-# to save as csv file uncomment the next line.
+# To save as csv file, uncomment the next line.
 # final_df.to_csv('my_epochs.csv')
