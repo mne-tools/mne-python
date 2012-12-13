@@ -65,6 +65,8 @@ def test_firwin2():
     assert_array_equal(taps1, taps2)
 
 def test_filtfilt():
+    """Test IIR filtfilt replacement
+    """
     x = np.r_[1, np.zeros(100)]
     # Filter with an impulse
     y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
