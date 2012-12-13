@@ -135,6 +135,18 @@ def read_cov(fname):
 ###############################################################################
 # Estimate from data
 
+def _check_n_samples(n_samples, n_chan):
+    """Check to see if there are enough samples for reliable cov calc"""
+    n_samples_min = 10 * (n_chan + 1) / 2
+    if n_samples <= 0:
+        raise ValueError('No samples found to compute the covariance matrix')
+    if n_samples < n_samples_min:
+        text = ('Too few samples (required : %d got : %d), covariance '
+                'estimate may be unreliable' % (n_samples_min, n_samples))
+        warnings.warn(text)
+        logger.warn(text)
+
+
 @verbose
 def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                                 reject=None, flat=None, picks=None,
@@ -224,6 +236,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         else:
             logger.info("Artefact detected in [%d, %d]" % (first, last))
 
+    _check_n_samples(n_samples, len(picks))
     mu /= n_samples
     data -= n_samples * mu[:, None] * mu[None, :]
     data /= (n_samples - 1.0)
@@ -350,9 +363,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     n_samples_tot = int(np.sum(n_samples))
 
-    if n_samples_tot == 0:
-        raise ValueError('Not enough samples to compute the noise covariance'
-                         ' matrix : %d samples' % n_samples_tot)
+    _check_n_samples(n_samples_tot, len(picks_meeg))
 
     if keep_sample_mean:
         data /= n_samples_tot

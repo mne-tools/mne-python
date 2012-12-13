@@ -12,6 +12,7 @@ from . import fiff, Epochs, verbose
 from .fiff.pick import pick_types
 from .event import make_fixed_length_events
 from .parallel import parallel_func
+from .cov import _check_n_samples
 
 
 def read_proj(fname):
@@ -115,11 +116,8 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     projs: list
         List of projection vectors
     """
-    if n_jobs > 1:
-        parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
-        data = sum(parallel(p_fun(e, e.T) for e in epochs))
-    else:
-        data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
+    # compute data covariance
+    data = _compute_cov_epochs(epochs, n_jobs)
     event_id = epochs.event_id
     if event_id is None or len(event_id.keys()) == 0:
         event_id = '0'
@@ -127,6 +125,20 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
         event_id = '_'.join([str(v) for v in event_id.values()])
     desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
     return _compute_proj(data, epochs.info, n_grad, n_mag, n_eeg, desc_prefix)
+
+
+def _compute_cov_epochs(epochs, n_jobs):
+    """Helper function for computing epochs covariance"""
+    parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
+    data = parallel(p_fun(e, e.T) for e in epochs)
+    n_epochs = len(data)
+    if n_epochs == 0:
+        raise RuntimeError('No good epochs found')
+
+    n_chan, n_samples = epochs.__iter__().next().shape
+    _check_n_samples(n_samples * n_epochs, n_chan)
+    data = sum(data)
+    return data
 
 
 @verbose
@@ -199,11 +211,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                         picks=pick_types(raw.info, meg=True, eeg=True,
                                          eog=True, ecg=True, emg=True),
                         reject=reject, flat=flat)
-        if n_jobs > 1:
-            parallel, p_fun, _ = parallel_func(np.dot, n_jobs)
-            data = sum(parallel(p_fun(e, e.T) for e in epochs))
-        else:
-            data = sum(np.dot(e, e.T) for e in epochs)  # compute data covariance
+        data = _compute_cov_epochs(epochs, n_jobs)
         if not stop:
             stop = raw.n_times / raw.info['sfreq']
     else:
@@ -212,6 +220,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         stop = raw.time_as_index(stop)[0] if stop else raw.n_times
         stop = min(stop, raw.n_times)
         data, times = raw[:, start:stop]
+        _check_n_samples(stop - start, data.shape[0])
         data = np.dot(data, data.T)  # compute data covariance
         # convert back to times
         start = start / raw.info['sfreq']

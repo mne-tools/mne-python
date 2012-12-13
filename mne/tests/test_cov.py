@@ -10,6 +10,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
+import warnings
 
 from mne.cov import regularize, whiten_evoked
 from mne import read_cov, Epochs, merge_events, \
@@ -79,6 +80,11 @@ def test_cov_estimation_on_raw_segment():
     assert_true(cov_mne.ch_names[:5] == cov.ch_names)
     assert_true(linalg.norm(cov.data - cov_mne.data[picks][:, picks],
                 ord='fro') / linalg.norm(cov.data, ord='fro') < 1e-4)
+    # make sure we get a warning with too short a segment
+    raw_2 = raw.crop(0, 1)
+    with warnings.catch_warnings(record=True) as w:
+        cov = compute_raw_data_covariance(raw_2)
+        assert_true(len(w) == 1)
 
 
 def test_cov_estimation_with_triggers():
