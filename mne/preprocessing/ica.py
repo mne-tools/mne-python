@@ -1136,7 +1136,7 @@ def _write_ica(fid, ica):
     write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(ica._params_ica))
 
     #   _ICA unmixing
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_COMPONENTS, ica.unmixing_matrix)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix)
 
     # Done!
     end_block(fid, FIFF.FIFFB_ICA)
@@ -1196,7 +1196,7 @@ def read_ica(fname):
         elif kind == FIFF.FIFF_MNE_ICA_PARAMS:
             tag = read_tag(fid, pos)
             _params_ica = tag.data
-        elif kind == FIFF.FIFF_MNE_ICA_COMPONENTS:
+        elif kind == FIFF.FIFF_MNE_ICA_MATRIX:
             tag = read_tag(fid, pos)
             unmixing_matrix = tag.data
 
