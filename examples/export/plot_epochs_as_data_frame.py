@@ -1,12 +1,12 @@
 """
-======================================
+=======================================
 Export Epochs to a data frame in Pandas
-======================================
+=======================================
 
-In this example the pandas exporter will be used to prodcue a DataFrame.
+In this example the pandas exporter will be used to produce a DataFrame.
 After exploring some basic features of a DataFrame a split-apply-combine
-combine work flow will be conducted to examine the latencies of the response
-maximums across epochs and conditions.
+work flow will be conducted to examine the latencies of the response
+maxima across epochs and conditions.
 
 Short Pandas Primer
 ----------------------------
@@ -143,6 +143,7 @@ print df.index.names, df.index.levels
 # and the second the columns, that is, channels.
 
 # Plot some channels across the first three epochs
+pl.close('all')
 xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
 df.ix[:3, sel].plot(xticks=xticks)
 
@@ -156,8 +157,9 @@ df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
 # df['times'] = np.tile(epoch.times, len(epochs_times)
 
 # We now want to add 'condition' to the DataFrame to expose some Pandas
-# pivoting functionality.
-
+# pivoting functionality. To make the plots labels more readable let's
+# first edit the names and expose.
+df.condition = df.condition.apply(lambda x: x + ' ')
 df.set_index('condition', append=True, inplace=True)
 
 # The DataFrame is split into subsets reflecting a crossing between condition
@@ -166,29 +168,34 @@ df.set_index('condition', append=True, inplace=True)
 
 grouped = df.groupby(level=['condition', 'epoch'])
 
-# Print condition aggregate statistics for one channel
-print  grouped['MEG 1332'].describe()
+# Print condition aggregate statistics for two channels
 
-# Plot the mean response according to condition.
+sel = ['MEG 1332', 'MEG 1342']
+print grouped[sel].describe()
+
+# Compare mean of two channels response according to condition.
 pl.figure()
-grouped['MEG 1332'].mean().plot(kind='bar', title='Mean MEG Response')
+grouped[sel].mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
+pl.subplots_adjust(bottom=0.2)
 
 # We can even accomplish more complicated tasks in a few lines calling
 # apply method and passing a function. Assume we wanted to know the time
 # slice of the maximum response for each condition. We index at 1 because
 # The second subindex represents time.
 
-max_latency = grouped['MEG 1332'].apply(lambda x: x.index[x.argmax()][1])
+max_latency = grouped[sel[0]].apply(lambda x: x.index[x.argmax()][1])
 
 print max_latency
 
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
+pl.subplots_adjust(left=0.15)
 
 # Finally, we will remove the index to create a proper data table that
 # can be used with statistical packages like statsmodels or R.
 
 final_df = max_latency.reset_index()
+final_df.rename(columns={0: sel[0]})  # as the index is oblivious of names.
 
 # The index is now written into regular columns so it can be used as factor.
 print final_df

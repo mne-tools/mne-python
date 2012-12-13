@@ -22,7 +22,15 @@ except ImportError:
     have_nitime = False
 else:
     have_nitime = True
+try:
+    import pandas
+except ImportError:
+    have_pandas = False
+else:
+    have_pandas = True
+
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
+pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -570,6 +578,16 @@ def test_raw_to_nitime():
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
     assert_true(raw_ts.data.shape[0] == len(picks))
+
+
+@pandas_test
+def test_as_data_frame():
+    """Test Pandas exporter"""
+    raw = Raw(fif_fname, preload=True)
+    df = raw.as_data_frame()
+    assert_true((df.columns == raw.ch_names).all())
+    df = raw.as_data_frame(use_time_index=False)
+    assert_true('time' in df.columns)
 
 
 def test_raw_index_as_time():

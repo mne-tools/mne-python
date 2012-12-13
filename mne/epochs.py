@@ -785,7 +785,7 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
-    def as_data_frame(self, picks, index=['epoch', 'time'],
+    def as_data_frame(self, picks=None, index=['epoch', 'time'],
                       scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
                       eeg=1e6)):
         """Get the epochs as Pandas DataFrame
@@ -823,8 +823,8 @@ class Epochs(object):
             invalid_choices = [e for e in index if not e in info_cols]
             if invalid_choices:
                 options = [', '.join(e) for e in [invalid_choices, info_cols]]
-                raise ValueError('[%s] is not un valid options. Valid index'
-                                 'options are \'None\' or %s' % tuple(options))
+                raise ValueError('[%s] is not an valid option. Valid index'
+                                 'values are \'None\' or %s' % tuple(options))
 
         if picks is None:
             picks = range(self.info['nchan'])
