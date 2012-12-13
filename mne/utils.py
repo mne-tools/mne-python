@@ -6,7 +6,6 @@
 
 import warnings
 import numpy as np
-import hashlib
 import logging
 import os
 from functools import wraps
@@ -17,6 +16,7 @@ import sys
 
 # force show of DeprecationWarning even on python 2.7
 warnings.simplefilter('default')
+
 
 class deprecated(object):
     """Decorator to mark a function or class as deprecated.
@@ -274,3 +274,18 @@ def get_subjects_dir(subjects_dir=None):
         else:
             raise ValueError('SUBJECTS_DIR environment variable not set')
     return subjects_dir
+
+
+def requires_mne(function):
+    """Decorator to skip test if MNE command line tools are not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if 'MNE_ROOT' not in os.environ:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires MNE command line tools'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
