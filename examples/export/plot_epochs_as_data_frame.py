@@ -3,10 +3,11 @@
 Export Epochs to a data frame in Pandas
 =======================================
 
-In this example the pandas exporter will be used to produce a DataFrame.
-After exploring some basic features of a DataFrame a split-apply-combine
+In this example the pandas exporter will be used to produce a DataFrame
+object. After exploring some basic features a split-apply-combine
 work flow will be conducted to examine the latencies of the response
 maxima across epochs and conditions.
+Note. Equivalent methods are available for raw and evoked data objects.
 
 Short Pandas Primer
 ----------------------------
@@ -18,7 +19,9 @@ It knows about linear algebra and element-wise operations but is size mutable
 and allows for labeled access to its data. In addition, the pandas data frame
 class provides many useful methods for restructuring, reshaping and visualizing
 data. As most methods return data frame instances, operations can be chained
-with ease; this allows to write efficient one-liners.
+with ease; this allows to write efficient one-liners. Technically a DataFrame
+can be seen as a high-level container for numpy arrays and hence switching
+back and forth between numpy is very easy.
 Taken together, these features qualify data frames for inter operation with
 databases and for interactive data exploration / analysis.
 Additionally, pandas interfaces with the R statistical computing language that
@@ -47,6 +50,9 @@ of the three dimensions 'condition', 'epoch' and 'time' is passed to the Pandas
 index using the index parameter. Note that this decision is revertible any time,
 as demonstrated below.
 
+Similarly, for convenience, it is possible to scale the times, e.g. from
+seconds to milliseconds.
+
 Some Instance Methods
 ~~~~~~~~~~~~~~~~~~~~~
 Most numpy methods and many ufuncs can be found as instance methods, e.g.
@@ -67,6 +73,8 @@ plot : wrapper around plt.plot
     However it comes with some special options. For examples see below.
 shape : shape attribute
     gets the dimensions of the data frame.
+values : return underlying numpy array.
+to_records : export data as numpy record array.
 
 Reference
 ~~~~~~~~~
@@ -174,9 +182,8 @@ sel = ['MEG 1332', 'MEG 1342']
 print grouped[sel].describe()
 
 # Compare mean of two channels response according to condition.
-pl.figure()
 grouped[sel].mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
-pl.subplots_adjust(bottom=0.2)
+pl.subplots_adjust(bottom=0.23)
 
 # We can even accomplish more complicated tasks in a few lines calling
 # apply method and passing a function. Assume we wanted to know the time
@@ -189,7 +196,7 @@ print max_latency
 
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
-pl.subplots_adjust(left=0.15)
+pl.subplots_adjust(left=0.19)
 
 # Finally, we will remove the index to create a proper data table that
 # can be used with statistical packages like statsmodels or R.
