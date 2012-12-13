@@ -91,8 +91,10 @@ print __doc__
 import mne
 import pylab as pl
 import numpy as np
+import mne
 from mne.fiff import Raw
 from mne.datasets import sample
+
 
 # turn on interactive mode
 pl.ion()
@@ -155,11 +157,13 @@ print df.index.names, df.index.levels
 pl.close('all')
 xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
 df.ix[:3, sel].plot(xticks=xticks)
+mne.viz.tight_layout()
 
 # slice the time starting at t0 in epoch 2 and ending 500ms after
 # the base line in epoch 3. Note that the second part of the tuple
 # represents time in milliseconds from stimulus onset.
 df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
+mne.viz.tight_layout()
 
 # Note: For convenience the index was converted from floating point values
 # to integer values. To restore the original values you can e.g. say
@@ -184,7 +188,10 @@ print grouped[sel].describe()
 
 # Compare mean of two channels response according to condition.
 grouped[sel].mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
-pl.subplots_adjust(bottom=0.23)
+mne.viz.tight_layout()
+
+# pl.subplots_adjust(bottom=0.23)
+
 
 # We can even accomplish more complicated tasks in a few lines calling
 # apply method and passing a function. Assume we wanted to know the time
@@ -197,8 +204,9 @@ print max_latency
 
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
-pl.subplots_adjust(left=0.19)
+mne.viz.tight_layout()
 
+# pl.subplots_adjust(left=0.19)
 # Finally, we will remove the index to create a proper data table that
 # can be used with statistical packages like statsmodels or R.
 
@@ -213,7 +221,7 @@ print final_df
 
 # Note. Data Frames can be easily concatenated, e.g., across subjects.
 # E.g. say:
-# 
+#
 # import pandas as pd
 # group = pd.concat([df_1, df_2])
 # group['subject'] = np.r_[np.ones(len(df_1)), np.ones(len(df_2)) + 1]
