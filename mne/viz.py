@@ -495,7 +495,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
                 proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
                 grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
                 mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
-                mag='Magnetometers')):
+                mag='Magnetometers'), axes=None):
     """Plot evoked data
 
     Parameters
@@ -523,6 +523,10 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         The scalings of the channel types to be applied for plotting.
     titles : dict
         The titles associated with the channels.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of channel types. If instance of
+        Axes, there must be only one channel type plotted.
     """
 
     if scalings.keys() != units.keys() != titles.keys():
@@ -531,7 +535,6 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         channel_types = sorted(scalings.keys())
 
     import pylab as pl
-    pl.clf()
     if picks is None:
         picks = range(evoked.info['nchan'])
     types = [channel_type(evoked.info, idx) for idx in picks]
@@ -542,9 +545,18 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
             n_channel_types += 1
             ch_types_used.append(t)
 
-    counter = 1
+    if axes is None:
+        pl.clf()
+        axes = [pl.subplot(n_channel_types, 1, c)
+                for c in range(n_channel_types)]
+    if not isinstance(axes, list):
+        axes = [axes]
+    if not len(axes) == n_channel_types:
+        raise ValueError('Number of axes (%g) must match number of channel '
+                         'types (%g)' % (len(axes), n_channel_types))
+
     times = 1e3 * evoked.times  # time in miliseconds
-    for t in ch_types_used:
+    for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
         scaling = scalings[t]
         if unit is False:
@@ -559,8 +571,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
                 P, ncomp, _ = make_projector(projs, this_ch_names)
                 D = np.dot(P, D)
 
-            pl.subplot(n_channel_types, 1, counter)
-            pl.plot(times, D.T)
+            pl.axes(ax)
+            ax.plot(times, D.T)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
@@ -569,7 +581,6 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
                 pl.ylim(ylim[t])
             pl.title(titles[t] + ' (%d channels)' % len(D))
             pl.xlabel('time (ms)')
-            counter += 1
             pl.ylabel('data (%s)' % ch_unit)
 
             if hline is not None:

@@ -60,18 +60,14 @@ evoked_visual.save('sample_visual_eeg-ave.fif')
 
 ###############################################################################
 # View evoked response
-times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
 pl.clf()
-pl.subplot(2, 1, 1)
-pl.plot(times, 1e6 * evoked_auditory.data.T)
+ax = pl.subplot(2, 1, 1)
+evoked_auditory.plot(axes=ax)
 pl.title('EEG evoked potential, auditory trials')
-pl.xlim([times[0], times[-1]])
 pl.ylabel('Potential (uV)')
-pl.subplot(2, 1, 2)
-pl.plot(times, 1e6 * evoked_visual.data.T)
+ax = pl.subplot(2, 1, 2)
+evoked_visual.plot(axes=ax)
 pl.title('EEG evoked potential, visual trials')
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')
 pl.show()

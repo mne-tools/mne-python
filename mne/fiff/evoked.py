@@ -309,7 +309,7 @@ class Evoked(object):
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
              mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
-             mag='Magnetometers')):
+             mag='Magnetometers'), axes=None):
         """Plot evoked data
 
         Parameters
@@ -335,10 +335,14 @@ class Evoked(object):
             The scalings of the channel types to be applied for plotting.
         titles : dict
             The titles associated with the channels.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of channel types. If instance of
+            Axes, there must be only one channel type plotted.
         """
         plot_evoked(self, picks=picks, unit=unit, show=show, ylim=ylim,
                     proj=proj, xlim=xlim, hline=hline, units=units,
-                    scalings=scalings, titles=titles)
+                    scalings=scalings, titles=titles, axes=axes)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime
