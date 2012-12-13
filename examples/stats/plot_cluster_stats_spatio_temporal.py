@@ -240,10 +240,7 @@ def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
                         edgecolors='none', s=5)
         ax.set_aspect('equal')
         pl.axis('off')
-    try:
-        pl.tight_layout(0)
-    except:
-        pass
+        mne.viz.tight_layout(0)
     if measure is not None:
         cax = pl.axes([0.85, 0.15, 0.025, 0.15], axisbg='k')
         cb = pl.colorbar(sc, cax, ticks=[-limits[2], 0, limits[2]])

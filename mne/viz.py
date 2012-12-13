@@ -841,7 +841,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             pl.xlabel('Eigenvalue index')
             pl.semilogy(np.sqrt(s) * scaling)
             pl.title(name)
-            pl.tight_layout()  # XXX : recent pylab feature
+            tight_layout()  # XXX : recent pylab feature
 
     if show:
         pl.show()
