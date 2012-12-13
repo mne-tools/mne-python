@@ -1,18 +1,24 @@
 import tempfile
 import os
 import os.path as op
+import shutil
+import glob
+
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import label_time_courses, read_label, stc_to_label, \
-               read_source_estimate, read_source_spaces, grow_labels
+               read_source_estimate, read_source_spaces, grow_labels,\
+               labels_from_parc
 from mne.label import Label
+from mne.utils import requires_mne
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
+subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'
 label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
@@ -38,8 +44,8 @@ def test_label_addition():
     pos = np.random.rand(10, 3)
     values = np.arange(10.) / 10
     idx0 = range(7)
-    idx1 = range(7, 10) # non-overlapping
-    idx2 = range(5, 10) # overlapping
+    idx1 = range(7, 10)  # non-overlapping
+    idx2 = range(5, 10)  # overlapping
     l0 = Label(idx0, pos[idx0], values[idx0], 'lh')
     l1 = Label(idx1, pos[idx1], values[idx1], 'lh')
     l2 = Label(idx2, pos[idx2], values[idx2], 'lh')
@@ -88,6 +94,91 @@ def test_label_io():
     label.save(op.join(tempdir, 'foo'))
     label2 = read_label(op.join(tempdir, 'foo-lh.label'))
     assert_labels_equal(label, label2)
+
+
+def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
+    """Make sure two sets of labels are equal"""
+    for label_a, label_b in zip(labels_a, labels_b):
+        assert_array_equal(label_a.vertices, label_b.vertices)
+        assert_true(label_a.name == label_b.name)
+        assert_true(label_a.hemi == label_b.hemi)
+        if not ignore_pos:
+            assert_array_equal(label_a.pos, label_b.pos)
+
+
+def test_labels_from_parc():
+    """Test reading labels from parcellation
+    """
+    # test some invalid inputs
+    assert_raises(ValueError, labels_from_parc, 'sample', hemi='bla',
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, labels_from_parc, 'sample',
+                  annot_fname='bla.annot', subjects_dir=subjects_dir)
+
+    # read labels using hemi specification
+    labels_lh = labels_from_parc('sample', hemi='lh',
+                                 subjects_dir=subjects_dir)
+    for label in labels_lh:
+        assert_true(label.name.endswith('-lh'))
+        assert_true(label.hemi == 'lh')
+
+    # read labels using annot_fname
+    annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
+    labels_rh = labels_from_parc('sample', annot_fname=annot_fname,
+                                 subjects_dir=subjects_dir)
+    for label in labels_rh:
+        assert_true(label.name.endswith('-rh'))
+        assert_true(label.hemi == 'rh')
+
+    # combine the lh, rh, labels and sort them
+    labels_lhrh = list()
+    labels_lhrh.extend(labels_lh)
+    labels_lhrh.extend(labels_rh)
+
+    names = [label.name for label in labels_lhrh]
+    labels_lhrh = [label for (name, label) in sorted(zip(names, labels_lhrh))]
+
+    # read all labels at once
+    labels_both = labels_from_parc('sample', subjects_dir=subjects_dir)
+
+    # we have the same result
+    _assert_labels_equal(labels_lhrh, labels_both)
+
+    # aparc has 68 cortical labels
+    assert_true(len(labels_both) == 68)
+
+
+@requires_mne
+def test_labels_from_parc_annot2labels():
+    """Test reading labels from parc. by comparing with mne_annot2labels
+    """
+
+    def _mne_annot2labels(subject, subjects_dir, parc):
+        """Get labels using mne_annot2lables"""
+        label_dir = tempfile.mkdtemp()
+        cwd = os.getcwd()
+        try:
+            os.chdir(label_dir)
+            cmd = 'mne_annot2labels --subject %s --parc %s' % (subject, parc)
+            st = os.system(cmd)
+            if st != 0:
+                raise RuntimeError('mne_annot2labels non-zero exit status %d'
+                                   % st)
+            label_fnames = glob.glob(label_dir + '/*.label')
+            label_fnames.sort()
+            labels = [read_label(fname) for fname in label_fnames]
+        finally:
+            if os.path.exists(label_dir):
+                shutil.rmtree(label_dir)
+            os.chdir(cwd)
+
+        return labels
+
+    labels = labels_from_parc('sample', subjects_dir=subjects_dir)
+    labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
+
+    # we have the same result, mne does not fill pos, so ignore it
+    _assert_labels_equal(labels, labels_mne, ignore_pos=True)
 
 
 def test_stc_to_label():

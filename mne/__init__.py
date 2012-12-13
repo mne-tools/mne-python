@@ -31,7 +31,7 @@ from .source_space import read_source_spaces, vertex_to_mni, \
 from .epochs import Epochs, equalize_epoch_counts, read_epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
-                   BiHemiLabel
+                   BiHemiLabel, labels_from_parc
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates, read_trans, write_trans
 from .proj import read_proj, write_proj, compute_proj_epochs, \

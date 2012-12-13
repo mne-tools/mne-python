@@ -49,6 +49,7 @@ Functions reference
    apply_forward_raw
    label_time_courses
    read_label
+   labels_from_parc
    label_sign_flip
    write_label
    stc_to_label
