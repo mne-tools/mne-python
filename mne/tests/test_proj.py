@@ -1,6 +1,7 @@
 import tempfile
 import os.path as op
 from nose.tools import assert_true
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -90,8 +91,10 @@ def test_compute_proj_raw():
     raw_time = 2.5  # Do shorter amount for speed
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
     for ii in (0.25, 0.5, 1, 2):
-        projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
-                                 n_grad=1, n_mag=1, n_eeg=0)
+        with warnings.catch_warnings(True) as w:
+            projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
+                                     n_grad=1, n_mag=1, n_eeg=0)
+            assert_true(len(w) == 1)
 
         # test that you can compute the projection matrix
         projs = activate_proj(projs)
@@ -105,8 +108,10 @@ def test_compute_proj_raw():
         raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii))
 
     # Test that purely continuous (no duration) raw projection works
-    projs = compute_proj_raw(raw, duration=None, stop=raw_time,
-                             n_grad=1, n_mag=1, n_eeg=0)
+    with warnings.catch_warnings(True) as w:
+        projs = compute_proj_raw(raw, duration=None, stop=raw_time,
+                                 n_grad=1, n_mag=1, n_eeg=0)
+        assert_true(len(w) == 1)
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
