@@ -141,8 +141,10 @@ def _check_n_samples(n_samples, n_chan):
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
     if n_samples < n_samples_min:
-        logger.warn('Too few samples (required : %d got : %d), covariance '
-                    'estimate may be unreliable' % (n_samples_min, n_samples))
+        text = ('Too few samples (required : %d got : %d), covariance '
+                'estimate may be unreliable' % (n_samples_min, n_samples))
+        warnings.warn(text)
+        logger.warn(text)
 
 
 @verbose
