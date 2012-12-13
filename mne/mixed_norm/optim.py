@@ -65,9 +65,9 @@ def prox_l21(Y, alpha, n_orient):
     n_positions = Y.shape[0] // n_orient
     rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
                                 axis=1))
-    rows_norm = np.maximum(rows_norm, alpha)
     # avoid divide-by-zero: no point in dividing by anything smaller than alpha
     # here because of the maximum on the shrink below
+    rows_norm = np.maximum(rows_norm, alpha)
     shrink = np.maximum(1.0 - alpha / rows_norm, 0.0)
     active_set = shrink > 0.0
     if n_orient > 1:
