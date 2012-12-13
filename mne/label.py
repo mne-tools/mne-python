@@ -12,6 +12,7 @@ import warnings
 import logging
 logger = logging.getLogger('mne')
 
+from .utils import get_subjects_dir
 from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
@@ -652,5 +653,158 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
                       hemi=hemi,
                       comment=comment)
         labels.append(label)
+
+    return labels
+
+
+def _read_annot(fname):
+    """Read a Freesurfer annotation from a .annot file.
+
+    Note: Copied from PySurfer
+
+    Parameters
+    ----------
+    fname: str
+        Path to annotation file
+
+    Returns
+    -------
+    annot: numpy array, shape=(n_verts)
+        Annotation id at each vertex
+    ctab: numpy array, shape=(n_verts, 5)
+        RGBA + label id colortable array
+    names: list of str
+        List of region names as stored in the annot file
+
+    """
+    with open(fname, "rb") as fid:
+        n_verts = np.fromfile(fid, '>i4', 1)[0]
+        data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
+        annot = data[:, 1]
+        ctab_exists = np.fromfile(fid, '>i4', 1)[0]
+        if not ctab_exists:
+            raise Exception('Color table not found in annotation file')
+        n_entries = np.fromfile(fid, '>i4', 1)[0]
+        if n_entries > 0:
+            length = np.fromfile(fid, '>i4', 1)[0]
+            orig_tab = np.fromfile(fid, '>c', length)
+            orig_tab = orig_tab[:-1]
+
+            names = list()
+            ctab = np.zeros((n_entries, 5), np.int)
+            for i in xrange(n_entries):
+                name_length = np.fromfile(fid, '>i4', 1)[0]
+                name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
+                names.append(name)
+                ctab[i, :4] = np.fromfile(fid, '>i4', 4)
+                ctab[i, 4] = (ctab[i, 0] + ctab[i, 1] * (2 ** 8) +
+                              ctab[i, 2] * (2 ** 16) +
+                              ctab[i, 3] * (2 ** 24))
+        else:
+            ctab_version = -n_entries
+            if ctab_version != 2:
+                raise Exception('Color table version not supported')
+            n_entries = np.fromfile(fid, '>i4', 1)[0]
+            ctab = np.zeros((n_entries, 5), np.int)
+            length = np.fromfile(fid, '>i4', 1)[0]
+            _ = np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
+            entries_to_read = np.fromfile(fid, '>i4', 1)[0]
+            names = list()
+            for i in xrange(entries_to_read):
+                _ = np.fromfile(fid, '>i4', 1)[0]  # Structure
+                name_length = np.fromfile(fid, '>i4', 1)[0]
+                name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
+                names.append(name)
+                ctab[i, :4] = np.fromfile(fid, '>i4', 4)
+                ctab[i, 4] = (ctab[i, 0] + ctab[i, 1] * (2 ** 8) +
+                              ctab[i, 2] * (2 ** 16))
+        ctab[:, 3] = 255
+
+    return annot, ctab, names
+
+
+def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
+                     annot_fname=None, subjects_dir=None, verbose=None):
+    """ Read labels from FreeSurfer parcellation
+
+    Parameters
+    ----------
+    subject: str
+        The subject for which to read the parcellation for.
+    parc: str
+        The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
+    hemi: str
+        The hemisphere to read the parcellation for, can be 'lh', 'rh',
+        or 'both'.
+    surf_name: str
+        Surface used to obtain vertex locations, e.g., 'white', 'pial'
+    annot_fname: str or None
+        Filename of the .annot file. If not None, only this file is read
+        and 'parc' and 'hemi' are ignored.
+    subjects_dir: string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    Returns
+    -------
+    labels: list of Label
+        The labels, sorted by label name (ascending).
+    """
+    logger.info('Reading labels from parcellation..')
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # get the .annot filenames and hemispheres
+    if annot_fname is not None:
+        # we use use the .annot file specified by the user
+        hemis = [os.path.basename(annot_fname)[:2]]
+        if hemis[0] not in ['lh', 'rh']:
+            raise ValueError('Could not determine hemisphere from filename, '
+                             'filename has to start with "lh" or "rh".')
+        annot_fname = [annot_fname]
+    else:
+        # construct .annot file names for requested subject, parc, hemi
+        if hemi not in ['lh', 'rh', 'both']:
+            raise ValueError('hemi has to be "lh", "rh", or "both"')
+        if hemi == 'both':
+            hemis = ['lh', 'rh']
+        else:
+            hemis = [hemi]
+        annot_fname = list()
+        for hemi in hemis:
+            fname = os.path.join(subjects_dir, subject, 'label',
+                                 '%s.%s.annot' % (hemi, parc))
+            annot_fname.append(fname)
+
+    # now we are ready to create the labels
+    n_read = 0
+    labels = list()
+    for fname, hemi in zip(annot_fname, hemis):
+        # read annotation
+        annot, ctab, label_names = _read_annot(fname)
+        label_ids = ctab[:, -1]
+
+        # load the vertex positions from surface
+        fname_surf = os.path.join(subjects_dir, subject, 'surf',
+                                  '%s.%s' % (hemi, surf_name))
+        vert_pos, _ = read_surface(fname_surf)
+        for label_id, label_name in zip(label_ids, label_names):
+            vertices = np.where(annot == label_id)[0]
+            if len(vertices) == 0:
+                # label is not part of cortical surface
+                continue
+            pos = vert_pos[vertices, :]
+            values = np.zeros(len(vertices))
+            name = label_name + '-' + hemi
+            label = Label(vertices, pos, values, hemi, name=name)
+            labels.append(label)
+        n_read = len(labels) - n_read
+        logger.info('   read %d labels from %s' % (n_read, fname))
+
+    # sort the labels by label name
+    names = [label.name for label in labels]
+    labels = [label for (name, label) in sorted(zip(names, labels))]
+
+    logger.info('[done]')
 
     return labels
