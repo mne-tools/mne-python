@@ -50,7 +50,7 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
 pl.clf()
-pl.plot(times, 1e6 * evoked.data.T)
+evoked.plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')
