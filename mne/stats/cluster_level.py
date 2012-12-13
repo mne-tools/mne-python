@@ -565,7 +565,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     # convert clusters to old format
     if connectivity is not None and out_type == 'mask':
-        clusters = _clusters_to_bool(clusters, X.shape[1])
+        clusters = _clusters_to_bool(clusters, X[0].shape[1])
 
     # The clusters and stat should have the same shape as the samples
     clusters = _reshape_clusters(clusters, sample_shape)
