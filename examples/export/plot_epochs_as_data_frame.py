@@ -21,7 +21,7 @@ class provides many useful methods for restructuring, reshaping and visualizing
 data. As most methods return data frame instances, operations can be chained
 with ease; this allows to write efficient one-liners. Technically a DataFrame
 can be seen as a high-level container for numpy arrays and hence switching
-back and forth between numpy is very easy.
+back and forth between numpy arrays and DataFrames is very easy.
 Taken together, these features qualify data frames for inter operation with
 databases and for interactive data exploration / analysis.
 Additionally, pandas interfaces with the R statistical computing language that
@@ -75,6 +75,7 @@ shape : shape attribute
     gets the dimensions of the data frame.
 values : return underlying numpy array.
 to_records : export data as numpy record array.
+to_dict : export data as dict of arrays.
 
 Reference
 ~~~~~~~~~
@@ -209,3 +210,10 @@ print final_df
 
 # To save as csv file, uncomment the next line.
 # final_df.to_csv('my_epochs.csv')
+
+# Note. Data Frames can be easily concatenated, e.g., across subjects.
+# E.g. say:
+# 
+# import pandas as pd
+# group = pd.concat([df_1, df_2])
+# group['subject'] = np.r_[np.ones(len(df_1)), np.ones(len(df_2)) + 1]
