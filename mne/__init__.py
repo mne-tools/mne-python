@@ -23,7 +23,7 @@ from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              spatio_temporal_src_connectivity, \
                              spatio_temporal_tris_connectivity, \
                              spatio_temporal_dist_connectivity, \
-                             save_stc_as_volume
+                             save_stc_as_volume, extract_label_ts_stcs
 from .surface import read_bem_surfaces, read_surface, write_bem_surface, \
                      write_surface
 from .source_space import read_source_spaces, vertex_to_mni, \

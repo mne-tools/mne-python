@@ -1705,3 +1705,159 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img = nib.Nifti1Image(vol, affine, header=header)
     nib.save(img, fname)
     return img
+
+
+@verbose
+def _gen_extract_label_ts_stcs(stcs, labels, src, mode='mean',
+                               allow_empty=False, verbose=None):
+    """Generator for extract_label_ts_stcs"""
+
+    n_labels = len(labels)
+
+    # get vertno from source space, they have to be the same as in the stcs
+    vertno = [s['vertno'] for s in src]
+    nvert = [len(vn) for vn in vertno]
+
+    # do the initialization
+    label_vertidx = list()
+    for label in labels:
+        if label.hemi == 'both':
+            # handle BiHemiLabel
+            sub_labels = [label.lh, label.rh]
+        else:
+            sub_labels = [label]
+        this_vertidx = list()
+        for slabel in sub_labels:
+            if slabel.hemi == 'lh':
+                this_vertno = np.intersect1d(vertno[0], slabel.vertices)
+                vertidx = np.searchsorted(vertno[0], this_vertno)
+            elif slabel.hemi == 'rh':
+                this_vertno = np.intersect1d(vertno[1], slabel.vertices)
+                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertno)
+            else:
+                raise ValueError('label %s has invalid hemi' % label.name)
+            this_vertidx.append(vertidx)
+
+        # convert it to an array
+        this_vertidx = np.concatenate(this_vertidx)
+        if len(this_vertidx) == 0:
+            msg = ('source space does not contain any vertices for label %s'
+                   % label.name)
+            if not allow_empty:
+                raise ValueError(msg)
+            else:
+                logger.warn(msg + '. Assigning all-zero time series to label.')
+            this_vertidx = None  # to later check if label is empty
+
+        label_vertidx.append(this_vertidx)
+
+    # mode-dependent initalization
+    if mode == 'mean':
+        pass
+    elif mode == 'mean_flip':
+        # do the import here to avoid circular dependency
+        from .label import label_sign_flip
+        # get the sign-flip vector for every label
+        label_flip = list()
+        for label, vertidx in zip(labels, label_vertidx):
+            if label.hemi == 'both':
+                raise ValueError('BiHemiLabel not supported in mean_flip mode')
+            if vertidx is not None:
+                flip = label_sign_flip(label, src)[:, None]
+            else:
+                flip = None
+            label_flip.append(flip)
+    else:
+        raise ValueError('%s is an invalid mode' % mode)
+
+    # loop through source estimates and extract time series
+    for stc in stcs:
+
+        # make sure the stc is compatible with the source space
+        if len(stc.vertno[0]) != nvert[0] or len(stc.vertno[1]) != nvert[1]:
+            raise ValueError('stc not compatible with source space')
+        if any([np.any(svn != vn) for svn, vn in zip(stc.vertno, vertno)]):
+            raise ValueError('stc not compatible with source space')
+
+        logger.info('Extracting time series for %d labels' % n_labels)
+
+        # do the extraction
+        label_ts = np.zeros((n_labels, stc.data.shape[1]),
+                            dtype=stc.data.dtype)
+        if mode == 'mean':
+            for i, vertidx in enumerate(label_vertidx):
+                if vertidx is not None:
+                    label_ts[i] = np.mean(stc.data[vertidx, :], axis=0)
+        elif mode == 'mean_flip':
+            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
+                                                    label_flip)):
+                if vertidx is not None:
+                    label_ts[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
+        else:
+            raise ValueError('%s is an invalid mode' % mode)
+
+        # this is a generator!
+        yield label_ts
+
+
+@verbose
+def extract_label_ts_stcs(stcs, labels, src, mode='mean', allow_empty=False,
+                          return_generator=False, verbose=None):
+    """Extract label time series for lists of labels and source estimates
+
+    This function will extract one time series for each label and source
+    estimate. The way the time series are extracted depends on the mode
+    parameter.
+
+    Valid values for mode are:
+    'mean' :      Average within each label
+    'mean_flip' : Average within each label with sign flip depending on
+                  source orientation
+
+    Parameters
+    ----------
+    stcs : SourceEstimate | list (or generator) of SourEstimate
+        The source estimates from which to extract the time series.
+    labels : Label | list of Label
+        The labels for which to extract the time series.
+    src : list
+        Source spaces for left and right hemisphere.
+    mode : str
+        Extraction mode, see explanation above.
+    allow_empty : bool
+        Instead of emitting an error, return all-zero time series for labels
+        that do not have any vertices in the source estimate.
+    return_generator : bool
+        If True, a generator instead of a list is returned.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    label_ts : array | list (or generator) of array,
+               shape=(len(labels), n_times)
+        Extracted time series for each label and source estimate.
+    """
+    # convert inputs to lists
+    if isinstance(stcs, SourceEstimate):
+        stcs = [stcs]
+        return_several = False
+        return_generator = False
+    else:
+        return_several = True
+
+    if not isinstance(labels, list):
+        labels = [labels]
+
+    label_ts = _gen_extract_label_ts_stcs(stcs, labels, src, mode=mode,
+                                          allow_empty=allow_empty)
+
+    if not return_generator:
+        # do the extraction and return a list
+        label_ts = [ts for ts in label_ts]
+
+    if not return_several:
+        # input was a single SoureEstimate, return single array
+        label_ts = label_ts[0]
+
+    return label_ts
