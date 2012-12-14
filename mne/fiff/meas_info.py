@@ -258,11 +258,10 @@ def write_meas_info(fid, info, data_type=None):
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     # Blocks from the original
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
+    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,  # FIFF.FIFFB_HPI_RESULT,
               FIFF.FIFFB_PROCESSING_HISTORY]
               # FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
 
-    have_hpi_result = False
     have_isotrak = False
 
     if len(blocks) > 0 and 'filename' in info and \
@@ -271,8 +270,6 @@ def write_meas_info(fid, info, data_type=None):
         for block in blocks:
             nodes = dir_tree_find(tree, block)
             copy_tree(fid2, tree['id'], nodes, fid)
-            if block == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
-                have_hpi_result = True
             if block == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
                 have_isotrak = True
         fid2.close()
@@ -291,12 +288,11 @@ def write_meas_info(fid, info, data_type=None):
         end_block(fid, FIFF.FIFFB_DACQ_PARS)
 
     #   Coordinate transformations if the HPI result block was not there
-    if not have_hpi_result:
-        if info['dev_head_t'] is not None:
-            write_coord_trans(fid, info['dev_head_t'])
+    if info['dev_head_t'] is not None:
+        write_coord_trans(fid, info['dev_head_t'])
 
-        if info['ctf_head_t'] is not None:
-            write_coord_trans(fid, info['ctf_head_t'])
+    if info['ctf_head_t'] is not None:
+        write_coord_trans(fid, info['ctf_head_t'])
 
     #   Polhemus data
     if info['dig'] is not None and not have_isotrak:
