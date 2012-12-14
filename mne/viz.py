@@ -138,10 +138,13 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
                       x_label=None, y_label=None):
     """Onpick callback that shows a single channel in a new figure"""
     artist = event.artist
+    if event.mouseevent.inaxes is None or event.mouseevent.button != 1:
+        return
     try:
         import pylab as pl
         ch_idx = artist.axes._mne_ch_idx
-        pl.figure()
+        fig, ax = pl.subplots(1)
+        ax.set_axis_bgcolor('k')
         show_func(pl, ch_idx, tmin, tmax, vmin, vmax)
         if colorbar:
             pl.colorbar()
