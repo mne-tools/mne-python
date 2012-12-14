@@ -53,13 +53,15 @@ def _clean_names(names):
 
 
 def tight_layout(pad=1.2, h_pad=None, w_pad=None):
-    """
-    Adjust subplot parameters to give specified padding.
+    """ Adjust subplot parameters to give specified padding.
+
+    Note. For plotting please use this function instead of pl.tight_layout
 
     Parameters:
-
+    -----------
     pad : float
-        padding between the figure edge and the edges of subplots, as a fraction of the font-size.
+        padding between the figure edge and the edges of subplots, as a
+        fraction of the font-size.
     h_pad, w_pad : float
         padding (height/width) between edges of adjacent subplots.
         Defaults to `pad_inches`.
@@ -830,7 +832,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         pl.imshow(C[idx][:, idx], interpolation="nearest")
         pl.title(name)
     pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-    tight_layout()  # XXX : recent pylab feature
+    tight_layout()
 
     if show_svd:
         pl.figure()
@@ -841,7 +843,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             pl.xlabel('Eigenvalue index')
             pl.semilogy(np.sqrt(s) * scaling)
             pl.title(name)
-            tight_layout()  # XXX : recent pylab feature
+            tight_layout()
 
     if show:
         pl.show()
