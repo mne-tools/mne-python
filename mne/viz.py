@@ -137,9 +137,12 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
                       vmin=None, vmax=None, colorbar=False, title=None,
                       x_label=None, y_label=None):
     """Onpick callback that shows a single channel in a new figure"""
-    artist = event.artist
+
+    # make sure that the swipe gesture in OS-X doesn't open many figures
     if event.mouseevent.inaxes is None or event.mouseevent.button != 1:
         return
+
+    artist = event.artist
     try:
         import pylab as pl
         ch_idx = artist.axes._mne_ch_idx
@@ -954,6 +957,11 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
 
 def _plot_ica_panel_onpick(event, sources=None, ylims=None):
     """Onpick callback for plot_ica_panel"""
+
+    # make sure that the swipe gesture in OS-X doesn't open many figures
+    if event.mouseevent.inaxes is None or event.mouseevent.button != 1:
+        return
+
     artist = event.artist
     try:
         import pylab as pl
