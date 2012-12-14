@@ -111,6 +111,16 @@ def test_read_write_epochs():
     epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'))
     assert_equal(epochs_read2.event_id, epochs.event_id)
 
+    # add reject here so some of the epochs get dropped
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject)
+    epochs.save(op.join(tempdir, 'test-epo.fif'))
+    # ensure bad events are not saved
+    epochs_read3 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    assert_array_equal(epochs_read3.events, epochs.events)
+    data = epochs.get_data()
+    assert_true(epochs_read3.events.shape[0] == data.shape[0])
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
