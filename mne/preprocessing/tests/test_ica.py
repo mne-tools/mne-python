@@ -57,9 +57,6 @@ test_cov = cov.read_cov(test_cov_name)
 epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
-epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                         baseline=(None, 0), preload=True)
-
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
@@ -151,7 +148,8 @@ def test_ica_core():
 
 @sklearn_test
 def test_ica_additional():
-    # Test additional functionality
+    """Test additional functionality
+    """
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
@@ -178,13 +176,8 @@ def test_ica_additional():
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
-        try:
-            assert_array_equal(ica._ica.unmixing_matrix_,
-                                      ica_read._ica.unmixing_matrix_)
-        except:
-            assert_array_equal(ica._ica.components_,
-                                      ica_read._ica.components_)
-        assert_array_equal(ica._mixing, ica_read._mixing)
+
+        assert_array_equal(ica.mixing_matrix, ica_read.mixing_matrix)
         assert_array_equal(ica._pca.components_,
                            ica_read._pca.components_)
         assert_array_equal(ica._pca.mean_,
