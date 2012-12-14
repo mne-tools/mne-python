@@ -65,6 +65,12 @@ score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
 __all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs',
            'read_ica']
 
+ICA_PARAMS = ['fun_args', 'fun_prime', 'algorithm', 'max_iter', 'random_state',
+              'n_components', 'tol', 'fun', 'w_init', 'whiten']
+
+PCA_PARAMS = ['random_state', 'copy', 'n_components', 'iterated_power',
+              'whiten']
+
 
 class ICA(object):
     """M/EEG signal decomposition using Independent Component Analysis (ICA)
@@ -119,6 +125,10 @@ class ICA(object):
         The number of PCA dimensions computed.
     verbose : bool, str, int, or None
         See above.
+    mixing_matrix : None | ndarray
+        If fit, the mixing matrix to restore observed data, else None.
+    unmixing_matrix : None | ndarray
+        If fit, the matrix to unmix observed data, else None.
     """
     @verbose
     def __init__(self, n_components, max_n_components=100, noise_cov=None,
@@ -163,7 +173,6 @@ class ICA(object):
         self.n_components = n_components
         self.max_n_components = max_n_components
         self.ch_names = None
-        self._mixing = None
 
     def __repr__(self):
         s = 'ICA '
@@ -228,11 +237,7 @@ class ICA(object):
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                    raw.info, picks)
 
-        to_ica, self._pca = self._prepare_pca(data, self.max_n_components)
-
-        self._ica.fit(to_ica)
-        self._mixing = self._ica.get_mixing_matrix().T
-        self.current_fit = 'raw'
+        self._decompose(data, self.max_n_components, 'raw')
 
         return self
 
@@ -285,11 +290,7 @@ class ICA(object):
                                 np.hstack(epochs.get_data()[:, picks]),
                                 epochs.info, picks)
 
-        to_ica, self._pca = self._prepare_pca(data, self.max_n_components)
-
-        self._ica.fit(to_ica)
-        self._mixing = self._ica.get_mixing_matrix().T
-        self.current_fit = 'epochs'
+        self._decompose(data, self.max_n_components, 'epochs')
 
         return self
 
@@ -312,7 +313,7 @@ class ICA(object):
         sources : array, shape = (n_components, n_times)
             The ICA sources time series.
         """
-        if self._mixing is None:
+        if self.mixing_matrix is None:
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
@@ -321,8 +322,8 @@ class ICA(object):
     def _get_sources_raw(self, raw, start, stop):
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
-        pca_data = self._pca.transform(data.T)
-        raw_sources = self._ica.transform(pca_data[:, self._comp_idx]).T
+        pca_data = self._transform_pca(data.T)
+        raw_sources = self._transform_ica(pca_data[:, self._comp_idx]).T
 
         return raw_sources, pca_data
 
@@ -341,7 +342,7 @@ class ICA(object):
         epochs_sources : ndarray of shape (n_epochs, n_sources, n_times)
             The sources for each epoch
         """
-        if self._mixing is None:
+        if self.mixing_matrix is None:
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
@@ -363,8 +364,8 @@ class ICA(object):
         data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
                                    epochs.info, picks)
 
-        pca_data = self._pca.transform(data.T)
-        sources = self._ica.transform(pca_data[:, self._comp_idx]).T
+        pca_data = self._transform_pca(data.T)
+        sources = self._transform_ica(pca_data[:, self._comp_idx]).T
         sources = np.array(np.split(sources, len(epochs.events), 1))
 
         if concatenate:
@@ -769,6 +770,24 @@ class ICA(object):
 
         return epochs
 
+    @property
+    def mixing_matrix(self):
+        """The ICA mixing matrix"""
+        if hasattr(self, '_unmixing'):
+            out = linalg.pinv(self._unmixing).T
+        else:
+            out = None
+        return out
+
+    @property
+    def unmixing_matrix(self):
+        """The ICA mixing matrix"""
+        if hasattr(self, '_unmixing'):
+            out = self._unmixing
+        else:
+            out = None
+        return out
+
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
         if self.noise_cov is None:  # use standardization as whitener
@@ -788,7 +807,7 @@ class ICA(object):
 
         return data, pre_whitener
 
-    def _prepare_pca(self, data, max_n_components):
+    def _decompose(self, data, max_n_components, caller):
         """ Helper Function """
         from sklearn.decomposition import RandomizedPCA
 
@@ -820,8 +839,25 @@ class ICA(object):
                                       self._explained_var)[0])
             to_ica = pca_data[:, self._comp_idx]
             self.n_components = len(self._comp_idx)
+        self._ica.fit(to_ica)
 
-        return to_ica, pca
+        if not hasattr(self._ica, 'sources_'):
+            warnings.warn('You are using an outdated version (<= 0.11) '
+                          'of sklearn.')
+            self._unmixing = self._ica.unmixing_matrix_
+        else:
+            self._unmixing = self._ica.components_
+
+        self.current_fit = caller
+        self._pca = Bunch()
+        for attr in ['explained_variance_', 'explained_variance_ratio_',
+                     'mean_', 'components_']:
+            setattr(self._pca, attr, pca.__dict__[attr])
+        self._params_pca = dict((k, vars(pca).get(k, 'NA')) for k in
+                                PCA_PARAMS)
+        self._params_ica = dict((k, vars(self._ica).get(k, 'NA')) for k in
+                                ICA_PARAMS)
+        del self._ica
 
     def _pick_sources(self, sources, pca_data, include, exclude,
                       n_pca_components):
@@ -837,8 +873,7 @@ class ICA(object):
             sources[exclude, :] = 0.  # just exclude
 
         # restore pca data
-        mixing = self._mixing.copy()
-        pca_restored = np.dot(sources.T, mixing)
+        pca_restored = np.dot(sources.T, self.mixing_matrix)
 
         # re-append deselected pca dimension if desired
         if n_pca_components - self.n_components > 0:
@@ -847,7 +882,7 @@ class ICA(object):
             pca_restored = np.c_[pca_restored, pca_reappend]
 
         # restore sensor space data
-        out = _inverse_t_pca(pca_restored, self._pca)
+        out = self._inverse_t_pca(pca_restored)
 
         # restore scaling
         pre_whitener = self._pre_whitener.copy()
@@ -858,6 +893,31 @@ class ICA(object):
             out = np.dot(out, linalg.pinv(pre_whitener))
 
         return out.T
+
+    def _transform_pca(self, data):
+        """Apply decorrelation / dimensionality reduction on MEEG data.
+        """
+        X = np.atleast_2d(data)
+        if self._pca.mean_ is not None:
+            X = X - self._pca.mean_
+
+        X = np.dot(X, self._pca.components_.T)
+        return X
+
+    def _transform_ica(self, data):
+        """Apply ICA un-mixing matrix to recover the latent sources.
+        """
+        return np.dot(np.atleast_2d(data), self.unmixing_matrix.T)
+
+    def _inverse_t_pca(self, X):
+        """Helper Function"""
+        components = self._pca.components_[np.arange(len(X.T))]
+        X_orig = np.dot(X, components)
+
+        if self._pca.mean_ is not None:
+            X_orig += self._pca.mean_
+
+        return X_orig
 
 
 @verbose
@@ -936,9 +996,9 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         Events
     """
     eog_events = _find_eog_events(eog_source[np.newaxis], event_id=event_id,
-                                l_freq=l_freq, h_freq=h_freq,
-                                sampling_rate=raw.info['sfreq'],
-                                first_samp=raw.first_samp)
+                                  l_freq=l_freq, h_freq=h_freq,
+                                  sampling_rate=raw.info['sfreq'],
+                                  first_samp=raw.first_samp)
     return eog_events
 
 
@@ -964,17 +1024,6 @@ def _find_sources(sources, target, score_func):
               else score_func(sources, 1))
 
     return scores
-
-
-def _inverse_t_pca(X, pca):
-    """Helper Function"""
-    components = pca.components_[np.arange(len(X.T))]
-    X_orig = np.dot(X, components)
-
-    if pca.mean_ is not None:
-        X_orig += pca.mean_
-
-    return X_orig
 
 
 def _serialize(dict_, outer_sep=';', inner_sep=':'):
@@ -1027,15 +1076,12 @@ def _write_ica(fid, ica):
     ica:
         The instance of ICA to write
     """
-    _pca, _ica = ica._pca, ica._ica
-    _pca_params = _pca.get_params()
-    _ica_params = _ica.get_params()
 
     for key in ('fun_args', 'fun_prime'):
-        if _ica_params.get(key, None):
-            _ica_params[key] = _serialize(_ica_params[key], '#')
+        if ica._params_ica.get(key, None):
+            ica._params_ica[key] = _serialize(ica._ica_params[key], '#')
         else:
-            _ica_params[key] = str(None)
+            ica._params_ica[key] = str(None)
 
     ica_interface = dict(noise_cov=ica.noise_cov,
                          max_n_components=ica.max_n_components,
@@ -1043,10 +1089,6 @@ def _write_ica(fid, ica):
                          current_fit=ica.current_fit,
                          _explained_var=ica._explained_var
                          )
-    try:  # first try to get new attribute.
-        unmixing_matrix_ = ica._ica.components_
-    except:
-        unmixing_matrix_ = ica._ica.unmixing_matrix_
 
     start_block(fid, FIFF.FIFFB_ICA)
 
@@ -1062,24 +1104,26 @@ def _write_ica(fid, ica):
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
 
     #   _PCA parameters
-    write_string(fid, FIFF.FIFF_MNE_ICA_PCA_PARAMS, _serialize(_pca_params))
+    write_string(fid, FIFF.FIFF_MNE_ICA_PCA_PARAMS,
+                 _serialize(ica._params_pca))
 
     #   _PCA components_
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS, _pca.components_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_COMPONENTS,
+                        ica._pca.components_)
 
     #   _PCA explained_variance_
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR,
-                       _pca.explained_variance_)
+                        ica._pca.explained_variance_)
     #   _PCA mean_
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_MEAN, _pca.mean_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_PCA_MEAN, ica._pca.mean_)
 
     #   _ICA parameters
-    write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(_ica_params))
+    write_string(fid, FIFF.FIFF_MNE_ICA_PARAMS, _serialize(ica._params_ica))
 
     #   _ICA unmixing
-    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_UNMIXING, unmixing_matrix_)
+    write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix)
 
-    #   Done!
+    # Done!
     end_block(fid, FIFF.FIFFB_ICA)
 
 
@@ -1124,7 +1168,7 @@ def read_ica(fname):
             _pre_whitener = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_PCA_PARAMS:
             tag = read_tag(fid, pos)
-            _pca_params = tag.data
+            _params_pca = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_PCA_COMPONENTS:
             tag = read_tag(fid, pos)
             components_ = tag.data
@@ -1136,19 +1180,12 @@ def read_ica(fname):
             mean_ = tag.data
         elif kind == FIFF.FIFF_MNE_ICA_PARAMS:
             tag = read_tag(fid, pos)
-            _ica_params = tag.data
-        elif kind == FIFF.FIFF_MNE_ICA_UNMIXING:
+            _params_ica = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_MATRIX:
             tag = read_tag(fid, pos)
-            unmixing_matrix_ = tag.data
+            unmixing_matrix = tag.data
 
     fid.close()
-
-    _pca_params = _deserialize(_pca_params)
-    if _pca_params['random_state'] == np.random.RandomState.__name__:
-        _pca_params['random_state'] = np.random.RandomState()
-        logger.warning('Creating new RandomState object. The ensueing random '
-                       'state will not match the random state from '
-                       'PCA fit time.')
 
     interface = _deserialize(ica_interface)
     current_fit = interface.pop('current_fit')
@@ -1159,27 +1196,21 @@ def read_ica(fname):
 
     logger.info('Now restoring ICA session ...')
 
-    _ica = FastICA(**_deserialize(_ica_params))
-
-    try:  # try to set an attribute (won't work with all sklearn versions)
-        _ica.unmixing_matrix_ = unmixing_matrix_
-    except:
-        _ica.components_ = unmixing_matrix_
-
-    _pca = RandomizedPCA(**_pca_params)
-    _pca.components_ = components_
-    _pca.mean_ = mean_
-    _pca.explained_variance_ = explained_variance_
-    _pca.explained_variance_ratio_ = explained_variance_ / \
-                                     explained_variance_.sum()
     ica = ICA(**interface)
-    ica._ica, ica._pca = _ica, _pca
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
     ica._comp_idx = np.arange(ica.n_components)
     ica._pre_whitener = _pre_whitener
     ica._explained_var = _explained_var
-    ica._mixing = _ica.get_mixing_matrix().T
+    ica._unmixing = unmixing_matrix
+    ica._params_ica = _deserialize(_params_ica) if _params_ica else None
+    ica._params_pca = _deserialize(_params_pca) if _params_pca else None
+    ica._pca = Bunch()
+    ica._pca.components_ = components_
+    ica._pca.mean_ = mean_
+    ica._pca.explained_variance_ = explained_variance_
+    ica._pca.explained_variance_ratio_ = explained_variance_ / \
+                                         explained_variance_.sum()
 
     logger.info('Ready.')
 
