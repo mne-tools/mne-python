@@ -308,7 +308,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
-            warnings.warn("Scikit-learn > 0.11 cannot be found. "
+            warnings.warn("Scikit-learn >= 0.12 cannot be found. "
                           "Using proximal iterations instead of coordinate "
                           "descent.")
             solver = 'prox'
