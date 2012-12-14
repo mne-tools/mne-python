@@ -1,7 +1,13 @@
 """
-======================================
+=======================================
 Export Epochs to a data frame in Pandas
-======================================
+=======================================
+
+In this example the pandas exporter will be used to produce a DataFrame
+object. After exploring some basic features a split-apply-combine
+work flow will be conducted to examine the latencies of the response
+maxima across epochs and conditions.
+Note. Equivalent methods are available for raw and evoked data objects.
 
 Short Pandas Primer
 ----------------------------
@@ -9,45 +15,49 @@ Short Pandas Primer
 Pandas Data Frames
 ~~~~~~~~~~~~~~~~~~
 A data frame can be thought of as a product between a matrix, a list and a dict:
-It understands linear algebra and element-wise operations but is size mutable
+It knows about linear algebra and element-wise operations but is size mutable
 and allows for labeled access to its data. In addition, the pandas data frame
 class provides many useful methods for restructuring, reshaping and visualizing
-data. As most methods return data frame instances operations can be chained
-with ease which allows to write efficient one-liners.
-Taken together, these features qualify data frames for interoperation with
+data. As most methods return data frame instances, operations can be chained
+with ease; this allows to write efficient one-liners. Technically a DataFrame
+can be seen as a high-level container for numpy arrays and hence switching
+back and forth between numpy arrays and DataFrames is very easy.
+Taken together, these features qualify data frames for inter operation with
 databases and for interactive data exploration / analysis.
 Additionally, pandas interfaces with the R statistical computing language that
 covers a huge amount of statistical functionality.
 
 Export Options
 ~~~~~~~~~~~~~~
-The pandas exporter comes with two options: either a data frame is returned or
-a panel object.
+The pandas exporter comes with a few options worth being commented.
 
-The data frame comes with a hierarchical index, that is an array of unique
-tuples (epochs * time slices). This allows to map the higher
-dimensional MEG data onto a 2D data table. The column names are the
-channel names from the epoch object. The channels can be accessed like entries
-of a dictionary:
+Pandas DataFrame objects use a so called hierarchical index. This can be
+thought of as an array of unique tuples, in our case, representing the higher
+dimensional MEG data in a 2D data table. The column names are the channel names
+from the epoch object. The channels can be accessed like entries of a
+dictionary:
 
-    epochs_df['MEG 2333']
+    df['MEG 2333']
 
 Epochs and time slices can be accessed with the .ix method:
 
-    epochs_df.ix['epoch 1', 2]['MEG 2333']
+    epochs_df.ix[(1, 2), 'MEG 2333']
 
-The panel object is a collection of non-hierarchically indexed data frames
-representing the epochs which can be accessed like entries in a dictionary:
+However, it is also possible to include this index as regular categorial data
+columns which yields a long table format typically used for repeated measure
+designs. To take control of this feature, on export, you can specify which
+of the three dimensions 'condition', 'epoch' and 'time' is passed to the Pandas
+index using the index parameter. Note that this decision is revertible any time,
+as demonstrated below.
 
-    epochs_df['epoch 1']
+Similarly, for convenience, it is possible to scale the times, e.g. from
+seconds to milliseconds.
 
-This returns a data frame with time slices as rows and channels as columns.
-
-Instance Methods
-~~~~~~~~~~~~~~~~
+Some Instance Methods
+~~~~~~~~~~~~~~~~~~~~~
 Most numpy methods and many ufuncs can be found as instance methods, e.g.
-mean, median, var, std, mul, etc. Below an incomplete listing of additional
-useful data frame instance methods:
+mean, median, var, std, mul, , max, argmax etc.
+Below an incomplete listing of additional useful data frame instance methods:
 
 apply : apply function to data.
     Any kind of custom function can be applied to the data. In combination with
@@ -63,6 +73,9 @@ plot : wrapper around plt.plot
     However it comes with some special options. For examples see below.
 shape : shape attribute
     gets the dimensions of the data frame.
+values : return underlying numpy array.
+to_records : export data as numpy record array.
+to_dict : export data as dict of arrays.
 
 Reference
 ~~~~~~~~~
@@ -78,66 +91,137 @@ print __doc__
 import mne
 import pylab as pl
 import numpy as np
+import mne
 from mne.fiff import Raw
 from mne.datasets import sample
 
-from pandas.stats.api import rolling_mean
 
 # turn on interactive mode
 pl.ion()
 
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = Raw(raw_fname)
-events = mne.find_events(raw, stim_channel='STI 014')
-raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=True, eog=True,
+
+# For simplicity we will only consider the first 10 epochs
+events = mne.read_events(event_fname)[:10]
+
+raw.info['bads'] = ['MEG 2443']
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude=raw.info['bads'])
 
-tmin, tmax, event_id = -0.2, 0.5, 1
+tmin, tmax = -0.2, 0.5
 baseline = (None, 0)
 reject = dict(grad=4000e-13, eog=150e-6)
 
+event_id = dict(auditory_l=1, auditory_r=2, visual_l=3, visual_r=4)
+
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=baseline, preload=False, reject=reject)
+                    baseline=baseline, preload=True, reject=reject)
 
-epochs_df = epochs.as_data_frame()
+###############################################################################
+# Export DataFrame
 
-meg_chs = [c for c in epochs.ch_names if c.startswith("MEG")]
+# The following parameters will scale the channels and times plotting
+# friendly. The info columns 'epoch' and 'time' will be used as hierarchical
+# index whereas the condition is treated as categorial data. Note that
+# this is optional. By passing None you could also print out all nesting factors
+# in a long table style commonly used for analyzing repeated measure designs.
 
-# display some channels.
-epochs_df.ix['epoch 11', :4].head(20)
+index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
-# plot single epoch.
-epochs_df.ix['epoch 11'].plot(legend=False, xlim=(0, 105), title='epoch 11')
+df = epochs.as_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
+                          index=index)
 
-# split by timeslices using hierarchical index.
-grouped_tsl = epochs_df[meg_chs].groupby(level='time slices')
+# Create MEG channel selector and drop EOG channel.
+meg_chs = [c for c in df.columns if 'MEG' in c]
 
-# then apply mean to each group and create a plot.
-grouped_tsl.mean().plot(legend=0, title='MEG average', xlim=(0, 105))
+df.pop('EOG 061')  # this works just like with a list.
 
-# apply arbitrary numpy function.
-grouped_tsl.agg(np.std).plot(legend=0, title='MEG std', xlim=(0, 105))
+###############################################################################
+# Explore Pandas MultiIndex
 
-# smooth using a rolling mean then average and finally plot.
-grouped_tsl.apply(lambda x: rolling_mean(x.mean(), 10)).plot(legend=False,
-                                                             xlim=(0, 105))
+# Pandas is using a MultiIndex or hierarchical index to handle higher
+# dimensionality while at the same time representing data in a flat 2d manner.
 
-# apply individual functions to channels.
-grouped_tsl.agg({"MEG 0113": np.mean, "MEG 0213": np.median})
+print df.index.names, df.index.levels
 
-# investigate epochs using hierarchical index.
-grouped_epochs = epochs_df[meg_chs].groupby(level='epochs')
+# Inspecting the index object unveils that 'epoch', 'time' are used
+# for subsetting data. We can take advantage of that by using the
+# .ix attribute, where in this case the first position indexes the MultiIndex
+# and the second the columns, that is, channels.
 
-subgroup = grouped_epochs.max().ix['epoch 1':'epoch 12']
+# Plot some channels across the first three epochs
+pl.close('all')
+xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
+df.ix[:3, sel].plot(xticks=xticks)
+mne.viz.tight_layout()
 
-subgroup.plot(kind='barh', legend=0)
+# slice the time starting at t0 in epoch 2 and ending 500ms after
+# the base line in epoch 3. Note that the second part of the tuple
+# represents time in milliseconds from stimulus onset.
+df.ix[(1, 0):(3, 500), sel].plot(xticks=xticks)
+mne.viz.tight_layout()
 
-# create string table for dumping into file.
-result_table = subgroup.to_string()
+# Note: For convenience the index was converted from floating point values
+# to integer values. To restore the original values you can e.g. say
+# df['times'] = np.tile(epoch.times, len(epochs_times)
 
-# investigate a specific channel's std across epochs.
-chn = "MEG 0113"
-grouped_epochs.std()[chn].plot(title=chn, xlim=(0, 55))
+# We now want to add 'condition' to the DataFrame to expose some Pandas
+# pivoting functionality. To make the plots labels more readable let's
+# first edit the names and expose.
+df.condition = df.condition.apply(lambda x: x + ' ')
+df.set_index('condition', append=True, inplace=True)
+
+# The DataFrame is split into subsets reflecting a crossing between condition
+# and trial number. The idea is that we can broadcast operations into each cell
+# simultaneously.
+
+grouped = df.groupby(level=['condition', 'epoch'])
+
+# Print condition aggregate statistics for two channels
+
+sel = ['MEG 1332', 'MEG 1342']
+print grouped[sel].describe()
+
+# Compare mean of two channels response according to condition.
+grouped[sel].mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
+mne.viz.tight_layout()
+
+# pl.subplots_adjust(bottom=0.23)
+
+
+# We can even accomplish more complicated tasks in a few lines calling
+# apply method and passing a function. Assume we wanted to know the time
+# slice of the maximum response for each condition. We index at 1 because
+# The second subindex represents time.
+
+max_latency = grouped[sel[0]].apply(lambda x: x.index[x.argmax()][1])
+
+print max_latency
+
+pl.figure()
+max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
+mne.viz.tight_layout()
+
+# pl.subplots_adjust(left=0.19)
+# Finally, we will remove the index to create a proper data table that
+# can be used with statistical packages like statsmodels or R.
+
+final_df = max_latency.reset_index()
+final_df.rename(columns={0: sel[0]})  # as the index is oblivious of names.
+
+# The index is now written into regular columns so it can be used as factor.
+print final_df
+
+# To save as csv file, uncomment the next line.
+# final_df.to_csv('my_epochs.csv')
+
+# Note. Data Frames can be easily concatenated, e.g., across subjects.
+# E.g. say:
+#
+# import pandas as pd
+# group = pd.concat([df_1, df_2])
+# group['subject'] = np.r_[np.ones(len(df_1)), np.ones(len(df_2)) + 1]
