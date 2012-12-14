@@ -774,7 +774,7 @@ class ICA(object):
     def mixing_matrix(self):
         """The ICA mixing matrix"""
         if hasattr(self, '_unmixing'):
-            out = linalg.pinv(self._unmixing)
+            out = linalg.pinv(self._unmixing).T
         else:
             out = None
         return out
@@ -840,15 +840,13 @@ class ICA(object):
             to_ica = pca_data[:, self._comp_idx]
             self.n_components = len(self._comp_idx)
         self._ica.fit(to_ica)
-        try:  # this will work for sklearn > 0.13
-            self._unmixing = self._ica.components.T
-        except:
-            if self._ica.unmixing_matrix_.shape[0] == self.n_components:
-                self._unmixing = self._ica.unmixing_matrix_
-                warnings.warn('Unexpected matrix shape. Probably you are '
-                              'using an outdated version (<= 0.11) of sklearn.')
-            else:
-                self._unmixing = self._ica.unmixing_matrix_.T
+
+        if not hasattr(self._ica, 'sources_'):
+            warnings.warn('You are using an outdated version (<= 0.11) '
+                          'of sklearn.')
+            self._unmixing = self._ica.unmixing_matrix_
+        else:
+            self._unmixing = self._ica.components_
 
         self.current_fit = caller
         self._pca = Bunch()
@@ -897,18 +895,7 @@ class ICA(object):
         return out.T
 
     def _transform_pca(self, data):
-        """Apply dimensionality reduction on X.
-
-        Parameters
-        ----------
-        data : array-like or scipy.sparse matrix, shape (n_samples, n_features)
-            New data, where n_samples in the number of samples
-            and n_features is the number of features.
-
-        Returns
-        -------
-        X_new : array-like, shape (n_samples, n_components)
-
+        """Apply decorrelation / dimensionality reduction on MEEG data.
         """
         X = np.atleast_2d(data)
         if self._pca.mean_ is not None:
@@ -918,9 +905,7 @@ class ICA(object):
         return X
 
     def _transform_ica(self, data):
-        """Apply un-mixing matrix "W" to X to recover the sources
-
-        S = X * W.T
+        """Apply ICA un-mixing matrix to recover the latent sources.
         """
         return np.dot(np.atleast_2d(data), self.unmixing_matrix.T)
 
