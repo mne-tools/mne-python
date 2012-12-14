@@ -23,7 +23,7 @@ from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
-from .pick import pick_types
+from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
@@ -1038,24 +1038,92 @@ class Raw(object):
 
         return new
 
-    def to_nitime(self, start=None, stop=None, use_first_samp=False,
-                  picks=None, copy=True):
-        """ Raw data as nitime TimeSeries
+    def as_data_frame(self, picks=None, start=None, stop=None, cale_time=1e3,
+                      scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
+                      use_time_index=True):
+        """Get the epochs as Pandas DataFrame
+
+        Export raw data in tabular structure with MEG channels.
 
         Parameters
         ----------
+        picks : None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
         start : int | None
             Data-extraction start index. If None, data will be exported from
             the first sample.
         stop : int | None
             Data-extraction stop index. If None, data will be exported to the
             last index.
-        use_first_samp: boolean
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
+        scale_time : float
+            Scaling to be applied to time units.
+        scalings : dict | None
+            Scaling to be applied to the channels picked. If None, no scaling
+            will be applied.
+        use_time_index : bool
+            If False, times will be included as in the data table, else it will
+            be used as index object.
+
+        Returns
+        -------
+        df : instance of DataFrame
+            Raw data exported into tabular data structure.
+        """
+        try:
+            import pandas as pd
+        except:
+            raise RuntimeError('For this method you need an installation of '
+                               'the Pandas library.')
+
+        if picks is None:
+            picks = range(self.info['nchan'])
+
+        data, times = self[picks, start:stop]
+        types = [channel_type(self.info, idx) for idx in picks]
+        n_channel_types = 0
+        ch_types_used = []
+        for t in scalings.keys():
+            if t in types:
+                n_channel_types += 1
+                ch_types_used.append(t)
+
+        for t in ch_types_used:
+            scaling = scalings[t]
+            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+            if len(idx) > 0:
+                data[:, idx] *= scaling
+
+        assert times.shape[0] == data.shape[1]
+        col_names = [self.ch_names[k] for k in picks]
+
+        df = pd.DataFrame(data.T, columns=col_names)
+        df.insert(0, 'time', times)
+
+        if use_time_index == True:
+            df.set_index('time', inplace=True)
+            df.index = df.index.astype(int)
+
+        return df
+
+    def to_nitime(self, picks=None, start=None, stop=None, use_first_samp=False,
+                  copy=True):
+        """ Raw data as nitime TimeSeries
+
+        Parameters
+        ----------
         picks : array-like | None
             Indices of channels to apply. If None, all channels will be
             exported.
+        start : int | None
+            Data-extraction start index. If None, data will be exported from
+            the first sample.
+        stop : int | None
+            Data-extraction stop index. If None, data will be exported to the
+            last index.
+        use_first_samp: bool
+            If True, the time returned is relative to the session onset, else
+            relative to the recording onset.
         copy : boolean | None
             Whether to copy the raw data or not.
 

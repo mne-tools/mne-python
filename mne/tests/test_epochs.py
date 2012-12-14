@@ -20,8 +20,16 @@ except ImportError:
     have_nitime = False
 else:
     have_nitime = True
-nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
 
+try:
+    import pandas
+except ImportError:
+    have_pandas = False
+else:
+    have_pandas = True
+
+nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
+pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -461,3 +469,15 @@ def test_access_by_name():
     data = epochs['a'].get_data()
     event_a = events[events[:, 2] == 1]
     assert_true(len(data) == len(event_a))
+
+
+@pandas_test
+def test_as_data_frame():
+    """Test Pandas exporter"""
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    assert_raises(ValueError, epochs.as_data_frame, index=['foo', 'bar'])
+    assert_raises(ValueError, epochs.as_data_frame, index='qux')
+    assert_raises(ValueError, epochs.as_data_frame, np.arange(400))
+    df = epochs.as_data_frame()
+    assert_true((df.columns[1:] == epochs.ch_names).all())
+    assert_true(df.index.names == ['epoch', 'time'])

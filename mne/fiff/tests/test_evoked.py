@@ -9,7 +9,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal,\
                           assert_array_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.fiff import read_evoked, write_evoked
 
@@ -22,7 +22,16 @@ except ImportError:
     have_nitime = False
 else:
     have_nitime = True
+try:
+    import pandas
+except ImportError:
+    have_pandas = False
+else:
+    have_pandas = True
+
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
+pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
+
 
 tempdir = tempfile.mkdtemp()
 
@@ -106,3 +115,14 @@ def test_evoked_to_nitime():
     aves = read_evoked(fname, [0, 1, 2, 3])
     evoked_ts = aves[0].to_nitime(picks=picks2)
     assert_equal(evoked_ts.data, aves[0].data[picks2])
+
+
+@pandas_test
+def test_as_data_frame():
+    """Test Pandas exporter"""
+    ave = read_evoked(fname, [0])[0]
+    assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
+    df = ave.as_data_frame()
+    assert_true((df.columns == ave.ch_names).all())
+    df = ave.as_data_frame(use_time_index=False)
+    assert_true('time' in df.columns)
