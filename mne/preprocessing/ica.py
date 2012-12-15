@@ -170,8 +170,8 @@ class ICA(object):
             msg = '(epochs'
         msg += ' decomposition, '
 
-        s += msg + ('%s components' % str(self.n_ica_components) if
-                    hasattr(self, 'n_ica_components') else
+        s += msg + ('%s components' % str(self.n_ica_components_) if
+                    hasattr(self, 'n_ica_components_') else
                     'no dimension reduction') + ')'
 
         return s
