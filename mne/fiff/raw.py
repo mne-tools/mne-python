@@ -842,6 +842,7 @@ class Raw(object):
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
+
         Parameters
         ----------
         times : list-like | float | int
@@ -855,18 +856,12 @@ class Raw(object):
         index : ndarray
             Indices corresponding to the times supplied.
         """
-        if type(times) in (int, float):
-            times = [times]
-
-        index = np.array(times) * self.info['sfreq']
-
-        if use_first_samp:
-            index += self.first_samp
-
-        return index.astype(int)
+        return _time_as_index(times, self.info['sfreq'], self.first_samp,
+                              use_first_samp)
 
     def index_as_time(self, index, use_first_samp=False):
         """Convert time to indices
+
         Parameters
         ----------
         index : list-like | int
@@ -880,14 +875,8 @@ class Raw(object):
         times : ndarray
             Times corresponding to the index supplied.
         """
-        if isinstance(index, int):
-            index = [index]
-
-        index = np.array(index, dtype=int) + (self.first_samp if
-                                              use_first_samp else 0)
-        times = index / self.info['sfreq']
-
-        return times
+        return _index_as_time(index, self.info['sfreq'], self.first_samp,
+                              use_first_samp)
 
     @property
     def ch_names(self):
@@ -1152,6 +1141,59 @@ class Raw(object):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)
         return "Raw (%s)" % s
+
+
+def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
+    """Convert time to indices
+
+    Parameters
+    ----------
+    times : list-like | float | int
+        List of numbers or a number representing points in time.
+    use_first_samp: boolean
+        If True, time is treated as relative to the session onset, else
+        as relative to the recording onset.
+
+    Returns
+    -------
+    index : ndarray
+        Indices corresponding to the times supplied.
+    """
+    if type(times) in (int, float):
+        times = [times]
+
+    index = np.array(times) * sfreq
+
+    if use_first_samp:
+        index += first_samp
+
+    return index.astype(int)
+
+
+def _index_as_time(index, sfreq, first_samp, use_first_samp=False):
+    """Convert time to indices
+
+    Parameters
+    ----------
+    index : list-like | int
+        List of ints or int representing points in time.
+    use_first_samp: boolean
+        If True, the time returned is relative to the session onset, else
+        relative to the recording onset.
+
+    Returns
+    -------
+    times : ndarray
+        Times corresponding to the index supplied.
+    """
+    if isinstance(index, int):
+        index = [index]
+
+    index = np.array(index, dtype=int) + (first_samp if
+                                          use_first_samp else 0)
+    times = index / sfreq
+
+    return times
 
 
 class _RawShell():

@@ -121,6 +121,10 @@ def test_read_write_epochs():
     data = epochs.get_data()
     assert_true(epochs_read3.events.shape[0] == data.shape[0])
 
+    # test copying loaded one (raw property)
+    epochs_read4 = epochs_read3.copy()
+    assert_array_almost_equal(epochs_read4.get_data(), data)
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
