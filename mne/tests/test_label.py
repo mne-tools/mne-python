@@ -1,5 +1,6 @@
 import tempfile
 import os
+import commands
 import os.path as op
 import shutil
 import glob
@@ -160,7 +161,7 @@ def test_labels_from_parc_annot2labels():
         try:
             os.chdir(label_dir)
             cmd = 'mne_annot2labels --subject %s --parc %s' % (subject, parc)
-            st = os.system(cmd)
+            st, output = commands.getstatusoutput(cmd)
             if st != 0:
                 raise RuntimeError('mne_annot2labels non-zero exit status %d'
                                    % st)

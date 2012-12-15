@@ -65,7 +65,8 @@ def prox_l21(Y, alpha, n_orient):
     n_positions = Y.shape[0] // n_orient
     rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
                                 axis=1))
-    shrink = np.maximum(1.0 - alpha / rows_norm, 0.0)
+    # Ensure shrink is >= 0 while avoiding any division by zero
+    shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
     active_set = shrink > 0.0
     if n_orient > 1:
         active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
@@ -98,7 +99,9 @@ def prox_l1(Y, alpha, n_orient):
     """
     n_positions = Y.shape[0] // n_orient
     norms = np.sqrt(np.sum((np.abs(Y) ** 2).T.reshape(-1, n_orient), axis=1))
-    shrink = np.maximum(1.0 - alpha / norms, 0.0).reshape(-1, n_positions).T
+    # Ensure shrink is >= 0 while avoiding any division by zero
+    shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
+    shrink = shrink.reshape(-1, n_positions).T
     active_set = np.any(shrink > 0.0, axis=1)
     shrink = shrink[active_set]
     if n_orient > 1:
@@ -305,7 +308,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
-            warnings.warn("Scikit-learn cannot be found. "
+            warnings.warn("Scikit-learn >= 0.12 cannot be found. "
                           "Using proximal iterations instead of coordinate "
                           "descent.")
             solver = 'prox'
