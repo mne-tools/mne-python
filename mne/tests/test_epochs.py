@@ -29,7 +29,7 @@ else:
     have_pandas = True
 
 nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
-pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
+pandas_test = np.testing.dec.skipif(not have_pandas, 'pandas not installed')
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -426,7 +426,6 @@ def test_epoch_eq():
     # equalizing conditions
     epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                     tmin, tmax, picks=picks)
-    epochs.drop_bad_epochs()
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'], copy=False)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
@@ -471,19 +470,31 @@ def test_access_by_name():
     """Test accessing epochs by event name
     """
     assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
-                 tmax, picks=picks)
+                  tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
-                 tmin, tmax, picks=picks)
+                  tmin, tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
-                 tmin, tmax, picks=picks)
-    assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax, picks=picks)
+                  tmin, tmax, picks=picks)
+    assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax,
+                  picks=picks)
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    epochs.drop_bad_epochs()
     assert_raises(KeyError, epochs.__getitem__, 'bar')
 
     data = epochs['a'].get_data()
     event_a = events[events[:, 2] == 1]
     assert_true(len(data) == len(event_a))
+
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    assert_raises(KeyError, epochs.__getitem__, 'bar')
+    epochs.save(op.join(tempdir, 'test-epo.fif'))
+    epochs2 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+
+    for ep in [epochs, epochs2]:
+        data = ep['a'].get_data()
+        event_a = events[events[:, 2] == 1]
+        assert_true(len(data) == len(event_a))
+
+    assert_array_equal(epochs2['a'].events, epochs['a'].events)
 
 
 @pandas_test

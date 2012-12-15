@@ -597,6 +597,20 @@ def test_raw_index_as_time():
     t1 = raw.index_as_time([100], False)[0]
     t2 = raw.index_as_time([100], True)[0]
     assert_true((t2 - t1) == t0)
+    # ensure we can go back and forth
+    t3 = raw.index_as_time(raw.time_as_index([0], True), True)
+    assert_array_almost_equal(t3, [0.0], 2)
+    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], True), True)
+    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
+    t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], False), False)
+    assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
+    i0 = raw.time_as_index(raw.index_as_time([0], True), True)
+    assert_true(i0[0] == 0)
+    i1 = raw.time_as_index(raw.index_as_time([100], True), True)
+    assert_true(i1[0] == 100)
+    i1 = raw.time_as_index(raw.index_as_time([100], False), False)
+    print (i1[0], 100)
+    assert_true(i1[0] == 100)
 
 
 def test_raw_time_as_index():

@@ -1159,18 +1159,12 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
     index : ndarray
         Indices corresponding to the times supplied.
     """
-    if type(times) in (int, float):
-        times = [times]
-
-    index = np.array(times) * sfreq
-
-    if use_first_samp:
-        index += first_samp
-
-    return index.astype(int)
+    index = np.atleast_1d(times) * sfreq
+    index -= (first_samp if use_first_samp else 0)
+    return index.round().astype(int)
 
 
-def _index_as_time(index, sfreq, first_samp, use_first_samp=False):
+def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     """Convert time to indices
 
     Parameters
@@ -1186,14 +1180,8 @@ def _index_as_time(index, sfreq, first_samp, use_first_samp=False):
     times : ndarray
         Times corresponding to the index supplied.
     """
-    if isinstance(index, int):
-        index = [index]
-
-    index = np.array(index, dtype=int) + (first_samp if
-                                          use_first_samp else 0)
-    times = index / sfreq
-
-    return times
+    times = np.atleast_1d(index) + (first_samp if use_first_samp else 0)
+    return times / sfreq
 
 
 class _RawShell():

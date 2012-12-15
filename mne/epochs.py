@@ -260,6 +260,8 @@ class Epochs(object):
         if self.preload:
             self._data = self._get_data_from_disk()
             self.raw = None
+        else:
+            self._data = None
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -479,7 +481,6 @@ class Epochs(object):
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
 
-
     def _key_match(self, key):
         """Helper function for event dict use"""
         if key not in self.event_id:
@@ -490,19 +491,10 @@ class Epochs(object):
         """Return an Epochs object with a subset of epochs
         """
 
-        if self.preload:
-            data = self._data
-            del self._data
-
+        data = self._data
+        del self._data
         epochs = self.copy()
-
-        if self.preload:
-            self._data, epochs._data = data, data
-
-        if not self._bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will"
-                          " be inaccurate. Use drop_bad_epochs() or"
-                          " preload=True")
+        self._data, epochs._data = data, data
 
         if isinstance(key, str):
             key_match = self._key_match(key)
@@ -517,6 +509,12 @@ class Epochs(object):
             epochs.events = np.atleast_2d(self.events[key])
             if self.preload:
                 select = key if isinstance(key, slice) else np.atleast_1d(key)
+            elif not self._bad_dropped:
+                # Only matters if preload is not true, since bad epochs are
+                # dropped on preload; doesn't mater for key lookup, either
+                warnings.warn("Bad epochs have not been dropped, indexing will"
+                              " be inaccurate. Use drop_bad_epochs() or"
+                              " preload=True")
 
         if self.preload:
             epochs._data = epochs._data[select]
@@ -603,8 +601,8 @@ class Epochs(object):
         # dropping EOG, ECG and STIM channels. Keeping only data
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True,
-                                    stim=False, eog=False, ecg=False,
-                                    emg=False)
+                               stim=False, eog=False, ecg=False,
+                               emg=False)
             if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
@@ -692,8 +690,9 @@ class Epochs(object):
             new_data = self._data
             new_data.shape = (np.prod(orig_dims), self._data.shape[2])
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
-                           npad, 1) for d in np.array_split(new_data, n_jobs)))
+            new_data = parallel(my_resample(d, sfreq, o_sfreq, npad, 1)
+                                for d in np.array_split(new_data, n_jobs))
+            new_data = np.concatenate(new_data)
             new_data.shape = orig_dims + (new_data.shape[1],)
             self._data = new_data
             # adjust indirectly affected variables
@@ -793,8 +792,8 @@ class Epochs(object):
             otherwise the channels indices in picks are kept.
         index : list of str | None
             Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info columns
-            will be included in the table as categorial data.
+            are 'epoch', 'time' and 'condition'. If None, all three info
+            columns will be included in the table as categorial data.
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
@@ -819,8 +818,8 @@ class Epochs(object):
             picks = range(self.info['nchan'])
         else:
             if not in1d(picks, np.arange(len(self.events))).all():
-                raise ValueError('At least one picked channel is not present in'
-                                 ' this eppochs instance.')
+                raise ValueError('At least one picked channel is not present '
+                                 'in this eppochs instance.')
 
         data = self.get_data()[:, picks, :]
         shape = data.shape
@@ -1104,6 +1103,7 @@ def _get_drop_indices(event_times, method):
 
     return indices
 
+
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""
     keep = np.ones((len(t_longer)), dtype=bool)
@@ -1246,7 +1246,7 @@ def read_epochs(fname, proj=True, verbose=None):
                    1000 * last / info['sfreq'], comment))
     if info['comps'] is not None:
         logger.info('        %d CTF compensation matrices available'
-                                               % len(info['comps']))
+                    % len(info['comps']))
 
     # Read the data
     if data is None:
@@ -1255,7 +1255,7 @@ def read_epochs(fname, proj=True, verbose=None):
     if data.shape[2] != nsamp:
         fid.close()
         raise ValueError('Incorrect number of samples (%d instead of %d)'
-                          % (data.shape[2], nsamp))
+                         % (data.shape[2], nsamp))
 
     # Calibrate
     cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
