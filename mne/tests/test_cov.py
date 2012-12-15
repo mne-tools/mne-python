@@ -145,8 +145,10 @@ def test_cov_estimation_with_triggers():
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
-    cov = compute_covariance(epochs, projs=[])
+    with warnings.catch_warnings(True) as w:
+        cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
+        cov = compute_covariance(epochs, projs=[])
+        assert_true(len(w) == 1)
 
 
 def test_arithmetic_cov():

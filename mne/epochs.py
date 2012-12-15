@@ -521,7 +521,7 @@ class Epochs(object):
         if not self._bad_dropped:
             warnings.warn("Bad epochs have not been dropped, indexing will"
                           " be inaccurate. Use drop_bad_epochs() or"
-                        " preload=True")
+                          " preload=True")
 
         if isinstance(key, str):
             key_match = self._key_match(key)

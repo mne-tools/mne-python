@@ -464,6 +464,7 @@ def test_access_by_name():
                  tmin, tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax, picks=picks)
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    epochs.drop_bad_epochs()
     assert_raises(KeyError, epochs.__getitem__, 'bar')
 
     data = epochs['a'].get_data()
