@@ -737,6 +737,15 @@ class Epochs(object):
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         start_block(fid, FIFF.FIFFB_EPOCHS)
 
+        # write events out after getting data to ensure bad events are dropped
+        data = self.get_data()
+        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+        mapping_ = ';'.join([k + ':' + str(v) for k, v in
+                             self.event_id.items()])
+        write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
         # First and last sample
         first = -int(np.sum(self.times < 0))
         last = int(np.sum(self.times > 0))
@@ -756,19 +765,9 @@ class Epochs(object):
         for k in range(self.info['nchan']):
             decal[k] = 1.0 / self.info['chs'][k]['cal']
 
-        data = self.get_data()
         data *= decal[None, :, None]
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-
-        # write events out after getting data to ensure bad events are dropped
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
-        mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                             self.event_id.items()])
-        write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
