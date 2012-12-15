@@ -10,6 +10,7 @@ import warnings
 from inspect import getargspec, isfunction
 
 import os
+import json
 import logging
 logger = logging.getLogger('mne')
 
@@ -124,11 +125,13 @@ class ICA(object):
         If fit, the mean vector used to center the data before doing the PCA.
     pca_explained_variance_ : ndarray
         If fit, the variance explained by each PCA component
+    n_components_ : int
+        The number of components used for PCA decorrelation.
     n_ica_components_ : int
         The number of components used for ICA decomposition.
-    mixing_matrix_ : None | ndarray
+    mixing_matrix_ : ndarray
         If fit, the mixing matrix to restore observed data, else None.
-    unmixing_matrix_ : None | ndarray
+    unmixing_matrix_ : ndarray
         If fit, the matrix to unmix observed data, else None.
     """
     @verbose
@@ -167,8 +170,9 @@ class ICA(object):
             msg = '(epochs'
         msg += ' decomposition, '
 
-        s += msg + ('%s components' % str(self.n_components) if
-               self.n_components else 'no dimension reduction') + ')'
+        s += msg + ('%s components' % str(self.n_ica_components) if
+                    hasattr(self, 'n_ica_components') else
+                    'no dimension reduction') + ')'
 
         return s
 
@@ -824,6 +828,7 @@ class ICA(object):
                               'scikit-learn to version 0.11 or newer')
             else:
                 kwargs['random_state'] = self.random_state
+
         ica = FastICA(**kwargs)
         ica.fit(to_ica)
 
@@ -1010,32 +1015,18 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
         for cls in (np.random.RandomState, Covariance):
             if isinstance(v, cls):
                 v = cls.__name__
-        else:
-            v = str(v)
-        s.append(k + inner_sep + v)
+
+        s.append(k + inner_sep + json.dumps(v))
 
     return outer_sep.join(s)
 
 
 def _deserialize(str_, outer_sep=';', inner_sep=':'):
-    """Aux function"""
-
     out = {}
     for mapping in str_.split(outer_sep):
         k, v = mapping.split(inner_sep)
-        if v == 'None':
-            out[k] = None
-        elif v == 'True':
-            out[k] = True
-        elif v == 'False':
-            out[k] = False
-        elif any([v.isdigit(), all([v[0] == '-', v[1:].isdigit()])]):
-            out[k] = int(v)
-        elif any([c.isdigit() for c in v]) and \
-             any([e in v for e in ['e-', '.', 'e']]):
-            out[k] = float(v)
-        else:
-            out[k] = v
+        vv = json.loads(v)
+        out[k] = vv if not isinstance(vv, unicode) else str(vv)
 
     return out
 
@@ -1103,11 +1094,6 @@ def read_ica(fname):
     ica : instance of ICA
         The ICA estimator.
     """
-    try:
-        from sklearn.decomposition import FastICA, RandomizedPCA
-    except ImportError:
-        raise Exception('the scikit-learn package is missing and '
-                        'required for ICA')
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
