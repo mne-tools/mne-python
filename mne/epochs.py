@@ -908,9 +908,9 @@ class Epochs(object):
             data = np.hstack(data).copy()
 
         offset = _time_as_index(abs(self.tmin), self.info['sfreq'],
-                                first_samp, use_first_samp)
+                                first_samp, True)
         t0 = _index_as_time(self.events[0, 0] - offset, self.info['sfreq'],
-                            first_samp)[0]
+                            first_samp, True)[0]
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 
