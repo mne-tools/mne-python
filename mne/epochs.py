@@ -160,7 +160,6 @@ class Epochs(object):
             return
 
         self.raw = raw
-        self.raw_first_samp = raw.first_samp
         self.verbose = raw.verbose if verbose is None else verbose
         self.name = name
         if isinstance(event_id, dict):
@@ -863,7 +862,7 @@ class Epochs(object):
         return df
 
     def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
-                  copy=True, use_first_samp=False):
+                  copy=True, first_samp=0):
         """ Export epochs as nitime TimeSeries
 
         Parameters
@@ -879,9 +878,10 @@ class Epochs(object):
             array. This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
-        use_first_samp: boolean
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
+        first_samp : int
+            Number of samples to offset the times by. Use raw.first_samp to
+            have the time returned relative to the session onset, or zero
+            (default) for time relative to the recording onset.
 
         Returns
         -------
@@ -908,9 +908,9 @@ class Epochs(object):
             data = np.hstack(data).copy()
 
         offset = _time_as_index(abs(self.tmin), self.info['sfreq'],
-                                self.raw_first_samp, use_first_samp)
+                                first_samp, use_first_samp)
         t0 = _index_as_time(self.events[0, 0] - offset, self.info['sfreq'],
-                            self.raw_first_samp)[0]
+                            first_samp)[0]
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 
@@ -1282,7 +1282,6 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs._projector, epochs.info = setup_proj(info)
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
-    epochs.raw_first_samp = 0  # XXX this is only used by epochs.to_nitime
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
     fid.close()
