@@ -16,10 +16,11 @@ logger = logging.getLogger('mne')
 
 from . import fiff
 from .fiff.write import start_file, start_block, end_file, end_block, \
-                    write_int, write_float_matrix, write_float, \
-                    write_id, write_string
+                        write_int, write_float_matrix, write_float, \
+                        write_id, write_string
 from .fiff.meas_info import read_meas_info, write_meas_info
 from .fiff.open import fiff_open
+from .fiff.raw import _time_as_index, _index_as_time
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
@@ -40,11 +41,9 @@ class Epochs(object):
     Parameters
     ----------
     raw : Raw object
-        A instance of Raw
-
+        An instance of Raw.
     events : array, of shape [n_events, 3]
-        Returned by the read_events function
-
+        Returned by the read_events function.
     event_id : int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to acces associated events. Example:
@@ -52,19 +51,14 @@ class Epochs(object):
         the id as string. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-
     tmin : float
-        Start time before event
-
+        Start time before event.
     tmax : float
-        End time after event
-
+        End time after event.
     name : string
         Comment that describes the Evoked data created.
-
     keep_comp : boolean
-        Apply CTF gradient compensation
-
+        Apply CTF gradient compensation.
     baseline: None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -73,12 +67,10 @@ class Epochs(object):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-
     reject : dict
         Epoch rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -89,20 +81,16 @@ class Epochs(object):
                       eeg=40e-6, # uV (EEG channels)
                       eog=250e-6 # uV (EOG channels)
                       )
-
     flat : dict
         Epoch rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-
     proj : bool, optional
         Apply SSP projection vectors
-
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
         here. If data is not properly filtered, aliasing artifacts may occur.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -110,19 +98,15 @@ class Epochs(object):
     Attributes
     ----------
     info: dict
-        Measurement info
-
+        Measurement info.
     event_id : dict
         Names of  of conditions corresponding to event_ids.
-
     ch_names: list of string
-        List of channels' names
-
+        List of channels' names.
     drop_log: list of lists
         This list (same length as events) contains the channel(s),
         if any, that caused an event in the original event list
         to be dropped by drop_bad_epochs().
-
     verbose : bool, str, int, or None
         See above.
 
@@ -130,29 +114,22 @@ class Epochs(object):
     -------
     get_data() : self
         Return all epochs as a 3D array [n_epochs x n_channels x n_times].
-
     average(picks=None) : Evoked
         Return Evoked object containing averaged epochs as a
         2D array [n_channels x n_times].
-
     standard_error(picks=None) : self
         Return Evoked object containing standard error over epochs as a
         2D array [n_channels x n_times].
-
     drop_bad_epochs() : None
         Drop all epochs marked as bad. Should be used before indexing and
         slicing operations, and is done automatically by preload=True.
-
     drop_epochs() : self, indices
         Drop a set of epochs (both from preloaded data and event list).
-
     resample() : self, int, int, int, string or list
         Resample preloaded data.
-
     as_data_frame() : DataFrame
         Export Epochs object as Pandas DataFrame for subsequent statistical
         analyses.
-
     to_nitime() : TimeSeries
         Export Epochs object as nitime TimeSeries object for subsequent
         analyses.
@@ -212,16 +189,14 @@ class Epochs(object):
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
-        if picks is not None:
+        if picks is None:
+            picks = range(len(self.info['ch_names']))
+            self.ch_names = self.info['ch_names']
+        else:
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
+            self.ch_names = self.info['ch_names']
             self.info['nchan'] = len(picks)
-
-        if picks is None:
-            picks = range(len(raw.info['ch_names']))
-            self.ch_names = raw.info['ch_names']
-        else:
-            self.ch_names = [raw.info['ch_names'][k] for k in picks]
         self.picks = picks
 
         if len(picks) == 0:
@@ -284,6 +259,9 @@ class Epochs(object):
 
         if self.preload:
             self._data = self._get_data_from_disk()
+            self.raw = None
+        else:
+            self._data = None
 
     def drop_picks(self, bad_picks):
         """Drop some picks
@@ -344,6 +322,11 @@ class Epochs(object):
     @verbose
     def _get_epoch_from_disk(self, idx, verbose=None):
         """Load one epoch from disk"""
+        if self.raw is None:
+            # This should never happen, as raw=None only if preload=True
+            raise ValueError('An error has occurred, no valid raw file found.'
+                             ' Please report this to the mne-python '
+                             'developers.')
         sfreq = self.raw.info['sfreq']
 
         if self.events.ndim == 1:
@@ -498,7 +481,6 @@ class Epochs(object):
         s += ", baseline : %s" % str(self.baseline)
         return "Epochs (%s)" % s
 
-
     def _key_match(self, key):
         """Helper function for event dict use"""
         if key not in self.event_id:
@@ -509,19 +491,10 @@ class Epochs(object):
         """Return an Epochs object with a subset of epochs
         """
 
-        if self.preload:
-            data = self._data
-            del self._data
-
+        data = self._data
+        del self._data
         epochs = self.copy()
-
-        if self.preload:
-            self._data, epochs._data = data, data
-
-        if not self._bad_dropped:
-            warnings.warn("Bad epochs have not been dropped, indexing will"
-                          " be inaccurate. Use drop_bad_epochs() or"
-                          " preload=True")
+        self._data, epochs._data = data, data
 
         if isinstance(key, str):
             key_match = self._key_match(key)
@@ -536,6 +509,12 @@ class Epochs(object):
             epochs.events = np.atleast_2d(self.events[key])
             if self.preload:
                 select = key if isinstance(key, slice) else np.atleast_1d(key)
+            elif not self._bad_dropped:
+                # Only matters if preload is not true, since bad epochs are
+                # dropped on preload; doesn't mater for key lookup, either
+                warnings.warn("Bad epochs have not been dropped, indexing will"
+                              " be inaccurate. Use drop_bad_epochs() or"
+                              " preload=True")
 
         if self.preload:
             epochs._data = epochs._data[select]
@@ -622,8 +601,8 @@ class Epochs(object):
         # dropping EOG, ECG and STIM channels. Keeping only data
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True,
-                                    stim=False, eog=False, ecg=False,
-                                    emg=False)
+                               stim=False, eog=False, ecg=False,
+                               emg=False)
             if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
@@ -711,8 +690,9 @@ class Epochs(object):
             new_data = self._data
             new_data.shape = (np.prod(orig_dims), self._data.shape[2])
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
-                           npad, 1) for d in np.array_split(new_data, n_jobs)))
+            new_data = parallel(my_resample(d, sfreq, o_sfreq, npad, 1)
+                                for d in np.array_split(new_data, n_jobs))
+            new_data = np.concatenate(new_data)
             new_data.shape = orig_dims + (new_data.shape[1],)
             self._data = new_data
             # adjust indirectly affected variables
@@ -756,6 +736,8 @@ class Epochs(object):
         start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         start_block(fid, FIFF.FIFFB_EPOCHS)
 
+        # write events out after getting data to ensure bad events are dropped
+        data = self.get_data()
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
         write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
         mapping_ = ';'.join([k + ':' + str(v) for k, v in
@@ -782,7 +764,6 @@ class Epochs(object):
         for k in range(self.info['nchan']):
             decal[k] = 1.0 / self.info['chs'][k]['cal']
 
-        data = self.get_data()
         data *= decal[None, :, None]
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
@@ -811,8 +792,8 @@ class Epochs(object):
             otherwise the channels indices in picks are kept.
         index : list of str | None
             Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info columns
-            will be included in the table as categorial data.
+            are 'epoch', 'time' and 'condition'. If None, all three info
+            columns will be included in the table as categorial data.
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
@@ -837,8 +818,8 @@ class Epochs(object):
             picks = range(self.info['nchan'])
         else:
             if not in1d(picks, np.arange(len(self.events))).all():
-                raise ValueError('At least one picked channel is not present in'
-                                 ' this eppochs instance.')
+                raise ValueError('At least one picked channel is not present '
+                                 'in this eppochs instance.')
 
         data = self.get_data()[:, picks, :]
         shape = data.shape
@@ -879,7 +860,7 @@ class Epochs(object):
         return df
 
     def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
-                  copy=True, use_first_samp=False):
+                  copy=True, first_samp=0):
         """ Export epochs as nitime TimeSeries
 
         Parameters
@@ -895,14 +876,15 @@ class Epochs(object):
             array. This may be required by some nitime functions.
         copy : boolean
             If True exports copy of epochs data.
-        use_first_samp: boolean
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
+        first_samp : int
+            Number of samples to offset the times by. Use raw.first_samp to
+            have the time returned relative to the session onset, or zero
+            (default) for time relative to the recording onset.
 
         Returns
         -------
         epochs_ts : instance of nitime.TimeSeries
-            The Epochs as nitime TimeSeries object
+            The Epochs as nitime TimeSeries object.
         """
         try:
             from nitime import TimeSeries  # to avoid strong dependency
@@ -923,8 +905,10 @@ class Epochs(object):
         if collapse is True:
             data = np.hstack(data).copy()
 
-        offset = self.raw.time_as_index(abs(self.tmin), use_first_samp)
-        t0 = self.raw.index_as_time(self.events[0, 0] - offset)[0]
+        offset = _time_as_index(abs(self.tmin), self.info['sfreq'],
+                                first_samp, True)
+        t0 = _index_as_time(self.events[0, 0] - offset, self.info['sfreq'],
+                            first_samp, True)[0]
         epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
         epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
 
@@ -1119,6 +1103,7 @@ def _get_drop_indices(event_times, method):
 
     return indices
 
+
 def _minimize_time_diff(t_shorter, t_longer):
     """Find a boolean mask to minimize timing differences"""
     keep = np.ones((len(t_longer)), dtype=bool)
@@ -1261,7 +1246,7 @@ def read_epochs(fname, proj=True, verbose=None):
                    1000 * last / info['sfreq'], comment))
     if info['comps'] is not None:
         logger.info('        %d CTF compensation matrices available'
-                                               % len(info['comps']))
+                    % len(info['comps']))
 
     # Read the data
     if data is None:
@@ -1270,7 +1255,7 @@ def read_epochs(fname, proj=True, verbose=None):
     if data.shape[2] != nsamp:
         fid.close()
         raise ValueError('Incorrect number of samples (%d instead of %d)'
-                          % (data.shape[2], nsamp))
+                         % (data.shape[2], nsamp))
 
     # Calibrate
     cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
@@ -1282,6 +1267,7 @@ def read_epochs(fname, proj=True, verbose=None):
 
     # Put it all together
     epochs.preload = True
+    epochs.raw = None
     epochs._bad_dropped = True
     epochs.events = events
     epochs._data = data
