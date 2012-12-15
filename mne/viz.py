@@ -981,7 +981,8 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
 
 @verbose
 def plot_ica_panel(sources, start=None, stop=None, n_components=None,
-                   source_idx=None, ncol=3, nrow=10, verbose=None):
+                   source_idx=None, ncol=3, nrow=10, verbose=None,
+                   show=True):
     """Create panel plots of ICA sources
 
     Clicking on the plot of an individual source opens a new figure showing
@@ -1005,6 +1006,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         Number of panel-rows.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    show : bool
+        If True, plot will be shown, else just the figure is returned.
 
     Returns
     -------
@@ -1070,6 +1073,9 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     # register callback
     callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
+
+    if show:
+        pl.show()
 
     return fig
 

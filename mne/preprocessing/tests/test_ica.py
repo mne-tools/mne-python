@@ -1,4 +1,5 @@
 # Author: Denis Engemann <d.engemann@fz-juelich.de>
+#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -57,9 +58,6 @@ test_cov = cov.read_cov(test_cov_name)
 epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
-epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                         baseline=(None, 0), preload=True)
-
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
@@ -76,9 +74,9 @@ def test_ica_core():
     max_n_components = [4]
     picks_ = [picks]
     iter_ica_params = product(noise_cov, n_components, max_n_components,
-                           picks_)
+                              picks_)
 
-    # test init catchers
+    # # test init catchers
     assert_raises(ValueError, ICA, n_components=3, max_n_components=2)
     assert_raises(ValueError, ICA, n_components=1.3, max_n_components=2)
 
@@ -89,17 +87,19 @@ def test_ica_core():
                   random_state=0)
 
         print ica  # to test repr
+
         # test fit checker
         assert_raises(RuntimeError, ica.get_sources_raw, raw)
         assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
 
         # test decomposition
         ica.decompose_raw(raw, picks=pcks, start=start, stop=stop)
+        print ica  # to test repr
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
 
         sources = ica.get_sources_raw(raw)
-        assert_true(sources.shape[0] == ica.n_components)
+        assert_true(sources.shape[0] == ica.n_ica_components_)
 
         # test preload filter
         raw3 = raw.copy()
@@ -123,12 +123,13 @@ def test_ica_core():
                   random_state=0)
 
         ica.decompose_epochs(epochs, picks=picks)
+        print ica  # to test repr
         # test pick block after epochs fit
         assert_raises(ValueError, ica.pick_sources_raw, raw,
                     n_pca_components=ica.n_components)
 
         sources = ica.get_sources_epochs(epochs)
-        assert_true(sources.shape[1] == ica.n_components)
+        assert_true(sources.shape[1] == ica.n_ica_components_)
 
         assert_raises(ValueError, ica.find_sources_epochs, epochs,
                       target=np.arange(1))
@@ -137,13 +138,13 @@ def test_ica_core():
         epochs3 = epochs.copy()
         epochs3.preload = False
         assert_raises(ValueError, ica.pick_sources_epochs, epochs3,
-                      include=[1, 2], n_pca_components=ica.n_components)
+                      include=[1, 2], n_pca_components=ica.n_ica_components_)
 
         # test source picking
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             epochs2 = ica.pick_sources_epochs(epochs, exclude=excl,
-                                              include=incl, copy=True,
-                                              n_pca_components=ica.n_components)
+                                      include=incl, copy=True,
+                                      n_pca_components=ica.n_ica_components_)
 
             assert_array_almost_equal(epochs2.get_data(),
                                       epochs.get_data())
@@ -151,7 +152,8 @@ def test_ica_core():
 
 @sklearn_test
 def test_ica_additional():
-    # Test additional functionality
+    """Test additional functionality
+    """
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
@@ -178,23 +180,16 @@ def test_ica_additional():
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
-        try:
-            assert_array_equal(ica._ica.unmixing_matrix_,
-                                      ica_read._ica.unmixing_matrix_)
-        except:
-            assert_array_equal(ica._ica.components_,
-                                      ica_read._ica.components_)
-        assert_array_equal(ica._mixing, ica_read._mixing)
-        assert_array_equal(ica._pca.components_,
-                           ica_read._pca.components_)
-        assert_array_equal(ica._pca.mean_,
-                                  ica_read._pca.mean_)
-        assert_array_equal(ica._pca.explained_variance_,
-                                  ica_read._pca.explained_variance_)
-        assert_array_equal(ica._pre_whitener,
-                                  ica_read._pre_whitener)
 
-        assert_raises(RuntimeError, ica_read.decompose_raw, raw)
+        assert_array_equal(ica.mixing_matrix_, ica_read.mixing_matrix_)
+        assert_array_equal(ica.pca_components_,
+                           ica_read.pca_components_)
+        assert_array_equal(ica.pca_mean_, ica_read.pca_mean_)
+        assert_array_equal(ica.pca_explained_variance_,
+                           ica_read.pca_explained_variance_)
+        assert_array_equal(ica._pre_whitener, ica_read._pre_whitener)
+
+        # assert_raises(RuntimeError, ica_read.decompose_raw, raw)
         sources = ica.get_sources_raw(raw)
         sources2 = ica_read.get_sources_raw(raw)
         assert_array_almost_equal(sources, sources2)
