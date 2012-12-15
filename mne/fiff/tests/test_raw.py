@@ -609,7 +609,6 @@ def test_raw_index_as_time():
     i1 = raw.time_as_index(raw.index_as_time([100], True), True)
     assert_true(i1[0] == 100)
     i1 = raw.time_as_index(raw.index_as_time([100], False), False)
-    print (i1[0], 100)
     assert_true(i1[0] == 100)
 
 
