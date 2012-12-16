@@ -1527,7 +1527,7 @@ def plot_con_circular(con, node_names, indices=None, n_draw=None,
         sm = pl.cm.ScalarMappable(cmap=colormap,
                                   norm=pl.normalize(vmin=vmin, vmax=vmax))
         sm.set_array(np.linspace(vmin, vmax))
-        ax = fig.add_axes([.9, .01, .015, .25])
+        ax = fig.add_axes([.92, 0.03, .015, .25])
         cb = fig.colorbar(sm, cax=ax)
         cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
         pl.setp(cb_yticks, color=textcolor)

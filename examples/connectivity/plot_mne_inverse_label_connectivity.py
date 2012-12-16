@@ -118,4 +118,5 @@ mne.viz.plot_con_circular(con, label_names, node_order=node_order, n_draw=300,
                           node_colors=label_colors, start_pos=90,
                           title='Connectivity left-Auditory')
 import pylab as pl
+pl.savefig('circle.png', facecolor='black')
 pl.show()
