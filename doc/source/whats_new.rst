@@ -29,14 +29,14 @@ Changelog
 
    - IO of many Evoked in a single fif file + compute Epochs.standard_error by `Eric Larson`_ and `Alex Gramfort`_
 
-   - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
+   - ICA computation on Raw and Epochs with automatic component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Saving ICA sources to fif files and creating ICA topography layouts by
      `Denis Engemann`_
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 
-   - Export epochs data to the pandas library by `Denis Engemann`_
+   - Export raw, epochs and evoked data as data frame to the pandas library by `Denis Engemann`_
 
    - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
 
@@ -54,9 +54,13 @@ Changelog
 
    - Adding options for morphing by `Eric Larson`_
 
-   - Plotting functions for time frequency topographies and epochs images by `Denis Engemann`_ and `Alex Gramfort`_
+   - Plotting functions for time frequency and epochs image topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Plotting ERP/ERF images by `Alex Gramfort`_
+
+   - See detailed subplot when cliking on a channel inside a topography plot by `Martin Luessi`_, `Eric Larson`_ and `Denis Engemann`_
+
+   - Misc channel type support plotting functions by `Denis Engemann`_
 
    - Improved logging support by `Eric Larson`_
 
@@ -70,7 +74,7 @@ Changelog
 
    - Resampling of Raw, Epochs, and Evoked by `Eric Larson`_
 
-   - Creating epochs objects for different conditions and accessing them via name by `Denis Engemann`_
+   - Creating epochs objects for different conditions and accessing conditions via user-defined name by `Denis Engemann`_ , `Eric Larson`_, `Alex Gramfort`_ and `Christian Brodbeck`_
 
    - Visualizing evoked responses from different conditions in one topography plot by `Denis Engemann`_ and `Alex Gramfort`_
 
@@ -79,6 +83,14 @@ Changelog
    - Support IIR filters (butterworth, chebyshev, bessel, etc.) by `Eric Larson`_
 
    - Read labels from FreeSurfer parcellation by  `Martin Luessi`_
+
+   - Combining labels in source space by `Christian Brodbeck`_
+
+   - Read and write source spaces and surfaces to and from files by `Christian Brodbeck`_
+
+   - Downsample epochs by `Christian Brodbeck`_ and `Eric Larson`_
+
+   - New labels class for handling source estimates by `Christian Brodbeck`_, `Martin Luessi`_  and `Alex Gramfort`_ 
 
 API
 ~~~
@@ -89,6 +101,9 @@ API
    - Use raw.time_as_index instead of time_to_index (still works but is deprecated).
 
    - The artifacts module (mne.artifacts) is now merged into mne.preprocessing
+
+   - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
+
 
 
 .. _changes_0_4:
