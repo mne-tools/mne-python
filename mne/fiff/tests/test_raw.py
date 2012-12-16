@@ -610,7 +610,6 @@ def test_raw_index_as_time():
     assert_true(i1[0] == 100)
     # Have to add small amount of time because we truncate via int casting
     i1 = raw.time_as_index(raw.index_as_time([100.0001], False), False)
-    print i1[0]
     assert_true(i1[0] == 100)
 
 
