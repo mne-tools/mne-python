@@ -29,7 +29,7 @@ Changelog
 
    - IO of many Evoked in a single fif file + compute Epochs.standard_error by `Eric Larson`_ and `Alex Gramfort`_
 
-   - ICA computation on Raw and Epochs with component selection by `Denis Engemann`_ and `Alex Gramfort`_
+   - ICA computation on Raw and Epochs with automatic component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Saving ICA sources to fif files and creating ICA topography layouts by
      `Denis Engemann`_
@@ -74,7 +74,7 @@ Changelog
 
    - Resampling of Raw, Epochs, and Evoked by `Eric Larson`_
 
-   - Creating epochs objects for different conditions and accessing them via name by `Denis Engemann`_ , `Eric Larson`_ `Alex Gramfort`_ and `Christian Brodbeck`_
+   - Creating epochs objects for different conditions and accessing conditions via user-defined name by `Denis Engemann`_ , `Eric Larson`_, `Alex Gramfort`_ and `Christian Brodbeck`_
 
    - Visualizing evoked responses from different conditions in one topography plot by `Denis Engemann`_ and `Alex Gramfort`_
 
@@ -90,7 +90,7 @@ Changelog
 
    - Downsample epochs by `Christian Brodbeck`_ and `Eric Larson`_
 
-   - New Labels class for handling source estimates by `Christian Brodbeck`_ `Martin Luessi`_  and `Alex Gramfort`_ 
+   - New labels class for handling source estimates by `Christian Brodbeck`_, `Martin Luessi`_  and `Alex Gramfort`_ 
 
 API
 ~~~
@@ -101,6 +101,9 @@ API
    - Use raw.time_as_index instead of time_to_index (still works but is deprecated).
 
    - The artifacts module (mne.artifacts) is now merged into mne.preprocessing
+
+   - Epochs objects now aldo take dicts as values for the event_id argument. They now can represent multiple conditions.
+
 
 
 .. _changes_0_4:
