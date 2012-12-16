@@ -1116,8 +1116,6 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         Show or not the figure at the end
     scalings : dict
         The scalings of the channel types to be applied for plotting.
-    titles : dict
-        The titles associated with the channels.
 
     Returns
     -------

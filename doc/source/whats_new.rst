@@ -102,7 +102,7 @@ API
 
    - The artifacts module (mne.artifacts) is now merged into mne.preprocessing
 
-   - Epochs objects now aldo take dicts as values for the event_id argument. They now can represent multiple conditions.
+   - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
 
 
 
