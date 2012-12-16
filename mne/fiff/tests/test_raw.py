@@ -237,8 +237,12 @@ def test_io_raw():
 
         assert_array_almost_equal(data, data2)
         assert_array_almost_equal(times, times2)
-        assert_array_almost_equal(raw.info['dev_head_t']['trans'],
-                                  raw2.info['dev_head_t']['trans'])
+        for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
+            if raw.info[trans] is None:
+                assert raw2.info[trans] is None
+            else:
+                assert_array_equal(raw.info[trans]['trans'],
+                                   raw2.info[trans]['trans'])
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
