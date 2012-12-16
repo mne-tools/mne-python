@@ -1111,9 +1111,11 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         of the image. If it's an array of int it should be of length
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times))
+        (data.shape[1] == len(times)
     show : bool
         Show or not the figure at the end
+    units : dict
+        The units of the channel types used for axes lables.
     scalings : dict
         The scalings of the channel types to be applied for plotting.
 
