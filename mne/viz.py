@@ -447,12 +447,12 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
 
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
                      data=None, epochs=None, sigma=None,
-                     order=None, scaling=None):
+                     order=None, scalings=None):
     """Aux function to plot erfimage on sensor topography"""
 
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    this_data *= scaling[ch_type]
+    this_data *= scalings[ch_type]
 
     this_order = order
     if callable(order):
@@ -469,7 +469,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
 def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None,
-                           cmap=None, layout_scale=.95, title=None):
+                           cmap=None, layout_scale=.95, title=None,
+                           scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -502,19 +503,21 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         on the canvas.
     title : str
         Title of the figure.
+    scalings : dict
+        The scalings of the channel types to be applied for plotting.
     Returns
     -------
     fig : instacne fo matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
     if vmax is None:
         vmax = data.max()
 
-    erf_imshow = partial(_erfimage_imshow, scaling=scaling,
+    erf_imshow = partial(_erfimage_imshow, scalings=scalings,
                          data=data, epochs=epochs, sigma=sigma)
 
     fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
@@ -592,13 +595,13 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
     times = 1e3 * evoked.times  # time in miliseconds
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
-        scaling = scalings[t]
+        this_scaling = scalings[t]
         if unit is False:
-            scaling = 1.0
+            this_scaling = 1.0
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
-            D = scaling * evoked.data[idx, :]
+            D = this_scaling * evoked.data[idx, :]
             if proj:
                 projs = activate_proj(evoked.info['projs'])
                 this_ch_names = [evoked.ch_names[k] for k in idx]
@@ -1081,7 +1084,9 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 
 
 def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
-                      vmax=None, colorbar=True, order=None, show=True):
+                      vmax=None, colorbar=True, order=None, show=True,
+                      units=dict(eeg='uV', grad='fT/cm', mag='fT'),
+                      scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -1106,9 +1111,13 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         of the image. If it's an array of int it should be of length
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
-        (data.shape[1] == len(times))
+        (data.shape[1] == len(times)
     show : bool
         Show or not the figure at the end
+    units : dict
+        The units of the channel types used for axes lables.
+    scalings : dict
+        The scalings of the channel types to be applied for plotting.
 
     Returns
     -------
@@ -1117,11 +1126,11 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
     """
     import pylab as pl
 
-    units = dict(eeg='uV', grad='fT/cm', mag='fT')
-    scaling = dict(eeg=1e6, grad=1e13, mag=1e15)
+    if units.keys() != scalings.keys():
+        raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
-    evoked = epochs.average()
+    evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     if vmin is None:
         vmin = data.min()
@@ -1129,12 +1138,13 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         vmax = data.max()
 
     figs = list()
-    for this_data, idx in zip(np.swapaxes(data, 0, 1), picks):
+    for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
+        print idx
         this_fig = pl.figure()
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
-        this_data *= scaling[ch_type]
+        this_data *= scalings[ch_type]
 
         this_order = order
         if callable(order):
@@ -1159,7 +1169,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         ax1.axis('auto')
         ax1.axis('tight')
         ax1.axvline(0, color='m', linewidth=3, linestyle='--')
-        ax2.plot(1e3 * evoked.times, scaling[ch_type] * evoked.data[idx])
+        ax2.plot(1e3 * evoked.times, scalings[ch_type] * evoked.data[i])
         ax2.set_xlabel('Time (ms)')
         ax2.set_ylabel(units[ch_type])
         ax2.set_ylim([vmin, vmax])
