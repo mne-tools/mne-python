@@ -36,7 +36,7 @@ Changelog
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 
-   - Export raw, epochs and evoked data to the pandas library by `Denis Engemann`_
+   - Export raw, epochs and evoked data as data frame to the pandas library by `Denis Engemann`_
 
    - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
 
@@ -57,6 +57,8 @@ Changelog
    - Plotting functions for time frequency and epochs image topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Plotting ERP/ERF images by `Alex Gramfort`_
+
+   - See detailed subplot when cliking on a channel inside a topography plot by `Martin Luessi`_, `Eric Larson`_ and `Denis Engemann`_
 
    - Misc channel type support plotting functions by `Denis Engemann`_
 
@@ -81,6 +83,14 @@ Changelog
    - Support IIR filters (butterworth, chebyshev, bessel, etc.) by `Eric Larson`_
 
    - Read labels from FreeSurfer parcellation by  `Martin Luessi`_
+
+   - Combining labels in source space by `Christian Brodbeck`_
+
+   - Read and write source spaces and surfaces to and from files by `Christian Brodbeck`_
+
+   - Downsample epochs by `Christian Brodbeck`_ and `Eric Larson`_
+
+   - New Labels class for handling source estimates by `Christian Brodbeck`_ `Martin Luessi`_  and `Alex Gramfort`_ 
 
 API
 ~~~
