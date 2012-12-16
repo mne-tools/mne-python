@@ -1161,7 +1161,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
     """
     index = np.atleast_1d(times) * sfreq
     index -= (first_samp if use_first_samp else 0)
-    return index.round().astype(int)
+    return index.astype(int)
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
