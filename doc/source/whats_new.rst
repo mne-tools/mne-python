@@ -36,7 +36,7 @@ Changelog
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 
-   - Export epochs data to the pandas library by `Denis Engemann`_
+   - Export raw, epochs and evoked data to the pandas library by `Denis Engemann`_
 
    - Export raw, epochs and evoked data to the nitime library by `Denis Engemann`_
 
@@ -54,9 +54,11 @@ Changelog
 
    - Adding options for morphing by `Eric Larson`_
 
-   - Plotting functions for time frequency topographies and epochs images by `Denis Engemann`_ and `Alex Gramfort`_
+   - Plotting functions for time frequency and epochs image topographies by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Plotting ERP/ERF images by `Alex Gramfort`_
+
+   - Misc channel type support plotting functions by `Denis Engemann`_
 
    - Improved logging support by `Eric Larson`_
 
@@ -70,7 +72,7 @@ Changelog
 
    - Resampling of Raw, Epochs, and Evoked by `Eric Larson`_
 
-   - Creating epochs objects for different conditions and accessing them via name by `Denis Engemann`_
+   - Creating epochs objects for different conditions and accessing them via name by `Denis Engemann`_ , `Eric Larson`_ `Alex Gramfort`_ and `Christian Brodbeck`_
 
    - Visualizing evoked responses from different conditions in one topography plot by `Denis Engemann`_ and `Alex Gramfort`_
 

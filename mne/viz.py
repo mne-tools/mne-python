@@ -1139,7 +1139,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         vmax = data.max()
 
     figs = list()
-    for this_data, idx in zip(np.swapaxes(data, 0, 1), picks):
+    for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
         print idx
         this_fig = pl.figure()
         figs.append(this_fig)
@@ -1170,7 +1170,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         ax1.axis('auto')
         ax1.axis('tight')
         ax1.axvline(0, color='m', linewidth=3, linestyle='--')
-        ax2.plot(1e3 * evoked.times, scalings[ch_type] * evoked.data[idx])
+        ax2.plot(1e3 * evoked.times, scalings[ch_type] * evoked.data[i])
         ax2.set_xlabel('Time (ms)')
         ax2.set_ylabel(units[ch_type])
         ax2.set_ylim([vmin, vmax])
