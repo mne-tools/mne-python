@@ -225,7 +225,7 @@ def read_meas_info(fid, tree, verbose=None):
                              'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
                              'trans': dev_ctf_trans}
     else:
-        info['dev_ctf_t'] = []
+        info['dev_ctf_t'] = None
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -259,9 +259,8 @@ def write_meas_info(fid, info, data_type=None):
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     # Blocks from the original
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,  # FIFF.FIFFB_HPI_RESULT,
+    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
-              # FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
 
     have_isotrak = False
 
@@ -271,8 +270,6 @@ def write_meas_info(fid, info, data_type=None):
         for block in blocks:
             nodes = dir_tree_find(tree, block)
             copy_tree(fid2, tree['id'], nodes, fid)
-            if block == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
-                have_isotrak = True
         fid2.close()
 
     #
