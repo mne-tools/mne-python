@@ -1119,9 +1119,6 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         The scalings of the channel types to be applied for plotting.
     titles : dict
         The titles associated with the channels.
-    keep_only_data_channels: bool
-            If False, all channels with be kept. Otherwise
-            only MEG and EEG channels are kept.
 
     Returns
     -------
@@ -1134,7 +1131,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
-    evoked = epochs.average(keep_only_data_channels)
+    evoked = epochs.average(picks)
     data = epochs.get_data()[:, picks, :]
     if vmin is None:
         vmin = data.min()
@@ -1143,6 +1140,7 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     figs = list()
     for this_data, idx in zip(np.swapaxes(data, 0, 1), picks):
+        print idx
         this_fig = pl.figure()
         figs.append(this_fig)
 
