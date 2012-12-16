@@ -822,7 +822,7 @@ class SourceEstimate(object):
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
 
-    def plot(self, subject_id, surface='inflated', hemi='lh',
+    def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, time_viewer=False, subjects_dir=None):
@@ -831,38 +831,40 @@ class SourceEstimate(object):
         Parameters
         ----------
         stc : SourceEstimates
-            The source estimates to plot
-        subject_id : str
-            The subject name
+            The source estimates to plot.
+        subject : str
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. If None the environment will be used.
         surface : str
-            The type of surface (inflated, white etc.)
+            The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh'
-            The hemispher to display
+            The hemisphere to display.
         colormap : str
             The type of colormap to use.
         time_viewer : str
             How to print info about the time instant visualized.
         smoothing_steps : int
-            The amount of smoothing
+            The amount of smoothing.
         fmin : float
             The minimum value to display.
         fmid : float
-            The middle value on the colormap
+            The middle value on the colormap.
         fmax : float
             The maximum value for the colormap.
         transparent : bool
-            Display as transparent the values below fmin.
+            If True, use a linear transparency between fmin and fmid.
         time_viewer : bool
             Display time viewer GUI
         subjects_dir : str
-            The path to the freesurfer subjects reconstructions.
+            The path to the FreeSurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
 
         Returns
         -------
         brain : Brain
             A instance of surfer.viz.Brain from PySurfer.
         """
-        brain = plot_source_estimates(self, subject_id, surface=surface,
+        brain = plot_source_estimates(self, subject, surface=surface,
                         hemi=hemi, colormap=colormap, time_label=time_label,
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent,

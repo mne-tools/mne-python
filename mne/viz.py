@@ -870,7 +870,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         pl.show()
 
 
-def plot_source_estimates(stc, subject_id, surface='inflated', hemi='lh',
+def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, time_viewer=False,
@@ -880,13 +880,14 @@ def plot_source_estimates(stc, subject_id, surface='inflated', hemi='lh',
     Parameters
     ----------
     stc : SourceEstimates
-        The source estimates to plot
-    subject_id : str
-        The subject name
+        The source estimates to plot.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None the environment will be used.
     surface : str
-        The type of surface (inflated, white etc.)
+        The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh'
-        The hemispher to display
+        The hemisphere to display.
     colormap : str
         The type of colormap to use.
     time_viewer : str
@@ -896,15 +897,16 @@ def plot_source_estimates(stc, subject_id, surface='inflated', hemi='lh',
     fmin : float
         The minimum value to display.
     fmid : float
-        The middle value on the colormap
+        The middle value on the colormap.
     fmax : float
         The maximum value for the colormap.
     transparent : bool
-        Display as transparent the values below fmin.
+        If True, use a linear transparency between fmin and fmid.
     time_viewer : bool
-        Display time viewer GUI
+        Display time viewer GUI.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
 
     Returns
     -------
@@ -919,7 +921,13 @@ def plot_source_estimates(stc, subject_id, surface='inflated', hemi='lh',
 
     hemi_idx = 0 if hemi == 'lh' else 1
 
-    brain = Brain(subject_id, hemi, surface)
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    brain = Brain(subject, hemi, surface)
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertno[0])]
     else:
