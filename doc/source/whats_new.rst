@@ -92,6 +92,9 @@ Changelog
 
    - New labels class for handling source estimates by `Christian Brodbeck`_, `Martin Luessi`_  and `Alex Gramfort`_ 
 
+   - New plotting routines to easily display SourceEstimates using PySurfer by `Alex Gramfort`_
+
+
 API
 ~~~
    - Added nave parameter to source_induced_power() and source_band_induced_power(), use nave=1 by default (wrong nave was used before).
