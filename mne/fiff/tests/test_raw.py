@@ -12,7 +12,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
+from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
@@ -221,13 +221,28 @@ def test_io_raw():
 
         assert_array_almost_equal(data, data2)
         assert_array_almost_equal(times, times2)
+        assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+
+        # check transformations
         for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
             if raw.info[trans] is None:
                 assert raw2.info[trans] is None
             else:
                 assert_array_equal(raw.info[trans]['trans'],
                                    raw2.info[trans]['trans'])
-        assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+
+                # check transformation 'from' and 'to'
+                if trans.startswith('dev'):
+                    from_id = FIFF.FIFFV_COORD_DEVICE
+                else:
+                    from_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                if trans[4:8] == 'head':
+                    to_id = FIFF.FIFFV_COORD_HEAD
+                else:
+                    to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                for raw_ in [raw, raw2]:
+                    assert raw_.info[trans]['from'] == from_id
+                    assert raw_.info[trans]['to'] == to_id
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_array_almost_equal(raw.info['dig'][0]['r'],
