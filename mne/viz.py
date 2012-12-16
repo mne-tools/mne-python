@@ -19,10 +19,11 @@ import logging
 logger = logging.getLogger('mne')
 from warnings import warn
 
-from mne.baseline import rescale
 
 # XXX : don't import pylab here or you will break the doc
 
+from .baseline import rescale
+from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
@@ -869,6 +870,79 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         pl.show()
 
 
+def plot_source_estimates(stc, subject_id, surface='inflated', hemi='lh',
+                          colormap='hot', time_label='time=%0.2f ms',
+                          smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+                          transparent=True, time_viewer=False,
+                          subjects_dir=None):
+    """Plot SourceEstimates with PySurfer
+
+    Parameters
+    ----------
+    stc : SourceEstimates
+        The source estimates to plot
+    subject_id : str
+        The subject name
+    surface : str
+        The type of surface (inflated, white etc.)
+    hemi : str, 'lh' | 'rh'
+        The hemispher to display
+    colormap : str
+        The type of colormap to use.
+    time_viewer : str
+        How to print info about the time instant visualized.
+    smoothing_steps : int
+        The amount of smoothing
+    fmin : float
+        The minimum value to display.
+    fmid : float
+        The middle value on the colormap
+    fmax : float
+        The maximum value for the colormap.
+    transparent : bool
+        Display as transparent the values below fmin.
+    time_viewer : bool
+        Display time viewer GUI
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+
+    Returns
+    -------
+    brain : Brain
+        A instance of surfer.viz.Brain from PySurfer.
+    """
+    from surfer import Brain, TimeViewer
+
+    assert hemi in ['lh', 'rh']
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
+
+    hemi_idx = 0 if hemi == 'lh' else 1
+
+    brain = Brain(subject_id, hemi, surface)
+    if hemi_idx == 0:
+        data = stc.data[:len(stc.vertno[0])]
+    else:
+        data = stc.data[len(stc.vertno[0]):]
+
+    vertices = stc.vertno[hemi_idx]
+
+    time = 1e3 * stc.times
+    brain.add_data(data, colormap=colormap, vertices=vertices,
+                   smoothing_steps=smoothing_steps, time=time,
+                   time_label=time_label)
+
+    # scale colormap and set time (index) to display
+    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
+                              transparent=transparent)
+
+    if time_viewer:
+        viewer = TimeViewer(brain)
+
+    return brain
+
+
+@deprecated('Use plot_source_estimates. Will be removed in v0.7.')
 def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
     """Plot source estimates
     """
