@@ -447,12 +447,12 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
 
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
                      data=None, epochs=None, sigma=None,
-                     order=None, scaling=None):
+                     order=None, scalings=None):
     """Aux function to plot erfimage on sensor topography"""
 
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    this_data *= scaling[ch_type]
+    this_data *= scalings[ch_type]
 
     this_order = order
     if callable(order):
@@ -517,7 +517,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     if vmax is None:
         vmax = data.max()
 
-    erf_imshow = partial(_erfimage_imshow, scaling=scalings,
+    erf_imshow = partial(_erfimage_imshow, scalings=scalings,
                          data=data, epochs=epochs, sigma=sigma)
 
     fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
@@ -595,13 +595,13 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
     times = 1e3 * evoked.times  # time in miliseconds
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
-        scaling = scalings[t]
+        this_scaling = scalings[t]
         if unit is False:
-            scaling = 1.0
+            this_scaling = 1.0
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
-            D = scaling * evoked.data[idx, :]
+            D = this_scaling * evoked.data[idx, :]
             if proj:
                 projs = activate_proj(evoked.info['projs'])
                 this_ch_names = [evoked.ch_names[k] for k in idx]
@@ -1086,8 +1086,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=dict(eeg='uV', grad='fT/cm', mag='fT'),
-                      scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
-                      keep_only_data_channels=True):
+                      scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
     """Plot Event Related Potential / Fields image
 
     Parameters
