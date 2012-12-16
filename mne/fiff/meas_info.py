@@ -219,10 +219,11 @@ def read_meas_info(fid, tree, verbose=None):
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
     if dev_head_t is not None and ctf_head_t is not None:
-        info['dev_ctf_t'] = info['dev_head_t']
-        info['dev_ctf_t']['to'] = info['ctf_head_t']['from']
-        info['dev_ctf_t']['trans'] = np.dot(linalg.inv(ctf_head_t['trans']),
-                                        info['dev_ctf_t']['trans'])
+        head_ctf_trans = linalg.inv(ctf_head_t['trans'])
+        dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
+        info['dev_ctf_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                             'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                             'trans': dev_ctf_trans}
     else:
         info['dev_ctf_t'] = []
 
