@@ -8,7 +8,7 @@ import os
 import copy
 from math import ceil
 import numpy as np
-from scipy import sparse
+from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
@@ -722,6 +722,51 @@ class SourceEstimate(object):
         label_stc = SourceEstimate(values, vertices=vertices,
                                    tmin=self.tmin, tstep=self.tstep)
         return label_stc
+
+    @verbose
+    def extract_label_time_course(self, labels, src, mode='mean',
+                                  allow_empty=False, verbose=None):
+        """Extract label time courses for lists of labels
+
+        This function will extract one time course for each label. The way the
+        time courses are extracted depends on the mode parameter.
+
+        Valid values for mode are:
+        'mean' :      Average within each label.
+        'mean_flip' : Average within each label with sign flip depending on
+                      source orientation.
+        'pca' :       Apply an SVD to the time courses within each label and
+                      use the first right-singular vectors as the label time
+                      courses.
+
+        See also mne.extract_label_time_course to extract time courses for a
+        list of SourceEstimate more efficiently.
+
+        Parameters
+        ----------
+        labels : Label | list of Label
+            The labels for which to extract the time courses.
+        src : list
+            Source spaces for left and right hemisphere.
+        mode : str
+            Extraction mode, see explanation above.
+        allow_empty : bool
+            Instead of emitting an error, return all-zero time course for
+            labels that do not have any vertices in the source estimate.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        label_tc : array, shape=(len(labels), n_times)
+            Extracted time course for each label.
+        """
+        label_tc = extract_label_time_course(self, labels, src, mode=mode,
+                                             return_generator=False,
+                                             allow_empty=allow_empty,
+                                             verbose=verbose)
+
+        return label_tc
 
     def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
                        subjects_dir=None):
@@ -1708,9 +1753,9 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
 
 @verbose
-def _gen_extract_label_ts_stcs(stcs, labels, src, mode='mean',
-                               allow_empty=False, verbose=None):
-    """Generator for extract_label_ts_stcs"""
+def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
+                                   allow_empty=False, verbose=None):
+    """Generator for extract_label_time_course"""
 
     n_labels = len(labels)
 
@@ -1767,6 +1812,8 @@ def _gen_extract_label_ts_stcs(stcs, labels, src, mode='mean',
             else:
                 flip = None
             label_flip.append(flip)
+    elif mode == 'pca':
+        pass
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
@@ -1779,53 +1826,64 @@ def _gen_extract_label_ts_stcs(stcs, labels, src, mode='mean',
         if any([np.any(svn != vn) for svn, vn in zip(stc.vertno, vertno)]):
             raise ValueError('stc not compatible with source space')
 
-        logger.info('Extracting time series for %d labels' % n_labels)
+        logger.info('Extracting time courses for %d labels (mode: %s)'
+                    % (n_labels, mode))
 
         # do the extraction
-        label_ts = np.zeros((n_labels, stc.data.shape[1]),
+        label_tc = np.zeros((n_labels, stc.data.shape[1]),
                             dtype=stc.data.dtype)
         if mode == 'mean':
             for i, vertidx in enumerate(label_vertidx):
                 if vertidx is not None:
-                    label_ts[i] = np.mean(stc.data[vertidx, :], axis=0)
+                    label_tc[i] = np.mean(stc.data[vertidx, :], axis=0)
         elif mode == 'mean_flip':
             for i, (vertidx, flip) in enumerate(zip(label_vertidx,
                                                     label_flip)):
                 if vertidx is not None:
-                    label_ts[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
+                    label_tc[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
+        elif mode == 'pca':
+            for i, vertidx in enumerate(label_vertidx):
+                if vertidx is not None:
+                    _, _, V = linalg.svd(stc.data[vertidx, :],
+                                         full_matrices=False)
+                    label_tc[i] = V[0]
+
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
         # this is a generator!
-        yield label_ts
+        yield label_tc
 
 
 @verbose
-def extract_label_ts_stcs(stcs, labels, src, mode='mean', allow_empty=False,
-                          return_generator=False, verbose=None):
-    """Extract label time series for lists of labels and source estimates
+def extract_label_time_course(stcs, labels, src, mode='mean',
+                              allow_empty=False, return_generator=False,
+                              verbose=None):
+    """Extract label time course for lists of labels and source estimates
 
-    This function will extract one time series for each label and source
-    estimate. The way the time series are extracted depends on the mode
+    This function will extract one time course for each label and source
+    estimate. The way the time courses are extracted depends on the mode
     parameter.
 
     Valid values for mode are:
-    'mean' :      Average within each label
+    'mean' :      Average within each label.
     'mean_flip' : Average within each label with sign flip depending on
-                  source orientation
+                  source orientation.
+    'pca' :       Apply an SVD to the time courses within each label and use
+                  the first right-singular vectors as the label time courses.
 
     Parameters
     ----------
-    stcs : SourceEstimate | list (or generator) of SourEstimate
-        The source estimates from which to extract the time series.
+    stcs : SourceEstimate | list (or generator) of SourceEstimate
+        The source estimates from which to extract the time course.
     labels : Label | list of Label
-        The labels for which to extract the time series.
+        The labels for which to extract the time course.
     src : list
         Source spaces for left and right hemisphere.
     mode : str
         Extraction mode, see explanation above.
     allow_empty : bool
-        Instead of emitting an error, return all-zero time series for labels
+        Instead of emitting an error, return all-zero time courses for labels
         that do not have any vertices in the source estimate.
     return_generator : bool
         If True, a generator instead of a list is returned.
@@ -1834,9 +1892,9 @@ def extract_label_ts_stcs(stcs, labels, src, mode='mean', allow_empty=False,
 
     Returns
     -------
-    label_ts : array | list (or generator) of array,
+    label_tc : array | list (or generator) of array,
                shape=(len(labels), n_times)
-        Extracted time series for each label and source estimate.
+        Extracted time course for each label and source estimate.
     """
     # convert inputs to lists
     if isinstance(stcs, SourceEstimate):
@@ -1849,15 +1907,15 @@ def extract_label_ts_stcs(stcs, labels, src, mode='mean', allow_empty=False,
     if not isinstance(labels, list):
         labels = [labels]
 
-    label_ts = _gen_extract_label_ts_stcs(stcs, labels, src, mode=mode,
-                                          allow_empty=allow_empty)
+    label_tc = _gen_extract_label_time_course(stcs, labels, src, mode=mode,
+                                              allow_empty=allow_empty)
 
     if not return_generator:
         # do the extraction and return a list
-        label_ts = [ts for ts in label_ts]
+        label_tc = list(label_tc)
 
     if not return_several:
         # input was a single SoureEstimate, return single array
-        label_ts = label_ts[0]
+        label_tc = label_tc[0]
 
-    return label_ts
+    return label_tc

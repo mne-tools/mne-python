@@ -181,6 +181,7 @@ Functions reference
    plot_topo_phase_lock
    plot_image_epochs
    plot_topo_image_epochs
+   plot_con_circular
    mne_analyze_colormap
 
 .. automodule:: mne.preprocessing

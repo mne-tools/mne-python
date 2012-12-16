@@ -8,17 +8,20 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.datasets import sample
-from mne import stats
-from mne import read_stc, write_stc, read_source_estimate, morph_data
+from mne import stats, SourceEstimate
+from mne import read_stc, write_stc, read_source_estimate, morph_data,\
+                extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
                                 compute_morph_matrix, grade_to_vertices, \
                                 morph_data_precomputed
 from mne.minimum_norm import read_inverse_operator
+from mne.label import labels_from_parc, label_sign_flip
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
+subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-meg-inv.fif')
@@ -120,6 +123,87 @@ def test_stc_methods():
     assert_true(stc_new.data.shape[1] == stc.data.shape[1])
     assert_true(stc_new.tstep == stc.tstep)
     assert_array_almost_equal(stc_new.data, stc.data, 5)
+
+
+def test_extract_label_time_course():
+    """Test extraction of label time courses from stc
+    """
+    n_stcs = 3
+    n_times = 50
+
+    src = read_inverse_operator(fname_inv)['src']
+    vertices = [src[0]['vertno'], src[1]['vertno']]
+    n_verts = len(vertices[0]) + len(vertices[1])
+
+    # get some labels
+    labels_lh, _ = labels_from_parc('sample', hemi='lh',
+                                    subjects_dir=subjects_dir)
+    labels_rh, _ = labels_from_parc('sample', hemi='rh',
+                                    subjects_dir=subjects_dir)
+    labels = list()
+    labels.extend(labels_lh[:5])
+    labels.extend(labels_rh[:4])
+
+    n_labels = len(labels)
+
+    label_means = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
+
+    # compute the mean with sign flip
+    label_means_flipped = np.zeros_like(label_means)
+    for i, label in enumerate(labels):
+        label_means_flipped[i] = i * np.mean(label_sign_flip(label, src))
+
+    # generate some stc's with known data
+    stcs = list()
+    for i in range(n_stcs):
+        data = np.zeros((n_verts, n_times))
+        # set the value of the stc within each label
+        for j, label in enumerate(labels):
+            if label.hemi == 'lh':
+                idx = np.intersect1d(vertices[0], label.vertices)
+                idx = np.searchsorted(vertices[0], idx)
+            elif label.hemi == 'rh':
+                idx = np.intersect1d(vertices[1], label.vertices)
+                idx = len(vertices[0]) + np.searchsorted(vertices[1], idx)
+            data[idx] = label_means[j]
+
+        this_stc = SourceEstimate(data, vertices, 0, 1)
+        stcs.append(this_stc)
+
+    # test some invalid inputs
+    assert_raises(ValueError, extract_label_time_course, stcs, labels,
+                  src, mode='notamode')
+
+    # have an empty label
+    empty_label = deepcopy(labels[0])
+    empty_label.vertices += 1000000
+    assert_raises(ValueError, extract_label_time_course, stcs, empty_label,
+                  src, mode='mean')
+
+    # but this works:
+    tc = extract_label_time_course(stcs, empty_label, src, mode='mean',
+                                   allow_empty=True)
+    for arr in tc:
+        assert_true(arr.shape == (1, n_times))
+        assert_array_equal(arr, np.zeros((1, n_times)))
+
+    # test the different modes
+    modes = ['mean', 'mean_flip', 'pca']
+
+    for mode in modes:
+        label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
+        label_tc_method = [stc.extract_label_time_course(labels, src,
+                           mode=mode) for stc in stcs]
+        assert_true(len(label_tc) == n_stcs)
+        assert_true(len(label_tc_method) == n_stcs)
+        for tc1, tc2 in zip(label_tc, label_tc_method):
+            assert_true(tc1.shape == (n_labels, n_times))
+            assert_true(tc2.shape == (n_labels, n_times))
+            assert_array_equal(tc1, tc2)
+            if mode == 'mean':
+                assert_array_almost_equal(tc1, label_means)
+            if mode == 'mean_flip':
+                assert_array_almost_equal(tc1, label_means_flipped)
 
 
 def test_morph_data():

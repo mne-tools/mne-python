@@ -117,16 +117,21 @@ def test_labels_from_parc():
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
 
     # read labels using hemi specification
-    labels_lh = labels_from_parc('sample', hemi='lh',
-                                 subjects_dir=subjects_dir)
+    labels_lh, colors_lh = labels_from_parc('sample', hemi='lh',
+                                            subjects_dir=subjects_dir)
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
 
+    assert_true(len(labels_lh) == len(colors_lh))
+
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
-    labels_rh = labels_from_parc('sample', annot_fname=annot_fname,
-                                 subjects_dir=subjects_dir)
+    labels_rh, colors_rh = labels_from_parc('sample', annot_fname=annot_fname,
+                                            subjects_dir=subjects_dir)
+
+    assert_true(len(labels_rh) == len(colors_rh))
+
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
@@ -140,7 +145,9 @@ def test_labels_from_parc():
     labels_lhrh = [label for (name, label) in sorted(zip(names, labels_lhrh))]
 
     # read all labels at once
-    labels_both = labels_from_parc('sample', subjects_dir=subjects_dir)
+    labels_both, colors = labels_from_parc('sample', subjects_dir=subjects_dir)
+
+    assert_true(len(labels_both) == len(colors))
 
     # we have the same result
     _assert_labels_equal(labels_lhrh, labels_both)
@@ -175,7 +182,7 @@ def test_labels_from_parc_annot2labels():
 
         return labels
 
-    labels = labels_from_parc('sample', subjects_dir=subjects_dir)
+    labels, _ = labels_from_parc('sample', subjects_dir=subjects_dir)
     labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
 
     # we have the same result, mne does not fill pos, so ignore it

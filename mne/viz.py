@@ -24,6 +24,7 @@ from warnings import warn
 
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
+from .fixes import tril_indices
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
@@ -1305,3 +1306,230 @@ def mne_analyze_colormap(limits=[5, 10, 15]):
                       (l[4], 0.0, 0.0),
                       (l[5], 0.0, 0.0))}
     return colors.LinearSegmentedColormap('mne_analyze', cdict)
+
+
+def plot_con_circular(con, node_names, indices=None, n_draw=None,
+                      node_order=None, node_colors=None, facecolor='black',
+                      textcolor='white', linewidth=1.5, start_pos=0,
+                      colormap='hot', vmin=None, vmax=None,
+                      colorbar=True, title=None):
+    """Visualize connectivity as a circular graph.
+
+    Note: This code is based on the circle graph example by Nicolas P. Rougier
+    http://www.loria.fr/~rougier/coding/recipes.html
+
+    Parameters
+    ----------
+    con : array
+        Connectivity scores. Can be a square matrix, or a 1D array. If a 1D
+        array is provided, "indices" has to be used to define the connection
+        indices.
+    node_names : list of str
+        Node names. The order corresponds to the order in con.
+    indices : tuple of arrays | None
+        Two arrays with indices of connections for which the connections
+        strenghts are defined in con. Only needed if con is a 1D array.
+    n_draw : int | None
+        If not None, only the n_draw strongest connections (strenght=abs(con))
+        are drawn.
+    node_order : list of str
+        List with node names defining the order in which the nodes are plotted.
+        Must have the elements as node_names but the order can be different.
+        The nodes are arranged clockwise starting at "start_pos" degrees.
+    node_colors : list of tuples | list of str
+        List with the color to use for each node. If fewer colors than nodes
+        are provided, the colors will be repeated. Any color supported by
+        matplotlib can be used, e.g., RGBA tuples, named colors.
+    facecolor : str
+        Color to use for background. See matplotlib.colors.
+    textcolor : str
+        Color to use for text. See matplotlib.colors.
+    linewidth : float
+        Line width to use for connections.
+    start_pos : float
+        Angle in degrees that defines where the first node is plotted.
+    colormap : str
+        Colormap to use for coloring the connections.
+    vmin : float | None
+        Minimum value for colormap. If None, it is determined automatically.
+    vmax : float | None
+        Maximum value for colormap. If None, it is determined automatically.
+    colorbar : bool
+        Display a colorbar or not.
+    title : str
+        The figure title.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+        The figure handle.
+    """
+    import pylab as pl
+    import matplotlib.path as m_path
+    import matplotlib.patches as m_patches
+
+    n_nodes = len(node_names)
+
+    if node_order is not None:
+        if len(node_order) != n_nodes:
+            raise ValueError('node_order has to be the same length '
+                             'as node_names')
+        # convert it to a list with indices
+        node_order = [node_order.index(name) for name in node_names]
+        node_order = np.array(node_order)
+        if len(np.unique(node_order)) != n_nodes:
+            raise ValueError('node_order has repeated entries')
+    else:
+        node_order = np.arange(n_nodes)
+
+    if node_colors is not None:
+        if len(node_colors) < n_nodes:
+            node_colors = cycle(node_colors)
+    else:
+        # assign colors using colormap
+        node_colors = [pl.cm.spectral(i / float(n_nodes))
+                       for i in range(n_nodes)]
+
+    # handle 1D and 2D connectivity information
+    if con.ndim == 1:
+        if indices is None:
+            raise ValueError('indices has to be provided if con.ndim == 1')
+    if con.ndim == 2:
+        if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
+            raise ValueError('con has to be 1D or a square matrix')
+        # we use the lower-triangular part
+        indices = tril_indices(n_nodes, -1)
+        con = con[indices]
+    else:
+        raise ValueError('con has to be 1D or a square matrix')
+
+    # get the colormap
+    if isinstance(colormap, basestring):
+        colormap = pl.get_cmap(colormap)
+
+    # use node_order and start_pos to determine angle for each node
+    start_pos_rad = 2 * np.pi * start_pos / 360.
+    offset = np.pi / n_nodes + start_pos_rad
+    node_angles = offset + 2 * np.pi * node_order / float(n_nodes)
+
+    # Make figure background the same colors as axes
+    fig = pl.figure(figsize=(8, 8), facecolor=facecolor)
+
+    # Use a polar axes
+    axes = pl.subplot(111, polar=True, axisbg=facecolor)
+
+    # No ticks, we'll put our own
+    pl.xticks([])
+    pl.yticks([])
+
+    # Set y axes limit
+    pl.ylim(0, 10)
+
+    # Ring color
+    radii = np.ones(n_nodes) * 10
+    width = 2 * np.pi / n_nodes
+    bars_left = node_angles - np.pi / n_nodes
+    bars = axes.bar(bars_left, radii, width=width, bottom=9,
+                    edgecolor=textcolor, lw=2, facecolor='.9')
+    for bar, color in zip(bars, node_colors):
+        bar.set_facecolor(color)
+
+    # Draw lines between connected nodes, only draw the strongest connections
+    if n_draw is not None and len(con) > n_draw:
+        con_thresh = np.sort(np.abs(con).ravel())[-n_draw]
+    else:
+        con_thresh = 0.
+
+    # get the connections which we are drawing and sort by connection strength
+    # this will allow us to draw the strongest connections first
+    con_abs = np.abs(con)
+    con_draw_idx = np.where(con_abs >= con_thresh)[0]
+
+    con = con[con_draw_idx]
+    con_abs = con_abs[con_draw_idx]
+    indices = [ind[con_draw_idx] for ind in indices]
+
+    # now sort them
+    sort_idx = np.argsort(con_abs)
+    con_abs = con_abs[sort_idx]
+    con = con[sort_idx]
+    indices = [ind[sort_idx] for ind in indices]
+
+    # Get vmin vmax for color scaling
+    if vmin is None:
+        vmin = np.min(con[np.abs(con) >= con_thresh])
+    if vmax is None:
+        vmax = np.max(con)
+    vrange = vmax - vmin
+
+    # initalize random number generator so plot is reproducible
+    rng = np.random.mtrand.RandomState(seed=0)
+
+    for i, j, con_val in zip(indices[0], indices[1], con):
+        # Start point
+        t0, r0 = node_angles[i], 8.8
+
+        # End point
+        t1, r1 = node_angles[j], 8.8
+
+        # Some noise in start and end point
+        t0 += .5 * rng.uniform(-np.pi / n_nodes, np.pi / n_nodes)
+        t1 += .5 * rng.uniform(-np.pi / n_nodes, np.pi / n_nodes)
+
+        verts = [(t0, r0), (t0, 5), (t1, 5), (t1, r1)]
+        codes = [m_path.Path.MOVETO, m_path.Path.CURVE4, m_path.Path.CURVE4,
+                 m_path.Path.LINETO]
+        path = m_path.Path(verts, codes)
+
+        color = colormap((con_val - vmin) / vrange)
+
+        # Actual line
+        patch = m_patches.PathPatch(path, fill=False, edgecolor=color,
+                                    linewidth=linewidth, alpha=1.)
+        axes.add_patch(patch)
+
+    # Put text labels. First, we measure the unit in screen coordinates
+    x0, y0 = axes.transData.transform_point((0.0, 0.0))
+    x1, y1 = axes.transData.transform_point((0.0, 1.0))
+    unit = float(x1 - x0)
+
+    pl.ion()
+    for i, angle_rad in enumerate(node_angles):
+        label = pl.text(angle_rad, 11., node_names[i], size=10, rotation=0,
+                        horizontalalignment='center',
+                        verticalalignment='center', color=textcolor)
+
+        # To get text measure, we have to draw it first
+        pl.draw()
+
+        # Compute the text extent in data coordinate
+        w = label.get_window_extent().width / unit
+
+        # Adjust anchor point and angle
+        label.set_y(11. + w / 2.0)
+
+        angle_deg = 360 * angle_rad / (2 * np.pi)
+        if angle_deg < 270:
+            # Flip the label, so text is always upright
+            angle_deg += 180
+
+        label.set_rotation(angle_deg)
+
+    pl.ioff()
+
+    if title is not None:
+        pl.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.75)
+        pl.figtext(0.03, 0.95, title, color=textcolor, fontsize=14)
+    else:
+        pl.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
+
+    if colorbar:
+        sm = pl.cm.ScalarMappable(cmap=colormap,
+                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
+        sm.set_array(np.linspace(vmin, vmax))
+        ax = fig.add_axes([.9, .01, .015, .25])
+        cb = fig.colorbar(sm, cax=ax)
+        cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
+        pl.setp(cb_yticks, color=textcolor)
+
+    return fig
