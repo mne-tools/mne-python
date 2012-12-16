@@ -1031,9 +1031,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Forward operator.
     noise_cov : Covariance
         The noise covariance matrix.
-    loose : float in [0, 1]
+    loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces.
+        defining the tangent space of the cortical surfaces. Should be None 
+        for fixed-orientation forward solutions and for forward solutions
+        whose source coordinate system is not surface based.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     verbose : bool, str, int, or None

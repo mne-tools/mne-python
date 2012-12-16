@@ -266,7 +266,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
-    when the stim onset if defined from events.
+    when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
     with different IDs), an Epochs object for each event type has to
