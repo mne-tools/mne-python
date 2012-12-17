@@ -1884,7 +1884,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     'mean': Average within each label.
     'mean_flip': Average within each label with sign flip depending on source
     orientation.
-   'pca_flip': Apply an SVD to the time courses within each label and use the
+    'pca_flip': Apply an SVD to the time courses within each label and use the
     first right-singular vector multiplied with the first singular value as
     the time course for each label. In addition, a sing-flip is applied by
     using the sign of the dot product "dot(u, flip)" where u is the first
