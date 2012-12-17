@@ -749,8 +749,10 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         If not None, override default verbose level (see mne.verbose).
     Returns
     -------
-    labels: list of Label
+    labels : list of Label
         The labels, sorted by label name (ascending).
+    colors : list of tuples
+        RGBA color for obtained from the parc color table for each label.
     """
     logger.info('Reading labels from parcellation..')
 
@@ -781,16 +783,19 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     # now we are ready to create the labels
     n_read = 0
     labels = list()
+    label_colors = list()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
         annot, ctab, label_names = _read_annot(fname)
+        label_rgbas = ctab[:, :4]
         label_ids = ctab[:, -1]
 
         # load the vertex positions from surface
         fname_surf = os.path.join(subjects_dir, subject, 'surf',
                                   '%s.%s' % (hemi, surf_name))
         vert_pos, _ = read_surface(fname_surf)
-        for label_id, label_name in zip(label_ids, label_names):
+        for label_id, label_name, label_rgba in\
+                zip(label_ids, label_names, label_rgbas):
             vertices = np.where(annot == label_id)[0]
             if len(vertices) == 0:
                 # label is not part of cortical surface
@@ -800,13 +805,22 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             name = label_name + '-' + hemi
             label = Label(vertices, pos, values, hemi, name=name)
             labels.append(label)
+
+            # store the color
+            label_rgba = tuple(label_rgba / 255.)
+            label_colors.append(label_rgba)
+
         n_read = len(labels) - n_read
         logger.info('   read %d labels from %s' % (n_read, fname))
 
-    # sort the labels by label name
+    # sort the labels and colors by label name
     names = [label.name for label in labels]
-    labels = [label for (name, label) in sorted(zip(names, labels))]
+    labels, label_colors = zip(*((label, color) for (name, label, color)
+                               in sorted(zip(names, labels, label_colors))))
+    # convert tuples to lists
+    labels = list(labels)
+    label_colors = list(label_colors)
 
     logger.info('[done]')
 
-    return labels
+    return labels, label_colors

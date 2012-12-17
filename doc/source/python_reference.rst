@@ -47,7 +47,7 @@ Functions reference
    read_forward_solution
    apply_forward
    apply_forward_raw
-   label_time_courses
+   extract_label_time_course
    read_label
    labels_from_parc
    label_sign_flip
@@ -181,6 +181,8 @@ Functions reference
    plot_topo_phase_lock
    plot_image_epochs
    plot_topo_image_epochs
+   circular_layout
+   plot_connectivity_circle
    mne_analyze_colormap
 
 .. automodule:: mne.preprocessing
