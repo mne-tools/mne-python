@@ -8,7 +8,7 @@ import os
 import copy
 from math import ceil
 import numpy as np
-from scipy import sparse
+from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
@@ -722,6 +722,55 @@ class SourceEstimate(object):
         label_stc = SourceEstimate(values, vertices=vertices,
                                    tmin=self.tmin, tstep=self.tstep)
         return label_stc
+
+    @verbose
+    def extract_label_time_course(self, labels, src, mode='mean_flip',
+                                  allow_empty=False, verbose=None):
+        """Extract label time courses for lists of labels
+
+        This function will extract one time course for each label. The way the
+        time courses are extracted depends on the mode parameter.
+
+        Valid values for mode are:
+        'mean': Average within each label.
+        'mean_flip': Average within each label with sign flip depending on
+        source orientation.
+        'pca_flip': Apply an SVD to the time courses within each label and use
+        the first right-singular vector multiplied with the first singular
+        value as the time course for each label. In addition, a sing-flip is
+        applied by using the sign of the dot product "dot(u, flip)" where u is
+        the first left-singular vector, and flip is a sing-flip vector based on
+        the vertex normals. This procedure assures that the phase does not
+        randomly change by 180 degrees from one stc to the next.
+
+        See also mne.extract_label_time_course to extract time courses for a
+        list of SourceEstimate more efficiently.
+
+        Parameters
+        ----------
+        labels : Label | list of Label
+            The labels for which to extract the time courses.
+        src : list
+            Source spaces for left and right hemisphere.
+        mode : str
+            Extraction mode, see explanation above.
+        allow_empty : bool
+            Instead of emitting an error, return all-zero time course for
+            labels that do not have any vertices in the source estimate.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        label_tc : array, shape=(len(labels), n_times)
+            Extracted time course for each label.
+        """
+        label_tc = extract_label_time_course(self, labels, src, mode=mode,
+                                             return_generator=False,
+                                             allow_empty=allow_empty,
+                                             verbose=verbose)
+
+        return label_tc
 
     def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
                        subjects_dir=None):
@@ -1705,3 +1754,188 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     img = nib.Nifti1Image(vol, affine, header=header)
     nib.save(img, fname)
     return img
+
+
+def _get_label_flip(labels, label_vertidx, src):
+    """Helper function to get sign-flip for labels"""
+    # do the import here to avoid circular dependency
+    from .label import label_sign_flip
+    # get the sign-flip vector for every label
+    label_flip = list()
+    for label, vertidx in zip(labels, label_vertidx):
+        if label.hemi == 'both':
+            raise ValueError('BiHemiLabel not supported when using sign-flip')
+        if vertidx is not None:
+            flip = label_sign_flip(label, src)[:, None]
+        else:
+            flip = None
+        label_flip.append(flip)
+
+    return label_flip
+
+
+@verbose
+def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
+                                   allow_empty=False, verbose=None):
+    """Generator for extract_label_time_course"""
+
+    n_labels = len(labels)
+
+    # get vertno from source space, they have to be the same as in the stcs
+    vertno = [s['vertno'] for s in src]
+    nvert = [len(vn) for vn in vertno]
+
+    # do the initialization
+    label_vertidx = list()
+    for label in labels:
+        if label.hemi == 'both':
+            # handle BiHemiLabel
+            sub_labels = [label.lh, label.rh]
+        else:
+            sub_labels = [label]
+        this_vertidx = list()
+        for slabel in sub_labels:
+            if slabel.hemi == 'lh':
+                this_vertno = np.intersect1d(vertno[0], slabel.vertices)
+                vertidx = np.searchsorted(vertno[0], this_vertno)
+            elif slabel.hemi == 'rh':
+                this_vertno = np.intersect1d(vertno[1], slabel.vertices)
+                vertidx = nvert[0] + np.searchsorted(vertno[1], this_vertno)
+            else:
+                raise ValueError('label %s has invalid hemi' % label.name)
+            this_vertidx.append(vertidx)
+
+        # convert it to an array
+        this_vertidx = np.concatenate(this_vertidx)
+        if len(this_vertidx) == 0:
+            msg = ('source space does not contain any vertices for label %s'
+                   % label.name)
+            if not allow_empty:
+                raise ValueError(msg)
+            else:
+                logger.warn(msg + '. Assigning all-zero time series to label.')
+            this_vertidx = None  # to later check if label is empty
+
+        label_vertidx.append(this_vertidx)
+
+    # mode-dependent initalization
+    if mode == 'mean':
+        pass  # we have this here to catch invalid values for mode
+    elif mode == 'mean_flip':
+       # get the sign-flip vector for every label
+        label_flip = _get_label_flip(labels, label_vertidx, src)
+    elif mode == 'pca_flip':
+       # get the sign-flip vector for every label
+        label_flip = _get_label_flip(labels, label_vertidx, src)
+    else:
+        raise ValueError('%s is an invalid mode' % mode)
+
+    # loop through source estimates and extract time series
+    for stc in stcs:
+
+        # make sure the stc is compatible with the source space
+        if len(stc.vertno[0]) != nvert[0] or len(stc.vertno[1]) != nvert[1]:
+            raise ValueError('stc not compatible with source space')
+        if any([np.any(svn != vn) for svn, vn in zip(stc.vertno, vertno)]):
+            raise ValueError('stc not compatible with source space')
+
+        logger.info('Extracting time courses for %d labels (mode: %s)'
+                    % (n_labels, mode))
+
+        # do the extraction
+        label_tc = np.zeros((n_labels, stc.data.shape[1]),
+                            dtype=stc.data.dtype)
+        if mode == 'mean':
+            for i, vertidx in enumerate(label_vertidx):
+                if vertidx is not None:
+                    label_tc[i] = np.mean(stc.data[vertidx, :], axis=0)
+        elif mode == 'mean_flip':
+            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
+                                                    label_flip)):
+                if vertidx is not None:
+                    label_tc[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
+        elif mode == 'pca_flip':
+            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
+                                                    label_flip)):
+                if vertidx is not None:
+                    U, s, V = linalg.svd(stc.data[vertidx, :],
+                                         full_matrices=False)
+                    # determine sign-flip
+                    sign = np.sign(np.dot(U[:, 0], flip))
+                    label_tc[i] = sign * s[0] * V[0]
+        else:
+            raise ValueError('%s is an invalid mode' % mode)
+
+        # this is a generator!
+        yield label_tc
+
+
+@verbose
+def extract_label_time_course(stcs, labels, src, mode='mean_flip',
+                              allow_empty=False, return_generator=False,
+                              verbose=None):
+    """Extract label time course for lists of labels and source estimates
+
+    This function will extract one time course for each label and source
+    estimate. The way the time courses are extracted depends on the mode
+    parameter.
+
+    Valid values for mode are:
+    'mean': Average within each label.
+    'mean_flip': Average within each label with sign flip depending on source
+    orientation.
+    'pca_flip': Apply an SVD to the time courses within each label and use the
+    first right-singular vector multiplied with the first singular value as
+    the time course for each label. In addition, a sing-flip is applied by
+    using the sign of the dot product "dot(u, flip)" where u is the first
+    left-singular vector, and flip is a sing-flip vector based on the vertex
+    normals. This procedure assures that the phase does not randomly change
+    by 180 degrees from one stc to the next.
+
+    Parameters
+    ----------
+    stcs : SourceEstimate | list (or generator) of SourceEstimate
+        The source estimates from which to extract the time course.
+    labels : Label | list of Label
+        The labels for which to extract the time course.
+    src : list
+        Source spaces for left and right hemisphere.
+    mode : str
+        Extraction mode, see explanation above.
+    allow_empty : bool
+        Instead of emitting an error, return all-zero time courses for labels
+        that do not have any vertices in the source estimate.
+    return_generator : bool
+        If True, a generator instead of a list is returned.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    label_tc : array | list (or generator) of array,
+               shape=(len(labels), n_times)
+        Extracted time course for each label and source estimate.
+    """
+    # convert inputs to lists
+    if isinstance(stcs, SourceEstimate):
+        stcs = [stcs]
+        return_several = False
+        return_generator = False
+    else:
+        return_several = True
+
+    if not isinstance(labels, list):
+        labels = [labels]
+
+    label_tc = _gen_extract_label_time_course(stcs, labels, src, mode=mode,
+                                              allow_empty=allow_empty)
+
+    if not return_generator:
+        # do the extraction and return a list
+        label_tc = list(label_tc)
+
+    if not return_several:
+        # input was a single SoureEstimate, return single array
+        label_tc = label_tc[0]
+
+    return label_tc

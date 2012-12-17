@@ -90,10 +90,13 @@ Changelog
 
    - Downsample epochs by `Christian Brodbeck`_ and `Eric Larson`_
 
-   - New labels class for handling source estimates by `Christian Brodbeck`_, `Martin Luessi`_  and `Alex Gramfort`_ 
+   - New labels class for handling source estimates by `Christian Brodbeck`_, `Martin Luessi`_  and `Alex Gramfort`_
 
    - New plotting routines to easily display SourceEstimates using PySurfer by `Alex Gramfort`_
 
+   - Function to extract label time courses from SourceEstimate(s) by `Martin Luessi`_
+
+   - Function to visualize connectivity as circular graph by `Martin Luessi`_ and `Alex Gramfort`_
 
 API
 ~~~
