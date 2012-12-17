@@ -86,7 +86,7 @@ Changelog
 
    - Combining labels in source space by `Christian Brodbeck`_
 
-   - Read and write source spaces and surfaces to and from files by `Christian Brodbeck`_
+   - Read and write source spaces, surfaces and coordinate transforms to and from files by `Christian Brodbeck`_
 
    - Downsample epochs by `Christian Brodbeck`_ and `Eric Larson`_
 
