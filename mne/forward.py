@@ -48,13 +48,13 @@ def _block_diag(A, n):
 
     Parameters
     ----------
-    A: array
+    A : array
         The matrix
-    n: int
+    n : int
         The block size
     Returns
     -------
-    bd: sparse matrix
+    bd : sparse matrix
         The block diagonal matrix
     """
     from scipy import sparse
@@ -173,9 +173,9 @@ def read_forward_meas_info(tree, fid):
 
     Parameters
     ----------
-    tree: tree
+    tree : tree
         FIF tree structure
-    fid: file id
+    fid : file id
         The file id
 
     Returns

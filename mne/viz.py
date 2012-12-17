@@ -270,7 +270,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
         Minimum value mapped to upppermost color
     cmap : instance of matplotlib.pylab.colormap
         Colors to be mapped to the values
-    layout_scale: float
+    layout_scale : float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
     title : str
@@ -648,36 +648,36 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     Parameters
     ----------
-    src: dict
+    src : dict
         The source space
-    stcs: instance of SourceEstimate or list of instances of SourceEstimate
+    stcs : instance of SourceEstimate or list of instances of SourceEstimate
         The source estimates (up to 3)
-    colors: list
+    colors : list
         List of colors
-    linewidth: int
+    linewidth : int
         Line width in 2D plot
-    fontsize: int
+    fontsize : int
         Font size
-    bgcolor: tuple of length 3
+    bgcolor : tuple of length 3
         Background color in 3D
-    opacity: float in [0, 1]
+    opacity : float in [0, 1]
         Opacity of brain mesh
-    brain_color: tuple of length 3
+    brain_color : tuple of length 3
         Brain color
-    show: bool
+    show : bool
         Show figures if True
-    fig_name:
+    fig_name :
         Mayavi figure name
-    fig_number:
+    fig_number :
         Pylab figure number
-    labels: ndarray or list of ndarrays
+    labels : ndarray or list of ndarrays
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
         the same color. labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    kwargs: kwargs
+    kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh
     """
     if not isinstance(stcs, list):

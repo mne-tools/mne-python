@@ -26,17 +26,17 @@ def pick_events(events, include=None, exclude=None):
 
     Parameters
     ----------
-    include: int | list | None
+    include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
-    exclude: int | list | None
+    exclude : int | list | None
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
 
     Returns
     -------
-    events: array, shape (n_events, 3)
+    events : array, shape (n_events, 3)
         The list of events
     """
     if include is not None:
@@ -107,17 +107,17 @@ def read_events(filename, include=None, exclude=None):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         Name of the input file.
         If the extension is .fif, events are read assuming
         the file is in FIF format, otherwise (e.g., .eve,
         .lst, .txt) events are read as coming from text.
         Note that new format event files do not contain
         the "time" column (used to be the second column).
-    include: int | list | None
+    include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
-    exclude: int | list | None
+    exclude : int | list | None
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.

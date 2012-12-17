@@ -124,11 +124,11 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     ----------
     info : dict
         Measurement info (e.g., raw.info)
-    radius: float
+    radius : float
         Viewport radius
-    width: float
+    width : float
         Viewport width
-    height: float
+    height : float
         Viewport height
 
     Returns

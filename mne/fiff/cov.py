@@ -24,13 +24,13 @@ def read_cov(fid, node, cov_kind, verbose=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor
 
-    node: dict
+    node : dict
         The node in the FIF tree
 
-    cov_kind: int
+    cov_kind : int
         The type of covariance. XXX : clarify
 
     verbose : bool, str, int, or None
@@ -38,7 +38,7 @@ def read_cov(fid, node, cov_kind, verbose=None):
 
     Returns
     -------
-    data: dict
+    data : dict
         The noise covariance
     """
     #   Find all covariance matrices
@@ -136,10 +136,10 @@ def write_cov(fid, cov):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor
 
-    cov: dict
+    cov : dict
         The noise covariance matrix to write
     """
     start_block(fid, FIFF.FIFFB_MNE_COV)

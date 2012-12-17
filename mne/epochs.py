@@ -59,7 +59,7 @@ class Epochs(object):
         Comment that describes the Evoked data created.
     keep_comp : boolean
         Apply CTF gradient compensation.
-    baseline: None (default) or tuple of length 2
+    baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -101,9 +101,9 @@ class Epochs(object):
         Measurement info.
     event_id : dict
         Names of  of conditions corresponding to event_ids.
-    ch_names: list of string
+    ch_names : list of string
         List of channels' names.
-    drop_log: list of lists
+    drop_log : list of lists
         This list (same length as events) contains the channel(s),
         if any, that caused an event in the original event list
         to be dropped by drop_bad_epochs().
@@ -527,7 +527,7 @@ class Epochs(object):
         Parameters
         ----------
 
-        picks: None | array of int
+        picks : None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
 
@@ -544,7 +544,7 @@ class Epochs(object):
 
         Parameters
         ----------
-        picks: None | array of int
+        picks : None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
 
@@ -667,7 +667,7 @@ class Epochs(object):
 
         Parameters
         ----------
-        sfreq: float
+        sfreq : float
             New sample rate to use
         npad : int
             Amount to pad the start and end of the data.
@@ -933,7 +933,7 @@ class Epochs(object):
 
         Parameters
         ----------
-        event_ids: list
+        event_ids : list
             The event types to equalize. Each entry in the list can either be
             a str (single event) or a list of str. In the case where one of
             the entries is a list of str, event_ids in that list will be
@@ -942,15 +942,15 @@ class Epochs(object):
             If 'truncate', events will be truncated from the end of each event
             list. If 'mintime', timing differences between each event list will
             be minimized.
-        copy: bool
+        copy : bool
             If True, a copy of epochs will be returned. Otherwise, the
             function will operate in-place.
 
         Returns
         -------
-        epochs: instance of Epochs
+        epochs : instance of Epochs
             The modified Epochs instance.
-        indices: array of int
+        indices : array of int
             Indices from the original events list that were dropped.
 
         Notes
@@ -995,15 +995,15 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 
     Parameters
     ----------
-    epochs: instance of Epochs
+    epochs : instance of Epochs
         The epochs to operate on.
-    old_event_ids: str, or list
+    old_event_ids : str, or list
         Conditions to collapse together.
-    new_event_id: dict, or int
+    new_event_id : dict, or int
         A one-element dict (or a single integer) for the new
         condition. Note that for safety, this cannot be any
         existing id (in epochs.event_id.values()).
-    copy: bool
+    copy : bool
         If True, a copy of epochs will be returned. Otherwise, the
         function will operate in-place.
 
@@ -1067,7 +1067,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
 
     Parameters
     ----------
-    epochs_list: list of Epochs instances
+    epochs_list : list of Epochs instances
         The Epochs instances to equalize trial counts for.
     method : str
         If 'truncate', events will be truncated from the end of each event

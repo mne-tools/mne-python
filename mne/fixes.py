@@ -269,7 +269,6 @@ else:
     filtfilt = sp_filtfilt
 
 
-
 ###############################################################################
 # Back porting firwin2 for older scipy
 

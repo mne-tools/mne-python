@@ -19,17 +19,17 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Sampling rate
     ecg : array
         ECG signal
-    thresh_value: float
+    thresh_value : float
         qrs detection threshold
-    levels: float
+    levels : float
         number of std from mean to include for detection
-    n_thresh: int
+    n_thresh : int
         max number of crossings
-    l_freq: float
+    l_freq : float
         Low pass frequency
-    h_freq: float
+    h_freq : float
         High pass frequency
-    tstart: float
+    tstart : float
         Start detection after tstart seconds.
 
     Returns

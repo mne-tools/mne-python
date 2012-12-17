@@ -13,15 +13,15 @@ def read_bad_channels(fid, node):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor
 
-    node: dict
+    node : dict
         The node of the FIF tree that contains info on the bad channels
 
     Returns
     -------
-    bads: list
+    bads : list
         A list of bad channel's names
     """
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)

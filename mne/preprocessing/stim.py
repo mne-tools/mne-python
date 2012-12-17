@@ -16,11 +16,11 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
 
     Parameters
     ----------
-    raw: Raw object
+    raw : Raw object
         raw data object
-    events: array, shape (n_events, 3)
+    events : array, shape (n_events, 3)
         The list of events
-    event_id: int
+    event_id : int
         The id of the events generating the stimulation artifacts.
     tmin : float
         Start time before event in seconds
