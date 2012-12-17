@@ -226,7 +226,7 @@ def test_io_raw():
         # check transformations
         for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
             if raw.info[trans] is None:
-                assert raw2.info[trans] is None
+                assert_true(raw2.info[trans] is None)
             else:
                 assert_array_equal(raw.info[trans]['trans'],
                                    raw2.info[trans]['trans'])
@@ -241,8 +241,8 @@ def test_io_raw():
                 else:
                     to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
                 for raw_ in [raw, raw2]:
-                    assert raw_.info[trans]['from'] == from_id
-                    assert raw_.info[trans]['to'] == to_id
+                    assert_true(raw_.info[trans]['from'] == from_id)
+                    assert_true(raw_.info[trans]['to'] == to_id)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_array_almost_equal(raw.info['dig'][0]['r'],
