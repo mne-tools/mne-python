@@ -20,17 +20,17 @@ def tridisolve(d, e, b, overwrite_b=True):
     Parameters
     ----------
 
-    d: ndarray
+    d : ndarray
       main diagonal stored in d[:]
-    e: ndarray
+    e : ndarray
       superdiagonal stored in e[:-1]
-    b: ndarray
+    b : ndarray
       RHS vector
 
     Returns
     -------
 
-    x: ndarray
+    x : ndarray
       Solution to Ax = b (if overwrite_b is False). Otherwise solution is
       stored in previous RHS vector b
 
@@ -68,15 +68,15 @@ def tridi_inverse_iteration(d, e, w, x0=None, rtol=1e-8):
     Parameters
     ----------
 
-    d: ndarray
+    d : ndarray
       main diagonal of the tridiagonal system
-    e: ndarray
+    e : ndarray
       offdiagonal stored in e[:-1]
-    w: float
+    w : float
       eigenvalue of the eigenvector
-    x0: ndarray
+    x0 : ndarray
       initial point to start the iteration
-    rtol: float
+    rtol : float
       tolerance for the norm of the difference of iterates
 
     Returns
@@ -121,11 +121,11 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         Number of DPSS windows to return is Kmax (orders 0 through Kmax-1)
     low_bias : Bool
         Keep only tapers with eigenvalues > 0.9
-    interp_from: int (optional)
+    interp_from : int (optional)
         The dpss can be calculated using interpolation from a set of dpss
         with the same NW and Kmax, but shorter N. This is the length of this
         shorter set of dpss windows.
-    interp_kind: str (optional)
+    interp_kind : str (optional)
         This input variable is passed to scipy.interpolate.interp1d and
         specifies the kind of interpolation as a string ('linear', 'nearest',
         'zero', 'slinear', 'quadratic, 'cubic') or as an integer specifying the
@@ -255,22 +255,22 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
     Parameters
     ----------
 
-    x_mt: array, shape=(n_signals, n_tapers, n_freqs)
+    x_mt : array, shape=(n_signals, n_tapers, n_freqs)
        The DFTs of the tapered sequences (only positive frequencies)
-    eigvals: array, length n_tapers
+    eigvals : array, length n_tapers
        The eigenvalues of the DPSS tapers
-    freq_mask: array
+    freq_mask : array
         Frequency indices to keep
-    max_iter: int
+    max_iter : int
        Maximum number of iterations for weight computation
-    return_weights: bool
+    return_weights : bool
        Also return the weights
 
     Returns
     -------
-    psd: array, shape=(n_signals, np.sum(freq_mask))
+    psd : array, shape=(n_signals, np.sum(freq_mask))
         The computed PSDs
-    weights: array shape=(n_signals, n_tapers, np.sum(freq_mask))
+    weights : array shape=(n_signals, n_tapers, np.sum(freq_mask))
         The weights used to combine the tapered spectra
 
     Notes
@@ -363,14 +363,14 @@ def _psd_from_mt(x_mt, weights):
 
     Parameters
     ----------
-    x_mt: array
+    x_mt : array
         Tapered spectra
-    weights: array
+    weights : array
         Weights used to combine the tapered spectra
 
     Returns
     -------
-    psd: array
+    psd : array
         The computed PSD
     """
 
@@ -385,13 +385,13 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     Parameters
     ----------
-    x_mt: array
+    x_mt : array
         Tapered spectra for x
-    y_mt: array
+    y_mt : array
         Tapered spectra for y
-    weights_x: array
+    weights_x : array
         Weights used to combine the tapered spectra of x_mt
-    weights_y: array
+    weights_y : array
         Weights used to combine the tapered spectra of y_mt
 
     Returns
@@ -402,7 +402,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
 
-    denom =  np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))\
+    denom = np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))\
              * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2))
 
     csd *= 2 / denom
@@ -415,18 +415,18 @@ def _mt_spectra(x, dpss, sfreq):
 
     Parameters
     ----------
-    x: array, shape=(n_signals, n_times)
+    x : array, shape=(n_signals, n_times)
         Input signal
-    dpss: array, shape=(n_tapers, n_times)
+    dpss : array, shape=(n_tapers, n_times)
         The tapers
-    sfreq: float
+    sfreq : float
         The sampling frequency
 
     Returns
     -------
-    x_mt: array, shape=(n_signals, n_tapers, n_times)
+    x_mt : array, shape=(n_signals, n_tapers, n_times)
         The tapered spectra
-    freqs: array
+    freqs : array
         The frequency points in Hz of the spectra
     """
 

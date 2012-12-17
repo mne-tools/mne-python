@@ -142,7 +142,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     #   The SVD decomposition...
     #
-    logger.info( '    Reading inverse operator decomposition...')
+    logger.info('    Reading inverse operator decomposition...')
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
     if tag is None:
         fid.close()
@@ -380,13 +380,13 @@ def combine_xyz(vec, square=False):
 
     Parameters
     ----------
-    vec: 2d array of shape [3 n x p]
+    vec : 2d array of shape [3 n x p]
         Input [ x1 y1 z1 ... x_n y_n z_n ] where x1 ... z_n
         can be vectors
 
     Returns
     -------
-    comb: array
+    comb : array
         Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
     if vec.ndim != 2:
@@ -444,7 +444,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
     Returns
     -------
-    inv: dict
+    inv : dict
         Prepared inverse operator.
     """
     if nave <= 0:
@@ -632,7 +632,6 @@ def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
     return K, noise_norm, vertno
 
 
-
 def _check_method(method, dSPM):
     if dSPM is not None:
         warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
@@ -664,15 +663,15 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     Parameters
     ----------
-    evoked: Evoked object
+    evoked : Evoked object
         Evoked data.
     inverse_operator: dict
         Inverse operator read with mne.read_inverse_operator.
-    lambda2: float
+    lambda2 : float
         The regularization parameter.
-    method: "MNE" | "dSPM" | "sLORETA"
+    method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
-    pick_normal: bool
+    pick_normal : bool
         If True, rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
@@ -681,7 +680,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc: SourceEstimate
+    stc : SourceEstimate
         The source estimates
     """
     method = _check_method(method, dSPM)

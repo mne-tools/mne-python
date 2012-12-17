@@ -273,10 +273,10 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         The frequencies
     use_fft : bool
         Use the FFT for convolutions or not.
-    n_cycles: float | array of float
+    n_cycles : float | array of float
         Number of cycles  in the Morlet wavelet. Fixed number
         or one per frequency.
-    baseline: None (default) or tuple of length 2
+    baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -347,7 +347,7 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     use_fft : bool
         Compute transform with fft based convolutions or temporal
         convolutions.
-    n_cycles: float | array of float
+    n_cycles : float | array of float
         Number of cycles. Fixed number or one per frequency.
     decim: int
         Temporal decimation factor

@@ -261,7 +261,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
     Parameters
     ----------
-    iir_params: dict
+    iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         If iir_params['b'] and iir_params['a'] exist, these will be used
         as coefficients to perform IIR filtering. Otherwise, if
@@ -272,23 +272,23 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         iir_params['padlen'] defines the number of samples to pad (and
         an estimate will be calculated if it is not given). See Notes for
         more details.
-    f_pass: float or list of float
+    f_pass : float or list of float
         Frequency for the pass-band. Low-pass and high-pass filters should
         be a float, band-pass should be a 2-element list of float.
-    f_stop: float or list of float
+    f_stop : float or list of float
         Stop-band frequency (same size as f_pass). Not used if 'order' is
         specified in iir_params.
-    btype: str
+    btype : str
         Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'
         (or analogous string representations known to scipy.signal).
-    return_copy: bool
+    return_copy : bool
         If False, the 'b', 'a', and 'padlen' entries in iir_params will be
         set inplace (if they weren't already). Otherwise, a new iir_params
         instance will be created and returned with these entries.
 
     Returns
     -------
-    iir_params: dict
+    iir_params : dict
         Updated iir_params dict, with the entries (set only if they didn't
         exist before) for 'b', 'a', and 'padlen' for IIR filtering.
 
@@ -403,10 +403,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
-    method: str
+    method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params: dict
+    iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
 
@@ -479,10 +479,10 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
-    method: str
+    method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params: dict
+    iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
 
@@ -543,10 +543,10 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         filter of the specified length is used (faster for long signals).
     trans_bandwidth : float
         Width of the transition band in Hz.
-    method: str
+    method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params: dict
+    iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
 

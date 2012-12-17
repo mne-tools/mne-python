@@ -51,9 +51,9 @@ def read_proj(fid, node, verbose=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor of the open file.
-    node: tree node
+    node : tree node
         The node of the tree where to look.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -168,10 +168,10 @@ def write_proj(fid, projs):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor of the open file
 
-    projs: dict
+    projs : dict
         The projection operator
 
     """

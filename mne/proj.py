@@ -20,12 +20,12 @@ def read_proj(fname):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of file containing the projections vectors.
 
     Returns
     -------
-    projs: list
+    projs : list
         The list of projection vectors.
     """
     fid, tree, _ = fiff.fiff_open(fname)
@@ -38,10 +38,10 @@ def write_proj(fname, projs):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of file containing the projections vectors.
 
-    projs: list
+    projs : list
         The list of projection vectors.
     """
     fid = fiff.write.start_file(fname)
@@ -51,7 +51,6 @@ def write_proj(fname, projs):
 
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
-
     mag_ind = pick_types(info, meg='mag')
     grad_ind = pick_types(info, meg='grad')
     eeg_ind = pick_types(info, meg=False, eeg=True)
@@ -98,15 +97,15 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
 
     Parameters
     ----------
-    epochs: instance of Epochs
+    epochs : instance of Epochs
         The epochs containing the artifact
-    n_grad: int
+    n_grad : int
         Number of vectors for gradiometers
-    n_mag: int
+    n_mag : int
         Number of vectors for gradiometers
-    n_eeg: int
+    n_eeg : int
         Number of vectors for gradiometers
-    n_jobs: int
+    n_jobs : int
         Number of jobs to use to compute covariance
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -175,27 +174,27 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
 
     Parameters
     ----------
-    raw: instance of Raw
+    raw : instance of Raw
         A raw object to use the data from
-    start: float
+    start : float
         Time (in sec) to start computing SSP
-    stop: float
+    stop : float
         Time (in sec) to stop computing SSP
         None will go to the end of the file
-    duration: float
+    duration : float
         Duration (in sec) to chunk data into for SSP
         If duration is None, data will not be chunked.
-    n_grad: int
+    n_grad : int
         Number of vectors for gradiometers
-    n_mag: int
+    n_mag : int
         Number of vectors for gradiometers
-    n_eeg: int
+    n_eeg : int
         Number of vectors for gradiometers
     reject : dict
         Epoch rejection configuration (see Epochs)
     flat : dict
         Epoch flat configuration (see Epochs)
-    n_jobs: int
+    n_jobs : int
         Number of jobs to use to compute covariance
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).

@@ -520,7 +520,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         T-statistic observerd for all variables
     clusters : list
         List type defined by out_type above.
-    cluster_pv: array
+    cluster_pv : array
         P-value for each cluster
     H0 : array of shape [n_permutations]
         Max cluster level stats observed under permutation.

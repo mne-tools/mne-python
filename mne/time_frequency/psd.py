@@ -21,33 +21,33 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 
     Parameters
     ----------
-    raw: instance of Raw
+    raw : instance of Raw
         The raw data.
 
-    tmin: float
+    tmin : float
         Min time instant to consider
 
-    tmax: float
+    tmax : float
         Max time instant to consider
 
-    picks: None or array of integers
+    picks : None or array of integers
         The selection of channels to include in the computation.
         If None, take all channels.
 
-    fmin: float
+    fmin : float
         Min frequency of interest
 
-    fmax: float
+    fmax : float
         Max frequency of interest
 
-    NFFT: int
+    NFFT : int
         The length of the tappers ie. the windows. The smaller
         it is the smoother are the PSDs.
 
-    n_jobs: int
+    n_jobs : int
         Number of CPUs to use in the computation.
 
-    plot: bool
+    plot : bool
         Plot each PSD estimates
 
     proj : bool
@@ -58,7 +58,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 
     Returns
     -------
-    psd: array of float
+    psd : array of float
         The PSD for all channels
 
     freqs: array of float

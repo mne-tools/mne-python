@@ -38,7 +38,7 @@ class Raw(object):
 
     Parameters
     ----------
-    fnames: list, or string
+    fnames : list, or string
         A list of the raw files to treat as a Raw instance, or a single
         raw file.
     allow_maxshield : bool, (default False)
@@ -361,11 +361,11 @@ class Raw(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
 
-        *args:
+        *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
 
-        **kwargs:
+        **kwargs :
             Keyword arguments to pass to fun.
         """
         if not self._preloaded:
@@ -487,12 +487,12 @@ class Raw(object):
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
             Width of the transition band at the high cut-off frequency in Hz.
-        n_jobs: int
+        n_jobs : int
             Number of jobs to run in parallel.
-        method: str
+        method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
-        iir_params: dict
+        iir_params : dict
             Dictionary of parameters to use for IIR filtering.
             See mne.filter.construct_iir_filter for details.
         verbose : bool, str, int, or None
@@ -758,10 +758,10 @@ class Raw(object):
             Time in seconds of last sample to save.
         buffer_size_sec : float
             Size of data chuncks in seconds.
-        drop_small_buffer: bool
+        drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
-        proj_active: bool
+        proj_active : bool
             If True the data is saved with the projections applied (active).
             Note: If apply_projector() was used to apply the projectons,
             the projectons will be active even if proj_active is False.
@@ -847,7 +847,7 @@ class Raw(object):
         ----------
         times : list-like | float | int
             List of numbers or a number representing points in time.
-        use_first_samp: boolean
+        use_first_samp : boolean
             If True, time is treated as relative to the session onset, else
             as relative to the recording onset.
 
@@ -866,7 +866,7 @@ class Raw(object):
         ----------
         index : list-like | int
             List of ints or int representing points in time.
-        use_first_samp: boolean
+        use_first_samp : boolean
             If True, the time returned is relative to the session onset, else
             relative to the recording onset.
 
@@ -1150,7 +1150,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
     ----------
     times : list-like | float | int
         List of numbers or a number representing points in time.
-    use_first_samp: boolean
+    use_first_samp : boolean
         If True, time is treated as relative to the session onset, else
         as relative to the recording onset.
 
@@ -1171,7 +1171,7 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
     ----------
     index : list-like | int
         List of ints or int representing points in time.
-    use_first_samp: boolean
+    use_first_samp : boolean
         If True, the time returned is relative to the session onset, else
         relative to the recording onset.
 
@@ -1375,24 +1375,24 @@ def read_raw_segment_times(raw, start, stop, sel=None, verbose=None):
 
     Parameters
     ----------
-    raw: Raw object
+    raw : Raw object
         An instance of Raw.
-    start: float
+    start : float
         Starting time of the segment in seconds.
-    stop: float
+    stop : float
         End time of the segment in seconds.
-    sel: array, optional
+    sel : array, optional
         Indices of channels to select.
-    node: tree node
+    node : tree node
         The node of the tree where to look.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    data: array, [channels x samples]
+    data : array, [channels x samples]
        the data matrix (channels x samples).
-    times: array, [samples]
+    times : array, [samples]
         returns the time values corresponding to the samples.
     """
     #   Convert to samples

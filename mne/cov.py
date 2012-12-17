@@ -40,7 +40,7 @@ class Covariance(dict):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the raw file
 
     Attributes
@@ -121,12 +121,12 @@ def read_cov(fname):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of file containing the covariance matrix.
 
     Returns
     -------
-    cov: Covariance
+    cov : Covariance
         The noise covariance matrix.
     """
     return Covariance(fname)
@@ -398,10 +398,10 @@ def write_cov(fname, cov):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the file
 
-    cov: Covariance
+    cov : Covariance
         The noise covariance matrix
     """
     cov.save(fname)
@@ -435,6 +435,19 @@ def _get_whitener(A, pca, ch_type, verbose=None):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
+    """Prepare noise covariance matrix
+
+    Parameters
+    ----------
+    noise_cov : Covariance
+        The noise covariance to process.
+    info : dict
+        The measurement info (used to get channel types and bad channels).
+    ch_names : list
+        The channel names to be considered.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     C = noise_cov.data[C_ch_idx][:, C_ch_idx]
 

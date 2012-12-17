@@ -108,18 +108,18 @@ def read_ctf_comp(fid, node, chs, verbose=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The file descriptor.
-    node: dict
+    node : dict
         The node in the FIF tree.
-    chs: list
+    chs : list
         The list of channels # XXX unclear.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    compdata: list
+    compdata : list
         The compensation data
     """
     compdata = []
@@ -231,10 +231,10 @@ def write_ctf_comp(fid, comps):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The open FIF file descriptor
 
-    comps: list
+    comps : list
         The compensation data to write
     """
     if len(comps) <= 0:
