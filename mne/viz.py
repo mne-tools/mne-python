@@ -1273,14 +1273,14 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     ----------
     limits : list (or array) of length 3
         Bounds for the colormap.
-    type : str
+    format : str
         Type of colormap to return. If 'matplotlib', will return a
         matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
-        return an array of shape (256, 4).
+        return an RGBA array of shape (256, 4).
 
     Returns
     -------
-    cmap : array, or instance of matplotlib.pylab.colormap
+    cmap : instance of matplotlib.pylab.colormap | array
         A teal->blue->gray->red->yellow colormap.
 
     Notes
