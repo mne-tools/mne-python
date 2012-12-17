@@ -182,7 +182,8 @@ stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
 colormap = mne_analyze_colormap(limits=[0, 10, 50])
 subjects_dir = op.join(data_path, 'subjects')
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'rh', colormap,
-                                 subjects_dir=subjects_dir)
+                                 subjects_dir=subjects_dir,
+                                 time_label='Duration significant (ms)')
 brain.set_data_time_index(0)
 # The colormap requires brain data to be scaled -fmax -> fmax
 brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
