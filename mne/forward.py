@@ -264,7 +264,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     #   Parent MRI data
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    if len(fwds) == 0:
+    if len(parent_mri) == 0:
         fid.close()
         raise ValueError('No parent MRI information in %s' % fname)
     parent_mri = parent_mri[0]
