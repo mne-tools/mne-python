@@ -188,7 +188,7 @@ def test_extract_label_time_course():
         assert_array_equal(arr, np.zeros((1, n_times)))
 
     # test the different modes
-    modes = ['mean', 'mean_flip', 'pca']
+    modes = ['mean', 'mean_flip', 'pca_flip']
 
     for mode in modes:
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)

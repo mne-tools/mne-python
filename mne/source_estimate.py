@@ -724,7 +724,7 @@ class SourceEstimate(object):
         return label_stc
 
     @verbose
-    def extract_label_time_course(self, labels, src, mode='mean',
+    def extract_label_time_course(self, labels, src, mode='mean_flip',
                                   allow_empty=False, verbose=None):
         """Extract label time courses for lists of labels
 
@@ -732,12 +732,13 @@ class SourceEstimate(object):
         time courses are extracted depends on the mode parameter.
 
         Valid values for mode are:
-        'mean' :      Average within each label.
-        'mean_flip' : Average within each label with sign flip depending on
-                      source orientation.
-        'pca' :       Apply an SVD to the time courses within each label and
-                      use the first right-singular vectors as the label time
-                      courses.
+        'mean': Average within each label.
+        'mean_flip': Average within each label with sign flip depending on source
+        orientation.
+        'pca_flip': Apply an SVD to the time courses within each label and use the
+        first right-singular vectors as the label time courses. The sign of the
+        time course is determined by comparing the first left-singular vector with
+        the vertex normals.
 
         See also mne.extract_label_time_course to extract time courses for a
         list of SourceEstimate more efficiently.
@@ -1752,6 +1753,24 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     return img
 
 
+def _get_label_flip(labels, label_vertidx, src):
+    """Helper function to get sign-flip for labels"""
+    # do the import here to avoid circular dependency
+    from .label import label_sign_flip
+    # get the sign-flip vector for every label
+    label_flip = list()
+    for label, vertidx in zip(labels, label_vertidx):
+        if label.hemi == 'both':
+            raise ValueError('BiHemiLabel not supported when using sign-flip')
+        if vertidx is not None:
+            flip = label_sign_flip(label, src)[:, None]
+        else:
+            flip = None
+        label_flip.append(flip)
+
+    return label_flip
+
+
 @verbose
 def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                    allow_empty=False, verbose=None):
@@ -1798,22 +1817,13 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
     # mode-dependent initalization
     if mode == 'mean':
-        pass
+        pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
-        # do the import here to avoid circular dependency
-        from .label import label_sign_flip
-        # get the sign-flip vector for every label
-        label_flip = list()
-        for label, vertidx in zip(labels, label_vertidx):
-            if label.hemi == 'both':
-                raise ValueError('BiHemiLabel not supported in mean_flip mode')
-            if vertidx is not None:
-                flip = label_sign_flip(label, src)[:, None]
-            else:
-                flip = None
-            label_flip.append(flip)
-    elif mode == 'pca':
-        pass
+       # get the sign-flip vector for every label
+        label_flip = _get_label_flip(labels, label_vertidx, src)
+    elif mode == 'pca_flip':
+       # get the sign-flip vector for every label
+        label_flip = _get_label_flip(labels, label_vertidx, src)
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
@@ -1841,13 +1851,15 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                                     label_flip)):
                 if vertidx is not None:
                     label_tc[i] = np.mean(flip * stc.data[vertidx, :], axis=0)
-        elif mode == 'pca':
-            for i, vertidx in enumerate(label_vertidx):
+        elif mode == 'pca_flip':
+            for i, (vertidx, flip) in enumerate(zip(label_vertidx,
+                                                    label_flip)):
                 if vertidx is not None:
-                    _, _, V = linalg.svd(stc.data[vertidx, :],
+                    U, _, V = linalg.svd(stc.data[vertidx, :],
                                          full_matrices=False)
-                    label_tc[i] = V[0]
-
+                    # determine sign-flip
+                    sign = np.sign(np.dot(U[:, 0], flip))
+                    label_tc[i] = sign * V[0]
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
@@ -1856,7 +1868,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
 
 @verbose
-def extract_label_time_course(stcs, labels, src, mode='mean',
+def extract_label_time_course(stcs, labels, src, mode='mean_flip',
                               allow_empty=False, return_generator=False,
                               verbose=None):
     """Extract label time course for lists of labels and source estimates
@@ -1866,11 +1878,13 @@ def extract_label_time_course(stcs, labels, src, mode='mean',
     parameter.
 
     Valid values for mode are:
-    'mean' :      Average within each label.
-    'mean_flip' : Average within each label with sign flip depending on
-                  source orientation.
-    'pca' :       Apply an SVD to the time courses within each label and use
-                  the first right-singular vectors as the label time courses.
+    'mean': Average within each label.
+    'mean_flip': Average within each label with sign flip depending on source
+    orientation.
+   'pca_flip': Apply an SVD to the time courses within each label and use the
+    first right-singular vectors as the label time courses. The sign of the
+    time course is determined by comparing the first left-singular vector with
+    the vertex normals.
 
     Parameters
     ----------

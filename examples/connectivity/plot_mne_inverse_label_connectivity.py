@@ -23,6 +23,7 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
+from mne.viz import circular_layout, plot_connectivity_circle
 
 data_path = sample.data_path('..')
 subjects_dir = data_path + '/subjects'
@@ -57,7 +58,7 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_normal=True, return_generator=True)
 
-# Get lables for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
+# Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
 labels, label_colors = mne.labels_from_parc('sample', parc='aparc',
                                             subjects_dir=subjects_dir)
 
@@ -107,16 +108,19 @@ lh_labels = [label for (ypos, label) in sorted(zip(label_ypos, lh_labels))]
 # For the right hemi
 rh_labels = [label[:-2] + 'rh' for label in lh_labels]
 
-# Save the plot order
+# Save the plot order and create a circular layout
 node_order = list()
 node_order.extend(lh_labels[::-1])  # reverse the order
 node_order.extend(rh_labels)
 
+node_angles = circular_layout(label_names, node_order, start_pos=90)
+
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-mne.viz.plot_con_circular(con, label_names, node_order=node_order, n_draw=300,
-                          node_colors=label_colors, start_pos=90,
-                          title='Connectivity left-Auditory')
+plot_connectivity_circle(con, label_names, n_lines=300, node_angles=node_angles,
+                         node_colors=label_colors,
+                         title='All-to-All Connectivity left-Auditory '
+                               'Condition')
 import pylab as pl
 pl.savefig('circle.png', facecolor='black')
 pl.show()
