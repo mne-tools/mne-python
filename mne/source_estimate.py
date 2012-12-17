@@ -19,6 +19,7 @@ from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from .utils import get_subjects_dir
+from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
 
@@ -820,6 +821,55 @@ class SourceEstimate(object):
         t_ind = np.sum(masses * np.arange(self.data.shape[1])) / np.sum(masses)
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
+
+    def plot(self, subject=None, surface='inflated', hemi='lh',
+             colormap='hot', time_label='time=%0.2f ms',
+             smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+             transparent=True, time_viewer=False, subjects_dir=None):
+        """Plot SourceEstimates with PySurfer
+
+        Parameters
+        ----------
+        stc : SourceEstimates
+            The source estimates to plot.
+        subject : str
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. If None the environment will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str, 'lh' | 'rh'
+            The hemisphere to display.
+        colormap : str
+            The type of colormap to use.
+        time_label : str
+            How to print info about the time instant visualized.
+        smoothing_steps : int
+            The amount of smoothing.
+        fmin : float
+            The minimum value to display.
+        fmid : float
+            The middle value on the colormap.
+        fmax : float
+            The maximum value for the colormap.
+        transparent : bool
+            If True, use a linear transparency between fmin and fmid.
+        time_viewer : bool
+            Display time viewer GUI.
+        subjects_dir : str
+            The path to the FreeSurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+
+        Returns
+        -------
+        brain : Brain
+            A instance of surfer.viz.Brain from PySurfer.
+        """
+        brain = plot_source_estimates(self, subject, surface=surface,
+                        hemi=hemi, colormap=colormap, time_label=time_label,
+                        smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
+                        fmax=fmax, transparent=transparent,
+                        time_viewer=time_viewer, subjects_dir=subjects_dir)
+        return brain
 
 ###############################################################################
 # Morphing
