@@ -1287,6 +1287,15 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     -----
     For this will return a colormap that will display correctly for data
     that are scaled by the plotting function to span [-fmax, fmax].
+
+    Examples
+    --------
+    The following code will plot a STC using standard MNE limits:
+
+        colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])
+        brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)
+        brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
+
     """
     if not format in ['matplotlib', 'mayavi']:
         raise ValueError('format must be either matplotlib or mayavi')
