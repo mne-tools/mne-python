@@ -180,6 +180,7 @@ stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
 #    shows all the clusters, weighted by duration
 colormap = mne_analyze_colormap(limits=[0, 10, 50])
 subjects_dir = op.join(data_path, 'subjects')
+# blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'rh', colormap,
                                  subjects_dir=subjects_dir,
                                  time_label='Duration significant (ms)')
