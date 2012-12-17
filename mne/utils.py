@@ -239,6 +239,7 @@ def verbose(function):
     """
     arg_names = inspect.getargspec(function).args
     # this wrap allows decorated functions to be pickled (e.g., for parallel)
+
     @wraps(function)
     def dec(*args, **kwargs):
         # Check if the first arg is "self", if it has verbose, make it default

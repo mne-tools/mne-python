@@ -21,7 +21,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         name of the fif file
     preload : bool
         If True, all data from the file is read into a memory buffer. This
@@ -32,12 +32,12 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Returns
     -------
-    fid: file
+    fid : file
         The file descriptor of the open file
-    tree: fif tree
+    tree : fif tree
         The tree is a complex structure filled with dictionaries,
         lists and tags.
-    directory: list
+    directory : list
         list of nodes.
     """
     if op.splitext(fname)[1].lower() == '.gz':

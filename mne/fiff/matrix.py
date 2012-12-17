@@ -31,11 +31,11 @@ def _read_named_matrix(fid, node, matkind, verbose=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The opened file descriptor
-    node: dict
+    node : dict
         The node in the tree
-    matkind: int
+    matkind : int
         The type of matrix
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -96,11 +96,11 @@ def write_named_matrix(fid, kind, mat):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The opened file descriptor
-    kind: int
+    kind : int
         The kind of the matrix
-    matkind: int
+    matkind : int
         The type of matrix
     """
     start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)

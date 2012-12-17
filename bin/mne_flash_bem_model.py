@@ -22,6 +22,7 @@ import math
 import os
 import mne
 
+
 def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     """Create 3-Layers BEM model from Flash MRI images
 
@@ -31,10 +32,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
         Subject name
     subjects_dir : string
         Directory containing subjects data (Freesurfer SUBJECTS_DIR)
-    flash05: string
+    flash05 : string
         Full path of the NIFTI file for the
         FLASH sequence with a spin angle of 5 degrees
-    flash30: string
+    flash30 : string
         Full path of the NIFTI file for the
         FLASH sequence with a spin angle of 30 degrees
     show : bool
@@ -72,10 +73,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
         os.mkdir("parameter_maps")
     print "--- Converting Flash 5"
     os.system('mri_convert -flip_angle %s -tr 25 %s mef05.mgz' %
-                                            (5*math.pi/180, flash05))
+                                            (5 * math.pi / 180, flash05))
     print "--- Converting Flash 30"
     os.system('mri_convert -flip_angle %s -tr 25 %s mef30.mgz' %
-                                            (30*math.pi/180, flash30))
+                                            (30 * math.pi / 180, flash30))
     print "--- Running mne_flash_bem"
     os.system('mne_flash_bem --noconvert')
     os.chdir(os.path.join(subjects_dir, subject, 'bem'))

@@ -31,18 +31,18 @@ def read_meas_info(fid, tree, verbose=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         Open file descriptor.
-    tree: tree
+    tree : tree
         FIF tree structure.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    info: dict
+    info : dict
        Info on dataset.
-    meas: dict
+    meas : dict
         Node in tree that contains the info.
     """
     #   Find the desired blocks
@@ -242,11 +242,11 @@ def write_meas_info(fid, info, data_type=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         Open file descriptor
-    info: dict
+    info : dict
         The measurement info structure
-    data_type: int
+    data_type : int
         The data_type is case it is necessary. Should be 4 for raw data.
 
     Note

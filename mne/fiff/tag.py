@@ -15,19 +15,19 @@ class Tag(object):
 
     Parameters
     ----------
-    kind: int
+    kind : int
         Kind of Tag
 
-    type_: int
+    type_ : int
         Type of Tag
 
-    size: int
+    size : int
         Size in bytes
 
-    int: next
+    int : next
         Position of next Tag
 
-    pos: int
+    pos : int
         Position of Tag is the original file.
 
     """
@@ -79,15 +79,15 @@ def read_tag(fid, pos=None):
 
     Parameters
     ----------
-    fid: file
+    fid : file
         The open FIF file descriptor
 
-    pos: int
+    pos : int
         The position of the Tag in the file.
 
     Returns
     -------
-    tag: Tag
+    tag : Tag
         The Tag read
     """
     if pos is not None:

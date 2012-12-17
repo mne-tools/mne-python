@@ -221,7 +221,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Parameters
     ----------
-    epochs: Epochs
+    epochs : Epochs
         Single trial epochs.
     forward : dict
         Forward operator.

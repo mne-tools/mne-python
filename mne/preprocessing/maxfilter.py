@@ -105,75 +105,75 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     Parameters
     ----------
-    in_fname: string
+    in_fname : string
         Input file name
 
-    out_fname: string
+    out_fname : string
         Output file name
 
-    origin: array-like or string
+    origin : array-like or string
         Head origin in mm. If None it will be estimated from headshape points.
 
-    frame: string ('device' or 'head')
+    frame : string ('device' or 'head')
         Coordinate frame for head center
 
-    bad: string, list (or None)
+    bad : string, list (or None)
         List of static bad channels. Can be a list with channel names, or a
         string with channels (names or logical channel numbers)
 
-    autobad: string ('on', 'off', 'n')
+    autobad : string ('on', 'off', 'n')
         Sets automated bad channel detection on or off
 
-    skip: string or a list of float-tuples (or None)
+    skip : string or a list of float-tuples (or None)
         Skips raw data sequences, time intervals pairs in sec,
         e.g.: 0 30 120 150
 
-    force: bool
+    force : bool
         Ignore program warnings
 
-    st: bool
+    st : bool
         Apply the time-domain MaxST extension
 
-    st_buflen: float
+    st_buflen : float
         MaxSt buffer length in sec (disabled if st is False)
 
-    st_corr: float
+    st_corr : float
         MaxSt subspace correlation limit (disabled if st is False)
 
-    mv_trans: string (filename or 'default') (or None)
+    mv_trans : string (filename or 'default') (or None)
         Transforms the data into the coil definitions of in_fname, or into the
         default frame (None: don't use option)
 
-    mv_comp: bool (or 'inter')
+    mv_comp : bool (or 'inter')
         Estimates and compensates head movements in continuous raw data
 
-    mv_headpos: bool
+    mv_headpos : bool
         Estimates and stores head position parameters, but does not compensate
         movements (disabled if mv_comp is False)
 
-    mv_hp: string (or None)
+    mv_hp : string (or None)
         Stores head position data in an ascii file
         (disabled if mv_comp is False)
 
-    mv_hpistep: float (or None)
+    mv_hpistep : float (or None)
         Sets head position update interval in ms (disabled if mv_comp is False)
 
-    mv_hpisubt: string ('amp', 'base', 'off') (or None)
+    mv_hpisubt : string ('amp', 'base', 'off') (or None)
         Subtracts hpi signals: sine amplitudes, amp + baseline, or switch off
         (disabled if mv_comp is False)
 
-    mv_hpicons: bool
+    mv_hpicons : bool
         Check initial consistency isotrak vs hpifit
         (disabled if mv_comp is False)
 
-    linefreq: int (50, 60) (or None)
+    linefreq : int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
 
-    mx_args: string
+    mx_args : string
         Additional command line arguments to pass to MaxFilter
 
-    overwrite: bool
+    overwrite : bool
         Overwrite output file if it already exists
 
     verbose : bool, str, int, or None

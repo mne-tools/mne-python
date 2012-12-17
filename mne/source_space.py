@@ -86,12 +86,12 @@ def patch_info(nearest):
 
     Parameters
     ----------
-    nearest: array
+    nearest : array
         For each vertex gives the index of its closest neighbor.
 
     Returns
     -------
-    pinfo: list
+    pinfo : list
         List of neighboring vertices
     """
     if nearest is None:
@@ -419,12 +419,12 @@ def find_source_space_hemi(src):
 
     Parameters
     ----------
-    src: dict
+    src : dict
         The source space to investigate
 
     Returns
     -------
-    hemi: int
+    hemi : int
         Deduced hemisphere id
     """
     xave = src['rr'][:, 0].sum()

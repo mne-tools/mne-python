@@ -28,9 +28,9 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
     Returns
     -------
-    peak_loc: array
+    peak_loc : array
         The indicies of the identified peaks in x0
-    peak_mag: array
+    peak_mag : array
         The magnitude of the identified peaks
 
     Note

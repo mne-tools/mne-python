@@ -23,6 +23,7 @@ from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
 
+
 def read_stc(filename):
     """Read an STC file and return as dict
 
@@ -30,7 +31,7 @@ def read_stc(filename):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         The name of the STC file
 
     Returns
@@ -89,15 +90,15 @@ def write_stc(filename, tmin, tstep, vertices, data):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         The name of the STC file
-    tmin: float
+    tmin : float
         The first time point of the data in seconds
-    tstep: float
+    tstep : float
         Time between frames in seconds
-    vertices: array of integers
+    vertices : array of integers
         Vertex indices (0 based)
-    data: 2D array
+    data : 2D array
         The data matrix (nvert * ntime)
     """
     fid = open(filename, 'wb')
@@ -140,7 +141,7 @@ def read_w(filename):
 
     Parameters
     ----------
-    filename: string
+    filename : string
         The name of the w file
 
     Returns
@@ -1636,13 +1637,13 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
     Parameters
     ----------
-    fname: string
+    fname : string
         The name of the generated nifti file.
-    stc: instance of SourceEstimate
+    stc : instance of SourceEstimate
         The source estimate
-    src: list
+    src : list
         The list of source spaces (should actually be of length 1)
-    dest: 'mri' | 'surf'
+    dest : 'mri' | 'surf'
         If 'mri' the volume is defined in the coordinate system of
         the original T1 image. If 'surf' the coordinate system
         of the FreeSurfer surface is used (Surface RAS).

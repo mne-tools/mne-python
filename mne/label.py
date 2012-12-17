@@ -660,20 +660,20 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
 def _read_annot(fname):
     """Read a Freesurfer annotation from a .annot file.
 
-    Note: Copied from PySurfer
+    Note : Copied from PySurfer
 
     Parameters
     ----------
-    fname: str
+    fname : str
         Path to annotation file
 
     Returns
     -------
-    annot: numpy array, shape=(n_verts)
+    annot : numpy array, shape=(n_verts)
         Annotation id at each vertex
-    ctab: numpy array, shape=(n_verts, 5)
+    ctab : numpy array, shape=(n_verts, 5)
         RGBA + label id colortable array
-    names: list of str
+    names : list of str
         List of region names as stored in the annot file
 
     """
@@ -731,19 +731,19 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
 
     Parameters
     ----------
-    subject: str
+    subject : str
         The subject for which to read the parcellation for.
-    parc: str
+    parc : str
         The parcellation to use, e.g., 'aparc' or 'aparc.a2009s'.
-    hemi: str
+    hemi : str
         The hemisphere to read the parcellation for, can be 'lh', 'rh',
         or 'both'.
-    surf_name: str
+    surf_name : str
         Surface used to obtain vertex locations, e.g., 'white', 'pial'
-    annot_fname: str or None
+    annot_fname : str or None
         Filename of the .annot file. If not None, only this file is read
         and 'parc' and 'hemi' are ignored.
-    subjects_dir: string, or None
+    subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
