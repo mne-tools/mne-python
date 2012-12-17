@@ -36,7 +36,8 @@ from mne.viz import mne_analyze_colormap
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path + '/subjects'
+
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 

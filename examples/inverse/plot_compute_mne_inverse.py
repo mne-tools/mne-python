@@ -23,6 +23,7 @@ from mne.minimum_norm import apply_inverse, read_inverse_operator
 data_path = sample.data_path('..')
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
+subjects_dir = data_path + '/subjects'
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -47,7 +48,6 @@ pl.ylabel('%s value' % method)
 pl.show()
 
 # Plot brain in 3D with PySurfer if available.
-subjects_dir = op.join(data_path, 'subjects')
 brain = stc.plot('sample', 'inflated', 'rh', subjects_dir=subjects_dir)
 brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)

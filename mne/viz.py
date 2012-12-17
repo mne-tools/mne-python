@@ -1334,7 +1334,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         g = np.array([1, 0, 0, 0, 0, 0, 1])
         b = np.array([1, 1, 1, 0, 0, 0, 0])
         a = np.array([1, 1, 0, 0, 0, 1, 1])
-        xp = (np.arange(256) - 128) / 128
+        xp = (np.arange(256) - 128) / 128.0
         colormap = np.r_[[np.interp(xp, l, 255 * c) for c in [r, g, b, a]]].T
         return colormap
 
