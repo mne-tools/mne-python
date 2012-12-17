@@ -262,19 +262,14 @@ def write_meas_info(fid, info, data_type=None):
     blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
 
-    have_isotrak = False
-
-    if len(blocks) > 0 and 'filename' in info and \
-            info['filename'] is not None:
+    if 'filename' in info and info['filename'] is not None:
         fid2, tree, _ = fiff_open(info['filename'])
         for block in blocks:
             nodes = dir_tree_find(tree, block)
             copy_tree(fid2, tree['id'], nodes, fid)
         fid2.close()
 
-    #
-    #    megacq parameters
-    #
+    #   megacq parameters
     if info['acq_pars'] is not None or info['acq_stim'] is not None:
         start_block(fid, FIFF.FIFFB_DACQ_PARS)
         if info['acq_pars'] is not None:
@@ -293,7 +288,7 @@ def write_meas_info(fid, info, data_type=None):
         write_coord_trans(fid, info['ctf_head_t'])
 
     #   Polhemus data
-    if info['dig'] is not None and not have_isotrak:
+    if info['dig'] is not None:
         start_block(fid, FIFF.FIFFB_ISOTRAK)
         for d in info['dig']:
             write_dig_point(fid, d)
