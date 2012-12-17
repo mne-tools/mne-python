@@ -890,7 +890,7 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         The hemisphere to display.
     colormap : str
         The type of colormap to use.
-    time_viewer : str
+    time_label : str
         How to print info about the time instant visualized.
     smoothing_steps : int
         The amount of smoothing
