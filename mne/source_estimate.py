@@ -854,7 +854,7 @@ class SourceEstimate(object):
         transparent : bool
             If True, use a linear transparency between fmin and fmid.
         time_viewer : bool
-            Display time viewer GUI
+            Display time viewer GUI.
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
