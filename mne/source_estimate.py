@@ -733,12 +733,15 @@ class SourceEstimate(object):
 
         Valid values for mode are:
         'mean': Average within each label.
-        'mean_flip': Average within each label with sign flip depending on source
-        orientation.
-        'pca_flip': Apply an SVD to the time courses within each label and use the
-        first right-singular vectors as the label time courses. The sign of the
-        time course is determined by comparing the first left-singular vector with
-        the vertex normals.
+        'mean_flip': Average within each label with sign flip depending on
+        source orientation.
+        'pca_flip': Apply an SVD to the time courses within each label and use
+        the first right-singular vector multiplied with the first singular
+        value as the time course for each label. In addition, a sing-flip is
+        applied by using the sign of the dot product "dot(u, flip)" where u is
+        the first left-singular vector, and flip is a sing-flip vector based on
+        the vertex normals. This procedure assures that the phase does not
+        randomly change by 180 degrees from one stc to the next.
 
         See also mne.extract_label_time_course to extract time courses for a
         list of SourceEstimate more efficiently.
@@ -1855,11 +1858,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             for i, (vertidx, flip) in enumerate(zip(label_vertidx,
                                                     label_flip)):
                 if vertidx is not None:
-                    U, _, V = linalg.svd(stc.data[vertidx, :],
+                    U, s, V = linalg.svd(stc.data[vertidx, :],
                                          full_matrices=False)
                     # determine sign-flip
                     sign = np.sign(np.dot(U[:, 0], flip))
-                    label_tc[i] = sign * V[0]
+                    label_tc[i] = sign * s[0] * V[0]
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
@@ -1882,9 +1885,12 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     'mean_flip': Average within each label with sign flip depending on source
     orientation.
    'pca_flip': Apply an SVD to the time courses within each label and use the
-    first right-singular vectors as the label time courses. The sign of the
-    time course is determined by comparing the first left-singular vector with
-    the vertex normals.
+    first right-singular vector multiplied with the first singular value as
+    the time course for each label. In addition, a sing-flip is applied by
+    using the sign of the dot product "dot(u, flip)" where u is the first
+    left-singular vector, and flip is a sing-flip vector based on the vertex
+    normals. This procedure assures that the phase does not randomly change
+    by 180 degrees from one stc to the next.
 
     Parameters
     ----------
