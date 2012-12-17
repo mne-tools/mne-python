@@ -1294,7 +1294,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
         colormap = mne.viz.mne_analyze_colormap(limits=[5, 10, 15])
         brain = stc.plot('fsaverage', 'inflated', 'rh', colormap)
-        brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
+        brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)
 
     """
     if not format in ['matplotlib', 'mayavi']:
