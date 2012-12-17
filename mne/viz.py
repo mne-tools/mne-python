@@ -24,7 +24,6 @@ from warnings import warn
 
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
-from .fixes import tril_indices
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
@@ -1267,45 +1266,68 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
     return figs
 
 
-def mne_analyze_colormap(limits=[5, 10, 15]):
+def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
     """Return a colormap similar to that used by mne_analyze
 
     Parameters
     ----------
     limits : list (or array) of length 3
         Bounds for the colormap.
+    type : str
+        Type of colormap to return. If 'matplotlib', will return a
+        matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
+        return an array of shape (256, 4).
 
     Returns
     -------
-    cmap : instance of matplotlib.pylab.colormap
+    cmap : array, or instance of matplotlib.pylab.colormap
         A teal->blue->gray->red->yellow colormap.
+
+    Notes
+    -----
+    For this will return a colormap that will display correctly for data
+    that are scaled by the plotting function to span [-fmax, fmax].
     """
-    from matplotlib import colors
+    if not format in ['matplotlib', 'mayavi']:
+        raise ValueError('format must be either matplotlib or mayavi')
     l = np.asarray(limits, dtype='float')
-    if any(np.diff(l) <= 0):
-        raise ValueError('limits must be monotonically increasing')
     if len(l) != 3:
         raise ValueError('limits must have 3 elements')
-    l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
-    cdict = {'red': ((l[0], 0.0, 0.0),
-                     (l[1], 0.0, 0.0),
-                     (l[2], 0.5, 0.5),
-                     (l[3], 0.5, 0.5),
-                     (l[4], 1.0, 1.0),
-                     (l[5], 1.0, 1.0)),
-             'green': ((l[0], 1.0, 1.0),
-                       (l[1], 0.0, 0.0),
-                       (l[2], 0.5, 0.5),
-                       (l[3], 0.5, 0.5),
-                       (l[4], 0.0, 0.0),
-                       (l[5], 1.0, 1.0)),
-             'blue': ((l[0], 1.0, 1.0),
-                      (l[1], 1.0, 1.0),
-                      (l[2], 0.5, 0.5),
-                      (l[3], 0.5, 0.5),
-                      (l[4], 0.0, 0.0),
-                      (l[5], 0.0, 0.0))}
-    return colors.LinearSegmentedColormap('mne_analyze', cdict)
+    if any(l < 0):
+        raise ValueError('limits must all be positive')
+    if any(np.diff(l) <= 0):
+        raise ValueError('limits must be monotonically increasing')
+    if format == 'matplotlib':
+        from matplotlib import colors
+        l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
+        cdict = {'red': ((l[0], 0.0, 0.0),
+                         (l[1], 0.0, 0.0),
+                         (l[2], 0.5, 0.5),
+                         (l[3], 0.5, 0.5),
+                         (l[4], 1.0, 1.0),
+                         (l[5], 1.0, 1.0)),
+                 'green': ((l[0], 1.0, 1.0),
+                           (l[1], 0.0, 0.0),
+                           (l[2], 0.5, 0.5),
+                           (l[3], 0.5, 0.5),
+                           (l[4], 0.0, 0.0),
+                           (l[5], 1.0, 1.0)),
+                 'blue': ((l[0], 1.0, 1.0),
+                          (l[1], 1.0, 1.0),
+                          (l[2], 0.5, 0.5),
+                          (l[3], 0.5, 0.5),
+                          (l[4], 0.0, 0.0),
+                          (l[5], 0.0, 0.0))}
+        return colors.LinearSegmentedColormap('mne_analyze', cdict)
+    else:
+        l = np.concatenate((-np.flipud(l), [0], l)) / l[-1]
+        r = np.array([0, 0, 0, 0, 1, 1, 1])
+        g = np.array([1, 0, 0, 0, 0, 0, 1])
+        b = np.array([1, 1, 1, 0, 0, 0, 0])
+        a = np.array([1, 1, 0, 0, 0, 1, 1])
+        xp = (np.arange(256) - 128) / 128
+        colormap = np.r_[[np.interp(xp, l, 255 * c) for c in [r, g, b, a]]].T
+        return colormap
 
 
 def circular_layout(node_names, node_order, start_pos=90, start_between=True):

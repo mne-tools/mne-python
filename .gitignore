@@ -16,6 +16,7 @@
 *.tar.*
 *.egg*
 *.tmproj
+*.png
 .DS_Store
 events.eve
 foo-lh.label

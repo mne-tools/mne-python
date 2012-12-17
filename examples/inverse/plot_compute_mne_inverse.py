@@ -47,7 +47,8 @@ pl.ylabel('%s value' % method)
 pl.show()
 
 # Plot brain in 3D with PySurfer if available.
-brain = stc.plot('sample', 'inflated', 'rh')
+subjects_dir = op.join(data_path, 'subjects')
+brain = stc.plot('sample', 'inflated', 'rh', subjects_dir=subjects_dir)
 brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
