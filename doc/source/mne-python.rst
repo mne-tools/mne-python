@@ -12,5 +12,5 @@ MNE with Python
    auto_examples/index.rst
    python_reference.rst
    whats_new.rst
-   gitwash/index.rst
+   contributing.rst
 
