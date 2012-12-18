@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 from nose.tools import assert_true
 import numpy as np
@@ -6,12 +5,13 @@ from numpy.testing import assert_array_equal
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces
+from mne.utils import _TempDir
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_read_source_spaces():

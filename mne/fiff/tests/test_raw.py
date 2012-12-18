@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import tempfile
 import os
 import os.path as op
 from copy import deepcopy
@@ -15,22 +14,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
 from mne import concatenate_events, find_events
-
-try:
-    import nitime
-except ImportError:
-    have_nitime = False
-else:
-    have_nitime = True
-try:
-    import pandas
-except ImportError:
-    have_pandas = False
-else:
-    have_pandas = True
-
-nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
-pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
+from mne.utils import _TempDir, requires_nitime, requires_pandas
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -40,7 +24,7 @@ fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_multiple_files():
@@ -552,7 +536,7 @@ def test_raw_copy():
                  sorted(copied.__dict__.keys()))
 
 
-@nitime_test
+@requires_nitime
 def test_raw_to_nitime():
     """ Test nitime export """
     raw = Raw(fif_fname, preload=True)
@@ -580,7 +564,7 @@ def test_raw_to_nitime():
     assert_true(raw_ts.data.shape[0] == len(picks))
 
 
-@pandas_test
+@requires_pandas
 def test_as_data_frame():
     """Test Pandas exporter"""
     raw = Raw(fif_fname, preload=True)

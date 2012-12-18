@@ -3,6 +3,7 @@
 # License: Simplified BSD
 
 import numpy as np
+import warnings
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from mne.mixed_norm.optim import mixed_norm_solver
@@ -19,6 +20,7 @@ def test_l21_MxNE():
     X[4] = -2
     M = np.dot(G, X)
 
+    # suppress a coordinate-descent warning here
     X_hat_prox, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=None, debias=True,
@@ -48,7 +50,8 @@ def test_l21_MxNE():
                             active_set_size=2, debias=True,
                             n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    X_hat_cd, active_set, _ = mixed_norm_solver(M,
+    with warnings.catch_warnings(True) as w:
+        X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
                             n_orient=2, solver='cd')

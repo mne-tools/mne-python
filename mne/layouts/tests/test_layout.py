@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 import numpy as np
 from nose.tools import assert_true
@@ -6,6 +5,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.layouts import make_eeg_layout, make_grid_layout, read_layout
 from mne.fiff import Raw
+from mne.utils import _TempDir
 
 fif_fname = op.join(op.dirname(__file__), '..', '..', 'fiff',
                    'tests', 'data', 'test_raw.fif')
@@ -59,7 +59,8 @@ test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
    'nchan': 3}
 
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
+
 
 
 def test_io_layout():

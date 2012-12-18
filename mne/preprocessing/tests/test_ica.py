@@ -11,13 +11,14 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import stats
 from itertools import product
-import tempfile
-tempdir = tempfile.mkdtemp()
 
 from mne import fiff, Epochs, read_events, cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica
 from mne.preprocessing.ica import score_funcs
+from mne.utils import _TempDir
+
+tempdir = _TempDir()
 
 have_sklearn = True
 try:

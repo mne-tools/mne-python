@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 from nose.tools import assert_true, assert_raises
 import warnings
@@ -17,7 +16,7 @@ from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 morph_data_precomputed
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
-
+from mne.utils import _TempDir
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
@@ -26,7 +25,7 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-meg-inv.fif')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_io_stc():
@@ -35,7 +34,7 @@ def test_io_stc():
     stc = read_stc(fname)
 
     write_stc(op.join(tempdir, "tmp.stc"), stc['tmin'], stc['tstep'],
-                             stc['vertices'], stc['data'])
+              stc['vertices'], stc['data'])
     stc2 = read_stc(op.join(tempdir, "tmp.stc"))
 
     assert_array_almost_equal(stc['data'], stc2['data'])
@@ -227,15 +226,15 @@ def test_morph_data():
     stc_to = read_source_estimate(fname)
     # make sure we can specify grade
     stc_to1 = morph_data(subject_from, subject_to, stc_from,
-                            grade=3, smooth=12, buffer_size=1000)
+                         grade=3, smooth=12, buffer_size=1000)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3)
     stc_to2 = morph_data(subject_from, subject_to, stc_from,
-                            grade=vertices_to, smooth=12, buffer_size=1000)
+                         grade=vertices_to, smooth=12, buffer_size=1000)
     # make sure we can use different buffer_size
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
-                            grade=vertices_to, smooth=12, buffer_size=3)
+                         grade=vertices_to, smooth=12, buffer_size=3)
     # indexing silliness here due to mne_make_movie's indexing oddities
     assert_array_almost_equal(stc_to.data, stc_to1.data[:, 0][:, None], 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -254,7 +253,7 @@ def test_morph_data():
 
     # make sure we can fill by morphing
     stc_to5 = morph_data(subject_from, subject_to, stc_from,
-                            grade=None, smooth=12, buffer_size=3)
+                         grade=None, smooth=12, buffer_size=3)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
 
 

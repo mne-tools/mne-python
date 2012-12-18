@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
@@ -16,6 +15,7 @@ from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
     write_inverse_operator
+from mne.utils import _TempDir
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
 s_path = op.join(sample.data_path(examples_folder), 'MEG', 'sample')
@@ -39,7 +39,7 @@ raw = fiff.Raw(fname_raw)
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def _compare(a, b):
@@ -110,8 +110,9 @@ def test_apply_inverse_operator():
 
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
-    write_inverse_operator('test-inv.fif', my_inv_op)
-    read_my_inv_op = read_inverse_operator('test-inv.fif')
+    out_file = op.join(tempdir, 'test-inv.fif')
+    write_inverse_operator(out_file, my_inv_op)
+    read_my_inv_op = read_inverse_operator(out_file)
     _compare(my_inv_op, read_my_inv_op)
 
     my_stc = apply_inverse(evoked, my_inv_op, lambda2, "dSPM")

@@ -1,4 +1,3 @@
-import tempfile
 import os
 import os.path as op
 
@@ -7,13 +6,14 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.datasets import sample
 from mne import read_bem_surfaces, write_bem_surface, read_surface, \
                 write_surface
+from mne.utils import _TempDir
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'subjects', 'sample', 'bem',
                                         'sample-5120-5120-5120-bem-sol.fif')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_io_bem_surfaces():

@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-import tempfile
 import os.path as op
 
 from nose.tools import assert_true
@@ -17,6 +16,7 @@ from mne import read_cov, Epochs, merge_events, \
                find_events, compute_raw_data_covariance, \
                compute_covariance
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
+from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -28,7 +28,7 @@ erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 
 raw = Raw(raw_fname, preload=True)
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_io_cov():
