@@ -35,7 +35,11 @@ lh_points = fwd['src'][0]['rr']
 lh_faces = fwd['src'][0]['use_tris']
 rh_points = fwd['src'][1]['rr']
 rh_faces = fwd['src'][1]['use_tris']
-from enthought.mayavi import mlab
+try:
+    from enthought.mayavi import mlab
+except:
+    from mayavi import mlab
+
 mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
 mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
                      lh_faces)

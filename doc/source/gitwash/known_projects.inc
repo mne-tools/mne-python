@@ -6,7 +6,7 @@
 .. _`PROJECTNAME mailing list`: http://projects.scipy.org/mailman/listinfo/nipy-devel
 
 .. numpy
-.. _numpy: hhttp://numpy.scipy.org
+.. _numpy: http://numpy.scipy.org
 .. _`numpy github`: http://github.com/numpy/numpy
 .. _`numpy mailing list`: http://mail.scipy.org/mailman/listinfo/numpy-discussion
 
@@ -39,3 +39,7 @@
 .. _marsbar: http://marsbar.sourceforge.net
 .. _`marsbar github`: http://github.com/matthew-brett/marsbar
 .. _`MarsBaR mailing list`: https://lists.sourceforge.net/lists/listinfo/marsbar-users
+
+.. Astropy
+.. _Astropy: http://astropy.org
+.. _`Astropy GitHub`: http://github.com/astropy/astropy
