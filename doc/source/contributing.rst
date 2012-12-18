@@ -21,24 +21,43 @@ General code guidelines
   `pyflakes`_, such as `spyder`_. Standard python style guidelines are
   followed, with very few exceptions.
 
+  You can also manually check pyflakes and pep8 warnings as::
+
+       pip install pyflakes
+       pip install pep8
+       pyflakes path/to/module.py
+       pep8 path/to/module.py
+
+  AutoPEP8 can then help you fix some of the easy redundant errors::
+
+       pip install autopep8
+       autopep8 path/to/pep8.py
+
 * mne-python adheres to the same docstring formatting as seen on
-  `scipy github`_.
+  `numpy style`_.
   New public functions should have all variables defined.
 
 * New functionality should be covered by appropriate tests, e.g. a method in
   ``mne/fiff/raw.py`` should have a corresponding test in
-  ``mne/fiff/tests/test_raw.py``.
+  ``mne/fiff/tests/test_raw.py``. You can use the ``coverage`` module in
+  conjunction with ``nosetests`` (nose can automatically determine the code
+  coverage if ``coverage`` is installed) to see how well new code is covered.
 
-* After changes have been made, ensure all tests still pass. This can be done
+* After changes have been made, **ensure all tests pass**. This can be done
   by running the following from the ``mne-python`` root directory::
+
+     make
+
+  To run individual tests, you can also run any of the following::
 
      make clean
      make test-doc
+     make inplace
      nosetests
 
-  Note that the first time this is run, the `sample dataset`_ (~1.2 GB) will
-  be downloaded to the root directory and extracted. This is necessary for
-  running some of the tests and nearly all of the examples.
+  Note that the first time this is run, the `mne-python sample dataset`_
+  (~1.2 GB) will be downloaded to the root directory and extracted. This is
+  necessary for running some of the tests and nearly all of the examples.
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
   test is found, or run e.g., ``nosetests mne/fiff/tests/test_raw.py`` to run
@@ -58,6 +77,11 @@ your contact info::
 
      git config --global user.name "Your Name"
      git config --global user.email you@yourdomain.example.com
+
+If you are going to :ref:`setup-github` eventually, this email address should
+be the same as the one used to sign up for a GitHub account. For more
+information about configuring your git installation, see
+:ref:`customizing-git`.
 
 The following sections cover the installation of the git software, the basic
 configuration, and links to resources to learn more about using git.
@@ -79,6 +103,8 @@ http://help.github.com/fork-a-repo/ |emdash| please see that page for more
 details. We're repeating some of it here just to give the specifics for the
 mne-python_ project, and to suggest some default names.
 
+.. _setup-github:
+
 Set up and configure a GitHub account
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -99,15 +125,13 @@ in principle also fork a different one, such as ``mne-matlab```):
 
 #. Click on the *fork* button:
 
-   .. image:: forking_button.png
+   .. image:: _images/forking_button.png
 
    Now, after a short pause and some 'Hardcore forking action', you should
    find yourself at the home page for your own forked copy of mne-python_.
 
 Setting up the fork to work on
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. _linking-to-upstream:
 
 Briefly, this is done using::
 
@@ -185,6 +209,8 @@ sections.
   your feature branch while you are working.
 
 * If you do find yourself merging from the trunk, consider :ref:`rebase-on-trunk`
+
+* **Ensure all tests still pass**
 
 * Ask for code review!
 
@@ -328,11 +354,11 @@ When you are ready to ask for someone to review your code and consider a merge:
 #. Use the 'Switch Branches' dropdown menu near the top left of the page to
    select the branch with your changes:
 
-   .. image:: branch_dropdown.png
+   .. image:: _images/branch_dropdown.png
 
 #. Click on the 'Pull request' button:
 
-   .. image:: pull_button.png
+   .. image:: _images/pull_button.png
 
    Enter a title for the set of changes, and some explanation of what you've
    done. Say if there is anything you'd like particular attention for - like a
@@ -385,7 +411,7 @@ Then, go to your forked repository GitHub page, say
 Click on the 'Admin' button, and add anyone else to the repo as a
 collaborator:
 
-   .. image:: pull_button.png
+   .. image:: _images/pull_button.png
 
 Now all those people can do::
 
