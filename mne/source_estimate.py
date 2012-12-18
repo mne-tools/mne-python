@@ -1862,7 +1862,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                          full_matrices=False)
                     # determine sign-flip
                     sign = np.sign(np.dot(U[:, 0], flip))
-                    label_tc[i] = sign * s[0] * V[0]
+                    label_tc[i] = sign * (s[0] / np.sqrt(len(vertidx))) * V[0]
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
