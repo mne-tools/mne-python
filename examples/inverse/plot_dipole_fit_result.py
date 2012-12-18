@@ -50,7 +50,11 @@ time = time[gof > 50.]
 
 ###############################################################################
 # Show result on 3D source space
-from enthought.mayavi import mlab
+try:
+    from enthought.mayavi import mlab
+except:
+    from mayavi import mlab
+
 lh_points = src[0]['rr']
 lh_faces = src[0]['use_tris']
 mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
