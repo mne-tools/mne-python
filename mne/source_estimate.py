@@ -736,11 +736,13 @@ class SourceEstimate(object):
         'mean_flip': Average within each label with sign flip depending on
         source orientation.
         'pca_flip': Apply an SVD to the time courses within each label and use
-        the first right-singular vector multiplied with the first singular
-        value as the time course for each label. In addition, a sing-flip is
-        applied by using the sign of the dot product "dot(u, flip)" where u is
-        the first left-singular vector, and flip is a sing-flip vector based on
-        the vertex normals. This procedure assures that the phase does not
+        the scaled and sign-flipped first right-singular vector as the label
+        time course. The scaling is performed such that the power of the label
+        time course is the same as the average per-vertex time course power
+        within the label. The sign of the resulting time course is adjusted by
+        multiplying it with "sign(dot(u, flip))" where u is the first
+        left-singular vector, and flip is a sing-flip vector based on the
+        vertex normals. This procedure assures that the phase does not
         randomly change by 180 degrees from one stc to the next.
 
         See also mne.extract_label_time_course to extract time courses for a
@@ -1862,7 +1864,11 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                                          full_matrices=False)
                     # determine sign-flip
                     sign = np.sign(np.dot(U[:, 0], flip))
-                    label_tc[i] = sign * s[0] * V[0]
+
+                    # use average power in label for scaling
+                    scale = linalg.norm(s) / np.sqrt(len(vertidx))
+
+                    label_tc[i] = sign * scale * V[0]
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
@@ -1885,12 +1891,14 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     'mean_flip': Average within each label with sign flip depending on source
     orientation.
     'pca_flip': Apply an SVD to the time courses within each label and use the
-    first right-singular vector multiplied with the first singular value as
-    the time course for each label. In addition, a sing-flip is applied by
-    using the sign of the dot product "dot(u, flip)" where u is the first
-    left-singular vector, and flip is a sing-flip vector based on the vertex
-    normals. This procedure assures that the phase does not randomly change
-    by 180 degrees from one stc to the next.
+    scaled and sign-flipped first right-singular vector as the label time
+    course. The scaling is performed such that the power of the label time
+    course is the same as the average per-vertex time course power within
+    the label. The sign of the resulting time course is adjusted by multiplying
+    it with "sign(dot(u, flip))" where u is the first left-singular vector,
+    and flip is a sing-flip vector based on the vertex normals. This procedure
+    assures that the phase does not randomly change by 180 degrees from one
+    stc to the next.
 
     Parameters
     ----------
