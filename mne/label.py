@@ -794,6 +794,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         fname_surf = os.path.join(subjects_dir, subject, 'surf',
                                   '%s.%s' % (hemi, surf_name))
         vert_pos, _ = read_surface(fname_surf)
+        vert_pos /= 1e3  # the positions in labels are in meters
         for label_id, label_name, label_rgba in\
                 zip(label_ids, label_names, label_rgbas):
             vertices = np.where(annot == label_id)[0]
