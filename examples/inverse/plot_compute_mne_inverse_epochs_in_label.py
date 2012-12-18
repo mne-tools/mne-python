@@ -56,20 +56,20 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
                             pick_normal=True)
 
-data = sum(stc.data for stc in stcs) / len(stcs)
+mean_stc = sum(stcs) / len(stcs)
 
 # compute sign flip to avoid signal cancelation when averaging signed values
 flip = mne.label_sign_flip(label, inverse_operator['src'])
 
-label_mean = np.mean(data, axis=0)
-label_mean_flip = np.mean(flip[:, np.newaxis] * data, axis=0)
+label_mean = np.mean(mean_stc.data, axis=0)
+label_mean_flip = np.mean(flip[:, np.newaxis] * mean_stc.data, axis=0)
 
 ###############################################################################
 # View activation time-series
 pl.figure()
-h0 = pl.plot(1e3 * stcs[0].times, data.T, 'k')
-h1 = pl.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
-h2 = pl.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)
+h0 = pl.plot(1e3 * stcs[0].times, mean_stc.data.T, 'k')
+h1, = pl.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
+h2, = pl.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)
 pl.legend((h0[0], h1, h2), ('all dipoles in label', 'mean',
                             'mean with sign flip'))
 pl.xlabel('time (ms)')
