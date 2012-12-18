@@ -37,7 +37,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     events : array
         Indices of ECG peaks
     """
-    win_size = round((60.0 * sfreq) / 120.0)
+    win_size = int(round((60.0 * sfreq) / 120.0))
 
     filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq)
 
