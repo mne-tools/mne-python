@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 
 from nose.tools import assert_true
@@ -6,7 +5,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, fiff)
-
+from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
@@ -20,7 +19,7 @@ fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
 fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_io_events():

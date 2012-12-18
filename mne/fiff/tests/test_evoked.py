@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import tempfile
 import os.path as op
 
 import numpy as np
@@ -12,28 +11,12 @@ from numpy.testing import assert_array_almost_equal, assert_equal,\
 from nose.tools import assert_true, assert_raises
 
 from mne.fiff import read_evoked, write_evoked
+from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
 fname_gz = op.join(op.dirname(__file__), 'data', 'test-ave.fif.gz')
 
-try:
-    import nitime
-except ImportError:
-    have_nitime = False
-else:
-    have_nitime = True
-try:
-    import pandas
-except ImportError:
-    have_pandas = False
-else:
-    have_pandas = True
-
-nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
-pandas_test = np.testing.dec.skipif(not have_pandas, 'nitime not installed')
-
-
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_io_evoked():
@@ -104,7 +87,7 @@ def test_io_multi_evoked():
         assert_equal(ave.first, ave2.first)
 
 
-@nitime_test
+@requires_nitime
 def test_evoked_to_nitime():
     """ Test to_nitime """
     aves = read_evoked(fname, [0, 1, 2, 3])
@@ -117,7 +100,7 @@ def test_evoked_to_nitime():
     assert_equal(evoked_ts.data, aves[0].data[picks2])
 
 
-@pandas_test
+@requires_pandas
 def test_as_data_frame():
     """Test Pandas exporter"""
     ave = read_evoked(fname, [0])[0]

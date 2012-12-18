@@ -11,6 +11,9 @@ import os
 from functools import wraps
 import inspect
 import sys
+import tempfile
+from shutil import rmtree
+import atexit
 
 # Following deprecated class copied from scikit-learn
 
@@ -290,3 +293,64 @@ def requires_mne(function):
         return ret
 
     return dec
+
+
+def requires_pandas(function):
+    """Decorator to skip test if pandas is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        try:
+            import pandas
+        except ImportError:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires pandas'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
+def requires_nitime(function):
+    """Decorator to skip test if pandas is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        try:
+            import nitime
+        except ImportError:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires nitime'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
+class _TempDir(str):
+    """Class for creating and auto-destroying temp dir
+
+    This is designed to be used with testing modules.
+
+    We cannot simply use __del__() method for cleanup here because the rmtree
+    function may be cleaned up before this object, so we use the atexit module
+    instead. Passing del_after and print_del kwargs to the constructor are
+    helpful primarily for debugging purposes.
+    """
+    def __new__(self, del_after=True, print_del=False):
+        new = str.__new__(self, tempfile.mkdtemp())
+        self._del_after = del_after
+        self._print_del = print_del
+        return new
+
+    def __init__(self):
+        self._path = self.__str__()
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        if self._del_after is True:
+            if self._print_del is True:
+                print 'Deleting %s ...' % self._path
+            rmtree(self._path)

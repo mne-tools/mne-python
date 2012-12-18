@@ -1,4 +1,3 @@
-import tempfile
 import os.path as op
 from nose.tools import assert_true
 import warnings
@@ -13,6 +12,7 @@ from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj
 from mne import read_events, Epochs
+from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -20,7 +20,7 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_compute_proj_epochs():
@@ -32,9 +32,9 @@ def test_compute_proj_epochs():
     exclude = []
     bad_ch = 'MEG 2443'
     picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
-                            exclude=exclude)
+                       exclude=exclude)
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=None, proj=False)
+                    baseline=None, proj=False)
 
     evoked = epochs.average()
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1)
@@ -71,7 +71,7 @@ def test_compute_proj_epochs():
     # test that you can save them
     epochs.info['projs'] += projs
     evoked = epochs.average()
-    evoked.save(op.join(tempdir,'foo.fif'))
+    evoked.save(op.join(tempdir, 'foo.fif'))
 
     projs = read_proj(proj_fname)
 
@@ -92,7 +92,7 @@ def test_compute_proj_raw():
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(True) as w:
-            projs = compute_proj_raw(raw, duration=ii-0.1, stop=raw_time,
+            projs = compute_proj_raw(raw, duration=ii - 0.1, stop=raw_time,
                                      n_grad=1, n_mag=1, n_eeg=0)
             assert_true(len(w) == 1)
 

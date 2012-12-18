@@ -1,4 +1,3 @@
-import tempfile
 import os
 import commands
 import os.path as op
@@ -14,7 +13,7 @@ from mne import label_time_courses, read_label, stc_to_label, \
                read_source_estimate, read_source_spaces, grow_labels,\
                labels_from_parc
 from mne.label import Label
-from mne.utils import requires_mne
+from mne.utils import requires_mne, _TempDir
 
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
@@ -27,7 +26,7 @@ label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def assert_labels_equal(l0, l1, decimal=5):
@@ -163,7 +162,7 @@ def test_labels_from_parc_annot2labels():
 
     def _mne_annot2labels(subject, subjects_dir, parc):
         """Get labels using mne_annot2lables"""
-        label_dir = tempfile.mkdtemp()
+        label_dir = _TempDir()
         cwd = os.getcwd()
         try:
             os.chdir(label_dir)
@@ -176,8 +175,7 @@ def test_labels_from_parc_annot2labels():
             label_fnames.sort()
             labels = [read_label(fname) for fname in label_fnames]
         finally:
-            if os.path.exists(label_dir):
-                shutil.rmtree(label_dir)
+            del label_dir
             os.chdir(cwd)
 
         return labels

@@ -1,27 +1,26 @@
 import os.path as op
-import shutil
-import tempfile
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_equal
 
 from mne.datasets import sample
 from mne import read_trans, write_trans
+from mne.utils import _TempDir
 
 examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
 data_path = sample.data_path(examples_folder)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+
+tempdir = _TempDir()
 
 
 def test_io_trans():
     """Testing reading and writing of trans files
     """
     info0 = read_trans(fname)
-    tempdir = tempfile.mkdtemp()
     fname1 = op.join(tempdir, 'test-trans.fif')
     write_trans(fname1, info0)
     info1 = read_trans(fname1)
-    shutil.rmtree(tempdir)
 
     # check all properties
     assert_true(info0['from'] == info1['from'])
