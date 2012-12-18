@@ -655,7 +655,7 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
         y = signal.resample(x_padded, new_len, axis=axis, window=window)
 
         # now let's trim it back to the correct size (if there was padding)
-        to_remove = np.round(ratio * npad)
+        to_remove = np.round(ratio * npad).astype(int)
         if to_remove > 0:
             keep = np.ones((new_len), dtype='bool')
             keep[:to_remove] = False
