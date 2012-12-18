@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import tempfile
 import os.path as op
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -13,23 +12,7 @@ import warnings
 
 from mne import fiff, Epochs, read_events, pick_events, read_epochs
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
-
-try:
-    import nitime
-except ImportError:
-    have_nitime = False
-else:
-    have_nitime = True
-
-try:
-    import pandas
-except ImportError:
-    have_pandas = False
-else:
-    have_pandas = True
-
-nitime_test = np.testing.dec.skipif(not have_nitime, 'nitime not installed')
-pandas_test = np.testing.dec.skipif(not have_pandas, 'pandas not installed')
+from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -46,7 +29,7 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
-tempdir = tempfile.mkdtemp()
+tempdir = _TempDir()
 
 
 def test_read_write_epochs():
@@ -381,7 +364,7 @@ def test_epochs_copy():
     assert_array_equal(data, copied_data)
 
 
-@nitime_test
+@requires_nitime
 def test_epochs_to_nitime():
     """Test test_to_nitime
     """
@@ -497,7 +480,7 @@ def test_access_by_name():
     assert_array_equal(epochs2['a'].events, epochs['a'].events)
 
 
-@pandas_test
+@requires_pandas
 def test_as_data_frame():
     """Test Pandas exporter"""
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)

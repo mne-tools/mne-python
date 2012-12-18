@@ -4,7 +4,7 @@ import os.path as op
 import os
 import warnings
 
-from ..utils import set_log_level, set_log_file
+from ..utils import set_log_level, set_log_file, _TempDir
 from ..fiff import Evoked
 
 fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
@@ -13,7 +13,8 @@ fname_log = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test-ave.log')
 fname_log_2 = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                       'test-ave-2.log')
-test_name = 'test.log'
+tempdir = _TempDir()
+test_name = op.join(tempdir, 'test.log')
 
 
 def clean_lines(lines):
@@ -82,6 +83,7 @@ def test_logging():
     set_log_file(test_name, overwrite=True)
     # this line needs to be called to actually do some logging
     evoked = Evoked(fname_evoked, setno=1)
+    del evoked
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
