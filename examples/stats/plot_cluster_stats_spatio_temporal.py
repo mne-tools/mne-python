@@ -20,11 +20,10 @@ import os.path as op
 import numpy as np
 from numpy.random import randn
 from scipy import stats as stats
-import pylab as pl
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris, SourceEstimate, read_surface
+    grade_to_tris, SourceEstimate
 from mne.epochs import equalize_epoch_counts
 from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.minimum_norm import apply_inverse, read_inverse_operator
@@ -36,7 +35,8 @@ from mne.viz import mne_analyze_colormap
 data_path = sample.data_path('..')
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-subjects_dir = op.join(data_path, 'subjects')
+subjects_dir = data_path + '/subjects'
+
 tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
@@ -175,80 +175,17 @@ for ii, cluster_ind in enumerate(good_cluster_inds):
 data_summary[:, 0] = np.sum(data_summary, axis=1)
 stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
                                      tstep=1e-3)
-max_duration = 60.0  # in ms
-limits = [1000 * tstep - 1, 1000 * tstep, max_duration]
-subjects_dir = op.join(data_path, 'subjects')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
-#    shows all the clusters, weighted by duration, for both hemispheres
-
-from mne.utils import get_subjects_dir
-
-
-def _force_aspect(ax, x, y, z, color='w'):
-    """Surrogate for ax.set_aspect('equal') since it fails in 3D
-    """
-    ax.set_aspect('equal')
-    extrema = np.array([[np.min(x), np.max(x)],
-                       [np.min(y), np.max(y)],
-                       [np.min(z), np.max(z)]])
-    width = np.max(np.diff(extrema)) / 2
-    midpts = np.mean(extrema, axis=1)
-    pts = midpts[:, np.newaxis].T + np.array([-width, width])[:, np.newaxis]
-    [ax.plot([p[0]], [p[1]], [p[2]], color) for p in pts]
-
-
-def plot_stc_time_point(stc, subject, limits=[5, 10, 15], time_index=0,
-                        surf='inflated', measure='dSPM', subjects_dir=None):
-    """Plot a time instant from a SourceEstimate using matplotlib
-
-    The same could be done with mayavi using proper 3D.
-
-    Parameters
-    ----------
-    stc : instance of SourceEstimate
-        The SourceEstimate to plot.
-    subject : string
-        The subject name (only needed if surf is a string).
-    time_index : int
-        Time index to plot.
-    surf : str, or instance of surfaces
-        Surface to use (e.g., 'inflated' or 'white'), or pre-loaded surfaces.
-    measure : str
-        The label for the colorbar. None turns the colorbar off.
-    subjects_dir : str, or None
-        Path to the SUBJECTS_DIR. If None, the path is obtained by using
-        the environment variable SUBJECTS_DIR.
-    """
-    subjects_dir = get_subjects_dir(subjects_dir)
-    pl.figure(facecolor='k', figsize=(8, 5))
-    hemis = ['lh', 'rh']
-    if isinstance(surf, str):
-        surf = [read_surface(op.join(subjects_dir, subject, 'surf',
-                                     '%s.%s' % (h, surf))) for h in hemis]
-    my_cmap = mne_analyze_colormap(limits)
-    for hi, h in enumerate(hemis):
-        coords = surf[hi][0][stc.vertno[hi]]
-        if hi == 0:
-            vals = stc_all_cluster_vis.lh_data[:, time_index]
-        else:
-            vals = stc_all_cluster_vis.rh_data[:, time_index]
-        ax = pl.subplot(1, 2, 1 - hi, axis_bgcolor='none')
-        pl.tick_params(labelbottom='off', labelleft='off')
-        flipper = -1 if hi == 1 else 1
-        sc = ax.scatter(flipper * coords[:, 1], coords[:, 2], c=vals,
-                        vmin=-limits[2], vmax=limits[2], cmap=my_cmap,
-                        edgecolors='none', s=5)
-        ax.set_aspect('equal')
-        pl.axis('off')
-        mne.viz.tight_layout(0)
-    if measure is not None:
-        cax = pl.axes([0.85, 0.15, 0.025, 0.15], axisbg='k')
-        cb = pl.colorbar(sc, cax, ticks=[-limits[2], 0, limits[2]])
-        cb.set_label(measure, color='w')
-    pl.setp(pl.getp(cb.ax, 'yticklabels'), color='w')
-    pl.draw()
-    pl.show()
-
-plot_stc_time_point(stc_all_cluster_vis, 'fsaverage', limits, surf='white',
-                    measure='Duration significant (ms)')
+#    shows all the clusters, weighted by duration
+colormap = mne_analyze_colormap(limits=[0, 10, 50])
+subjects_dir = op.join(data_path, 'subjects')
+# blue blobs are for condition A < condition B, red for A > B
+brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'rh', colormap,
+                                 subjects_dir=subjects_dir,
+                                 time_label='Duration significant (ms)')
+brain.set_data_time_index(0)
+# The colormap requires brain data to be scaled -fmax -> fmax
+brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
+brain.show_view('lateral')
+brain.save_image('clusters.png')
