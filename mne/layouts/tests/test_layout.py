@@ -58,9 +58,7 @@ test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
    'unit_mul': 0}],
    'nchan': 3}
 
-
 tempdir = _TempDir()
-
 
 
 def test_io_layout():
