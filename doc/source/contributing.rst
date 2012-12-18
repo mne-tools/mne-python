@@ -51,6 +51,7 @@ General code guidelines
   To run individual tests, you can also run any of the following::
 
      make clean
+     make inplace
      make test-doc
      make inplace
      nosetests
