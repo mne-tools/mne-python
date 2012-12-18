@@ -125,7 +125,7 @@ in principle also fork a different one, such as ``mne-matlab```):
 
 #. Click on the *fork* button:
 
-   .. image:: _images/forking_button.png
+   .. image:: _static/forking_button.png
 
    Now, after a short pause and some 'Hardcore forking action', you should
    find yourself at the home page for your own forked copy of mne-python_.
@@ -354,11 +354,11 @@ When you are ready to ask for someone to review your code and consider a merge:
 #. Use the 'Switch Branches' dropdown menu near the top left of the page to
    select the branch with your changes:
 
-   .. image:: _images/branch_dropdown.png
+   .. image:: _static/branch_dropdown.png
 
 #. Click on the 'Pull request' button:
 
-   .. image:: _images/pull_button.png
+   .. image:: _static/pull_button.png
 
    Enter a title for the set of changes, and some explanation of what you've
    done. Say if there is anything you'd like particular attention for - like a
@@ -411,7 +411,7 @@ Then, go to your forked repository GitHub page, say
 Click on the 'Admin' button, and add anyone else to the repo as a
 collaborator:
 
-   .. image:: _images/pull_button.png
+   .. image:: _static/pull_button.png
 
 Now all those people can do::
 
