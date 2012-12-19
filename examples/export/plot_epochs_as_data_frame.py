@@ -91,7 +91,6 @@ print __doc__
 import mne
 import pylab as pl
 import numpy as np
-import mne
 from mne.fiff import Raw
 from mne.datasets import sample
 
@@ -169,49 +168,47 @@ mne.viz.tight_layout()
 # to integer values. To restore the original values you can e.g. say
 # df['times'] = np.tile(epoch.times, len(epochs_times)
 
-# We now want to add 'condition' to the DataFrame to expose some Pandas
-# pivoting functionality. To make the plots labels more readable let's
-# first edit the names and expose.
-df.condition = df.condition.apply(lambda x: x + ' ')
-df.set_index('condition', append=True, inplace=True)
+# We now reset the index of the DataFrame to expose some Pandas
+# pivoting functionality. To simplify the groupby operation we
+# we drop the indices to treat epoch and time as categroial factors.
 
-# The DataFrame is split into subsets reflecting a crossing between condition
-# and trial number. The idea is that we can broadcast operations into each cell
-# simultaneously.
+df = df.reset_index()
 
-grouped = df.groupby(level=['condition', 'epoch'])
+# The ensuing DataFrame then is split into subsets reflecting a crossing
+# between condition and trial number. The idea is that we can broadcast
+# operations into each cell simultaneously.
 
-# Print condition aggregate statistics for two channels
+factors = ['condition', 'epoch']
+sel = factors + ['MEG 1332', 'MEG 1342']
+grouped = df[sel].groupby(factors)
 
-sel = ['MEG 1332', 'MEG 1342']
-print grouped[sel].describe()
+# To make the plot labels more readable let's edit the values of 'condition'.
+df.condition = df.condition.apply(lambda name: name + ' ')
 
-# Compare mean of two channels response according to condition.
-grouped[sel].mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
+# Now we compare the mean of two channels response across conditions.
+grouped.mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
 mne.viz.tight_layout()
-
-# pl.subplots_adjust(bottom=0.23)
-
 
 # We can even accomplish more complicated tasks in a few lines calling
 # apply method and passing a function. Assume we wanted to know the time
-# slice of the maximum response for each condition. We index at 1 because
-# The second subindex represents time.
+# slice of the maximum response for each condition.
 
-max_latency = grouped[sel[0]].apply(lambda x: x.index[x.argmax()][1])
+max_latency = grouped[sel[2]].apply(lambda x: df.time[x.argmax()])
 
 print max_latency
+
+# Then make the plot labels more readable let's edit the values of 'condition'.
+df.condition = df.condition.apply(lambda name: name + ' ')
 
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
 mne.viz.tight_layout()
 
-# pl.subplots_adjust(left=0.19)
-# Finally, we will remove the index to create a proper data table that
+# Finally, we will again remove the index to create a proper data table that
 # can be used with statistical packages like statsmodels or R.
 
 final_df = max_latency.reset_index()
-final_df.rename(columns={0: sel[0]})  # as the index is oblivious of names.
+final_df.rename(columns={0: sel[2]})  # as the index is oblivious of names.
 
 # The index is now written into regular columns so it can be used as factor.
 print final_df
