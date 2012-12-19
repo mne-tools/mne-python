@@ -299,13 +299,13 @@ def requires_pandas(function):
     """Decorator to skip test if pandas is not available"""
     @wraps(function)
     def dec(*args, **kwargs):
+        skip = False
         try:
             import pandas
         except ImportError:
             skip = True
         if int(pandas.__version__.replace('.', '')) < 73:
             skip = True
-
         if skip == True:
             from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires pandas'
