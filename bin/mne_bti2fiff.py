@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 
 # Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
-#         Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#         Yuval Harpaz <yuvharpaz@gmail.com>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Yuval Harpaz <yuvharpaz@gmail.com>
 #
-#         simplified bsd-3 license
+#          simplified bsd-3 license
 
+""" Import BTi / 4-D MagnesWH3600 data to fif file.
+
+
+"""
 from itertools import count
 import time
 import os.path as op
@@ -21,13 +25,15 @@ from mne.fiff.raw import Raw, pick_types
 
 import logging
 logger = logging.getLogger('mne')
+import warnings
+
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
     'coord_frame', 'coil_type', 'range', 'unit', 'cal', 'eeg_loc',
     'scanno', 'kind', 'logno')
 
 FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
-                          dtype=np.float32), None, 0, None, 0, 0, 1.0,
+                          dtype='f4'), None, 0, None, 0, 0, 1.0,
                           107, 1.0, None, None, 402, None)
 
 FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
@@ -50,6 +56,8 @@ BTI.T_IDENT = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
 BTI.T_ROT_IX = slice(0, 3), slice(0, 3)
 BTI.T_TRANS_IX = slice(0, 3), slice(3, 4)
 BTI.T_SCA_IX = slice(3, 4), slice(0, 4)
+
+BTI.HS_DIGPOINT_MARKER = ['Digitization Points', 'digitized points']
 
 
 def read_bti_ascii(bti_hdr_fname):
@@ -126,6 +134,8 @@ def read_bti_ascii(bti_hdr_fname):
                     ch_cal.append(dict(zip(ch_fields, this_ch_info)))
                 info[BTI.HDR_CH_CAL] = ch_cal
 
+        ch_names = _bti_get_channel_names(info)
+
         for field, params in _pre_parsed.items():
             if field == BTI.HDR_CH_TRANS:
                 sensor_trans = {}
@@ -134,7 +144,7 @@ def read_bti_ascii(bti_hdr_fname):
                     if "|" in p:
                         k, d, _ = p.strip().split("|")
                         if k.strip().isalnum():
-                            current_chan = info[BTI.HDR_CH_NAMES][idx][0]
+                            current_chan = ch_names[idx]
                             sensor_trans[current_chan] = d.strip()
                             idx += 1
                         else:
@@ -146,6 +156,27 @@ def read_bti_ascii(bti_hdr_fname):
         info['FILEINFO']['Total duration'] = duration.strip()
 
     return info
+
+
+def _bti_get_channel_names(info):
+    ch_names = info.get(BTI.HDR_CH_NAMES, None)
+    if ch_names is None:
+        warnings.warn('No section %s found in header. I\'m trying '
+                      'to infer the channel names from section'
+                      ' %s' % (BTI.HDR_CH_NAMES, BTI.HDR_CH_CAL))
+        ch_names = info.get(BTI.HDR_CH_CAL, None)
+        if ch_names is None:
+            msg = 'Could not find channel names. Shutting down...'
+            if __name__ == '__main__':
+                sys.exit(msg)
+            else:
+                ValueError(msg)
+        else:
+            ch_names = [c['ch_name'] for c in ch_names]
+    else:
+        ch_names = [c[1].strip('"') for c in ch_names]
+
+    return ch_names
 
 
 def _get_m_to_nm(adjust=None, translation=(0.0, 0.02, 0.11)):
@@ -227,7 +258,7 @@ def _apply_t(x, t, rot=BTI.T_ROT_IX, trans=BTI.T_TRANS_IX, scal=BTI.T_SCA_IX):
 
 def _merge_t(t1, t2):
     """ Merge two transforms """
-    t = np.array(BTI.T_IDENT, dtype=np.float32)
+    t = np.array(BTI.T_IDENT, dtype='f4')
     t[BTI.T_ROT_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_ROT_IX])
     t[BTI.T_TRANS_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_TRANS_IX])
     t[BTI.T_TRANS_IX] += t1[BTI.T_TRANS_IX]
@@ -256,15 +287,19 @@ def read_head_shape(head_shape_fname, use_hpi=False):
         transformation.
     """
 
-    target = fiducials = []
+    target = fiducials = []  # start to fill fiducials
     dig_points = []
     for line in open(head_shape_fname):
-        if line.startswith('Digitization Points'):
+        # switch to dig points as soon as section is arrived
+        if any([m.lower() in line.lower() for m in BTI.HS_DIGPOINT_MARKER]):
             target = dig_points
         if line.startswith(' '):
-            target += [np.array(line.strip().split(), dtype=np.float32)]
+            target += [np.array(line.strip().split(), dtype='f4')]
 
-    fp = np.array(fiducials, dtype=np.float32)  # fiducial points
+    if any([len(e) == 0 for e in [fiducials, dig_points]]):
+        return None, None
+
+    fp = np.array(fiducials, dtype='f4')  # fiducial points
 
     dp = np.sum(fp[2] * (fp[0] - fp[1]))
     tmp1, tmp2 = np.sum(fp[2] ** 2), np.sum((fp[0] - fp[1]) ** 2)
@@ -282,14 +317,14 @@ def read_head_shape(head_shape_fname, use_hpi=False):
     # adjust order of fiducials to Neuromag
     fiducials_nm[[1, 2]] = fiducials_nm[[2, 1]]
 
-    t = np.array(BTI.T_IDENT, dtype=np.float32)
+    t = np.array(BTI.T_IDENT, dtype='f4')
     t[0, 0] = dcos
     t[0, 1] = -dsin
     t[1, 0] = dsin
     t[1, 1] = dcos
     t[0, 3] = dt
 
-    dpnts = np.array(dig_points, dtype=np.float32).T
+    dpnts = np.array(dig_points, dtype='f4').T
     dig_points_nm = np.dot(t[BTI.T_ROT_IX], dpnts).T
     dig_points_nm += t[BTI.T_TRANS_IX].T
 
@@ -387,8 +422,8 @@ class RawBTi(Raw):
         Whether to treat hpi coils as digitization points or not. If
         False, HPI coils will be discarded.
     force_units : bool | float
-        If True and MEG sensors are scaled to 1, data will be scaled to base_units.
-        If float, data will be scaled to the value supplied.
+        If True and MEG sensors are scaled to 1, data will be scaled to
+        base_units. If float, data will be scaled to the value supplied.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -398,16 +433,17 @@ class RawBTi(Raw):
 
     """
     @verbose
-    def __init__(self, hdr_fname, data_fname, head_shape_fname, dev_head_t=None,
-                 data=None, seperator='-', rotation_x=2, translation=(0.0, 0.02, 0.11),
-                 use_hpi=False, force_units=False, verbose=True):
+    def __init__(self, hdr_fname, data_fname, dev_head_t_fname, head_shape_fname, data=None,
+                  seperator='-', rotation_x=2,
+                 translation=(0.0, 0.02, 0.11), use_hpi=False,
+                 force_units=False, verbose=True):
 
         logger.info('Opening 4-D header file %s...' % hdr_fname)
         self.hdr = read_bti_ascii(hdr_fname)
         self._root, self._hdr_name = op.split(hdr_fname)
         self._data_file = data_fname
+        self.dev_head_t_fname = dev_head_t_fname
         self.head_shape_fname = head_shape_fname
-        self._dev_head_t = dev_head_t
         self.sep = seperator
         self._use_hpi = use_hpi
         self.bti_to_nm = _get_m_to_nm(rotation_x, translation)
@@ -461,25 +497,25 @@ class RawBTi(Raw):
         """
         info = {}
         sep = self.sep
-        d = datetime.strptime(self.hdr['DATAFILE']['Session'],
+        d = datetime.strptime(self.hdr[BTI.HDR_DATAFILE]['Session'],
                               '%d' + sep + '%y' + sep + '%m %H:%M')
 
         sec = time.mktime(d.timetuple())
         info['projs'] = []
         info['comps'] = []
         info['meas_date'] = np.array([sec, 0], dtype=np.int32)
-        info['sfreq'] = float(self.hdr['FILEINFO']['Sample Frequency'][:-2])
-        info['nchan'] = int(self.hdr['CHANNEL GROUPS']['CHANNELS'])
-        ch_names = [e[0] for e in self.hdr['CHANNEL LABELS']]
-
+        sfreq = self.hdr[BTI.HDR_FILEINFO]['Sample Frequency'][:-2]
+        info['sfreq'] = float(sfreq)
+        info['nchan'] = int(self.hdr[BTI.HDR_CH_GROUPS]['CHANNELS'])
+        ch_names = _bti_get_channel_names(self.hdr)
         info['ch_names'] = list(_rename_channels(ch_names))
-        ch_mapping = dict(zip(ch_names, info['ch_names']))
+        ch_mapping = zip(ch_names, info['ch_names'])
 
-        sensor_trans = dict((ch_mapping[k], v) for k, v in
-                             self.hdr['CHANNEL XFM'].items())
-        info['bads'] = []  # TODO
+        sensor_trans = dict((dict(ch_mapping)[k], v) for k, v in
+                             self.hdr[BTI.HDR_CH_TRANS].items())
+        info['bads'] = []
 
-        fspec = info.get('DATAFILE', None)
+        fspec = info.get(BTI.HDR_DATAFILE, None)
         if fspec is not None:
             fspec = fspec.split(',')[2].split('ord')[0]
             ffreqs = fspec.replace('fwsbp', '').split('-')
@@ -498,30 +534,31 @@ class RawBTi(Raw):
 
         # get 4-D head_dev_t needed for appropriate
         sensor_coord_frame = FIFF.FIFFV_COORD_DEVICE
-        if isinstance(self._dev_head_t, str):
+        use_identity = False
+        if isinstance(self.dev_head_t_fname, str):
             logger.info('... Reading device to head transform from %s.' %
-                        self._dev_head_t)
-            bti_sys_trans = _read_system_trans(self._dev_head_t)
-
-        elif hasattr(self._dev_head_t, 'shape'):
-            logger.info('... Setting device from matrix.')
-            if self._dev_head_t.shape != (4, 4):
-                raise ValueError('A transformation matrix of shape 4 x 4 is'
-                                 ' expected. Found shape %i x %i instead.'
-                                 % self._dev_head_t.shape)
-            bti_sys_trans = self._dev_head_t
+                        self.dev_head_t_fname)
+            try:
+                bti_sys_trans = _read_system_trans(self.dev_head_t_fname)
+            except:
+                logger.info('... Could not read headshape data. '
+                            'Using identity transform instead')
+                use_identity = True
         else:
             logger.info('... No device to head transform specified. '
                         'Using identity transform instead')
+            use_identity = True
+
+        if use_identity:
             sensor_coord_frame = FIFF.FIFFV_COORD_HEAD
-            bti_sys_trans = np.array(BTI.T_IDENT, np.float32)
+            bti_sys_trans = np.array(BTI.T_IDENT, 'f4')
 
         logger.info('... Setting channel info structure.')
-        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping.items(), 1):
-            chan_info = dict((k, v) for k, v in zip(FIFF_INFO_CHS_FIELDS,
-                             FIFF_INFO_CHS_DEFAULTS))
+        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping, 1):
+            chan_info = dict(zip(FIFF_INFO_CHS_FIELDS,
+                                 FIFF_INFO_CHS_DEFAULTS))
             chan_info['ch_name'] = chan_vv
-            chan_info['logno'] = idx
+            chan_info['logno'] = idx + 111
             chan_info['scanno'] = idx
 
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
@@ -571,16 +608,21 @@ class RawBTi(Raw):
         info['meas_id'] = None
         info['file_id'] = None
 
-        identity = np.array(BTI.T_IDENT, np.float32)
+        identity = np.array(BTI.T_IDENT, 'f4')
         if self.head_shape_fname is not None:
             logger.info('... Reading digitization points from %s' %
                         self.head_shape_fname)
             info['dig'], m_h_nm_h = read_head_shape(self.head_shape_fname,
                                                      self._use_hpi)
-            nm_to_m_sensor = _inverse_t(identity, self.bti_to_nm)
-            nm_sensor_m_head = _merge_t(bti_sys_trans, nm_to_m_sensor)
-            nm_dev_head_t = _merge_t(m_h_nm_h, nm_sensor_m_head)
-            nm_dev_head_t[3, :3] = 0.
+            if m_h_nm_h is None:
+                logger.info('Could not read head shape data. '
+                           'Sensor data will stay in head coordinate frame')
+                nm_dev_head_t = identity
+            else:
+                nm_to_m_sensor = _inverse_t(identity, self.bti_to_nm)
+                nm_sensor_m_head = _merge_t(bti_sys_trans, nm_to_m_sensor)
+                nm_dev_head_t = _merge_t(m_h_nm_h, nm_sensor_m_head)
+                nm_dev_head_t[3, :3] = 0.
         else:
             logger.info('Warning. No head shape file provided. '
                         'Sensor data will stay in head coordinate frame')
@@ -594,10 +636,11 @@ class RawBTi(Raw):
         logger.info('Done.')
         return info
 
-    def _read_data(self, count=-1, dtype=np.float32):
+    def _read_data(self, count=-1, dtype='f4'):
         """ Reads data from binary string file (dumped: time slices x channels)
         """
-        ntsl = int(self.hdr['FILEINFO']['Time slices'].replace(' slices', ''))
+        _ntsl = self.hdr[BTI.HDR_FILEINFO]['Time slices']
+        ntsl = int(_ntsl.replace(' slices', ''))
         cnt, dtp = count, dtype
         with open(self._data_file, 'rb') as f:
             shape = (ntsl, self.info['nchan'])
@@ -619,20 +662,21 @@ if __name__ == '__main__':
                     help='Headshape file name', metavar='FILE')
     parser.add_option('-t', '--dev_head_t_fname', dest='dev_head_t_fname',
                       help='Device head transform file name', metavar='FILE')
-    parser.add_option('-o', '--out_fname', dest='out_fname', default='as_data_fname')
+    parser.add_option('-o', '--out_fname', dest='out_fname',
+                      default='as_data_fname')
     parser.add_option('-r', '--rotation_x', dest='rotation_x', type='float',
                     help='Compensatory rotation about Neuromag x axis, deg',
                     default=2.0)
     parser.add_option('-T', '--translation', dest='translation', type='str',
                     help='Default translation, meter',
-                    default=(0.00, 0.020, 0.11))
+                    default=(0.00, 0.02, 0.11))
     parser.add_option('-u', '--use_hpi', dest='use_hpi',
                     help='Use all or onlye the first three HPI coils',
                     default=False)
     parser.add_option('-S', '--seperator', dest='seperator', type='str',
                     help='seperator used for date parsing', default='-')
     parser.add_option('-f', '--force_units', dest='force_units',
-                    help='Scaling applied meg channels.', default=False)
+                    help='Scaling applied to MEG channels.', default=False)
     parser.add_option('-v', '--verbose', dest='verbose',
                     help='Print single processing steps to command line',
                     default=True)
@@ -660,7 +704,7 @@ if __name__ == '__main__':
 
     raw = RawBTi(hdr_fname=hdr_fname, data_fname=data_fname,
                  head_shape_fname=head_shape_fname,
-                 dev_head_t=dev_head_t_fname, rotation_x=rotation_x,
+                 dev_head_t_fname=dev_head_t_fname, rotation_x=rotation_x,
                  translation=translation, seperator=seperator,
                  use_hpi=use_hpi, force_units=force_units, verbose=verbose)
 
