@@ -13,6 +13,7 @@ import warnings
 from mne import fiff, Epochs, read_events, pick_events, read_epochs
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
+from mne.fiff import read_evoked
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -155,16 +156,20 @@ def test_evoked_standard_error():
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
     fiff.write_evoked(op.join(tempdir, 'evoked.fif'), evoked)
-    evoked2 = fiff.read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
-    assert_true(evoked2[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
-    assert_true(evoked2[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
-    for ave, ave2 in zip(evoked, evoked2):
-        assert_array_almost_equal(ave.data, ave2.data)
-        assert_array_almost_equal(ave.times, ave2.times)
-        assert_equal(ave.nave, ave2.nave)
-        assert_equal(ave.aspect_kind, ave2.aspect_kind)
-        assert_equal(ave.last, ave2.last)
-        assert_equal(ave.first, ave2.first)
+    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
+    evoked3 = [read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown'),
+               read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
+                           evoked_type='standard_error')]
+    for evoked_new in [evoked2, evoked3]:
+        assert_true(evoked_new[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+        assert_true(evoked_new[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        for ave, ave2 in zip(evoked, evoked_new):
+            assert_array_almost_equal(ave.data, ave2.data)
+            assert_array_almost_equal(ave.times, ave2.times)
+            assert_equal(ave.nave, ave2.nave)
+            assert_equal(ave.aspect_kind, ave2.aspect_kind)
+            assert_equal(ave.last, ave2.last)
+            assert_equal(ave.first, ave2.first)
 
 
 def test_reject_epochs():

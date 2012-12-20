@@ -20,7 +20,7 @@ tempdir = _TempDir()
 
 
 def test_io_evoked():
-    """Test IO for evoked data (fif + gz)
+    """Test IO for evoked data (fif + gz) with integer and str args
     """
     ave = read_evoked(fname)
 
@@ -40,6 +40,15 @@ def test_io_evoked():
     ave2 = read_evoked(fname_gz)
     ave2.crop(tmin=0)
     assert_array_equal(ave.data, ave2.data)
+
+    # test str access
+    setno = 'Left Auditory'
+    assert_raises(ValueError, read_evoked, fname, setno, evoked_type='stderr')
+    assert_raises(ValueError, read_evoked, fname, setno,
+                  evoked_type='standard_error')
+    ave3 = read_evoked(fname, setno)
+    ave3.crop(tmin=0)
+    assert_array_equal(ave.data, ave3.data)
 
 
 def test_evoked_resample():
@@ -78,13 +87,16 @@ def test_io_multi_evoked():
     aves = read_evoked(fname, [0, 1, 2, 3])
     write_evoked(op.join(tempdir, 'evoked.fif'), aves)
     aves2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1, 2, 3])
-    for [ave, ave2] in zip(aves, aves2):
-        assert_array_almost_equal(ave.data, ave2.data)
-        assert_array_almost_equal(ave.times, ave2.times)
-        assert_equal(ave.nave, ave2.nave)
-        assert_equal(ave.aspect_kind, ave2.aspect_kind)
-        assert_equal(ave.last, ave2.last)
-        assert_equal(ave.first, ave2.first)
+    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
+    aves3 = read_evoked(op.join(tempdir, 'evoked.fif'), types)
+    for aves_new in [aves2, aves3]:
+        for [ave, ave_new] in zip(aves, aves_new):
+            assert_array_almost_equal(ave.data, ave_new.data)
+            assert_array_almost_equal(ave.times, ave_new.times)
+            assert_equal(ave.nave, ave_new.nave)
+            assert_equal(ave.aspect_kind, ave_new.aspect_kind)
+            assert_equal(ave.last, ave_new.last)
+            assert_equal(ave.first, ave_new.first)
 
 
 @requires_nitime
