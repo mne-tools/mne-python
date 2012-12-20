@@ -879,6 +879,14 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           subjects_dir=None):
     """Plot SourceEstimates with PySurfer
 
+    Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+    which will automatically be set by this function. Plotting multiple
+    SourceEstimates with different values for subjects_dir will cause
+    PySurfer to use the wrong FreeSurfer surfaces when using methods of
+    the returned Brain object. It is therefore recommended to set the
+    SUBJECTS_DIR environment variable or always use the same value for
+    subjects_dir (within the same Python session).
+
     Parameters
     ----------
     stc : SourceEstimates
