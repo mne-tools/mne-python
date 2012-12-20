@@ -225,8 +225,8 @@ def test_ica_additional():
     # XXX this needs to be fixed, some of the score funcs don't seem to be
     # suited for the testing data.
     with warnings.catch_warnings(True) as w:
-        sfunc_test = [ica.find_sources_epochs(epochs, target='EOG 061',
-                score_func=n, start=0, stop=10)
+        sfunc_test = [ica.find_sources_epochs(epochs_eog, target='EOG 061',
+                score_func=n)
                 for  n, f in score_funcs.items()]
 
     # check lenght of scores
