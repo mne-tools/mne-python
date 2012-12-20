@@ -211,7 +211,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         else:
             RuntimeError('invalid frame for origin')
 
-    if not isinstance(origin, str):
+    if not isinstance(origin, basestring):
         origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])
 
     # format command

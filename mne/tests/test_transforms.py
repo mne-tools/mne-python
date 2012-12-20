@@ -15,7 +15,7 @@ tempdir = _TempDir()
 
 
 def test_io_trans():
-    """Testing reading and writing of trans files
+    """Test reading and writing of trans files
     """
     info0 = read_trans(fname)
     fname1 = op.join(tempdir, 'test-trans.fif')
