@@ -1,11 +1,32 @@
 .. -*- mode: rst -*-
 
-The homepage of MNE with user documentation is located on:
+`mne-python <http://martinos.org/mne/mne-python.html>`_
+=======================================================
 
-http://martinos.org/mne
+This package is designed for sensor- and source-space analysis of M-EEG
+data, including frequency-domain and time-frequency analyses and
+non-parametric statistics. This package is presently evolving quickly and
+thanks to the adopted open development environment user contributions can
+be easily incorporated.
 
-Getting the latest code
-=========================
+Get more information
+^^^^^^^^^^^^^^^^^^^^
+
+This page only contains bare-bones instructions for installing mne-python.
+
+If you're familiar with MNE and you're looking for information on using
+mne-python specifically, jump right to the `mne-python homepage
+<http://martinos.org/mne/mne-python.html>`_. This website includes a
+`tutorial <http://martinos.org/mne/python_tutorial.html>`_,
+helpful `examples <http://martinos.org/mne/auto_examples/index.html>`_, and
+a handy `function reference <http://martinos.org/mne/python_reference.html>`_,
+among other things.
+
+If you're unfamiliar with MNE, you can visit the
+`MNE homepage <http://martinos.org/mne>`_ for full user documentation.
+
+Get the latest code
+^^^^^^^^^^^^^^^^^^^
 
 To get the latest code using git, simply type::
 
@@ -14,18 +35,20 @@ To get the latest code using git, simply type::
 If you don't have git installed, you can download a zip or tarball
 of the latest code: http://github.com/mne-tools/mne-python/archives/master
 
-Installing
-==========
+Install mne-python
+^^^^^^^^^^^^^^^^^^
 
-As any Python packages, to install MNE-Python, go in the mne-python source code directory and do::
+As any Python packages, to install MNE-Python, go in the mne-python source
+code directory and do::
 
     python setup.py install
 
-or if you don't have admin access to your python setup (permission denied when install) use::
+or if you don't have admin access to your python setup (permission denied
+when install) use::
 
     python setup.py install --user
 
-You can also install the latest release with easy_install::
+You can also install the latest release version with easy_install::
 
     easy_install -U mne
 
@@ -37,36 +60,32 @@ or for the latest development version (the most up to date)::
 
     pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev --user
 
-Workflow to contribute
-=========================
-
-To contribute to MNE-Python, first create an account on `github
-<http://github.com/>`_. Once this is done, fork the `mne-python repository
-<http://github.com/mne-tools/mne-python>`_ to have you own repository,
-clone it using 'git clone' on the computers where you want to work. Make
-your changes in your clone, push them to your github account, test them
-on several computer, and when you are happy with them, send a pull
-request to the main repository.
-
 Dependencies
-============
+^^^^^^^^^^^^
 
 The required dependencies to build the software are python >= 2.6,
 NumPy >= 1.4, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
-Some isolated functions (e.g. filtering with firwin2 require Scipy >= 0.9).
+Some isolated functions require pandas >= 7.3 and nitime (multitaper analysis).
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
 when you run an example ... but be patient)
 
+Contribute to mne-python
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Please see the documentation on the mne-python homepage:
+
+http://martinos.org/mne/contributing.html
+
 Mailing list
-============
+^^^^^^^^^^^^
 
 http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis
 
 Running the test suite
-=========================
+^^^^^^^^^^^^^^^^^^^^^^
 
 To run the test suite, you need nosetests and the coverage modules.
 Run the test suite using::
@@ -76,7 +95,7 @@ Run the test suite using::
 from the root of the project.
 
 Making a release and uploading it to PyPI
-==================================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This command is only run by project manager, to make a release, and
 upload in to PyPI::
@@ -85,7 +104,7 @@ upload in to PyPI::
 
 
 Licensing
-----------
+^^^^^^^^^
 
 MNE-Python is **BSD-licenced** (3 clause):
 
@@ -98,7 +117,7 @@ MNE-Python is **BSD-licenced** (3 clause):
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
-    * Redistributions of source code must retain the above copyright notice, 
+    * Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
 
     * Redistributions in binary form must reproduce the above copyright notice,
