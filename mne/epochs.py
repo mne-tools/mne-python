@@ -173,7 +173,7 @@ class Epochs(object):
         if isinstance(event_id, dict):
             if not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
-            if not all([isinstance(k, str) for k in event_id]):
+            if not all([isinstance(k, basestring) for k in event_id]):
                 raise ValueError('Event names must be of type str')
             self.event_id = event_id
         elif isinstance(event_id, int):
@@ -504,10 +504,10 @@ class Epochs(object):
         epochs = self.copy()
         self._data, epochs._data = data, data
 
-        if isinstance(key, str):
+        if isinstance(key, basestring):
             key = [key]
 
-        if isinstance(key, list) and isinstance(key[0], str):
+        if isinstance(key, list) and isinstance(key[0], basestring):
             key_match = np.any(np.atleast_2d([epochs._key_match(k)
                                               for k in key]), axis=0)
             select = key_match
