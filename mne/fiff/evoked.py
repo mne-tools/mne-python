@@ -300,6 +300,7 @@ class Evoked(object):
         self.info = info
         self.nave = nave
         self._aspect_kind = aspect_kind
+        self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.first = first
         self.last = last
         self.comment = comment
@@ -328,10 +329,6 @@ class Evoked(object):
     @property
     def ch_names(self):
         return self.info['ch_names']
-
-    @property
-    def kind(self):
-        return aspect_rev.get(str(self._aspect_kind), 'Unknown')
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval

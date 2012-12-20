@@ -26,6 +26,7 @@ from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
 from .fiff.pick import pick_types, channel_indices_by_type, channel_type
 from .fiff.proj import setup_proj
+from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample
@@ -605,6 +606,7 @@ class Epochs(object):
         else:
             evoked._aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
             evoked.data /= np.sqrt(evoked.nave)
+        evoked.kind = aspect_rev.get(str(evoked._aspect_kind), 'Unknown')
 
         # dropping EOG, ECG and STIM channels. Keeping only data
         if picks is None:
