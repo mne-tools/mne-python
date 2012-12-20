@@ -15,7 +15,7 @@ tempdir = _TempDir()
 
 
 def test_read_source_spaces():
-    """Testing reading of source space meshes
+    """Test reading of source space meshes
     """
     src = read_source_spaces(fname, add_geom=True)
     print src

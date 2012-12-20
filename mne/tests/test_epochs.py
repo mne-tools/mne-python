@@ -161,13 +161,18 @@ def test_evoked_standard_error():
                read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
                            kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
-        assert_true(evoked_new[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
-        assert_true(evoked_new[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        assert_true(evoked_new[0]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+        assert_true(evoked_new[0].kind == 'average')
+        assert_true(evoked_new[1]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        assert_true(evoked_new[1].kind == 'standard_error')
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)
             assert_array_almost_equal(ave.times, ave2.times)
             assert_equal(ave.nave, ave2.nave)
-            assert_equal(ave.aspect_kind, ave2.aspect_kind)
+            assert_equal(ave._aspect_kind, ave2._aspect_kind)
+            print ave._aspect_kind
+            print ave2._aspect_kind
+            assert_equal(ave.kind, ave2.kind)
             assert_equal(ave.last, ave2.last)
             assert_equal(ave.first, ave2.first)
 
