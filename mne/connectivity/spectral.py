@@ -606,7 +606,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     # format fmin and fmax and check inputs
     if fmin is None:
-        fmin = np.nan  # set it to NaN, so we can adjust it later
+        fmin = -np.inf # set it to -inf, so we can adjust it later
 
     fmin = np.asarray((fmin,)).ravel()
     fmax = np.asarray((fmax,)).ravel()
@@ -726,11 +726,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             five_cycle_freq = 5. * sfreq / float(n_times)
 
             if any(np.isnan(fmin)):
-                if len(fmin) > 1:
-                    raise ValueError('fmin cannot be NaN')
+                raise ValueError('fmin cannot be NaN')
                 # we use the 5 cycle freq. as default
                 fmin = [five_cycle_freq]
-            else:
+            elif len(fmin) > 1 or fmin[0] != -np.inf:
                 if any(fmin < five_cycle_freq):
                     warn('fmin corresponds to less than 5 cycles, '
                          'spectrum estimate will be unreliable')
