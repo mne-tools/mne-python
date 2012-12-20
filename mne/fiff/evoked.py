@@ -112,7 +112,7 @@ class Evoked(object):
                 setno = 0
 
         # find string-based entry
-        if isinstance(setno, str):
+        if isinstance(setno, basestring):
             if not kind in aspect_dict.keys():
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')

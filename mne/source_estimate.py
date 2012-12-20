@@ -849,7 +849,7 @@ class SourceEstimate(object):
         surf = os.path.join(subjects_dir, subject, 'surf',
                             hemis[hemi] + '.sphere')
 
-        if isinstance(surf, str):  # read in surface
+        if isinstance(surf, basestring):  # read in surface
             surf = read_surface(surf)
 
         if restrict_vertices is False:

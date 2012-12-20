@@ -599,7 +599,7 @@ class ICA(object):
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
-            if isinstance(target, str):
+            if isinstance(target, basestring):
                 pick = _get_target_ch(raw, target)
                 target, _ = raw[pick, start:stop]
             if sources.shape[1] != target.shape[1]:
@@ -643,7 +643,7 @@ class ICA(object):
             if hasattr(target, 'ndim'):
                 if target.ndim < 3:
                     target = target.reshape(1, 1, target.shape[-1])
-            if isinstance(target, str):
+            if isinstance(target, basestring):
                 pick = _get_target_ch(epochs, target)
                 target = epochs.get_data()[:, pick]
             if sources.shape[2] != target.shape[2]:
@@ -993,7 +993,7 @@ def _get_target_ch(container, target):
 
 def _find_sources(sources, target, score_func):
     """Helper Function"""
-    if isinstance(score_func, str):
+    if isinstance(score_func, basestring):
         score_func = score_funcs.get(score_func, score_func)
 
     if not callable(score_func):
