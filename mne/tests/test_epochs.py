@@ -472,7 +472,8 @@ def test_access_by_name():
     event_a = events[events[:, 2] == 1]
     assert_true(len(data) == len(event_a))
 
-    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks,
+                    preload=True)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
     epochs.save(op.join(tempdir, 'test-epo.fif'))
     epochs2 = read_epochs(op.join(tempdir, 'test-epo.fif'))
@@ -483,6 +484,19 @@ def test_access_by_name():
         assert_true(len(data) == len(event_a))
 
     assert_array_equal(epochs2['a'].events, epochs['a'].events)
+
+    epochs3 = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
+                     tmin, tmax, picks=picks, preload=True)
+    epochs4 = epochs['a']
+    epochs5 = epochs3['a']
+    assert_array_equal(epochs4.events, epochs5.events)
+    # 20 is our tolerance because epochs are written out as floats
+    assert_array_almost_equal(epochs4.get_data(), epochs5.get_data(), 20)
+    epochs6 = epochs3[['a', 'b']]
+    assert_true(all(np.logical_or(epochs6.events[:, 2] == 1,
+                                  epochs6.events[:, 2] == 2)))
+    assert_array_equal(epochs.events, epochs6.events)
+    assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
 
 
 @requires_pandas

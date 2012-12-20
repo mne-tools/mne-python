@@ -125,6 +125,8 @@ class Epochs(object):
         slicing operations, and is done automatically by preload=True.
     drop_epochs() : self, indices
         Drop a set of epochs (both from preloaded data and event list).
+    equalize_trial_counts() : list, str, bool
+        Equalize the number of trials in each condition.
     resample() : self, int, int, int, string or list
         Resample preloaded data.
     as_data_frame() : DataFrame
@@ -142,13 +144,19 @@ class Epochs(object):
 
     epochs[idx] : Epochs
         Return Epochs object with a subset of epochs (supports single
-        index and python style slicing)
+        index and python-style slicing)
 
     For subset selection using categorial labels:
 
     epochs['name'] : Epochs
         Return Epochs object with a subset of epochs corresponding to an
-        experimental condition as specified by event_id.
+        experimental condition as specified by 'name'.
+    epochs[['name_1', 'name_2', ... ]] : Epochs
+        Return Epochs object with a subset of epochs corresponding to multiple
+        experimental conditions as specified by 'name_1', 'name_2', ... .
+
+    See also mne.epochs.combine_event_ids and Epochs.equalize_event_counts
+    for other functions involving manipulating experimental conditions.
 
     """
     @verbose
@@ -497,26 +505,26 @@ class Epochs(object):
         self._data, epochs._data = data, data
 
         if isinstance(key, str):
-            key_match = self._key_match(key)
-            epochs.events = self.events[key_match]
+            key = [key]
 
-            if self.preload:
-                select = key_match
-
-            epochs.name = (key if epochs.name == 'Unknown'
-                           else 'epochs_%s' % key)
+        if isinstance(key, list) and isinstance(key[0], str):
+            key_match = np.any(np.atleast_2d([epochs._key_match(k)
+                                              for k in key]), axis=0)
+            select = key_match
+            epochs.name = ('-'.join(key) if epochs.name == 'Unknown'
+                           else 'epochs_%s' % '-'.join(key))
         else:
-            epochs.events = np.atleast_2d(self.events[key])
-            if self.preload:
-                select = key if isinstance(key, slice) else np.atleast_1d(key)
-            elif not self._bad_dropped:
+            key_match = key
+            select = key if isinstance(key, slice) else np.atleast_1d(key)
+            if not epochs._bad_dropped:
                 # Only matters if preload is not true, since bad epochs are
                 # dropped on preload; doesn't mater for key lookup, either
                 warnings.warn("Bad epochs have not been dropped, indexing will"
                               " be inaccurate. Use drop_bad_epochs() or"
                               " preload=True")
 
-        if self.preload:
+        epochs.events = np.atleast_2d(epochs.events[key_match])
+        if epochs.preload:
             epochs._data = epochs._data[select]
 
         return epochs
@@ -767,6 +775,9 @@ class Epochs(object):
         data *= decal[None, :, None]
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+
+        # undo modifications to data
+        data /= decal[None, :, None]
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
