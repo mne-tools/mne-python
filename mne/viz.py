@@ -6,11 +6,13 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
-
+import os
 import warnings
 from itertools import cycle
 from functools import partial
 import copy
+import inspect
+
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -927,7 +929,15 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    brain = Brain(subject, hemi, surface)
+    args = inspect.getargspec(Brain.__init__)[0]
+    if 'subjects_dir' in args:
+        brain = Brain(subject, hemi, surface, subjects_dir=subjects_dir)
+    else:
+        # Current PySurfer versions need the SUBJECTS_DIR env. var.
+        # so we set it here. This is a hack as it can break other things
+        os.environ['SUBJECTS_DIR'] = subjects_dir
+        brain = Brain(subject, hemi, surface)
+
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertno[0])]
     else:
