@@ -20,9 +20,9 @@ tempdir = _TempDir()
 
 
 def test_io_evoked():
-    """Test IO for evoked data (fif + gz)
+    """Test IO for evoked data (fif + gz) with integer and str args
     """
-    ave = read_evoked(fname)
+    ave = read_evoked(fname, 0)
 
     ave.crop(tmin=0)
 
@@ -32,37 +32,47 @@ def test_io_evoked():
     assert_array_almost_equal(ave.data, ave2.data)
     assert_array_almost_equal(ave.times, ave2.times)
     assert_equal(ave.nave, ave2.nave)
-    assert_equal(ave.aspect_kind, ave2.aspect_kind)
+    assert_equal(ave._aspect_kind, ave2._aspect_kind)
+    assert_equal(ave.kind, ave2.kind)
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
 
     # test compressed i/o
-    ave2 = read_evoked(fname_gz)
+    ave2 = read_evoked(fname_gz, 0)
     ave2.crop(tmin=0)
     assert_array_equal(ave.data, ave2.data)
+
+    # test str access
+    setno = 'Left Auditory'
+    assert_raises(ValueError, read_evoked, fname, setno, kind='stderr')
+    assert_raises(ValueError, read_evoked, fname, setno, kind='standard_error')
+    ave3 = read_evoked(fname, setno)
+    ave3.crop(tmin=0)
+    assert_array_equal(ave.data, ave3.data)
 
 
 def test_evoked_resample():
     """Test for resampling of evoked data
     """
     # upsample, write it out, read it in
-    ave = read_evoked(fname)
+    ave = read_evoked(fname, 0)
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal)
     write_evoked(op.join(tempdir, 'evoked.fif'), ave)
-    ave_up = read_evoked(op.join(tempdir, 'evoked.fif'))
+    ave_up = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
 
     # compare it to the original
-    ave_normal = read_evoked(fname)
+    ave_normal = read_evoked(fname, 0)
 
     # and compare the original to the downsampled upsampled version
-    ave_new = read_evoked(op.join(tempdir, 'evoked.fif'))
+    ave_new = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
     ave_new.resample(sfreq_normal)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
     assert_array_almost_equal(ave_normal.times, ave_new.times)
     assert_equal(ave_normal.nave, ave_new.nave)
-    assert_equal(ave_normal.aspect_kind, ave_new.aspect_kind)
+    assert_equal(ave_normal._aspect_kind, ave_new._aspect_kind)
+    assert_equal(ave_normal.kind, ave_new.kind)
     assert_equal(ave_normal.last, ave_new.last)
     assert_equal(ave_normal.first, ave_new.first)
 
@@ -78,13 +88,19 @@ def test_io_multi_evoked():
     aves = read_evoked(fname, [0, 1, 2, 3])
     write_evoked(op.join(tempdir, 'evoked.fif'), aves)
     aves2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1, 2, 3])
-    for [ave, ave2] in zip(aves, aves2):
-        assert_array_almost_equal(ave.data, ave2.data)
-        assert_array_almost_equal(ave.times, ave2.times)
-        assert_equal(ave.nave, ave2.nave)
-        assert_equal(ave.aspect_kind, ave2.aspect_kind)
-        assert_equal(ave.last, ave2.last)
-        assert_equal(ave.first, ave2.first)
+    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
+    aves3 = read_evoked(op.join(tempdir, 'evoked.fif'), types)
+    for aves_new in [aves2, aves3]:
+        for [ave, ave_new] in zip(aves, aves_new):
+            assert_array_almost_equal(ave.data, ave_new.data)
+            assert_array_almost_equal(ave.times, ave_new.times)
+            assert_equal(ave.nave, ave_new.nave)
+            assert_equal(ave.kind, ave_new.kind)
+            assert_equal(ave._aspect_kind, ave_new._aspect_kind)
+            assert_equal(ave.last, ave_new.last)
+            assert_equal(ave.first, ave_new.first)
+    # this should throw an error since there are mulitple datasets
+    assert_raises(ValueError, read_evoked, fname)
 
 
 @requires_nitime

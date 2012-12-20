@@ -17,7 +17,7 @@ tempdir = _TempDir()
 
 
 def test_io_bem_surfaces():
-    """Testing reading of bem surfaces
+    """Test reading of bem surfaces
     """
     surf = read_bem_surfaces(fname, add_geom=True)
     surf = read_bem_surfaces(fname, add_geom=False)

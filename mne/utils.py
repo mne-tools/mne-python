@@ -160,7 +160,7 @@ def set_log_level(verbose=None, return_old_level=False):
             verbose = 'INFO'
         else:
             verbose = 'WARNING'
-    if isinstance(verbose, str):
+    if isinstance(verbose, basestring):
         verbose = str.upper(verbose)
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,

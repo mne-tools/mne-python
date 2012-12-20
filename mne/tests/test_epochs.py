@@ -13,6 +13,7 @@ import warnings
 from mne import fiff, Epochs, read_events, pick_events, read_epochs
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
+from mne.fiff import read_evoked
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -155,16 +156,25 @@ def test_evoked_standard_error():
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
     fiff.write_evoked(op.join(tempdir, 'evoked.fif'), evoked)
-    evoked2 = fiff.read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
-    assert_true(evoked2[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
-    assert_true(evoked2[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
-    for ave, ave2 in zip(evoked, evoked2):
-        assert_array_almost_equal(ave.data, ave2.data)
-        assert_array_almost_equal(ave.times, ave2.times)
-        assert_equal(ave.nave, ave2.nave)
-        assert_equal(ave.aspect_kind, ave2.aspect_kind)
-        assert_equal(ave.last, ave2.last)
-        assert_equal(ave.first, ave2.first)
+    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
+    evoked3 = [read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown'),
+               read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
+                           kind='standard_error')]
+    for evoked_new in [evoked2, evoked3]:
+        assert_true(evoked_new[0]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+        assert_true(evoked_new[0].kind == 'average')
+        assert_true(evoked_new[1]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        assert_true(evoked_new[1].kind == 'standard_error')
+        for ave, ave2 in zip(evoked, evoked_new):
+            assert_array_almost_equal(ave.data, ave2.data)
+            assert_array_almost_equal(ave.times, ave2.times)
+            assert_equal(ave.nave, ave2.nave)
+            assert_equal(ave._aspect_kind, ave2._aspect_kind)
+            print ave._aspect_kind
+            print ave2._aspect_kind
+            assert_equal(ave.kind, ave2.kind)
+            assert_equal(ave.last, ave2.last)
+            assert_equal(ave.first, ave2.first)
 
 
 def test_reject_epochs():
@@ -467,7 +477,8 @@ def test_access_by_name():
     event_a = events[events[:, 2] == 1]
     assert_true(len(data) == len(event_a))
 
-    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks,
+                    preload=True)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
     epochs.save(op.join(tempdir, 'test-epo.fif'))
     epochs2 = read_epochs(op.join(tempdir, 'test-epo.fif'))
@@ -478,6 +489,19 @@ def test_access_by_name():
         assert_true(len(data) == len(event_a))
 
     assert_array_equal(epochs2['a'].events, epochs['a'].events)
+
+    epochs3 = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
+                     tmin, tmax, picks=picks, preload=True)
+    epochs4 = epochs['a']
+    epochs5 = epochs3['a']
+    assert_array_equal(epochs4.events, epochs5.events)
+    # 20 is our tolerance because epochs are written out as floats
+    assert_array_almost_equal(epochs4.get_data(), epochs5.get_data(), 20)
+    epochs6 = epochs3[['a', 'b']]
+    assert_true(all(np.logical_or(epochs6.events[:, 2] == 1,
+                                  epochs6.events[:, 2] == 2)))
+    assert_array_equal(epochs.events, epochs6.events)
+    assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
 
 
 @requires_pandas
