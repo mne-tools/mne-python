@@ -55,8 +55,8 @@ evoked_auditory = epochs['Auditory'].average()
 evoked_visual = epochs['Visual'].average()
 
 # save evoked data to disk
-evoked_auditory.save('sample_auditory_eeg-ave.fif')
-evoked_visual.save('sample_visual_eeg-ave.fif')
+fiff.write_evoked('sample_auditory_and_visual_eeg-ave.fif',
+                  [evoked_auditory, evoked_visual])
 
 ###############################################################################
 # View evoked response
