@@ -48,7 +48,7 @@ class Evoked(object):
         only one data set in file.
     proj : bool, optional
         Apply SSP projection vectors
-    evoked_type : str
+    kind : str
         Either 'average' or 'standard_error'. The type of data to read.
         Only used if 'setno' is a str.
     verbose : bool, str, int, or None
@@ -62,8 +62,8 @@ class Evoked(object):
         List of channels' names.
     nave : int
         Number of averaged epochs.
-    aspect_kind : int
-        aspect_kind, representing average or standard_error in MNE format.
+    kind : str
+        Type of data, either average or standard_error.
     first : int
         First time sample.
     last : int
@@ -79,7 +79,7 @@ class Evoked(object):
     """
     @verbose
     def __init__(self, fname, setno=None, baseline=None, proj=True,
-                 evoked_type='average', verbose=None):
+                 kind='average', verbose=None):
         if fname is None:
             return
 
@@ -113,42 +113,43 @@ class Evoked(object):
 
         # find string-based entry
         if isinstance(setno, str):
-            if not evoked_type in aspect_dict.keys():
-                raise ValueError('evoked_type must be average or '
-                                 'standard_error')
+            if not kind in aspect_dict.keys():
+                raise ValueError('kind must be "average" or '
+                                 '"standard_error"')
             comments = list()
             aspect_kinds = list()
             for ev in evoked_node:
                 for k in range(ev['nent']):
-                    kind = ev['directory'][k].kind
+                    my_kind = ev['directory'][k].kind
                     pos = ev['directory'][k].pos
-                    if kind == FIFF.FIFF_COMMENT:
+                    if my_kind == FIFF.FIFF_COMMENT:
                         tag = read_tag(fid, pos)
                         comments.append(tag.data)
                 my_aspect = dir_tree_find(ev, FIFF.FIFFB_ASPECT)[0]
                 for k in range(my_aspect['nent']):
-                    kind = my_aspect['directory'][k].kind
+                    my_kind = my_aspect['directory'][k].kind
                     pos = my_aspect['directory'][k].pos
-                    if kind == FIFF.FIFF_ASPECT_KIND:
+                    if my_kind == FIFF.FIFF_ASPECT_KIND:
                         tag = read_tag(fid, pos)
                         aspect_kinds.append(int(tag.data))
             comments = np.atleast_1d(comments)
             aspect_kinds = np.atleast_1d(aspect_kinds)
             if len(comments) != len(aspect_kinds) or len(comments) == 0:
+                fid.close()
                 raise ValueError('comments and aspect_kinds from FIF file '
                                  'could not be inferred. Use integer '
                                  'indexing instead.')
             goods = np.logical_and(in1d(comments, [setno]),
-                    in1d(aspect_kinds, [aspect_dict[evoked_type]]))
+                                   in1d(aspect_kinds, [aspect_dict[kind]]))
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
                 t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
                 t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
                 t = '\n  '.join(t)
+                fid.close()
                 raise ValueError('setno "%s" (%s) not found, out of found '
-                                 'datasets:\n  %s' % (setno, evoked_type, t))
+                                 'datasets:\n  %s' % (setno, kind, t))
             setno = found_setno[0]
-
 
         if setno >= len(evoked_node) or setno < 0:
             fid.close()
@@ -168,24 +169,24 @@ class Evoked(object):
         chs = []
         comment = None
         for k in range(my_evoked['nent']):
-            kind = my_evoked['directory'][k].kind
+            my_kind = my_evoked['directory'][k].kind
             pos = my_evoked['directory'][k].pos
-            if kind == FIFF.FIFF_COMMENT:
+            if my_kind == FIFF.FIFF_COMMENT:
                 tag = read_tag(fid, pos)
                 comment = tag.data
-            elif kind == FIFF.FIFF_FIRST_SAMPLE:
+            elif my_kind == FIFF.FIFF_FIRST_SAMPLE:
                 tag = read_tag(fid, pos)
                 first = int(tag.data)
-            elif kind == FIFF.FIFF_LAST_SAMPLE:
+            elif my_kind == FIFF.FIFF_LAST_SAMPLE:
                 tag = read_tag(fid, pos)
                 last = int(tag.data)
-            elif kind == FIFF.FIFF_NCHAN:
+            elif my_kind == FIFF.FIFF_NCHAN:
                 tag = read_tag(fid, pos)
                 nchan = int(tag.data)
-            elif kind == FIFF.FIFF_SFREQ:
+            elif my_kind == FIFF.FIFF_SFREQ:
                 tag = read_tag(fid, pos)
                 sfreq = float(tag.data)
-            elif kind == FIFF.FIFF_CH_INFO:
+            elif my_kind == FIFF.FIFF_CH_INFO:
                 tag = read_tag(fid, pos)
                 chs.append(tag.data)
 
@@ -298,7 +299,7 @@ class Evoked(object):
         # Put it all together
         self.info = info
         self.nave = nave
-        self.aspect_kind = aspect_kind
+        self._aspect_kind = aspect_kind
         self.first = first
         self.last = last
         self.comment = comment
@@ -327,6 +328,10 @@ class Evoked(object):
     @property
     def ch_names(self):
         return self.info['ch_names']
+
+    @property
+    def kind(self):
+        return aspect_rev.get(str(self._aspect_kind), 'Unknown')
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval
@@ -535,16 +540,17 @@ def merge_evoked(all_evoked):
     return evoked
 
 
-def read_evoked(fname, setno=0, baseline=None, evoked_type='average'):
+def read_evoked(fname, setno=None, baseline=None, kind='average'):
     """Read an evoked dataset
 
     Parameters
     ----------
     fname : string
         The file name.
-    setno : int or str, or list of int or str
+    setno : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF
-        file can contain multiple datasets.
+        file can contain multiple datasets. If None and there is only one
+        dataset in the file, this dataset is loaded.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -553,7 +559,7 @@ def read_evoked(fname, setno=0, baseline=None, evoked_type='average'):
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used.
-    evoked_type : str
+    kind : str
         Either 'average' or 'standard_error', the type of data to read.
     Returns
     -------
@@ -561,10 +567,10 @@ def read_evoked(fname, setno=0, baseline=None, evoked_type='average'):
         The evoked datasets.
     """
     if isinstance(setno, list):
-        return [Evoked(fname, s, baseline=baseline, evoked_type=evoked_type)
+        return [Evoked(fname, s, baseline=baseline, kind=kind)
                 for s in setno]
     else:
-        return Evoked(fname, setno, baseline=baseline, evoked_type=evoked_type)
+        return Evoked(fname, setno, baseline=baseline, kind=kind)
 
 
 def write_evoked(fname, evoked):
@@ -611,7 +617,7 @@ def write_evoked(fname, evoked):
         # The epoch itself
         start_block(fid, FIFF.FIFFB_ASPECT)
 
-        write_int(fid, FIFF.FIFF_ASPECT_KIND, e.aspect_kind)
+        write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
         write_int(fid, FIFF.FIFF_NAVE, e.nave)
 
         decal = np.zeros((e.info['nchan'], e.info['nchan']))

@@ -159,7 +159,7 @@ def test_evoked_standard_error():
     evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
     evoked3 = [read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown'),
                read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
-                           evoked_type='standard_error')]
+                           kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0].aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
         assert_true(evoked_new[1].aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)

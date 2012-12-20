@@ -601,9 +601,9 @@ class Epochs(object):
         evoked.first = -int(np.sum(self.times < 0))
         evoked.last = int(np.sum(self.times > 0))
         if not _do_std:
-            evoked.aspect_kind = np.array([FIFF.FIFFV_ASPECT_AVERAGE])
+            evoked._aspect_kind = np.array([FIFF.FIFFV_ASPECT_AVERAGE])
         else:
-            evoked.aspect_kind = np.array([FIFF.FIFFV_ASPECT_STD_ERR])
+            evoked._aspect_kind = np.array([FIFF.FIFFV_ASPECT_STD_ERR])
             evoked.data /= np.sqrt(evoked.nave)
 
         # dropping EOG, ECG and STIM channels. Keeping only data
