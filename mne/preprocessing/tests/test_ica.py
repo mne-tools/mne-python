@@ -202,6 +202,7 @@ def test_ica_additional():
 
     os.remove(test_ica_fname)
     # score funcs raw, with catch since "ties preclude exact" warning
+    # XXX this should be fixed by a future PR...
     with warnings.catch_warnings(True) as w:
         sfunc_test = [ica.find_sources_raw(raw, target='EOG 061',
                 score_func=n, start=0, stop=10)
