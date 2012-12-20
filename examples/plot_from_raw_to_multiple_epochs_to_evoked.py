@@ -51,23 +51,21 @@ combine_event_ids(epochs, ['AudL', 'AudR'], {'Auditory': 12}, copy=False)
 combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34}, copy=False)
 
 # average epochs and get Evoked datasets
-evoked_auditory = epochs['Auditory'].average()
-evoked_visual = epochs['Visual'].average()
+evokeds = [epochs[cond].average() for cond in ['Auditory', 'Visual']]
 
 # save evoked data to disk
-fiff.write_evoked('sample_auditory_and_visual_eeg-ave.fif',
-                  [evoked_auditory, evoked_visual])
+fiff.write_evoked('sample_auditory_and_visual_eeg-ave.fif', evokeds)
 
 ###############################################################################
 # View evoked response
 import pylab as pl
 pl.clf()
 ax = pl.subplot(2, 1, 1)
-evoked_auditory.plot(axes=ax)
+evokeds[0].plot(axes=ax)
 pl.title('EEG evoked potential, auditory trials')
 pl.ylabel('Potential (uV)')
 ax = pl.subplot(2, 1, 2)
-evoked_visual.plot(axes=ax)
+evokeds[1].plot(axes=ax)
 pl.title('EEG evoked potential, visual trials')
 pl.ylabel('Potential (uV)')
 pl.show()
