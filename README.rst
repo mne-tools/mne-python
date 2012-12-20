@@ -77,7 +77,7 @@ Contribute to mne-python
 
 Please see the documentation on the mne-python homepage:
 
-http://martinos.org/mne/contributing.html
+http://martinos.org/mne/gitwash/index.html
 
 Mailing list
 ^^^^^^^^^^^^
