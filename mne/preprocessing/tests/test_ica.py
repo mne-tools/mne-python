@@ -5,6 +5,7 @@
 
 import os
 import os.path as op
+import warnings
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
 import numpy as np
@@ -200,10 +201,12 @@ def test_ica_additional():
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
-    # score funcs raw
-
-    sfunc_test = [ica.find_sources_raw(raw, target='EOG 061', score_func=n,
-            start=0, stop=10) for  n, f in score_funcs.items()]
+    # score funcs raw, with catch since "ties preclude exact" warning
+    # XXX this should be fixed by a future PR...
+    with warnings.catch_warnings(True) as w:
+        sfunc_test = [ica.find_sources_raw(raw, target='EOG 061',
+                score_func=n, start=0, stop=10)
+                for  n, f in score_funcs.items()]
 
     # check lenght of scores
     [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
