@@ -25,6 +25,7 @@ from mne.connectivity import seed_target_indices, spectral_connectivity
 
 
 data_path = sample.data_path('..')
+subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
@@ -113,5 +114,6 @@ coh_stc = mne.SourceEstimate(coh, vertices=stc.vertno, tmin=1e-3 * tmin,
 
 # Now we can visualize the coherence using the plot method
 brain = coh_stc.plot('sample', 'inflated', 'rh', fmin=0.25, fmid=0.4,
-                     fmax=0.65, time_label='Coherence %0.1f Hz')
+                     fmax=0.65, time_label='Coherence %0.1f Hz',
+                     subjects_dir=subjects_dir)
 brain.show_view('lateral')
