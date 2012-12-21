@@ -26,7 +26,7 @@ def _generate_tf_data():
     return M, G, active_set
 
 
-def test_l21_MxNE():
+def test_l21_mxne():
     """Test convergence of MxNE solver"""
     n, p, t, alpha = 30, 40, 20, 1
     rng = np.random.RandomState(0)
@@ -87,7 +87,7 @@ def test_l21_MxNE():
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
 
 
-def test_TF_MxNE():
+def test_tf_mxne():
     """Test convergence of TF-MxNE solver"""
     alpha_space = 10
     alpha_time = 5
@@ -102,7 +102,7 @@ def test_TF_MxNE():
     assert_array_equal(np.where(active_set_hat)[0], active_set)
 
 
-def test_TF_MxNE_vs_MxNE():
+def test_tf_mxne_vs_mxne():
     """Test equivalence of TF-MxNE (with alpha_time=0) and MxNE"""
     alpha_space = 60
     alpha_time = 0
