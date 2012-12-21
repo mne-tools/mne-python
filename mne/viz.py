@@ -6,11 +6,13 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
-
+import os
 import warnings
 from itertools import cycle
 from functools import partial
 import copy
+import inspect
+
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -877,6 +879,14 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           subjects_dir=None):
     """Plot SourceEstimates with PySurfer
 
+    Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+    which will automatically be set by this function. Plotting multiple
+    SourceEstimates with different values for subjects_dir will cause
+    PySurfer to use the wrong FreeSurfer surfaces when using methods of
+    the returned Brain object. It is therefore recommended to set the
+    SUBJECTS_DIR environment variable or always use the same value for
+    subjects_dir (within the same Python session).
+
     Parameters
     ----------
     stc : SourceEstimates
@@ -927,7 +937,15 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    brain = Brain(subject, hemi, surface)
+    args = inspect.getargspec(Brain.__init__)[0]
+    if 'subjects_dir' in args:
+        brain = Brain(subject, hemi, surface, subjects_dir=subjects_dir)
+    else:
+        # Current PySurfer versions need the SUBJECTS_DIR env. var.
+        # so we set it here. This is a hack as it can break other things
+        os.environ['SUBJECTS_DIR'] = subjects_dir
+        brain = Brain(subject, hemi, surface)
+
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertno[0])]
     else:
