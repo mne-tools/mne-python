@@ -93,7 +93,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     Compute L1/L2 mixed-norm solution on evoked data.
 
-    Reference:
+    References:
     Gramfort A., Kowalski M. and Hamalainen, M,
     Mixed-norm estimates for the M/EEG inverse problem using accelerated
     gradient methods, Physics in Medicine and Biology, 2012
@@ -139,10 +139,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         The algorithm to use for the optimization. prox stands for
         proximal interations using the FISTA algorithm while cd uses
         coordinate descent. cd is only available for fixed orientation.
-    return_residual : bool
-        If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
 
     Returns
     -------
@@ -274,7 +274,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     Compute L1/L2 + L1 mixed-norm solution on time frequency
     dictionary. Works with evoked data.
 
-    Reference
+    References:
+
+    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+    non-stationary source activations
+    Neuroimage, (to appear)
+
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Functional Brain Imaging with M/EEG Using Structured Sparsity in
     Time-Frequency Dictionaries

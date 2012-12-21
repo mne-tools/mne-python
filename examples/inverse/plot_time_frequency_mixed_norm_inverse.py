@@ -3,7 +3,13 @@
 Compute MxNE with time-frequency sparse prior
 =============================================
 
-See
+References:
+
+A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+non-stationary source activations
+Neuroimage, (to appear)
+
 A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
 Functional Brain Imaging with M/EEG Using Structured Sparsity in
 Time-Frequency Dictionaries
@@ -88,3 +94,12 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
                              fig_number=setno, modes=['sphere'],
                              scale_factors=[2.])
+
+time_label = 'TF-MxNE time=%0.2f ms'
+brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,
+                 fmax=20e-9, time_label=time_label, smoothing_steps=5,
+                 subjects_dir=data_path + '/subjects')
+brain.show_view('medial')
+brain.set_data_time_index(120)
+brain.add_label("V1", color="yellow", scalar_thresh=.5, borders=True)
+brain.add_label("V2", color="red", scalar_thresh=.5, borders=True)
