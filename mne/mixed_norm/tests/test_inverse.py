@@ -3,8 +3,6 @@
 #
 # License: Simplified BSD
 
-import time
-
 import os.path as op
 import copy
 import numpy as np
@@ -61,28 +59,25 @@ stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
 stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
 weights_min = 0.5
 
+
 def test_mxne_inverse():
     """Test MxNE inverse computation"""
     alpha = 60  # spatial regularization parameter
 
-    tic_prox = time.time()
     stc_prox = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
                      maxit=1000, tol=1e-8, active_set_size=10, solver='prox')
-    toc_prox = time.time()
-    tic_cd = time.time()
     stc_cd = mixed_norm(evoked, forward, cov, alpha, loose=None, depth=0.9,
                      maxit=1000, tol=1e-8, active_set_size=10, solver='cd')
-    toc_cd = time.time()
     assert_array_almost_equal(stc_prox.times, evoked.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked.times, 5)
     assert_array_almost_equal(stc_prox.data, stc_cd.data, 5)
-    assert_true(stc_prox.vertno[1][0] in label.vertices)
-    assert_true(stc_cd.vertno[1][0] in label.vertices)
+    assert_true(stc_prox.vertno[1][0] in rh_label.vertices)
+    assert_true(stc_cd.vertno[1][0] in rh_label.vertices)
 
-    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=None, depth=depth,
-                     maxit=500, tol=1e-4, active_set_size=10,
-                     weights=stc_dspm, weights_min=weights_min,
-                     return_residual=True)
+    stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
+                        depth=depth, maxit=500, tol=1e-4, active_set_size=10,
+                        weights=stc_dspm, weights_min=weights_min,
+                        return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertno[1][0] in rh_label['vertices'])
