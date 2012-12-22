@@ -133,14 +133,14 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
 
-# Join the detected artifact indices.
-exclude = np.r_[ecg_source_idx, eog_source_idx]
+# Join the detected artifact indices and add to ica.exclusion list
+
+ica.exclude.extend(np.r_[ecg_source_idx, eog_source_idx])
 
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving data.
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude,
-                               n_pca_components=64, copy=True)
+raw_ica = ica.pick_sources_raw(raw, n_pca_components=64, copy=True)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
