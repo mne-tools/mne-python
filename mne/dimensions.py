@@ -19,6 +19,73 @@ class Dimension():
 
 
 
+class UTS(Dimension):
+    """Dimension object for representing uniform time series
+
+    Special Indexing
+    ----------------
+
+    (tstart, tstop) : tuple
+        Restrict the time to the indicated window (either end-point can be
+        None).
+
+    """
+    name = 'time'
+    def __init__(self, tmin, tmax, tstep):
+        times = np.arange(tmin, tmax + tstep / 2., tstep)
+        if times[-1] <= tmax:
+            self.times = times
+        else:
+            self.times = np.arange(tmin, tmax, tstep)
+
+        self.tmin = tmin
+        self.tmax = tmax
+        self.tstep = tstep
+
+    def __repr__(self):
+        return "UTS(%s, %s, %s)"%(self.tmin, self.tmax, self.tstep)
+        
+    def __len__(self):
+        return len(self.times)
+    
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self.times[index]
+        elif isinstance(index, slice):
+            tmin = self.times[index.start]
+            tmax = self.times[index.stop]
+            tstep = self.tstep * index.step
+        else:
+            times = self.times[index]
+            tmin = times[0]
+            tmax = times[-1]
+            steps = np.unique(np.diff(times))
+            if len(steps) > 1:
+                raise NotImplementedError("non-uniform time series")
+            tstep = steps[0]
+                
+        return UTS(tmin, tmax, tstep)
+    
+    def dimindex(self, arg):
+        if isinstance(arg, tuple) and len(arg) == 2:
+            tstart, tstop = arg
+            if tstart is None:
+                start = None
+            else:
+                start, _ = find_time_point(self.times, start)
+
+            if tstop is None:
+                stop = None
+            else:
+                stop, _ = find_time_point(self.times, stop)
+
+            s = slice(start, stop)
+            return s
+        else:
+            return arg
+        
+        
+
 class SourceSpace:
     name = 'source'
     """
@@ -96,10 +163,7 @@ class SourceSpace:
         return idx + base
 
     def label_index(self, label):
-        """Returns a SourceEstimate object restricted to a label
-
-        SourceEstimate contains the time course of
-        activation of all sources inside the label.
+        """Returns the index for a label
 
         Parameters
         ----------
@@ -122,38 +186,38 @@ class SourceSpace:
 
 
 
-def find_time_point(timevar, time):
+def find_time_point(times, time):
     """
-    Returns (index, time) for the closest point to ``time`` in ``timevar``
+    Returns (index, time) for the closest point to ``time`` in ``times``
 
-    timevar : array-like 1d
-        Monotonically increasing values.
+    times : array, 1d
+        Monotonically increasing time values.
     time : scalar
         Time point for which to find a match.
 
     """
-    if time in timevar:
-        i = np.where(timevar == time)[0][0]
+    if time in times:
+        i = np.where(times == time)[0][0]
     else:
-        gr = (timevar > time)
+        gr = (times > time)
         if np.all(gr):
-            if timevar[1] - timevar[0] > timevar[0] - time:
-                return 0, timevar[0]
+            if times[1] - times[0] > times[0] - time:
+                return 0, times[0]
             else:
-                name = repr(timevar.name) if hasattr(timevar, 'name') else ''
+                name = repr(times.name) if hasattr(times, 'name') else ''
                 raise ValueError("time=%s lies outside array %r" % (time, name))
         elif np.any(gr):
             i_next = np.where(gr)[0][0]
-        elif timevar[-1] - timevar[-2] > time - timevar[-1]:
-            return len(timevar) - 1, timevar[-1]
+        elif times[-1] - times[-2] > time - times[-1]:
+            return len(times) - 1, times[-1]
         else:
-            name = repr(timevar.name) if hasattr(timevar, 'name') else ''
+            name = repr(times.name) if hasattr(times, 'name') else ''
             raise ValueError("time=%s lies outside array %r" % (time, name))
-        t_next = timevar[i_next]
+        t_next = times[i_next]
 
-        sm = timevar < time
+        sm = times < time
         i_prev = np.where(sm)[0][-1]
-        t_prev = timevar[i_prev]
+        t_prev = times[i_prev]
 
         if (t_next - time) < (time - t_prev):
             i = i_next

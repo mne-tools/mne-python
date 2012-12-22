@@ -5,7 +5,7 @@ Created on Dec 21, 2012
 '''
 import numpy as np
 
-from .dimensions import DimensionMismatchError, find_time_point
+from .dimensions import DimensionMismatchError, SourceSpace, UTS
 
 
 
@@ -465,7 +465,7 @@ class NdVar(object):
         dims = list(self.dims)
         index = [slice(None)] * len(dims)
 
-        for name, args in kwargs.iteritems():
+        for name, arg in kwargs.iteritems():
             try:
                 dimax = self._dim_2_ax[name]
                 dim = self.dims[dimax]
@@ -474,38 +474,16 @@ class NdVar(object):
                 raise DimensionMismatchError(err)
 
             if hasattr(dim, 'dimindex'):
-                args = dim.dimindex(args)
-
-            if np.isscalar(args):
-                if name == 'sensor':
-                    i, value = args, args
-                else:
-                    i, value = find_time_point(dim, args)
-                index[dimax] = i
-                dims[dimax] = None
-                info[name] = value
-            elif isinstance(args, tuple) and len(args) == 2:
-                start, end = args
-                if start is None:
-                    i0 = None
-                else:
-                    i0, _ = find_time_point(dim, start)
-
-                if end is None:
-                    i1 = None
-                else:
-                    i1, _ = find_time_point(dim, end)
-
-                s = slice(i0, i1)
-                dims[dimax] = dim[s]
-                index[dimax] = s
+                i = dim.dimindex(arg)
             else:
-                index[dimax] = args
-                if name == 'sensor':
-                    dims[dimax] = dim.get_subnet(args)
-                else:
-                    dims[dimax] = dim[args]
-                info[name] = args
+                i = arg
+
+            index[dimax] = i
+            if np.isscalar(i):
+                dims[dimax] = None
+                info[name] = arg
+            else:
+                dims[dimax] = dim[arg]
 
         # create subdata object
         x = self.x[index]
