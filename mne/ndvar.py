@@ -9,8 +9,7 @@ from .dimensions import DimensionMismatchError, find_time_point
 
 
 
-class ndvar(object):
-    _stype_ = "ndvar"
+class NdVar(object):
     def __init__(self, x, dims=('case',), info=None, name=None, properties=None):
         """
         Arguments
@@ -43,7 +42,7 @@ class ndvar(object):
             >>> dims = ('case', time)
             >>> data.shape
             (600, 80)
-            >>> Y = ndvar(data, dims=dims)
+            >>> Y = NdVar(data, dims=dims)
 
         """
         # check data shape
@@ -112,7 +111,7 @@ class ndvar(object):
         # attr
         for dim in truedims:
             if hasattr(self, dim.name):
-                err = ("invalid dimension name: %r (already present as ndvar"
+                err = ("invalid dimension name: %r (already present as NdVar"
                        " attr)" % dim.name)
                 raise ValueError(err)
             else:
@@ -127,10 +126,8 @@ class ndvar(object):
 
     # numeric ---
     def _align(self, other):
-        "align data from 2 ndvars"
-        if isvar(other):
-            return self.dims, self.x, self._ialign(other)
-        elif isndvar(other):
+        "align data from 2 NdVars"
+        if isinstance(other, NdVar):
             i_self = list(self.dimnames)
             dims = list(self.dims)
             i_other = []
@@ -157,25 +154,17 @@ class ndvar(object):
 
     def _ialign(self, other):
         "align for self-modifying operations (+=, ...)"
-        if isvar(other):
-            assert self.has_case
-            n = len(other)
-            shape = (n,) + (1,) * (self.x.ndim - 1)
-            return other.x.reshape(shape)
-        elif isndvar(other):
-            assert all(dim in self.dimnames for dim in other.dimnames)
-            i_other = []
-            for dim in self.dimnames:
-                if dim in other.dimnames:
-                    i_other.append(dim)
-                else:
-                    i_other.append(None)
-            return other.get_data(i_other)
-        else:
-            raise TypeError
+        assert all(dim in self.dimnames for dim in other.dimnames)
+        i_other = []
+        for dim in self.dimnames:
+            if dim in other.dimnames:
+                i_other.append(dim)
+            else:
+                i_other.append(None)
+        return other.get_data(i_other)
 
     def __add__(self, other):
-        if isscalar(other):
+        if isinstance(other, NdVar):
             dims, x_self, x_other = self._align(other)
             x = x_self + x_other
             name = '+'.join((self.name, other.name))
@@ -185,14 +174,14 @@ class ndvar(object):
             name = '+'.join((self.name, str(other)))
         else:
             raise ValueError("can't add %r" % other)
-        return ndvar(x, dims=dims, name=name, info=self.info)
+        return NdVar(x, dims=dims, name=name, info=self.info)
 
     def __iadd__(self, other):
         self.x += self._ialign(other)
         return self
 
     def __sub__(self, other):  # TODO: use dims
-        if isscalar(other):
+        if isinstance(other, NdVar):
             dims, x_self, x_other = self._align(other)
             x = x_self - x_other
             name = '-'.join((self.name, other.name))
@@ -202,7 +191,7 @@ class ndvar(object):
             name = '-'.join((self.name, str(other)))
         else:
             raise ValueError("can't subtract %r" % other)
-        return ndvar(x, dims=dims, name=name, info=self.info)
+        return NdVar(x, dims=dims, name=name, info=self.info)
 
     def __isub__(self, other):
         self.x -= self._ialign(other)
@@ -210,30 +199,27 @@ class ndvar(object):
 
     def __rsub__(self, other):
         x = other - self.x
-        return ndvar(x, self.dims, self.info, name=self.name)
+        return NdVar(x, self.dims, self.info, name=self.name)
 
     # container ---
     def __getitem__(self, index):
-        if isvar(index):
-            index = index.x
-
         if np.iterable(index) or isinstance(index, slice):
             x = self.x[index]
             if x.shape[1:] != self.x.shape[1:]:
                 raise NotImplementedError("Use subdata method when dims are affected")
-            return ndvar(x, dims=self.dims, name=self.name, info=self.info)
+            return NdVar(x, dims=self.dims, name=self.name, info=self.info)
         else:
             index = int(index)
             x = self.x[index]
             dims = self.dims[1:]
             name = '%s_%i' % (self.name, index)
-            return ndvar(x, dims=dims, name=name, info=self.info)
+            return NdVar(x, dims=dims, name=name, info=self.info)
 
     def __len__(self):
         return self._len
 
     def __repr__(self):
-        rep = '<ndvar %(name)r: %(dims)s>'
+        rep = '<NdVar %(name)r: %(dims)s>'
         if self.has_case:
             dims = [(self._len, 'case')]
         else:
@@ -251,18 +237,18 @@ class ndvar(object):
 
     def compress(self, X, func=np.mean, name='{name}'):
         """
-        Return an ndvar with one case for each cell in ``X``.
+        Return an NdVar with one case for each cell in ``X``.
 
         X : categorial
-            Categorial whose cells are used to compress the ndvar.
+            Categorial whose cells are used to compress the NdVar.
         func : function with axis argument
             Function that is used to create a summary of the cases falling
             into each cell of X. The function needs to accept the data as
             first argument and ``axis`` as keyword-argument. Default is
             ``numpy.mean``.
         name : str
-            Name for the resulting ndvar. ``'{name}'`` is formatted to the
-            current ndvar's ``.name``.
+            Name for the resulting NdVar. ``'{name}'`` is formatted to the
+            current NdVar's ``.name``.
 
         """
         if not self.has_case:
@@ -286,7 +272,7 @@ class ndvar(object):
 
         x = np.array(x)
         name = name.format(name=self.name)
-        out = ndvar(x, self.dims, info=info, name=name)
+        out = NdVar(x, self.dims, info=info, name=name)
         return out
 
     def copy(self, name='{name}'):
@@ -340,14 +326,14 @@ class ndvar(object):
         if self.has_dim(name):
             i = self._dim_2_ax[name]
             return self.dims[i]
-        elif name == 'epoch':
-            return var(np.arange(len(self)), 'epoch')
+        elif name == 'case':
+            return np.arange(len(self))
         else:
             msg = "%r has no dimension named %r" % (self, name)
             raise DimensionMismatchError(msg)
 
     def get_dims(self, names):
-        "Returns a tuple with the requested dimension vars"
+        "Returns a tuple with the requested Dimension objects"
         return tuple(self.get_dim(name) for name in names)
 
     def has_dim(self, name):
@@ -368,11 +354,11 @@ class ndvar(object):
         dims = self.dims[:ax] + (repdim,) + self.dims[ax + 1:]
         info = self.info.copy()
         name = name.format(name=self.name)
-        return ndvar(x, dims, info=info, name=name)
+        return NdVar(x, dims, info=info, name=name)
 
     def summary(self, *dims, **regions):
         r"""
-        Returns a new ndvar with specified dimensions collapsed.
+        Returns a new NdVar with specified dimensions collapsed.
 
         .. warning::
             Data is collapsed over the different dimensions in turn using the
@@ -395,7 +381,7 @@ class ndvar(object):
             Function used to collapse the data. Needs to accept an "axis"
             kwarg (default: np.mean)
         name : str
-            Name for the new ndvar. Default: "{func}({name})".
+            Name for the new NdVar. Default: "{func}({name})".
 
 
         Examples
@@ -410,7 +396,7 @@ class ndvar(object):
 
             >>> Y = UTS.summary(time=(.1, .2), func=np.max)
 
-        Assuming MEG is an ndvar with dimensions time and sensor. Get the
+        Assuming MEG is an NdVar with dimensions time and sensor. Get the
         average across sensors 5, 6, and 8 in a time window::
 
             >>> ROI = [5, 6, 8]
@@ -454,13 +440,13 @@ class ndvar(object):
             if len(dims) == 0:
                 return x
             elif dims == ['case']:
-                return var(x, name=name)
+                return x
             else:
-                return ndvar(x, dims=dims, name=name, info=info)
+                return NdVar(x, dims=dims, name=name, info=info)
 
     def subdata(self, **kwargs):
         """
-        returns an ndvar object with a subset of the current ndvar's data.
+        returns an NdVar object with a subset of the current NdVar's data.
         The slice is specified using kwargs, with dimensions as keywords and
         indexes as values, e.g.::
 
@@ -524,4 +510,4 @@ class ndvar(object):
         # create subdata object
         x = self.x[index]
         dims = tuple(dim for dim in dims if dim is not None)
-        return ndvar(x, dims=dims, name=self.name, info=info)
+        return NdVar(x, dims=dims, name=self.name, info=info)
