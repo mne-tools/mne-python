@@ -8,6 +8,7 @@ from scipy import signal
 from copy import deepcopy
 
 from .fixes import firwin2, filtfilt  # back port for old scipy
+from .time_frequency.multitaper import dpss_windows, _mt_spectra
 
 
 def is_power2(num):
@@ -461,6 +462,87 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
     return xf
 
 
+def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
+                     l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                     method='fft', iir_params=dict(order=4, ftype='butter')):
+    """Bandstop filter for the signal x.
+
+    Applies a zero-phase bandstop filter to the signal x.
+
+    Parameters
+    ----------
+    x : 1d array
+        Signal to filter
+    Fs : float
+        Sampling rate in Hz
+    Fp1 : float
+        Low cut-off frequency in Hz
+    Fp2 : float
+        High cut-off frequency in Hz
+    filter_length : int (default: None)
+        Length of the filter to use. If None or "len(x) < filter_length", the
+        filter length used is len(x). Otherwise, overlap-add filtering with a
+        filter of the specified length is used (faster for long signals).
+    l_trans_bandwidth : float
+        Width of the transition band at the low cut-off frequency in Hz.
+    h_trans_bandwidth : float
+        Width of the transition band at the high cut-off frequency in Hz.
+    method : str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt).
+    iir_params : dict
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details.
+
+    Returns
+    -------
+    xf : array
+        x filtered
+
+    Notes
+    -----
+    The frequency response is (approximately) given by
+      ----------                   ----------
+               |\                 /|
+               | \               / |
+               |  \             /  |
+               |   \           /   |
+               |    -----------    |
+               |    |         |    |
+              Fp1  Fs1       Fs2  Fp2
+
+    Where
+    Fs1 = Fp1 - l_trans_bandwidth in Hz
+    Fs2 = Fp2 + h_trans_bandwidth in Hz
+    """
+
+    method = method.lower()
+    if method not in ['fft', 'iir']:
+        raise RuntimeError('method should be fft or iir (not %s)' % method)
+
+    Fs = float(Fs)
+    Fp1 = float(Fp1)
+    Fp2 = float(Fp2)
+    Fs1 = Fp1 + l_trans_bandwidth
+    Fs2 = Fp2 - h_trans_bandwidth
+
+    if Fs1 <= 0:
+        raise ValueError('Filter specification invalid: Lower stop frequency '
+                         'too low (%0.1fHz). Increase Fp1 or reduce '
+                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
+
+    if method == 'fft':
+        xf = _filter(x, Fs, [0, Fp1, Fs1, Fs2, Fp2, Fs / 2],
+                     [1, 1, 0, 0, 1, 1], filter_length)
+    else:
+        iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
+                                          [Fs1, Fs2], Fs, 'bandstop')
+        padlen = min(iir_params['padlen'], len(x))
+        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
+
+    return xf
+
+
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                     method='fft', iir_params=dict(order=4, ftype='butter')):
     """Lowpass filter for the signal x.
@@ -594,6 +676,140 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
 
     return xf
+
+
+def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
+                 method='fft', iir_params=dict(order=4, ftype='butter'),
+                 mt_bandwidth=None):
+    """Notch filter for the signal x.
+
+    Applies a zero-phase notch filter to the signal x.
+
+    Parameters
+    ----------
+    x : 1d array
+        Signal to filter
+    Fs : float
+        Sampling rate in Hz
+    freqs : float | array of float
+        Frequencies to notch filter in Hz.
+    filter_length : int (default: None)
+        Length of the filter to use. If None or "len(x) < filter_length", the
+        filter length used is len(x). Otherwise, overlap-add filtering with a
+        filter of the specified length is used (faster for long signals).
+    trans_bandwidth : float
+        Width of the transition band in Hz.
+    method : str
+        'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+        forward-backward filtering (via filtfilt). 'spectrum_fit' will
+        use multi-taper estimation of sinusoidal components.
+    iir_params : dict
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details.
+    mt_bandwidth : float | None
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'spectrum_fit' mode.
+
+    Returns
+    -------
+    xf : array
+        x filtered
+
+    Notes
+    -----
+    The frequency response is (approximately) given by
+      ----------         -----------
+               |\       /|
+               | \     / |
+               |  \   /  |
+               |   \ /   |
+               |    -    |
+               |    |    |
+              Fp1 freq  Fp2
+
+    For each freq in freqs, where:
+    Fp1 = freq - trans_bandwidth / 2 in Hz
+    Fs2 = freq + trans_bandwidth / 2 in Hz
+
+    References
+    ----------
+    Multi-taper removal is inspired by code from the Chronux toolbox, see
+    www.chronux.org and the book "Observed Brain Dynamics" by Partha Mitra
+    & Hemant Bokil, Oxford University Press, New York, 2008.
+    """
+
+    method = method.lower()
+    if method not in ['fft', 'iir', 'spectrum_fit']:
+        raise RuntimeError('method should be fft, iir, or spectrum_fit '
+                           '(not %s)' % method)
+
+    if np.isscalar(freqs):
+        freqs = [freqs]
+
+    if method in ['fft', 'iir']:
+        xf = x
+        for freq in freqs:
+            xf = band_stop_filter(xf, Fs, freq - trans_bandwidth / 2.0,
+                                  freq + trans_bandwidth / 2.0, filter_length,
+                                  trans_bandwidth / 2.0, trans_bandwidth / 2.0,
+                                  method, iir_params)
+    elif method == 'spectrum_fit':
+        xf = _mt_spectrum_remove(x, Fs, freqs, mt_bandwidth)
+
+    return xf
+
+
+def _mt_spectrum_remove(x, sfreq, line_freqs, mt_bandwidth=None):
+    """Use MT-spectrum to remove line frequencies
+
+    Based on Chronux.
+    """
+    n_times = x.size
+
+    # figure out what tapers to use
+    if mt_bandwidth is not None:
+        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
+    else:
+        half_nbw = 4
+
+    # compute dpss windows
+    n_tapers_max = int(2 * half_nbw)
+    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                       low_bias=False)
+
+    # compute mt_spectrum (returning n_ch, n_tapers n_freq)
+    x_mt, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
+
+    # drop the even ffts (n_ch, n_odd_tapers, n_freqs)
+    n_tapers = len(window_fun)
+    tapers_odd = np.arange(0, 2, n_tapers)
+    x_p = x_mt[:, tapers_odd, :]
+
+    # sum tapers for (used) odd prolates across time (1, n_freqs)
+    H0 = np.sum(window_fun[tapers_odd, :], axis=1)
+
+    # sum of squares across tapers (1, )
+    H0_sq = np.sum(H0 ** 2)
+
+    # sum of the product of x_p and H0 across tapers (1, n_freqs)
+    x_p_H0 = np.sum(x_p * H0[np.newaxis, :, np.newaxis], axis=1)
+
+    # resulting calculated amplitudes for all freqs
+    A = 2 * x_p_H0 / H0_sq
+
+    # remove specified frequencies
+    fits = list()
+    rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
+    for lf in line_freqs:
+        # XXX need to update this to be smarter -- might not work as well for
+        # non-integer freqs (e.g. sample at 250, line at 60) or long arrays
+        index_rm = np.argmin(np.abs(lf - freqs))
+        c = A[0, index_rm]
+        fits.append(np.abs(c) * np.cos(freqs[index_rm] * rads + np.angle(c)))
+
+    # fitted sinusoids are summed, and subtracted from data
+    datafit = np.sum(np.array(fits), axis=0)
+    return x - datafit
 
 
 def resample(x, up, down, npad=100, axis=0, window='boxcar'):

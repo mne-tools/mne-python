@@ -394,6 +394,7 @@ def test_filter():
     """ Test filtering (FIR and IIR) and Raw.apply_function interface """
     raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     sig_dec = 11
+    sig_dec_notch = 13
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
@@ -406,13 +407,18 @@ def test_filter():
     raw_bp = deepcopy(raw)
     raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
 
+    raw_bs = deepcopy(raw)
+    raw_bs.band_stop_filter(4.0 - 0.25, 8.0 + 0.25, picks=picks, n_jobs=2)
+
     data, _ = raw[picks, :]
 
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
+    bs_data, _ = raw_bs[picks, :]
 
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
+    assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
     raw_lp_iir = deepcopy(raw)
     raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
@@ -433,6 +439,16 @@ def test_filter():
     assert_array_equal(data, bp_data)
     bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
     assert_array_equal(data, bp_data_iir)
+
+    # do a very simple check on line filtering
+    raw_bs = deepcopy(raw)
+    with warnings.catch_warnings(True) as w:
+        raw_bs.band_stop_filter(60.0 - 0.5, 60.0 + 0.5, picks=picks, n_jobs=2)
+    data_bs, _ = raw_bs[picks, :]
+    raw_notch = deepcopy(raw)
+    raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+    data_notch, _ = raw_notch[picks, :]
+    assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
 
 def test_crop():
