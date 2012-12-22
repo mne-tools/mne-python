@@ -672,10 +672,10 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
 
-        #if method.lower() == 'iir':
-            #iir_params = construct_iir_filter(iir_params, [l_freq, h_freq],
-            #     [l_freq + l_trans_bandwidth, h_freq - h_trans_bandwidth],
-            #     fs, 'bandstop')
+        if method.lower() == 'iir':
+            iir_params = construct_iir_filter(iir_params, [l_freq, h_freq],
+                 [l_freq + l_trans_bandwidth, h_freq - h_trans_bandwidth],
+                 fs, 'bandstop')
         self.apply_function(band_stop_filter, picks, None, n_jobs, verbose,
                             fs, l_freq, h_freq,
                             filter_length=filter_length,
