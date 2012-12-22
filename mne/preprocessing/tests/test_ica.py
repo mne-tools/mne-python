@@ -179,10 +179,11 @@ def test_ica_additional():
         sources = ica.get_sources_epochs(epochs)
         assert_true(sources.shape[1] == ica.n_components)
 
-        ica.exclude = [0]
-        ica.save(test_ica_fname)
-        ica_read = read_ica(test_ica_fname)
-        assert_true(ica.exclude == ica_read.exclude)
+        for exclude in [[], [0]]:
+            ica.exclude = [0]
+            ica.save(test_ica_fname)
+            ica_read = read_ica(test_ica_fname)
+            assert_true(ica.exclude == ica_read.exclude)
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
