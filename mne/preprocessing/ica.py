@@ -7,6 +7,7 @@
 from copy import deepcopy
 import inspect
 import warnings
+import textwrap
 from inspect import getargspec, isfunction
 
 import os
@@ -134,9 +135,15 @@ class ICA(object):
         If fit, the mixing matrix to restore observed data, else None.
     unmixing_matrix_ : ndarray
         If fit, the matrix to unmix observed data, else None.
-    exclude : list-like
-        List of sources indices to exclude. The indices can be re-used after
-        saving the ICA.
+    exclude : list
+        List of sources indices to exclude, i.e. artifact components identified
+        throughout the ICA session. Indices added to this list, will be
+        dispatched to the .pick_sources methods. Source indices passed to
+        the .pick_sources method via the 'exclude' argument are added to the
+        .exclude attribute. When saving the ICA also the indices are restored.
+        Hence, artifact components once identified don't have to be added again.
+        To dump this 'artifact memory' say:
+        >> ica.exclude = []
     """
     @verbose
     def __init__(self, n_components, max_n_components=100, noise_cov=None,
@@ -178,6 +185,10 @@ class ICA(object):
         s += msg + ('%s components' % str(self.n_ica_components_) if
                     hasattr(self, 'n_ica_components_') else
                     'no dimension reduction') + ')'
+
+        if self.exclude:
+            s = s[:-1] + (', %i sources marked for exclusion)'
+                % len(self.exclude))
 
         return s
 
