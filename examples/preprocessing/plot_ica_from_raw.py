@@ -110,8 +110,9 @@ ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
 # for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.
+# we will directly extend the ica.exclude list by the result.
 
-ecg_source_idx_updated = np.where(np.abs(ecg_scores) ** 2 > .05)[0]
+ica.exclude.extend(np.where(np.abs(ecg_scores) ** 2 > .05)[0])
 
 ###############################################################################
 # Automatically find the EOG component using correlation with EOG signal.
@@ -133,19 +134,18 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
 
-# Join the detected artifact indices and add to ica.exclusion list
-
-ica.exclude.extend(np.r_[ecg_source_idx, eog_source_idx])
+# We now add the eog artifacts to the ica.exclusion list
+ica.exclude += [eog_source_idx]
 
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving data.
-raw_ica = ica.pick_sources_raw(raw, n_pca_components=64, copy=True)
+raw_ica = ica.pick_sources_raw(raw, n_pca_components=64)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
 data, times = raw[picks, start_compare:stop_compare]
-ica_data, _ = raw_ica[picks, start_compare:stop_compare]
+data_clean, _ = raw_ica[picks, start_compare:stop_compare]
 
 pl.figure()
 pl.plot(times, data.T)
@@ -155,7 +155,7 @@ pl.ylabel('Raw MEG data (T)')
 y0, y1 = pl.ylim()
 
 pl.figure()
-pl.plot(times, ica_data.T)
+pl.plot(times, data_clean.T)
 pl.xlabel('time (s)')
 pl.xlim(100, 106)
 pl.ylabel('Denoised MEG data (T)')
@@ -175,7 +175,7 @@ y0, y1 = pl.ylim()
 
 # plot the component that correlates most with the ECG
 pl.figure()
-pl.plot(times, ica_data[affected_idx])
+pl.plot(times, data_clean[affected_idx])
 pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()
