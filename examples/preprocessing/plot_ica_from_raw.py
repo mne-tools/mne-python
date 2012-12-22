@@ -119,8 +119,7 @@ ica.exclude.extend(np.where(np.abs(ecg_scores) ** 2 > .05)[0])
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_scores = ica.find_sources_raw(raw, target='EOG 061',
-                                         score_func=corr)
+eog_scores = ica.find_sources_raw(raw, target='EOG 061', score_func=corr)
 
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
@@ -139,7 +138,7 @@ ica.exclude += [eog_source_idx]
 
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
-# This allows to control the trade-off between denoising and preserving data.
+# This allows to control the trade-off between denoising and preserving signal.
 raw_ica = ica.pick_sources_raw(raw, n_pca_components=64)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])

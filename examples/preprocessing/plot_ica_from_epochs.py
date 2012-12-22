@@ -115,7 +115,7 @@ ica.exclude += [ecg_source_idx, eog_source_idx]
 
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
-# This allows to control the trade-off between denoising and preserving data.
+# This allows to control the trade-off between denoising and preserving signal.
 epochs_ica = ica.pick_sources_epochs(epochs, include=None, n_pca_components=64)
 
 # plot original epochs
