@@ -27,7 +27,8 @@ from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     resample, construct_iir_filter
+                     notch_filter, band_stop_filter, resample, \
+                     construct_iir_filter
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -549,6 +550,138 @@ class Raw(object):
                                 l_trans_bandwidth=l_trans_bandwidth,
                                 h_trans_bandwidth=h_trans_bandwidth,
                                 method=method, iir_params=iir_params)
+
+    @verbose
+    def notch_filter(self, freqs, picks=None, filter_length=None,
+                     trans_bandwidth=1.0, n_jobs=1, method='spectrum_fit',
+                     iir_params=dict(order=4, ftype='butter'),
+                     mt_bandwidth=None, verbose=None):
+        """Notch filter a subset of channels.
+
+        Applies a zero-phase notch filter to the channels selected by
+        "picks". The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+        Parameters
+        ----------
+        freqs : float | array of float
+            Specific frequencies to filter out from data, e.g.,
+            np.arange(60, 60, 300).
+        picks : list of int | None
+            Indices of channels to filter. If None only the data (MEG/EEG)
+            channels will be filtered.
+        filter_length : int (default: None)
+            Length of the filter to use (e.g. 4096).
+            If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+        trans_bandwidth : float
+            Width of the transition band in Hz.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        method : str
+            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            forward-backward filtering (via filtfilt). 'spectrum_fit' will
+            use multi-taper estimation of sinusoidal components.
+        iir_params : dict
+            Dictionary of parameters to use for IIR filtering.
+            See mne.filter.construct_iir_filter for details.
+        mt_bandwidth : float | None
+            The bandwidth of the multitaper windowing function in Hz.
+            Only used in 'spectrum_fit' mode.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Notes
+        -----
+        For details, see mne.filter.notch_filter.
+        """
+        if verbose is None:
+            verbose = self.verbose
+        fs = float(self.info['sfreq'])
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True)
+
+        # make a local copy since we're going to modify it for speed
+        self.apply_function(notch_filter, picks, None, n_jobs, verbose,
+                            fs, freqs, filter_length=filter_length,
+                            trans_bandwidth=trans_bandwidth,
+                            method=method, iir_params=iir_params,
+                            mt_bandwidth=mt_bandwidth)
+
+    @verbose
+    def band_stop_filter(self, l_freq, h_freq, picks=None, filter_length=None,
+                         l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
+                         n_jobs=1, method='fft',
+                         iir_params=dict(order=4, ftype='butter'),
+                         verbose=None):
+        """Filter a subset of channels.
+
+        Applies a zero-phase band-pass filter to the channels selected by
+        "picks". The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+        Note: self.info['lowpass'] and self.info['highpass'] are only updated
+              with picks=None.
+
+        Parameters
+        ----------
+        l_freq : float | None
+            Low cut-off frequency in Hz. If None the data are only low-passed.
+        h_freq : float
+            High cut-off frequency in Hz. If None the data are only
+            high-passed.
+        picks : list of int | None
+            Indices of channels to filter. If None only the data (MEG/EEG)
+            channels will be filtered.
+        filter_length : int (default: None)
+            Length of the filter to use (e.g. 4096).
+            If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+        l_trans_bandwidth : float
+            Width of the transition band at the low cut-off frequency in Hz.
+        h_trans_bandwidth : float
+            Width of the transition band at the high cut-off frequency in Hz.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        method : str
+            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            forward-backward filtering (via filtfilt).
+        iir_params : dict
+            Dictionary of parameters to use for IIR filtering.
+            See mne.filter.construct_iir_filter for details.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        """
+        if verbose is None:
+            verbose = self.verbose
+        fs = float(self.info['sfreq'])
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True)
+
+        #if method.lower() == 'iir':
+            #iir_params = construct_iir_filter(iir_params, [l_freq, h_freq],
+            #     [l_freq + l_trans_bandwidth, h_freq - h_trans_bandwidth],
+            #     fs, 'bandstop')
+        self.apply_function(band_stop_filter, picks, None, n_jobs, verbose,
+                            fs, l_freq, h_freq,
+                            filter_length=filter_length,
+                            l_trans_bandwidth=l_trans_bandwidth,
+                            h_trans_bandwidth=h_trans_bandwidth,
+                            method=method, iir_params=iir_params)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
