@@ -15,7 +15,9 @@ class DimensionMismatchError(Exception):
 
 
 class Dimension():
-    pass
+    def _dimrepr_(self):
+        return repr(self.name)
+
 
 
 
@@ -40,6 +42,12 @@ class UTS(Dimension):
     def __repr__(self):
         return "UTS(%s, %s, %s)" % (self.tmin, self.tstep, self.nsteps)
         
+    def _dimrepr_(self):
+        tmax = self.times[-1]
+        sfreq = 1. / self.tstep
+        r = '%r: %.3f - %.3f s, %s Hz' % (self.name, self.tmin, tmax, sfreq)
+        return r
+
     def __len__(self):
         return len(self.times)
     
@@ -98,7 +106,7 @@ class UTS(Dimension):
         
         
 
-class SourceSpace:
+class SourceSpace(Dimension):
     name = 'source'
     """
     Indexing

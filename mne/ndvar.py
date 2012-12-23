@@ -224,9 +224,9 @@ class NdVar(object):
             dims = [(self._len, 'case')]
         else:
             dims = []
-        dims.extend([(len(dim), dim.name) for dim in self._truedims])
+        dims.extend([(len(dim), dim._dimrepr_()) for dim in self._truedims])
 
-        dims = ' X '.join('%i (%r)' % fmt for fmt in dims)
+        dims = ' X '.join('%i (%s)' % fmt for fmt in dims)
         args = dict(dims=dims)
         args['name'] = repr(self.name) if self.name else ''
         return rep % args
