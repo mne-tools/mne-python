@@ -196,6 +196,10 @@ def test_ica_additional():
             ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
             assert_true(ica.exclude == [0, 1])
 
+            ica_raw = ica.export_sources(raw)
+            assert_true(ica.exclude == [ica.ch_names.index(e) for e in
+                                        ica_raw.info['bads']])
+
         assert_true(ica.ch_names == ica_read.ch_names)
 
         assert_array_equal(ica.mixing_matrix_, ica_read.mixing_matrix_)
