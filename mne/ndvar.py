@@ -6,6 +6,8 @@ Created on Dec 21, 2012
 import numpy as np
 
 from .dimensions import DimensionMismatchError, SourceSpace, UTS
+from . import filter
+from .source_estimate import SourceEstimate
 
 
 
@@ -494,3 +496,57 @@ class NdVar(object):
         x = self.x[index]
         dims = tuple(dim for dim in dims if dim is not None)
         return NdVar(x, dims=dims, name=self.name, info=info)
+
+
+
+def from_stc(stc, subject='fsaverage', name=None, check=True):
+    """
+    create an NdVar object from one or more mne SourceEstimate object(s)
+
+    stc : SourceEstimate | list of SourceEstimates
+        The source estimate object(s).
+    subject : str
+        MRI subject (used for loading MRI in PySurfer plotting)
+    name : str | None
+        Ndvar name.
+    check : bool
+        If multiple stcs are provided, check if all stcs have the same times
+        and vertices.
+
+    """
+    if isinstance(stc, SourceEstimate):
+        case = False
+        x = stc.data
+    else:
+        case = True
+        stcs = stc
+        stc = stcs[0]
+        if check:
+            vert_lh, vert_rh = stc.vertno
+            times = stc.times
+            for stc_ in stcs[1:]:
+                assert np.all(times == stc_.times)
+                lh, rh = stc_.vertno
+                assert np.all(vert_lh == lh)
+                assert np.all(vert_rh == rh)
+        x = np.array([s.data for s in stcs])
+
+    time = UTS(stc.tmin, stc.tstep, len(stc.times) - 1)
+    ss = SourceSpace(stc.vertno, subject=subject)
+    if case:
+        dims = ('case', ss, time)
+    else:
+        dims = (ss, time)
+
+    return NdVar(x, dims, name=name)
+
+
+
+def resample(ndvar, sfreq, npad=100, window='boxcar'):
+    axis = ndvar.get_axis('time')
+    old_sfreq = 1.0 / ndvar.time.tstep
+    x = filter.resample(ndvar.x, sfreq, old_sfreq, npad, axis, window)
+    tstep = 1. / sfreq
+    time = UTS(ndvar.time.tmin, tstep, x.shape[axis] - 1)
+    dims = ndvar.dims[:axis] + (time,) + ndvar.dims[axis + 1:]
+    return NdVar(x, dims=dims, info=ndvar.info, name=ndvar.name)
