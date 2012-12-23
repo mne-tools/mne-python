@@ -10,7 +10,7 @@ from .dimensions import DimensionMismatchError, SourceSpace, UTS
 
 
 class NdVar(object):
-    def __init__(self, x, dims=('case',), info=None, name=None, properties=None):
+    def __init__(self, x, dims=('case',), info=None, name=None):
         """
         Arguments
         ---------
@@ -82,10 +82,7 @@ class NdVar(object):
 
         # store attributes
         if info is None:
-            if properties is None:
-                state['info'] = {}
-            else:
-                state['info'] = properties.copy()
+            state['info'] = {}
         else:
             state['info'] = info.copy()
 
@@ -212,14 +209,17 @@ class NdVar(object):
             index = int(index)
             x = self.x[index]
             dims = self.dims[1:]
-            name = '%s_%i' % (self.name, index)
+            if self.name:
+                name = '%s_%i' % (self.name, index)
+            else:
+                name = None
             return NdVar(x, dims=dims, name=name, info=self.info)
 
     def __len__(self):
         return self._len
 
     def __repr__(self):
-        rep = '<NdVar %(name)r: %(dims)s>'
+        rep = '<NdVar%(name)s: %(dims)s>'
         if self.has_case:
             dims = [(self._len, 'case')]
         else:
@@ -227,7 +227,8 @@ class NdVar(object):
         dims.extend([(len(dim), dim.name) for dim in self._truedims])
 
         dims = ' X '.join('%i (%r)' % fmt for fmt in dims)
-        args = dict(name=self.name, dims=dims)
+        args = dict(dims=dims)
+        args['name'] = repr(self.name) if self.name else ''
         return rep % args
 
     def assert_dims(self, dims):
@@ -483,7 +484,7 @@ class NdVar(object):
                 dims[dimax] = None
                 info[name] = arg
             else:
-                dims[dimax] = dim[arg]
+                dims[dimax] = dim[i]
 
         # create subdata object
         x = self.x[index]
