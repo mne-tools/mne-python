@@ -13,7 +13,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
-from mne import concatenate_events, find_events
+from mne import concatenate_events, find_events, set_log_file
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -395,6 +395,7 @@ def test_filter():
     raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     sig_dec = 11
     sig_dec_notch = 13
+    sig_dec_notch_fit = 12
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
@@ -444,11 +445,18 @@ def test_filter():
     raw_bs = deepcopy(raw)
     with warnings.catch_warnings(True) as w:
         raw_bs.band_stop_filter(60.0 - 0.5, 60.0 + 0.5, picks=picks, n_jobs=2)
-    data_bs, _ = raw_bs[picks, :]
-    raw_notch = deepcopy(raw)
-    raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+        data_bs, _ = raw_bs[picks, :]
+        raw_notch = deepcopy(raw)
+        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
+
+    # now use the sinusoidal fitting
+    raw_notch = deepcopy(raw)
+    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    data_notch, _ = raw_notch[picks, :]
+    data, _ = raw[picks, :]
+    assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
 
 def test_crop():

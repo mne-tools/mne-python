@@ -555,7 +555,7 @@ class Raw(object):
     def notch_filter(self, freqs, picks=None, filter_length=None,
                      trans_bandwidth=1.0, n_jobs=1, method='spectrum_fit',
                      iir_params=dict(order=4, ftype='butter'),
-                     mt_bandwidth=None, verbose=None):
+                     mt_bandwidth=None, p_value=0.05, verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -568,6 +568,10 @@ class Raw(object):
 
         Parameters
         ----------
+        freqs : float | array of float | None
+            Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
+            None can ony be used with the mode 'spectrum_fit', where an F
+            test is used to find sinusoidal components.
         freqs : float | array of float
             Specific frequencies to filter out from data, e.g.,
             np.arange(60, 60, 300).
@@ -594,6 +598,11 @@ class Raw(object):
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
+        p_value : float
+            p-value to use in F-test thresholding to determine sigificant
+            sinusoidal components to remove when method='spectrum_fit' and
+            freqs=None. Note that this will be Bonferroni corrected for the
+            number of frequencies, so large p-values may be justified.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -613,7 +622,7 @@ class Raw(object):
                             fs, freqs, filter_length=filter_length,
                             trans_bandwidth=trans_bandwidth,
                             method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth)
+                            mt_bandwidth=mt_bandwidth, p_value=p_value)
 
     @verbose
     def band_stop_filter(self, l_freq, h_freq, picks=None, filter_length=None,

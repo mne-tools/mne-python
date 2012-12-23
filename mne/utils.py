@@ -304,7 +304,7 @@ def set_log_level(verbose=None, return_old_level=False):
         For bool, True is the same as 'INFO', False is the same as 'WARNING'.
         If None, the environment variable MNE_LOG_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
-    return_old_verbose : bool
+    return_old_level : bool
         If True, return the old verbosity level.
     """
     if verbose is None:
