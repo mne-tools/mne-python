@@ -16,15 +16,19 @@ What you're not supposed to do with MNE Python
 
     - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
     - **Raw data visualization** done with *mne_browse_raw* (see :ref:`ch_browse`)
-    - **MNE source estimates visualization** done with *mne_analyze* (see :ref:`ch_interactive_analysis`)
 
 What you can do with MNE Python
 -------------------------------
 
-    - **Epoching**: Define epochs, baseline correction etc.
+    - **Epoching**: Define epochs, baseline correction, handle conditions etc.
     - **Averaging** to get Evoked data
-    - **Linear inverse solvers** (dSPM, MNE)
+	- **Compute SSP pojectors** to remove ECG and EOG artifacts
+    - **Compute ICA** to remove artifacts or select latent sources.
+	- **Linear inverse solvers** (dSPM, MNE)
+	- **Connectivity estimation** in sensor and source space
+    - **MNE source estimates visualization**
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
+	- **Spectrum estimation** using multi-taper method
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
@@ -59,6 +63,25 @@ Get the code
   For the latest development version (the most up to date)::
 
       pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+	  
+	  
+Make life easier
+~~~~~~~~~~~~~~~~
+	
+  For optimal performance we recommend using numpy / scipy with the multi-threaded
+  ATLAS, gotoblas2, or intel MKL. The EPD python distribution for example ships with
+  tested MKL-compiled numpy / scipy verisons. Depending on the use case and your system
+  this may speed up operations by a factor greater than 10.
+  
+  The expected location for the MNE-sample data is my-path-to/mne-python/examples.
+  If you downloaded data and an example asks you whether to download it again, make sure
+  the data reside in the examples directory and you run the script from its current directory.
+  
+  From IPython e.g. say::
+  	
+	cd examples/preprocessing
+	
+	run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -153,9 +176,9 @@ and the last one is the event number. It is therefore easy to manipulate.
 
 Define epochs parameters:
 
-    >>> event_id = 1  # the event number in events
+    >>> event_id = dict(aud_l=1, aud_r=2)  # event trigger and conditions 
     >>> tmin = -0.2  # start of each epoch (200ms before the trigger)
-    >>> tmax = 0.5  # end of each epoch (500ms after the trigget)
+    >>> tmax = 0.5  # end of each epoch (500ms after the trigger)
 
 Exclude some channels (bads + 2 more):
 
@@ -187,11 +210,11 @@ Read epochs:
     4 projection items activated
     72 matching events found
     >>> print epochs
-    Epochs (n_events : 72 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
+    Epochs (n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
 
-Get single epochs:
+Get single epochs for one condition:
 
-    >>> epochs_data = epochs.get_data() # doctest: +ELLIPSIS
+    >>> epochs_data = epochs['aud_l'].get_data() # doctest: +ELLIPSIS
     Reading ...
     >>> print epochs_data.shape
     (55, 365, 106)
@@ -214,14 +237,13 @@ and read them later with:
     >>> saved_epochs = mne.read_epochs('sample-epo.fif') # doctest: +ELLIPSIS
     Reading ...
 
-Compute evoked responses by averaging and plot it:
+Compute evoked responses for auditory responses by averaging and plot it:
 
-    >>> evoked = epochs.average() # doctest: +ELLIPSIS
+    >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
     Reading ...
     >>> print evoked
     Evoked (comment : Unknown, time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106)
-    >>> from mne.viz import plot_evoked
-    >>> plot_evoked(evoked) # doctest:+SKIP
+    >>> evoked.plot() # doctest:+SKIP
 
 .. figure:: _images/plot_read_epochs.png
     :alt: Evoked data
@@ -230,7 +252,7 @@ Compute evoked responses by averaging and plot it:
 
   1. Extract the max value of each epoch
 
-  >>> max_in_each_epoch = [e.max() for e in epochs] # doctest:+ELLIPSIS
+  >>> max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
   Reading ...
   >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
   [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
@@ -262,6 +284,7 @@ Or another one stored in the same file:
 Compute a contrast:
 
     >>> contrast = evoked1 - evoked2
+	
     >>> print contrast
     Evoked (comment : Left Auditory - Right Auditory, time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421)
 
@@ -358,12 +381,20 @@ Save result in stc files:
 
 What else can you do?
 ^^^^^^^^^^^^^^^^^^^^^
-
-    - morph stc from one brain to another for group studies
-    - estimate power in the source space
-    - estimate noise covariance matrix from Raw and Epochs
+	
     - detect heart beat QRS component
     - detect eye blinks and EOG artifacts
+	- compute SSP projections to remove ECG or EOG artifacts
+	- compute Independent Component Analysis (ICA) to remove artifacts or select
+	  latent sources
+    - estimate noise covariance matrix from Raw and Epochs
+	- visualize cross-trial response dynamics using epochs images- estimate power in the source space
+	- estimate connectivity in sensor and source space
+    - morph stc from one brain to another for group studies
+	- visualize source estimates 
+	- export raw, epochs, and evoked data to other python data analysis libraries
+	  i.e. pandas and nitime 
+    
 
 Want to know more ?
 ^^^^^^^^^^^^^^^^^^^
