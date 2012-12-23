@@ -184,6 +184,17 @@ def test_ica_additional():
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
             assert_true(ica.exclude == ica_read.exclude)
+            # test pick merge -- add components
+            ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
+            #                 -- only as arg
+            ica.exclude = []
+            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
+            #                 -- remove duplicates
+            ica.exclude += [1]
+            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
