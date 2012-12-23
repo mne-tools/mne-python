@@ -31,19 +31,14 @@ class UTS(Dimension):
 
     """
     name = 'time'
-    def __init__(self, tmin, tmax, tstep):
-        times = np.arange(tmin, tmax + tstep / 2., tstep)
-        if times[-1] <= tmax:
-            self.times = times
-        else:
-            self.times = np.arange(tmin, tmax, tstep)
-
+    def __init__(self, tmin, tstep, nsteps):
+        self.nsteps = nsteps = int(nsteps)
+        self.times = np.arange(tmin, tmin + tstep * (nsteps + 1), tstep)
         self.tmin = tmin
-        self.tmax = tmax
         self.tstep = tstep
 
     def __repr__(self):
-        return "UTS(%s, %s, %s)"%(self.tmin, self.tmax, self.tstep)
+        return "UTS(%s, %s, %s)" % (self.tmin, self.tstep, self.nsteps)
         
     def __len__(self):
         return len(self.times)
@@ -52,32 +47,49 @@ class UTS(Dimension):
         if isinstance(index, int):
             return self.times[index]
         elif isinstance(index, slice):
-            tmin = self.times[index.start]
-            tmax = self.times[index.stop]
-            tstep = self.tstep * index.step
+            if index.start is None:
+                start = 0
+            else:
+                start = index.start
+                
+            if index.stop is None:
+                stop = len(self)
+            else:
+                stop = index.stop
+            
+            tmin = self.times[start]
+            nsteps = stop - start - 1
+
+            if index.step is None:
+                tstep = self.tstep
+            else:
+                tstep = self.tstep * index.step
         else:
             times = self.times[index]
             tmin = times[0]
-            tmax = times[-1]
+            nsteps = len(times)
             steps = np.unique(np.diff(times))
             if len(steps) > 1:
                 raise NotImplementedError("non-uniform time series")
             tstep = steps[0]
                 
-        return UTS(tmin, tmax, tstep)
+        return UTS(tmin, tstep, nsteps)
     
     def dimindex(self, arg):
+        if np.isscalar(arg):
+            i, _ = find_time_point(self.times, arg)
+            return i
         if isinstance(arg, tuple) and len(arg) == 2:
             tstart, tstop = arg
             if tstart is None:
                 start = None
             else:
-                start, _ = find_time_point(self.times, start)
+                start, _ = find_time_point(self.times, tstart)
 
             if tstop is None:
                 stop = None
             else:
-                stop, _ = find_time_point(self.times, stop)
+                stop, _ = find_time_point(self.times, tstop)
 
             s = slice(start, stop)
             return s
