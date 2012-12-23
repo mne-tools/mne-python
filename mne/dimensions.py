@@ -41,7 +41,7 @@ class UTS(Dimension):
 
     def __repr__(self):
         return "UTS(%s, %s, %s)" % (self.tmin, self.tstep, self.nsteps)
-        
+
     def _dimrepr_(self):
         tmax = self.times[-1]
         sfreq = 1. / self.tstep
@@ -50,7 +50,7 @@ class UTS(Dimension):
 
     def __len__(self):
         return len(self.times)
-    
+
     def __getitem__(self, index):
         if isinstance(index, int):
             return self.times[index]
@@ -59,12 +59,12 @@ class UTS(Dimension):
                 start = 0
             else:
                 start = index.start
-                
+
             if index.stop is None:
                 stop = len(self)
             else:
                 stop = index.stop
-            
+
             tmin = self.times[start]
             nsteps = stop - start - 1
 
@@ -80,9 +80,9 @@ class UTS(Dimension):
             if len(steps) > 1:
                 raise NotImplementedError("non-uniform time series")
             tstep = steps[0]
-                
+
         return UTS(tmin, tstep, nsteps)
-    
+
     def dimindex(self, arg):
         if np.isscalar(arg):
             i, _ = find_time_point(self.times, arg)
@@ -103,8 +103,8 @@ class UTS(Dimension):
             return s
         else:
             return arg
-        
-        
+
+
 
 class SourceSpace(Dimension):
     name = 'source'
