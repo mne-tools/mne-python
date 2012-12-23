@@ -184,7 +184,7 @@ pl.show()
 
 from mne.layouts import make_grid_layout
 
-ica_raw = ica.export_sources(raw, start=start, stop=stop, picks=None)
+ica_raw = ica.sources_as_raw(raw, start=start, stop=stop, picks=None)
 
 print ica_raw.ch_names
 
