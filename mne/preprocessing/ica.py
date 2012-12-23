@@ -7,6 +7,7 @@
 from copy import deepcopy
 import inspect
 import warnings
+import textwrap
 from inspect import getargspec, isfunction
 
 import os
@@ -26,7 +27,8 @@ from ..cov import compute_whitener
 from .. import Covariance
 from ..fiff import pick_types, pick_channels
 from ..fiff.write import write_double_matrix, write_string, \
-                         write_name_list, start_block, end_block
+                         write_name_list, write_int, start_block, \
+                         end_block
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
@@ -133,6 +135,15 @@ class ICA(object):
         If fit, the mixing matrix to restore observed data, else None.
     unmixing_matrix_ : ndarray
         If fit, the matrix to unmix observed data, else None.
+    exclude : list
+        List of sources indices to exclude, i.e. artifact components identified
+        throughout the ICA session. Indices added to this list, will be
+        dispatched to the .pick_sources methods. Source indices passed to
+        the .pick_sources method via the 'exclude' argument are added to the
+        .exclude attribute. When saving the ICA also the indices are restored.
+        Hence, artifact components once identified don't have to be added again.
+        To dump this 'artifact memory' say:
+        >> ica.exclude = []
     """
     @verbose
     def __init__(self, n_components, max_n_components=100, noise_cov=None,
@@ -159,6 +170,7 @@ class ICA(object):
         self.algorithm = algorithm
         self.fun = fun
         self.fun_args = fun_args
+        self.exclude = []
 
     def __repr__(self):
         s = 'ICA '
@@ -173,6 +185,10 @@ class ICA(object):
         s += msg + ('%s components' % str(self.n_ica_components_) if
                     hasattr(self, 'n_ica_components_') else
                     'no dimension reduction') + ')'
+
+        if self.exclude:
+            s = s[:-1] + (', %i sources marked for exclusion)'
+                % len(self.exclude))
 
         return s
 
@@ -446,6 +462,7 @@ class ICA(object):
 
         # update number of channels
         out.info['nchan'] = len(picks) + self.n_ica_components_
+        out.info['bads'] = [self.ch_names[k] for k in self.exclude]
 
         return out
 
@@ -693,8 +710,15 @@ class ICA(object):
             raise ValueError('Currently no raw data fitted.'
                              'Please fit raw data first.')
 
+        if exclude is None:
+            self.exclude = list(set(self.exclude))
+        else:
+            self.exclude = list(set(self.exclude + exclude))
+            logger.info('Adding sources %s to .exclude' % ', '.join(
+                        [str(i) for i in exclude if i not in self.exclude]))
+
         sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
-        recomposed = self._pick_sources(sources, pca_data, include, exclude,
+        recomposed = self._pick_sources(sources, pca_data, include, self.exclude,
                                         n_pca_components)
 
         if copy is True:
@@ -742,9 +766,16 @@ class ICA(object):
         if copy is True:
             epochs = epochs.copy()
 
+        if exclude is None:
+            self.exclude = list(set(self.exclude))
+        else:
+            self.exclude = list(set(self.exclude + exclude))
+            logger.info('Adding sources %s to .exclude' % ', '.join(
+                        [str(i) for i in exclude if i not in self.exclude]))
+
         # put sources-dimension first for selection
-        recomposed = self._pick_sources(sources, pca_data, include, exclude,
-                                        n_pca_components)
+        recomposed = self._pick_sources(sources, pca_data, include,
+                                        self.exclude, n_pca_components)
         # restore epochs, channels, tsl order
         epochs._data[:, picks] = np.array(np.split(recomposed,
                                           len(epochs.events), 1))
@@ -1076,6 +1107,10 @@ def _write_ica(fid, ica):
     #   ICA unmixing
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_MATRIX, ica.unmixing_matrix_)
 
+    #   Write bad components
+
+    write_int(fid, FIFF.FIFF_MNE_ICA_BADS, ica.exclude)
+
     # Done!
     end_block(fid, FIFF.FIFFB_ICA)
 
@@ -1128,6 +1163,9 @@ def read_ica(fname):
         elif kind == FIFF.FIFF_MNE_ICA_MATRIX:
             tag = read_tag(fid, pos)
             unmixing_matrix = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_BADS:
+            tag = read_tag(fid, pos)
+            exclude = tag.data
 
     fid.close()
 
@@ -1149,6 +1187,7 @@ def read_ica(fname):
     ica.pca_explained_variance_ = pca_explained_variance
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
+    ica.exclude = exclude.tolist()
     logger.info('Ready.')
 
     return ica

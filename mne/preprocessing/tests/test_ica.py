@@ -179,8 +179,26 @@ def test_ica_additional():
         sources = ica.get_sources_epochs(epochs)
         assert_true(sources.shape[1] == ica.n_components)
 
-        ica.save(test_ica_fname)
-        ica_read = read_ica(test_ica_fname)
+        for exclude in [[], [0]]:
+            ica.exclude = [0]
+            ica.save(test_ica_fname)
+            ica_read = read_ica(test_ica_fname)
+            assert_true(ica.exclude == ica_read.exclude)
+            # test pick merge -- add components
+            ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
+            #                 -- only as arg
+            ica.exclude = []
+            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
+            #                 -- remove duplicates
+            ica.exclude += [1]
+            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            assert_true(ica.exclude == [0, 1])
+
+            ica_raw = ica.export_sources(raw)
+            assert_true(ica.exclude == [ica.ch_names.index(e) for e in
+                                        ica_raw.info['bads']])
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
