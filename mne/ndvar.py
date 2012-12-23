@@ -295,9 +295,13 @@ class NdVar(object):
         dims : sequence of str and None
             List of dimension names. The array that is returned will have axes
             in this order. None can be used to increase the insert a dimension
-            with size 1.
+            with size 1. Accessing a single dimension can be abbreviated by
+            providing a str.
 
         """
+        if isinstance(dims, str):
+            dims = (dims,)
+
         if set(dims).difference([None]) != set(self.dimnames):
             err = "Requested dimensions %r from %r" % (dims, self)
             raise DimensionMismatchError(err)
