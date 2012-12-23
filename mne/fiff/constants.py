@@ -347,6 +347,7 @@ FIFF.FIFF_MNE_ICA_PCA_COMPONENTS    = 3604     # PCA components
 FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3605     # PCA explained variance
 FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3606     # PCA mean
 FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
+FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 #
 # Fiff values associated with MNE computations
 #
