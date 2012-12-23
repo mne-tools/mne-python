@@ -399,7 +399,7 @@ class ICA(object):
             raise inst
         end_file(fid)
 
-    def export_sources(self, raw, picks=None, start=None, stop=None):
+    def sources_as_raw(self, raw, picks=None, start=None, stop=None):
         """Export sources as raw object
 
         Parameters
