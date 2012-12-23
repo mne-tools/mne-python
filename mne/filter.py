@@ -4,11 +4,15 @@ import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
 from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
-from scipy import signal
+from scipy import signal, stats
 from copy import deepcopy
+
+import logging
+logger = logging.getLogger('mne')
 
 from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
+from . import verbose
 
 
 def is_power2(num):
@@ -678,9 +682,10 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     return xf
 
 
+@verbose
 def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
                  method='fft', iir_params=dict(order=4, ftype='butter'),
-                 mt_bandwidth=None):
+                 mt_bandwidth=None, p_value=0.05, verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x.
@@ -691,8 +696,10 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
         Signal to filter
     Fs : float
         Sampling rate in Hz
-    freqs : float | array of float
-        Frequencies to notch filter in Hz.
+    freqs : float | array of float | None
+        Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
+        None can ony be used with the mode 'spectrum_fit', where an F
+        test is used to find sinusoidal components.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -702,13 +709,23 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt). 'spectrum_fit' will
-        use multi-taper estimation of sinusoidal components.
+        use multi-taper estimation of sinusoidal components. If freqs=None
+        and method='spectrum_fit', significant sinusoidal components
+        are detected using an F test, and noted by logging.
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
+    p_value : float
+        p-value to use in F-test thresholding to determine sigificant
+        sinusoidal components to remove when method='spectrum_fit' and
+        freqs=None. Note that this will be Bonferroni corrected for the
+        number of frequencies, so large p-values may be justified.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
 
     Returns
     -------
@@ -735,7 +752,8 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
     ----------
     Multi-taper removal is inspired by code from the Chronux toolbox, see
     www.chronux.org and the book "Observed Brain Dynamics" by Partha Mitra
-    & Hemant Bokil, Oxford University Press, New York, 2008.
+    & Hemant Bokil, Oxford University Press, New York, 2008. Please
+    cite this in publications if method 'spectrum_fit' is used.
     """
 
     method = method.lower()
@@ -745,6 +763,9 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
 
     if np.isscalar(freqs):
         freqs = [freqs]
+    elif freqs is None and method != 'spectrum_fit':
+        raise ValueError('freqs=None can only be used with method '
+                         'spectrum_fit')
 
     if method in ['fft', 'iir']:
         xf = x
@@ -754,12 +775,16 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
                                   trans_bandwidth / 2.0, trans_bandwidth / 2.0,
                                   method, iir_params)
     elif method == 'spectrum_fit':
-        xf = _mt_spectrum_remove(x, Fs, freqs, mt_bandwidth)
+        xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, mt_bandwidth,
+                                           p_value=p_value)
+        logger.info('Detected notch frequencies:\n%s'
+                    % ', '.join([str(f) for f in rm_freqs]))
 
     return xf
 
 
-def _mt_spectrum_remove(x, sfreq, line_freqs, mt_bandwidth=None):
+def _mt_spectrum_remove(x, sfreq, line_freqs=None, mt_bandwidth=None,
+                        p_value=0.05, return_rm=False):
     """Use MT-spectrum to remove line frequencies
 
     Based on Chronux.
@@ -777,39 +802,76 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, mt_bandwidth=None):
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
                                        low_bias=False)
 
-    # compute mt_spectrum (returning n_ch, n_tapers n_freq)
-    x_mt, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
-
-    # drop the even ffts (n_ch, n_odd_tapers, n_freqs)
+    # drop the even tapers
     n_tapers = len(window_fun)
-    tapers_odd = np.arange(0, 2, n_tapers)
-    x_p = x_mt[:, tapers_odd, :]
+    tapers_odd = np.arange(0, n_tapers, 2)
+    tapers_even = np.arange(1, n_tapers, 2)
+    tapers_use = window_fun[tapers_odd]
 
-    # sum tapers for (used) odd prolates across time (1, n_freqs)
-    H0 = np.sum(window_fun[tapers_odd, :], axis=1)
+    # sum tapers for (used) odd prolates across time (n_tapers, 1)
+    H0 = np.sum(tapers_use, axis=1)
 
     # sum of squares across tapers (1, )
     H0_sq = np.sum(H0 ** 2)
 
-    # sum of the product of x_p and H0 across tapers (1, n_freqs)
-    x_p_H0 = np.sum(x_p * H0[np.newaxis, :, np.newaxis], axis=1)
-
-    # resulting calculated amplitudes for all freqs
-    A = 2 * x_p_H0 / H0_sq
-
-    # remove specified frequencies
-    fits = list()
+    # make "time" vector
     rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
-    for lf in line_freqs:
-        # XXX need to update this to be smarter -- might not work as well for
-        # non-integer freqs (e.g. sample at 250, line at 60) or long arrays
-        index_rm = np.argmin(np.abs(lf - freqs))
-        c = A[0, index_rm]
-        fits.append(np.abs(c) * np.cos(freqs[index_rm] * rads + np.angle(c)))
+    fits = list()
+    if line_freqs is None:
+        # figure out which freqs to remove using F stat
 
-    # fitted sinusoids are summed, and subtracted from data
-    datafit = np.sum(np.array(fits), axis=0)
-    return x - datafit
+        # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
+        x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
+
+        # sum of the product of x_p and H0 across tapers (1, n_freqs)
+        x_p_H0 = np.sum(x_p[:, tapers_odd, :] *
+                        H0[np.newaxis, :, np.newaxis], axis=1)
+
+        # resulting calculated amplitudes for all freqs
+        A = x_p_H0 / H0_sq
+
+        # estimated coefficient
+        x_hat = A * H0[:, np.newaxis]
+
+        # numerator for F-statistic
+        num = (n_tapers - 1) * (np.abs(A) ** 2) * H0_sq
+        # denominator for F-statistic
+        den = (np.sum(np.abs(x_p[:, tapers_odd, :] - x_hat) ** 2, 1) +
+               np.sum(np.abs(x_p[:, tapers_even, :]) ** 2, 1))
+        den[den == 0] = np.inf
+        f_stat = num / den
+        # F-stat of 1-p point
+        threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * n_tapers - 2)
+
+        # find frequencies to remove
+        indices = np.where(f_stat > threshold)[1]
+        rm_freqs = freqs[indices]
+        for ind in indices:
+            c = 2 * A[0, ind]
+            fit = np.abs(c) * np.cos(freqs[ind] * rads + np.angle(c))
+            fits.append(fit)
+    else:
+        # directly compute specified inner prodcts
+        rm_freqs = line_freqs
+        for lf in line_freqs:
+            e = np.cos(lf * rads) + np.complex(0, 1) * np.sin(lf * rads)
+            x_p = np.sum(e * (x[np.newaxis, :] * tapers_use), axis=1)
+
+            # sum of the product of x_p and H0 across tapers (scalar)
+            x_p_H0 = np.sum(x_p * H0, axis=0)
+
+            # resulting calculated amplitudes for all freqs
+            c = 2 * x_p_H0 / H0_sq
+            fit = np.real(c) * np.real(e) + np.imag(c) * np.imag(e)
+            fits.append(fit)
+
+    if len(fits) == 0:
+        datafit = 0.0
+    else:
+        # fitted sinusoids are summed, and subtracted from data
+        datafit = np.sum(np.atleast_2d(fits), axis=0)
+
+    return x - datafit, rm_freqs
 
 
 def resample(x, up, down, npad=100, axis=0, window='boxcar'):

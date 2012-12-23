@@ -1,5 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_almost_equal
+from nose.tools import assert_true, assert_raises
+import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
@@ -7,27 +9,50 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        band_stop_filter, resample, construct_iir_filter, \
                        notch_filter
 
+from mne import set_log_file
+from mne.utils import _TempDir
+
+tempdir = _TempDir()
+log_file = op.join(tempdir, 'temp_log.txt')
+
+
 def test_notch_filters():
     """Test notch filtering
     """
-    Fs = 500.0
-    sig_len_secs = 60
+    # let's use an ugly, prime Fs for fun
+    Fs = 487.0
+    sig_len_secs = 20
     t = np.arange(0, sig_len_secs * Fs) / Fs
-    freqs = 60 * np.arange(1, 4)
+    freqs = np.arange(60, 241, 60)
 
     # make a "signal"
+    np.random.seed(0)
     a = np.random.randn(sig_len_secs * Fs)
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
 
-    # test notch filtering
-    methods = ['fft', 'fft', 'iir', 'spectrum_fit']
-    filter_lengths = [None, 8192, None, None]
-    tols = [2, 2, 1, 3]
-    for meth, fl, tol in zip(methods, filter_lengths, tols):
-        print meth
-        b = notch_filter(a, Fs, freqs, filter_length=fl, method=meth)
+    # only allow None line_freqs with 'spectrum_fit' mode
+    assert_raises(ValueError, notch_filter, a, Fs, None, 'fft')
+    assert_raises(ValueError, notch_filter, a, Fs, None, 'iir')
+    methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
+    filter_lengths = [None, None, None, 8192, None]
+    line_freqs = [None, freqs, freqs, freqs, freqs]
+    tols = [2, 1, 1, 1]
+    for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
+        if lf is None:
+            set_log_file(log_file)
+
+        b = notch_filter(a, Fs, lf, filter_length=fl, method=meth,
+                         verbose='INFO')
+
+        if lf is None:
+            set_log_file()
+            out = open(log_file).readlines()
+            if len(out) != 2:
+                raise ValueError('Detected frequencies not logged properly')
+            out = np.fromstring(out[1], sep=', ')
+            assert_array_almost_equal(out, freqs)
         new_power = np.sqrt(np.mean(b ** 2))
         assert_almost_equal(new_power, orig_power, tol)
 
@@ -35,7 +60,7 @@ def test_notch_filters():
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters"""
     Fs = 500
-    sig_len_secs = 60
+    sig_len_secs = 30
 
     # Filtering of short signals (filter length = len(a))
     a = np.random.randn(sig_len_secs * Fs)
