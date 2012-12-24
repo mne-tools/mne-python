@@ -208,7 +208,7 @@ Read epochs:
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
     Created an SSP operator (subspace dimension = 4)
     4 projection items activated
-    72 matching events found
+    145 matching events found
     >>> print epochs
     Epochs (n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
 
@@ -384,17 +384,15 @@ What else can you do?
 	
     - detect heart beat QRS component
     - detect eye blinks and EOG artifacts
-	- compute SSP projections to remove ECG or EOG artifacts
-	- compute Independent Component Analysis (ICA) to remove artifacts or select
-	  latent sources
+    - compute SSP projections to remove ECG or EOG artifacts
+    - compute Independent Component Analysis (ICA) to remove artifacts or select latent sources
     - estimate noise covariance matrix from Raw and Epochs
     - visualize cross-trial response dynamics using epochs images
     - estimate power in the source space
     - estimate connectivity in sensor and source space
     - morph stc from one brain to another for group studies
-	- visualize source estimates 
-	- export raw, epochs, and evoked data to other python data analysis libraries
-	  i.e. pandas and nitime 
+    - visualize source estimates 
+    - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
     
 
 Want to know more ?
