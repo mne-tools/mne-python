@@ -8,8 +8,9 @@ This is the classes and functions reference of mne-python.
    :no-members:
    :no-inherited-members:
 
-Classes reference
-=================
+
+Classes
+=======
 
 .. autosummary::
    :toctree: generated/
@@ -24,8 +25,44 @@ Classes reference
    mne.BiHemiLabel
    mne.preprocessing.ICA
 
-Functions reference
-===================
+
+Connectivity Analysis
+=====================
+
+.. automodule:: mne.connectivity
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.connectivity
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   spectral_connectivity
+   seed_target_indices
+
+
+Data Simulation
+===============
+
+.. automodule:: mne.simulation
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.simulation
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   generate_evoked
+   select_source_in_label
+   generate_sparse_stc
+
+   
+Events
+======
 
 .. currentmodule:: mne
 
@@ -33,72 +70,79 @@ Functions reference
    :toctree: generated/
    :template: function.rst
 
-   read_cov
-   write_cov
-   compute_covariance
-   compute_raw_data_covariance
-   read_events
-   write_events
    find_events
    merge_events
    pick_events
    make_fixed_length_events
    concatenate_events
-   read_forward_solution
-   apply_forward
-   apply_forward_raw
-   extract_label_time_course
-   read_label
-   labels_from_parc
-   label_sign_flip
-   write_label
-   stc_to_label
-   grow_labels
-   read_bem_surfaces
-   read_surface
-   write_bem_surface
-   read_source_spaces
-   vertex_to_mni
-   read_epochs
-   read_stc
-   write_stc
-   read_w
-   write_w
-   read_source_estimate
-   morph_data
-   morph_data_precomputed
-   compute_morph_matrix
-   grade_to_tris
-   grade_to_vertices
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatial_dist_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
-   save_stc_as_volume
    parse_config
-   read_reject_parameters
-   transform_coordinates
+
+.. currentmodule:: mne.epochs
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   combine_event_ids
+   equalize_epoch_counts
+
+
+
+File I/O
+========
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   mne.fiff.Raw
+   mne.fiff.Evoked
+   mne.Covariance
+
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   read_cov
+   write_cov
+   read_events
+   write_events
+   read_forward_solution
+   read_label
+   write_label
+   read_bem_surfaces
+   write_bem_surface
+   read_surface
+   read_source_spaces
+   read_epochs
+   read_source_estimate
+   save_stc_as_volume
    read_trans
    write_trans
    read_proj
    write_proj
-   compute_proj_epochs
-   compute_proj_evoked
-   compute_proj_raw
    read_selection
    read_dip
-   set_log_level
-   set_log_file
-   verbose
-   fiff.pick_types
-   fiff.pick_channels
-   fiff.pick_types_evoked
-   fiff.pick_channels_regexp
-   fiff.pick_channels_forward
-   fiff.pick_types_forward
-   fiff.pick_channels_cov
+
+
+Forward Modeling
+================
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   compute_covariance
+   compute_raw_data_covariance
+   apply_forward
+   apply_forward_raw
+
+
+Inverse Solutions
+=================
 
 .. automodule:: mne.minimum_norm
   :no-members:
@@ -146,22 +190,9 @@ Functions reference
    lcmv_epochs
    lcmv_raw
 
-.. automodule:: mne.stats
- :no-members:
- :no-inherited-members:
 
-.. currentmodule:: mne.stats
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   permutation_t_test
-   permutation_cluster_test
-   permutation_cluster_1samp_test
-   spatio_temporal_cluster_1samp_test
-   fdr_correction
-   bonferroni_correction
+Plotting
+========
 
 .. automodule:: mne.viz
  :no-members:
@@ -185,6 +216,10 @@ Functions reference
    circular_layout
    plot_connectivity_circle
    mne_analyze_colormap
+
+
+Preprocessing
+=============
 
 .. automodule:: mne.preprocessing
  :no-members:
@@ -223,14 +258,95 @@ Functions reference
  :no-members:
  :no-inherited-members:
 
-.. currentmodule:: mne.epochs
+
+Projections
+===========
+
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   combine_event_ids
-   equalize_epoch_counts
+   read_reject_parameters
+   transform_coordinates
+   compute_proj_epochs
+   compute_proj_evoked
+   compute_proj_raw
+
+
+Sensor Space
+============
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fiff.pick_types
+   fiff.pick_channels
+   fiff.pick_types_evoked
+   fiff.pick_channels_regexp
+   fiff.pick_channels_forward
+   fiff.pick_types_forward
+   fiff.pick_channels_cov
+
+
+Source Space
+============
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   extract_label_time_course
+   labels_from_parc
+   label_sign_flip
+   stc_to_label
+   grow_labels
+
+   vertex_to_mni
+
+   morph_data
+   morph_data_precomputed
+   compute_morph_matrix
+
+   grade_to_tris
+   grade_to_vertices
+   spatial_src_connectivity
+   spatial_tris_connectivity
+   spatial_dist_connectivity
+   spatio_temporal_src_connectivity
+   spatio_temporal_tris_connectivity
+   spatio_temporal_dist_connectivity
+   
+
+Statistics
+==========
+
+.. automodule:: mne.stats
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.stats
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   permutation_t_test
+   permutation_cluster_test
+   permutation_cluster_1samp_test
+   spatio_temporal_cluster_1samp_test
+   fdr_correction
+   bonferroni_correction
+
+
+Time-Frequency Analysis
+=======================
 
 .. automodule:: mne.time_frequency
  :no-members:
@@ -252,29 +368,16 @@ Functions reference
    stft
    istft
 
-.. automodule:: mne.connectivity
- :no-members:
- :no-inherited-members:
 
-.. currentmodule:: mne.connectivity
+Verbosity
+=========
 
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   spectral_connectivity
-   seed_target_indices
-
-.. automodule:: mne.simulation
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.simulation
+.. currentmodule:: mne
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   generate_evoked
-   select_source_in_label
-   generate_sparse_stc
+   set_log_level
+   set_log_file
+   verbose
