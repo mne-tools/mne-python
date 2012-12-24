@@ -18,7 +18,11 @@ import cPickle
 import re
 import urllib2
 
-import PIL
+try:
+    from PIL import Image
+except:
+    import Image
+
 import matplotlib
 matplotlib.use('Agg')
 
@@ -341,7 +345,7 @@ def make_thumbnail(in_fname, out_fname, width, height):
     """Make a thumbnail with the same aspect ratio centered in an
        image with a given width and height
     """
-    img = PIL.Image.open(in_fname)
+    img = Image.open(in_fname)
     width_in, height_in = img.size
     scale_w = width / float(width_in)
     scale_h = height / float(height_in)
@@ -355,10 +359,10 @@ def make_thumbnail(in_fname, out_fname, width, height):
     height_sc = int(round(scale * height_in))
 
     # resize the image
-    img.thumbnail((width_sc, height_sc), PIL.Image.ANTIALIAS)
+    img.thumbnail((width_sc, height_sc), Image.ANTIALIAS)
 
     # insert centered
-    thumb = PIL.Image.new('RGB', (width, height), (255, 255, 255))
+    thumb = Image.new('RGB', (width, height), (255, 255, 255))
     pos_insert = ((width - width_sc) / 2, (height - height_sc) / 2)
     thumb.paste(img, pos_insert)
 
