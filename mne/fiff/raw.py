@@ -520,7 +520,6 @@ class Raw(object):
             if l_freq is not None and l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
 
-        # make a local copy since we're going to modify it for speed
         if l_freq is None and h_freq is not None:
             if method.lower() == 'iir':
                 iir_params = construct_iir_filter(iir_params, h_freq,
@@ -553,8 +552,8 @@ class Raw(object):
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length=None,
-                     trans_bandwidth=1.0, n_jobs=1, method='spectrum_fit',
-                     iir_params=dict(order=4, ftype='butter'),
+                     notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
                      mt_bandwidth=None, p_value=0.05, verbose=None):
         """Notch filter a subset of channels.
 
@@ -584,6 +583,9 @@ class Raw(object):
             (n_times: number of timepoints in Raw object) the filter length
             used is n_times. Otherwise, overlap-add filtering with a
             filter of the specified length is used (faster for long signals).
+        notch_widths : float | array of float | None
+            Width of each stop band (centred at each freq in freqs) in Hz.
+            If None, freqs / 200 is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
         n_jobs : int
@@ -617,9 +619,9 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
 
-        # make a local copy since we're going to modify it for speed
         self.apply_function(notch_filter, picks, None, n_jobs, verbose,
                             fs, freqs, filter_length=filter_length,
+                            notch_widths=notch_widths,
                             trans_bandwidth=trans_bandwidth,
                             method=method, iir_params=iir_params,
                             mt_bandwidth=mt_bandwidth, p_value=p_value)
@@ -645,8 +647,8 @@ class Raw(object):
 
         Parameters
         ----------
-        l_freq : float | None
-            Low cut-off frequency in Hz. If None the data are only low-passed.
+        l_freq : float
+            Low cut-off frequency in Hz.
         h_freq : float
             High cut-off frequency in Hz. If None the data are only
             high-passed.
