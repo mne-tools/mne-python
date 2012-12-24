@@ -479,9 +479,9 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Signal to filter
     Fs : float
         Sampling rate in Hz
-    Fp1 : float
+    Fp1 : float | array of float
         Low cut-off frequency in Hz
-    Fp2 : float
+    Fp2 : float | array of float
         High cut-off frequency in Hz
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
@@ -523,26 +523,39 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
     method = method.lower()
     if method not in ['fft', 'iir']:
         raise RuntimeError('method should be fft or iir (not %s)' % method)
+    Fp1 = np.atleast_1d(Fp1)
+    Fp2 = np.atleast_1d(Fp2)
+    if not len(Fp1) == len(Fp2):
+        raise ValueError('Fp1 and Fp2 must be the same length')
 
     Fs = float(Fs)
-    Fp1 = float(Fp1)
-    Fp2 = float(Fp2)
+    Fp1 = Fp1.astype(float)
+    Fp2 = Fp2.astype(float)
     Fs1 = Fp1 + l_trans_bandwidth
     Fs2 = Fp2 - h_trans_bandwidth
 
-    if Fs1 <= 0:
+    if np.any(Fs1 <= 0):
         raise ValueError('Filter specification invalid: Lower stop frequency '
                          'too low (%0.1fHz). Increase Fp1 or reduce '
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fp1, Fs1, Fs2, Fp2, Fs / 2],
-                     [1, 1, 0, 0, 1, 1], filter_length)
+        freqs = np.r_[0, Fp1, Fs1, Fs2, Fp2, Fs / 2]
+        mags = np.r_[1, np.ones_like(Fp1), np.zeros_like(Fs1),
+                     np.zeros_like(Fs2), np.ones_like(Fp2), 1]
+        order = np.argsort(freqs)
+        freqs = freqs[order]
+        mags = mags[order]
+        if np.any(np.abs(np.diff(mags, 2)) > 1):
+            raise ValueError('Stop bands are not sufficiently separated.')
+        xf = _filter(x, Fs, freqs, mags, filter_length)
     else:
-        iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
-                                          [Fs1, Fs2], Fs, 'bandstop')
-        padlen = min(iir_params['padlen'], len(x))
-        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
+        for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
+            iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
+                                                  [fs_1, fs_2], Fs, 'bandstop')
+            padlen = min(iir_params_new['padlen'], len(x))
+            xf = filtfilt(iir_params_new['b'], iir_params_new['a'],
+                          x, padlen=padlen)
 
     return xf
 
@@ -683,9 +696,10 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 @verbose
-def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
-                 method='fft', iir_params=dict(order=4, ftype='butter'),
-                 mt_bandwidth=None, p_value=0.05, verbose=None):
+def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
+                 trans_bandwidth=1, method='fft',
+                 iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
+                 p_value=0.05, verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x.
@@ -704,6 +718,9 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    notch_widths : float | array of float | None
+        Width of the stop band (centred at each freq in freqs) in Hz.
+        If None, freqs / 200 is used.
     trans_bandwidth : float
         Width of the transition band in Hz.
     method : str
@@ -761,34 +778,58 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
         raise RuntimeError('method should be fft, iir, or spectrum_fit '
                            '(not %s)' % method)
 
-    if np.isscalar(freqs):
-        freqs = [freqs]
-    elif freqs is None and method != 'spectrum_fit':
-        raise ValueError('freqs=None can only be used with method '
-                         'spectrum_fit')
+    if freqs is not None:
+        freqs = np.atleast_1d(freqs)
+    elif method != 'spectrum_fit':
+            raise ValueError('freqs=None can only be used with method '
+                             'spectrum_fit')
+
+    # Only have to deal with notch_widths for non-autodetect
+    if freqs is not None:
+        if notch_widths is None:
+            notch_widths = freqs / 200.0
+        elif np.any(notch_widths < 0):
+            raise ValueError('notch_widths must be >= 0')
+        else:
+            notch_widths = np.atleast_1d(notch_widths)
+            if len(notch_widths) == 1:
+                notch_widths = notch_widths[0] * np.ones_like(freqs)
+            elif len(notch_widths) != len(freqs):
+                raise ValueError('notch_widths must be None, scalar, or the '
+                                 'same length as freqs')
 
     if method in ['fft', 'iir']:
         xf = x
-        for freq in freqs:
-            xf = band_stop_filter(xf, Fs, freq - trans_bandwidth / 2.0,
-                                  freq + trans_bandwidth / 2.0, filter_length,
-                                  trans_bandwidth / 2.0, trans_bandwidth / 2.0,
-                                  method, iir_params)
+        # Speed this up by computing the fourier coefficients once
+        tb_2 = trans_bandwidth / 2.0
+        lows = [freq - nw / 2.0 - tb_2
+                for freq, nw in zip(freqs, notch_widths)]
+        highs = [freq + nw / 2.0 + tb_2
+                 for freq, nw in zip(freqs, notch_widths)]
+        xf = band_stop_filter(xf, Fs, lows, highs, filter_length, tb_2, tb_2,
+                              method, iir_params)
     elif method == 'spectrum_fit':
-        xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, mt_bandwidth,
-                                           p_value=p_value)
-        logger.info('Detected notch frequencies:\n%s'
-                    % ', '.join([str(f) for f in rm_freqs]))
+        xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, notch_widths,
+                                           mt_bandwidth, p_value)
+        if freqs is None:
+            if len(rm_freqs) > 0:
+                logger.info('Detected notch frequencies:\n%s'
+                            % ', '.join([str(f) for f in rm_freqs]))
+            else:
+                logger.info('Detected notch frequecies:\nNone')
 
     return xf
 
 
-def _mt_spectrum_remove(x, sfreq, line_freqs=None, mt_bandwidth=None,
-                        p_value=0.05):
+def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
+                        mt_bandwidth, p_value):
     """Use MT-spectrum to remove line frequencies
 
-    Based on Chronux.
+    Based on Chronux. If line_freqs is specified, all freqs within notch_width
+    of each line_freq is set to zero.
     """
+    # XXX it would be good to implement the moving window version for long
+    # raw files
     n_times = x.size
 
     # figure out what tapers to use
@@ -816,19 +857,19 @@ def _mt_spectrum_remove(x, sfreq, line_freqs=None, mt_bandwidth=None,
 
     # make "time" vector
     rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
-    fits = list()
+
+    # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
+    x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
+
+    # sum of the product of x_p and H0 across tapers (1, n_freqs)
+    x_p_H0 = np.sum(x_p[:, tapers_odd, :] *
+                    H0[np.newaxis, :, np.newaxis], axis=1)
+
+    # resulting calculated amplitudes for all freqs
+    A = x_p_H0 / H0_sq
+
     if line_freqs is None:
         # figure out which freqs to remove using F stat
-
-        # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
-        x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
-
-        # sum of the product of x_p and H0 across tapers (1, n_freqs)
-        x_p_H0 = np.sum(x_p[:, tapers_odd, :] *
-                        H0[np.newaxis, :, np.newaxis], axis=1)
-
-        # resulting calculated amplitudes for all freqs
-        A = x_p_H0 / H0_sq
 
         # estimated coefficient
         x_hat = A * H0[:, np.newaxis]
@@ -846,24 +887,22 @@ def _mt_spectrum_remove(x, sfreq, line_freqs=None, mt_bandwidth=None,
         # find frequencies to remove
         indices = np.where(f_stat > threshold)[1]
         rm_freqs = freqs[indices]
-        for ind in indices:
-            c = 2 * A[0, ind]
-            fit = np.abs(c) * np.cos(freqs[ind] * rads + np.angle(c))
-            fits.append(fit)
     else:
-        # directly compute specified inner prodcts
-        rm_freqs = line_freqs
-        for lf in line_freqs:
-            e = np.cos(lf * rads) + np.complex(0, 1) * np.sin(lf * rads)
-            x_p = np.sum(e * (x[np.newaxis, :] * tapers_use), axis=1)
+        # specify frequencies
+        indices_1 = np.unique([np.argmin(np.abs(freqs - lf))
+                               for lf in line_freqs])
+        notch_widths /= 2.0
+        indices_2 = [np.logical_and(freqs > lf - nw, freqs < lf + nw)
+                     for lf, nw in zip(line_freqs, notch_widths)]
+        indices_2 = np.where(np.any(np.array(indices_2), axis=0))[0]
+        indices = np.unique(np.r_[indices_1, indices_2])
+        rm_freqs = freqs[indices]
 
-            # sum of the product of x_p and H0 across tapers (scalar)
-            x_p_H0 = np.sum(x_p * H0, axis=0)
-
-            # resulting calculated amplitudes for all freqs
-            c = 2 * x_p_H0 / H0_sq
-            fit = np.real(c) * np.real(e) + np.imag(c) * np.imag(e)
-            fits.append(fit)
+    fits = list()
+    for ind in indices:
+        c = 2 * A[0, ind]
+        fit = np.abs(c) * np.cos(freqs[ind] * rads + np.angle(c))
+        fits.append(fit)
 
     if len(fits) == 0:
         datafit = 0.0

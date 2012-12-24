@@ -394,7 +394,7 @@ def test_filter():
     """ Test filtering (FIR and IIR) and Raw.apply_function interface """
     raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     sig_dec = 11
-    sig_dec_notch = 13
+    sig_dec_notch = 12
     sig_dec_notch_fit = 12
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
