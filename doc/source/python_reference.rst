@@ -118,6 +118,7 @@ File I/O
    read_surface
    read_source_spaces
    read_epochs
+   read_reject_parameters
    read_source_estimate
    save_stc_as_volume
    read_trans
@@ -268,7 +269,6 @@ Projections
    :toctree: generated/
    :template: function.rst
 
-   read_reject_parameters
    transform_coordinates
    compute_proj_epochs
    compute_proj_evoked
