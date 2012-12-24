@@ -784,7 +784,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, trans_bandwidth=1,
 
 
 def _mt_spectrum_remove(x, sfreq, line_freqs=None, mt_bandwidth=None,
-                        p_value=0.05, return_rm=False):
+                        p_value=0.05):
     """Use MT-spectrum to remove line frequencies
 
     Based on Chronux.
