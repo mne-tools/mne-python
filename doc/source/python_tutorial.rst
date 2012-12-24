@@ -22,13 +22,13 @@ What you can do with MNE Python
 
     - **Epoching**: Define epochs, baseline correction, handle conditions etc.
     - **Averaging** to get Evoked data
-	- **Compute SSP pojectors** to remove ECG and EOG artifacts
+    - **Compute SSP pojectors** to remove ECG and EOG artifacts
     - **Compute ICA** to remove artifacts or select latent sources.
-	- **Linear inverse solvers** (dSPM, MNE)
-	- **Connectivity estimation** in sensor and source space
+    - **Linear inverse solvers** (dSPM, MNE)
+    - **Connectivity estimation** in sensor and source space
     - **MNE source estimates visualization**
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
-	- **Spectrum estimation** using multi-taper method
+    - **Spectrum estimation** using multi-taper method
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
@@ -81,7 +81,7 @@ Make life easier
   	
 	cd examples/preprocessing
 	
-	run plot_find_ecg_artifacts.py
+	%run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -388,8 +388,9 @@ What else can you do?
 	- compute Independent Component Analysis (ICA) to remove artifacts or select
 	  latent sources
     - estimate noise covariance matrix from Raw and Epochs
-	- visualize cross-trial response dynamics using epochs images- estimate power in the source space
-	- estimate connectivity in sensor and source space
+    - visualize cross-trial response dynamics using epochs images
+    - estimate power in the source space
+    - estimate connectivity in sensor and source space
     - morph stc from one brain to another for group studies
 	- visualize source estimates 
 	- export raw, epochs, and evoked data to other python data analysis libraries
