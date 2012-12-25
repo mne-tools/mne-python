@@ -2,14 +2,13 @@
 Reference
 =========
 
-This is the classes and functions reference of mne-python. Functions are 
-grouped thematically. In addition, all File I/O functions are collected in 
-a separate section.
-
-
 .. automodule:: mne
    :no-members:
    :no-inherited-members:
+
+This is the classes and functions reference of mne-python. Functions are 
+grouped thematically. In addition, all File I/O functions are collected in 
+a separate section.
 
 
 Classes
@@ -31,8 +30,8 @@ Classes
    SourceEstimate
 
 
-Connectivity Analysis
-=====================
+:py:mod:`mne.connectivity`
+========================== 
 
 .. automodule:: mne.connectivity
  :no-members:
@@ -48,8 +47,8 @@ Connectivity Analysis
    spectral_connectivity
 
 
-Data Simulation
-===============
+:py:mod:`mne.simulation`
+========================
 
 .. automodule:: mne.simulation
  :no-members:
@@ -84,6 +83,13 @@ Events
    read_events
    write_events
 
+
+:py:mod:`mne.epochs`:
+
+.. automodule:: mne.epochs
+ :no-members:
+ :no-inherited-members:
+
 .. currentmodule:: mne.epochs
 
 .. autosummary::
@@ -100,13 +106,16 @@ File I/O
 
 .. currentmodule:: mne
 
+Classes:
+
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
-   mne.fiff.Evoked
-   mne.fiff.Raw
+   fiff.Evoked
+   fiff.Raw
 
+Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -162,6 +171,8 @@ Forward Modeling
 Inverse Solutions
 =================
 
+:py:mod:`mne.minimum_norm`
+
 .. automodule:: mne.minimum_norm
   :no-members:
   :no-inherited-members:
@@ -181,6 +192,8 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
 
+:py:mod:`mne.mixed_norm`:
+
 .. automodule:: mne.mixed_norm
   :no-members:
   :no-inherited-members:
@@ -194,10 +207,12 @@ Inverse Solutions
    mixed_norm
    tf_mixed_norm
 
+:py:mod:`mne.beamformer`
+
 .. automodule:: mne.beamformer
   :no-members:
   :no-inherited-members:
-
+  
 .. currentmodule:: mne.beamformer
 
 .. autosummary::
@@ -209,8 +224,8 @@ Inverse Solutions
    lcmv_raw
 
 
-Plotting
-========
+:py:mod:`mne.viz`
+=================
 
 .. automodule:: mne.viz
  :no-members:
@@ -239,6 +254,8 @@ Plotting
 Preprocessing
 =============
 
+:py:mod:`mne.preprocessing`:
+
 .. automodule:: mne.preprocessing
  :no-members:
  :no-inherited-members:
@@ -257,6 +274,8 @@ Preprocessing
    ica_find_eog_events
    read_ica
 
+:py:mod:`mne.filter`:
+
 .. automodule:: mne.filter
  :no-members:
  :no-inherited-members:
@@ -271,10 +290,6 @@ Preprocessing
    construct_iir_filter
    high_pass_filter
    low_pass_filter
-
-.. automodule:: mne.epochs
- :no-members:
- :no-inherited-members:
 
 
 Projections
@@ -349,8 +364,8 @@ Source Space
    write_label
 
 
-Statistics
-==========
+:py:mod:`mne.stats`
+===================
 
 .. automodule:: mne.stats
  :no-members:
@@ -370,8 +385,8 @@ Statistics
    spatio_temporal_cluster_1samp_test
 
 
-Time-Frequency Analysis
-=======================
+:py:mod:`mne.time_frequency`
+============================
 
 .. automodule:: mne.time_frequency
  :no-members:
