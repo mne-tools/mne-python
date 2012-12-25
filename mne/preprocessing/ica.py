@@ -173,24 +173,20 @@ class ICA(object):
         self.exclude = []
 
     def __repr__(self):
-        s = 'ICA '
         if self.current_fit == 'unfitted':
-            msg = '(no'
+            s = 'no'
         elif self.current_fit == 'raw':
-            msg = '(raw data'
+            s = 'raw data'
         else:
-            msg = '(epochs'
-        msg += ' decomposition, '
-
-        s += msg + ('%s components' % str(self.n_ica_components_) if
-                    hasattr(self, 'n_ica_components_') else
-                    'no dimension reduction') + ')'
-
+            s = 'epochs'
+        s += ' decomposition, '
+        s += ('%s components' % str(self.n_ica_components_) if
+              hasattr(self, 'n_ica_components_') else
+              'no dimension reduction')
         if self.exclude:
-            s = s[:-1] + (', %i sources marked for exclusion)'
-                % len(self.exclude))
+            s += ', %i sources marked for exclusion' % len(self.exclude)
 
-        return s
+        return '<ICA  |  %s>' % s
 
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
@@ -450,8 +446,8 @@ class ICA(object):
             ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
                 logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
                 kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                loc=np.array([0.,  0.,  0.,  1., 0.,  0.,  0.,  1.,
-                              0.,  0.,  0.,  1.], dtype=np.float32),
+                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
+                              0., 0., 0., 1.], dtype=np.float32),
                 unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
                 scanno=i + 1, unit_mul=0, coil_trans=None))
 

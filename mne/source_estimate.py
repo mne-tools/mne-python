@@ -452,7 +452,7 @@ class SourceEstimate(object):
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data size : %s x %s" % self.data.shape
-        return "SourceEstimate (%s)" % s
+        return "<SourceEstimate  |  %s>" % s
 
     def crop(self, tmin=None, tmax=None):
         """Restrict SourceEstimate to a time interval
