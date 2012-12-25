@@ -98,6 +98,9 @@ Changelog
 
    - Function to visualize connectivity as circular graph by `Martin Luessi`_ and `Alex Gramfort`_
 
+   - Time-frequency Mixed Norm Estimates (TF-MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
+
+
 API
 ~~~
    - Added nave parameter to source_induced_power() and source_band_induced_power(), use nave=1 by default (wrong nave was used before).

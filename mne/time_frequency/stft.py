@@ -50,6 +50,7 @@ def stft(x, wsize, tstep=None, verbose=None):
         x = x[None, :]
 
     n_signals, T = x.shape
+    wsize = int(wsize)
 
     ### Errors and warnings ###
     if wsize % 4:
@@ -57,6 +58,8 @@ def stft(x, wsize, tstep=None, verbose=None):
 
     if tstep is None:
         tstep = wsize / 2
+
+    tstep = int(tstep)
 
     if (wsize % tstep) or (tstep % 2):
         raise ValueError('The step size must be a multiple of 2 and a '
