@@ -4,4 +4,4 @@
 #
 # License: Simplified BSD
 
-from .inverse import mixed_norm
+from .inverse import mixed_norm, tf_mixed_norm

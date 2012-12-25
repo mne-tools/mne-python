@@ -130,6 +130,7 @@ Functions reference
    :template: function.rst
 
    mixed_norm
+   tf_mixed_norm
 
 .. automodule:: mne.beamformer
   :no-members:
@@ -248,6 +249,8 @@ Functions reference
    yule_walker
    ar_raw
    iir_filter_raw
+   stft
+   istft
 
 .. automodule:: mne.connectivity
  :no-members:
