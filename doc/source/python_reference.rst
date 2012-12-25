@@ -76,6 +76,8 @@ Events
    make_fixed_length_events
    concatenate_events
    parse_config
+   read_events
+   write_events
 
 .. currentmodule:: mne.epochs
 
@@ -99,7 +101,6 @@ File I/O
 
    mne.fiff.Raw
    mne.fiff.Evoked
-   mne.Covariance
 
 
 .. autosummary::
@@ -138,8 +139,19 @@ Forward Modeling
 
    compute_covariance
    compute_raw_data_covariance
+   read_cov
+   write_cov
+   
    apply_forward
    apply_forward_raw
+   read_forward_solution
+
+   read_trans
+   write_trans
+   read_bem_surfaces
+   write_bem_surface
+   read_surface
+   read_source_spaces
 
 
 Inverse Solutions
@@ -273,6 +285,8 @@ Projections
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw
+   read_proj
+   write_proj
 
 
 Sensor Space
@@ -283,6 +297,10 @@ Sensor Space
 .. autosummary::
    :toctree: generated/
    :template: function.rst
+
+   read_epochs
+   read_selection
+   read_reject_parameters
 
    fiff.pick_types
    fiff.pick_channels
@@ -302,6 +320,9 @@ Source Space
    :toctree: generated/
    :template: function.rst
 
+   read_label
+   write_label
+
    extract_label_time_course
    labels_from_parc
    label_sign_flip
@@ -313,6 +334,8 @@ Source Space
    morph_data
    morph_data_precomputed
    compute_morph_matrix
+   read_source_estimate
+   save_stc_as_volume
 
    grade_to_tris
    grade_to_vertices
@@ -322,6 +345,8 @@ Source Space
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity
+
+   read_dip
    
 
 Statistics
