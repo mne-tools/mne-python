@@ -3,12 +3,24 @@
 Compute MxNE with time-frequency sparse prior
 =============================================
 
+The TF-MxNE solver is a distributed inverse method (like dSPM or sLORETA)
+that promotes focal (sparse) sources (such as dipole fitting techniques).
+The benefit of this approach is that :
+- it is spatio-temporal without assuming stationarity (sources properties
+can vary over time)
+- activations are localized in space, time and frequency in one step.
+- with a built-in filtering process based on a short time Fourier
+transform (STFT), data does not need to be low passed (just high pass
+to make the signals zero mean).
+- the solver solves a convex optimization problem, hence cannot be trapped
+in local minima.
+
 References:
 
 A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
 Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
 non-stationary source activations
-Neuroimage, (to appear)
+Neuroimage, in press as of Dec 2012
 
 A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
 Functional Brain Imaging with M/EEG Using Structured Sparsity in
@@ -40,9 +52,11 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 cov = mne.read_cov(cov_fname)
 
 # Handling average file
-setno = 2
+setno = 'Left visual'
 evoked = fiff.read_evoked(ave_fname, setno=setno, baseline=(None, 0))
 evoked = fiff.pick.pick_channels_evoked(evoked, exclude=evoked.info['bads'])
+# We make the window slightly larger than what you'll eventually be interested
+# in ([-0.05, 0.3]) to avoid edge effects.
 evoked.crop(tmin=-0.1, tmax=0.4)
 
 # Handling forward solution
@@ -56,6 +70,8 @@ cov = mne.cov.regularize(cov, evoked.info)
 
 # alpha_space regularization parameter is between 0 and 100 (100 is high)
 alpha_space = 30.  # spatial regularization parameter
+# alpha_time parameter promotes temporal smoothness
+# (0 means no temporal regularization)
 alpha_time = 1.  # temporal regularization parameter
 
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
@@ -81,19 +97,21 @@ evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
 import pylab as pl
-pl.figure(-1)
+pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-plot_evoked(evoked, ylim=ylim, proj=True)
+plot_evoked(evoked, ylim=ylim, proj=True,
+            titles=dict(grad='Evoked Response (grad)'))
 
-pl.figure(-2)
-plot_evoked(residual, ylim=ylim, proj=True)
+pl.figure()
+plot_evoked(residual, ylim=ylim, proj=True,
+            titles=dict(grad='Residual (grad)'))
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
                              fig_number=setno, modes=['sphere'],
-                             scale_factors=[2.])
+                             scale_factors=[1.])
 
 time_label = 'TF-MxNE time=%0.2f ms'
 brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,
