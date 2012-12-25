@@ -111,8 +111,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         Regularization parameter.
     loose : float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. If loose
+        that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
+        If loose is 1, it corresponds to free orientations.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
@@ -268,7 +269,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02,
-                  return_residual=False, verbose=True):
+                  return_residual=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
     Compute L1/L2 + L1 mixed-norm solution on time frequency
@@ -279,7 +280,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
     non-stationary source activations
-    Neuroimage, (to appear)
+    Neuroimage, in press as of Dec 2012
 
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Functional Brain Imaging with M/EEG Using Structured Sparsity in
@@ -292,45 +293,49 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     Parameters
     ----------
     evoked : instance of Evoked
-        Evoked data to invert
+        Evoked data to invert.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : instance of Covariance
-        Noise covariance to compute whitener
+        Noise covariance to compute whitener.
     alpha_space : float
-        Regularization parameter for spatial sparsity
+        Regularization parameter for spatial sparsity. If larger than 100,
+        then no source will be active.
     alpha_time : float
-        Regularization parameter for spatial sparsity
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
     loose : float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. If loose
+        that are parallel (tangential) to the cortical surface. If loose
         is 0 or None then the solution is computed with fixed orientation.
+        If loose is 1, it corresponds to free orientations.
     depth: None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     maxit : int
-        Maximum number of iterations
+        Maximum number of iterations.
     tol : float
-        Tolerance parameter
+        Tolerance parameter.
     weights: None | array | SourceEstimate
         Weight for penalty in mixed_norm. Can be None or
         1d array of length n_sources or a SourceEstimate e.g. obtained
-        with wMNE or dSPM or fMRI
+        with wMNE or dSPM or fMRI.
     weights_min: float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
     pca: bool
         If True the rank of the data is reduced to true dimension.
     wsize: int
-        length of the STFT window in samples (must be a multiple of 4)
+        Length of the STFT window in samples (must be a multiple of 4).
     tstep: int
-        step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2)
+        Step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
     window : float or (float, float)
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
         and right window length.
     debias: bool
-        Remove coefficient amplitude bias due to L1 penalty
+        Remove coefficient amplitude bias due to L1 penalty.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose: bool
@@ -338,7 +343,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
     Returns
     -------
-    stc : dict
+    stc : instance of SourceEstimate
         Source time courses
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
@@ -360,7 +365,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     M = evoked.data[sel]
 
     # Whiten data
-    print 'Whitening data matrix.'
+    logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
     # Scaling to make setting of alpha easy
@@ -400,7 +405,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     tmin = evoked.times[0]
     tstep = 1.0 / info['sfreq']
     out = _make_sparse_stc(X, active_set, forward, tmin, tstep)
-    print '[done]'
+    logger.info('[done]')
 
     if return_residual:
         out = out, residual

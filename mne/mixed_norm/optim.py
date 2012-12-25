@@ -42,10 +42,10 @@ def norm_l21(A, n_orient, copy=True):
 def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     """proximity operator for l21 norm
 
-    It can eventually take into account the negative frequencies
-    with a complex value is passed as well as n_freq and n
+    L2 over columns and L1 over rows => groups contain n_orient rows.
 
-    (L2 over columns and L1 over rows => groups contain n_orient rows)
+    It can eventually take into account the negative frequencies
+    when a complex value is passed and is_stft=True.
 
     Example
     -------
@@ -280,7 +280,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         The forward operator
     alpha : float
         The regularization parameter. It should be between 0 and 100.
-        A value of 100 will lead to no sources active.
+        A value of 100 will lead to an empty active set (no active source).
     maxit : int
         The number of iterations
     tol : float
@@ -298,12 +298,12 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Returns
     -------
-    X: array
-        The source estimates
-    active_set: array
-        The mask of active sources
-    E: array
-        The cost function over the iterations
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function over the iterations.
     """
     n_dipoles = G.shape[1]
     n_positions = n_dipoles // n_orient
@@ -400,7 +400,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 ###############################################################################
 # TF-MxNE
 
-def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3):
+@verbose
+def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3, verbose=None):
     """Compute lipschitz constant for FISTA
 
     It uses a power iteration method.
@@ -412,7 +413,7 @@ def tf_lipschitz_constant(M, G, phi, phiT, tol=1e-3):
     L = 1e100
     for it in range(100):
         L_old = L
-        print 'Lipschitz estimation: iteration = %d' % it
+        logger.info('Lipschitz estimation: iteration = %d' % it)
         iv = np.real(phiT(v))
         Gv = np.dot(G, iv)
         GtGv = np.dot(G.T, Gv)
@@ -448,7 +449,8 @@ class _Phi(object):
         self.n_coefs = n_coefs
 
     def __call__(self, x):
-        return stft(x, self.wsize, self.tstep, False).reshape(-1, self.n_coefs)
+        return stft(x, self.wsize, self.tstep,
+                    verbose=False).reshape(-1, self.n_coefs)
 
 
 class _PhiT(object):
@@ -465,12 +467,19 @@ class _PhiT(object):
                      self.n_times)
 
 
+@verbose
 def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
-                         n_orient=1, maxit=200, tol=1e-8, verbose=True,
-                         lipschitz_constant=None, debias=True):
+                         n_orient=1, maxit=200, tol=1e-8, log_objective=True,
+                         lipschitz_constant=None, debias=True, verbose=None):
     """Solves TF L21+L1 inverse solver
 
     Algorithm is detailed in:
+
+    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
+    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
+    non-stationary source activations
+    Neuroimage, in press as of Dec 2012
+
     Functional Brain Imaging with M/EEG Using Structured Sparsity in
     Time-Frequency Dictionaries
     Gramfort A., Strohmeier D., Haueisen J., Hamalainen M. and Kowalski M.
@@ -482,42 +491,46 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     Parameters
     ----------
     M : array
-        The data
+        The data.
     G : array
-        The forward operator
+        The forward operator.
     alpha_space : float
         The spatial regularization parameter. It should be between 0 and 100.
     alpha_time : float
         The temporal regularization parameter. The higher it is the smoother
         will be the estimated time series.
     wsize: int
-        length of the STFT window in samples (must be a multiple of 4)
+        length of the STFT window in samples (must be a multiple of 4).
     tstep: int
         step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2)
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     maxit : int
-        The number of iterations
+        The number of iterations.
     tol : float
         If absolute difference between estimates at 2 successive iterations
         is lower than tol, the convergence is reached.
-    verbose : bool
-        Use verbose output
+    log_objective : bool
+        If True, the value of the minimized objective function is computed
+        and stored at every iteration.
     lipschitz_constant : float | None
         The lipschitz constant of the spatio temporal linear operator.
         If None it is estimated.
     debias : bool
-        Debias source estimates
+        Debias source estimates.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    X: array
-        The source estimates
-    active_set: array
-        The mask of active sources
-    E: array
-        The cost function over the iterations
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function at each iteration. If log_objective
+        is False, it will be empty.
     """
     n_sensors, n_times = M.shape
     n_dipoles = G.shape[1]
@@ -535,7 +548,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     if lipschitz_constant is None:
         lipschitz_constant = 1.1 * tf_lipschitz_constant(M, G, phi, phiT)
 
-    print "lipschitz_constant : %s" % lipschitz_constant
+    logger.info("lipschitz_constant : %s" % lipschitz_constant)
 
     t = 1.0
     Y = np.zeros((n_dipoles, n_coefs), dtype=np.complex)  # FISTA aux variable
@@ -547,8 +560,6 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
     for i in xrange(maxit):
-        if not verbose:
-            print "Iteration %d" % i
         Z0, active_set_0 = Z, active_set  # store previous values
 
         if active_set.sum() < len(R) and Y_time_as is not None:
@@ -595,7 +606,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         Y_time_as = phiT(Y[Y_as])
         R = M - np.dot(G[:, Y_as], Y_time_as)
 
-        if verbose:  # log cost function value
+        if log_objective:  # log cost function value
             Z2 = np.abs(Z)
             Z2 **= 2
             X = phiT(Z)
@@ -605,8 +616,10 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
                                              axis=1)).sum()
             E.append(pobj)
-            print "Iteration %d :: pobj %f :: n_active %d" % (i + 1, pobj,
-                                                            np.sum(active_set))
+            logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
+                        pobj, np.sum(active_set)))
+        else:
+            logger.info("Iteration %d" % i + 1)
 
     X = phiT(Z)
 
