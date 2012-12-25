@@ -2,7 +2,10 @@
 Reference
 =========
 
-This is the classes and functions reference of mne-python.
+This is the classes and functions reference of mne-python. Functions are 
+grouped thematically. In addition, all File I/O functions are collected in 
+a separate section.
+
 
 .. automodule:: mne
    :no-members:
