@@ -88,11 +88,11 @@ class ICA(object):
         the number of channels supplied on decomposing data.
     use_n_pca_components
         The number of PCA components used after ICA recomposition. The ensuing
-        attribute allows to balance noise control against potential loss of
+        attribute allows to balance noise reduction against potential loss of
         features due to dimension reduction. If greater than
         self.n_ica_components, the next 'use_n_pca_components' minus
-        'n_ica_components' PCA components will be used to restore the sensor
-        space data. The attribute gets updated each time the according
+        'n_ica_components' PCA components will be added before restoring the
+        sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
@@ -694,8 +694,8 @@ class ICA(object):
             n_ica_components is the lower bound and n_pca_components
             the upper bound. If greater than self.n_ica_components, the next
             'use_n_pca_components' minus 'n_ica_components' PCA components will
-            be used to restore the sensor space data. This can be used to take
-            back the PCA dimension reduction.
+            be added before restoring the sensor space data. This can be used
+            to take back the PCA dimension reduction.
         start : int | None
             The first time index to include.
         stop : int | None
@@ -754,8 +754,8 @@ class ICA(object):
             n_ica_components is the lower bound and n_pca_components
             the upper bound. If greater than self.n_ica_components, the next
             'use_n_pca_components' minus 'n_ica_components' PCA components will
-            be used to restore the sensor space data. This can be used to take
-            back the PCA dimension reduction.
+            be added before restoring the sensor space data. This can be used
+            to take back the PCA dimension reduction.
         copy : bool
             Modify Epochs instance in place or return modified copy.
 
