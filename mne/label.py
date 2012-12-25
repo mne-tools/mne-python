@@ -107,7 +107,7 @@ class Label(dict):
     def __repr__(self):
         name = repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return "<Label %s, %s: %i vertices>" % (name, self.hemi, n_vert)
+        return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         return len(self.vertices)
@@ -270,7 +270,7 @@ class BiHemiLabel(object):
         self.name = name
 
     def __repr__(self):
-        temp = "<BiHemiLabel %s, lh: %i vertices;  rh: %i vertices>"
+        temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
         name = repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
