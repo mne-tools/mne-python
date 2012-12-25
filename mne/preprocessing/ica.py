@@ -125,7 +125,11 @@ class ICA(object):
     ch_names : list-like
         Channel names resulting from initial picking.
     n_pca_components : int
-        The number of PCA dimensions computed.
+        The number of components used for PCA decorrelation.
+    n_ica_components : int
+        The number of components used for ICA decomposition.
+    use_n_pca_components : int
+        See above.
     verbose : bool, str, int, or None
         See above.
     pca_components_ : ndarray
@@ -134,12 +138,6 @@ class ICA(object):
         If fit, the mean vector used to center the data before doing the PCA.
     pca_explained_variance_ : ndarray
         If fit, the variance explained by each PCA component
-    n_pca_components : int
-        The number of components used for PCA decorrelation.
-    n_ica_components : int
-        The number of components used for ICA decomposition.
-    use_n_pca_components : int
-        See above.
     mixing_matrix_ : ndarray
         If fit, the mixing matrix to restore observed data, else None.
     unmixing_matrix_ : ndarray
