@@ -488,7 +488,7 @@ class Epochs(object):
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)
-        return "Epochs (%s)" % s
+        return "<Epochs  |  %s>" % s
 
     def _key_match(self, key):
         """Helper function for event dict use"""

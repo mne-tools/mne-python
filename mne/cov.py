@@ -91,7 +91,7 @@ class Covariance(dict):
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
-        return "Covariance (%s)" % s
+        return "<Covariance  |  %s>" % s
 
     def __add__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
