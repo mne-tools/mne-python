@@ -15,18 +15,20 @@ a separate section.
 Classes
 =======
 
+.. currentmodule:: mne
+
 .. autosummary::
    :toctree: generated/
    :template: class.rst
 
-   mne.BiHemiLabel
-   mne.Covariance
-   mne.Epochs
-   mne.fiff.Evoked
-   mne.fiff.Raw
-   mne.Label
-   mne.preprocessing.ICA
-   mne.SourceEstimate
+   BiHemiLabel
+   Covariance
+   Epochs
+   fiff.Evoked
+   fiff.Raw
+   Label
+   preprocessing.ICA
+   SourceEstimate
 
 
 Connectivity Analysis
