@@ -19,14 +19,14 @@ Classes
    :toctree: generated/
    :template: class.rst
 
-   mne.fiff.Raw
-   mne.fiff.Evoked
-   mne.Epochs
-   mne.Covariance
-   mne.SourceEstimate
-   mne.Label
    mne.BiHemiLabel
+   mne.Covariance
+   mne.Epochs
+   mne.fiff.Evoked
+   mne.fiff.Raw
+   mne.Label
    mne.preprocessing.ICA
+   mne.SourceEstimate
 
 
 Connectivity Analysis
@@ -42,8 +42,8 @@ Connectivity Analysis
    :toctree: generated/
    :template: function.rst
 
-   spectral_connectivity
    seed_target_indices
+   spectral_connectivity
 
 
 Data Simulation
@@ -60,8 +60,8 @@ Data Simulation
    :template: function.rst
 
    generate_evoked
-   select_source_in_label
    generate_sparse_stc
+   select_source_in_label
 
    
 Events
@@ -73,12 +73,12 @@ Events
    :toctree: generated/
    :template: function.rst
 
-   find_events
-   merge_events
-   pick_events
-   make_fixed_length_events
    concatenate_events
+   find_events
+   make_fixed_length_events
+   merge_events
    parse_config
+   pick_events
    read_events
    write_events
 
@@ -102,35 +102,37 @@ File I/O
    :toctree: generated/
    :template: class.rst
 
-   mne.fiff.Raw
    mne.fiff.Evoked
+   mne.fiff.Raw
 
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
+   read_bem_surfaces
    read_cov
-   write_cov
+   read_dip
+   read_epochs
    read_events
-   write_events
    read_forward_solution
    read_label
-   write_label
-   read_bem_surfaces
-   write_bem_surface
-   read_surface
-   read_source_spaces
-   read_epochs
-   read_reject_parameters
-   read_source_estimate
-   save_stc_as_volume
-   read_trans
-   write_trans
    read_proj
-   write_proj
+   read_reject_parameters
    read_selection
-   read_dip
+   read_source_estimate
+   read_source_spaces
+   read_surface
+   read_trans
+   save_stc_as_volume
+   write_bem_surface
+   write_cov
+   write_events
+   write_label
+   write_proj
+   write_source_spaces
+   write_surface
+   write_trans
 
 
 Forward Modeling
@@ -140,21 +142,19 @@ Forward Modeling
    :toctree: generated/
    :template: function.rst
 
-   compute_covariance
-   compute_raw_data_covariance
-   read_cov
-   write_cov
-   
    apply_forward
    apply_forward_raw
-   read_forward_solution
-
-   read_trans
-   write_trans
+   compute_covariance
+   compute_raw_data_covariance
    read_bem_surfaces
-   write_bem_surface
-   read_surface
+   read_cov
+   read_forward_solution
+   read_trans
    read_source_spaces
+   read_surface
+   write_bem_surface
+   write_cov
+   write_trans
 
 
 Inverse Solutions
@@ -170,14 +170,14 @@ Inverse Solutions
    :toctree: generated/
    :template: function.rst
 
-   read_inverse_operator
-   write_inverse_operator
-   make_inverse_operator
    apply_inverse
-   apply_inverse_raw
    apply_inverse_epochs
+   apply_inverse_raw
+   make_inverse_operator
+   read_inverse_operator
    source_band_induced_power
    source_induced_power
+   write_inverse_operator
 
 .. automodule:: mne.mixed_norm
   :no-members:
@@ -220,18 +220,18 @@ Plotting
    :toctree: generated/
    :template: function.rst
 
-   plot_evoked
-   plot_cov
-   plot_topo
-   plot_sparse_source_estimates
-   plot_ica_panel
-   plot_topo_power
-   plot_topo_phase_lock
-   plot_image_epochs
-   plot_topo_image_epochs
    circular_layout
-   plot_connectivity_circle
    mne_analyze_colormap
+   plot_connectivity_circle
+   plot_cov
+   plot_evoked
+   plot_ica_panel
+   plot_image_epochs
+   plot_sparse_source_estimates
+   plot_topo
+   plot_topo_image_epochs
+   plot_topo_phase_lock
+   plot_topo_power
 
 
 Preprocessing
@@ -249,11 +249,11 @@ Preprocessing
 
    compute_proj_ecg
    compute_proj_eog
-   find_eog_events
    find_ecg_events
-   read_ica
-   ica_find_eog_events
+   find_eog_events
    ica_find_ecg_events
+   ica_find_eog_events
+   read_ica
 
 .. automodule:: mne.filter
  :no-members:
@@ -284,11 +284,11 @@ Projections
    :toctree: generated/
    :template: function.rst
 
-   transform_coordinates
    compute_proj_epochs
    compute_proj_evoked
    compute_proj_raw
    read_proj
+   transform_coordinates
    write_proj
 
 
@@ -301,17 +301,17 @@ Sensor Space
    :toctree: generated/
    :template: function.rst
 
-   read_epochs
-   read_selection
-   read_reject_parameters
-
-   fiff.pick_types
    fiff.pick_channels
-   fiff.pick_types_evoked
-   fiff.pick_channels_regexp
-   fiff.pick_channels_forward
-   fiff.pick_types_forward
    fiff.pick_channels_cov
+   fiff.pick_channels_forward
+   fiff.pick_channels_regexp
+   fiff.pick_types
+   fiff.pick_types_evoked
+   fiff.pick_types_forward
+
+   read_epochs
+   read_reject_parameters
+   read_selection
 
 
 Source Space
@@ -323,34 +323,29 @@ Source Space
    :toctree: generated/
    :template: function.rst
 
-   read_label
-   write_label
-
-   extract_label_time_course
-   labels_from_parc
-   label_sign_flip
-   stc_to_label
-   grow_labels
-
-   vertex_to_mni
-
-   morph_data
-   morph_data_precomputed
    compute_morph_matrix
-   read_source_estimate
-   save_stc_as_volume
-
+   extract_label_time_course
    grade_to_tris
    grade_to_vertices
+   grow_labels
+   labels_from_parc
+   label_sign_flip
+   morph_data
+   morph_data_precomputed
+   read_dip
+   read_label
+   read_source_estimate
+   save_stc_as_volume
+   spatial_dist_connectivity
    spatial_src_connectivity
    spatial_tris_connectivity
-   spatial_dist_connectivity
    spatio_temporal_src_connectivity
    spatio_temporal_tris_connectivity
    spatio_temporal_dist_connectivity
+   stc_to_label
+   vertex_to_mni
+   write_label
 
-   read_dip
-   
 
 Statistics
 ==========
@@ -365,12 +360,12 @@ Statistics
    :toctree: generated/
    :template: function.rst
 
-   permutation_t_test
+   bonferroni_correction
+   fdr_correction
    permutation_cluster_test
    permutation_cluster_1samp_test
+   permutation_t_test
    spatio_temporal_cluster_1samp_test
-   fdr_correction
-   bonferroni_correction
 
 
 Time-Frequency Analysis
@@ -386,10 +381,12 @@ Time-Frequency Analysis
    :toctree: generated/
    :template: function.rst
 
-   induced_power
-   single_trial_power
+   ar_raw
    compute_raw_psd
+   iir_filter_raw
+   induced_power
    morlet
+   single_trial_power
    yule_walker
    ar_raw
    iir_filter_raw
