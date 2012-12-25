@@ -1083,7 +1083,7 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
 
 
 @verbose
-def plot_ica_panel(sources, start=None, stop=None, n_components=None,
+def plot_ica_panel(sources, start=None, stop=None, n_ica_components=None,
                    source_idx=None, ncol=3, nrow=10, verbose=None,
                    show=True):
     """Create panel plots of ICA sources
@@ -1099,7 +1099,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         x-axis start index. If None from the beginning.
     stop : int
         x-axis stop index. If None to the end.
-    n_components : int
+    n_ica_components : int
         Number of components fitted.
     source_idx : array-like
         Indices for subsetting the sources.
@@ -1118,16 +1118,16 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     """
     import pylab as pl
 
-    if n_components is None:
-        n_components = len(sources)
+    if n_ica_components is None:
+        n_ica_components = len(sources)
 
-    hangover = n_components % ncol
+    hangover = n_ica_components % ncol
     nplots = nrow * ncol
 
     if source_idx is not None:
         sources = sources[source_idx]
     if source_idx is None:
-        source_idx = np.arange(n_components)
+        source_idx = np.arange(n_ica_components)
     elif source_idx.shape > 30:
         logger.info('More sources selected than rows and cols specified.'
                     'Showing the first %i sources.' % nplots)
@@ -1137,7 +1137,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     ylims = sources.min(), sources.max()
     fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
     fig.suptitle('MEG signal decomposition'
-                 ' -- %i components.' % n_components, size=16)
+                 ' -- %i components.' % n_ica_components, size=16)
 
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 
@@ -1146,7 +1146,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     for idx, (row, col) in enumerate(iter_plots):
         xs = panel_axes[row, col]
         xs.grid(linestyle='-', color='gray', linewidth=.25)
-        if idx < n_components:
+        if idx < n_ica_components:
             component = '[%i]' % idx
             this_ax = xs.plot(sources[idx], linewidth=0.5, color='red',
                               picker=1e9)
