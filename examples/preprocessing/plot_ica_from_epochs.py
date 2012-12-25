@@ -37,10 +37,10 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 # Setup ICA seed decompose data, then access and plot sources.
 
 # Instead of the actual number of components here we pass a float value
-# between 0 and 1 to select n_components by a percentage of
+# between 0 and 1 to select n_pca_components by a percentage of
 # explained variance.
 
-ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
+ica = ICA(n_ica_components=0.90, n_pca_components=100, noise_cov=None,
           random_state=0)
 print ica
 
@@ -60,7 +60,7 @@ ica.decompose_epochs(epochs)
 
 # plot components for one epoch of interest
 # A distinct cardiac component should be visible
-ica.plot_sources_epochs(epochs, epoch_idx=13, n_components=25)
+ica.plot_sources_epochs(epochs, epoch_idx=13, n_ica_components=25)
 
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal
@@ -116,7 +116,7 @@ ica.exclude += [ecg_source_idx, eog_source_idx]
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving signal.
-epochs_ica = ica.pick_sources_epochs(epochs, include=None, n_pca_components=64)
+epochs_ica = ica.pick_sources_epochs(epochs, use_n_pca_components=64)
 
 # plot original epochs
 pl.figure()
