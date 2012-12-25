@@ -124,7 +124,7 @@ Read data from file:
     Opening raw data ...
     Ready.
     >>> print raw
-    Raw (n_channels x n_times : 376 x 41700)
+    <Raw  |  n_channels x n_times : 376 x 41700>
 
 Look at the channels in raw:
 
@@ -210,7 +210,7 @@ Read epochs:
     4 projection items activated
     145 matching events found
     >>> print epochs
-    Epochs (n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0))
+    <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0)>
 
 Get single epochs for one condition:
 
@@ -242,7 +242,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
     >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
     Reading ...
     >>> print evoked
-    Evoked (comment : aud_l, time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106)
+    <Evoked  |  comment : 'aud_l', time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106>
     >>> evoked.plot() # doctest:+SKIP
 
 .. figure:: _images/plot_read_epochs.png
@@ -286,7 +286,7 @@ Compute a contrast:
     >>> contrast = evoked1 - evoked2
 	
     >>> print contrast
-    Evoked (comment : Left Auditory - Right Auditory, time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421)
+    <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
 Time-Frequency: Induced power and phase-locking values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
