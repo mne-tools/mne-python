@@ -264,6 +264,7 @@ def _window_evoked(evoked, size):
     evoked.data *= window[None, :]
     return evoked
 
+
 @verbose
 def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
@@ -344,7 +345,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     Returns
     -------
     stc : instance of SourceEstimate
-        Source time courses
+        Source time courses.
     residual : instance of Evoked
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
