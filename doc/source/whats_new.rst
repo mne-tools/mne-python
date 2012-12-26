@@ -264,7 +264,7 @@ of commits):
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: http://ivpl.eecs.northwestern.edu/people/mluessi
+.. _Martin Luessi: http://www.nmr.mgh.harvard.edu/martinos/people/showPerson.php?people_id=1600
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
