@@ -21,7 +21,7 @@ data_path = sample.data_path(examples_folder)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis-meg-oct-6-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
@@ -59,10 +59,12 @@ def test_mxne_inverse():
     """Test MxNE inverse computation"""
     alpha = 60  # spatial regularization parameter
 
-    stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-8, active_set_size=10, solver='prox')
-    stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=None, depth=0.9,
-                     maxit=1000, tol=1e-8, active_set_size=10, solver='cd')
+    stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
+                          depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
+                          solver='prox')
+    stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
+                        depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
+                        solver='cd')
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_prox.data, stc_cd.data, 5)
@@ -75,7 +77,7 @@ def test_mxne_inverse():
                         return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    assert_true(stc.vertno[1][0] in label['vertices'])
+    assert_true(stc.vertno[1][0] in label.vertices)
 
 
 def test_tf_mxne_inverse():
@@ -89,4 +91,4 @@ def test_tf_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][1] in label['vertices'])
+    assert_true(stc.vertno[1][1] in label.vertices)
