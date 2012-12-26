@@ -116,7 +116,7 @@ pl.show()
 # Add the detected artifact indices to ica.exclude
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
-# Restore sources
+# Restore sensor space data
 epochs_ica = ica.pick_sources_epochs(epochs, include=None)
 
 # plot original epochs
