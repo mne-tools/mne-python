@@ -43,8 +43,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Instead of the actual number of components here we pass a float value
 # between 0 and 1 to select n_components by a percentage of
 # explained variance. Also we decide to use 64 PCA components before mixing
-# back to sensor space. These sources include the PCA components plus
-# additional PCA components not supplied to ICA (up to rank 64).
+# back to sensor space. These include the PCA components supplied to ICA plus
+# additional PCA components up to rank 64 of the MEG data.
 # This allows to control the trade-off between denoising and preserving signal.
 
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
