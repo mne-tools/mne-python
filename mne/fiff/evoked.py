@@ -425,8 +425,7 @@ class Evoked(object):
             If False, times will be included as in the data table, else it will
             be used as index object.
         copy : bool
-            If true, evoked data will be copy. Else evoked data will be
-            modified in place.
+            If true, evoked will be copied. Else data may be modified in place.
 
         Returns
         -------
@@ -450,6 +449,7 @@ class Evoked(object):
 
         if copy == True:
             data = data.copy()
+            times = times.copy()
 
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
