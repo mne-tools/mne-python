@@ -406,7 +406,7 @@ class Evoked(object):
         return evoked_ts
 
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=dict(mag=1e15,
-                      grad=1e13, eeg=1e6), use_time_index=True):
+                      grad=1e13, eeg=1e6), use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
@@ -424,6 +424,8 @@ class Evoked(object):
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
+        copy : bool
+            If true, evoked will be copied. Else data may be modified in place.
 
         Returns
         -------
@@ -444,6 +446,10 @@ class Evoked(object):
                                  ' this eppochs instance.')
 
         data, times = self.data, self.times
+
+        if copy == True:
+            data = data.copy()
+
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
@@ -462,7 +468,7 @@ class Evoked(object):
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times)
+        df.insert(0, 'time', times * scale_time)
 
         if use_time_index == True:
             df.set_index('time', inplace=True)

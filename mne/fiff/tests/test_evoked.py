@@ -125,3 +125,5 @@ def test_as_data_frame():
     assert_true((df.columns == ave.ch_names).all())
     df = ave.as_data_frame(use_time_index=False)
     assert_true('time' in df.columns)
+    assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
