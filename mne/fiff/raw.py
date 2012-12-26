@@ -1029,7 +1029,7 @@ class Raw(object):
 
     def as_data_frame(self, picks=None, start=None, stop=None, cale_time=1e3,
                       scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
-                      use_time_index=True):
+                      use_time_index=True, copy=False):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
@@ -1053,6 +1053,8 @@ class Raw(object):
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
 
         Returns
         -------
