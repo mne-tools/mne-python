@@ -1088,6 +1088,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    show=True):
     """Create panel plots of ICA sources
 
+    Note. Inspired by an example from Carl Vogel's stats blog 'Will it Python?'
+
     Clicking on the plot of an individual source opens a new figure showing
     the source.
 
