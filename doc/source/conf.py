@@ -66,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-copyright = u'2012, Alexandre Gramfort'
+copyright = u'2012-2013, MNE Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -205,7 +205,7 @@ htmlhelp_basename = 'mne-doc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'MNE.tex', u'MNE Manual',
-   u'Matti Hämäläinen & Alexandre Gramfort', 'manual'),
+   u'MNE Contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

@@ -5,15 +5,16 @@ Compute MxNE with time-frequency sparse prior
 
 The TF-MxNE solver is a distributed inverse method (like dSPM or sLORETA)
 that promotes focal (sparse) sources (such as dipole fitting techniques).
-The benefit of this approach is that :
-- it is spatio-temporal without assuming stationarity (sources properties
-can vary over time)
-- activations are localized in space, time and frequency in one step.
-- with a built-in filtering process based on a short time Fourier
-transform (STFT), data does not need to be low passed (just high pass
-to make the signals zero mean).
-- the solver solves a convex optimization problem, hence cannot be trapped
-in local minima.
+The benefit of this approach is that:
+
+  - it is spatio-temporal without assuming stationarity (sources properties
+    can vary over time)
+  - activations are localized in space, time and frequency in one step.
+  - with a built-in filtering process based on a short time Fourier
+    transform (STFT), data does not need to be low passed (just high pass
+    to make the signals zero mean).
+  - the solver solves a convex optimization problem, hence cannot be
+    trapped in local minima.
 
 References:
 
