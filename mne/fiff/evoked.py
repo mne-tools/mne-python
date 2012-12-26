@@ -456,7 +456,7 @@ class Evoked(object):
             scaling = scalings[t]
             idx = [picks[i] for i in range(len(picks)) if types[i] == t]
             if len(idx) > 0:
-                data[:, idx] *= scaling
+                data[idx] *= scaling
 
         assert times.shape[0] == data.shape[1]
         col_names = [self.ch_names[k] for k in picks]
