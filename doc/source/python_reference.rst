@@ -30,8 +30,8 @@ Classes
    SourceEstimate
 
 
-Verbosity
-=========
+Logging
+=======
 
 .. currentmodule:: mne
 
@@ -148,11 +148,16 @@ Projections:
 
    compute_proj_ecg
    compute_proj_eog
+
+Detect Artifacts and ICA:
+
    find_ecg_events
    find_eog_events
    ica_find_ecg_events
    ica_find_eog_events
    read_ica
+
+Filter:
 
 :py:mod:`mne.filter`:
 
@@ -190,7 +195,6 @@ Events
    read_events
    write_events
 
-
 :py:mod:`mne.epochs`:
 
 .. automodule:: mne.epochs
@@ -207,8 +211,8 @@ Events
    equalize_epoch_counts
 
 
-Sensor Space
-============
+Sensor Space Data Handling
+==========================
 
 .. currentmodule:: mne
 
@@ -353,8 +357,10 @@ Source Space
    write_label
 
 
+Time-Frequency
+==============
+
 :py:mod:`mne.time_frequency`
-============================
 
 .. automodule:: mne.time_frequency
  :no-members:
@@ -379,8 +385,11 @@ Source Space
    istft
 
 
+Connectivity Estimation
+======================= 
+
 :py:mod:`mne.connectivity`
-========================== 
+
 
 .. automodule:: mne.connectivity
  :no-members:
@@ -396,8 +405,10 @@ Source Space
    spectral_connectivity
 
 
+Statistics
+==========
+
 :py:mod:`mne.stats`
-===================
 
 .. automodule:: mne.stats
  :no-members:
@@ -417,8 +428,10 @@ Source Space
    spatio_temporal_cluster_1samp_test
 
 
+Simulation
+==========
+
 :py:mod:`mne.simulation`
-========================
 
 .. automodule:: mne.simulation
  :no-members:
