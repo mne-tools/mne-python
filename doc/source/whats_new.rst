@@ -3,7 +3,7 @@ What's new
 
 .. _changes_0_5:
 
-Current
+Version 0.5
 -----------
 
 Changelog
@@ -259,3 +259,5 @@ of commits):
 .. _Eric Larson: http://faculty.washington.edu/larsoner/
 
 .. _Denis Engemann: https://github.com/dengemann
+
+.. _Christian Brodbeck: https://github.com/christianmbrodbeck
