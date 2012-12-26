@@ -113,6 +113,20 @@ API
 
    - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
 
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   * 313  Eric Larson
+   * 226  Alexandre Gramfort
+   * 219  Denis A. Engemann
+   * 104  Christian Brodbeck
+   *  85  Martin Luessi
+   *   6  Daniel Strohmeier
+   *   4  Teon Brooks
+   *   1  Dan G. Wakeman
 
 
 .. _changes_0_4:
