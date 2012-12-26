@@ -449,7 +449,6 @@ class Evoked(object):
 
         if copy == True:
             data = data.copy()
-            times = times.copy()
 
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
@@ -469,7 +468,7 @@ class Evoked(object):
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times)
+        df.insert(0, 'time', times * scale_time)
 
         if use_time_index == True:
             df.set_index('time', inplace=True)
