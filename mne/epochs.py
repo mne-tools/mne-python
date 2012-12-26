@@ -815,7 +815,7 @@ class Epochs(object):
             Scaling to be applied to the channels picked. If None, no scaling
             will be applied.
         copy : bool
-            If true, data will be copied. Else data will be modified in place.
+            If true, data will be copied. Else data may be modified in place.
         """
         try:
             import pandas as pd
