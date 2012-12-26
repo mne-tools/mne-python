@@ -790,7 +790,7 @@ class Epochs(object):
 
     def as_data_frame(self, picks=None, index=['epoch', 'time'],
                       scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
-                      eeg=1e6)):
+                      eeg=1e6), copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export epochs data in tabular structure with MEG channels as columns
@@ -814,6 +814,8 @@ class Epochs(object):
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, no scaling
             will be applied.
+        copy : bool
+            If true, data will be copied. Else data will be modified in place.
         """
         try:
             import pandas as pd
@@ -839,6 +841,8 @@ class Epochs(object):
         data = self.get_data()[:, picks, :]
         shape = data.shape
         data = np.hstack(data).T
+        if copy:
+            data = data.copy()
 
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
