@@ -137,7 +137,7 @@ pl.show()
 # We now add the eog artifacts to the ica.exclusion list
 ica.exclude += [eog_source_idx]
 
-# Restore sources
+# Restore sensor space data
 raw_ica = ica.pick_sources_raw(raw, include=None)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
