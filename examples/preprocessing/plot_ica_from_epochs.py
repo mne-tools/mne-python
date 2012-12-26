@@ -38,7 +38,10 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 
 # Instead of the actual number of components here we pass a float value
 # between 0 and 1 to select n_components by a percentage of
-# explained variance.
+# explained variance. Also we decide to use 64 PCA components before mixing
+# back to sensor space. These include the PCA components supplied to ICA plus
+# additional PCA components up to rank 64 of the MEG data.
+# This allows to control the trade-off between denoising and preserving signal.
 
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
           noise_cov=None, random_state=0)
@@ -113,10 +116,8 @@ pl.show()
 # Add the detected artifact indices to ica.exclude
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
-# Restore sources, use 64 PCA components which include the ICA cleaned sources
-# plus additional PCA components not supplied to ICA (up to rank 64).
-# This allows to control the trade-off between denoising and preserving signal.
-epochs_ica = ica.pick_sources_epochs(epochs, n_pca_components=64)
+# Restore sources
+epochs_ica = ica.pick_sources_epochs(epochs, include=None)
 
 # plot original epochs
 pl.figure()
