@@ -999,7 +999,7 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
 @verbose
 def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
                         h_freq=10, verbose=None):
-    """Locate EOG artifacts
+    """Locate EOG artifacts from one selected ICA source
 
     Parameters
     ----------
