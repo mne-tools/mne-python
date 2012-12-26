@@ -89,8 +89,10 @@ Functions:
    write_trans
 
 
-:py:mod:`mne.viz`
-=================
+Visualization
+=============
+
+:py:mod:`mne.viz`:
 
 .. automodule:: mne.viz
  :no-members:
@@ -151,13 +153,15 @@ Projections:
 
 Detect Artifacts and ICA:
 
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
    find_ecg_events
    find_eog_events
    ica_find_ecg_events
    ica_find_eog_events
    read_ica
-
-Filter:
 
 :py:mod:`mne.filter`:
 
@@ -271,7 +275,7 @@ Forward Modeling
 Inverse Solutions
 =================
 
-:py:mod:`mne.minimum_norm`
+:py:mod:`mne.minimum_norm`:
 
 .. automodule:: mne.minimum_norm
   :no-members:
@@ -307,7 +311,7 @@ Inverse Solutions
    mixed_norm
    tf_mixed_norm
 
-:py:mod:`mne.beamformer`
+:py:mod:`mne.beamformer`:
 
 .. automodule:: mne.beamformer
   :no-members:
@@ -360,7 +364,7 @@ Source Space
 Time-Frequency
 ==============
 
-:py:mod:`mne.time_frequency`
+:py:mod:`mne.time_frequency`:
 
 .. automodule:: mne.time_frequency
  :no-members:
@@ -388,7 +392,7 @@ Time-Frequency
 Connectivity Estimation
 ======================= 
 
-:py:mod:`mne.connectivity`
+:py:mod:`mne.connectivity`:
 
 
 .. automodule:: mne.connectivity
@@ -408,7 +412,7 @@ Connectivity Estimation
 Statistics
 ==========
 
-:py:mod:`mne.stats`
+:py:mod:`mne.stats`:
 
 .. automodule:: mne.stats
  :no-members:
@@ -431,7 +435,7 @@ Statistics
 Simulation
 ==========
 
-:py:mod:`mne.simulation`
+:py:mod:`mne.simulation`:
 
 .. automodule:: mne.simulation
  :no-members:
