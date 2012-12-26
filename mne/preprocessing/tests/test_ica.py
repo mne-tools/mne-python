@@ -162,7 +162,7 @@ def test_ica_additional():
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
     ica.decompose_raw(raw, picks[:5])
-    assert_true(ica.max_pca_components < 5)
+    assert_true(ica.n_components_ < 5)
 
     ica = ICA(n_components=3, max_pca_components=4,
               n_pca_components=4)
