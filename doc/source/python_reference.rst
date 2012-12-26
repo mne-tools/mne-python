@@ -65,6 +65,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
+   parse_config
    read_bem_surfaces
    read_cov
    read_dip
@@ -134,7 +135,6 @@ Projections:
    compute_proj_evoked
    compute_proj_raw
    read_proj
-   transform_coordinates
    write_proj
 
 :py:mod:`mne.preprocessing`:
@@ -353,13 +353,8 @@ Source Space Data
    read_label
    read_source_estimate
    save_stc_as_volume
-   spatial_dist_connectivity
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
    stc_to_label
+   transform_coordinates
    vertex_to_mni
    write_label
 
@@ -395,8 +390,20 @@ Time-Frequency
 Connectivity Estimation
 ======================= 
 
-:py:mod:`mne.connectivity`:
+.. currentmodule:: mne
 
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   
+   spatial_dist_connectivity
+   spatial_src_connectivity
+   spatial_tris_connectivity
+   spatio_temporal_src_connectivity
+   spatio_temporal_tris_connectivity
+   spatio_temporal_dist_connectivity
+
+:py:mod:`mne.connectivity`:
 
 .. automodule:: mne.connectivity
  :no-members:
