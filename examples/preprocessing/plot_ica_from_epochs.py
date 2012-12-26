@@ -40,8 +40,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 # between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
-          random_state=0)
+ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
+          noise_cov=None, random_state=0)
 print ica
 
 # get epochs
@@ -116,7 +116,7 @@ ica.exclude += [ecg_source_idx, eog_source_idx]
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving signal.
-epochs_ica = ica.pick_sources_epochs(epochs, include=None, n_pca_components=64)
+epochs_ica = ica.pick_sources_epochs(epochs, n_pca_components=64)
 
 # plot original epochs
 pl.figure()

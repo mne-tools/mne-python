@@ -74,19 +74,20 @@ def test_ica_core():
     noise_cov = [None, test_cov]
     # removed None cases to speed up...
     n_components = [3, 1.0]  # for future dbg add cases
-    max_n_components = [4]
+    max_pca_components = [4]
     picks_ = [picks]
-    iter_ica_params = product(noise_cov, n_components, max_n_components,
+    iter_ica_params = product(noise_cov, n_components, max_pca_components,
                               picks_)
 
     # # test init catchers
-    assert_raises(ValueError, ICA, n_components=3, max_n_components=2)
-    assert_raises(ValueError, ICA, n_components=1.3, max_n_components=2)
+    assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
+    assert_raises(ValueError, ICA, n_components=1.3, max_pca_components=2)
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks in iter_ica_params:
       # Test ICA raw
-        ica = ICA(noise_cov=n_cov, n_components=n_comp, max_n_components=max_n,
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
 
         print ica  # to test repr
@@ -102,18 +103,17 @@ def test_ica_core():
         assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
 
         sources = ica.get_sources_raw(raw)
-        assert_true(sources.shape[0] == ica.n_ica_components_)
+        assert_true(sources.shape[0] == ica.n_components_)
 
         # test preload filter
         raw3 = raw.copy()
         raw3._preloaded = False
         assert_raises(ValueError, ica.pick_sources_raw, raw3,
-                      include=[1, 2], n_pca_components=ica.n_components)
+                      include=[1, 2])
 
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             raw2 = ica.pick_sources_raw(raw, exclude=excl, include=incl,
-                                        copy=True,
-                                        n_pca_components=ica.n_components)
+                                        copy=True)
 
             assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
 
@@ -122,17 +122,17 @@ def test_ica_core():
 
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_epochs, epochs, picks=picks)
-        ica = ICA(noise_cov=n_cov, n_components=n_comp, max_n_components=max_n,
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
 
         ica.decompose_epochs(epochs, picks=picks)
         print ica  # to test repr
         # test pick block after epochs fit
-        assert_raises(ValueError, ica.pick_sources_raw, raw,
-                    n_pca_components=ica.n_components)
+        assert_raises(ValueError, ica.pick_sources_raw, raw)
 
         sources = ica.get_sources_epochs(epochs)
-        assert_true(sources.shape[1] == ica.n_ica_components_)
+        assert_true(sources.shape[1] == ica.n_components_)
 
         assert_raises(ValueError, ica.find_sources_epochs, epochs,
                       target=np.arange(1))
@@ -141,13 +141,12 @@ def test_ica_core():
         epochs3 = epochs.copy()
         epochs3.preload = False
         assert_raises(ValueError, ica.pick_sources_epochs, epochs3,
-                      include=[1, 2], n_pca_components=ica.n_ica_components_)
+                      include=[1, 2])
 
         # test source picking
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             epochs2 = ica.pick_sources_epochs(epochs, exclude=excl,
-                                      include=incl, copy=True,
-                                      n_pca_components=ica.n_ica_components_)
+                                      include=incl, copy=True)
 
             assert_array_almost_equal(epochs2.get_data(),
                                       epochs.get_data())
@@ -160,11 +159,13 @@ def test_ica_additional():
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
-    ica = ICA(noise_cov=test_cov2, n_components=3, max_n_components=4)
+    ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
+              n_pca_components=4)
     ica.decompose_raw(raw, picks[:5])
-    assert_true(ica.n_components < 5)
+    assert_true(ica.n_components_ < 5)
 
-    ica = ICA(n_components=3, max_n_components=4)
+    ica = ICA(n_components=3, max_pca_components=4,
+              n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
 
@@ -174,10 +175,11 @@ def test_ica_additional():
     # test reading and writing
     test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
     for cov in (None, test_cov):
-        ica = ICA(noise_cov=cov, n_components=3, max_n_components=4)
+        ica = ICA(noise_cov=cov, n_components=3, max_pca_components=4,
+                  n_pca_components=4)
         ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
-        assert_true(sources.shape[1] == ica.n_components)
+        assert_true(sources.shape[1] == ica.n_components_)
 
         for exclude in [[], [0]]:
             ica.exclude = [0]
@@ -185,20 +187,28 @@ def test_ica_additional():
             ica_read = read_ica(test_ica_fname)
             assert_true(ica.exclude == ica_read.exclude)
             # test pick merge -- add components
-            ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+            ica.pick_sources_raw(raw, exclude=[1])
             assert_true(ica.exclude == [0, 1])
             #                 -- only as arg
             ica.exclude = []
-            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            ica.pick_sources_raw(raw, exclude=[0, 1])
             assert_true(ica.exclude == [0, 1])
             #                 -- remove duplicates
             ica.exclude += [1]
-            ica.pick_sources_raw(raw, exclude=[0, 1], n_pca_components=4)
+            ica.pick_sources_raw(raw, exclude=[0, 1])
             assert_true(ica.exclude == [0, 1])
 
             ica_raw = ica.sources_as_raw(raw)
             assert_true(ica.exclude == [ica.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
+
+        ica.n_pca_components = 2
+        ica.save(test_ica_fname)
+        ica_read = read_ica(test_ica_fname)
+        assert_true(ica.n_pca_components == \
+                    ica_read.n_pca_components)
+        ica.n_pca_components = 4
+        ica_read.n_pca_components = 4
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
@@ -215,8 +225,8 @@ def test_ica_additional():
         sources2 = ica_read.get_sources_raw(raw)
         assert_array_almost_equal(sources, sources2)
 
-        _raw1 = ica.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
-        _raw2 = ica_read.pick_sources_raw(raw, exclude=[1], n_pca_components=4)
+        _raw1 = ica.pick_sources_raw(raw, exclude=[1])
+        _raw2 = ica_read.pick_sources_raw(raw, exclude=[1])
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
@@ -229,7 +239,7 @@ def test_ica_additional():
     # score funcs raw
 
     # check lenght of scores
-    [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
+    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
 
     # check univariate stats
     scores = ica.find_sources_raw(raw, score_func=stats.skew)
@@ -248,7 +258,7 @@ def test_ica_additional():
                 for  n, f in score_funcs.items()]
 
     # check lenght of scores
-    [assert_true(ica.n_components == len(scores)) for scores in sfunc_test]
+    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
 
     # check univariat stats
     scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
@@ -279,7 +289,7 @@ def test_ica_additional():
     ica_raw = ica.sources_as_raw(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
-    assert_true(ica.n_components == len(ica_chans))
+    assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
     ica_raw.save(test_ica_fname)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
