@@ -595,7 +595,6 @@ def test_as_data_frame():
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
 
 
-
 def test_raw_index_as_time():
     """ Test index as time conversion"""
     raw = Raw(fif_fname, preload=True)
