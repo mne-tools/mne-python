@@ -125,7 +125,7 @@ class ICA(object):
     ch_names : list-like
         Channel names resulting from initial picking.
     n_pca_components : int
-        The number of components used for PCA decorrelation.
+        The number of components used for PCA dimensionality reduction.
     n_ica_components : int
         The number of components used for ICA decomposition.
     use_n_pca_components : int
