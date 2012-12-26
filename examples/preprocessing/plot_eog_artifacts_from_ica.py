@@ -41,7 +41,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(n_ica_components=0.90, n_pca_components=100, noise_cov=None,
+ica = ICA(n_components=0.90, max_pca_components=100, noise_cov=None,
           random_state=0)
 
 # For maximum rejection performance we will compute the decomposition on
