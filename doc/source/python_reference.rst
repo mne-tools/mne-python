@@ -7,8 +7,8 @@ Reference
    :no-inherited-members:
 
 This is the classes and functions reference of mne-python. Functions are 
-grouped thematically. In addition, all File I/O functions are collected in 
-a separate section.
+grouped thematically by analysis stage. In addition, all File I/O functions
+are collected in a separate section.
 
 
 Classes
@@ -119,6 +119,21 @@ Functions:
 Preprocessing
 =============
 
+Projections:
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   compute_proj_epochs
+   compute_proj_evoked
+   compute_proj_raw
+   read_proj
+   transform_coordinates
+   write_proj
+
 :py:mod:`mne.preprocessing`:
 
 .. automodule:: mne.preprocessing
@@ -190,23 +205,6 @@ Events
 
    combine_event_ids
    equalize_epoch_counts
-
-
-Projections
-===========
-
-.. currentmodule:: mne
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   compute_proj_epochs
-   compute_proj_evoked
-   compute_proj_raw
-   read_proj
-   transform_coordinates
-   write_proj
 
 
 Sensor Space
