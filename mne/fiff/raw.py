@@ -1027,12 +1027,15 @@ class Raw(object):
 
         return new
 
-    def as_data_frame(self, picks=None, start=None, stop=None, cale_time=1e3,
+    def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
-                      use_time_index=True, copy=False):
+                      use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
+
+        Caveat! To save memory, depending on selected data size consider
+        setting copy to False.
 
         Parameters
         ----------
@@ -1071,6 +1074,10 @@ class Raw(object):
             picks = range(self.info['nchan'])
 
         data, times = self[picks, start:stop]
+
+        if copy:
+            data = data.copy()
+
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
@@ -1089,7 +1096,7 @@ class Raw(object):
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times)
+        df.insert(0, 'time', times * scale_time)
 
         if use_time_index == True:
             df.set_index('time', inplace=True)
@@ -1115,7 +1122,7 @@ class Raw(object):
         use_first_samp: bool
             If True, the time returned is relative to the session onset, else
             relative to the recording onset.
-        copy : boolean | None
+        copy : bool
             Whether to copy the raw data or not.
 
         Returns
