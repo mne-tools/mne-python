@@ -8,7 +8,8 @@ Reference
 
 This is the classes and functions reference of mne-python. Functions are 
 grouped thematically by analysis stage. In addition, all File I/O functions
-are collected in a separate section.
+are collected in a separate section. Functions and classes that are not below 
+a module heading are found in the :py:mod:`mne` namespace. 
 
 
 Classes
@@ -151,7 +152,9 @@ Projections:
    compute_proj_ecg
    compute_proj_eog
 
-Detect Artifacts and ICA:
+:py:mod:`mne.preprocessing`:
+
+Detect Artifacts and ICA
 
 .. autosummary::
    :toctree: generated/
@@ -215,8 +218,8 @@ Events
    equalize_epoch_counts
 
 
-Sensor Space Data Handling
-==========================
+Sensor Space Data
+=================
 
 .. currentmodule:: mne
 
@@ -328,8 +331,8 @@ Inverse Solutions
    lcmv_raw
 
 
-Source Space
-============
+Source Space Data
+=================
 
 .. currentmodule:: mne
 
