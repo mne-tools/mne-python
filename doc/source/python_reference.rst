@@ -30,43 +30,8 @@ Classes
    SourceEstimate
 
 
-:py:mod:`mne.connectivity`
-========================== 
-
-.. automodule:: mne.connectivity
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.connectivity
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   seed_target_indices
-   spectral_connectivity
-
-
-:py:mod:`mne.simulation`
-========================
-
-.. automodule:: mne.simulation
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.simulation
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   generate_evoked
-   generate_sparse_stc
-   select_source_in_label
-
-   
-Events
-======
+Verbosity
+=========
 
 .. currentmodule:: mne
 
@@ -74,31 +39,9 @@ Events
    :toctree: generated/
    :template: function.rst
 
-   concatenate_events
-   find_events
-   make_fixed_length_events
-   merge_events
-   parse_config
-   pick_events
-   read_events
-   write_events
-
-
-:py:mod:`mne.epochs`:
-
-.. automodule:: mne.epochs
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.epochs
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   combine_event_ids
-   equalize_epoch_counts
-
+   set_log_level
+   set_log_file
+   verbose
 
 
 File I/O
@@ -144,84 +87,6 @@ Functions:
    write_source_spaces
    write_surface
    write_trans
-
-
-Forward Modeling
-================
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   apply_forward
-   apply_forward_raw
-   compute_covariance
-   compute_raw_data_covariance
-   read_bem_surfaces
-   read_cov
-   read_forward_solution
-   read_trans
-   read_source_spaces
-   read_surface
-   write_bem_surface
-   write_cov
-   write_trans
-
-
-Inverse Solutions
-=================
-
-:py:mod:`mne.minimum_norm`
-
-.. automodule:: mne.minimum_norm
-  :no-members:
-  :no-inherited-members:
-
-.. currentmodule:: mne.minimum_norm
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   apply_inverse
-   apply_inverse_epochs
-   apply_inverse_raw
-   make_inverse_operator
-   read_inverse_operator
-   source_band_induced_power
-   source_induced_power
-   write_inverse_operator
-
-:py:mod:`mne.mixed_norm`:
-
-.. automodule:: mne.mixed_norm
-  :no-members:
-  :no-inherited-members:
-
-.. currentmodule:: mne.mixed_norm
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   mixed_norm
-   tf_mixed_norm
-
-:py:mod:`mne.beamformer`
-
-.. automodule:: mne.beamformer
-  :no-members:
-  :no-inherited-members:
-  
-.. currentmodule:: mne.beamformer
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   lcmv
-   lcmv_epochs
-   lcmv_raw
 
 
 :py:mod:`mne.viz`
@@ -292,6 +157,41 @@ Preprocessing
    low_pass_filter
 
 
+Events
+======
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   concatenate_events
+   find_events
+   make_fixed_length_events
+   merge_events
+   parse_config
+   pick_events
+   read_events
+   write_events
+
+
+:py:mod:`mne.epochs`:
+
+.. automodule:: mne.epochs
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.epochs
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   combine_event_ids
+   equalize_epoch_counts
+
+
 Projections
 ===========
 
@@ -331,6 +231,97 @@ Sensor Space
    read_selection
 
 
+Covariance
+==========
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   compute_covariance
+   compute_raw_data_covariance
+   read_cov
+   write_cov 
+
+
+Forward Modeling
+================
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   apply_forward
+   apply_forward_raw
+   read_bem_surfaces
+   read_forward_solution
+   read_trans
+   read_source_spaces
+   read_surface
+   write_bem_surface
+   write_trans
+
+
+Inverse Solutions
+=================
+
+:py:mod:`mne.minimum_norm`
+
+.. automodule:: mne.minimum_norm
+  :no-members:
+  :no-inherited-members:
+
+.. currentmodule:: mne.minimum_norm
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   apply_inverse
+   apply_inverse_epochs
+   apply_inverse_raw
+   make_inverse_operator
+   read_inverse_operator
+   source_band_induced_power
+   source_induced_power
+   write_inverse_operator
+
+:py:mod:`mne.mixed_norm`:
+
+.. automodule:: mne.mixed_norm
+  :no-members:
+  :no-inherited-members:
+
+.. currentmodule:: mne.mixed_norm
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   mixed_norm
+   tf_mixed_norm
+
+:py:mod:`mne.beamformer`
+
+.. automodule:: mne.beamformer
+  :no-members:
+  :no-inherited-members:
+  
+.. currentmodule:: mne.beamformer
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   lcmv
+   lcmv_epochs
+   lcmv_raw
+
+
 Source Space
 ============
 
@@ -364,27 +355,6 @@ Source Space
    write_label
 
 
-:py:mod:`mne.stats`
-===================
-
-.. automodule:: mne.stats
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.stats
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   bonferroni_correction
-   fdr_correction
-   permutation_cluster_test
-   permutation_cluster_1samp_test
-   permutation_t_test
-   spatio_temporal_cluster_1samp_test
-
-
 :py:mod:`mne.time_frequency`
 ============================
 
@@ -411,15 +381,57 @@ Source Space
    istft
 
 
-Verbosity
-=========
+:py:mod:`mne.connectivity`
+========================== 
 
-.. currentmodule:: mne
+.. automodule:: mne.connectivity
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.connectivity
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   set_log_level
-   set_log_file
-   verbose
+   seed_target_indices
+   spectral_connectivity
+
+
+:py:mod:`mne.stats`
+===================
+
+.. automodule:: mne.stats
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.stats
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   bonferroni_correction
+   fdr_correction
+   permutation_cluster_test
+   permutation_cluster_1samp_test
+   permutation_t_test
+   spatio_temporal_cluster_1samp_test
+
+
+:py:mod:`mne.simulation`
+========================
+
+.. automodule:: mne.simulation
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.simulation
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   generate_evoked
+   generate_sparse_stc
+   select_source_in_label
