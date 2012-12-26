@@ -1,3 +1,5 @@
+"""IIR and FIR filtering functions"""
+
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifft
@@ -63,7 +65,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     # response
     n_edge = min(n_h, len(x))
 
-    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1],\
+    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1], \
                   x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
 
     n_x = len(x_ext)
