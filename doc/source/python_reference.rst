@@ -151,15 +151,6 @@ Projections:
 
    compute_proj_ecg
    compute_proj_eog
-
-:py:mod:`mne.preprocessing`:
-
-Detect Artifacts and ICA
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    find_ecg_events
    find_eog_events
    ica_find_ecg_events
