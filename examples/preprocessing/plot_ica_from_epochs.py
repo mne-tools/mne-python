@@ -37,11 +37,11 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 # Setup ICA seed decompose data, then access and plot sources.
 
 # Instead of the actual number of components here we pass a float value
-# between 0 and 1 to select max_pca_components by a percentage of
+# between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(n_components=0.90, max_pca_components=100, noise_cov=None,
-          random_state=0)
+ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
+          noise_cov=None, random_state=0)
 print ica
 
 # get epochs

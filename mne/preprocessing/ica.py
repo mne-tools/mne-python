@@ -82,10 +82,6 @@ class ICA(object):
         smaller then max_pca_components. If None, all PCA components will be
         used. If float between 0 and 1 components can will be selected by the
         cumulative percentage of explained variance.
-    max_pca_components : int | None
-        The number of components used for PCA decomposition. If None, no
-        dimension reduction will be applied and max_pca_components will equal
-        the number of channels supplied on decomposing data.
     n_pca_components
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
@@ -94,6 +90,10 @@ class ICA(object):
         'n_components_' PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
+    max_pca_components : int | None
+        The number of components used for PCA decomposition. If None, no
+        dimension reduction will be applied and max_pca_components will equal
+        the number of channels supplied on decomposing data.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -122,16 +122,16 @@ class ICA(object):
     current_fit : str
         Flag informing about which data type (raw or epochs) was used for
         the fit.
+    n_components : int | float
     ch_names : list-like
         Channel names resulting from initial picking.
-    max_pca_components : int
-        The number of components used for PCA dimensionality reduction.
-    n_components : int | float
         The number of components used for ICA decomposition.
     n_components_ : int
         If fit, the actual number of components used for ICA decomposition.
     n_pca_components : int
         See above.
+    max_pca_components : int
+        The number of components used for PCA dimensionality reduction.
     verbose : bool, str, int, or None
         See above.
     pca_components_ : ndarray
@@ -892,7 +892,7 @@ class ICA(object):
 
         _n_pca_comp = self.n_pca_components
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
-            raise ValueError('n_pca_components must be between n_ica_comp'
+            raise ValueError('n_pca_components must be between n_comp'
                              'onents and max_pca_components.')
 
         if include not in (None, []):
@@ -1090,8 +1090,8 @@ def _write_ica(fid, ica):
     """
     ica_interface = dict(noise_cov=ica.noise_cov,
                          n_components=ica.n_components,
-                         max_pca_components=ica.max_pca_components,
                          n_pca_components=ica.n_pca_components,
+                         max_pca_components=ica.max_pca_components,
                          current_fit=ica.current_fit,
                          algorithm=ica.algorithm,
                          fun=ica.fun,
