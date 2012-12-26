@@ -73,21 +73,21 @@ def test_ica_core():
     # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
     # removed None cases to speed up...
-    n_ica_components = [3, 1.0]  # for future dbg add cases
-    n_pca_components = [4]
+    n_components = [3, 1.0]  # for future dbg add cases
+    max_pca_components = [4]
     picks_ = [picks]
-    iter_ica_params = product(noise_cov, n_ica_components, n_pca_components,
+    iter_ica_params = product(noise_cov, n_components, max_pca_components,
                               picks_)
 
     # # test init catchers
-    assert_raises(ValueError, ICA, n_ica_components=3, n_pca_components=2)
-    assert_raises(ValueError, ICA, n_ica_components=1.3, n_pca_components=2)
+    assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
+    assert_raises(ValueError, ICA, n_components=1.3, max_pca_components=2)
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks in iter_ica_params:
       # Test ICA raw
-        ica = ICA(noise_cov=n_cov, n_ica_components=n_comp,
-                  n_pca_components=max_n, use_n_pca_components=max_n,
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
 
         print ica  # to test repr
@@ -103,7 +103,7 @@ def test_ica_core():
         assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
 
         sources = ica.get_sources_raw(raw)
-        assert_true(sources.shape[0] == ica.n_ica_components)
+        assert_true(sources.shape[0] == ica.n_components_)
 
         # test preload filter
         raw3 = raw.copy()
@@ -122,8 +122,8 @@ def test_ica_core():
 
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_epochs, epochs, picks=picks)
-        ica = ICA(noise_cov=n_cov, n_ica_components=n_comp,
-                  n_pca_components=max_n, use_n_pca_components=max_n,
+        ica = ICA(noise_cov=n_cov, n_components=n_comp,
+                  max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
 
         ica.decompose_epochs(epochs, picks=picks)
@@ -132,7 +132,7 @@ def test_ica_core():
         assert_raises(ValueError, ica.pick_sources_raw, raw)
 
         sources = ica.get_sources_epochs(epochs)
-        assert_true(sources.shape[1] == ica.n_ica_components)
+        assert_true(sources.shape[1] == ica.n_components_)
 
         assert_raises(ValueError, ica.find_sources_epochs, epochs,
                       target=np.arange(1))
@@ -159,13 +159,13 @@ def test_ica_additional():
     stop2 = 500
 
     test_cov2 = deepcopy(test_cov)
-    ica = ICA(noise_cov=test_cov2, n_ica_components=3, n_pca_components=4,
-              use_n_pca_components=4)
+    ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
+              n_pca_components=4)
     ica.decompose_raw(raw, picks[:5])
-    assert_true(ica.n_pca_components < 5)
+    assert_true(ica.max_pca_components < 5)
 
-    ica = ICA(n_ica_components=3, n_pca_components=4,
-              use_n_pca_components=4)
+    ica = ICA(n_components=3, max_pca_components=4,
+              n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
 
@@ -175,11 +175,11 @@ def test_ica_additional():
     # test reading and writing
     test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
     for cov in (None, test_cov):
-        ica = ICA(noise_cov=cov, n_ica_components=3, n_pca_components=4,
-                  use_n_pca_components=4)
+        ica = ICA(noise_cov=cov, n_components=3, max_pca_components=4,
+                  n_pca_components=4)
         ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
-        assert_true(sources.shape[1] == ica.n_ica_components)
+        assert_true(sources.shape[1] == ica.n_components_)
 
         for exclude in [[], [0]]:
             ica.exclude = [0]
@@ -202,13 +202,13 @@ def test_ica_additional():
             assert_true(ica.exclude == [ica.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
-        ica.use_n_pca_components = 2
+        ica.n_pca_components = 2
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
-        assert_true(ica.use_n_pca_components == \
-                    ica_read.use_n_pca_components)
-        ica.use_n_pca_components = 4
-        ica_read.use_n_pca_components = 4
+        assert_true(ica.n_pca_components == \
+                    ica_read.n_pca_components)
+        ica.n_pca_components = 4
+        ica_read.n_pca_components = 4
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
@@ -239,7 +239,7 @@ def test_ica_additional():
     # score funcs raw
 
     # check lenght of scores
-    [assert_true(ica.n_ica_components == len(scores)) for scores in sfunc_test]
+    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
 
     # check univariate stats
     scores = ica.find_sources_raw(raw, score_func=stats.skew)
@@ -258,7 +258,7 @@ def test_ica_additional():
                 for  n, f in score_funcs.items()]
 
     # check lenght of scores
-    [assert_true(ica.n_ica_components == len(scores)) for scores in sfunc_test]
+    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
 
     # check univariat stats
     scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
@@ -289,7 +289,7 @@ def test_ica_additional():
     ica_raw = ica.sources_as_raw(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
-    assert_true(ica.n_ica_components == len(ica_chans))
+    assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
     ica_raw.save(test_ica_fname)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)

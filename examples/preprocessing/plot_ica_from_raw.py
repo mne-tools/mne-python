@@ -43,10 +43,10 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Sign and order of components is non deterministic.
 # setting the random state to 0 makes the solution reproducible.
 # Instead of the actual number of components we pass a float value
-# between 0 and 1 to select n_ica_components by a percentage of
+# between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(n_ica_components=0.90, n_pca_components=100, noise_cov=None,
+ica = ICA(n_components=0.90, n_pca_components=100, noise_cov=None,
           random_state=0)
 print ica
 
@@ -139,7 +139,7 @@ ica.exclude += [eog_source_idx]
 # Restore sources, use 64 PCA components which include the ICA cleaned sources
 # plus additional PCA components not supplied to ICA (up to rank 64).
 # This allows to control the trade-off between denoising and preserving signal.
-raw_ica = ica.pick_sources_raw(raw, use_n_pca_components=64)
+raw_ica = ica.pick_sources_raw(raw, n_pca_components=64)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
