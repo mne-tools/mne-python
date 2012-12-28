@@ -38,7 +38,7 @@ selection = read_selection('Left-temporal')
 picks = fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                         stim=False, exclude=exclude, selection=selection)
 
-# Let's just look at the first few channels for demonstation purposes
+# Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]
 
 tmin, tmax = 0, 60  # use the first 60s of data

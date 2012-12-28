@@ -712,7 +712,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         Sampling rate in Hz
     freqs : float | array of float | None
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
-        None can ony be used with the mode 'spectrum_fit', where an F
+        None can only be used with the mode 'spectrum_fit', where an F
         test is used to find sinusoidal components.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
@@ -736,7 +736,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
     p_value : float
-        p-value to use in F-test thresholding to determine sigificant
+        p-value to use in F-test thresholding to determine significant
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
@@ -799,14 +799,13 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
                                  'same length as freqs')
 
     if method in ['fft', 'iir']:
-        xf = x
         # Speed this up by computing the fourier coefficients once
         tb_2 = trans_bandwidth / 2.0
         lows = [freq - nw / 2.0 - tb_2
                 for freq, nw in zip(freqs, notch_widths)]
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
-        xf = band_stop_filter(xf, Fs, lows, highs, filter_length, tb_2, tb_2,
+        xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
                               method, iir_params)
     elif method == 'spectrum_fit':
         xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, notch_widths,

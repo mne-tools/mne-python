@@ -26,8 +26,8 @@ def test_notch_filters():
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
-    np.random.seed(0)
-    a = np.random.randn(sig_len_secs * Fs)
+    rng = np.random.RandomState(0)
+    a = rng.randn(sig_len_secs * Fs)
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
