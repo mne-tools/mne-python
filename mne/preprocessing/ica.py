@@ -82,7 +82,7 @@ class ICA(object):
 
     >> projs, raw.info['projs'] = raw.info['projs'], []
     >> ica.decompose_raw(raw)
-    >> raw.info['projs'] = []
+    >> raw.info['projs'] = projs
 
     Parameters
     ----------
