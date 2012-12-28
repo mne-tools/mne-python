@@ -210,6 +210,10 @@ def test_ica_additional():
         ica.n_pca_components = 4
         ica_read.n_pca_components = 4
 
+        ica.exclude = []
+        ica.save(test_ica_fname)
+        ica_read = read_ica(test_ica_fname)
+
         assert_true(ica.ch_names == ica_read.ch_names)
 
         assert_array_equal(ica.mixing_matrix_, ica_read.mixing_matrix_)
