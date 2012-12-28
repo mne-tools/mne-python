@@ -75,6 +75,15 @@ class ICA(object):
     remove some from Raw or Epochs for data exploration or artifact
     correction.
 
+    Caveat! If supplying a noise covariance keep track of the projections
+    available in the cov or in the raw object. For example, if you are interested
+    in EOG or ECG artifacts, EOG and ECG projections should be temporally
+    removed before fitting the ICA. You can say:
+
+    >> projs, raw.info['projs'] = raw.info['projs'], []
+    >> ica.decompose_raw(raw)
+    >> raw.info['projs'] = []
+
     Parameters
     ----------
     n_components : int | float | None
@@ -205,6 +214,11 @@ class ICA(object):
                       verbose=None):
         """Run the ICA decomposition on raw data
 
+        Caveat! If supplying a noise covariance keep track of the projections
+        available in the cov, the raw or the epochs object. For example,
+        if you are interested in EOG or ECG artifacts, EOG and ECG projections
+        should be temporally removed before fitting the ICA.
+
         Parameters
         ----------
         raw : instance of mne.fiff.Raw
@@ -255,6 +269,11 @@ class ICA(object):
     @verbose
     def decompose_epochs(self, epochs, picks=None, verbose=None):
         """Run the ICA decomposition on epochs
+
+        Caveat! If supplying a noise covariance keep track of the projections
+        available in the cov, the raw or the epochs object. For example,
+        if you are interested in EOG or ECG artifacts, EOG and ECG projections
+        should be temporally removed before fitting the ICA.
 
         Parameters
         ----------
@@ -1203,7 +1222,7 @@ def read_ica(fname):
     ica.pca_explained_variance_ = pca_explained_variance
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
-    ica.exclude = [] if exclude is None else exclude.tolist()
+    ica.exclude = [] if exclude is None else list(exclude)
     logger.info('Ready.')
 
     return ica
