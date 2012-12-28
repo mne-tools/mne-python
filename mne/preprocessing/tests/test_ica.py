@@ -287,9 +287,6 @@ def test_ica_additional():
     assert_true(eog_events.ndim == 2)
 
     # Test ica fiff export
-    raw3 = raw.copy()
-    raw3._preloaded = False
-    assert_raises(ValueError, ica.sources_as_raw, raw3, start=0, stop=100)
     ica_raw = ica.sources_as_raw(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]

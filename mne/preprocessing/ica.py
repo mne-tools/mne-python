@@ -449,10 +449,6 @@ class ICA(object):
             Container object for ICA sources
 
         """
-        if not raw._preloaded:
-            raise ValueError('raw data should be preloaded to have this '
-                             'working. Please read raw data with '
-                             'preload=True.')
 
         # include 'reference' channels for comparison with ICA
         if picks is None:
@@ -460,10 +456,24 @@ class ICA(object):
                                ecg=True, eog=True, stim=True)
 
         # merge copied instance and picked data with sources
-        out = raw.copy()
-        out.fids = []
+
         sources = self.get_sources_raw(raw, start=start, stop=stop)
-        out._data = np.r_[sources, raw[picks, start:stop][0]]
+        if raw._preloaded:
+            data, times = raw._data, raw._times
+            del raw._data
+            del raw._times
+
+        out = raw.copy()
+        if raw._preloaded:
+            raw._data, raw._times = data, times
+
+        out.fids = []
+        out.info['filenames'] = []
+        data_, times_ = raw[picks, start:stop]
+
+        out._data = np.r_[sources, data_]
+        out._times = times_
+        out._preloaded = True
 
         # update first and last samples
         out.first_samp = raw.first_samp + (start if start else 0)
