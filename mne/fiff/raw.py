@@ -569,11 +569,12 @@ class Raw(object):
         ----------
         freqs : float | array of float | None
             Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
-            None can ony be used with the mode 'spectrum_fit', where an F
+            None can only be used with the mode 'spectrum_fit', where an F
             test is used to find sinusoidal components.
         freqs : float | array of float
             Specific frequencies to filter out from data, e.g.,
-            np.arange(60, 60, 300).
+            np.arange(60, 60, 241) in the US or np.arange(50, 50, 251) in
+            Europe.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
@@ -601,7 +602,7 @@ class Raw(object):
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
         p_value : float
-            p-value to use in F-test thresholding to determine sigificant
+            p-value to use in F-test thresholding to determine significant
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
@@ -641,9 +642,6 @@ class Raw(object):
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               addtional time points need to be temporaily stored in memory.
-
-        Note: self.info['lowpass'] and self.info['highpass'] are only updated
-              with picks=None.
 
         Parameters
         ----------
