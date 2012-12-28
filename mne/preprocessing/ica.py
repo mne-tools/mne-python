@@ -1203,7 +1203,7 @@ def read_ica(fname):
     ica.pca_explained_variance_ = pca_explained_variance
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
-    ica.exclude = exclude.tolist()
+    ica.exclude = [] if exclude is None else exclude.tolist()
     logger.info('Ready.')
 
     return ica
