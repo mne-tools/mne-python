@@ -1219,7 +1219,7 @@ def read_ica(fname):
     current_fit = interface.pop('current_fit')
     if interface['noise_cov'] == Covariance.__name__:
         logger.warning('The noise covariance used on fit cannot be restored.'
-                       'The whitener drawn from the covariance will be used.')
+                       ' The whitener drawn from the covariance will be used.')
 
     logger.info('Now restoring ICA session ...')
     ica = ICA(**interface)
