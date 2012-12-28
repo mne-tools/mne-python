@@ -75,12 +75,15 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
     ----------
 
     events : ndarray
-        Array as returned by mne.find_events
+        Array as returned by mne.find_events.
     reference_id : int
         The reference event. The event defining the epoch of interest.
     target_id : int
         The target event. The event co-ocurring in within a certain time window
-        around the reference event
+        around the reference event.
+    sfreq : float
+        The sampling frequency of the data.
+    tmin : float
         The lower limit in seconds from the target event.
     tmax : float
         The upper limit border in seconds from the target event.
@@ -89,7 +92,6 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
     fill_na : int | None
         Fill event to be inserted if target is not available within the time
         window specified. If None, the 'null' events will be dropped.
-    tmin : flaot
     -------
 
     Returns
