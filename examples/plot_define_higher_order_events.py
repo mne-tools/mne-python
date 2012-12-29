@@ -41,11 +41,11 @@ picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
 ###############################################################################
 # Find stimulus event followed by quick button presses
 
-reference_id = 32  # button press
-target_id = 5  # presentation of a smiley face
+reference_id = 5  # presentation of a smiley face
+target_id = 32  # button press
 sfreq = raw.info['sfreq']  # sampling rate
-tmin = -0.7  # button later than than 700 ms after a face won't be considered
-tmax = 0.0  # face stimuli directly after the button press won't be considered
+tmin = 0.1  # button presses later earlier than 100 ms after a face won't be considered
+tmax = 0.59  # face stimuli directly after the button press won't be considered
 new_id = 42  # the new event id for a hit. If None, reference_id is used.
 fill_na = 99  # the fill value for misses
 
@@ -63,13 +63,17 @@ print lag[lag != fill_na]  # lag in milliseconds
 # #############################################################################
 # Construct epochs
 
-tmin_ = -0.1
+tmin_ = -0.2
 tmax_ = 0.4
+event_id = dict(early=new_id, late=fill_na)
 
-epochs = mne.Epochs(raw, events_, new_id, tmin_, tmax_, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12))
+epochs = mne.Epochs(raw, events_, event_id, tmin_,
+                    tmax_, picks=picks, baseline=(None, 0),
+                    reject=dict(mag=4e-12))
 
-evoked = epochs.average()  # average epochs and get an Evoked dataset.
+# average epochs and get an Evoked dataset.
+
+early, late = [epochs[k].average() for k in event_id]
 
 ###############################################################################
 # View evoked response
@@ -77,5 +81,11 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
 pl.clf()
-evoked.plot(titles=dict(mag='Evoked motor response from fast button preses'))
+early.plot(titles=dict(mag='Evoked response followed by early button press'))
+pl.show()
+
+times = 1e3 * epochs.times  # time in miliseconds
+import pylab as pl
+pl.figure()
+late.plot(titles=dict(mag='Evoked response followed by late button press'))
 pl.show()

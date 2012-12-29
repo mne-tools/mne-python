@@ -111,14 +111,14 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
 
     new_events = []
     lag = []
-    for event in events.copy():
+    for event in events.copy().astype('i4'):
         if event[2] == reference_id:
             lower = event[0] + imin
             upper = event[0] + imax
             res = events[(events[:, 0] > lower) &
                     (events[:, 0] < upper) & (events[:, 2] == target_id)]
             if res.any():
-                lag += [(event[0] - res[0][0]).astype('i2')]
+                lag += [event[0] - res[0][0]]
                 event[2] = new_id
                 new_events += [event]
             elif fill_na is not None:
