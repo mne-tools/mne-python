@@ -75,6 +75,15 @@ class ICA(object):
     remove some from Raw or Epochs for data exploration or artifact
     correction.
 
+    Caveat! If supplying a noise covariance keep track of the projections
+    available in the cov or in the raw object. For example, if you are interested
+    in EOG or ECG artifacts, EOG and ECG projections should be temporally
+    removed before fitting the ICA. You can say:
+
+    >> projs, raw.info['projs'] = raw.info['projs'], []
+    >> ica.decompose_raw(raw)
+    >> raw.info['projs'] = projs
+
     Parameters
     ----------
     n_components : int | float | None
@@ -205,6 +214,11 @@ class ICA(object):
                       verbose=None):
         """Run the ICA decomposition on raw data
 
+        Caveat! If supplying a noise covariance keep track of the projections
+        available in the cov, the raw or the epochs object. For example,
+        if you are interested in EOG or ECG artifacts, EOG and ECG projections
+        should be temporally removed before fitting the ICA.
+
         Parameters
         ----------
         raw : instance of mne.fiff.Raw
@@ -255,6 +269,11 @@ class ICA(object):
     @verbose
     def decompose_epochs(self, epochs, picks=None, verbose=None):
         """Run the ICA decomposition on epochs
+
+        Caveat! If supplying a noise covariance keep track of the projections
+        available in the cov, the raw or the epochs object. For example,
+        if you are interested in EOG or ECG artifacts, EOG and ECG projections
+        should be temporally removed before fitting the ICA.
 
         Parameters
         ----------
@@ -430,10 +449,6 @@ class ICA(object):
             Container object for ICA sources
 
         """
-        if not raw._preloaded:
-            raise ValueError('raw data should be preloaded to have this '
-                             'working. Please read raw data with '
-                             'preload=True.')
 
         # include 'reference' channels for comparison with ICA
         if picks is None:
@@ -441,10 +456,24 @@ class ICA(object):
                                ecg=True, eog=True, stim=True)
 
         # merge copied instance and picked data with sources
-        out = raw.copy()
-        out.fids = []
+
         sources = self.get_sources_raw(raw, start=start, stop=stop)
-        out._data = np.r_[sources, raw[picks, start:stop][0]]
+        if raw._preloaded:
+            data, times = raw._data, raw._times
+            del raw._data
+            del raw._times
+
+        out = raw.copy()
+        if raw._preloaded:
+            raw._data, raw._times = data, times
+
+        out.fids = []
+        out.info['filenames'] = []
+        data_, times_ = raw[picks, start:stop]
+
+        out._data = np.r_[sources, data_]
+        out._times = times_
+        out._preloaded = True
 
         # update first and last samples
         out.first_samp = raw.first_samp + (start if start else 0)
@@ -1190,7 +1219,7 @@ def read_ica(fname):
     current_fit = interface.pop('current_fit')
     if interface['noise_cov'] == Covariance.__name__:
         logger.warning('The noise covariance used on fit cannot be restored.'
-                       'The whitener drawn from the covariance will be used.')
+                       ' The whitener drawn from the covariance will be used.')
 
     logger.info('Now restoring ICA session ...')
     ica = ICA(**interface)
@@ -1203,7 +1232,7 @@ def read_ica(fname):
     ica.pca_explained_variance_ = pca_explained_variance
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
-    ica.exclude = exclude.tolist()
+    ica.exclude = [] if exclude is None else list(exclude)
     logger.info('Ready.')
 
     return ica
