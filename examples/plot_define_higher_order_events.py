@@ -44,8 +44,8 @@ picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
 reference_id = 5  # presentation of a smiley face
 target_id = 32  # button press
 sfreq = raw.info['sfreq']  # sampling rate
-tmin = 0.1  # button presses later earlier than 100 ms after a face won't be considered
-tmax = 0.59  # face stimuli directly after the button press won't be considered
+tmin = 0.1  # trials leading to very early reponses will be rejected
+tmax = 0.59  # ignore face stimuli followed by button presss later than 590 ms
 new_id = 42  # the new event id for a hit. If None, reference_id is used.
 fill_na = 99  # the fill value for misses
 
