@@ -243,7 +243,7 @@ Covariance
    compute_covariance
    compute_raw_data_covariance
    read_cov
-   write_cov 
+   write_cov
 
 
 Forward Modeling
@@ -379,20 +379,7 @@ Time-Frequency
 
 
 Connectivity Estimation
-======================= 
-
-.. currentmodule:: mne
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-   
-   spatial_dist_connectivity
-   spatial_src_connectivity
-   spatial_tris_connectivity
-   spatio_temporal_src_connectivity
-   spatio_temporal_tris_connectivity
-   spatio_temporal_dist_connectivity
+=======================
 
 :py:mod:`mne.connectivity`:
 
@@ -431,6 +418,21 @@ Statistics
    permutation_cluster_1samp_test
    permutation_t_test
    spatio_temporal_cluster_1samp_test
+
+Functions to compute connectivity (adjacency) matrices for cluster-level statistics
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   spatial_dist_connectivity
+   spatial_src_connectivity
+   spatial_tris_connectivity
+   spatio_temporal_src_connectivity
+   spatio_temporal_tris_connectivity
+   spatio_temporal_dist_connectivity
 
 
 Simulation
