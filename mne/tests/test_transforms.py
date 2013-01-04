@@ -7,8 +7,7 @@ from mne.datasets import sample
 from mne import read_trans, write_trans
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 
 tempdir = _TempDir()

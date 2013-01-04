@@ -16,8 +16,7 @@ import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..' '/examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',

@@ -8,12 +8,83 @@ import warnings
 import numpy as np
 import logging
 import os
+import os.path as op
 from functools import wraps
 import inspect
 import sys
 import tempfile
 from shutil import rmtree
 import atexit
+import ConfigParser
+
+logger = logging.getLogger('mne')
+
+
+###############################################################################
+# RANDOM UTILITIES
+
+def check_random_state(seed):
+    """Turn seed into a np.random.RandomState instance
+
+    If seed is None, return the RandomState singleton used by np.random.
+    If seed is an int, return a new RandomState instance seeded with seed.
+    If seed is already a RandomState instance, return it.
+    Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, (int, np.integer)):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                     ' instance' % seed)
+
+
+def split_list(l, n):
+    """split list in n (approx) equal pieces"""
+    n = int(n)
+    sz = len(l) / n
+    for i in range(n - 1):
+        yield l[i * sz:(i + 1) * sz]
+    yield l[(n - 1) * sz:]
+
+
+class WrapStdOut(object):
+    """Ridiculous class to work around how doctest captures stdout"""
+    def __getattr__(self, name):
+        return getattr(sys.stdout, name)
+
+
+class _TempDir(str):
+    """Class for creating and auto-destroying temp dir
+
+    This is designed to be used with testing modules.
+
+    We cannot simply use __del__() method for cleanup here because the rmtree
+    function may be cleaned up before this object, so we use the atexit module
+    instead. Passing del_after and print_del kwargs to the constructor are
+    helpful primarily for debugging purposes.
+    """
+    def __new__(self, del_after=True, print_del=False):
+        new = str.__new__(self, tempfile.mkdtemp())
+        self._del_after = del_after
+        self._print_del = print_del
+        return new
+
+    def __init__(self):
+        self._path = self.__str__()
+        atexit.register(self.cleanup)
+
+    def cleanup(self):
+        if self._del_after is True:
+            if self._print_del is True:
+                print 'Deleting %s ...' % self._path
+            rmtree(self._path)
+
+
+###############################################################################
+# DECORATORS
 
 # Following deprecated class copied from scikit-learn
 
@@ -111,119 +182,6 @@ def deprecated_func():
     pass
 
 
-def check_random_state(seed):
-    """Turn seed into a np.random.RandomState instance
-
-    If seed is None, return the RandomState singleton used by np.random.
-    If seed is an int, return a new RandomState instance seeded with seed.
-    If seed is already a RandomState instance, return it.
-    Otherwise raise ValueError.
-    """
-    if seed is None or seed is np.random:
-        return np.random.mtrand._rand
-    if isinstance(seed, (int, np.integer)):
-        return np.random.RandomState(seed)
-    if isinstance(seed, np.random.RandomState):
-        return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
-
-
-def split_list(l, n):
-    """split list in n (approx) equal pieces"""
-    n = int(n)
-    sz = len(l) / n
-    for i in range(n - 1):
-        yield l[i * sz:(i + 1) * sz]
-    yield l[(n - 1) * sz:]
-
-
-def set_log_level(verbose=None, return_old_level=False):
-    """Convenience function for setting the logging level
-
-    Parameters
-    ----------
-    verbose : bool, str, int, or None
-        The verbosity of messages to print. If a str, it can be either DEBUG,
-        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
-        convenience and are equivalent to passing in logging.DEBUG, etc.
-        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        If None, the environment variable MNE_LOG_LEVEL is read, and if
-        it doesn't exist, defaults to INFO.
-    return_old_verbose : bool
-        If True, return the old verbosity level.
-    """
-    if verbose is None:
-        verbose = os.environ.get('MNE_LOGGING_LEVEL', 'INFO')
-    elif isinstance(verbose, bool):
-        if verbose is True:
-            verbose = 'INFO'
-        else:
-            verbose = 'WARNING'
-    if isinstance(verbose, basestring):
-        verbose = str.upper(verbose)
-        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
-                             WARNING=logging.WARNING, ERROR=logging.ERROR,
-                             CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
-            raise ValueError('verbose must be of a valid type')
-        verbose = logging_types[verbose]
-    logger = logging.getLogger('mne')
-    old_verbose = logger.level
-    logger.setLevel(verbose)
-    return (old_verbose if return_old_level else None)
-
-
-class WrapStdOut(object):
-    """Ridiculous class to work around how doctest captures stdout"""
-    def __getattr__(self, name):
-        return getattr(sys.stdout, name)
-
-
-def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
-    """Convenience function for setting the log to print to a file
-
-    Parameters
-    ----------
-    fname : str, or None
-        Filename of the log to print to. If None, stdout is used.
-        To suppress log outputs, use set_log_level('WARN').
-    output_format : str
-        Format of the output messages. See the following for examples:
-            http://docs.python.org/dev/howto/logging.html
-        e.g., "%(asctime)s - %(levelname)s - %(message)s".
-    overwrite : bool, or None
-        Overwrite the log file (if it exists). Otherwise, statements
-        will be appended to the log (default). None is the same as False,
-        but additionally raises a warning to notify the user that log
-        entries will be appended.
-    """
-    logger = logging.getLogger('mne')
-    handlers = logger.handlers
-    for h in handlers:
-        if isinstance(h, logging.FileHandler):
-            h.close()
-        logger.removeHandler(h)
-    if fname is not None:
-        if os.path.isfile(fname) and overwrite is None:
-            warnings.warn('Log entries will be appended to the file. Use '
-                          'overwrite=False to avoid this message in the '
-                          'future.')
-        mode = 'w' if overwrite else 'a'
-        lh = logging.FileHandler(fname, mode=mode)
-    else:
-        """ we should just be able to do:
-                lh = logging.StreamHandler(sys.stdout)
-            but because doctests uses some magic on stdout, we have to do this:
-        """
-        lh = logging.StreamHandler(WrapStdOut())
-
-    lh.setFormatter(logging.Formatter(output_format))
-    logger.addHandler(lh)
-    # actually add the stream handler
-    logger.addHandler(lh)
-
-
 def verbose(function):
     """Decorator to allow functions to override default log level
 
@@ -270,16 +228,6 @@ def verbose(function):
     return dec
 
 
-def get_subjects_dir(subjects_dir=None):
-    """Safely use subjects_dir input to return SUBJECTS_DIR"""
-    if subjects_dir is None:
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
-    return subjects_dir
-
-
 def requires_mne(function):
     """Decorator to skip test if MNE command line tools are not available"""
     @wraps(function)
@@ -307,7 +255,7 @@ def requires_pandas(function):
         except ImportError:
             skip = True
 
-        if skip == True:
+        if skip is True:
             from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires pandas'
                            % function.__name__)
@@ -335,28 +283,201 @@ def requires_nitime(function):
     return dec
 
 
-class _TempDir(str):
-    """Class for creating and auto-destroying temp dir
+###############################################################################
+# LOGGING
 
-    This is designed to be used with testing modules.
+def set_log_level(verbose=None, return_old_level=False):
+    """Convenience function for setting the logging level
 
-    We cannot simply use __del__() method for cleanup here because the rmtree
-    function may be cleaned up before this object, so we use the atexit module
-    instead. Passing del_after and print_del kwargs to the constructor are
-    helpful primarily for debugging purposes.
+    Parameters
+    ----------
+    verbose : bool, str, int, or None
+        The verbosity of messages to print. If a str, it can be either DEBUG,
+        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
+        convenience and are equivalent to passing in logging.DEBUG, etc.
+        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
+        If None, the environment variable MNE_LOG_LEVEL is read, and if
+        it doesn't exist, defaults to INFO.
+    return_old_verbose : bool
+        If True, return the old verbosity level.
     """
-    def __new__(self, del_after=True, print_del=False):
-        new = str.__new__(self, tempfile.mkdtemp())
-        self._del_after = del_after
-        self._print_del = print_del
-        return new
+    if verbose is None:
+        verbose = get_config('MNE_LOGGING_LEVEL', 'INFO')
+    elif isinstance(verbose, bool):
+        if verbose is True:
+            verbose = 'INFO'
+        else:
+            verbose = 'WARNING'
+    if isinstance(verbose, basestring):
+        verbose = str.upper(verbose)
+        logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
+                             WARNING=logging.WARNING, ERROR=logging.ERROR,
+                             CRITICAL=logging.CRITICAL)
+        if not verbose in logging_types:
+            raise ValueError('verbose must be of a valid type')
+        verbose = logging_types[verbose]
+    logger = logging.getLogger('mne')
+    old_verbose = logger.level
+    logger.setLevel(verbose)
+    return (old_verbose if return_old_level else None)
 
-    def __init__(self):
-        self._path = self.__str__()
-        atexit.register(self.cleanup)
 
-    def cleanup(self):
-        if self._del_after is True:
-            if self._print_del is True:
-                print 'Deleting %s ...' % self._path
-            rmtree(self._path)
+def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
+    """Convenience function for setting the log to print to a file
+
+    Parameters
+    ----------
+    fname : str, or None
+        Filename of the log to print to. If None, stdout is used.
+        To suppress log outputs, use set_log_level('WARN').
+    output_format : str
+        Format of the output messages. See the following for examples:
+            http://docs.python.org/dev/howto/logging.html
+        e.g., "%(asctime)s - %(levelname)s - %(message)s".
+    overwrite : bool, or None
+        Overwrite the log file (if it exists). Otherwise, statements
+        will be appended to the log (default). None is the same as False,
+        but additionally raises a warning to notify the user that log
+        entries will be appended.
+    """
+    logger = logging.getLogger('mne')
+    handlers = logger.handlers
+    for h in handlers:
+        if isinstance(h, logging.FileHandler):
+            h.close()
+        logger.removeHandler(h)
+    if fname is not None:
+        if op.isfile(fname) and overwrite is None:
+            warnings.warn('Log entries will be appended to the file. Use '
+                          'overwrite=False to avoid this message in the '
+                          'future.')
+        mode = 'w' if overwrite else 'a'
+        lh = logging.FileHandler(fname, mode=mode)
+    else:
+        """ we should just be able to do:
+                lh = logging.StreamHandler(sys.stdout)
+            but because doctests uses some magic on stdout, we have to do this:
+        """
+        lh = logging.StreamHandler(WrapStdOut())
+
+    lh.setFormatter(logging.Formatter(output_format))
+    logger.addHandler(lh)
+    # actually add the stream handler
+    logger.addHandler(lh)
+
+
+###############################################################################
+# CONFIG / PREFS
+
+def get_subjects_dir(subjects_dir=None):
+    """Safely use subjects_dir input to return SUBJECTS_DIR"""
+    if subjects_dir is None:
+        subjects_dir = get_config('SUBJECTS_DIR')
+    return subjects_dir
+
+
+def get_mne_python_config_path():
+    """Get path to standard mne-python config file
+
+    Returns
+    -------
+    path : str
+        The path to the mne-python configuration file. On windows, this
+        will be '%APPDATA%\mne\mne-python.ini'. On every other
+        system, this will be $HOME/.mne/mne-python.conf.
+    """
+
+    # XXX Need to actually check this on Windows at some point...
+    if 'windows' in os.name.lower():
+        if not 'APPDATA' in os.environ:
+            val = None
+        else:
+            val = op.join(os.environ['APPDATA'], 'mne', 'mne-python.ini')
+    else:
+        if not 'HOME' in os.environ:
+            val = None
+        else:
+            val = op.join(os.environ['HOME'], '.mne', 'mne-python.conf')
+
+    if val is None:
+        raise ValueError('mne-python config file path could '
+                         'not be determined, please report this '
+                         'error to mne-python developers')
+
+    return val
+
+
+def get_config(key, default=None):
+    """Read mne(-python) preference from env, then mne-python config
+
+    Parameters
+    ----------
+    key : str
+        The preference key to look for. The os evironment is searched first,
+        then the mne-python config file is parsed.
+
+    default : str | None
+        Value to return if the key is not found. If None, an error is thrown.
+
+    Returns
+    -------
+    value : str | None
+        The preference key value. If the key is not found, None is returned.
+    """
+
+    if not isinstance(key, basestring):
+        raise ValueError('key must be a str')
+
+    # first check to see if key is in env
+    value = os.environ.get(key, None)
+    if value is not None:
+        return value
+
+    # second look for it in mne-python config file
+    config_path = get_mne_python_config_path()
+    if not op.isfile(config_path):
+        meth_1 = 'os.environ["%s"] = VALUE' % key
+        meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
+        raise ValueError('Key "%s" not found in environment or in the '
+                         'mne-python config file:\n%s\nTry either:\n'
+                         '    %s\nfor a temporary solution, or:\n    %s\n'
+                         'for a permanent one. You can also set the '
+                         'environment variable before running python.'
+                         % (key, config_path, meth_1, meth_2))
+    config = ConfigParser.RawConfigParser()
+    # allow case sensitivity
+    config.optionxform = str
+    config.read(config_path)
+    if not config.has_option('mne-python', key):
+        if default is None:
+            raise ValueError('"%s" not found in config file:\n%s'
+                             % (key, config_path))
+        else:
+            return default
+    return config.get('mne-python', key)
+
+
+def set_config(key, value):
+    """Set mne-python preference in config
+
+    Parameters
+    ----------
+    key : str
+        The preference key to set.
+    value : str
+        The value to assign to the preference key.
+    """
+    config_path = get_mne_python_config_path()
+    config = ConfigParser.RawConfigParser()
+    # allow case sensitivity
+    config.optionxform = str
+    if op.isfile(config_path):
+        config.read(config_path)
+    else:
+        logger.info('Attempting to create new mne-python configuration '
+                    'file:\n%s' % config_path)
+    if not config.has_section('mne-python'):
+        config.add_section('mne-python')
+    config.set('mne-python', key, value)
+    with open(config_path, 'wb') as fid:
+        config.write(fid)
