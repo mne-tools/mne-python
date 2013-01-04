@@ -429,31 +429,36 @@ def get_config(key, default=None):
         raise ValueError('key must be a str')
 
     # first check to see if key is in env
-    value = os.environ.get(key, None)
-    if value is not None:
-        return value
+    if key in os.environ:
+        return os.environ[key]
 
     # second look for it in mne-python config file
     config_path = get_mne_python_config_path()
     if not op.isfile(config_path):
-        meth_1 = 'os.environ["%s"] = VALUE' % key
-        meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
-        raise ValueError('Key "%s" not found in environment or in the '
-                         'mne-python config file:\n%s\nTry either:\n'
-                         '    %s\nfor a temporary solution, or:\n    %s\n'
-                         'for a permanent one. You can also set the '
-                         'environment variable before running python.'
-                         % (key, config_path, meth_1, meth_2))
-    config = ConfigParser.RawConfigParser()
-    # allow case sensitivity
-    config.optionxform = str
-    config.read(config_path)
-    if not config.has_option('mne-python', key):
         if default is None:
-            raise ValueError('"%s" not found in config file:\n%s'
-                             % (key, config_path))
+            meth_1 = 'os.environ["%s"] = VALUE' % key
+            meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
+            raise ValueError('Key "%s" not found in environment or in the '
+                             'mne-python config file:\n%s\nTry either:\n'
+                             '    %s\nfor a temporary solution, or:\n'
+                             '    %s\nfor a permanent one. You can also '
+                             'set the environment variable before '
+                             'running python.'
+                             % (key, config_path, meth_1, meth_2))
         else:
             return default
+    else:
+        config = ConfigParser.RawConfigParser()
+        # allow case sensitivity
+        config.optionxform = str
+        config.read(config_path)
+        if not config.has_option('mne-python', key):
+            if default is None:
+                raise ValueError('"%s" not found in config file:\n%s'
+                                 % (key, config_path))
+            else:
+                return default
+
     return config.get('mne-python', key)
 
 
@@ -479,5 +484,8 @@ def set_config(key, value):
     if not config.has_section('mne-python'):
         config.add_section('mne-python')
     config.set('mne-python', key, value)
+    directory = op.split(config_path)[0]
+    if not op.isdir(directory):
+        os.mkdir(directory)
     with open(config_path, 'wb') as fid:
         config.write(fid)
