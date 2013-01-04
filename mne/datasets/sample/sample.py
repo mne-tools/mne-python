@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ... import __version__ as mne_version
-from ...utils import get_config, set_config
+from ...utils import get_config, set_config, _download_status
 
 
 def _sample_version(path):
@@ -93,17 +93,17 @@ def data_path(path=None, force_update=False, update_path=None):
                     raise IOError('Archive file already exists at target '
                                   'location %r.' % archive_name)
 
-            import urllib
             logger.info('Downloading data, please wait (1.3 GB):')
             logger.info(url)
-            opener = urllib.urlopen(url)
-            open(archive_name, 'wb').write(opener.read())
+            _download_status(url, archive_name, False)
 
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
 
         import tarfile
-        logger.info('Decompressiong the archive: ' + archive_name)
+        # note that we use print statements here because these processes
+        # are interactive
+        print 'Decompressiong the archive: ' + archive_name
         tarfile.open(archive_name, 'r:gz').extractall(path=path)
         if rm_archive:
             os.remove(archive_name)
