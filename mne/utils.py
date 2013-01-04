@@ -376,7 +376,7 @@ def get_subjects_dir(subjects_dir=None):
     return subjects_dir
 
 
-def get_mne_python_config_path():
+def get_config_path():
     """Get path to standard mne-python config file
 
     Returns
@@ -433,7 +433,7 @@ def get_config(key, default=None):
         return os.environ[key]
 
     # second look for it in mne-python config file
-    config_path = get_mne_python_config_path()
+    config_path = get_config_path()
     if not op.isfile(config_path):
         if default is None:
             meth_1 = 'os.environ["%s"] = VALUE' % key
@@ -472,7 +472,7 @@ def set_config(key, value):
     value : str
         The value to assign to the preference key.
     """
-    config_path = get_mne_python_config_path()
+    config_path = get_config_path()
     config = ConfigParser.RawConfigParser()
     # allow case sensitivity
     config.optionxform = str

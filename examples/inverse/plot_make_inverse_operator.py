@@ -22,7 +22,7 @@ from mne.fiff import Evoked
 from mne.minimum_norm import make_inverse_operator, apply_inverse, \
                              write_inverse_operator
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 fname_fwd_meeg = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_fwd_eeg = data_path + '/MEG/sample/sample_audvis-eeg-oct-6-fwd.fif'
 fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'

@@ -19,7 +19,7 @@ import mne
 from mne import fiff
 from mne.viz import plot_evoked
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters

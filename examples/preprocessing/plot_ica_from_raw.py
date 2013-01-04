@@ -29,7 +29,7 @@ from mne.datasets import sample
 ###############################################################################
 # Setup paths and prepare raw data
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)

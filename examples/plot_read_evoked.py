@@ -14,7 +14,7 @@ from mne import fiff
 from mne.datasets import sample
 from mne.viz import plot_evoked
 
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 

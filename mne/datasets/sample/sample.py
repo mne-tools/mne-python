@@ -108,6 +108,7 @@ def data_path(path=None, force_update=False, update_path=None):
         if rm_archive:
             os.remove(archive_name)
 
+    path = op.abspath(path)
     if update_path is None:
         if  get_config('MNE_DATASETS_SAMPLE_PATH', '') != path:
             update_path = True
@@ -115,7 +116,7 @@ def data_path(path=None, force_update=False, update_path=None):
                    'sample dataset path in the mne-python config [y]/n:'
                    % path)
             answer = raw_input(msg)
-            if answer.lower == 'n':
+            if answer.lower() == 'n':
                 update_path = False
         else:
             update_path = False

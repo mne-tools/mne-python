@@ -20,7 +20,7 @@ import pylab as pl
 import mne
 from mne.time_frequency import ar_raw
 from mne.datasets import sample
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
