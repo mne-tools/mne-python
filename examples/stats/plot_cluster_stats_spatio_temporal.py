@@ -32,7 +32,7 @@ from mne.viz import mne_analyze_colormap
 
 ###############################################################################
 # Set parameters
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 subjects_dir = data_path + '/subjects'

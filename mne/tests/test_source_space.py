@@ -7,8 +7,7 @@ from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 
 tempdir = _TempDir()
