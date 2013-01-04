@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ... import __version__ as mne_version
-from ...utils import get_config
+from ...utils import get_config, set_config
 
 
 def _sample_version(path):
@@ -30,7 +30,7 @@ def _sample_version(path):
     return version
 
 
-def data_path(path=None, force_update=False):
+def data_path(path=None, force_update=False, update_path=None):
     """Get path to local copy of Sample dataset
 
     Parameters
@@ -38,15 +38,21 @@ def data_path(path=None, force_update=False):
     path : None | str
         Location of where to look for the sample dataset.
         If None, the environment variable or config parameter
-        MNE_DATASETS_PATH is used. If it doesn't exist, the current
-        directory is used. If the path is not found, the data will be
-        automatically downloaded to the specified folder.
+        MNE_DATASETS_SAMPLE_PATH is used. If it doesn't exist, the
+        "mne-python/examples" directory is used. If the sample dataset
+        is not found under the given path (e.g., as
+        "mne-python/examples/MNE-sample-data"), the data
+        will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the sample dataset even if a local copy exists.
+    update_path : bool | None
+        If True, set the MNE_DATASETS_SAMPLE_PATH in mne-python
+        config to the given path. If None, the user is prompted.
     """
     if path is None:
-        # XXX use an intelligent guess
-        def_path = '.'
+        # use an intelligent guess if it's not defined
+        def_path = op.abspath(op.join(op.dirname(__file__), '..', '..',
+                                      '..', 'examples'))
         path = get_config('MNE_DATASETS_SAMPLE_PATH', def_path)
 
     if not isinstance(path, basestring):
@@ -62,12 +68,13 @@ def data_path(path=None, force_update=False):
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
     if not op.exists(folder_path) or force_update:
-        # add confirmation that user wants to save data to this given path
-        # XXX add
-
-        # prompt user: by default, save given path to mne-python config file
-        # if file is being downloaded
-        # XXX add
+        if not op.exists(folder_path):
+            msg = ('Archive %s not found at:\n    %s\nAre you sure you '
+                   'want to download ~1.3 GB to this location (y/[n])?'
+                   % (archive_name, folder_path))
+            answer = raw_input(msg)
+            if answer.lower() != 'y':
+                raise IOError('MNE-sample-data not successfully found')
 
         if op.exists(martinos_path):
             archive_name = martinos_path
@@ -77,18 +84,17 @@ def data_path(path=None, force_update=False):
             archive_name = op.join(path, archive_name)
             rm_archive = True
             if op.exists(archive_name):
-                msg = ("Archive already exists at %r. Overwrite it "
-                       "(y/n)?" % archive_name)
+                msg = ('Archive already exists at %r. Overwrite it '
+                       '(y/[n])?' % archive_name)
                 answer = raw_input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
                 else:
-                    err = ("Archive file already exists at target location "
-                           "%r." % archive_name)
-                    raise IOError(err)
+                    raise IOError('Archive file already exists at target '
+                                  'location %r.' % archive_name)
 
             import urllib
-            logger.info("Downloading data, please Wait (1.3 GB):")
+            logger.info('Downloading data, please wait (1.3 GB):')
             logger.info(url)
             opener = urllib.urlopen(url)
             open(archive_name, 'wb').write(opener.read())
@@ -97,10 +103,24 @@ def data_path(path=None, force_update=False):
             shutil.rmtree(folder_path)
 
         import tarfile
-        logger.info("Decompressiong the archive: " + archive_name)
-        tarfile.open(archive_name, "r:gz").extractall(path=path)
+        logger.info('Decompressiong the archive: ' + archive_name)
+        tarfile.open(archive_name, 'r:gz').extractall(path=path)
         if rm_archive:
             os.remove(archive_name)
+
+    if update_path is None:
+        if  get_config('MNE_DATASETS_SAMPLE_PATH', '') != path:
+            update_path = True
+            msg = ('Do you want to set the path:\n    %s\nas the default '
+                   'sample dataset path in the mne-python config [y]/n:'
+                   % path)
+            answer = raw_input(msg)
+            if answer.lower == 'n':
+                update_path = False
+        else:
+            update_path = False
+    if update_path is True:
+        set_config('MNE_DATASETS_SAMPLE_PATH', path)
 
     path = op.join(path, folder_name)
 
