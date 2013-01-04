@@ -113,7 +113,7 @@ You can set the default level by setting the environment variable
 Note that the location of the mne-python preferences file (for easier manual
 editing) can be found using:
 
-    >>> mne.utils.get_mne_python_config_path() # doctest: +SKIP
+    >>> mne.utils.get_config_path() # doctest: +SKIP
 
 By default logging messages print to the console, but look at
 mne.set_log_file() to save output to a file.

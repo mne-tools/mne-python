@@ -25,7 +25,7 @@ from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'

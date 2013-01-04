@@ -21,7 +21,7 @@ from mne.datasets import sample
 
 ###############################################################################
 # Set parameters
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 

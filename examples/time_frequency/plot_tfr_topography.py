@@ -21,7 +21,7 @@ from mne.layouts import read_layout
 from mne.viz import plot_topo_power, plot_topo_phase_lock
 from mne.datasets import sample
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'

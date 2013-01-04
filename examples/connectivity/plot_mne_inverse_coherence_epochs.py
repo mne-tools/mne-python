@@ -24,7 +24,7 @@ from mne.minimum_norm import apply_inverse, apply_inverse_epochs,\
 from mne.connectivity import seed_target_indices, spectral_connectivity
 
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'

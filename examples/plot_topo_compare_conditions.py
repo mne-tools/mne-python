@@ -25,7 +25,7 @@ from mne.fiff import Raw, pick_types
 from mne.layouts import read_layout
 from mne.viz import plot_topo
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters
