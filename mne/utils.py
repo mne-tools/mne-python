@@ -16,6 +16,8 @@ import tempfile
 from shutil import rmtree
 import atexit
 import ConfigParser
+import urllib2
+from math import log
 
 logger = logging.getLogger('mne')
 
@@ -497,3 +499,55 @@ def set_config(key, value):
         os.mkdir(directory)
     with open(config_path, 'wb') as fid:
         config.write(fid)
+
+
+def _download_status(url, file_name, print_destination=True):
+    """Download a URL to a file destination, with status updates"""
+
+    # Old, simpler code:
+    #opener = urllib.urlopen(url)
+    #open(archive_name, 'wb').write(opener.read())
+
+    u = urllib2.urlopen(url)
+    f = open(file_name, 'wb')
+    meta = u.info()
+    file_size = int(meta.getheaders("Content-Length")[0])
+    print 'Downloading: %s (%s)' % (url, sizeof_fmt(file_size))
+    sys.stdout.write('0%' + 64 * '.' + '100%\n' + ' |')
+    char_span = 64.0
+
+    file_size_dl = 0
+    block_sz = 65536
+    n_written = 0
+    while True:
+        buffer = u.read(block_sz)
+        if not buffer:
+            break
+
+        file_size_dl += len(buffer)
+        f.write(buffer)
+        n_char = int(float(file_size_dl) / file_size * char_span) - n_written
+        if n_char > 0:
+            sys.stdout.write('>' * n_char)
+            n_written += n_char
+    if print_destination is True:
+        print '|\nFile saved as %s.' % file_name
+
+    f.close()
+
+
+def sizeof_fmt(num):
+    """Turn number of bytes into human-readable str"""
+    unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
+                    [0, 0, 1, 2, 2, 2])
+    """Human friendly file size"""
+    if num > 1:
+        exponent = min(int(log(num, 1024)), len(unit_list) - 1)
+        quotient = float(num) / 1024**exponent
+        unit, num_decimals = unit_list[exponent]
+        format_string = '{:.%sf} {}' % (num_decimals)
+        return format_string.format(quotient, unit)
+    if num == 0:
+        return '0 bytes'
+    if num == 1:
+        return '1 byte'
