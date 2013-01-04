@@ -422,7 +422,8 @@ def get_config(key, default=None):
     Returns
     -------
     value : str | None
-        The preference key value. If the key is not found, None is returned.
+        The preference key value. If the key is not found, the default is
+        returned; if default is None, an error is raised.
     """
 
     if not isinstance(key, basestring):
@@ -469,8 +470,9 @@ def set_config(key, value):
     ----------
     key : str
         The preference key to set.
-    value : str
-        The value to assign to the preference key.
+    value : str |  None
+        The value to assign to the preference key. If None, the key is
+        deleted.
     """
     config_path = get_config_path()
     config = ConfigParser.RawConfigParser()
@@ -483,7 +485,13 @@ def set_config(key, value):
                     'file:\n%s' % config_path)
     if not config.has_section('mne-python'):
         config.add_section('mne-python')
-    config.set('mne-python', key, value)
+    if value is not None:
+        if isinstance(value, str):
+            config.set('mne-python', key, value)
+        else:
+            raise ValueError('value must be str or None')
+    else:
+        config.remove_option('mne-python', key)
     directory = op.split(config_path)[0]
     if not op.isdir(directory):
         os.mkdir(directory)

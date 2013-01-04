@@ -42,7 +42,6 @@ Logging and Configuration
 
    set_log_level
    set_log_file
-   verbose
 
 :py:mod:`mne.utils`:
 
