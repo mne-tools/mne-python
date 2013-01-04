@@ -381,14 +381,14 @@ def get_mne_python_config_path():
 
     Returns
     -------
-    path : str
+    config_path : str
         The path to the mne-python configuration file. On windows, this
         will be '%APPDATA%\mne\mne-python.ini'. On every other
         system, this will be $HOME/.mne/mne-python.conf.
     """
 
-    # XXX Need to actually check this on Windows at some point...
-    if 'windows' in os.name.lower():
+    # this has been checked on OSX64, Linux64, and Win32
+    if 'nt' == os.name.lower():
         if not 'APPDATA' in os.environ:
             val = None
         else:
