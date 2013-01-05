@@ -49,9 +49,18 @@ def fiff_open(fname, preload=False, verbose=None):
 
     # do preloading of entire file
     if preload:
+        # Windows (argh) can't handle reading large chunks of data, so we
+        # have to do it piece-wise, see:
+        #    http://stackoverflow.com/questions/4226941
+        buf_size = 16777216
+        bufs = ['']
+        new = fid.read(buf_size)
+        while len(new) > 0:
+            bufs.append(new)
+            new = fid.read(buf_size)
         # note that cStringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid = cStringIO.StringIO(fid.read())
+        fid = cStringIO.StringIO(''.join(bufs))
 
     tag = read_tag_info(fid)
 

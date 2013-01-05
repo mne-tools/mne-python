@@ -142,7 +142,7 @@ def _read_one(fid, node):
         one['sol'] = _transpose_named_matrix(one['sol'])
     except Exception as inst:
         fid.close()
-        raise 'Forward solution data not found (%s)' % inst
+        raise ValueError('Forward solution data not found (%s)' % inst)
 
     try:
         one['sol_grad'] = _read_named_matrix(fid, node,
