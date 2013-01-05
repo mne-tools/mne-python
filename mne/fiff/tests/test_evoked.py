@@ -23,13 +23,13 @@ def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args
     """
     ave = read_evoked(fname, 0)
-
     ave.crop(tmin=0)
 
     write_evoked(op.join(tempdir, 'evoked.fif'), ave)
     ave2 = read_evoked(op.join(tempdir, 'evoked.fif'))
 
-    assert_array_almost_equal(ave.data, ave2.data)
+    # This is strange on Windows XXX
+    assert_array_almost_equal(ave.data, ave2.data, 11)
     assert_array_almost_equal(ave.times, ave2.times)
     assert_equal(ave.nave, ave2.nave)
     assert_equal(ave._aspect_kind, ave2._aspect_kind)
@@ -40,7 +40,7 @@ def test_io_evoked():
     # test compressed i/o
     ave2 = read_evoked(fname_gz, 0)
     ave2.crop(tmin=0)
-    assert_array_equal(ave.data, ave2.data)
+    assert_array_almost_equal(ave.data, ave2.data, 19)
 
     # test str access
     setno = 'Left Auditory'
@@ -48,7 +48,7 @@ def test_io_evoked():
     assert_raises(ValueError, read_evoked, fname, setno, kind='standard_error')
     ave3 = read_evoked(fname, setno)
     ave3.crop(tmin=0)
-    assert_array_equal(ave.data, ave3.data)
+    assert_array_almost_equal(ave.data, ave3.data, 19)
 
 
 def test_evoked_resample():
