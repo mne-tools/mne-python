@@ -266,8 +266,21 @@ class Epochs(object):
             self.info['sfreq'] = new_sfreq
 
         # setup epoch rejection
-        self._reject_setup()
+        if reject is None and flat is None:
+            pass
+        else:
+            idx = channel_indices_by_type(self.info)
+            for key in idx.keys():
+                if (self.reject is not None and key in self.reject) \
+                        or (self.flat is not None and key in self.flat):
+                    if len(idx[key]) == 0:
+                        raise ValueError("No %s channel found. Cannot reject based"
+                                         " on %s." % (key.upper(), key.upper()))
 
+            self._channel_type_idx = idx
+
+
+        # set self._data
         if self.preload:
             self._data = self._get_data_from_disk()
             self.raw = None
@@ -439,23 +452,6 @@ class Epochs(object):
         else:
             data = self._get_data_from_disk()
             return data
-
-    def _reject_setup(self):
-        """Setup reject process
-        """
-        if self.reject is None and self.flat is None:
-            return
-
-        idx = channel_indices_by_type(self.info)
-
-        for key in idx.keys():
-            if (self.reject is not None and key in self.reject) \
-                    or (self.flat is not None and key in self.flat):
-                if len(idx[key]) == 0:
-                    raise ValueError("No %s channel found. Cannot reject based"
-                                     " on %s." % (key.upper(), key.upper()))
-
-        self._channel_type_idx = idx
 
     def __iter__(self):
         """To make iteration over epochs easy.
