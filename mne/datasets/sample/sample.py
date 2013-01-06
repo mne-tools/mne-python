@@ -70,7 +70,7 @@ def data_path(path=None, force_update=False, update_path=None):
     if not op.exists(folder_path) or force_update:
         if not op.exists(folder_path):
             msg = ('Archive %s not found at:\n    %s\nAre you sure you '
-                   'want to download ~1.3 GB to this location (y/[n])?'
+                   'want to download ~1.3 GB to this location (y/[n])? '
                    % (archive_name, folder_path))
             answer = raw_input(msg)
             if answer.lower() != 'y':
@@ -85,7 +85,7 @@ def data_path(path=None, force_update=False, update_path=None):
             rm_archive = True
             if op.exists(archive_name):
                 msg = ('Archive already exists at %r. Overwrite it '
-                       '(y/[n])?' % archive_name)
+                       '(y/[n])? ' % archive_name)
                 answer = raw_input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
@@ -113,7 +113,7 @@ def data_path(path=None, force_update=False, update_path=None):
         if  get_config('MNE_DATASETS_SAMPLE_PATH', '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'sample dataset path in the mne-python config [y]/n:'
+                   'sample dataset path in the mne-python config [y]/n? '
                    % path)
             answer = raw_input(msg)
             if answer.lower() == 'n':

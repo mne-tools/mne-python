@@ -550,17 +550,9 @@ def sizeof_fmt(num):
 
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)"""
-    url_parsed = urlparse.urlparse(url)
-    folder_path = url_parsed.path
-    path_names = list()
-    p = dirname(folder_path)
-    n_iters = 0
-    while p != '/' and n_iters < 1000:
-        n_iters += 1
-        path_names.append(basename(p))
-        p = dirname(p)
-    if n_iters >= 1000:
-        raise ValueError('URL path could not be parsed')
-    destination = op.join(path, 'MEGSIM', *path_names[::-1])
-    destination = op.join(destination, basename(url_parsed.path))
+    destination = urlparse.urlparse(url).path
+    # First char should be '/', and it needs to be discarded
+    if len(destination) < 2 or destination[0] != '/':
+        raise ValueError('Invalid URL')
+    destination = os.path.join(path, urllib2.url2pathname(destination)[1:])
     return destination
