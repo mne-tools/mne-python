@@ -5,7 +5,7 @@ import os
 import warnings
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config, get_config_path
+                    get_config, set_config
 from ..fiff import Evoked
 
 fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
@@ -99,7 +99,10 @@ def test_config():
     assert_true(get_config(key) == value)
     del os.environ[key]
     set_config(key, None)
-    assert_raises(ValueError, get_config, key)
+    assert_true(get_config(key) is None)
+    assert_raises(ValueError, get_config, key, raise_error=True)
     set_config(key, value)
     assert_true(get_config(key) == value)
     set_config(key, None)
+    if old_val is not None:
+        os.environ[key] = old_val

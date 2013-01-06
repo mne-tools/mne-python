@@ -15,7 +15,7 @@ import sys
 import tempfile
 from shutil import rmtree
 import atexit
-import ConfigParser
+import json
 import urllib2
 from math import log
 
@@ -311,7 +311,7 @@ def set_log_level(verbose=None, return_old_level=False):
         else:
             verbose = 'WARNING'
     if isinstance(verbose, basestring):
-        verbose = str.upper(verbose)
+        verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
@@ -390,26 +390,17 @@ def get_config_path():
     """
 
     # this has been checked on OSX64, Linux64, and Win32
-    if 'nt' == os.name.lower():
-        if not 'APPDATA' in os.environ:
-            val = None
-        else:
-            val = op.join(os.environ['APPDATA'], 'mne', 'mne-python.ini')
-    else:
-        if not 'HOME' in os.environ:
-            val = None
-        else:
-            val = op.join(os.environ['HOME'], '.mne', 'mne-python.conf')
-
+    val = os.getenv('APPDATA' if 'nt' == os.name.lower() else 'HOME', None)
     if val is None:
         raise ValueError('mne-python config file path could '
                          'not be determined, please report this '
                          'error to mne-python developers')
 
+    val = op.join(val, '.mne', 'mne-python.json')
     return val
 
 
-def get_config(key, default=None):
+def get_config(key, default=None, raise_error=False):
     """Read mne(-python) preference from env, then mne-python config
 
     Parameters
@@ -419,50 +410,47 @@ def get_config(key, default=None):
         then the mne-python config file is parsed.
 
     default : str | None
-        Value to return if the key is not found. If None, an error is thrown.
+        Value to return if the key is not found.
+
+    raise_error : bool
+        If True, raise an error if the key is not found (instead of returning
+        default).
 
     Returns
     -------
     value : str | None
-        The preference key value. If the key is not found, the default is
-        returned; if default is None, an error is raised.
+        The preference key value.
     """
 
     if not isinstance(key, basestring):
-        raise ValueError('key must be a str')
+        raise ValueError('key must be a string')
 
-    # first check to see if key is in env
+    # first, check to see if key is in env
     if key in os.environ:
         return os.environ[key]
 
-    # second look for it in mne-python config file
+    # second, look for it in mne-python config file
     config_path = get_config_path()
     if not op.isfile(config_path):
-        if default is None:
-            meth_1 = 'os.environ["%s"] = VALUE' % key
-            meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
-            raise ValueError('Key "%s" not found in environment or in the '
-                             'mne-python config file:\n%s\nTry either:\n'
-                             '    %s\nfor a temporary solution, or:\n'
-                             '    %s\nfor a permanent one. You can also '
-                             'set the environment variable before '
-                             'running python.'
-                             % (key, config_path, meth_1, meth_2))
-        else:
-            return default
+        key_found = False
+        val = default
     else:
-        config = ConfigParser.RawConfigParser()
-        # allow case sensitivity
-        config.optionxform = str
-        config.read(config_path)
-        if not config.has_option('mne-python', key):
-            if default is None:
-                raise ValueError('"%s" not found in config file:\n%s'
-                                 % (key, config_path))
-            else:
-                return default
+        with open(config_path, 'r') as fid:
+            config = json.load(fid)
+        key_found = True if key in config else False
+        val = config.get(key, default)
 
-    return config.get('mne-python', key)
+    if not key_found and raise_error is True:
+        meth_1 = 'os.environ["%s"] = VALUE' % key
+        meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
+        raise ValueError('Key "%s" not found in environment or in the '
+                         'mne-python config file:\n%s\nTry either:\n'
+                         '    %s\nfor a temporary solution, or:\n'
+                         '    %s\nfor a permanent one. You can also '
+                         'set the environment variable before '
+                         'running python.'
+                         % (key, config_path, meth_1, meth_2))
+    return val
 
 
 def set_config(key, value):
@@ -476,29 +464,34 @@ def set_config(key, value):
         The value to assign to the preference key. If None, the key is
         deleted.
     """
+
+    if not isinstance(key, basestring):
+        raise ValueError('key must be a string')
+    # While JSON allow non-string types, we allow users to override config
+    # settings using env, which are strings, so we enforce that here
+    if not isinstance(value, basestring) and value is not None:
+        raise ValueError('value must be a string or None')
+
+    # Read all previous values
     config_path = get_config_path()
-    config = ConfigParser.RawConfigParser()
-    # allow case sensitivity
-    config.optionxform = str
     if op.isfile(config_path):
-        config.read(config_path)
+        with open(config_path, 'r') as fid:
+            config = json.load(fid)
     else:
+        config = dict()
         logger.info('Attempting to create new mne-python configuration '
                     'file:\n%s' % config_path)
-    if not config.has_section('mne-python'):
-        config.add_section('mne-python')
-    if value is not None:
-        if isinstance(value, str):
-            config.set('mne-python', key, value)
-        else:
-            raise ValueError('value must be str or None')
+    if value is None:
+        config.pop(key, None)
     else:
-        config.remove_option('mne-python', key)
+        config[key] = value
+
+    # Write all values
     directory = op.split(config_path)[0]
     if not op.isdir(directory):
         os.mkdir(directory)
-    with open(config_path, 'wb') as fid:
-        config.write(fid)
+    with open(config_path, 'w') as fid:
+        json.dump(config, fid, sort_keys=True, indent=0)
 
 
 def _download_status(url, file_name, print_destination=True):
