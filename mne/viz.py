@@ -455,6 +455,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
+    if not ch_type in scalings:
+        raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
     if callable(order):
@@ -1240,11 +1242,13 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        print idx
         this_fig = pl.figure()
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
+        if not ch_type in scalings:
+            # We know it's not in either scalings or units since keys match
+            raise KeyError('%s type not in scalings and units' % ch_type)
         this_data *= scalings[ch_type]
 
         this_order = order
