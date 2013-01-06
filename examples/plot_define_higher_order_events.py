@@ -1,13 +1,15 @@
 """
-=================================================================
-Define igher order events based on time lag, plot evoked response
-=================================================================
+==================================================================
+Define higher order events based on time lag, plot evoked response
+==================================================================
 
 This script shows how to define higher order events based on time
-lag between reference an target events. We will detect the button
-precess immediately following face stimuli (within 700
-miliseconds). Finally we will plot the evoked motor responses to
-the 'fast-processed' face stimuli.
+lag between reference an target events. For illustration, we will
+put face stimuli presented into two classes, that is 1) followed
+by an early button press (within 590 milliseconds) and followed
+by a late button press (later than 590 milliseconds). Finally, we
+will visualize the evoked responses to both 'quickly-processed'
+and 'slowly-processed' face stimuli.
 
 """
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
