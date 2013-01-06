@@ -166,7 +166,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, verbose=None):
+                 decim=1, verbose=None, reject_tmin=None, reject_tmax=None):
         if raw is None:
             return
 
@@ -185,6 +185,16 @@ class Epochs(object):
             self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
         else:
             raise ValueError('event_id must be dict or int.')
+
+        # check reject_tmin and reject_tmax
+        if (reject_tmin is not None) and (reject_tmin <= tmin):
+            raise ValueError("reject_tmin needs to be None or > tmin")
+        if (reject_tmax is not None) and (reject_tmax >= tmax):
+            raise ValueError("reject_tmax needs to be None or < tmax")
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError('reject_tmin needs to be < reject_tmax')
+
         self.tmin = tmin
         self.tmax = tmax
         self.keep_comp = keep_comp
@@ -192,6 +202,8 @@ class Epochs(object):
         self.baseline = baseline
         self.preload = preload
         self.reject = reject
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
         self.flat = flat
         self.proj = proj
         self.decim = decim = int(decim)
@@ -279,6 +291,17 @@ class Epochs(object):
 
             self._channel_type_idx = idx
 
+            if (reject_tmin is None) and (reject_tmax is None):
+                self._reject_time = None
+            else:
+                if reject_tmin is not None:
+                    idxs = np.nonzero(self.times >= reject_tmin)[0]
+                    reject_tmin = idxs[0]
+                if reject_tmax is not None:
+                    idxs = np.nonzero(self.times <= reject_tmax)[0]
+                    reject_tmax = idxs[-1]
+
+                self._reject_time = slice(reject_tmin, reject_tmax)
 
         # set self._data
         if self.preload:
@@ -436,6 +459,9 @@ class Epochs(object):
         if self.reject is None and self.flat is None:
             return True, None
         else:
+            if self._reject_time is not None:
+                data = data[:, self._reject_time]
+
             return _is_good(data, self.ch_names, self._channel_type_idx,
                             self.reject, self.flat, full_report=True)
 
