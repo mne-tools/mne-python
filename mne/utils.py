@@ -443,13 +443,13 @@ def get_config(key, default=None, raise_error=False):
     if not key_found and raise_error is True:
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
-        raise ValueError('Key "%s" not found in environment or in the '
-                         'mne-python config file:\n%s\nTry either:\n'
-                         '    %s\nfor a temporary solution, or:\n'
-                         '    %s\nfor a permanent one. You can also '
-                         'set the environment variable before '
-                         'running python.'
-                         % (key, config_path, meth_1, meth_2))
+        raise KeyError('Key "%s" not found in environment or in the '
+                       'mne-python config file:\n%s\nTry either:\n'
+                       '    %s\nfor a temporary solution, or:\n'
+                       '    %s\nfor a permanent one. You can also '
+                       'set the environment variable before '
+                       'running python.'
+                       % (key, config_path, meth_1, meth_2))
     return val
 
 
