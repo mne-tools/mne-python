@@ -328,6 +328,7 @@ Inverse Solutions
    apply_inverse
    apply_inverse_epochs
    apply_inverse_raw
+   compute_rank
    make_inverse_operator
    read_inverse_operator
    source_band_induced_power
