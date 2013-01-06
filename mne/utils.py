@@ -11,13 +11,15 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
-import sys
+from sys import stdout
 import tempfile
 from shutil import rmtree
 import atexit
+from math import log
 import json
 import urllib2
-from math import log
+import urlparse
+from posixpath import basename, dirname
 
 logger = logging.getLogger('mne')
 
@@ -55,7 +57,7 @@ def split_list(l, n):
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):
-        return getattr(sys.stdout, name)
+        return getattr(stdout, name)
 
 
 class _TempDir(str):
@@ -502,31 +504,31 @@ def _download_status(url, file_name, print_destination=True):
     #open(archive_name, 'wb').write(opener.read())
 
     u = urllib2.urlopen(url)
-    f = open(file_name, 'wb')
-    meta = u.info()
-    file_size = int(meta.getheaders("Content-Length")[0])
-    print 'Downloading: %s (%s)' % (url, sizeof_fmt(file_size))
-    sys.stdout.write('0%' + 64 * '.' + '100%\n' + ' |')
-    char_span = 64.0
+    with open(file_name, 'wb') as f:
+        meta = u.info()
+        file_size = int(meta.getheaders("Content-Length")[0])
+        stdout.write('Downloading: %s (%s)\n' % (url, sizeof_fmt(file_size)))
+        stdout.write('0%' + 64 * '.' + '100%\n' + ' |')
+        char_span = 64.0
 
-    file_size_dl = 0
-    block_sz = 65536
-    n_written = 0
-    while True:
-        buffer = u.read(block_sz)
-        if not buffer:
-            break
+        file_size_dl = 0
+        block_sz = 65536
+        n_written = 0
+        while True:
+            buffer = u.read(block_sz)
+            if not buffer:
+                break
 
-        file_size_dl += len(buffer)
-        f.write(buffer)
-        n_char = int(float(file_size_dl) / file_size * char_span) - n_written
-        if n_char > 0:
-            sys.stdout.write('>' * n_char)
-            n_written += n_char
-    if print_destination is True:
-        print '|\nFile saved as %s.' % file_name
-
-    f.close()
+            file_size_dl += len(buffer)
+            f.write(buffer)
+            n_char = (int(float(file_size_dl) / file_size * char_span)
+                      - n_written)
+            if n_char > 0:
+                stdout.write('>' * n_char)
+                n_written += n_char
+        stdout.write('|\n')
+        if print_destination is True:
+            stdout.write('File saved as %s.\n' % file_name)
 
 
 def sizeof_fmt(num):
@@ -536,7 +538,7 @@ def sizeof_fmt(num):
     """Human friendly file size"""
     if num > 1:
         exponent = min(int(log(num, 1024)), len(unit_list) - 1)
-        quotient = float(num) / 1024**exponent
+        quotient = float(num) / 1024 ** exponent
         unit, num_decimals = unit_list[exponent]
         format_string = '{:.%sf} {}' % (num_decimals)
         return format_string.format(quotient, unit)
@@ -544,3 +546,21 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def _url_to_local_path(url, path):
+    """Mirror a url path in a local destination (keeping folder structure)"""
+    url_parsed = urlparse.urlparse(url)
+    folder_path = url_parsed.path
+    path_names = list()
+    p = dirname(folder_path)
+    n_iters = 0
+    while p != '/' and n_iters < 1000:
+        n_iters += 1
+        path_names.append(basename(p))
+        p = dirname(p)
+    if n_iters >= 1000:
+        raise ValueError('URL path could not be parsed')
+    destination = op.join(path, 'MEGSIM', *path_names[::-1])
+    destination = op.join(destination, basename(url_parsed.path))
+    return destination

@@ -100,7 +100,7 @@ def test_config():
     del os.environ[key]
     set_config(key, None)
     assert_true(get_config(key) is None)
-    assert_raises(ValueError, get_config, key, raise_error=True)
+    assert_raises(KeyError, get_config, key, raise_error=True)
     set_config(key, value)
     assert_true(get_config(key) == value)
     set_config(key, None)
