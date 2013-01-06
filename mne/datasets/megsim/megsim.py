@@ -22,7 +22,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Location of where to look for the MEGSIM data storing location.
         If None, the environment variable or config parameter
         MNE_DATASETS_MEGSIM_PATH is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the sample dataset
+        "mne-python/examples" directory is used. If the MEGSIM dataset
         is not found under the given path (e.g., as
         "mne-python/examples/MEGSIM"), the data
         will be automatically downloaded to the specified folder.
@@ -42,18 +42,27 @@ def data_path(url, path=None, force_update=False, update_path=None):
 
     And this would download the given MEGSIM data file to the 'datasets'
     folder, and prompt the user to save the 'datasets' path to the mne-python
-    config, if it weren't there already.
+    config, if it isn't there already.
     """
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.abspath(op.join(op.dirname(__file__), '..', '..',
                                       '..', 'examples'))
-        path = get_config('MNE_DATASETS_SAMPLE_PATH', def_path)
+        path = get_config('MNE_DATASETS_MEGSIM_PATH', None)
+        if path is None:
+            path = def_path
+            msg = ('No path entered, defaulting to download MEGSIM data to:\n'
+                   '    %s\nDo you want to continue ([y]/n)? '
+                   % path)
+            answer = raw_input(msg)
+            if answer.lower() == 'n':
+                raise ValueError('Please enter preferred path as '
+                                 'megsim.data_path(url, path)')
 
     if not isinstance(path, basestring):
         raise ValueError('path must be a string or None')
 
-    destination = _url_to_local_path(url, path)
+    destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))
 
     # Fetch the file
     if not op.isfile(destination) or force_update:
@@ -71,7 +80,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
         if  get_config('MNE_DATASETS_MEGSIM_PATH', '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'MEGSIM dataset path in the mne-python config [y]/n:'
+                   'MEGSIM dataset path in the mne-python config ([y]/n)? '
                    % path)
             answer = raw_input(msg)
             if answer.lower() == 'n':
