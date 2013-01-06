@@ -457,12 +457,11 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
     ch_type = channel_type(epochs.info, ch_idx)
     this_data *= scalings[ch_type]
 
-    this_order = order
     if callable(order):
-        this_order = order(epochs.times, this_data)
+        order = order(epochs.times, this_data)
 
-    if this_order is not None:
-        this_data = this_data[this_order]
+    if order is not None:
+        this_data = this_data[order]
 
     this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
@@ -520,7 +519,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     if vmax is None:
         vmax = data.max()
 
-    erf_imshow = partial(_erfimage_imshow, scalings=scalings,
+    erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
 
     fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
