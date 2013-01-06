@@ -161,9 +161,11 @@ def test_evoked_standard_error():
                read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
                            kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
-        assert_true(evoked_new[0]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+        assert_true(evoked_new[0]._aspect_kind ==
+                    fiff.FIFF.FIFFV_ASPECT_AVERAGE)
         assert_true(evoked_new[0].kind == 'average')
-        assert_true(evoked_new[1]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        assert_true(evoked_new[1]._aspect_kind ==
+                    fiff.FIFF.FIFFV_ASPECT_STD_ERR)
         assert_true(evoked_new[1].kind == 'standard_error')
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)
@@ -195,10 +197,12 @@ def test_reject_epochs():
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat,
-                    reject_tmin=0, reject_tmax=.1)
+                    reject_tmin=0., reject_tmax=.1)
     data = epochs.get_data()
     n_clean_epochs = len(data)
     assert_true(n_clean_epochs == 7)
+    assert_true(epochs.times[epochs._reject_time][0] >= 0.)
+    assert_true(epochs.times[epochs._reject_time][-1] <= 0.1)
 
 
 def test_preload_epochs():
