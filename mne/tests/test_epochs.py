@@ -193,6 +193,13 @@ def test_reject_epochs():
     assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
                                     ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
 
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject, flat=flat,
+                    reject_tmin=0, reject_tmax=.1)
+    data = epochs.get_data()
+    n_clean_epochs = len(data)
+    assert_true(n_clean_epochs == 7)
+
 
 def test_preload_epochs():
     """Test preload of epochs
