@@ -94,6 +94,12 @@ class Epochs(object):
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
         here. If data is not properly filtered, aliasing artifacts may occur.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -166,7 +172,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, verbose=None, reject_tmin=None, reject_tmax=None):
+                 decim=1, reject_tmin=None, reject_tmax=None, verbose=None):
         if raw is None:
             return
 
@@ -187,10 +193,10 @@ class Epochs(object):
             raise ValueError('event_id must be dict or int.')
 
         # check reject_tmin and reject_tmax
-        if (reject_tmin is not None) and (reject_tmin <= tmin):
-            raise ValueError("reject_tmin needs to be None or > tmin")
-        if (reject_tmax is not None) and (reject_tmax >= tmax):
-            raise ValueError("reject_tmax needs to be None or < tmax")
+        if (reject_tmin is not None) and (reject_tmin < tmin):
+            raise ValueError("reject_tmin needs to be None or >= tmin")
+        if (reject_tmax is not None) and (reject_tmax > tmax):
+            raise ValueError("reject_tmax needs to be None or <= tmax")
         if (reject_tmin is not None) and (reject_tmax is not None):
             if reject_tmin >= reject_tmax:
                 raise ValueError('reject_tmin needs to be < reject_tmax')
@@ -278,32 +284,8 @@ class Epochs(object):
             self.info['sfreq'] = new_sfreq
 
         # setup epoch rejection
-        if reject is None and flat is None:
-            pass
-        else:
-            idx = channel_indices_by_type(self.info)
-            for key in idx.keys():
-                if (self.reject is not None and key in self.reject) \
-                        or (self.flat is not None and key in self.flat):
-                    if len(idx[key]) == 0:
-                        raise ValueError("No %s channel found. Cannot reject based"
-                                         " on %s." % (key.upper(), key.upper()))
+        self._reject_setup()
 
-            self._channel_type_idx = idx
-
-            if (reject_tmin is None) and (reject_tmax is None):
-                self._reject_time = None
-            else:
-                if reject_tmin is not None:
-                    idxs = np.nonzero(self.times >= reject_tmin)[0]
-                    reject_tmin = idxs[0]
-                if reject_tmax is not None:
-                    idxs = np.nonzero(self.times <= reject_tmax)[0]
-                    reject_tmax = idxs[-1]
-
-                self._reject_time = slice(reject_tmin, reject_tmax)
-
-        # set self._data
         if self.preload:
             self._data = self._get_data_from_disk()
             self.raw = None
@@ -478,6 +460,39 @@ class Epochs(object):
         else:
             data = self._get_data_from_disk()
             return data
+
+    def _reject_setup(self):
+        """Sets self._reject_time and self._channel_type_idx (called from
+        __init__)
+        """
+        if self.reject is None and self.flat is None:
+            return
+
+        idx = channel_indices_by_type(self.info)
+        for key in idx.keys():
+            if (self.reject is not None and key in self.reject) \
+                    or (self.flat is not None and key in self.flat):
+                if len(idx[key]) == 0:
+                    raise ValueError("No %s channel found. Cannot reject based"
+                                     " on %s." % (key.upper(), key.upper()))
+
+        self._channel_type_idx = idx
+
+        if (self.reject_tmin is None) and (self.reject_tmax is None):
+            self._reject_time = None
+        else:
+            if self.reject_tmin is None:
+                reject_imin = None
+            else:
+                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
+                reject_imin = idxs[0]
+            if self.reject_tmax is  None:
+                reject_imax = None
+            else:
+                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
+                reject_imax = idxs[-1]
+
+            self._reject_time = slice(reject_imin, reject_imax)
 
     def __iter__(self):
         """To make iteration over epochs easy.
