@@ -94,6 +94,12 @@ class Epochs(object):
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
         here. If data is not properly filtered, aliasing artifacts may occur.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -166,7 +172,7 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, verbose=None):
+                 decim=1, reject_tmin=None, reject_tmax=None, verbose=None):
         if raw is None:
             return
 
@@ -185,6 +191,16 @@ class Epochs(object):
             self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
         else:
             raise ValueError('event_id must be dict or int.')
+
+        # check reject_tmin and reject_tmax
+        if (reject_tmin is not None) and (reject_tmin < tmin):
+            raise ValueError("reject_tmin needs to be None or >= tmin")
+        if (reject_tmax is not None) and (reject_tmax > tmax):
+            raise ValueError("reject_tmax needs to be None or <= tmax")
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError('reject_tmin needs to be < reject_tmax')
+
         self.tmin = tmin
         self.tmax = tmax
         self.keep_comp = keep_comp
@@ -192,6 +208,8 @@ class Epochs(object):
         self.baseline = baseline
         self.preload = preload
         self.reject = reject
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
         self.flat = flat
         self.proj = proj
         self.decim = decim = int(decim)
@@ -423,6 +441,9 @@ class Epochs(object):
         if self.reject is None and self.flat is None:
             return True, None
         else:
+            if self._reject_time is not None:
+                data = data[:, self._reject_time]
+
             return _is_good(data, self.ch_names, self._channel_type_idx,
                             self.reject, self.flat, full_report=True)
 
@@ -441,13 +462,13 @@ class Epochs(object):
             return data
 
     def _reject_setup(self):
-        """Setup reject process
+        """Sets self._reject_time and self._channel_type_idx (called from
+        __init__)
         """
         if self.reject is None and self.flat is None:
             return
 
         idx = channel_indices_by_type(self.info)
-
         for key in idx.keys():
             if (self.reject is not None and key in self.reject) \
                     or (self.flat is not None and key in self.flat):
@@ -456,6 +477,22 @@ class Epochs(object):
                                      " on %s." % (key.upper(), key.upper()))
 
         self._channel_type_idx = idx
+
+        if (self.reject_tmin is None) and (self.reject_tmax is None):
+            self._reject_time = None
+        else:
+            if self.reject_tmin is None:
+                reject_imin = None
+            else:
+                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
+                reject_imin = idxs[0]
+            if self.reject_tmax is  None:
+                reject_imax = None
+            else:
+                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
+                reject_imax = idxs[-1]
+
+            self._reject_time = slice(reject_imin, reject_imax)
 
     def __iter__(self):
         """To make iteration over epochs easy.
