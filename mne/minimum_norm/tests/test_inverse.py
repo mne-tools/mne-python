@@ -14,7 +14,7 @@ from mne.source_estimate import read_source_estimate
 from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
-    write_inverse_operator
+    write_inverse_operator, compute_rank
 from mne.utils import _TempDir
 
 s_path = op.join(sample.data_path(), 'MEG', 'sample')
@@ -120,6 +120,9 @@ def test_apply_inverse_operator():
 
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)
+
+    # The inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank(inverse_operator) == 302)
 
 
 def test_make_inverse_operator_fixed():
