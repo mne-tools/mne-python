@@ -158,7 +158,7 @@ def read_inverse_operator(fname, verbose=None):
     if eigen_leads is None:
         inv['eigen_leads_weighted'] = True
         eigen_leads = _read_named_matrix(fid, invs,
-                                          FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
+                                         FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
     if eigen_leads is None:
         raise ValueError('Eigen leads not found in inverse operator.')
     #
@@ -217,7 +217,7 @@ def read_inverse_operator(fname, verbose=None):
                         mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 fid.close()
                 raise Exception('MRI/head coordinate transformation '
-                                 'not found')
+                                'not found')
 
     inv['mri_head_t'] = mri_head_t
 
@@ -257,7 +257,8 @@ def read_inverse_operator(fname, verbose=None):
     for k in range(len(inv['src'])):
         try:
             inv['src'][k] = transform_source_space_to(inv['src'][k],
-                                                inv['coord_frame'], mri_head_t)
+                                                      inv['coord_frame'],
+                                                      mri_head_t)
         except Exception as inst:
             fid.close()
             raise Exception('Could not transform source space (%s)' % inst)
@@ -464,7 +465,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
         inv['eigen_leads']['data'] = sqrt(scale) * inv['eigen_leads']['data']
 
     logger.info('    Scaled noise and source covariance from nave = %d to'
-                    ' nave = %d' % (inv['nave'], nave))
+                ' nave = %d' % (inv['nave'], nave))
     inv['nave'] = nave
     #
     #   Create the diagonal matrix for computing the regularized inverse
@@ -524,8 +525,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
         else:
             logger.info('    Computing noise-normalization factors '
                         '(sLORETA)...')
-            noise_weight = inv['reginv'] * \
-                           np.sqrt((1. + inv['sing'] ** 2 / lambda2))
+            noise_weight = (inv['reginv'] *
+                            np.sqrt((1. + inv['sing'] ** 2 / lambda2)))
         noise_norm = np.zeros(inv['eigen_leads']['nrow'])
         nrm2, = linalg.get_blas_funcs(('nrm2',), (noise_norm,))
         if inv['eigen_leads_weighted']:
@@ -534,8 +535,8 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
                 noise_norm[k] = nrm2(one)
         else:
             for k in range(inv['eigen_leads']['nrow']):
-                one = sqrt(inv['source_cov']['data'][k]) * \
-                            inv['eigen_leads']['data'][k, :] * noise_weight
+                one = (sqrt(inv['source_cov']['data'][k]) *
+                       inv['eigen_leads']['data'][k, :] * noise_weight)
                 noise_norm[k] = nrm2(one)
 
         #
@@ -637,11 +638,11 @@ def _check_method(method, dSPM):
         warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
                       'method. Please update your code')
         method = dSPM
-    if method == True:
+    if method is True:
         warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
                       '"dSPM" or "sLORETA".')
         method = "dSPM"
-    if method == False:
+    if method is False:
         warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
                       '"dSPM" or "sLORETA".')
         method = "MNE"
@@ -802,12 +803,12 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         # Process the data in segments to conserve memory
         n_seg = int(np.ceil(data.shape[1] / float(buffer_size)))
         logger.info('computing inverse and combining the current '
-                        'components (using %d segments)...' % (n_seg))
+                    'components (using %d segments)...' % (n_seg))
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
         sol = np.empty((K.shape[0] / 3, n_times),
-                        dtype=(K[0, 0] * data[0, 0]).dtype)
+                       dtype=(K[0, 0] * data[0, 0]).dtype)
 
         for pos in xrange(0, n_times, buffer_size):
             sol[:, pos:pos + buffer_size] = \
@@ -979,8 +980,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
     ch_names = [c['ch_name'] for c in info['chs']
-                                    if (c['ch_name'] not in info['bads'])
-                                        and (c['ch_name'] in fwd_ch_names)]
+                if (c['ch_name'] not in info['bads'])
+                and (c['ch_name'] in fwd_ch_names)]
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
@@ -1032,7 +1033,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         The noise covariance matrix.
     loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. Should be None 
+        defining the tangent space of the cortical surfaces. Should be None
         for fixed-orientation forward solutions and for forward solutions
         whose source coordinate system is not surface based.
     depth : None | float in [0, 1]
@@ -1042,8 +1043,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     Returns
     -------
-    stc : dict
-        Source time courses.
+    inv : dict
+        Inverse operator.
     """
     is_fixed_ori = is_fixed_orient(forward)
     if is_fixed_ori and loose is not None:
@@ -1063,7 +1064,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         raise ValueError('depth should be a scalar between 0 and 1')
 
     ch_names, gain, noise_cov, whitener, n_nzero = \
-                            _prepare_forward(forward, info, noise_cov)
+        _prepare_forward(forward, info, noise_cov)
 
     n_dipoles = gain.shape[1]
 
@@ -1156,9 +1157,32 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   coord_frame=forward['coord_frame'],
                   source_nn=forward['source_nn'].copy(),
                   src=deepcopy(forward['src']), fmri_prior=None)
-
     inv_info = deepcopy(forward['info'])
     inv_info['bads'] = deepcopy(info['bads'])
     inv_op['info'] = inv_info
 
     return inv_op
+
+
+def compute_rank(inv):
+    """Compute the rank of an MNE inverse
+
+    Parameters
+    ----------
+    inv : dict
+        The inverse operator.
+
+    Returns
+    -------
+    rank : int
+        The rank of the inverse operator.
+    """
+
+    # this code shortened from prepare_inverse_operator
+    eig = inv['noise_cov']['eig']
+    if not inv['noise_cov']['diag']:
+        n_nzero = np.sum(eig > 0)
+    else:
+        ncomp = make_projector(inv['projs'], inv['noise_cov']['names'])[1]
+        n_nzero = inv['noise_cov']['dim'] - ncomp
+    return n_nzero
