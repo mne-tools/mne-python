@@ -571,7 +571,19 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
     """
 
     if scalings.keys() != units.keys() != titles.keys():
-        raise ValueError('Scalings and units must have the same keys.')
+        names = ['scalings', 'units', 'titles']
+        keys = [scalings.keys(), units.keys(), titles.keys()]
+        keys_unique = np.unique(np.concatenate(keys))
+        misses = [[k for k in keys_unique if k not in k2] for k2 in keys]
+        inds = np.array([len(m) for m in misses]) > 0
+        names = np.array(names)[inds]
+        misses = np.array(misses)[inds]
+        strs = ''.join(['    ' + n + ' was missing: "' + '", "'.join(m) + '"\n'
+                        for n, m in zip(names, misses)])
+
+        raise ValueError('scalings, units, and titles must all have the same '
+                         'keys.\nPassed keys: "%s"\n%s'
+                         % ('", "'.join(keys_unique), strs))
     else:
         channel_types = sorted(scalings.keys())
 
