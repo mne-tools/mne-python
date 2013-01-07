@@ -141,8 +141,12 @@ subjects = np.atleast_1d(subjects)
 data_types = np.atleast_1d(data_types)
 conditions = np.atleast_1d(conditions)
 
+# Useful for testing
+#assert len(conditions) == len(data_types) == len(subjects) \
+#    == len(data_formats) == len(urls)
 
 def url_match(condition, data_format, data_type):
+    """Function to match MEGSIM data files"""
     inds = np.logical_and(conditions == condition, data_formats == data_format)
     inds = np.logical_and(inds, data_types == data_type)
     inds = np.logical_and(inds, data_formats == data_format)
