@@ -14,12 +14,14 @@ from mne.source_estimate import read_source_estimate
 from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
-    write_inverse_operator, compute_rank
+    write_inverse_operator, compute_rank_inverse
 from mne.utils import _TempDir
 
 s_path = op.join(sample.data_path(), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+#fname_inv_diag = op.join(s_path,
+#                         'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_data = op.join(s_path, 'sample_audvis-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis-cov.fif')
@@ -122,7 +124,7 @@ def test_apply_inverse_operator():
     assert_array_almost_equal(stc.data, my_stc.data, 2)
 
     # The inverse has 306 channels - 4 proj = 302
-    assert_true(compute_rank(inverse_operator) == 302)
+    assert_true(compute_rank_inverse(inverse_operator) == 302)
 
 
 def test_make_inverse_operator_fixed():
