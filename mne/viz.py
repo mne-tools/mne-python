@@ -8,7 +8,7 @@
 # License: Simplified BSD
 import os
 import warnings
-from itertools import cycle
+from itertools import cycle, combinations
 from functools import partial
 import copy
 import inspect
@@ -455,6 +455,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
+    if not ch_type in scalings:
+        raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
     if callable(order):
@@ -568,8 +570,21 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         Axes, there must be only one channel type plotted.
     """
 
-    if scalings.keys() != units.keys() != titles.keys():
-        raise ValueError('Scalings and units must have the same keys.')
+    keys = [scalings.keys(), units.keys(), titles.keys()]
+    iter_keys = combinations(keys, 2)
+    if any([len(set(a) - set(b)) for a, b in iter_keys]):
+        names = ['scalings', 'units', 'titles']
+        keys_unique = np.unique(np.concatenate(keys))
+        misses = [[k for k in keys_unique if k not in k2] for k2 in keys]
+        inds = np.array([len(m) for m in misses]) > 0
+        names = np.array(names)[inds]
+        misses = np.array(misses)[inds]
+        strs = ''.join(['    ' + n + ' was missing: "' + '", "'.join(m) + '"\n'
+                        for n, m in zip(names, misses)])
+
+        raise ValueError('scalings, units, and titles must all have the same '
+                         'keys.\nPassed keys: "%s"\n%s'
+                         % ('", "'.join(keys_unique), strs))
     else:
         channel_types = sorted(scalings.keys())
 
@@ -1240,11 +1255,13 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        print idx
         this_fig = pl.figure()
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
+        if not ch_type in scalings:
+            # We know it's not in either scalings or units since keys match
+            raise KeyError('%s type not in scalings and units' % ch_type)
         this_data *= scalings[ch_type]
 
         this_order = order
