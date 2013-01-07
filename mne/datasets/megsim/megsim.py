@@ -9,10 +9,15 @@ logger = logging.getLogger('mne')
 
 from ...utils import _download_status, get_config, set_config, \
                      _url_to_local_path
+from .urls import url_match, valid_data_types, valid_data_formats, \
+                  valid_conditions
 
 
 def data_path(url, path=None, force_update=False, update_path=None):
     """Get path to local copy of MEGSIM dataset URL
+
+    This is a low-level function useful for getting a local copy of a
+    remote MEGSIM dataet.
 
     Parameters
     ----------
@@ -43,7 +48,14 @@ def data_path(url, path=None, force_update=False, update_path=None):
     And this would download the given MEGSIM data file to the 'datasets'
     folder, and prompt the user to save the 'datasets' path to the mne-python
     config, if it isn't there already.
+
+    The MEGSIM dataset is documented in the following publication:
+        Aine CJ, Sanfratello L, Ranken D, Best E, MacArthur JA, Wallace T,
+        Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
+        (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
+        Realistic Simulated and Empirical Data. Neuroinform 10:141-158
     """
+
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.abspath(op.join(op.dirname(__file__), '..', '..',
@@ -91,3 +103,62 @@ def data_path(url, path=None, force_update=False, update_path=None):
         set_config('MNE_DATASETS_MEGSIM_PATH', path)
 
     return destination
+
+
+def load_megsim(condition='visual', data_format='raw',
+                data_type='experimental', path=None, force_update=False,
+                update_path=None):
+    """Get path to local copy of MEGSIM dataset URL
+
+    This is a low-level function useful for getting a local copy of a
+    remote MEGSIM dataet.
+
+    Parameters
+    ----------
+    url : str
+        The dataset to use.
+    path : None | str
+        Location of where to look for the MEGSIM data storing location.
+        If None, the environment variable or config parameter
+        MNE_DATASETS_MEGSIM_PATH is used. If it doesn't exist, the
+        "mne-python/examples" directory is used. If the MEGSIM dataset
+        is not found under the given path (e.g., as
+        "mne-python/examples/MEGSIM"), the data
+        will be automatically downloaded to the specified folder.
+    force_update : bool
+        Force update of the dataset even if a local copy exists.
+    update_path : bool | None
+        If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
+        config to the given path. If None, the user is prompted.
+
+    Notes
+    -----
+    For example, one could do:
+
+        >>> from mne.datasets import megsim
+        >>> url = 'http://cobre.mrn.org/megsim/simdata/neuromag/visual/M87174545_vis_sim1A_4mm_30na_neuro_rn.fif'
+        >>> megsim.data_path(url, os.getenv('HOME') + '/datasets') # doctest:+SKIP
+
+    And this would download the given MEGSIM data file to the 'datasets'
+    folder, and prompt the user to save the 'datasets' path to the mne-python
+    config, if it isn't there already.
+
+    The MEGSIM dataset is documented in the following publication:
+        Aine CJ, Sanfratello L, Ranken D, Best E, MacArthur JA, Wallace T,
+        Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
+        (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
+        Realistic Simulated and Empirical Data. Neuroinform 10:141-158
+    """
+
+    if not condition.lower() in valid_conditions:
+        raise ValueError('Unknown condition "%s"' % condition)
+    if not data_format in valid_data_formats:
+        raise ValueError('Unknown data_format "%s"' % data_format)
+    if not data_type in valid_data_types:
+        raise ValueError('Unknown data_type "%s"' % data_type)
+    urls = url_match(condition, data_format, data_type)
+
+    data_paths = list()
+    for url in urls:
+        data_paths.append(data_path(url, path, force_update, update_path))
+    return data_paths

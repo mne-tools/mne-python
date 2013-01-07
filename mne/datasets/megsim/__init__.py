@@ -1,1 +1,1 @@
-from .megsim import data_path
+from .megsim import data_path, load_megsim
