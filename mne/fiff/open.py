@@ -52,6 +52,7 @@ def fiff_open(fname, preload=False, verbose=None):
         # Windows (argh) can't handle reading large chunks of data, so we
         # have to do it piece-wise, see:
         #    http://stackoverflow.com/questions/4226941
+        # buf_size was chosen as a largest working power of 2 (16 MB):
         buf_size = 16777216
         bufs = ['']
         new = fid.read(buf_size)
