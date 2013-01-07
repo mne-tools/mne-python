@@ -1164,8 +1164,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     return inv_op
 
 
-def compute_rank(inv):
-    """Compute the rank of an MNE inverse
+def compute_rank_inverse(inv):
+    """Compute the rank of a linear inverse operator (MNE, dSPM, etc.)
 
     Parameters
     ----------
@@ -1177,7 +1177,6 @@ def compute_rank(inv):
     rank : int
         The rank of the inverse operator.
     """
-
     # this code shortened from prepare_inverse_operator
     eig = inv['noise_cov']['eig']
     if not inv['noise_cov']['diag']:
