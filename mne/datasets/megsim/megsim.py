@@ -37,6 +37,11 @@ def data_path(url, path=None, force_update=False, update_path=None):
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
 
+    Returns
+    -------
+    path : str
+        Local path to the given data file.close
+
     Notes
     -----
     For example, one could do:
@@ -108,15 +113,16 @@ def data_path(url, path=None, force_update=False, update_path=None):
 def load_megsim(condition='visual', data_format='raw',
                 data_type='experimental', path=None, force_update=False,
                 update_path=None):
-    """Get path to local copy of MEGSIM dataset URL
-
-    This is a low-level function useful for getting a local copy of a
-    remote MEGSIM dataet.
+    """Get path to local copy of MEGSIM dataset type
 
     Parameters
     ----------
-    url : str
-        The dataset to use.
+    condition : str
+        The condition to use. Either 'visual', 'auditory', or 'somatosensory'.
+    data_format : str
+        The data format. Either 'raw', 'evoked', or 'single-trial'.
+    data_type : str
+        The type of data. Either 'experimental' or 'simulation'.
     path : None | str
         Location of where to look for the MEGSIM data storing location.
         If None, the environment variable or config parameter
@@ -131,17 +137,21 @@ def load_megsim(condition='visual', data_format='raw',
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
 
+    Returns
+    -------
+    paths : list
+        List of local data paths of the given type.
+
     Notes
     -----
     For example, one could do:
 
         >>> from mne.datasets import megsim
-        >>> url = 'http://cobre.mrn.org/megsim/simdata/neuromag/visual/M87174545_vis_sim1A_4mm_30na_neuro_rn.fif'
-        >>> megsim.data_path(url, os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> megsim.load_megis('visual', 'raw', 'experimental', os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
-    And this would download the given MEGSIM data file to the 'datasets'
-    folder, and prompt the user to save the 'datasets' path to the mne-python
-    config, if it isn't there already.
+    And this would download the raw visual experimental MEGSIM dataset to the
+    'datasets' folder, and prompt the user to save the 'datasets' path to the
+    mne-python config, if it isn't there already.
 
     The MEGSIM dataset is documented in the following publication:
         Aine CJ, Sanfratello L, Ranken D, Best E, MacArthur JA, Wallace T,

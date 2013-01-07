@@ -105,6 +105,35 @@ Functions:
    write_surface
    write_trans
 
+:py:mod:`mne.datasets.sample`:
+
+.. automodule:: mne.datasets.sample
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.sample
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   data_path
+
+:py:mod:`mne.datasets.megsim`:
+
+.. automodule:: mne.datasets.megsim
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.megsim
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   data_path
+   load_megsim
+
+
+
 
 Visualization
 =============
