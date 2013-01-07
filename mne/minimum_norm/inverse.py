@@ -1180,8 +1180,8 @@ def compute_rank_inverse(inv):
     # this code shortened from prepare_inverse_operator
     eig = inv['noise_cov']['eig']
     if not inv['noise_cov']['diag']:
-        n_nzero = np.sum(eig > 0)
+        rank = np.sum(eig > 0)
     else:
         ncomp = make_projector(inv['projs'], inv['noise_cov']['names'])[1]
-        n_nzero = inv['noise_cov']['dim'] - ncomp
-    return n_nzero
+        rank = inv['noise_cov']['dim'] - ncomp
+    return rank
