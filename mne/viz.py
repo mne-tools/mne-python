@@ -8,7 +8,7 @@
 # License: Simplified BSD
 import os
 import warnings
-from itertools import cycle
+from itertools import cycle, combinations
 from functools import partial
 import copy
 import inspect
@@ -570,9 +570,10 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         Axes, there must be only one channel type plotted.
     """
 
-    if scalings.keys() != units.keys() != titles.keys():
+    keys = [scalings.keys(), units.keys(), titles.keys()]
+    iter_keys = combinations(keys, 2)
+    if any([len(set(a) - set(b)) for a, b in iter_keys]):
         names = ['scalings', 'units', 'titles']
-        keys = [scalings.keys(), units.keys(), titles.keys()]
         keys_unique = np.unique(np.concatenate(keys))
         misses = [[k for k in keys_unique if k not in k2] for k2 in keys]
         inds = np.array([len(m) for m in misses]) > 0
