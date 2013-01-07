@@ -83,7 +83,7 @@ class _TempDir(str):
         if self._del_after is True:
             if self._print_del is True:
                 print 'Deleting %s ...' % self._path
-            rmtree(self._path)
+            rmtree(self._path, ignore_errors=True)
 
 
 ###############################################################################
@@ -354,7 +354,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
             warnings.warn('Log entries will be appended to the file. Use '
                           'overwrite=False to avoid this message in the '
                           'future.')
-        mode = 'w' if overwrite else 'a'
+        mode = 'w' if overwrite is True else 'a'
         lh = logging.FileHandler(fname, mode=mode)
     else:
         """ we should just be able to do:
@@ -364,7 +364,6 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         lh = logging.StreamHandler(WrapStdOut())
 
     lh.setFormatter(logging.Formatter(output_format))
-    logger.addHandler(lh)
     # actually add the stream handler
     logger.addHandler(lh)
 
