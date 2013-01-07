@@ -387,8 +387,8 @@ def get_config_path():
     -------
     config_path : str
         The path to the mne-python configuration file. On windows, this
-        will be '%APPDATA%\mne\mne-python.ini'. On every other
-        system, this will be $HOME/.mne/mne-python.conf.
+        will be '%APPDATA%\.mne\mne-python.json'. On every other
+        system, this will be $HOME/.mne/mne-python.json.
     """
 
     # this has been checked on OSX64, Linux64, and Win32
