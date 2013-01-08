@@ -2,7 +2,7 @@ import os.path as op
 import warnings
 
 from nose.tools import assert_true, assert_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal
 import numpy as np
 
 from ...fiff import Raw
@@ -91,4 +91,4 @@ def test_compute_proj_parallel():
                                  bads=['MEG 2443'])
     projs_2, _, _ = make_projector(projs_2, raw_2.info['ch_names'],
                                    bads=['MEG 2443'])
-    assert_array_equal(projs, projs_2)
+    assert_array_almost_equal(projs, projs_2, 10)

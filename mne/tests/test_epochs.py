@@ -218,7 +218,8 @@ def test_preload_epochs():
                     reject=reject, flat=flat)
     data = epochs.get_data()
     assert_array_equal(data_preload, data)
-    assert_array_equal(epochs_preload.average().data, epochs.average().data)
+    assert_array_almost_equal(epochs_preload.average().data,
+                              epochs.average().data, 18)
 
 
 def test_indexing_slicing():
@@ -353,7 +354,7 @@ def test_resample():
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
-    assert_array_equal(data_up, epochs._data)
+    assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
 
 
 def test_bootstrap():

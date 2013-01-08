@@ -114,7 +114,11 @@ class Raw(object):
     def __del__(self):
         # remove file for memmap
         if hasattr(self, '_data') and hasattr(self._data, 'filename'):
-            os.remove(self._data.filename)
+            # First, close the file out; happens automatically on del
+            filename = self._data.filename
+            del self._data
+            # Now file can be removed
+            os.remove(filename)
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""

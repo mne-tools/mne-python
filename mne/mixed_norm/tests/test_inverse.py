@@ -49,6 +49,7 @@ inverse_operator = make_inverse_operator(evoked.info, forward, cov,
                                          loose=loose, depth=depth)
 stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
+del inverse_operator
 stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
 stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
 weights_min = 0.5

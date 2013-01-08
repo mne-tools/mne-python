@@ -82,7 +82,7 @@ def test_compute_proj_epochs():
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
-    assert_array_equal(proj, proj_par)
+    assert_true(np.allclose(proj, proj_par, rtol=1e-8, atol=1e-16))
 
 
 def test_compute_proj_raw():
