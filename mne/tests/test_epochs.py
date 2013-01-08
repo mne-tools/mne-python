@@ -39,7 +39,8 @@ def test_read_write_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = epochs.average()
-    data = epochs.get_data()
+    # need to copy it, since it's a view and we modify it later (drop EOG)
+    data = epochs.get_data().copy()
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks,
@@ -59,7 +60,6 @@ def test_read_write_epochs():
         assert_equal(len(w), 1)
 
     data_dec = epochs_dec.get_data()
-    # XXX Need to figure out why this is so low (should be identical???)
     assert_array_almost_equal(data[:, :, epochs_dec._decim_idx], data_dec, 17)
 
     evoked_dec = epochs_dec.average()
