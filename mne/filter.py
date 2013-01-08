@@ -601,23 +601,23 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
 
     Parameters
     ----------
-    x: n-d array
+    x : n-d array
         Signal to resample.
-    up: float
+    up : float
         Factor to upsample by.
-    down: float
+    down : float
         Factor to downsample by.
-    npad: integer
+    npad : integer
         Number of samples to use at the beginning and end for padding.
-    axis: integer
+    axis : integer
         Axis of the array to operate on.
-    window: string or tuple
+    window : string or tuple
         See scipy.signal.resample for description.
 
     Returns
     -------
-    xf: array
-        x filtered.
+    xf : array
+        x resampled.
 
     Notes
     -----
@@ -667,4 +667,45 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
         warnings.warn('x has zero length along axis=%d, returning a copy of '
                       'x' % axis)
         y = x.copy()
+    return y
+
+
+def detrend(x, order=1, axis=-1):
+    """Detrend the array x.
+
+    Parameters
+    ----------
+    x : n-d array
+        Signal to detrend.
+    order : int
+        Fit order. Currently must be '0' or '1'.
+    axis : integer
+        Axis of the array to operate on.
+
+    Returns
+    -------
+    xf : array
+        x detrended.
+
+    Examples
+    --------
+    As in scipy.signal.detrend:
+        >>> randgen = np.random.RandomState(9)
+        >>> npoints = 1e3
+        >>> noise = randgen.randn(npoints)
+        >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
+        >>> (detrend(x) - noise).max() < 0.01
+        True
+    """
+    if axis > len(x.shape):
+        raise ValueError('x does not have %d axes' % axis)
+    if order == 0:
+        fit = 'constant'
+    elif order == 1:
+        fit = 'linear'
+    else:
+        raise ValueError('order must be 0 or 1')
+
+    y = signal.detrend(x, axis=axis, type=fit)
+
     return y

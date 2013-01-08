@@ -14,11 +14,11 @@ from .constants import FIFF
 from .open import fiff_open
 from .tag import read_tag
 from .tree import dir_tree_find
-from .pick import channel_type
+from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
-from ..filter import resample
+from ..filter import resample, detrend
 from ..fixes import in1d
 
 from .write import start_file, start_block, end_file, end_block, \
@@ -422,8 +422,8 @@ class Evoked(object):
         Parameters
         ----------
         picks : None | array of int
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
+            If None all channels are kept, otherwise the channels indices in
+            picks are kept.
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
@@ -485,7 +485,9 @@ class Evoked(object):
         return df
 
     def resample(self, sfreq, npad=100, window='boxcar'):
-        """Resample preloaded data
+        """Resample data
+
+        This function operates in-place.
 
         Parameters
         ----------
@@ -504,6 +506,24 @@ class Evoked(object):
                       + self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
+
+    def detrend(self, order=1, picks=None):
+        """Detrend data
+
+        This function operates in-place.
+
+        Parameters
+        ----------
+        order : int
+            Either 0 or 1, the order of the detrending. 0 is a constant
+            (DC) detrend, 1 is a linear detrend.
+        picks : None | array of int
+            If None only MEG and EEG channels are detrended.
+        """
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False)
+        self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""

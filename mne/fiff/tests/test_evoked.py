@@ -10,7 +10,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal,\
                           assert_array_equal
 from nose.tools import assert_true, assert_raises
 
-from mne.fiff import read_evoked, write_evoked
+from mne.fiff import read_evoked, write_evoked, pick_types
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
@@ -77,6 +77,18 @@ def test_evoked_resample():
     # we'll add a couple extra checks anyway
     assert_true(len(ave_up.times) == 2 * len(ave_normal.times))
     assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
+
+
+def test_evoked_detrend():
+    """Test for detrending evoked data
+    """
+    ave = read_evoked(fname, 0)
+    ave_normal = read_evoked(fname, 0)
+    ave.detrend(0)
+    ave_normal.data -= np.mean(ave_normal.data, axis=1)[:, np.newaxis]
+    picks = pick_types(ave.info, meg=True, eeg=True)
+    assert_true(np.allclose(ave.data[picks], ave_normal.data[picks],
+                            rtol=1e-8, atol=1e-16))
 
 
 def test_io_multi_evoked():
