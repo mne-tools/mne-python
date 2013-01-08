@@ -31,7 +31,7 @@ from .fiff.proj import setup_proj
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
-from .filter import resample
+from .filter import resample, detrend
 from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
@@ -100,6 +100,14 @@ class Epochs(object):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
+    detrend : int | None
+        If 0 or 1, the data will be detrended when loaded. 0 is a constant
+        (DC) detrend, 1 is a linear detrend. None is no detrending. Note
+        that detrending is performed before baseline correction. If no DC
+        offset is preferred (zeroth order detrending), either turn off
+        baseline correction, as this may introduce a DC shift, or set
+        baseline correction to use the entire time interval (will yield
+        equivalent results but be slower).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -172,7 +180,8 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, reject_tmin=None, reject_tmax=None, verbose=None):
+                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
+                 verbose=None):
         if raw is None:
             return
 
@@ -200,6 +209,8 @@ class Epochs(object):
         if (reject_tmin is not None) and (reject_tmax is not None):
             if reject_tmin >= reject_tmax:
                 raise ValueError('reject_tmin needs to be < reject_tmax')
+        if not detrend in [None, 0, 1]:
+            raise ValueError('detrend must be None, 0, or 1')
 
         self.tmin = tmin
         self.tmax = tmax
@@ -215,6 +226,7 @@ class Epochs(object):
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
+        self.detrend = detrend
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
@@ -376,10 +388,15 @@ class Epochs(object):
             logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
-        # Run baseline correction
+        # Detrend
+        if self.detrend is not None:
+            epoch = detrend(epoch, self.detrend, axis=1)
+
+        # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
                         copy=False)
 
+        # Decimate
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
 

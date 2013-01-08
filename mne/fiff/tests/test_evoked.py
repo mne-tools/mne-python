@@ -79,6 +79,16 @@ def test_evoked_resample():
     assert_true(ave_up.data.shape[1] == 2 * ave_normal.data.shape[1])
 
 
+def test_evoked_detrend():
+    """Test for detrending evoked data
+    """
+    ave = read_evoked(fname, 0)
+    ave_normal = read_evoked(fname, 0)
+    ave.detrend(0)
+    ave_normal.data -= np.mean(ave_normal.data, axis=1)[:, np.newaxis]
+    assert_true(np.allclose(ave.data, ave_normal.data, rtol=1e-8, atol=1e-16))
+
+
 def test_io_multi_evoked():
     """Test IO for multiple evoked datasets
     """

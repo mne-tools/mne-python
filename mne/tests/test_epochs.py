@@ -357,6 +357,30 @@ def test_resample():
     assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
 
 
+def test_detrend():
+    """Test detrending of epochs
+    """
+    # test zeroth-order case
+    for preload in [True, False]:
+        epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=(None, None), preload=preload)
+        epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=None, preload=preload, detrend=0)
+        assert_true(np.allclose(epochs_1.get_data(),
+                                epochs_2.get_data(), rtol=1e-16, atol=1e-20))
+    # now let's test first-order
+    epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                      baseline=None, detrend=1)
+    epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                      baseline=None, detrend=None)
+    evoked_1 = epochs_1.average()
+    evoked_2 = epochs_2.average()
+    evoked_2.detrend(1)
+    # Due to roundoff these won't be exactly equal, but they should be close
+    assert_true(np.allclose(evoked_1.data, evoked_2.data,
+                            rtol=1e-8, atol=1e-20))
+
+
 def test_bootstrap():
     """Test of bootstrapping of epochs
     """
