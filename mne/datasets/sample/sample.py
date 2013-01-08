@@ -29,7 +29,7 @@ def _sample_version(path):
     return version
 
 
-def data_path(path=None, force_update=False, update_path=None):
+def data_path(path=None, force_update=False, update_path=True):
     """Get path to local copy of Sample dataset
 
     Parameters
@@ -67,13 +67,8 @@ def data_path(path=None, force_update=False, update_path=None):
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
     if not op.exists(folder_path) or force_update:
-        if not op.exists(folder_path):
-            msg = ('Archive %s not found at:\n    %s\nAre you sure you '
-                   'want to download ~1.3 GB to this location (y/[n])? '
-                   % (archive_name, folder_path))
-            answer = raw_input(msg)
-            if answer.lower() != 'y':
-                raise IOError('MNE-sample-data not successfully found')
+        logger.info('Archive %s not found at:\n    %s\nDataset (~1.3GB) '
+                    'will be downloaded and extracted at this location.')
 
         if op.exists(martinos_path):
             archive_name = martinos_path
@@ -102,14 +97,14 @@ def data_path(path=None, force_update=False, update_path=None):
         import tarfile
         # note that we use print statements here because these processes
         # are interactive
-        print 'Decompressiong the archive: ' + archive_name
+        logger.info('Decompressiong the archive: ' + archive_name)
         tarfile.open(archive_name, 'r:gz').extractall(path=path)
         if rm_archive:
             os.remove(archive_name)
 
     path = op.abspath(path)
     if update_path is None:
-        if  get_config('MNE_DATASETS_SAMPLE_PATH', '') != path:
+        if get_config('MNE_DATASETS_SAMPLE_PATH', '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'sample dataset path in the mne-python config [y]/n? '
