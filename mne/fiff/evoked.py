@@ -18,7 +18,7 @@ from .pick import channel_type
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
-from ..filter import resample
+from ..filter import resample, detrend
 from ..fixes import in1d
 
 from .write import start_file, start_block, end_file, end_block, \
@@ -485,7 +485,9 @@ class Evoked(object):
         return df
 
     def resample(self, sfreq, npad=100, window='boxcar'):
-        """Resample preloaded data
+        """Resample data
+
+        This function operates in-place.
 
         Parameters
         ----------
@@ -504,6 +506,19 @@ class Evoked(object):
                       + self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
+
+    def detrend(self, order=1):
+        """Detrend data
+
+        This function operates in-place.
+
+        Parameters
+        ----------
+        order : int
+            Either 0 or 1, the order of the detrending. 0 is a constant
+            (DC) detrend, 1 is a linear detrend.
+        """
+        self.data = detrend(self.data, order, axis=-1)
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
