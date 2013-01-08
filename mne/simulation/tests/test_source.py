@@ -10,8 +10,7 @@ from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..' '/examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 fwd = read_forward_solution(fname_fwd, force_fixed=True)

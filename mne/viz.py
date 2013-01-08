@@ -742,8 +742,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     mlab.clf()
     f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                            use_faces, color=brain_color, opacity=opacity,
-                            **kwargs)
+                                   use_faces, color=brain_color,
+                                   opacity=opacity, **kwargs)
 
     import pylab as pl
     # Show time courses
@@ -831,11 +831,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
     sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
     idx_eeg = [ch_names.index(info_ch_names[c])
-                    for c in sel_eeg if info_ch_names[c] in ch_names]
+               for c in sel_eeg if info_ch_names[c] in ch_names]
     idx_mag = [ch_names.index(info_ch_names[c])
-                    for c in sel_mag if info_ch_names[c] in ch_names]
+               for c in sel_mag if info_ch_names[c] in ch_names]
     idx_grad = [ch_names.index(info_ch_names[c])
-                    for c in sel_grad if info_ch_names[c] in ch_names]
+                for c in sel_grad if info_ch_names[c] in ch_names]
 
     idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
                  (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
@@ -957,6 +957,7 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
     else:
         # Current PySurfer versions need the SUBJECTS_DIR env. var.
         # so we set it here. This is a hack as it can break other things
+        # XXX reminder to remove this once upstream pysurfer is changed
         os.environ['SUBJECTS_DIR'] = subjects_dir
         brain = Brain(subject, hemi, surface)
 
@@ -1275,10 +1276,10 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
         ax1 = pl.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         im = pl.imshow(this_data,
-                   extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                           0, len(data)],
-                   aspect='auto', origin='lower',
-                   vmin=vmin, vmax=vmax)
+                       extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
+                               0, len(data)],
+                       aspect='auto', origin='lower',
+                       vmin=vmin, vmax=vmax)
         ax2 = pl.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = pl.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)

@@ -17,7 +17,7 @@ from mne import fiff
 from mne.layouts import read_layout
 from mne.viz import plot_topo
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 

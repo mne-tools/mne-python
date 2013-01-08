@@ -63,24 +63,24 @@ Get the code
   For the latest development version (the most up to date)::
 
       pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
-	  
-	  
+
+
 Make life easier
 ~~~~~~~~~~~~~~~~
-	
+
   For optimal performance we recommend using numpy / scipy with the multi-threaded
   ATLAS, gotoblas2, or intel MKL. The EPD python distribution for example ships with
   tested MKL-compiled numpy / scipy verisons. Depending on the use case and your system
   this may speed up operations by a factor greater than 10.
-  
+
   The expected location for the MNE-sample data is my-path-to/mne-python/examples.
   If you downloaded data and an example asks you whether to download it again, make sure
   the data reside in the examples directory and you run the script from its current directory.
-  
+
   From IPython e.g. say::
-  	
+
 	cd examples/preprocessing
-	
+
 	%run plot_find_ecg_artifacts.py
 
 
@@ -105,7 +105,18 @@ But it's generally a good idea to leave them on:
 
     >>> mne.set_log_level('INFO')
 
-By default these print to the console, but look at mne.set_log_file() to save output to a file.
+You can set the default level by setting the environment variable
+"MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
+
+    >>> mne.utils.set_config('MNE_LOGGING_LEVEL','WARNING') # doctest: +SKIP
+
+Note that the location of the mne-python preferences file (for easier manual
+editing) can be found using:
+
+    >>> mne.utils.get_config_path() # doctest: +SKIP
+
+By default logging messages print to the console, but look at
+mne.set_log_file() to save output to a file.
 
 Access raw data
 ^^^^^^^^^^^^^^^
@@ -113,7 +124,7 @@ Access raw data
     >>> from mne.datasets import sample
     >>> data_path = sample.data_path()
     >>> raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    >>> print raw_fname
+    >>> print raw_fname # doctest: +SKIP
     ./MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif
 
 .. note:: The MNE sample dataset should be downloaded automatically but be patient (approx. 2GB)
@@ -176,7 +187,7 @@ and the last one is the event number. It is therefore easy to manipulate.
 
 Define epochs parameters:
 
-    >>> event_id = dict(aud_l=1, aud_r=2)  # event trigger and conditions 
+    >>> event_id = dict(aud_l=1, aud_r=2)  # event trigger and conditions
     >>> tmin = -0.2  # start of each epoch (200ms before the trigger)
     >>> tmax = 0.5  # end of each epoch (500ms after the trigger)
 
@@ -260,8 +271,8 @@ Compute evoked responses for auditory responses by averaging and plot it:
 It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked1 = mne.fiff.Evoked(evoked_fname, setno=0, baseline=(None, 0), proj=True)
-    Reading ./MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    >>> evoked1 = mne.fiff.Evoked(evoked_fname, setno=0, baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    Reading ...MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
@@ -284,7 +295,7 @@ Or another one stored in the same file:
 Compute a contrast:
 
     >>> contrast = evoked1 - evoked2
-	
+
     >>> print contrast
     <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
@@ -381,7 +392,7 @@ Save result in stc files:
 
 What else can you do?
 ^^^^^^^^^^^^^^^^^^^^^
-	
+
     - detect heart beat QRS component
     - detect eye blinks and EOG artifacts
     - compute SSP projections to remove ECG or EOG artifacts
@@ -391,9 +402,9 @@ What else can you do?
     - estimate power in the source space
     - estimate connectivity in sensor and source space
     - morph stc from one brain to another for group studies
-    - visualize source estimates 
+    - visualize source estimates
     - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
-    
+
 
 Want to know more ?
 ^^^^^^^^^^^^^^^^^^^

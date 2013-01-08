@@ -20,7 +20,7 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.epochs import combine_event_ids
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters

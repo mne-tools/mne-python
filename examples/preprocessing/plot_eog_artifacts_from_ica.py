@@ -24,7 +24,7 @@ from mne.fiff import Raw, pick_types
 from mne.preprocessing.ica import ICA, ica_find_eog_events
 from mne.datasets import sample
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)

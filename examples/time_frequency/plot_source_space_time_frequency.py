@@ -21,7 +21,7 @@ from mne.minimum_norm import read_inverse_operator, source_band_induced_power
 
 ###############################################################################
 # Set parameters
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 tmin, tmax, event_id = -0.2, 0.5, 1

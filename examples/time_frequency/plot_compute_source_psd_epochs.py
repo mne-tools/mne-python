@@ -23,7 +23,7 @@ from mne.fiff import Raw, pick_types
 from mne.minimum_norm import read_inverse_operator, compute_source_psd_epochs
 
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = data_path + '/MEG/sample/sample_audvis_raw.fif'
 fname_event = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'

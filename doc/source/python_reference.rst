@@ -6,10 +6,10 @@ Reference
    :no-members:
    :no-inherited-members:
 
-This is the classes and functions reference of mne-python. Functions are 
+This is the classes and functions reference of mne-python. Functions are
 grouped thematically by analysis stage. In addition, all File I/O functions
-are collected in a separate section. Functions and classes that are not below 
-a module heading are found in the :py:mod:`mne` namespace. 
+are collected in a separate section. Functions and classes that are not below
+a module heading are found in the :py:mod:`mne` namespace.
 
 
 Classes
@@ -31,8 +31,8 @@ Classes
    SourceEstimate
 
 
-Logging
-=======
+Logging and Configuration
+=========================
 
 .. currentmodule:: mne
 
@@ -42,7 +42,22 @@ Logging
 
    set_log_level
    set_log_file
-   verbose
+
+:py:mod:`mne.utils`:
+
+.. automodule:: mne.utils
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.utils
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   get_config_path
+   get_config
+   set_config
 
 
 File I/O
@@ -89,6 +104,35 @@ Functions:
    write_source_spaces
    write_surface
    write_trans
+
+:py:mod:`mne.datasets.sample`:
+
+.. automodule:: mne.datasets.sample
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.sample
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   data_path
+
+:py:mod:`mne.datasets.megsim`:
+
+.. automodule:: mne.datasets.megsim
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.megsim
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   data_path
+   load_data
+
+
 
 
 Visualization
@@ -310,7 +354,7 @@ Inverse Solutions
 .. automodule:: mne.beamformer
   :no-members:
   :no-inherited-members:
-  
+
 .. currentmodule:: mne.beamformer
 
 .. autosummary::

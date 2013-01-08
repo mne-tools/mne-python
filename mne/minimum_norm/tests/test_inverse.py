@@ -17,8 +17,7 @@ from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     write_inverse_operator
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
-s_path = op.join(sample.data_path(examples_folder), 'MEG', 'sample')
+s_path = op.join(sample.data_path(), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')

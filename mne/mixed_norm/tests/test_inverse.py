@@ -16,8 +16,7 @@ from mne.mixed_norm.inverse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
