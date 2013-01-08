@@ -46,6 +46,14 @@ class Evoked(object):
     setno : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
+    baseline : tuple or list of length 2, or None
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used. If None, no correction is applied.
     proj : bool, optional
         Apply SSP projection vectors
     kind : str
