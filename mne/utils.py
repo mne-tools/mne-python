@@ -19,7 +19,6 @@ from math import log
 import json
 import urllib2
 import urlparse
-from posixpath import basename, dirname
 
 logger = logging.getLogger('mne')
 
@@ -515,12 +514,12 @@ def _download_status(url, file_name, print_destination=True):
         block_sz = 65536
         n_written = 0
         while True:
-            buffer = u.read(block_sz)
-            if not buffer:
+            buf = u.read(block_sz)
+            if not buf:
                 break
 
-            file_size_dl += len(buffer)
-            f.write(buffer)
+            file_size_dl += len(buf)
+            f.write(buf)
             n_char = (int(float(file_size_dl) / file_size * char_span)
                       - n_written)
             if n_char > 0:
