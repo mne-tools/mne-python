@@ -41,9 +41,10 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 # Load condition 1
 event_id = 1
 events = events[:10]  # take 10 events to keep the computation time low
+# Use linear detrend to reduce any edge artifacts
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
-                    preload=True)
+                    preload=True, detrend=1)
 
 # Compute a source estimate per frequency band
 bands = dict(alpha=[9, 11], beta=[18, 22])
