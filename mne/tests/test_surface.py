@@ -8,8 +8,7 @@ from mne import read_bem_surfaces, write_bem_surface, read_surface, \
                 write_surface
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem',
                                         'sample-5120-5120-5120-bem-sol.fif')
 

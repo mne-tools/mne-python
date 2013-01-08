@@ -24,7 +24,7 @@ import numpy as np
 import mne
 from mne.datasets import sample
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 dip_fname = data_path + '/MEG/sample/sample_audvis_set1.dip'
 bem_fname = data_path + '/subjects/sample/bem/sample-5120-bem-sol.fif'

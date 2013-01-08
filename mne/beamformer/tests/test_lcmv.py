@@ -9,8 +9,7 @@ from mne.datasets import sample
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample',

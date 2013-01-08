@@ -18,8 +18,7 @@ from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',

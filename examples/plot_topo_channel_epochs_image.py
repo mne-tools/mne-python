@@ -22,7 +22,7 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.layouts import read_layout
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters

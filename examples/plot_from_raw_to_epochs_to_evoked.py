@@ -17,7 +17,7 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters

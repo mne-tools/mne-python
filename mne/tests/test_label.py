@@ -16,8 +16,7 @@ from mne.label import Label
 from mne.utils import requires_mne, _TempDir
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'

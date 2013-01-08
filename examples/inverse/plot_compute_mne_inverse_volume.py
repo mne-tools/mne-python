@@ -21,7 +21,7 @@ from mne.datasets import sample
 from mne.fiff import Evoked
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
