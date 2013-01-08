@@ -3,11 +3,12 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
-                       resample, construct_iir_filter
+                       resample, construct_iir_filter, detrend
 
 
 def test_filters():
-    """Test low-, band-, and high-pass filters"""
+    """Test low-, band-, and high-pass filters
+    """
     Fs = 500
     sig_len_secs = 60
 
@@ -56,3 +57,12 @@ def test_filters():
     iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low')
     assert_true(iir_params['a'].size - 1 == 4)
     assert_true(iir_params['b'].size - 1 == 4)
+
+
+def test_detrend():
+    """Test zeroth and first order detrending
+    """
+    x = np.arange(10)
+    assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
+    x = np.ones(10)
+    assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
