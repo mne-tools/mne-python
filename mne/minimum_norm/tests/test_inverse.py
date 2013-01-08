@@ -20,8 +20,8 @@ from mne.utils import _TempDir
 s_path = op.join(sample.data_path(), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
-#fname_inv_diag = op.join(s_path,
-#                         'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
+fname_inv_diag = op.join(s_path,
+                         'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_data = op.join(s_path, 'sample_audvis-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis-cov.fif')
@@ -62,24 +62,27 @@ def _compare(a, b):
         assert_true(a == b)
 
 
-def test_io_inverse_operator():
-    """Test IO of inverse_operator
-    """
-    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    for inv in [inverse_operator, inverse_operator_vol]:
-        inv_init = copy.deepcopy(inv)
-        out_file = op.join(tempdir, 'test-inv.fif')
-        write_inverse_operator(out_file, inv)
-        this_inv = read_inverse_operator(out_file)
-        _compare(inv, inv_init)
-        _compare(inv, this_inv)
+def _compare_inverses_approx(inv_1, inv_2, evoked):
+    # XXX This does not work correctly
+    assert_array_almost_equal(inv_1['depth_prior']['data'],
+                              inv_2['depth_prior']['data'])
+    if inv_1['orient_prior'] is not None:
+        assert_array_almost_equal(inv_1['orient_prior']['data'],
+                                  inv_2['orient_prior']['data'])
+    else:
+        assert_true(inv_2['orient_prior'] is None)
+    assert_array_almost_equal(inv_1['source_cov']['data'],
+                              inv_2['source_cov']['data'])
+    #assert_array_almost_equal(inv_1['eigen_fields']['data'],
+    #                          inv_2['eigen_fields']['data'])
+    #assert_array_almost_equal(inv_1['eigen_leads']['data'],
+    #                          inv_2['eigen_leads']['data'])
 
-    # just do one example for .gz, as it should generalize
-    inv = inverse_operator
-    out_file = op.join(tempdir, 'test-inv.fif.gz')
-    write_inverse_operator(out_file, inv)
-    this_inv = read_inverse_operator(out_file)
-    _compare(inv, this_inv)
+    stc_1 = apply_inverse(evoked, inv_1, lambda2, "dSPM")
+    stc_2 = apply_inverse(evoked, inv_2, lambda2, "dSPM")
+
+    assert_equal(stc_1.times, stc_2.times)
+    assert_array_almost_equal(stc_1.data, stc_2.data, 2)
 
 
 def test_apply_inverse_operator():
@@ -89,6 +92,12 @@ def test_apply_inverse_operator():
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     evoked.crop(0, 0.1)
+
+    # Test MNE inverse computation starting from forward operator
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                      loose=0.2, depth=0.8)
+    _compare_inverses_approx(my_inv_op, inverse_operator, evoked)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert_true(stc.data.min() > 0)
@@ -105,11 +114,6 @@ def test_apply_inverse_operator():
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
 
-    # Test MNE inverse computation starting from forward operator
-    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
-
-    my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                      loose=0.2, depth=0.8)
     out_file = op.join(tempdir, 'test-inv.fif')
     write_inverse_operator(out_file, my_inv_op)
     read_my_inv_op = read_inverse_operator(out_file)
@@ -123,38 +127,54 @@ def test_apply_inverse_operator():
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)
 
-    # The inverse has 306 channels - 4 proj = 302
+def test_compute_rank():
+    """Test inverse rank computation"""
+    # Each inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator) == 302)
+    assert_true(compute_rank_inverse(inverse_operator_diag) == 302)
 
 
 def test_make_inverse_operator_fixed():
     """Test MNE inverse computation with fixed orientation"""
     # XXX : should be fixed and not skipped
-    raise nose.SkipTest("XFailed Test")
+    #raise nose.SkipTest("XFailed Test")
 
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
                                    loose=None)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
+    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked)
 
-    assert_array_almost_equal(inverse_operator_fixed['depth_prior']['data'],
-                              inv_op['depth_prior']['data'])
-    assert_equal(inverse_operator_fixed['orient_prior'],
-                 inv_op['orient_prior'])
-    assert_array_almost_equal(inverse_operator_fixed['source_cov']['data'],
-                              inv_op['source_cov']['data'])
 
-    stc_fixed = apply_inverse(evoked, inverse_operator_fixed, lambda2, "dSPM")
-    my_stc = apply_inverse(evoked, inv_op, lambda2, "dSPM")
+def test_make_inverse_operator_diag():
+    """Test MNE inverse computation with diagonal noise cov"""
 
-    assert_equal(stc_fixed.times, my_stc.times)
-    assert_array_almost_equal(stc_fixed.data, my_stc.data, 2)
+    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
+                                   depth=0.8, loose=0.2)
+    inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
+    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked)
 
-    # assert_array_almost_equal(inverse_operator_fixed['eigen_fields']['data'],
-    #                           inv_op['eigen_fields']['data'])
-    # assert_array_almost_equal(inverse_operator_fixed['eigen_leads']['data'],
-    #                           inv_op['eigen_leads']['data'])
+
+def test_io_inverse_operator():
+    """Test IO of inverse_operator
+    """
+    for inv in [inverse_operator, inverse_operator_vol]:
+        inv_init = copy.deepcopy(inv)
+        out_file = op.join(tempdir, 'test-inv.fif')
+        write_inverse_operator(out_file, inv)
+        this_inv = read_inverse_operator(out_file)
+        _compare(inv, inv_init)
+        _compare(inv, this_inv)
+
+    # just do one example for .gz, as it should generalize
+    inv = inverse_operator
+    out_file  = op.join(tempdir, 'test-inv.fif.gz')
+    write_inverse_operator(out_file, inv)
+    this_inv = read_inverse_operator(out_file)
+    _compare(inv, this_inv)
 
 
 def test_inverse_operator_volume():
