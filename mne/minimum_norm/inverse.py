@@ -26,9 +26,9 @@ from ..fiff.write import write_int, write_float_matrix, start_file, \
 from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type
 from ..cov import prepare_noise_cov
-from ..forward import compute_depth_prior, compute_depth_prior_fixed, \
-                      read_forward_meas_info, write_forward_meas_info, \
-                      is_fixed_orient, compute_orient_prior
+from ..forward import compute_depth_prior, read_forward_meas_info, \
+                      write_forward_meas_info, is_fixed_orient, \
+                      compute_orient_prior
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces_to_fid, label_src_vertno_sel
@@ -458,6 +458,12 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     #
     scale = float(inv['nave']) / nave
     inv['noise_cov']['data'] = scale * inv['noise_cov']['data']
+    # deal with diagonal case
+    if inv['noise_cov']['eig'] is None:
+        logger.info('    Diagonal noise covariance found')
+        inv['noise_cov']['eig'] = inv['noise_cov']['data']
+        inv['noise_cov']['eigvec'] = np.eye(len(inv['noise_cov']['data']))
+
     inv['noise_cov']['eig'] = scale * inv['noise_cov']['eig']
     inv['source_cov']['data'] = scale * inv['source_cov']['data']
     #
@@ -1069,12 +1075,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     n_dipoles = gain.shape[1]
 
     # Handle depth prior scaling
-    depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
     if depth is not None:
-        if is_fixed_ori:
-            depth_prior = compute_depth_prior_fixed(gain, exp=depth)
-        else:
-            depth_prior = compute_depth_prior(gain, exp=depth)
+        depth_prior = compute_depth_prior(gain, exp=depth, forward=forward,
+                                          ch_names=ch_names)
+    else:
+        depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(ch_names))
@@ -1147,6 +1152,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     else:
         methods = FIFF.FIFFV_MNE_EEG
 
+    # We set this for consistency with mne C code written inverses
+    if depth is None:
+        depth_prior = None
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,
                   source_cov=source_cov, noise_cov=noise_cov,
