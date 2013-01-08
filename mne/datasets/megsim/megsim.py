@@ -113,7 +113,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
     # Offer to update the path
     path = op.abspath(path)
     if update_path is None:
-        if  get_config('MNE_DATASETS_MEGSIM_PATH', '') != path:
+        if get_config('MNE_DATASETS_MEGSIM_PATH', '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'MEGSIM dataset path in the mne-python config ([y]/n)? '
