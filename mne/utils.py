@@ -524,6 +524,7 @@ def _download_status(url, file_name, print_destination=True):
                       - n_written)
             if n_char > 0:
                 stdout.write('>' * n_char)
+                stdout.flush()
                 n_written += n_char
         stdout.write('|\n')
         if print_destination is True:
