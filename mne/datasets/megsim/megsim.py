@@ -84,6 +84,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
         raise ValueError('path must be a string or None')
 
     destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))
+    destinations = [destination]
+
     split = op.splitext(destination)
     is_zip = True if split[1].lower() == '.zip' else False
     # Fetch the file
@@ -107,8 +109,6 @@ def data_path(url, path=None, force_update=False, update_path=None):
             z.close()
             destinations = [op.join(decomp_dir, f) for f in files]
             stdout.write(' [done]\n')
-        else:
-            destinations = [destination]
 
     # Offer to update the path
     path = op.abspath(path)
