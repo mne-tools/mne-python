@@ -5,11 +5,11 @@
 
 import os.path as op
 import gzip
-import logging
 import cStringIO
+import logging
 logger = logging.getLogger('mne')
 
-from .tag import read_tag_info, read_tag
+from .tag import read_tag_info, read_tag, read_big
 from .tree import make_dir_tree
 from .constants import FIFF
 from .. import verbose
@@ -51,7 +51,9 @@ def fiff_open(fname, preload=False, verbose=None):
     if preload:
         # note that cStringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid = cStringIO.StringIO(fid.read())
+        fid_old = fid
+        fid = cStringIO.StringIO(read_big(fid_old))
+        fid_old.close()
 
     tag = read_tag_info(fid)
 

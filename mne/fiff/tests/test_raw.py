@@ -633,4 +633,5 @@ def test_save():
     raw.save(op.join(tempdir, new_fname))
     new_raw = Raw(op.join(tempdir, new_fname))
     assert_raises(ValueError, new_raw.save, new_fname)
+    new_raw.close()
     os.remove(new_fname)

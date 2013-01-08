@@ -23,14 +23,14 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         dimension should be time.
     times : 1D array
         Time instants is seconds.
-    baseline : tuple or list of length 2
+    baseline : tuple or list of length 2, or None
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
-        interval is used.
+        interval is used. If None, no correction is applied.
     mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard

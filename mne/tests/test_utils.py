@@ -52,9 +52,11 @@ def test_logging():
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
+    new_log_file.close()
+    set_log_file(None) # Need to do this to close the old file
+    os.remove(test_name)
 
     # now go the other way (printing default on)
-    os.remove(test_name)
     set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print

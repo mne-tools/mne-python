@@ -24,12 +24,11 @@ def test_io_evoked():
     """
     ave = read_evoked(fname, 0)
 
-    ave.crop(tmin=0)
-
     write_evoked(op.join(tempdir, 'evoked.fif'), ave)
     ave2 = read_evoked(op.join(tempdir, 'evoked.fif'))
 
-    assert_array_almost_equal(ave.data, ave2.data)
+    # This not being assert_array_equal due to windows rounding
+    assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
     assert_array_almost_equal(ave.times, ave2.times)
     assert_equal(ave.nave, ave2.nave)
     assert_equal(ave._aspect_kind, ave2._aspect_kind)
@@ -39,16 +38,14 @@ def test_io_evoked():
 
     # test compressed i/o
     ave2 = read_evoked(fname_gz, 0)
-    ave2.crop(tmin=0)
-    assert_array_equal(ave.data, ave2.data)
+    assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-8))
 
     # test str access
     setno = 'Left Auditory'
     assert_raises(ValueError, read_evoked, fname, setno, kind='stderr')
     assert_raises(ValueError, read_evoked, fname, setno, kind='standard_error')
     ave3 = read_evoked(fname, setno)
-    ave3.crop(tmin=0)
-    assert_array_equal(ave.data, ave3.data)
+    assert_array_almost_equal(ave.data, ave3.data, 19)
 
 
 def test_evoked_resample():
