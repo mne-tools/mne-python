@@ -587,6 +587,57 @@ def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
     return depth_prior
 
 
+def _compute_norms_forward(fwd, source_ori):
+    raise ValueError('not implemented yet')
+
+
+def create_depth_weighting_src_cov(fwd, exp, limit):
+    diag = np.zeros(fwd['nsource'])
+    diag_sort = np.zeros(fwd['nsource'])
+
+    # Compute the lead field norms
+    diag = _compute_norms_forward(fwd['fwd'], fwd['source_ori'])
+    if fwd.patch_areas:
+        for k in range(len(fwd['nsource'])):
+            diag[k] = diag[k] / (fwd['patch_areas'][k] * fwd['patch_areas'][k])
+    logger.info('Patch areas taken into account in the depth weighting')
+
+    for k in range(len(fwd['nsource'])):
+        diag_sort[k] = diag[k] = 1.0 / diag[k]
+    # Calculate the weighting values
+    diag_sort = np.sort(diag_sort)
+    limit = limit * limit
+
+    limit = diag_sort[fwd['nsource'] - 1]
+    n_limit = fwd['nsource'] - 1
+    if diag_sort[fwd['nsource'] - 1] > limit * diag_sort[0]:
+        for k in range(fwd['nsource']):
+            if diag_sort[k] > limit * diag_sort[0]:
+                limit = diag_sort[k]
+                n_limit = k
+                break
+
+    logger.debug('limit = %d/%d = %f'
+                % (n_limit + 1, fwd['nsource'],
+                   np.sqrt(diag_sort[n_limit] / diag_sort[0])))
+    scale = 1.0 / limit
+    logger.info('scale = %g exp = %g' % (scale, exp))
+    for k in range(fwd['nsource']):
+        if diag[k] > limit:
+            diag[k] = limit
+        diag[k] = (scale * diag[k]) ** exp
+
+    # Compose the depth-weighting matrix
+    if fwd['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+        ddiag = np.zeros((fwd['nsource'], 3))
+        for k in range(fwd['nsource']):
+            ddiag[k, :] = diag[k]
+    else:
+        ddiag = diag
+
+    return ddiag
+
+
 def _stc_src_sel(src, stc):
     """ Select the vertex indices of a source space using a source estimate
     """
