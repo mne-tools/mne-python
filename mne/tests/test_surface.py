@@ -1,4 +1,3 @@
-import os
 import os.path as op
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -10,7 +9,7 @@ from mne.utils import _TempDir
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem',
-                                        'sample-5120-5120-5120-bem-sol.fif')
+                'sample-5120-5120-5120-bem-sol.fif')
 
 tempdir = _TempDir()
 

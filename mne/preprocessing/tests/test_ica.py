@@ -205,7 +205,7 @@ def test_ica_additional():
         ica.n_pca_components = 2
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
-        assert_true(ica.n_pca_components == \
+        assert_true(ica.n_pca_components ==
                     ica_read.n_pca_components)
         ica.n_pca_components = 4
         ica_read.n_pca_components = 4
@@ -216,7 +216,8 @@ def test_ica_additional():
 
         assert_true(ica.ch_names == ica_read.ch_names)
 
-        assert_array_equal(ica.mixing_matrix_, ica_read.mixing_matrix_)
+        assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
+                                rtol=1e-16, atol=1e-32))
         assert_array_equal(ica.pca_components_,
                            ica_read.pca_components_)
         assert_array_equal(ica.pca_mean_, ica_read.pca_mean_)
