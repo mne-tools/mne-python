@@ -197,7 +197,7 @@ def test_extract_label_time_course():
         for tc1, tc2 in zip(label_tc, label_tc_method):
             assert_true(tc1.shape == (n_labels, n_times))
             assert_true(tc2.shape == (n_labels, n_times))
-            assert_array_almost_equal(tc1, tc2, 14)
+            assert_true(np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
             if mode == 'mean':
                 assert_array_almost_equal(tc1, label_means)
             if mode == 'mean_flip':
