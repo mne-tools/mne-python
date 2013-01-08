@@ -360,25 +360,32 @@ def test_resample():
 def test_detrend():
     """Test detrending of epochs
     """
-    # test zeroth-order case
-    for preload in [True, False]:
-        epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                          baseline=(None, None), preload=preload)
-        epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                          baseline=None, preload=preload, detrend=0)
-        assert_true(np.allclose(epochs_1.get_data(),
-                                epochs_2.get_data(), rtol=1e-16, atol=1e-20))
-    # now let's test first-order
+    # test first-order
     epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=1)
     epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=None)
+    data_picks = fiff.pick_types(epochs_1.info, meg=True, eeg=True)
     evoked_1 = epochs_1.average()
     evoked_2 = epochs_2.average()
     evoked_2.detrend(1)
     # Due to roundoff these won't be exactly equal, but they should be close
     assert_true(np.allclose(evoked_1.data, evoked_2.data,
                             rtol=1e-8, atol=1e-20))
+
+    # test zeroth-order case
+    for preload in [True, False]:
+        epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=(None, None), preload=preload)
+        epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=None, preload=preload, detrend=0)
+        a = epochs_1.get_data()
+        b = epochs_2.get_data()
+        # All data channels should be almost equal
+        assert_true(np.allclose(a[:, data_picks, :], b[:, data_picks, :],
+                                rtol=1e-16, atol=1e-20))
+        # There are non-M/EEG channels that should not be equal:
+        assert_true(not np.allclose(a, b))
 
 
 def test_bootstrap():
