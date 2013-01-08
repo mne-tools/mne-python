@@ -39,8 +39,8 @@ def test_read_write_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = epochs.average()
-    # need to copy it, since it's a view and we modify it later (drop EOG)
-    data = epochs.get_data().copy()
+
+    data = epochs.get_data()
 
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks,
@@ -60,7 +60,7 @@ def test_read_write_epochs():
         assert_equal(len(w), 1)
 
     data_dec = epochs_dec.get_data()
-    assert_array_almost_equal(data[:, :, epochs_dec._decim_idx], data_dec, 17)
+    assert_array_equal(data[:, :, epochs_dec._decim_idx], data_dec)
 
     evoked_dec = epochs_dec.average()
     assert_array_equal(evoked.data[:, epochs_dec._decim_idx], evoked_dec.data)
@@ -355,8 +355,7 @@ def test_resample():
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
-    # XXX This is too low, need to figure it out...
-    assert_array_almost_equal(data_up, epochs._data, 13)
+    assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
 
 
 def test_bootstrap():
