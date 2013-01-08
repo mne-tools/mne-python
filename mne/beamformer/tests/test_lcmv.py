@@ -25,10 +25,10 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 label = mne.read_label(fname_label)
 noise_cov = mne.read_cov(fname_cov)
-raw = mne.fiff.Raw(fname_raw, preload=True)
+# preloading raw here increases mem requirements by 400 mb for all nosetests
+# that include this file's parent directory :(
+raw = mne.fiff.Raw(fname_raw, preload=False)
 forward = mne.read_forward_solution(fname_fwd)
-forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                          surf_ori=True)
 events = mne.read_events(fname_event)
 
 
@@ -71,6 +71,8 @@ def test_lcmv():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
+    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                              surf_ori=True)
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
 
     epochs.drop_bad_epochs()
