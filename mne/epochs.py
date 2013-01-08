@@ -101,13 +101,13 @@ class Epochs(object):
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
     detrend : int | None
-        If 0 or 1, the data will be detrended when loaded. 0 is a constant
-        (DC) detrend, 1 is a linear detrend. None is no detrending. Note
-        that detrending is performed before baseline correction. If no DC
-        offset is preferred (zeroth order detrending), either turn off
-        baseline correction, as this may introduce a DC shift, or set
-        baseline correction to use the entire time interval (will yield
-        equivalent results but be slower).
+        If 0 or 1, the data channels (MEG and EEG) will be detrended when
+        loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
+        is no detrending. Note that detrending is performed before baseline
+        correction. If no DC offset is preferred (zeroth order detrending),
+        either turn off baseline correction, as this may introduce a DC
+        shift, or set baseline correction to use the entire time interval
+        (will yield equivalent results but be slower).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -390,7 +390,9 @@ class Epochs(object):
 
         # Detrend
         if self.detrend is not None:
-            epoch = detrend(epoch, self.detrend, axis=1)
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False)
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
