@@ -130,7 +130,7 @@ Functions:
    :toctree: generated/
    :template: function.rst
    data_path
-   load_megsim
+   load_data
 
 
 

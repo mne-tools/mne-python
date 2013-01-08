@@ -3,6 +3,8 @@
 
 import os
 from os import path as op
+import zipfile
+from sys import stdout
 
 import logging
 logger = logging.getLogger('mne')
@@ -39,8 +41,10 @@ def data_path(url, path=None, force_update=False, update_path=None):
 
     Returns
     -------
-    path : str
-        Local path to the given data file.close
+    path : list of str
+        Local paths to the given data files. If URL was a .fif file, this
+        will be a list of length 1. If it was a .zip file, it may potentially
+        be many files.
 
     Notes
     -----
@@ -80,7 +84,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
         raise ValueError('path must be a string or None')
 
     destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))
-
+    split = op.splitext(destination)
+    is_zip = True if split[1].lower() == '.zip' else False
     # Fetch the file
     if not op.isfile(destination) or force_update:
         logger.info('Downloading data, please wait:')
@@ -90,6 +95,20 @@ def data_path(url, path=None, force_update=False, update_path=None):
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
         _download_status(url, destination, False)
+
+        # decompress if necessary
+        if is_zip:
+            z = zipfile.ZipFile(destination)
+            decomp_dir, name = op.split(destination)
+            files = z.namelist()
+            stdout.write('Decompressing %g files from\n'
+                         '"%s" ...' % (len(files), name))
+            z.extractall(decomp_dir)
+            z.close()
+            destinations = [op.join(decomp_dir, f) for f in files]
+            stdout.write(' [done]\n')
+        else:
+            destinations = [destination]
 
     # Offer to update the path
     path = op.abspath(path)
@@ -107,12 +126,11 @@ def data_path(url, path=None, force_update=False, update_path=None):
     if update_path is True:
         set_config('MNE_DATASETS_MEGSIM_PATH', path)
 
-    return destination
+    return destinations
 
 
-def load_megsim(condition='visual', data_format='raw',
-                data_type='experimental', path=None, force_update=False,
-                update_path=None):
+def load_data(condition='visual', data_format='raw', data_type='experimental',
+              path=None, force_update=False, update_path=None):
     """Get path to local copy of MEGSIM dataset type
 
     Parameters
@@ -170,5 +188,5 @@ def load_megsim(condition='visual', data_format='raw',
 
     data_paths = list()
     for url in urls:
-        data_paths.append(data_path(url, path, force_update, update_path))
+        data_paths.extend(data_path(url, path, force_update, update_path))
     return data_paths
