@@ -12,27 +12,28 @@ from .source_estimate import SourceEstimate
 
 
 class NdVar(object):
+    "Container for n-dimensional data."
     def __init__(self, x, dims=('case',), info=None, name=None):
         """
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         x : array
-            The data
-
+            The data.
         dims : tuple
             The dimensions characterizing the axes of the data. If present,
             ``'case'`` should be provided as a :py:class:`str`, and should
             always occupy the first position.
-
         info : dict
             A dictionary with data properties.
 
 
-         .. note::
-            ``data`` and ``dims`` are stored without copying. A shallow
-            copy of ``info`` is stored. Make sure the relevant objects
-            are not modified externally later.
+        Notes
+        -----
+
+        ``x`` and ``dims`` are stored without copying. A shallow
+        copy of ``properties`` is stored. Make sure the relevant objects
+        are not modified externally later.
 
 
         Examples
@@ -242,6 +243,8 @@ class NdVar(object):
         """
         Return an NdVar with one case for each cell in ``X``.
 
+        Parameters
+        ----------
         X : categorial
             Categorial whose cells are used to compress the NdVar.
         func : function with axis argument
@@ -294,6 +297,8 @@ class NdVar(object):
         returns the data with a specific ordering of dimension as indicated in
         ``dims``.
 
+        Parameters
+        ----------
         dims : sequence of str and None
             List of dimension names. The array that is returned will have axes
             in this order. None can be used to increase the insert a dimension
