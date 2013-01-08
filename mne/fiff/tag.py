@@ -84,6 +84,27 @@ def read_big(fid, size=None):
     Windows (argh) can't handle reading large chunks of data, so we
     have to do it piece-wise, possibly related to:
        http://stackoverflow.com/questions/4226941
+
+    Examples
+    --------
+    This code should work for normal files and .gz files:
+
+        >>> import numpy as np
+        >>> import gzip, os, tempfile, shutil
+        >>> fname = tempfile.mkdtemp()
+        >>> fname_gz = os.path.join(fname, 'temp.gz')
+        >>> fname = os.path.join(fname, 'temp.bin')
+        >>> randgen = np.random.RandomState(9)
+        >>> x = randgen.randn(3000000)  # > 16MB data
+        >>> with open(fname, 'wb') as fid: x.tofile(fid)
+        >>> with open(fname, 'rb') as fid: y = np.fromstring(read_big(fid))
+        >>> assert np.all(x == y)
+        >>> with gzip.open(fname_gz, 'wb') as fid: fid.write(x.tostring())
+        24000000
+        >>> with gzip.open(fname_gz, 'rb') as fid: y = np.fromstring(read_big(fid))
+        >>> assert np.all(x == y)
+        >>> shutil.rmtree(os.path.dirname(fname))
+
     """
     # buf_size is chosen as a largest working power of 2 (16 MB):
     buf_size = 16777216
