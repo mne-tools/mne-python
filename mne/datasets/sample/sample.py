@@ -7,7 +7,6 @@ import os
 import os.path as op
 import shutil
 from warnings import warn
-from distutils.version import LooseVersion
 
 import logging
 logger = logging.getLogger('mne')
@@ -127,10 +126,16 @@ def data_path(path=None, force_update=False, update_path=None):
 
     # compare the version of the Sample dataset and mne
     sample_version = _sample_version(path)
-    if LooseVersion(sample_version) < LooseVersion(mne_version):
-        warn('Sample dataset (version %s) is older than mne-python '
-             '(version %s). If the examples fail, you may need to update '
-             'the sample dataset by using force_update=True' % (sample_version,
-             mne_version))
+    try:
+        from distutils.version import LooseVersion
+    except:
+        warn('Could not determine sample dataset version; dataset could\n'
+             'be out of date. Please install the "distutils" package.')
+    else:
+        if LooseVersion(sample_version) < LooseVersion(mne_version):
+            warn('Sample dataset (version %s) is older than mne-python '
+                 '(version %s). If the examples fail, you may need to update '
+                 'the sample dataset by using force_update=True'
+                 % (sample_version, mne_version))
 
     return path
