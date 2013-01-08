@@ -295,6 +295,7 @@ def test_ica_additional():
     ica_raw.save(test_ica_fname)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
     assert_array_almost_equal(ica_raw._data, ica_raw2._data)
+    ica_raw2.close()
     os.remove(test_ica_fname)
 
     # regression test for plot method

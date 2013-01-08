@@ -5,11 +5,11 @@
 
 import os.path as op
 import gzip
-import logging
 import cStringIO
+import logging
 logger = logging.getLogger('mne')
 
-from .tag import read_tag_info, read_tag
+from .tag import read_tag_info, read_tag, read_big
 from .tree import make_dir_tree
 from .constants import FIFF
 from .. import verbose
@@ -49,19 +49,11 @@ def fiff_open(fname, preload=False, verbose=None):
 
     # do preloading of entire file
     if preload:
-        # Windows (argh) can't handle reading large chunks of data, so we
-        # have to do it piece-wise, see:
-        #    http://stackoverflow.com/questions/4226941
-        # buf_size was chosen as a largest working power of 2 (16 MB):
-        buf_size = 16777216
-        bufs = ['']
-        new = fid.read(buf_size)
-        while len(new) > 0:
-            bufs.append(new)
-            new = fid.read(buf_size)
         # note that cStringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
-        fid = cStringIO.StringIO(''.join(bufs))
+        fid_old = fid
+        fid = cStringIO.StringIO(read_big(fid_old))
+        fid_old.close()
 
     tag = read_tag_info(fid)
 
