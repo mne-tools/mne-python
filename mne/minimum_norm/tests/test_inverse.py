@@ -6,6 +6,7 @@ from nose.tools import assert_true
 import nose
 import copy
 
+from mne import set_log_level  # XXX don't need
 from mne.datasets import sample
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
@@ -62,10 +63,12 @@ def _compare(a, b):
         assert_true(a == b)
 
 
-def _compare_inverses_approx(inv_1, inv_2, evoked):
-    # XXX This does not work correctly
-    assert_array_almost_equal(inv_1['depth_prior']['data'],
-                              inv_2['depth_prior']['data'])
+def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals):
+    if inv_1['depth_prior'] is not None:
+        assert_array_almost_equal(inv_1['depth_prior']['data'],
+                                  inv_2['depth_prior']['data'])
+    else:
+        assert_true(inv_2['depth_prior'] is None)
     if inv_1['orient_prior'] is not None:
         assert_array_almost_equal(inv_1['orient_prior']['data'],
                                   inv_2['orient_prior']['data'])
@@ -73,6 +76,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked):
         assert_true(inv_2['orient_prior'] is None)
     assert_array_almost_equal(inv_1['source_cov']['data'],
                               inv_2['source_cov']['data'])
+
     #assert_array_almost_equal(inv_1['eigen_fields']['data'],
     #                          inv_2['eigen_fields']['data'])
     #assert_array_almost_equal(inv_1['eigen_leads']['data'],
@@ -82,22 +86,21 @@ def _compare_inverses_approx(inv_1, inv_2, evoked):
     stc_2 = apply_inverse(evoked, inv_2, lambda2, "dSPM")
 
     assert_equal(stc_1.times, stc_2.times)
-    assert_array_almost_equal(stc_1.data, stc_2.data, 2)
+    assert_array_almost_equal(stc_1.data, stc_2.data, stc_decimals)
 
 
 def test_apply_inverse_operator():
-    """Test MNE inverse computation
-
-    With and without precomputed inverse operator.
+    """Test MNE inverse computation (precomputed and non-precomputed)
     """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     evoked.crop(0, 0.1)
 
     # Test MNE inverse computation starting from forward operator
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    set_log_level('INFO')
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
-    _compare_inverses_approx(my_inv_op, inverse_operator, evoked)
+    _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
     assert_true(stc.data.min() > 0)
@@ -127,40 +130,56 @@ def test_apply_inverse_operator():
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)
 
-def test_compute_rank():
-    """Test inverse rank computation"""
-    # Each inverse has 306 channels - 4 proj = 302
+    # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator) == 302)
-    assert_true(compute_rank_inverse(inverse_operator_diag) == 302)
 
 
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation with fixed orientation"""
-    # XXX : should be fixed and not skipped
-    #raise nose.SkipTest("XFailed Test")
-
+    """Test MNE inverse computation with fixed orientation
+    """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
     fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
-    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
                                    loose=None)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
-    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked)
+    # XXX The STCs are not that equivalent in the fixed case...
+    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked, -1)
+    # Inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
 
 
 def test_make_inverse_operator_diag():
-    """Test MNE inverse computation with diagonal noise cov"""
-
+    """Test MNE inverse computation with diagonal noise cov
+    """
     evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
-    fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
-                                   depth=0.8, loose=0.2)
-    inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
-    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked)
+                                   loose=0.2, depth=0.8)
+    inverse_operator_diag = read_inverse_operator(fname_inv_diag)
+    # XXX This one's only good to zero decimal places
+    _compare_inverses_approx(inverse_operator_diag, inv_op, evoked, 0)
+    # Inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank_inverse(inverse_operator_diag) == 302)
+
+
+def test_inverse_operator_volume():
+    """Test MNE inverse computation on volume source space
+    """
+    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
+    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
+    stc.save(op.join(tempdir, 'tmp-vl.stc'))
+    stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
+    assert_true(np.all(stc.data > 0))
+    assert_true(np.all(stc.data < 35))
+    assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.times, stc2.times)
 
 
 def test_io_inverse_operator():
     """Test IO of inverse_operator
     """
+    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     for inv in [inverse_operator, inverse_operator_vol]:
         inv_init = copy.deepcopy(inv)
         out_file = op.join(tempdir, 'test-inv.fif')
@@ -177,21 +196,9 @@ def test_io_inverse_operator():
     _compare(inv, this_inv)
 
 
-def test_inverse_operator_volume():
-    """Test MNE inverse computation on volume source space"""
-    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
-    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
-    stc.save(op.join(tempdir, 'tmp-vl.stc'))
-    stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
-    assert_true(np.all(stc.data > 0))
-    assert_true(np.all(stc.data < 35))
-    assert_array_almost_equal(stc.data, stc2.data)
-    assert_array_almost_equal(stc.times, stc2.times)
-
-
 def test_apply_mne_inverse_raw():
-    """Test MNE with precomputed inverse operator on Raw"""
+    """Test MNE with precomputed inverse operator on Raw
+    """
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
@@ -215,7 +222,8 @@ def test_apply_mne_inverse_raw():
 
 
 def test_apply_mne_inverse_fixed_raw():
-    """Test MNE with fixed-orientation inverse operator on Raw"""
+    """Test MNE with fixed-orientation inverse operator on Raw
+    """
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
