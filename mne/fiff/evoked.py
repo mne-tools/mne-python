@@ -121,7 +121,7 @@ class Evoked(object):
                 else:
                     fid.close()
                 raise ValueError('%d datasets present, setno parameter '
-                                 'must be set. Candidate setnos:\n%s'
+                                 'must be set. Candidate setno names:\n%s'
                                  % (len(evoked_node), t))
         elif isinstance(setno, basestring):
             if not kind in aspect_dict.keys():
