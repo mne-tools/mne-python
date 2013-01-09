@@ -1,14 +1,15 @@
 """
-==================================================================
-Define higher order events based on time lag, plot evoked response
-==================================================================
+============================================================
+Define target events based on time lag, plot evoked response
+============================================================
 
-This script shows how to define higher order events based on time
-lag between reference an target events. For illustration, we will
-put face stimuli presented into two classes, that is 1) followed
-by an early button press (within 590 milliseconds) and followed
-by a late button press (later than 590 milliseconds). Finally, we
-will visualize the evoked responses to both 'quickly-processed'
+This script shows how to define higher order events based on
+time lag between reference an target events. For
+illustration, we will put face stimuli presented into two
+classes, that is 1) followed by an early button press
+(within 590 milliseconds) and followed by a late button
+press (later than 590 milliseconds). Finally, we will
+visualize the evoked responses to both 'quickly-processed'
 and 'slowly-processed' face stimuli.
 
 """
@@ -20,6 +21,7 @@ print __doc__
 
 import mne
 from mne import fiff
+from mne.event import define_target_events
 from mne.datasets import sample
 data_path = sample.data_path('.')
 
@@ -46,14 +48,13 @@ picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
 reference_id = 5  # presentation of a smiley face
 target_id = 32  # button press
 sfreq = raw.info['sfreq']  # sampling rate
-tmin = 0.1  # trials leading to very early reponses will be rejected
-tmax = 0.59  # ignore face stimuli followed by button presss later than 590 ms
+tmin = 0.1  # trials leading to very early responses will be rejected
+tmax = 0.59  # ignore face stimuli followed by button press later than 590 ms
 new_id = 42  # the new event id for a hit. If None, reference_id is used.
 fill_na = 99  # the fill value for misses
 
-events_, lag = mne.define_events(events, reference_id, target_id, sfreq, tmin,
-                            tmax, new_id, fill_na)
-
+events_, lag = define_target_events(events, reference_id, target_id,
+                    sfreq, tmin, tmax, new_id, fill_na)
 
 print events_  # The 99 indicates missing or too late button presses
 
@@ -80,14 +81,18 @@ early, late = [epochs[k].average() for k in event_id]
 ###############################################################################
 # View evoked response
 
-times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
-pl.clf()
-early.plot(titles=dict(mag='Evoked response followed by early button press'))
-pl.show()
 
-times = 1e3 * epochs.times  # time in miliseconds
-import pylab as pl
-pl.figure()
-late.plot(titles=dict(mag='Evoked response followed by late button press'))
+times = 1e3 * epochs.times  # time in milliseconds
+title = 'Evoked response followed by %s button press'
+
+pl.clf()
+ax = pl.subplot(2, 1, 1)
+early.plot(axes=ax)
+pl.title(title % 'late')
+pl.ylabel('Evoked field (uV)')
+ax = pl.subplot(2, 1, 2)
+late.plot(axes=ax)
+pl.title(title % 'early')
+pl.ylabel('Evoked field (uV)')
 pl.show()
