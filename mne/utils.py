@@ -272,21 +272,18 @@ def requires_pandas(function):
     return dec
 
 
-def requires_nitime(function):
-    """Decorator to skip test if pandas is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        try:
-            import nitime
-        except ImportError:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires nitime'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
+def make_skipper_dec(module, skip_str):
+    """Helper to make skipping decorators"""
+    skip = False
+    try:
+        __import__(module)
+    except:
+        skip = True
+    return np.testing.dec.skipif(skip, skip_str)
 
-        return ret
 
-    return dec
+requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
+requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 
 
 ###############################################################################
