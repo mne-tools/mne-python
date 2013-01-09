@@ -567,7 +567,7 @@ class Raw(object):
                                     method=method, iir_params=iir_params)
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
-                            % (l_freq, h_freq))
+                            % (h_freq, l_freq))
                 if method.lower() == 'iir':
                     iir_params = construct_iir_filter(iir_params,
                          [h_freq, l_freq], [h_freq + h_trans_bandwidth,
