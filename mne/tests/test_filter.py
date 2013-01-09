@@ -2,12 +2,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
-from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        band_stop_filter, resample, construct_iir_filter, \
-                       notch_filter
+                       notch_filter, detrend
 
 from mne import set_log_file
 from mne.utils import _TempDir
@@ -17,7 +15,7 @@ log_file = op.join(tempdir, 'temp_log.txt')
 
 
 def test_notch_filters():
-    """Test notch filtering
+    """Test notch filters
     """
     # let's use an ugly, prime Fs for fun
     Fs = 487.0
