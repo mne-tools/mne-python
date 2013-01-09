@@ -61,7 +61,8 @@ def fit_sphere_to_headshape(info, verbose=None):
     cost_fun = lambda x, hsp:\
         np.sum((np.sqrt(np.sum((hsp - x[:3]) ** 2, axis=1)) - x[3]) ** 2)
 
-    x_opt = optimize.fmin_powell(cost_fun, x0, args=(hsp,))
+    disp = True if logger.level <= logging.INFO else False
+    x_opt = optimize.fmin_powell(cost_fun, x0, args=(hsp,), disp=disp)
 
     origin_head = x_opt[:3]
     radius = x_opt[3]
