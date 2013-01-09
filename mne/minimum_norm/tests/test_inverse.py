@@ -6,7 +6,6 @@ from nose.tools import assert_true
 import nose
 import copy
 
-from mne import set_log_level  # XXX don't need
 from mne.datasets import sample
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
@@ -97,7 +96,6 @@ def test_apply_inverse_operator():
 
     # Test MNE inverse computation starting from forward operator
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
-    set_log_level('INFO')
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2)
