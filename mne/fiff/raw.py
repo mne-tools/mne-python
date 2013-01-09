@@ -522,10 +522,13 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
 
-            # update info if filter is applied to all data channels
-            if h_freq is not None and h_freq < self.info['lowpass']:
+            # update info if filter is applied to all data channels,
+            # and it's not a band-stop filter
+            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
+                    h_freq < self.info['lowpass']:
                 self.info['lowpass'] = h_freq
-            if l_freq is not None and l_freq > self.info['highpass']:
+            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
+                    l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
 
         if l_freq is None and h_freq is not None:
