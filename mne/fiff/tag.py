@@ -139,6 +139,8 @@ def read_tag_info(fid):
     """Read Tag info (or header)
     """
     s = fid.read(4 * 4)
+    if len(s) == 0:
+        return None
     tag = Tag(*struct.unpack(">iiii", s))
     if tag.next == 0:
         fid.seek(tag.size, 1)
