@@ -112,17 +112,20 @@ class Evoked(object):
 
         # convert setno to an integer
         if setno is None:
-            setno = 0
             if len(evoked_node) > 1:
                 try:
                     _, _, t = _get_entries(fid, evoked_node)
                 except:
-                    t = 'None found'
+                    t = 'None found, must use integer'
                 else:
                     fid.close()
                 raise ValueError('%d datasets present, setno parameter '
                                  'must be set. Candidate setno names:\n%s'
                                  % (len(evoked_node), t))
+            else:
+                 setno = 0
+
+        # find string-based entry
         elif isinstance(setno, basestring):
             if not kind in aspect_dict.keys():
                 fid.close()
