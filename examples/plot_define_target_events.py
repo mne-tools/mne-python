@@ -4,7 +4,7 @@ Define target events based on time lag, plot evoked response
 ============================================================
 
 This script shows how to define higher order events based on
-time lag between reference an target events. For
+time lag between reference and target events. For
 illustration, we will put face stimuli presented into two
 classes, that is 1) followed by an early button press
 (within 590 milliseconds) and followed by a late button
@@ -38,9 +38,9 @@ events = mne.read_events(event_fname)
 include = []  # or stim channels ['STI 014']
 exclude = raw.info['bads'] + ['EEG 053']  # bads
 
-# pick EEG channels
+# pick MEG channels
 picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
-                                            include=include, exclude=exclude)
+                        include=include, exclude=exclude)
 
 ###############################################################################
 # Find stimulus event followed by quick button presses
