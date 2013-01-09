@@ -110,50 +110,31 @@ class Evoked(object):
             fid.close()
             raise ValueError('Could not find evoked data')
 
-        if setno is None:
-            if len(evoked_node) > 1:
-                fid.close()
-                raise ValueError('%d datasets present. '
-                                 'setno parameter mush be set'
-                                 % len(evoked_node))
-            else:
-                setno = 0
+        if not kind in aspect_dict.keys():
+            fid.close()
+            raise ValueError('kind must be "average" or '
+                             '"standard_error"')
 
-        # find string-based entry
-        if isinstance(setno, basestring):
-            if not kind in aspect_dict.keys():
-                raise ValueError('kind must be "average" or '
-                                 '"standard_error"')
-            comments = list()
-            aspect_kinds = list()
-            for ev in evoked_node:
-                for k in range(ev['nent']):
-                    my_kind = ev['directory'][k].kind
-                    pos = ev['directory'][k].pos
-                    if my_kind == FIFF.FIFF_COMMENT:
-                        tag = read_tag(fid, pos)
-                        comments.append(tag.data)
-                my_aspect = dir_tree_find(ev, FIFF.FIFFB_ASPECT)[0]
-                for k in range(my_aspect['nent']):
-                    my_kind = my_aspect['directory'][k].kind
-                    pos = my_aspect['directory'][k].pos
-                    if my_kind == FIFF.FIFF_ASPECT_KIND:
-                        tag = read_tag(fid, pos)
-                        aspect_kinds.append(int(tag.data))
-            comments = np.atleast_1d(comments)
-            aspect_kinds = np.atleast_1d(aspect_kinds)
-            if len(comments) != len(aspect_kinds) or len(comments) == 0:
-                fid.close()
-                raise ValueError('comments and aspect_kinds from FIF file '
-                                 'could not be inferred. Use integer '
-                                 'indexing instead.')
+        # convert setno to an integer
+        if setno is None:
+            setno = 0
+            if len(evoked_node) > 1:
+                try:
+                    _, _, t = _get_entries(fid, evoked_node)
+                except:
+                    t = 'None found'
+                else:
+                    fid.close()
+                raise ValueError('%d datasets present, setno parameter '
+                                 'must be set. Candidate setnos:\n%s'
+                                 % (len(evoked_node), t))
+        elif isinstance(setno, basestring):
+            comments, aspect_kinds, t = _get_entries(fid, evoked_node)
             goods = np.logical_and(in1d(comments, [setno]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
+
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
-                t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
-                t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
-                t = '\n  '.join(t)
                 fid.close()
                 raise ValueError('setno "%s" (%s) not found, out of found '
                                  'datasets:\n  %s' % (setno, kind, t))
@@ -210,8 +191,8 @@ class Evoked(object):
 
             if len(chs) != nchan:
                 fid.close()
-                raise ValueError('Number of channels and number of channel '
-                                 'definitions are different')
+                raise ValueError('Number of channels and number of '
+                                 'channel definitions are different')
 
             info['chs'] = chs
             info['nchan'] = nchan
@@ -538,6 +519,36 @@ class Evoked(object):
         out = merge_evoked([self, this_evoked])
         out.comment = self.comment + " - " + this_evoked.comment
         return out
+
+
+def _get_entries(fid, evoked_node):
+    """Helper to get all evoked entries"""
+    comments = list()
+    aspect_kinds = list()
+    for ev in evoked_node:
+        for k in range(ev['nent']):
+            my_kind = ev['directory'][k].kind
+            pos = ev['directory'][k].pos
+            if my_kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comments.append(tag.data)
+        my_aspect = dir_tree_find(ev, FIFF.FIFFB_ASPECT)[0]
+        for k in range(my_aspect['nent']):
+            my_kind = my_aspect['directory'][k].kind
+            pos = my_aspect['directory'][k].pos
+            if my_kind == FIFF.FIFF_ASPECT_KIND:
+                tag = read_tag(fid, pos)
+                aspect_kinds.append(int(tag.data))
+    comments = np.atleast_1d(comments)
+    aspect_kinds = np.atleast_1d(aspect_kinds)
+    if len(comments) != len(aspect_kinds) or len(comments) == 0:
+        fid.close()
+        raise ValueError('Dataset names in FIF file '
+                         'could not be found.')
+    t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
+    t = '  ' + '\n  '.join(t)
+    return comments, aspect_kinds, t
 
 
 def merge_evoked(all_evoked):
