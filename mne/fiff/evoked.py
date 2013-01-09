@@ -110,11 +110,6 @@ class Evoked(object):
             fid.close()
             raise ValueError('Could not find evoked data')
 
-        if not kind in aspect_dict.keys():
-            fid.close()
-            raise ValueError('kind must be "average" or '
-                             '"standard_error"')
-
         # convert setno to an integer
         if setno is None:
             setno = 0
@@ -129,6 +124,11 @@ class Evoked(object):
                                  'must be set. Candidate setnos:\n%s'
                                  % (len(evoked_node), t))
         elif isinstance(setno, basestring):
+            if not kind in aspect_dict.keys():
+                fid.close()
+                raise ValueError('kind must be "average" or '
+                                 '"standard_error"')
+
             comments, aspect_kinds, t = _get_entries(fid, evoked_node)
             goods = np.logical_and(in1d(comments, [setno]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
