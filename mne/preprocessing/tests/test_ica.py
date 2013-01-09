@@ -18,28 +18,15 @@ from mne import fiff, Epochs, read_events, cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica
 from mne.preprocessing.ica import score_funcs
-from mne.utils import _TempDir
+from mne.utils import _TempDir, requires_sklearn
 
 tempdir = _TempDir()
 
-have_sklearn = True
-try:
-    import sklearn
-except ImportError:
-    have_sklearn = False
-
-sklearn_test = np.testing.dec.skipif(not have_sklearn,
-                                     'scikit-learn not installed')
-
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                    'test_raw.fif')
-event_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                     'data', 'test-eve.fif')
-evoked_nf_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                         'data', 'test-nf-ave.fif')
-
-test_cov_name = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                        'data', 'test-cov.fif')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+raw_fname = op.join(data_dir, 'test_raw.fif')
+event_name = op.join(data_dir, 'test-eve.fif')
+evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
+test_cov_name = op.join(data_dir, 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
@@ -65,7 +52,7 @@ epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
 
-@sklearn_test
+@requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs
     """
@@ -152,7 +139,7 @@ def test_ica_core():
                                       epochs.get_data())
 
 
-@sklearn_test
+@requires_sklearn
 def test_ica_additional():
     """Test additional functionality
     """
