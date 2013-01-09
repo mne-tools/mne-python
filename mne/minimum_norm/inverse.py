@@ -179,13 +179,11 @@ def read_inverse_operator(fname, verbose=None):
     #
     #   Read the various priors
     #
-    inv['orient_prior'] = read_cov(fid, invs,
-                                   FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+    inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
     if inv['orient_prior'] is not None:
         logger.info('    Orientation priors read.')
 
-    inv['depth_prior'] = read_cov(fid, invs,
-                                      FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+    inv['depth_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
     if inv['depth_prior'] is not None:
         logger.info('    Depth priors read.')
 
@@ -334,8 +332,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     logger.info('    Writing orientation priors.')
     if inv['orient_prior'] is not None:
         write_cov(fid, inv['orient_prior'])
-    write_cov(fid, inv['depth_prior'])
-
+    if inv['depth_prior'] is not None:
+        write_cov(fid, inv['depth_prior'])
     if inv['fmri_prior'] is not None:
         write_cov(fid, inv['fmri_prior'])
 
