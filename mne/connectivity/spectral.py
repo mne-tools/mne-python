@@ -554,7 +554,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         Time to start connectivity estimation.
     tmax : float | None
         Time to end connectivity estimation.
-    mt_bandwidth : float
+    mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
     mt_adaptive : bool

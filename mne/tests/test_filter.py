@@ -1,36 +1,88 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from numpy.testing import assert_array_almost_equal, assert_almost_equal
+from nose.tools import assert_true, assert_raises
+import os.path as op
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
-                       resample, construct_iir_filter, detrend
+                       band_stop_filter, resample, construct_iir_filter, \
+                       notch_filter, detrend
+
+from mne import set_log_file
+from mne.utils import _TempDir
+
+tempdir = _TempDir()
+log_file = op.join(tempdir, 'temp_log.txt')
+
+
+def test_notch_filters():
+    """Test notch filters
+    """
+    # let's use an ugly, prime Fs for fun
+    Fs = 487.0
+    sig_len_secs = 20
+    t = np.arange(0, sig_len_secs * Fs) / Fs
+    freqs = np.arange(60, 241, 60)
+
+    # make a "signal"
+    rng = np.random.RandomState(0)
+    a = rng.randn(sig_len_secs * Fs)
+    orig_power = np.sqrt(np.mean(a ** 2))
+    # make line noise
+    a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
+
+    # only allow None line_freqs with 'spectrum_fit' mode
+    assert_raises(ValueError, notch_filter, a, Fs, None, 'fft')
+    assert_raises(ValueError, notch_filter, a, Fs, None, 'iir')
+    methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
+    filter_lengths = [None, None, None, 8192, None]
+    line_freqs = [None, freqs, freqs, freqs, freqs]
+    tols = [2, 1, 1, 1]
+    for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
+        if lf is None:
+            set_log_file(log_file)
+
+        b = notch_filter(a, Fs, lf, filter_length=fl, method=meth,
+                         verbose='INFO')
+
+        if lf is None:
+            set_log_file()
+            out = open(log_file).readlines()
+            if len(out) != 2:
+                raise ValueError('Detected frequencies not logged properly')
+            out = np.fromstring(out[1], sep=', ')
+            assert_array_almost_equal(out, freqs)
+        new_power = np.sqrt(np.mean(b ** 2))
+        assert_almost_equal(new_power, orig_power, tol)
 
 
 def test_filters():
-    """Test low-, band-, and high-pass filters
-    """
+    """Test low-, band-, high-pass, and band-stop filters"""
     Fs = 500
-    sig_len_secs = 60
+    sig_len_secs = 30
 
     # Filtering of short signals (filter length = len(a))
     a = np.random.randn(sig_len_secs * Fs)
     bp = band_pass_filter(a, Fs, 4, 8)
+    bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5)
     lp = low_pass_filter(a, Fs, 8)
     hp = high_pass_filter(lp, Fs, 4)
     assert_array_almost_equal(hp, bp, 2)
+    assert_array_almost_equal(bp + bs, a, 1)
 
     # Overlap-add filtering with a fixed filter length
     filter_length = 8192
     bp_oa = band_pass_filter(a, Fs, 4, 8, filter_length)
+    bs_oa = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length)
     lp_oa = low_pass_filter(a, Fs, 8, filter_length)
     hp_oa = high_pass_filter(lp_oa, Fs, 4, filter_length)
     assert_array_almost_equal(hp_oa, bp_oa, 2)
+    assert_array_almost_equal(bp_oa + bs_oa, a, 2)
 
     # The two methods should give the same result
     # As filtering for short signals uses a circular convolution (FFT) and
     # the overlap-add filter implements a linear convolution, the signal
     # boundary will be slightly different and we ignore it
-    n_edge_ignore = 1000
+    n_edge_ignore = 0
     assert_array_almost_equal(hp[n_edge_ignore:-n_edge_ignore],
                               hp_oa[n_edge_ignore:-n_edge_ignore], 2)
 
