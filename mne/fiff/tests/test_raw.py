@@ -409,7 +409,7 @@ def test_filter():
     raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
 
     raw_bs = raw.copy()
-    raw_bs.band_stop_filter(4.0 - 0.25, 8.0 + 0.25, picks=picks, n_jobs=2)
+    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
 
     data, _ = raw[picks, :]
 
@@ -444,7 +444,7 @@ def test_filter():
     # do a very simple check on line filtering
     raw_bs = raw.copy()
     with warnings.catch_warnings(True) as w:
-        raw_bs.band_stop_filter(60.0 - 0.5, 60.0 + 0.5, picks=picks, n_jobs=2)
+        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
         raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')

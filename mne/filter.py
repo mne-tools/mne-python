@@ -15,6 +15,11 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 
 
+# define a "global" tapers_max, chosen because it has an error < 1e-3:
+# >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
+# 0.00099972447657578449
+dpss_n_times_max = 953
+
 def is_power2(num):
     """Test if number is a power of 2
 
@@ -518,6 +523,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
     Where
     Fs1 = Fp1 - l_trans_bandwidth in Hz
     Fs2 = Fp2 + h_trans_bandwidth in Hz
+
+    Note that multiple stop bands can be specified using arrays.
     """
 
     method = method.lower()
@@ -827,8 +834,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
-    # XXX it would be good to implement the moving window version for long
-    # raw files
+    # XXX need to implement the moving window version for raw files
     n_times = x.size
 
     # figure out what tapers to use
@@ -840,7 +846,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     # compute dpss windows
     n_tapers_max = int(2 * half_nbw)
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=False)
+        low_bias=False, interp_from=min(n_times, dpss_n_times_max))
 
     # drop the even tapers
     n_tapers = len(window_fun)
