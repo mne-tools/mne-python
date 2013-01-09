@@ -15,11 +15,6 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 
 
-# define a "global" tapers_max, chosen because it has an error < 1e-3:
-# >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-# 0.00099972447657578449
-dpss_n_times_max = 953
-
 def is_power2(num):
     """Test if number is a power of 2
 
@@ -836,6 +831,12 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     """
     # XXX need to implement the moving window version for raw files
     n_times = x.size
+
+    # max taper size chosen because it has an max error < 1e-3:
+    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
+    # 0.00099972447657578449
+    # so we use 1000 because it's the first "nice" number bigger than 953:
+    dpss_n_times_max = 1000
 
     # figure out what tapers to use
     if mt_bandwidth is not None:
