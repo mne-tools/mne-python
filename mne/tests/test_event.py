@@ -4,8 +4,9 @@ from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, define_events, fiff)
+                 find_events, fiff)
 from mne.utils import _TempDir
+from mne.event import define_target_events
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
@@ -27,7 +28,7 @@ def test_io_events():
     """
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    write_events(op.join(tempdir,'events.fif'), events)
+    write_events(op.join(tempdir, 'events.fif'), events)
     events2 = read_events(op.join(tempdir, 'events.fif'))
     assert_array_almost_equal(events, events2)
 
@@ -91,11 +92,11 @@ def test_make_fixed_length_events():
 
 
 def test_define_events():
-    """
+    """Teste defining response events
     """
     events = read_events(fname)
     raw = fiff.Raw(raw_fname)
-    events_, _ = define_events(events, 5, 32, raw.info['sfreq'],
+    events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
         .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]
     n_miss = events_[events_[:, 2] == 99].shape[0]

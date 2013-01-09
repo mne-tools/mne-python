@@ -62,9 +62,9 @@ def pick_events(events, include=None, exclude=None):
     return events
 
 
-def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=None,
-                fill_na=None):
-    """ Define new events by co-occurrence of exisiting events
+def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
+            new_id=None, fill_na=None):
+    """ Define new events by co-occurrence of existing events
 
     This function can be used to evaluate events depending on the
     temporal lag to another event. For example, this can be used to
@@ -79,8 +79,8 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
     reference_id : int
         The reference event. The event defining the epoch of interest.
     target_id : int
-        The target event. The event co-ocurring in within a certain time window
-        around the reference event.
+        The target event. The event co-occurring in within a certain time
+        window around the reference event.
     sfreq : float
         The sampling frequency of the data.
     tmin : float
@@ -92,14 +92,13 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
     fill_na : int | None
         Fill event to be inserted if target is not available within the time
         window specified. If None, the 'null' events will be dropped.
-    -------
 
     Returns
     -------
-    new_events : ndarray | None
+    new_events : ndarray
         The new defined events
-    lag : ndarray | None
-        time lag between reference and target in  milli seconds.
+    lag : ndarray
+        time lag between reference and target in  milliseconds.
     """
 
     if new_id is None:
@@ -128,13 +127,13 @@ def define_events(events, reference_id, target_id, sfreq, tmin, tmax, new_id=Non
 
     new_events = np.array(new_events)
 
-    lag = np.abs(lag, dtype='f4')
+    lag = np.abs(lag, dtype='f8')
     if lag.any():
         lag[lag != fill_na] *= tsample
     else:
-        lag = None
+        lag = np.array([])
 
-    return new_events if new_events.any() else None, lag
+    return new_events if new_events.any() else np.array([]), lag
 
 
 def _read_events_fif(fid, tree):
