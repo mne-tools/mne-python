@@ -776,6 +776,7 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             Epochs object to pick to remove ICA components from.
+            Data must be preloaded.
         include : list-like | None
             The source indices to use. If None all are used.
         exclude : list-like | None
@@ -796,7 +797,7 @@ class ICA(object):
             Epochs with selected ICA components removed.
         """
         if not epochs.preload:
-            raise ValueError('raw data should be preloaded to have this '
+            raise ValueError('epochs should be preloaded to have this '
                              'working. Please read raw data with '
                              'preload=True.')
 
