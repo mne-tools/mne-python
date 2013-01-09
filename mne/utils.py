@@ -11,6 +11,7 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
+import sys
 from sys import stdout
 import tempfile
 from shutil import rmtree
@@ -56,7 +57,9 @@ def split_list(l, n):
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):
-        return getattr(stdout, name)
+        # Even more ridiculous than this class, this must be sys.stdout (not
+        # just stdout) in order for this to work (tested on OSX and Linux)
+        return getattr(sys.stdout, name)
 
 
 class _TempDir(str):
