@@ -102,4 +102,4 @@ def test_define_events():
     n_miss = events_[events_[:, 2] == 99].shape[0]
     n_target_ = events_[events_[:, 2] == 42].shape[0]
 
-    assert_true(n_target_ == n_target - n_miss)
+    assert_true(n_target_ == (n_target - n_miss))
