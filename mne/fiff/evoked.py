@@ -123,7 +123,7 @@ class Evoked(object):
                                  'must be set. Candidate setno names:\n%s'
                                  % (len(evoked_node), t))
             else:
-                 setno = 0
+                setno = 0
 
         # find string-based entry
         elif isinstance(setno, basestring):
