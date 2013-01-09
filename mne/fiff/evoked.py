@@ -132,7 +132,6 @@ class Evoked(object):
             comments, aspect_kinds, t = _get_entries(fid, evoked_node)
             goods = np.logical_and(in1d(comments, [setno]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
-
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
                 fid.close()
