@@ -98,7 +98,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
     new_events : ndarray
         The new defined events
     lag : ndarray
-        time lag between reference and target in  milliseconds.
+        time lag between reference and target in milliseconds.
     """
 
     if new_id is None:
