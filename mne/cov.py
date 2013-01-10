@@ -88,6 +88,37 @@ class Covariance(dict):
 
         end_file(fid)
 
+    def as_diag(self, copy=True):
+        """Set covariance to be processed as being diagonal
+
+        Parameters
+        ----------
+        copy : bool
+            If True, return a modified copy of the covarince. If False,
+            the covariance is modified in place.
+
+        Returns
+        -------
+        cov : dict
+            The covariance.
+
+        Notes
+        -----
+        This function allows creation of inverse operators
+        equivalent to using the old "--diagnoise" mne option.
+        """
+        if self['diag'] is True:
+            raise ValueError('Covariance is already diagonal.')
+        if copy is True:
+            cov = cp.deepcopy(self)
+        else:
+            cov = self
+        cov['diag'] = True
+        cov['data'] = np.diag(cov['data'])
+        cov['eig'] = None
+        cov['eigvec'] = None
+        return cov
+
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
@@ -449,7 +480,10 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
         If not None, override default verbose level (see mne.verbose).
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
-    C = noise_cov.data[C_ch_idx][:, C_ch_idx]
+    if noise_cov['diag'] is False:
+        C = noise_cov.data[C_ch_idx][:, C_ch_idx]
+    else:
+        C = np.diag(noise_cov.data[C_ch_idx])
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)

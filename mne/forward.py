@@ -20,7 +20,8 @@ from .fiff.tree import dir_tree_find
 from .fiff.channels import read_bad_channels
 from .fiff.tag import find_tag, read_tag
 from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
-from .fiff.pick import pick_channels_forward, pick_info, pick_channels
+from .fiff.pick import pick_channels_forward, pick_info, pick_channels, \
+                       pick_types
 from .fiff.write import write_int, start_block, end_block, \
                          write_coord_trans, write_ch_info, write_name_list
 
@@ -560,31 +561,78 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     return orient_prior
 
 
-def compute_depth_prior(G, exp=0.8, limit=10.0):
+def _restrict_gain_matrix(G, forward, ch_names):
+    """Restrict gain matrix entries for optimal depth weighting"""
+    # Figure out which ones have been used
+    info = forward['info']
+    sel = pick_channels(info['ch_names'], ch_names)
+    if not len(sel) == G.shape[0]:
+        raise ValueError('Could not interpret forward information')
+    info = pick_info(info, sel=sel)
+    sel = pick_types(info, meg='grad')
+    if len(sel) > 0:
+        G = G[sel]
+        logger.info('\t%d planar channels' % len(sel))
+    else:
+        sel = pick_types(info, meg='mag')
+        if len(sel) > 0:
+            G = G[sel]
+            logger.info('\t%d magnetometer or axial gradiometer '
+                        'channels' % len(sel))
+        else:
+            sel = pick_types(info, meg=False, eeg=True)
+            if len(sel) > 0:
+                G = G[sel]
+                logger.info('\t%d EEG channels' % len(sel))
+            else:
+                logger.warn('Could not find MEG or EEG channels')
+    return G
+
+
+def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None):
     """Compute weighting for depth prior
     """
-    n_pos = G.shape[1] // 3
-    d = np.zeros(n_pos)
-    for k in xrange(n_pos):
-        Gk = G[:, 3 * k:3 * (k + 1)]
-        d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
-    w = 1.0 / d
-    wmax = np.min(w) * (limit ** 2)
-    wp = np.minimum(w, wmax)
-    wpp = (wp / wmax) ** exp
-    depth_prior = np.ravel(wpp[:, None] * np.ones((1, 3)))
-    return depth_prior
+    logger.info('Creating the depth weighting matrix...')
+    is_fixed_ori = is_fixed_orient(forward)
 
+    # If possible, pick best depth-weighting channels
+    if forward is not None and ch_names is not None:
+        G = _restrict_gain_matrix(G, forward, ch_names)
 
-def compute_depth_prior_fixed(G, exp=0.8, limit=10.0):
-    """Compute weighting for depth prior for fixed orientation lead field
-    """
-    d = np.sum(G ** 2, axis=0)
+    # Compute the gain matrix
+    if is_fixed_ori:
+        d = np.sum(G ** 2, axis=0)
+    else:
+        n_pos = G.shape[1] // 3
+        d = np.zeros(n_pos)
+        for k in xrange(n_pos):
+            Gk = G[:, 3 * k:3 * (k + 1)]
+            d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
+
+    # XXX Currently the fwd solns never have "patch_areas" defined
+    if 'patch_areas' in forward.keys() and forward['patch_areas'] is not None:
+        depth_prior /= fwd['patch_areas'] ** 2
+        logger.info('\tPatch areas taken into account in the depth weighting')
+
     w = 1.0 / d
-    wmax = np.min(w) * (limit ** 2)
-    wp = np.minimum(w, wmax)
-    depth_prior = (wp / wmax) ** exp
-    return depth_prior
+    ws = np.sort(w)
+    weight_limit = limit ** 2
+    limit = ws[-1]
+    n_limit = len(d)
+    if ws[-1] > weight_limit * ws[0]:
+        ind = np.where(ws > weight_limit * ws[0])[0][0]
+        limit = ws[ind]
+        n_limit = ind
+
+    logger.info('\tlimit = %d/%d = %f'
+                 % (n_limit + 1, len(d),
+                 np.sqrt(limit / ws[0])))
+    scale = 1.0 / limit
+    logger.info('\tscale = %g exp = %g' % (scale, exp))
+    wpp = np.minimum(w / limit, 1) ** exp
+    depth_weight = wpp if is_fixed_ori else np.repeat(wpp, 3)
+
+    return depth_weight
 
 
 def _stc_src_sel(src, stc):
