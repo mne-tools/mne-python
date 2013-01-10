@@ -145,13 +145,10 @@ class Label(dict):
         elif isinstance(other, Label):
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
-                # catch warnings here to suppress deprecation warning
-                # XXX this can be removed once dict useage is removed
-                with warnings.catch_warnings(record=True) as w:
-                    if self.hemi == 'lh':
-                        lh, rh = cp.deepcopy(self), cp.deepcopy(other)
-                    else:
-                        lh, rh = cp.deepcopy(other), cp.deepcopy(self)
+                if self.hemi == 'lh':
+                    lh, rh = self.copy(), other.copy()
+                else:
+                    lh, rh = other.copy(), self.copy()
                 return BiHemiLabel(lh, rh, name=name)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
@@ -199,10 +196,19 @@ class Label(dict):
         "calls write_label to write the label to disk"
         write_label(filename, self)
 
+    def copy(self):
+        # catch warnings here to suppress deprecation warning
+        # XXX this can be removed once dict useage is removed
+        with warnings.catch_warnings(record=True) as w:
+            label = cp.deepcopy(self)
+        return label
+
     @verbose
     def smooth(self, subject, smooth=2, grade=None,
                subjects_dir=None, n_jobs=1, verbose=None):
-        """Smooth the label. Useful for filling in labels made in a
+        """Smooth the label
+
+        Useful for filling in labels made in a
         decimated source space for display.
 
         Parameters
@@ -214,9 +220,15 @@ class Label(dict):
             Cannot be None here since not all vertices are used. For a
             grade of 5 (e.g., fsaverage), a smoothing of 2 will fill a
             label.
-        grade : int, or None
-            Resolution of the icosahedral mesh to smooth to. To fill a
-            label for display, use None.
+        grade : int, list (of two arrays), or None
+            Resolution of the icosahedral mesh (typically 5). If None, all
+            vertices will be used (potentially filling the surface). If a list,
+            then values will be morphed to the set of vertices specified in
+            in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+            grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
+            standard grade 5 source space) can be substantially faster than
+            computing vertex locations. To create a label filling the surface,
+            use None.
         subjects_dir : string
             See morph_data.
         n_jobs: int
@@ -225,15 +237,57 @@ class Label(dict):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        self.morph(subject, subject, grade, smooth, subjects_dir, n_jobs)
 
+    @verbose
+    def morph(self, subject_from, subject_to, smooth=5, grade=None,
+              subjects_dir=None, n_jobs=1, verbose=None):
+        """Morph the label
+
+        Useful for transforming a label from one subject to another.
+
+        Parameters
+        ----------
+        subject_from : str
+            The name of the subject of the current label.
+        subject_to : str
+            The name of the subject to morph the label to.
+        smooth : int
+            Number of iterations for the smoothing of the surface data.
+            Cannot be None here since not all vertices are used.
+        grade : int, list (of two arrays), or None
+            Resolution of the icosahedral mesh (typically 5). If None, all
+            vertices will be used (potentially filling the surface). If a list,
+            then values will be morphed to the set of vertices specified in
+            in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+            grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
+            standard grade 5 source space) can be substantially faster than
+            computing vertex locations. To create a label filling the surface,
+            use None.
+        subjects_dir : string
+            See morph_data.
+        n_jobs: int
+            See morph_data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        """
+        if not isinstance(smooth, int):
+            raise ValueError('smooth must be an integer')
+        if np.all(self.values == 0):
+            raise ValueError('Morphing label with all zero values will '
+                             'result in the label having\nno vertices.'
+                             'Consider using something like '
+                             'label.values.fill(1.0).')
         if self.hemi == 'lh':
             vertices = [self.vertices, np.array([])]
         else:
             vertices = [np.array([]), self.vertices]
         data = self.values[:, np.newaxis]
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1)
-        stc = morph_data(subject, subject, stc, grade=grade, smooth=smooth,
-                         subjects_dir=subjects_dir, n_jobs=n_jobs)
+        stc = morph_data(subject_from, subject_to, stc, grade=grade,
+                         smooth=smooth, subjects_dir=subjects_dir,
+                         n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
         self.values = stc.data[inds, :].ravel()
         self.pos = np.zeros((len(inds), 3))
