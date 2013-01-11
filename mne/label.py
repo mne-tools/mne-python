@@ -91,6 +91,7 @@ class Label(dict):
         self.values = values
         self.hemi = hemi
         self.comment = comment
+        self.verbose = verbose
 
         # also set dict entries (for backwards compatibility)
         self._dep_warn = False
@@ -198,7 +199,7 @@ class Label(dict):
 
     def copy(self):
         """Copy the label instance.
-        
+
         Returns
         -------
         label : instance of Label
@@ -227,22 +228,30 @@ class Label(dict):
             Cannot be None here since not all vertices are used. For a
             grade of 5 (e.g., fsaverage), a smoothing of 2 will fill a
             label.
-        grade : int, list (of two arrays), or None
+        grade : int, list (of two arrays), array, or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
-            then values will be morphed to the set of vertices specified in
-            in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+            values will be morphed to the set of vertices specified in grade[0]
+            and grade[1], assuming that these are vertices for the left and
+            right hemispheres. Note that specifying the vertices (e.g.,
             grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
             standard grade 5 source space) can be substantially faster than
-            computing vertex locations. To create a label filling the surface,
-            use None.
-        subjects_dir : string
-            See morph_data.
+            computing vertex locations. If one array is used, it is assumed
+            that all vertices belong to the hemisphere of the label. To create
+            a label filling the surface, use None.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
-            See morph_data.
+            Number of jobs to run in parallel
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Notes
+        -----
+        This function will set label.pos to be all zeros. If the positions
+        on the new surface are required, consider using mne.read_surface
+        with label.vertices.
         """
         self.morph(subject, subject, grade, smooth, subjects_dir, n_jobs)
 
@@ -262,30 +271,41 @@ class Label(dict):
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used.
-        grade : int, list (of two arrays), or None
+        grade : int, list (of two arrays), array, or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
-            then values will be morphed to the set of vertices specified in
-            in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
+            values will be morphed to the set of vertices specified in grade[0]
+            and grade[1], assuming that these are vertices for the left and
+            right hemispheres. Note that specifying the vertices (e.g.,
             grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
             standard grade 5 source space) can be substantially faster than
-            computing vertex locations. To create a label filling the surface,
-            use None.
-        subjects_dir : string
-            See morph_data.
+            computing vertex locations. If one array is used, it is assumed
+            that all vertices belong to the hemisphere of the label. To create
+            a label filling the surface, use None.
+        subjects_dir : string, or None
+            Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
-            See morph_data.
+            Number of jobs to run in parallel
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+
+        Notes
+        -----
+        This function will set label.pos to be all zeros. If the positions
+        on the new surface are required, consider using mne.read_surface
+        with label.vertices.
         """
         if not isinstance(smooth, int):
             raise ValueError('smooth must be an integer')
         if np.all(self.values == 0):
-            raise ValueError('Morphing label with all zero values will '
-                             'result in the label having\nno vertices.'
-                             'Consider using something like '
-                             'label.values.fill(1.0).')
+            raise ValueError('Morphing label with all zero values will result '
+                             'in the label having no vertices. Consider using '
+                             'something like label.values.fill(1.0).')
+        if(isinstance(grade, np.ndarray)):
+            if self.hemi == 'lh':
+                grade = [grade, []]
+            else:
+                grade = [[], grade]
         if self.hemi == 'lh':
             vertices = [self.vertices, np.array([])]
         else:
@@ -312,7 +332,6 @@ class BiHemiLabel(object):
     lh, rh : Label
         Label objects representing the left and the right hemisphere,
         respectively
-
     name : None | str
         name for the label
 
@@ -320,10 +339,8 @@ class BiHemiLabel(object):
     ----------
     lh, rh : Label
         Labels for the left and right hemisphere, respectively
-
     name : None | str
         A name for the label. It is OK to change that attribute manually.
-
     """
     hemi = 'both'
 
