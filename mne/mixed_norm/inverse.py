@@ -11,7 +11,7 @@ logger = logging.getLogger('mne')
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
-from ..forward import compute_orient_prior, is_fixed_orient
+from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
 from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
 from .. import verbose
@@ -160,6 +160,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     if not all(all_ch_names == evoked[i].ch_names
                                             for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
+
+    # put the forward solution in fixed orientation if it's not already
+    if loose is None and not is_fixed_orient(forward):
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
 
     info = evoked[0].info
     ch_names, gain, _, whitener, _ = _prepare_forward(forward,
@@ -352,6 +357,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     """
     all_ch_names = evoked.ch_names
     info = evoked.info
+
+    # put the forward solution in fixed orientation if it's not already
+    if loose is None and not is_fixed_orient(forward):
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
+
     ch_names, gain, _, whitener, _ = _prepare_forward(forward,
                                                       info, noise_cov, pca)
 
