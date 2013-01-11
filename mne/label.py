@@ -197,6 +197,13 @@ class Label(dict):
         write_label(filename, self)
 
     def copy(self):
+        """Copy the label instance.
+        
+        Returns
+        -------
+        label : instance of Label
+            The copied label.
+        """
         # catch warnings here to suppress deprecation warning
         # XXX this can be removed once dict useage is removed
         with warnings.catch_warnings(record=True) as w:
@@ -231,7 +238,7 @@ class Label(dict):
             use None.
         subjects_dir : string
             See morph_data.
-        n_jobs: int
+        n_jobs : int
             See morph_data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
@@ -266,7 +273,7 @@ class Label(dict):
             use None.
         subjects_dir : string
             See morph_data.
-        n_jobs: int
+        n_jobs : int
             See morph_data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
