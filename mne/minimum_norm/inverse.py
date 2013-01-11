@@ -28,7 +28,7 @@ from ..fiff.pick import channel_type
 from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, read_forward_meas_info, \
                       write_forward_meas_info, is_fixed_orient, \
-                      compute_orient_prior
+                      compute_orient_prior, _to_fixed_ori
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces_to_fid, label_src_vertno_sel
@@ -138,7 +138,7 @@ def read_inverse_operator(fname, verbose=None):
         raise Exception('Source orientation information not found')
 
     inv['source_nn'] = tag.data
-    logger.info('[done]')
+    logger.info('    [done]')
     #
     #   The SVD decomposition...
     #
@@ -167,7 +167,7 @@ def read_inverse_operator(fname, verbose=None):
     inv['eigen_leads'] = _transpose_named_matrix(eigen_leads)
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                              FIFF.FIFF_MNE_INVERSE_FIELDS)
-    logger.info('[done]')
+    logger.info('    [done]')
     #
     #   Read the covariance matrices
     #
@@ -317,7 +317,7 @@ def write_inverse_operator(fname, inv, verbose=None):
                            _transpose_named_matrix(inv['eigen_leads']))
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    logger.info('[done]')
+    logger.info('    [done]')
     #
     #   write the covariance matrices
     #
@@ -1067,17 +1067,35 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
 
+    # Special case for fixed solution when depth-weighting is on
+    if loose is None and depth is not None:
+        if is_fixed_ori or not forward['surf_ori']:
+            raise ValueError('You need a free-orientation forward solution to '
+                             'do depth weighting even when calculating a '
+                             'fixed-orientation inverse.')
+
     ch_names, gain, noise_cov, whitener, n_nzero = \
         _prepare_forward(forward, info, noise_cov)
-
-    n_dipoles = gain.shape[1]
 
     # Handle depth prior scaling
     if depth is not None:
         depth_prior = compute_depth_prior(gain, exp=depth, forward=forward,
                                           ch_names=ch_names)
     else:
-        depth_prior = np.ones(n_dipoles, dtype=gain.dtype)
+        depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
+
+    # Special case for fixed solution when depth-weighting is on
+    if loose is None and depth is not None:
+        # Convert the depth prior into a fixed-orientation one
+        depth_prior = depth_prior[2::3]
+        logger.info('    Picked elements from a free-orientation '
+                    'depth-weighting prior into the fixed-orientation one')
+        # Convert to the fixed orientation forward solution now
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
+        is_fixed_ori = is_fixed_orient(forward)
+        ch_names, gain, noise_cov, whitener, n_nzero = \
+            _prepare_forward(forward, info, noise_cov, verbose=False)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(ch_names))
@@ -1125,6 +1143,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     logger.info('Computing SVD of whitened and weighted lead field '
                 'matrix.')
     eigen_fields, sing, eigen_leads = linalg.svd(gain, full_matrices=False)
+    logger.info('    largest singular value = %g' % np.max(sing))
+    logger.info('    scaling factor to adjust the trace = %g' % trace_GRGT)
 
     eigen_fields = dict(data=eigen_fields.T, col_names=ch_names, row_names=[],
                         nrow=eigen_fields.shape[1], ncol=eigen_fields.shape[0])
@@ -1151,7 +1171,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         methods = FIFF.FIFFV_MNE_EEG
 
     # We set this for consistency with mne C code written inverses
-    if depth is None:
+    if depth is None or loose is None:
         depth_prior = None
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,

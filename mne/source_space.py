@@ -141,7 +141,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     for s in spaces:
         logger.info('    Reading a source space...')
         this = _read_one_source_space(fid, s)
-        logger.info('[done]')
+        logger.info('    [done]')
         if add_geom:
             complete_source_space_info(this)
 
@@ -509,7 +509,7 @@ def write_source_spaces_to_fid(fid, src, verbose=None):
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        logger.info('[done]')
+        logger.info('    [done]')
     logger.info('    %d source spaces written' % len(src))
 
 

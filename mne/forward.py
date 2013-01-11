@@ -426,7 +426,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'],
                                                  np.kron(fix_rot, np.eye(3)))
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
-            logger.info('[done]')
+            logger.info('    [done]')
     elif surf_ori:
         #   Rotate the local source coordinate systems
         logger.info('    Converting to surface-based source orientations...')
@@ -453,7 +453,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         surf_rot = _block_diag(fwd['source_nn'].T, 3)
         fwd['sol']['data'] = fwd['sol']['data'] * surf_rot
         if fwd['sol_grad'] is not None:
-            fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] * \
+            fwd['sol_grad']['data'] = np.dot(fwd['sol_grad']['data'] *
                                              np.kron(surf_rot, np.eye(3)))
         logger.info('[done]')
     else:
@@ -473,6 +473,16 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
 
     return fwd
+
+
+def _to_fixed_ori(forward):
+    """Helper to convert the forward solution to fixed ori from free"""
+    forward['sol']['data'] = forward['sol']['data'][:, 2::3]
+    forward['sol']['ncol'] = forward['sol']['ncol'] / 3
+    forward['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+    logger.info('    Converted the forward solution into the '
+                'fixed-orientation mode.')
+    return forward
 
 
 def is_fixed_orient(forward):

@@ -110,6 +110,10 @@ def _compare_io(inv_op, out_file_ext='.fif'):
     _compare(inv_init, inv_op)
 
 
+from mne import set_log_level
+set_log_level('INFO')
+
+
 def test_apply_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
@@ -148,15 +152,15 @@ def test_apply_inverse_operator():
 
 
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation with fixed orientation & no depth weighting
+    """Test MNE inverse computation with fixed orientation & depth weighting
     """
-    fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
-    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
+    fwd_op = read_forward_solution(fname_fwd, force_fixed=False,
+                                   surf_ori=True)
+    inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
                                    loose=None)
     _compare_io(inv_op)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
-    # XXX The STCs are not that equivalent in the fixed case...
-    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked, -1)
+    _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked, 2)
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
 
@@ -230,7 +234,7 @@ def test_apply_mne_inverse_fixed_raw():
     _, times = raw[0, start:stop]
 
     # create a fixed-orientation inverse operator
-    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
                                    loose=None, depth=0.8)
 
