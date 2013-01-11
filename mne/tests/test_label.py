@@ -203,16 +203,22 @@ def test_stc_to_label():
 def test_morph():
     """Test inter-subject label morphing
     """
-    label = read_label(label_fname)
-    label_orig = label.copy()
-    # this should throw an error because the label has all zero values
-    assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
-    label.values.fill(1)
-    label.morph('sample', 'fsaverage', 5, [np.arange(10242), []],
-                           subjects_dir, 2)
-    label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
-    assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
-    assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
+    label_orig = read_label(label_fname)
+    # should work for specifying vertices for both hemis, or just the
+    # hemi of the given label
+    vals = list()
+    for grade in [[np.arange(10242), []], np.arange(10242)]:
+        label = label_orig.copy()
+        # this should throw an error because the label has all zero values
+        assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
+        label.values.fill(1)
+        label.morph('sample', 'fsaverage', 5, grade,
+                               subjects_dir, 2)
+        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
+        assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
+        assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
+        vals.append(label.vertices)
+    assert_array_equal(vals[0], vals[1])
 
 
 def test_grow_labels():
