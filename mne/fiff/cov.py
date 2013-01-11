@@ -131,7 +131,8 @@ def read_cov(fid, node, cov_kind, verbose=None):
                        eigvec=eigvec)
             return cov
 
-    logger.info('Did not find the desired covariance matrix')
+    logger.info('    Did not find the desired covariance matrix (kind = %d)'
+                % cov_kind)
 
     return None
 
