@@ -250,7 +250,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     Returns
     -------
-    fwd: dict
+    fwd : dict
         The forward solution.
     """
 
@@ -726,7 +726,7 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
 
     Parameters
     ----------
-    forward: dict
+    forward : dict
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
