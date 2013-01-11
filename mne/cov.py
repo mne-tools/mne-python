@@ -108,7 +108,7 @@ class Covariance(dict):
         equivalent to using the old "--diagnoise" mne option.
         """
         if self['diag'] is True:
-            raise ValueError('Covariance is already diagonal.')
+            return self.copy() if copy is True else self
         if copy is True:
             cov = cp.deepcopy(self)
         else:
