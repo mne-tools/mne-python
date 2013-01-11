@@ -2,7 +2,8 @@
 Created on Dec 27, 2012
 
 @author: teon
-sqd_params class is adapted from Yoshiaki Adachi's Meginfo2.cpp and sqdread's getdata.m
+sqd_params class is adapted from Yoshiaki Adachi's Meginfo2.cpp 
+    and sqdread's getdata.m
 pattern matching for coreg is from Tal Linzen
 coreg methods are adapted from Christian Brodbeck's eelbrain.plot.coreg
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
@@ -112,6 +113,8 @@ class sqd_params(object):
         self.data_offset = unpack('i', fid.read(4))[0]
 
     def get_data(self):
+        """returns an array with data extracted from sqd file"""
+        
         fid = open(self.rawfile, 'r')
         fid.seek(self.data_offset)
         data = np.fromfile(fid, dtype='h', count=self.nsamples * self.nchan)
@@ -130,31 +133,34 @@ logger = logging.getLogger('mne')
 class RawKIT(Raw):
     """ Raw object from KIT SQD file
         Adapted from mne_bti2fiff.py
-
-    Parameters
-    ----------
-    data_fname : str
-        absolute path to the sqd file.
-    mrk_fname : str
-        absolute path to marker coils file.
-    elp_fname : str
-        absolute path to elp digitizer points file.
-    data : bool | array-like
-        if array-like custom data matching the header info to be used
-        instead of the data from data_fname
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Attributes & Methods
-    --------------------
-    See documentation for mne.fiff.Raw
-
+    
     """
     @verbose
     def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
                  sns_fname, data=None, lowpass = None, highpass = None,
                  verbose=True):
+        """
+        Parameters
+        ----------
+        data_fname : str
+            absolute path to the sqd file.
+        mrk_fname : str
+            absolute path to marker coils file.
+        elp_fname : str
+            absolute path to elp digitizer laser points file.
+        hsp_fname : str
+            absolute path to elp digitizer head shape points file.
+        data : bool | array-like
+            if array-like custom data matching the header info to be used
+            instead of the data from data_fname
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+    
+        Attributes & Methods
+        --------------------
+        See documentation for mne.fiff.Raw
 
+        """
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname, lowpass = lowpass, highpass = highpass)
         self._data_file = data_fname
@@ -169,9 +175,6 @@ class RawKIT(Raw):
             self._data = self.params.x
         else:
             self._data = data
-
-        self._create_stim_ch()
-
         logger.info('Creating Raw.info structure...')
         info = self._create_raw_info()
         self.verbose = verbose
@@ -200,40 +203,30 @@ class RawKIT(Raw):
         """ Fills list of dicts for initializing empty fif with SQD data""" 
         
         info = {}
-
         info['meas_id'] = None
         info['file_id'] = None
         info['meas_date'] = time.ctime()
-
         info['projs'] = []
         info['comps'] = []
-
-        info['highpass'], info['lowpass'] = self.params.lowpass, self.params.highpass
+        info['lowpass'], info['highpass'] = self.params.lowpass, self.params.highpass
         info['sfreq'] = float(self.params.sfreq)
-
         info['chs'] = self._create_chs()
         info['nchan'] = self.params.nchan
         info['ch_names'] = self.params.ch_names['MEG'] + self.params.ch_names['STIM']
         info['bads'] = []
-
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
         info['ctf_head_t'] = None
         info['dev_ctf_t'] = []
         info['filenames'] = []
-
-
-
         # dev-head transformation dict
         info['dev_head_t'] = {}
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-
         # transformation matrix and digitizer points
         # there is some transformation done to the digitization data that 
         # I have not figured out yet.
         info['dev_head_t']['trans'], info['dig'] = self._get_coreg()
-
         logger.info('Done.')
         return info
 
@@ -243,14 +236,13 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)')
         locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
-        self.chan_locs = locs[:, [1, 0, 2]] / 1000    # the arrangement of dimensions in current fiff is y,x,z in [m].
-
-        chan_locs = self._get_chan_locs()
-
+        # the arrangement of dimensions in current fif is y,x,z in [m].
+        # this is to orient in Neuromag coordinates.
+        self.chan_locs = locs[:, [1, 0, 2]] / 1000
         chs = []
         for idx, ch_info in enumerate(zip(self.params.ch_names['MEG'] +
                                           self.params.ch_names['REF'], 
-                                          chan_locs), 1):
+                                          self.chan_locs), 1):
             ch_name, ch_loc = ch_info
             chan_info = {}
             chan_info['cal'] = 1.0 # calibration factor, default is 1
@@ -260,21 +252,20 @@ class RawKIT(Raw):
             chan_info['range'] = 1.0
             chan_info['unit_mul'] = 0 # default is 0 mne_manual p.273
             chan_info['ch_name'] = ch_name
-
             if ch_name.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
                 chan_info['coil_type'] = 6001
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['unit'] = FIFF.FIFF_UNIT_T # 112 = T
-                chan_info['loc'] = ch_loc   # this has the coordinates, but the three unit vectors (mne p.273)
-
+                # this has the coordinates, but the three unit vectors (mne p.273)
+                chan_info['loc'] = ch_loc
+                # this needs to be sorted out
+                chan_info['coil_trans'] = None
             elif ch_name == 'STI 014':
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
-
             chs.append(chan_info)
-
+            return chs
         """create a synthetic channel"""
-
                 
     def _get_coreg(self):
         """get transformation matrix and hsp points"""
@@ -286,53 +277,49 @@ class RawKIT(Raw):
 
 
 class coreg:
-
     """
+    Extracts digitizer points from file.
+    Creates coreg transformation matrix from device to head coord.
+
     Attributes
     ----------
-
-    mrk_fname : str
-        Path to marker avg file (saved as text form MEG160).
-
-    elp_fname : str
-        Path to elp digitizer file.
+    mrk_points : np.array
+        array of 5 points by coordinate (x,y,z) from marker measurement
+    elp_points : np.array
+        array of 5 points by coordinate (x,y,z) from digitizer laser point
+    hsp_points : np.array
+        array points by coordinate (x, y, z) from digitizer
 
     """
     def __init__(self, mrk_fname, elp_fname, hsp_fname):
         """
-        Creates coreg transformation matrix from device to head coord.
-        Extracts digitizer points from file.
-        
-        mrk_points : np.array
-            array of 5 points by coordinate (x,y,z) from marker measurement
-        mrk_points : np.array
-            array of 5 points by coordinate (x,y,z) from digitizer laser point
-        hsp_points : np.array
-            array points by coordinate (x, y, z) from digitizer
-
+        Parameters
+        ----------
+        mrk_fname : str
+            Path to marker avg file (saved as text form MEG160).
+        elp_fname : str
+            Path to elp digitizer file.
+    
         """
         # marker point extraction
         self.mrk_src_path = mrk_fname
-
         # pattern by Tal:
         p = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
         str_points = p.findall(open(mrk_fname).read())
         self.mrk_points = np.array(str_points, dtype=float)/1000
         self.mrk_points = self.mrk_points[:,[1,0,2]]
         self.mrk_points[:, 0] *= -1
-
         # elp point extraction
         self.elp_src_path = elp_fname
-
         # pattern modified from Tal's mrk pattern:
         p = re.compile('%N\t\d-[A-Z]+\s+([\.\-0-9]+)\t([\.\-0-9]+)\t([\.\-0-9]+)')
         str_points = p.findall(open(elp_fname).read())
         self.elp_points = np.array(str_points, dtype=float)
         self.elp_points = self.elp_points[:,[1,0,2]]
         self.elp_points[:, 0] *= -1
-
+        # hsp point extraction
         self.hsp_src_path = hsp_fname
-        p = re.compile('//No of rows, no of columns; position of digitized points\s(\d*)\t(\d)\s*')
+        p = re.compile(r'//No.+\n(\d*)\t(\d)\s*')
         v = re.split(p, open(hsp_fname).read())[1:]
         hsp_points = np.fromstring(v[-1], sep='\t').reshape(int(v[0]), int(v[1]))
         self.hsp_points = []
@@ -340,39 +327,44 @@ class coreg:
             point_dict = {}
             point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
             point_dict['ident'] = idx + 1
-            point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL # equivalent in value but may not be the proper constant
+            # equivalent in value but may not be the proper constant
+            point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL 
             point_dict['r'] = point
             self.hsp_points.append(point_dict)
 
     def fit(self, include=range(5)):
-            """
-            Fit the marker points to the digitizer points.
-
-            include : index (numpy compatible)
-                Which points to include in the fit. Index should select among
-                points [0, 1, 2, 3, 4].
+        """
+        Fit the marker points to the digitizer points.
+    
+        Parameters
+        ----------
+        include : index (numpy compatible)
+            Which points to include in the fit. Index should select among
+            points [0, 1, 2, 3, 4].
+        
+        """
+        def err(params):
+            """calculates distance from target and estimate"""
             
-            """
-            def err(params):
-                T = self.trans(*params[:3]) * self.rot(*params[3:])
-                pts = T*np.vstack((self.elp_points[include].T, 
-                           np.ones(len(self.elp_points[include]))))
-                est = np.array(pts[:3].T)               
-                tgt = np.array(self.mrk_points[include])
-                return (tgt - est).ravel()
-
-            # initial guess
-            params = (0, 0, 0, 0, 0, 0)
-            params, _ = leastsq(err, params)
-            self.est_params = params
-
-            # head-to-device
             T = self.trans(*params[:3]) * self.rot(*params[3:])
-            # returns dev2head by applying the inverse
-            return np.array(T.I)
+            pts = T*np.vstack((self.elp_points[include].T, 
+                       np.ones(len(self.elp_points[include]))))
+            est = np.array(pts[:3].T)               
+            tgt = np.array(self.mrk_points[include])
+            return (tgt - est).ravel()
+
+        # initial guess
+        params = (0, 0, 0, 0, 0, 0)
+        params, _ = leastsq(err, params)
+        self.est_params = params
+        # head-to-device
+        T = self.trans(*params[:3]) * self.rot(*params[3:])
+        # returns dev2head by applying the inverse
+        return np.array(T.I)
 
     def trans(self, x=0, y=0, z=0):
-        "MNE manual p. 95"
+        "MNE manual p. 95, a method for translating a matrix"
+        
         m = np.matrix([[1, 0, 0, x],
                        [0, 1, 0, y],
                        [0, 0, 1, z],
@@ -380,15 +372,10 @@ class coreg:
         return m
     
     def rot(self, x=0, y=0, z=0):
-        "From eelbrain.plot.coreg"
-        r = np.matrix([[cos(y) * cos(z), -cos(x) * sin(z) + sin(x) * sin(y) * cos(z), sin(x) * sin(z) + cos(x) * sin(y) * cos(z), 0],
-                      [cos(y) * sin(z), cos(x) * cos(z) + sin(x) * sin(y) * sin(z), -sin(x) * cos(z) + cos(x) * sin(y) * sin(z), 0],
-                      [-sin(y), sin(x) * cos(y), cos(x) * cos(y), 0],
-                      [0, 0, 0, 1]], dtype=float)
+        "From eelbrain.plot.coreg, a method for rotating a matrix"
+        c_x=cos(x); c_y=cos(y); c_z=cos(z); s_x=sin(x); s_y=sin(y); s_z=sin(z);
+        r = np.matrix([[c_y*c_z, -c_x*s_z+s_x*s_y*c_z, s_x*s_z+c_x*s_y*c_z, 0],
+                       [c_y*s_z, c_x*c_z+s_x*s_y*s_z, -s_x*c_z+c_x*s_y*s_z, 0],
+                       [-s_y, s_x*c_y, c_x*c_y, 0],
+                       [0, 0, 0, 1]], dtype=float)
         return r
-
-
-
-
-
-
