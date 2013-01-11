@@ -148,7 +148,7 @@ def test_apply_inverse_operator():
 
 
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation with fixed orientation & depth weighting
+    """Test MNE inverse computation with fixed orientation
     """
     fwd_op = read_forward_solution(fname_fwd, force_fixed=False,
                                    surf_ori=True)
