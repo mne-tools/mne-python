@@ -945,12 +945,12 @@ def _xyz2lf(Lf_xyz, normals):
     ----------
     Lf_xyz: array of shape [n_sensors, n_positions x 3]
         Leadfield
-    normals: array of shape [n_positions, 3]
+    normals : array of shape [n_positions, 3]
         Normals to the cortex
 
     Returns
     -------
-    Lf_cortex: array of shape [n_sensors, n_positions x 3]
+    Lf_cortex : array of shape [n_sensors, n_positions x 3]
         Lf_cortex is a leadfield matrix for dipoles in rotated orientations, so
         that the first column is the gain vector for the cortical normal dipole
         and the following two column vectors are the gain vectors for the
