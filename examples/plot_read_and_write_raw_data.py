@@ -15,7 +15,7 @@ print __doc__
 
 from mne import fiff
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 

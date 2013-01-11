@@ -11,8 +11,7 @@ from mne import read_forward_solution, apply_forward, apply_forward_raw
 from mne import SourceEstimate
 
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',

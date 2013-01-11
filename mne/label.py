@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-import os
+from os import path as op
 import copy as cp
 import numpy as np
 from scipy import linalg
@@ -100,14 +100,14 @@ class Label(dict):
 
         # name
         if name is None and filename is not None:
-            name = os.path.basename(filename[:-6])
+            name = op.basename(filename[:-6])
         self.name = name
         self.filename = filename
 
     def __repr__(self):
         name = repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
-        return "<Label %s, %s: %i vertices>" % (name, self.hemi, n_vert)
+        return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         return len(self.vertices)
@@ -160,8 +160,10 @@ class Label(dict):
         duplicates = np.intersect1d(self.vertices, other.vertices)
         n_dup = len(duplicates)
         if n_dup:
-            self_dup = [np.where(self.vertices == d)[0][0] for d in duplicates]
-            other_dup = [np.where(other.vertices == d)[0][0] for d in duplicates]
+            self_dup = [np.where(self.vertices == d)[0][0]
+                        for d in duplicates]
+            other_dup = [np.where(other.vertices == d)[0][0]
+                         for d in duplicates]
             if not np.all(self.pos[self_dup] == other.pos[other_dup]):
                 err = ("Labels %r and %r: vertices overlap but differ in "
                        "position values" % (self.name, other.name))
@@ -270,7 +272,7 @@ class BiHemiLabel(object):
         self.name = name
 
     def __repr__(self):
-        temp = "<BiHemiLabel %s, lh: %i vertices;  rh: %i vertices>"
+        temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
         name = repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
@@ -319,7 +321,7 @@ def read_label(filename):
     for i, line in enumerate(fid):
         data[:, i] = line.split()
 
-    basename = os.path.basename(filename)
+    basename = op.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
         hemi = 'lh'
     elif basename.endswith('rh.label') or basename.startswith('rh.'):
@@ -351,12 +353,12 @@ def write_label(filename, label, verbose=None):
     """
     label = _aslabel(label)
     hemi = label.hemi
-    path_head, name = os.path.split(filename)
+    path_head, name = op.split(filename)
     if name.endswith('.label'):
         name = name[:-6]
     if not (name.startswith(hemi) or name.endswith(hemi)):
         name += '-' + hemi
-    filename = os.path.join(path_head, name) + '.label'
+    filename = op.join(path_head, name) + '.label'
 
     logger.info('Saving label to : %s' % filename)
 
@@ -400,7 +402,7 @@ def label_time_courses(labelfile, stcfile):
 
     vertices = np.intersect1d(stc['vertices'], lab.vertices)
     idx = [k for k in range(len(stc['vertices']))
-                   if stc['vertices'][k] in vertices]
+           if stc['vertices'][k] in vertices]
 
     if len(vertices) == 0:
         raise ValueError('No vertices match the label in the stc file')
@@ -451,7 +453,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src, smooth=5):
+def stc_to_label(stc, src, smooth=5, subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -461,6 +463,10 @@ def stc_to_label(stc, src, smooth=5):
     src : list of dict or string
         The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
+    smooth : int
+        Number of smoothing steps to use.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
 
     Returns
     -------
@@ -473,14 +479,11 @@ def stc_to_label(stc, src, smooth=5):
         raise ValueError('SourceEstimate should be surface source estimates')
 
     if isinstance(src, basestring):
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
-        surf_path_from = os.path.join(subjects_dir, src, 'surf')
-        rr_lh, tris_lh = read_surface(os.path.join(surf_path_from,
+        subjects_dir = get_subjects_dir(subjects_dir)
+        surf_path_from = op.join(subjects_dir, src, 'surf')
+        rr_lh, tris_lh = read_surface(op.join(surf_path_from,
                                       'lh.white'))
-        rr_rh, tris_rh = read_surface(os.path.join(surf_path_from,
+        rr_rh, tris_rh = read_surface(op.join(surf_path_from,
                                       'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
@@ -602,11 +605,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
         contains distance from the seed in millimeters
 
     """
-    if subjects_dir is None:
-        if 'SUBJECTS_DIR' in os.environ:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        else:
-            raise ValueError('SUBJECTS_DIR environment variable not set')
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     # make sure the inputs are arrays
     seeds = np.atleast_1d(seeds)
@@ -635,8 +634,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = os.path.join(subjects_dir, subject, 'surf',
-                                  hemi + '.white')
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.white')
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
@@ -761,7 +759,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     # get the .annot filenames and hemispheres
     if annot_fname is not None:
         # we use use the .annot file specified by the user
-        hemis = [os.path.basename(annot_fname)[:2]]
+        hemis = [op.basename(annot_fname)[:2]]
         if hemis[0] not in ['lh', 'rh']:
             raise ValueError('Could not determine hemisphere from filename, '
                              'filename has to start with "lh" or "rh".')
@@ -776,8 +774,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             hemis = [hemi]
         annot_fname = list()
         for hemi in hemis:
-            fname = os.path.join(subjects_dir, subject, 'label',
-                                 '%s.%s.annot' % (hemi, parc))
+            fname = op.join(subjects_dir, subject, 'label',
+                            '%s.%s.annot' % (hemi, parc))
             annot_fname.append(fname)
 
     # now we are ready to create the labels
@@ -791,8 +789,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         label_ids = ctab[:, -1]
 
         # load the vertex positions from surface
-        fname_surf = os.path.join(subjects_dir, subject, 'surf',
-                                  '%s.%s' % (hemi, surf_name))
+        fname_surf = op.join(subjects_dir, subject, 'surf',
+                             '%s.%s' % (hemi, surf_name))
         vert_pos, _ = read_surface(fname_surf)
         vert_pos /= 1e3  # the positions in labels are in meters
         for label_id, label_name, label_rgba in\

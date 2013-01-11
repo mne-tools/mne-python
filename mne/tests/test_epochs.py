@@ -161,9 +161,11 @@ def test_evoked_standard_error():
                read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
                            kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
-        assert_true(evoked_new[0]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+        assert_true(evoked_new[0]._aspect_kind ==
+                    fiff.FIFF.FIFFV_ASPECT_AVERAGE)
         assert_true(evoked_new[0].kind == 'average')
-        assert_true(evoked_new[1]._aspect_kind == fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+        assert_true(evoked_new[1]._aspect_kind ==
+                    fiff.FIFF.FIFFV_ASPECT_STD_ERR)
         assert_true(evoked_new[1].kind == 'standard_error')
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)
@@ -193,6 +195,15 @@ def test_reject_epochs():
     assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
                                     ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
 
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject, flat=flat,
+                    reject_tmin=0., reject_tmax=.1)
+    data = epochs.get_data()
+    n_clean_epochs = len(data)
+    assert_true(n_clean_epochs == 7)
+    assert_true(epochs.times[epochs._reject_time][0] >= 0.)
+    assert_true(epochs.times[epochs._reject_time][-1] <= 0.1)
+
 
 def test_preload_epochs():
     """Test preload of epochs
@@ -207,7 +218,8 @@ def test_preload_epochs():
                     reject=reject, flat=flat)
     data = epochs.get_data()
     assert_array_equal(data_preload, data)
-    assert_array_equal(epochs_preload.average().data, epochs.average().data)
+    assert_array_almost_equal(epochs_preload.average().data,
+                              epochs.average().data, 18)
 
 
 def test_indexing_slicing():
@@ -342,7 +354,38 @@ def test_resample():
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
     epochs.resample(sfreq_normal * 2, n_jobs=2, npad=0)
-    assert_array_equal(data_up, epochs._data)
+    assert_true(np.allclose(data_up, epochs._data, rtol=1e-8, atol=1e-16))
+
+
+def test_detrend():
+    """Test detrending of epochs
+    """
+    # test first-order
+    epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                      baseline=None, detrend=1)
+    epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                      baseline=None, detrend=None)
+    data_picks = fiff.pick_types(epochs_1.info, meg=True, eeg=True)
+    evoked_1 = epochs_1.average()
+    evoked_2 = epochs_2.average()
+    evoked_2.detrend(1)
+    # Due to roundoff these won't be exactly equal, but they should be close
+    assert_true(np.allclose(evoked_1.data, evoked_2.data,
+                            rtol=1e-8, atol=1e-20))
+
+    # test zeroth-order case
+    for preload in [True, False]:
+        epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=(None, None), preload=preload)
+        epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                          baseline=None, preload=preload, detrend=0)
+        a = epochs_1.get_data()
+        b = epochs_2.get_data()
+        # All data channels should be almost equal
+        assert_true(np.allclose(a[:, data_picks, :], b[:, data_picks, :],
+                                rtol=1e-16, atol=1e-20))
+        # There are non-M/EEG channels that should not be equal:
+        assert_true(not np.allclose(a, b))
 
 
 def test_bootstrap():
@@ -512,5 +555,8 @@ def test_as_data_frame():
     assert_raises(ValueError, epochs.as_data_frame, index='qux')
     assert_raises(ValueError, epochs.as_data_frame, np.arange(400))
     df = epochs.as_data_frame()
+    data = np.hstack(epochs.get_data())
     assert_true((df.columns[1:] == epochs.ch_names).all())
     assert_true(df.index.names == ['epoch', 'time'])
+    assert_array_equal(df.values[:, 1], data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], data[2] * 1e15)

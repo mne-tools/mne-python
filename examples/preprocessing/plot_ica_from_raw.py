@@ -29,7 +29,7 @@ from mne.datasets import sample
 ###############################################################################
 # Setup paths and prepare raw data
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
@@ -40,14 +40,15 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 ###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.
 
-# Sign and order of components is non deterministic.
-# setting the random state to 0 makes the solution reproducible.
-# Instead of the actual number of components we pass a float value
+# Instead of the actual number of components here we pass a float value
 # between 0 and 1 to select n_components by a percentage of
-# explained variance.
+# explained variance. Also we decide to use 64 PCA components before mixing
+# back to sensor space. These include the PCA components supplied to ICA plus
+# additional PCA components up to rank 64 of the MEG data.
+# This allows to control the trade-off between denoising and preserving signal.
 
-ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
-          random_state=0)
+ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
+          noise_cov=None, random_state=0)
 print ica
 
 # 1 minute exposure should be sufficient for artifact detection.
@@ -110,16 +111,16 @@ ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
 # for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.
+# we will directly extend the ica.exclude list by the result.
 
-ecg_source_idx_updated = np.where(np.abs(ecg_scores) ** 2 > .05)[0]
+ica.exclude.extend(np.where(np.abs(ecg_scores) ** 2 > .05)[0])
 
 ###############################################################################
 # Automatically find the EOG component using correlation with EOG signal.
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_scores = ica.find_sources_raw(raw, target='EOG 061',
-                                         score_func=corr)
+eog_scores = ica.find_sources_raw(raw, target='EOG 061', score_func=corr)
 
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
@@ -133,19 +134,16 @@ pl.show()
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
 
-# Join the detected artifact indices.
-exclude = np.r_[ecg_source_idx, eog_source_idx]
+# We now add the eog artifacts to the ica.exclusion list
+ica.exclude += [eog_source_idx]
 
-# Restore sources, use 64 PCA components which include the ICA cleaned sources
-# plus additional PCA components not supplied to ICA (up to rank 64).
-# This allows to control the trade-off between denoising and preserving data.
-raw_ica = ica.pick_sources_raw(raw, include=None, exclude=exclude,
-                               n_pca_components=64, copy=True)
+# Restore sensor space data
+raw_ica = ica.pick_sources_raw(raw, include=None)
 
 start_compare, stop_compare = raw.time_as_index([100, 106])
 
 data, times = raw[picks, start_compare:stop_compare]
-ica_data, _ = raw_ica[picks, start_compare:stop_compare]
+data_clean, _ = raw_ica[picks, start_compare:stop_compare]
 
 pl.figure()
 pl.plot(times, data.T)
@@ -155,7 +153,7 @@ pl.ylabel('Raw MEG data (T)')
 y0, y1 = pl.ylim()
 
 pl.figure()
-pl.plot(times, ica_data.T)
+pl.plot(times, data_clean.T)
 pl.xlabel('time (s)')
 pl.xlim(100, 106)
 pl.ylabel('Denoised MEG data (T)')
@@ -175,7 +173,7 @@ y0, y1 = pl.ylim()
 
 # plot the component that correlates most with the ECG
 pl.figure()
-pl.plot(times, ica_data[affected_idx])
+pl.plot(times, data_clean[affected_idx])
 pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()
@@ -185,7 +183,7 @@ pl.show()
 
 from mne.layouts import make_grid_layout
 
-ica_raw = ica.export_sources(raw, start=start, stop=stop, picks=None)
+ica_raw = ica.sources_as_raw(raw, start=start, stop=stop, picks=None)
 
 print ica_raw.ch_names
 

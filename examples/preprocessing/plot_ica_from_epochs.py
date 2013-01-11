@@ -25,7 +25,7 @@ from mne.datasets import sample
 ###############################################################################
 # Setup paths and prepare epochs data
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
@@ -38,10 +38,13 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
 
 # Instead of the actual number of components here we pass a float value
 # between 0 and 1 to select n_components by a percentage of
-# explained variance.
+# explained variance. Also we decide to use 64 PCA components before mixing
+# back to sensor space. These include the PCA components supplied to ICA plus
+# additional PCA components up to rank 64 of the MEG data.
+# This allows to control the trade-off between denoising and preserving signal.
 
-ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
-          random_state=0)
+ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
+          noise_cov=None, random_state=0)
 print ica
 
 # get epochs
@@ -110,14 +113,11 @@ pl.show()
 ###############################################################################
 # Reject artifact sources and compare results
 
-# join the detected artifact indices
-exclude = np.r_[ecg_source_idx, eog_source_idx]
+# Add the detected artifact indices to ica.exclude
+ica.exclude += [ecg_source_idx, eog_source_idx]
 
-# Restore sources, use 64 PCA components which include the ICA cleaned sources
-# plus additional PCA components not supplied to ICA (up to rank 64).
-# This allows to control the trade-off between denoising and preserving data.
-epochs_ica = ica.pick_sources_epochs(epochs, include=None, exclude=exclude,
-                                     n_pca_components=64, copy=True)
+# Restore sensor space data
+epochs_ica = ica.pick_sources_epochs(epochs, include=None)
 
 # plot original epochs
 pl.figure()

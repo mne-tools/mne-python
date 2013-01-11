@@ -1,3 +1,5 @@
+"""Tools for working with epoched data"""
+
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
@@ -29,7 +31,7 @@ from .fiff.proj import setup_proj
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
-from .filter import resample
+from .filter import resample, detrend
 from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
@@ -92,6 +94,20 @@ class Epochs(object):
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
         here. If data is not properly filtered, aliasing artifacts may occur.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).
+    detrend : int | None
+        If 0 or 1, the data channels (MEG and EEG) will be detrended when
+        loaded. 0 is a constant (DC) detrend, 1 is a linear detrend. None
+        is no detrending. Note that detrending is performed before baseline
+        correction. If no DC offset is preferred (zeroth order detrending),
+        either turn off baseline correction, as this may introduce a DC
+        shift, or set baseline correction to use the entire time interval
+        (will yield equivalent results but be slower).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -164,7 +180,8 @@ class Epochs(object):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
-                 decim=1, verbose=None):
+                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
+                 verbose=None):
         if raw is None:
             return
 
@@ -183,6 +200,18 @@ class Epochs(object):
             self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
         else:
             raise ValueError('event_id must be dict or int.')
+
+        # check reject_tmin and reject_tmax
+        if (reject_tmin is not None) and (reject_tmin < tmin):
+            raise ValueError("reject_tmin needs to be None or >= tmin")
+        if (reject_tmax is not None) and (reject_tmax > tmax):
+            raise ValueError("reject_tmax needs to be None or <= tmax")
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError('reject_tmin needs to be < reject_tmax')
+        if not detrend in [None, 0, 1]:
+            raise ValueError('detrend must be None, 0, or 1')
+
         self.tmin = tmin
         self.tmax = tmax
         self.keep_comp = keep_comp
@@ -190,11 +219,14 @@ class Epochs(object):
         self.baseline = baseline
         self.preload = preload
         self.reject = reject
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
         self.flat = flat
         self.proj = proj
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
+        self.detrend = detrend
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
@@ -356,10 +388,17 @@ class Epochs(object):
             logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
-        # Run baseline correction
+        # Detrend
+        if self.detrend is not None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False)
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+
+        # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
                         copy=False)
 
+        # Decimate
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
 
@@ -421,6 +460,9 @@ class Epochs(object):
         if self.reject is None and self.flat is None:
             return True, None
         else:
+            if self._reject_time is not None:
+                data = data[:, self._reject_time]
+
             return _is_good(data, self.ch_names, self._channel_type_idx,
                             self.reject, self.flat, full_report=True)
 
@@ -439,13 +481,13 @@ class Epochs(object):
             return data
 
     def _reject_setup(self):
-        """Setup reject process
+        """Sets self._reject_time and self._channel_type_idx (called from
+        __init__)
         """
         if self.reject is None and self.flat is None:
             return
 
         idx = channel_indices_by_type(self.info)
-
         for key in idx.keys():
             if (self.reject is not None and key in self.reject) \
                     or (self.flat is not None and key in self.flat):
@@ -454,6 +496,22 @@ class Epochs(object):
                                      " on %s." % (key.upper(), key.upper()))
 
         self._channel_type_idx = idx
+
+        if (self.reject_tmin is None) and (self.reject_tmax is None):
+            self._reject_time = None
+        else:
+            if self.reject_tmin is None:
+                reject_imin = None
+            else:
+                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
+                reject_imin = idxs[0]
+            if self.reject_tmax is  None:
+                reject_imax = None
+            else:
+                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
+                reject_imax = idxs[-1]
+
+            self._reject_time = slice(reject_imin, reject_imax)
 
     def __iter__(self):
         """To make iteration over epochs easy.
@@ -488,7 +546,7 @@ class Epochs(object):
         s += ", tmin : %s (s)" % self.tmin
         s += ", tmax : %s (s)" % self.tmax
         s += ", baseline : %s" % str(self.baseline)
-        return "Epochs (%s)" % s
+        return "<Epochs  |  %s>" % s
 
     def _key_match(self, key):
         """Helper function for event dict use"""
@@ -788,7 +846,7 @@ class Epochs(object):
 
     def as_data_frame(self, picks=None, index=['epoch', 'time'],
                       scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
-                      eeg=1e6)):
+                      eeg=1e6), copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export epochs data in tabular structure with MEG channels as columns
@@ -812,6 +870,8 @@ class Epochs(object):
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, no scaling
             will be applied.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
         """
         try:
             import pandas as pd
@@ -837,6 +897,8 @@ class Epochs(object):
         data = self.get_data()[:, picks, :]
         shape = data.shape
         data = np.hstack(data).T
+        if copy:
+            data = data.copy()
 
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0

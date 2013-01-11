@@ -4,8 +4,7 @@ from nose.tools import assert_true
 from mne import read_dip
 from mne.datasets import sample
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 dip_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_set1.dip')
 

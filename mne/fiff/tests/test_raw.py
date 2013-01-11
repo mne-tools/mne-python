@@ -12,7 +12,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws
+from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
@@ -221,9 +221,28 @@ def test_io_raw():
 
         assert_array_almost_equal(data, data2)
         assert_array_almost_equal(times, times2)
-        assert_array_almost_equal(raw.info['dev_head_t']['trans'],
-                                  raw2.info['dev_head_t']['trans'])
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+
+        # check transformations
+        for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
+            if raw.info[trans] is None:
+                assert_true(raw2.info[trans] is None)
+            else:
+                assert_array_equal(raw.info[trans]['trans'],
+                                   raw2.info[trans]['trans'])
+
+                # check transformation 'from' and 'to'
+                if trans.startswith('dev'):
+                    from_id = FIFF.FIFFV_COORD_DEVICE
+                else:
+                    from_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                if trans[4:8] == 'head':
+                    to_id = FIFF.FIFFV_COORD_HEAD
+                else:
+                    to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                for raw_ in [raw, raw2]:
+                    assert_true(raw_.info[trans]['from'] == from_id)
+                    assert_true(raw_.info[trans]['to'] == to_id)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_array_almost_equal(raw.info['dig'][0]['r'],
@@ -245,7 +264,7 @@ def test_io_complex():
         imag_rand = np.array(1j * np.random.randn(data_orig.shape[0],
                              data_orig.shape[1]), dtype)
 
-        raw_cp = deepcopy(raw)
+        raw_cp = raw.copy()
         raw_cp._data = np.array(raw_cp._data, dtype)
         raw_cp._data[picks, start:stop] += imag_rand
         # this should throw an error because it's complex
@@ -375,31 +394,38 @@ def test_filter():
     """ Test filtering (FIR and IIR) and Raw.apply_function interface """
     raw = Raw(fif_fname, preload=True).crop(0, 10, False)
     sig_dec = 11
+    sig_dec_notch = 12
+    sig_dec_notch_fit = 12
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
-    raw_lp = deepcopy(raw)
+    raw_lp = raw.copy()
     raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
 
-    raw_hp = deepcopy(raw)
+    raw_hp = raw.copy()
     raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
 
-    raw_bp = deepcopy(raw)
+    raw_bp = raw.copy()
     raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
+
+    raw_bs = raw.copy()
+    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
 
     data, _ = raw[picks, :]
 
     lp_data, _ = raw_lp[picks, :]
     hp_data, _ = raw_hp[picks, :]
     bp_data, _ = raw_bp[picks, :]
+    bs_data, _ = raw_bs[picks, :]
 
     assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
+    assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
 
-    raw_lp_iir = deepcopy(raw)
+    raw_lp_iir = raw.copy()
     raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
-    raw_hp_iir = deepcopy(raw)
+    raw_hp_iir = raw.copy()
     raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
-    raw_bp_iir = deepcopy(raw)
+    raw_bp_iir = raw.copy()
     raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
     lp_data_iir, _ = raw_lp_iir[picks, :]
     hp_data_iir, _ = raw_hp_iir[picks, :]
@@ -414,6 +440,23 @@ def test_filter():
     assert_array_equal(data, bp_data)
     bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
     assert_array_equal(data, bp_data_iir)
+
+    # do a very simple check on line filtering
+    raw_bs = raw.copy()
+    with warnings.catch_warnings(True) as w:
+        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
+        data_bs, _ = raw_bs[picks, :]
+        raw_notch = raw.copy()
+        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+    data_notch, _ = raw_notch[picks, :]
+    assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
+
+    # now use the sinusoidal fitting
+    raw_notch = raw.copy()
+    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    data_notch, _ = raw_notch[picks, :]
+    data, _ = raw[picks, :]
+    assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
 
 def test_crop():
@@ -447,7 +490,7 @@ def test_crop():
     # going in revere order so the last fname is the first file (need it later)
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
-        raws[ri] = deepcopy(raw)
+        raws[ri] = raw.copy()
         raws[ri].crop(tmin, tmax, False)
     # test concatenation of split file
     all_raw_1 = concatenate_raws(raws, preload=True)
@@ -462,7 +505,7 @@ def test_crop():
 def test_resample():
     """ Test resample (with I/O and multiple files) """
     raw = Raw(fif_fname, preload=True).crop(0, 3, False)
-    raw_resamp = deepcopy(raw)
+    raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
@@ -485,10 +528,10 @@ def test_resample():
 
     # now check multiple file support w/resampling, as order of operations
     # (concat, resample) should not affect our data
-    raw1 = deepcopy(raw)
-    raw2 = deepcopy(raw)
-    raw3 = deepcopy(raw)
-    raw4 = deepcopy(raw)
+    raw1 = raw.copy()
+    raw2 = raw.copy()
+    raw3 = raw.copy()
+    raw4 = raw.copy()
     raw1 = concatenate_raws([raw1, raw2])
     raw1.resample(10)
     raw3.resample(10)
@@ -509,7 +552,7 @@ def test_hilbert():
     picks_meg = pick_types(raw.info, meg=True)
     picks = picks_meg[:4]
 
-    raw2 = deepcopy(raw)
+    raw2 = raw.copy()
     raw.apply_hilbert(picks)
     raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
 
@@ -572,6 +615,8 @@ def test_as_data_frame():
     assert_true((df.columns == raw.ch_names).all())
     df = raw.as_data_frame(use_time_index=False)
     assert_true('time' in df.columns)
+    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
+    assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
 
 
 def test_raw_index_as_time():
@@ -612,4 +657,5 @@ def test_save():
     raw.save(op.join(tempdir, new_fname))
     new_raw = Raw(op.join(tempdir, new_fname))
     assert_raises(ValueError, new_raw.save, new_fname)
+    new_raw.close()
     os.remove(new_fname)

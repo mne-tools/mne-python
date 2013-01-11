@@ -21,7 +21,7 @@ import mne
 from mne.datasets import sample
 import pylab as pl
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 os.environ['SUBJECTS_DIR'] = data_path + '/subjects'
 meg_path = data_path + '/MEG/sample'
 

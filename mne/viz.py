@@ -6,11 +6,13 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
-
+import os
 import warnings
-from itertools import cycle
+from itertools import cycle, combinations
 from functools import partial
 import copy
+import inspect
+
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -453,14 +455,15 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
+    if not ch_type in scalings:
+        raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
-    this_order = order
     if callable(order):
-        this_order = order(epochs.times, this_data)
+        order = order(epochs.times, this_data)
 
-    if this_order is not None:
-        this_data = this_data[this_order]
+    if order is not None:
+        this_data = this_data[order]
 
     this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
@@ -518,7 +521,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     if vmax is None:
         vmax = data.max()
 
-    erf_imshow = partial(_erfimage_imshow, scalings=scalings,
+    erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
 
     fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
@@ -567,8 +570,21 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         Axes, there must be only one channel type plotted.
     """
 
-    if scalings.keys() != units.keys() != titles.keys():
-        raise ValueError('Scalings and units must have the same keys.')
+    keys = [scalings.keys(), units.keys(), titles.keys()]
+    iter_keys = combinations(keys, 2)
+    if any([len(set(a) - set(b)) for a, b in iter_keys]):
+        names = ['scalings', 'units', 'titles']
+        keys_unique = np.unique(np.concatenate(keys))
+        misses = [[k for k in keys_unique if k not in k2] for k2 in keys]
+        inds = np.array([len(m) for m in misses]) > 0
+        names = np.array(names)[inds]
+        misses = np.array(misses)[inds]
+        strs = ''.join(['    ' + n + ' was missing: "' + '", "'.join(m) + '"\n'
+                        for n, m in zip(names, misses)])
+
+        raise ValueError('scalings, units, and titles must all have the same '
+                         'keys.\nPassed keys: "%s"\n%s'
+                         % ('", "'.join(keys_unique), strs))
     else:
         channel_types = sorted(scalings.keys())
 
@@ -726,8 +742,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     mlab.clf()
     f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                            use_faces, color=brain_color, opacity=opacity,
-                            **kwargs)
+                                   use_faces, color=brain_color,
+                                   opacity=opacity, **kwargs)
 
     import pylab as pl
     # Show time courses
@@ -815,11 +831,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
     sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
     idx_eeg = [ch_names.index(info_ch_names[c])
-                    for c in sel_eeg if info_ch_names[c] in ch_names]
+               for c in sel_eeg if info_ch_names[c] in ch_names]
     idx_mag = [ch_names.index(info_ch_names[c])
-                    for c in sel_mag if info_ch_names[c] in ch_names]
+               for c in sel_mag if info_ch_names[c] in ch_names]
     idx_grad = [ch_names.index(info_ch_names[c])
-                    for c in sel_grad if info_ch_names[c] in ch_names]
+                for c in sel_grad if info_ch_names[c] in ch_names]
 
     idx_names = [(idx_eeg, 'EEG covariance', 'uV', 1e6),
                  (idx_grad, 'Gradiometers', 'fT/cm', 1e13),
@@ -877,6 +893,14 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           subjects_dir=None):
     """Plot SourceEstimates with PySurfer
 
+    Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+    which will automatically be set by this function. Plotting multiple
+    SourceEstimates with different values for subjects_dir will cause
+    PySurfer to use the wrong FreeSurfer surfaces when using methods of
+    the returned Brain object. It is therefore recommended to set the
+    SUBJECTS_DIR environment variable or always use the same value for
+    subjects_dir (within the same Python session).
+
     Parameters
     ----------
     stc : SourceEstimates
@@ -927,7 +951,16 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    brain = Brain(subject, hemi, surface)
+    args = inspect.getargspec(Brain.__init__)[0]
+    if 'subjects_dir' in args:
+        brain = Brain(subject, hemi, surface, subjects_dir=subjects_dir)
+    else:
+        # Current PySurfer versions need the SUBJECTS_DIR env. var.
+        # so we set it here. This is a hack as it can break other things
+        # XXX reminder to remove this once upstream pysurfer is changed
+        os.environ['SUBJECTS_DIR'] = subjects_dir
+        brain = Brain(subject, hemi, surface)
+
     if hemi_idx == 0:
         data = stc.data[:len(stc.vertno[0])]
     else:
@@ -1069,6 +1102,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    source_idx=None, ncol=3, nrow=10, verbose=None,
                    show=True):
     """Create panel plots of ICA sources
+
+    Note. Inspired by an example from Carl Vogel's stats blog 'Will it Python?'
 
     Clicking on the plot of an individual source opens a new figure showing
     the source.
@@ -1221,11 +1256,13 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        print idx
         this_fig = pl.figure()
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
+        if not ch_type in scalings:
+            # We know it's not in either scalings or units since keys match
+            raise KeyError('%s type not in scalings and units' % ch_type)
         this_data *= scalings[ch_type]
 
         this_order = order
@@ -1239,10 +1276,10 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
 
         ax1 = pl.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
         im = pl.imshow(this_data,
-                   extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                           0, len(data)],
-                   aspect='auto', origin='lower',
-                   vmin=vmin, vmax=vmax)
+                       extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
+                               0, len(data)],
+                       aspect='auto', origin='lower',
+                       vmin=vmin, vmax=vmax)
         ax2 = pl.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = pl.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)

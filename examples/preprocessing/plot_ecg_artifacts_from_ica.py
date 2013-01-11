@@ -24,7 +24,7 @@ from mne.fiff import Raw
 from mne.preprocessing.ica import ICA, ica_find_ecg_events
 from mne.datasets import sample
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
@@ -41,7 +41,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # between 0 and 1 to select n_components by a percentage of
 # explained variance.
 
-ica = ICA(n_components=0.90, max_n_components=100, noise_cov=None,
+ica = ICA(n_components=0.90, max_pca_components=100, noise_cov=None,
           random_state=0)
 
 # For maximum rejection performance we will compute the decomposition on

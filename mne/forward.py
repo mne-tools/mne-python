@@ -140,15 +140,16 @@ def _read_one(fid, node):
         one['sol'] = _read_named_matrix(fid, node,
                                             FIFF.FIFF_MNE_FORWARD_SOLUTION)
         one['sol'] = _transpose_named_matrix(one['sol'])
-    except Exception as inst:
+    except:
         fid.close()
-        raise 'Forward solution data not found (%s)' % inst
+        logger.error('Forward solution data not found')
+        raise
 
     try:
         one['sol_grad'] = _read_named_matrix(fid, node,
                                         FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD)
         one['sol_grad'] = _transpose_named_matrix(one['sol_grad'])
-    except Exception as inst:
+    except:
         one['sol_grad'] = None
 
     if one['sol']['data'].shape[0] != one['nchan'] or \

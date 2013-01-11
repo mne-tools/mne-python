@@ -19,7 +19,7 @@ import mne
 import numpy as np
 from mne.datasets import sample
 
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 
 subject_from = 'sample'
 subject_to = 'fsaverage'

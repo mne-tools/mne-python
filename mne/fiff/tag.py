@@ -6,6 +6,8 @@
 import struct
 import numpy as np
 from scipy import linalg
+import os
+import gzip
 
 from .constants import FIFF
 
@@ -42,8 +44,8 @@ class Tag(object):
         self.data = None
 
     def __repr__(self):
-        out = "kind: %s - type: %s - size: %s - next: %s - pos: %s" % (
-                self.kind, self.type, self.size, self.next, self.pos)
+        out = ("kind: %s - type: %s - size: %s - next: %s - pos: %s"
+               % (self.kind, self.type, self.size, self.next, self.pos))
         if hasattr(self, 'data'):
             out += " - data: %s" % self.data
         out += "\n"
@@ -60,6 +62,77 @@ class Tag(object):
             return 0
         else:
             return 1
+
+
+def read_big(fid, size=None):
+    """Function to read large chunks of data (>16MB) Windows-friendly
+
+    Parameters
+    ----------
+    fid : file
+        Open file to read from.
+    size : int or None
+        Number of bytes to read. If None, the whole file is read.
+
+    Returns
+    -------
+    buf : str
+        The data.
+
+    Notes
+    -----
+    Windows (argh) can't handle reading large chunks of data, so we
+    have to do it piece-wise, possibly related to:
+       http://stackoverflow.com/questions/4226941
+
+    Examples
+    --------
+    This code should work for normal files and .gz files:
+
+        >>> import numpy as np
+        >>> import gzip, os, tempfile, shutil
+        >>> fname = tempfile.mkdtemp()
+        >>> fname_gz = os.path.join(fname, 'temp.gz')
+        >>> fname = os.path.join(fname, 'temp.bin')
+        >>> randgen = np.random.RandomState(9)
+        >>> x = randgen.randn(3000000)  # > 16MB data
+        >>> with open(fname, 'wb') as fid: x.tofile(fid)
+        >>> with open(fname, 'rb') as fid: y = np.fromstring(read_big(fid))
+        >>> assert np.all(x == y)
+        >>> with gzip.open(fname_gz, 'wb') as fid: fid.write(x.tostring())
+        24000000
+        >>> with gzip.open(fname_gz, 'rb') as fid: y = np.fromstring(read_big(fid))
+        >>> assert np.all(x == y)
+        >>> shutil.rmtree(os.path.dirname(fname))
+
+    """
+    # buf_size is chosen as a largest working power of 2 (16 MB):
+    buf_size = 16777216
+    if size is None:
+        # it's not possible to get .gz uncompressed file size
+        if not isinstance(fid, gzip.GzipFile):
+            size = os.fstat(fid.fileno()).st_size - fid.tell()
+
+    if size is not None:
+        # Use pre-buffering method
+        segments = np.r_[np.arange(0, size, buf_size), size]
+        buf = bytearray(' ' * size)
+        for start, end in zip(segments[:-1], segments[1:]):
+            data = fid.read(end - start)
+            if len(data) != end - start:
+                raise ValueError('Read error')
+            buf[start:end] = data
+        buf = str(buf)
+    else:
+        # Use presumably less efficient concatenating method
+        buf = ['']
+        new = fid.read(buf_size)
+        while len(new) > 0:
+            buf.append(new)
+            new = fid.read(buf_size)
+        buf = ''.join(buf)
+
+    return buf
 
 
 def read_tag_info(fid):
@@ -125,35 +198,35 @@ def read_tag(fid, pos=None):
 
                 if ndim > 3:
                     raise Exception('Only 2 or 3-dimensional matrices are '
-                                     'supported at this time')
+                                    'supported at this time')
 
                 matrix_type = data_type & tag.type
 
                 if matrix_type == FIFF.FIFFT_INT:
-                    tag.data = np.fromstring(fid.read(4 * dims.prod()),
+                    tag.data = np.fromstring(read_big(fid, 4 * dims.prod()),
                                              dtype='>i4').reshape(dims)
                 elif matrix_type == FIFF.FIFFT_JULIAN:
-                    tag.data = np.fromstring(fid.read(4 * dims.prod()),
+                    tag.data = np.fromstring(read_big(fid, 4 * dims.prod()),
                                              dtype='>i4').reshape(dims)
                 elif matrix_type == FIFF.FIFFT_FLOAT:
-                    tag.data = np.fromstring(fid.read(4 * dims.prod()),
+                    tag.data = np.fromstring(read_big(fid, 4 * dims.prod()),
                                              dtype='>f4').reshape(dims)
                 elif matrix_type == FIFF.FIFFT_DOUBLE:
-                    tag.data = np.fromstring(fid.read(8 * dims.prod()),
+                    tag.data = np.fromstring(read_big(fid, 8 * dims.prod()),
                                              dtype='>f8').reshape(dims)
                 elif matrix_type == FIFF.FIFFT_COMPLEX_FLOAT:
-                    data = np.fromstring(fid.read(4 * 2 * dims.prod()),
+                    data = np.fromstring(read_big(fid, 4 * 2 * dims.prod()),
                                          dtype='>f4')
                     # Note: we need the non-conjugate transpose here
                     tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 elif matrix_type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                    data = np.fromstring(fid.read(8 * 2 * dims.prod()),
+                    data = np.fromstring(read_big(fid, 8 * 2 * dims.prod()),
                                          dtype='>f8')
                     # Note: we need the non-conjugate transpose here
                     tag.data = (data[::2] + 1j * data[1::2]).reshape(dims)
                 else:
-                    raise Exception('Cannot handle matrix of type %d yet' %
-                                                                matrix_type)
+                    raise Exception('Cannot handle matrix of type %d yet'
+                                    % matrix_type)
 
             elif matrix_coding == matrix_coding_CCS or \
                                     matrix_coding == matrix_coding_RCS:
@@ -166,7 +239,7 @@ def read_tag(fid, pos=None):
                 dims = np.fromstring(fid.read(4 * (ndim + 1)), dtype='>i4')
                 if ndim != 2:
                     raise Exception('Only two-dimensional matrices are '
-                                     'supported at this time')
+                                    'supported at this time')
 
                 # Back to where the data start
                 fid.seek(pos, 0)
@@ -194,7 +267,7 @@ def read_tag(fid, pos=None):
                                                  sparse_ptrs), shape=shape)
             else:
                 raise Exception('Cannot handle other than dense or sparse '
-                                 'matrices yet')
+                                'matrices yet')
         else:
             #   All other data types
 
@@ -251,7 +324,7 @@ def read_tag(fid, pos=None):
                 rot = np.fromstring(fid.read(36), dtype=">f4").reshape(3, 3)
                 move = np.fromstring(fid.read(12), dtype=">f4")
                 tag.data['trans'] = np.r_[np.c_[rot, move],
-                                           np.array([[0], [0], [0], [1]]).T]
+                                          np.array([[0], [0], [0], [1]]).T]
                 #
                 # Skip over the inverse transformation
                 # It is easier to just use inverse of trans in Matlab
@@ -280,7 +353,7 @@ def read_tag(fid, pos=None):
                 kind = tag.data['kind']
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
                     tag.data['coil_trans'] = np.r_[np.c_[loc[3:6], loc[6:9],
-                                                        loc[9:12], loc[0:3]],
+                                                         loc[9:12], loc[0:3]],
                                         np.array([0, 0, 0, 1]).reshape(1, 4)]
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
@@ -302,8 +375,8 @@ def read_tag(fid, pos=None):
                 #
                 # Omit nulls
                 #
-                tag.data['ch_name'] = ''.join(
-                                    ch_name[:np.where(ch_name == '')[0][0]])
+                tag.data['ch_name'] = \
+                    ''.join(ch_name[:np.where(ch_name == '')[0][0]])
 
             elif tag.type == FIFF.FIFFT_OLD_PACK:
                 offset = float(np.fromstring(fid.read(4), dtype=">f4"))

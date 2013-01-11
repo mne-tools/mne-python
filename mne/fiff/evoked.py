@@ -14,11 +14,11 @@ from .constants import FIFF
 from .open import fiff_open
 from .tag import read_tag
 from .tree import dir_tree_find
-from .pick import channel_type
+from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
 from .proj import make_projector_info, activate_proj
 from ..baseline import rescale
-from ..filter import resample
+from ..filter import resample, detrend
 from ..fixes import in1d
 
 from .write import start_file, start_block, end_file, end_block, \
@@ -46,6 +46,14 @@ class Evoked(object):
     setno : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
+    baseline : tuple or list of length 2, or None
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used. If None, no correction is applied.
     proj : bool, optional
         Apply SSP projection vectors
     kind : str
@@ -102,50 +110,33 @@ class Evoked(object):
             fid.close()
             raise ValueError('Could not find evoked data')
 
+        # convert setno to an integer
         if setno is None:
             if len(evoked_node) > 1:
-                fid.close()
-                raise ValueError('%d datasets present. '
-                                 'setno parameter mush be set'
-                                 % len(evoked_node))
+                try:
+                    _, _, t = _get_entries(fid, evoked_node)
+                except:
+                    t = 'None found, must use integer'
+                else:
+                    fid.close()
+                raise ValueError('%d datasets present, setno parameter '
+                                 'must be set. Candidate setno names:\n%s'
+                                 % (len(evoked_node), t))
             else:
                 setno = 0
 
         # find string-based entry
-        if isinstance(setno, basestring):
+        elif isinstance(setno, basestring):
             if not kind in aspect_dict.keys():
+                fid.close()
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')
-            comments = list()
-            aspect_kinds = list()
-            for ev in evoked_node:
-                for k in range(ev['nent']):
-                    my_kind = ev['directory'][k].kind
-                    pos = ev['directory'][k].pos
-                    if my_kind == FIFF.FIFF_COMMENT:
-                        tag = read_tag(fid, pos)
-                        comments.append(tag.data)
-                my_aspect = dir_tree_find(ev, FIFF.FIFFB_ASPECT)[0]
-                for k in range(my_aspect['nent']):
-                    my_kind = my_aspect['directory'][k].kind
-                    pos = my_aspect['directory'][k].pos
-                    if my_kind == FIFF.FIFF_ASPECT_KIND:
-                        tag = read_tag(fid, pos)
-                        aspect_kinds.append(int(tag.data))
-            comments = np.atleast_1d(comments)
-            aspect_kinds = np.atleast_1d(aspect_kinds)
-            if len(comments) != len(aspect_kinds) or len(comments) == 0:
-                fid.close()
-                raise ValueError('comments and aspect_kinds from FIF file '
-                                 'could not be inferred. Use integer '
-                                 'indexing instead.')
+
+            comments, aspect_kinds, t = _get_entries(fid, evoked_node)
             goods = np.logical_and(in1d(comments, [setno]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
-                t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
-                t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
-                t = '\n  '.join(t)
                 fid.close()
                 raise ValueError('setno "%s" (%s) not found, out of found '
                                  'datasets:\n  %s' % (setno, kind, t))
@@ -202,8 +193,8 @@ class Evoked(object):
 
             if len(chs) != nchan:
                 fid.close()
-                raise ValueError('Number of channels and number of channel '
-                                 'definitions are different')
+                raise ValueError('Number of channels and number of '
+                                 'channel definitions are different')
 
             info['chs'] = chs
             info['nchan'] = nchan
@@ -320,11 +311,11 @@ class Evoked(object):
         write_evoked(fname, self)
 
     def __repr__(self):
-        s = "comment : %s" % self.comment
+        s = "comment : %r" % self.comment
         s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", n_epochs : %d" % self.nave
         s += ", n_channels x n_times : %s x %s" % self.data.shape
-        return "Evoked (%s)" % s
+        return "<Evoked  |  %s>" % s
 
     @property
     def ch_names(self):
@@ -406,7 +397,7 @@ class Evoked(object):
         return evoked_ts
 
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=dict(mag=1e15,
-                      grad=1e13, eeg=1e6), use_time_index=True):
+                      grad=1e13, eeg=1e6), use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
@@ -414,8 +405,8 @@ class Evoked(object):
         Parameters
         ----------
         picks : None | array of int
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
+            If None all channels are kept, otherwise the channels indices in
+            picks are kept.
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
@@ -424,6 +415,8 @@ class Evoked(object):
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
+        copy : bool
+            If true, evoked will be copied. Else data may be modified in place.
 
         Returns
         -------
@@ -444,6 +437,10 @@ class Evoked(object):
                                  ' this eppochs instance.')
 
         data, times = self.data, self.times
+
+        if copy == True:
+            data = data.copy()
+
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
@@ -456,13 +453,13 @@ class Evoked(object):
             scaling = scalings[t]
             idx = [picks[i] for i in range(len(picks)) if types[i] == t]
             if len(idx) > 0:
-                data[:, idx] *= scaling
+                data[idx] *= scaling
 
         assert times.shape[0] == data.shape[1]
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times)
+        df.insert(0, 'time', times * scale_time)
 
         if use_time_index == True:
             df.set_index('time', inplace=True)
@@ -471,7 +468,9 @@ class Evoked(object):
         return df
 
     def resample(self, sfreq, npad=100, window='boxcar'):
-        """Resample preloaded data
+        """Resample data
+
+        This function operates in-place.
 
         Parameters
         ----------
@@ -491,6 +490,24 @@ class Evoked(object):
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
 
+    def detrend(self, order=1, picks=None):
+        """Detrend data
+
+        This function operates in-place.
+
+        Parameters
+        ----------
+        order : int
+            Either 0 or 1, the order of the detrending. 0 is a constant
+            (DC) detrend, 1 is a linear detrend.
+        picks : None | array of int
+            If None only MEG and EEG channels are detrended.
+        """
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False)
+        self.data[picks] = detrend(self.data[picks], order, axis=-1)
+
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
         out = merge_evoked([self, evoked])
@@ -504,6 +521,36 @@ class Evoked(object):
         out = merge_evoked([self, this_evoked])
         out.comment = self.comment + " - " + this_evoked.comment
         return out
+
+
+def _get_entries(fid, evoked_node):
+    """Helper to get all evoked entries"""
+    comments = list()
+    aspect_kinds = list()
+    for ev in evoked_node:
+        for k in range(ev['nent']):
+            my_kind = ev['directory'][k].kind
+            pos = ev['directory'][k].pos
+            if my_kind == FIFF.FIFF_COMMENT:
+                tag = read_tag(fid, pos)
+                comments.append(tag.data)
+        my_aspect = dir_tree_find(ev, FIFF.FIFFB_ASPECT)[0]
+        for k in range(my_aspect['nent']):
+            my_kind = my_aspect['directory'][k].kind
+            pos = my_aspect['directory'][k].pos
+            if my_kind == FIFF.FIFF_ASPECT_KIND:
+                tag = read_tag(fid, pos)
+                aspect_kinds.append(int(tag.data))
+    comments = np.atleast_1d(comments)
+    aspect_kinds = np.atleast_1d(aspect_kinds)
+    if len(comments) != len(aspect_kinds) or len(comments) == 0:
+        fid.close()
+        raise ValueError('Dataset names in FIF file '
+                         'could not be found.')
+    t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
+    t = '  ' + '\n  '.join(t)
+    return comments, aspect_kinds, t
 
 
 def merge_evoked(all_evoked):

@@ -450,8 +450,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     In this case con_flat.shape = (3, n_freqs). The connectivity scores are
     in the same order as defined indices.
 
-    Supported Connectivity Measures
-    -------------------------------
+    Supported Connectivity Measures:
+
     The connectivity method(s) is specified using the "method" parameter. The
     following methods are supported (note: E[] denotes average over epochs).
     Multiple measures can be computed at once by using a list/tuple, e.g.
@@ -554,7 +554,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         Time to start connectivity estimation.
     tmax : float | None
         Time to end connectivity estimation.
-    mt_bandwidth : float
+    mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
     mt_adaptive : bool

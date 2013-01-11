@@ -219,12 +219,13 @@ def read_meas_info(fid, tree, verbose=None):
     info['dev_head_t'] = dev_head_t
     info['ctf_head_t'] = ctf_head_t
     if dev_head_t is not None and ctf_head_t is not None:
-        info['dev_ctf_t'] = info['dev_head_t']
-        info['dev_ctf_t']['to'] = info['ctf_head_t']['from']
-        info['dev_ctf_t']['trans'] = np.dot(linalg.inv(ctf_head_t['trans']),
-                                        info['dev_ctf_t']['trans'])
+        head_ctf_trans = linalg.inv(ctf_head_t['trans'])
+        dev_ctf_trans = np.dot(head_ctf_trans, info['dev_head_t']['trans'])
+        info['dev_ctf_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                             'to': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                             'trans': dev_ctf_trans}
     else:
-        info['dev_ctf_t'] = []
+        info['dev_ctf_t'] = None
 
     #   All kinds of auxliary stuff
     info['dig'] = dig
@@ -258,28 +259,17 @@ def write_meas_info(fid, info, data_type=None):
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
     # Blocks from the original
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_HPI_RESULT,
+    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
-              # FIFF.FIFFB_ISOTRAK, FIFF.FIFFB_PROCESSING_HISTORY]
 
-    have_hpi_result = False
-    have_isotrak = False
-
-    if len(blocks) > 0 and 'filename' in info and \
-            info['filename'] is not None:
+    if 'filename' in info and info['filename'] is not None:
         fid2, tree, _ = fiff_open(info['filename'])
         for block in blocks:
             nodes = dir_tree_find(tree, block)
             copy_tree(fid2, tree['id'], nodes, fid)
-            if block == FIFF.FIFFB_HPI_RESULT and len(nodes) > 0:
-                have_hpi_result = True
-            if block == FIFF.FIFFB_ISOTRAK and len(nodes) > 0:
-                have_isotrak = True
         fid2.close()
 
-    #
-    #    megacq parameters
-    #
+    #   megacq parameters
     if info['acq_pars'] is not None or info['acq_stim'] is not None:
         start_block(fid, FIFF.FIFFB_DACQ_PARS)
         if info['acq_pars'] is not None:
@@ -291,15 +281,14 @@ def write_meas_info(fid, info, data_type=None):
         end_block(fid, FIFF.FIFFB_DACQ_PARS)
 
     #   Coordinate transformations if the HPI result block was not there
-    if not have_hpi_result:
-        if info['dev_head_t'] is not None:
-            write_coord_trans(fid, info['dev_head_t'])
+    if info['dev_head_t'] is not None:
+        write_coord_trans(fid, info['dev_head_t'])
 
-        if info['ctf_head_t'] is not None:
-            write_coord_trans(fid, info['ctf_head_t'])
+    if info['ctf_head_t'] is not None:
+        write_coord_trans(fid, info['ctf_head_t'])
 
     #   Polhemus data
-    if info['dig'] is not None and not have_isotrak:
+    if info['dig'] is not None:
         start_block(fid, FIFF.FIFFB_ISOTRAK)
         for d in info['dig']:
             write_dig_point(fid, d)

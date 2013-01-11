@@ -18,8 +18,7 @@ from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', 'examples')
-data_path = sample.data_path(examples_folder)
+data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -198,7 +197,7 @@ def test_extract_label_time_course():
         for tc1, tc2 in zip(label_tc, label_tc_method):
             assert_true(tc1.shape == (n_labels, n_times))
             assert_true(tc2.shape == (n_labels, n_times))
-            assert_array_equal(tc1, tc2)
+            assert_true(np.allclose(tc1, tc2, rtol=1e-8, atol=1e-16))
             if mode == 'mean':
                 assert_array_almost_equal(tc1, label_means)
             if mode == 'mean_flip':

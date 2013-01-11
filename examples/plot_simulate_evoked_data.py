@@ -21,7 +21,7 @@ from mne.simulation import generate_sparse_stc, generate_evoked
 
 ###############################################################################
 # Load real data as templates
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 raw = mne.fiff.Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
 proj = mne.read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')

@@ -21,12 +21,12 @@ from mne.datasets import sample
 
 ###############################################################################
 # Set parameters
-data_path = sample.data_path('..')
+data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = fiff.Raw(raw_fname, preload=True)
 exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Add SSP projection vectors to reduce EOG and ECG artifacts
@@ -37,6 +37,9 @@ raw.add_proj(projs, remove_existing=True)
 selection = read_selection('Left-temporal')
 picks = fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                         stim=False, exclude=exclude, selection=selection)
+
+# Let's just look at the first few channels for demonstration purposes
+picks = picks[:4]
 
 tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
@@ -50,9 +53,16 @@ psds_ssp, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                   fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
                                   plot=False, proj=True)
 
+# And now do the same with SSP + notch filtering
+raw.notch_filter(np.arange(60, 241, 60), picks=picks, n_jobs=1)
+psds_notch, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                    fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
+                                    plot=False, proj=True)
+
 # Convert PSDs to dB
 psds = 10 * np.log10(psds)
 psds_ssp = 10 * np.log10(psds_ssp)
+psds_notch = 10 * np.log10(psds_notch)
 
 ###############################################################################
 # Compute mean and standard deviation accross channels and then plot
@@ -69,8 +79,8 @@ import pylab as pl
 pl.figure()
 plot_psds(freqs, psds, (0, 0, 1, .3))
 plot_psds(freqs, psds_ssp, (0, 1, 0, .3))
+plot_psds(freqs, psds_notch, (0, 0.5, 0.5, .3))
 pl.xlabel('Freq (Hz)')
 pl.ylabel('Power Spectral Density (dB/Hz)')
-pl.legend(['Without SSP', 'With SSP'])
+pl.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
 pl.show()
-

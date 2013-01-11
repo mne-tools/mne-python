@@ -62,6 +62,80 @@ def pick_events(events, include=None, exclude=None):
     return events
 
 
+def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
+            new_id=None, fill_na=None):
+    """ Define new events by co-occurrence of existing events
+
+    This function can be used to evaluate events depending on the
+    temporal lag to another event. For example, this can be used to
+    analyze evoked responses which were followed by a button press wihtin
+    a defined time window.
+
+    Parameters
+    ----------
+
+    events : ndarray
+        Array as returned by mne.find_events.
+    reference_id : int
+        The reference event. The event defining the epoch of interest.
+    target_id : int
+        The target event. The event co-occurring in within a certain time
+        window around the reference event.
+    sfreq : float
+        The sampling frequency of the data.
+    tmin : float
+        The lower limit in seconds from the target event.
+    tmax : float
+        The upper limit border in seconds from the target event.
+    new_id : int
+        new_id for the new event
+    fill_na : int | None
+        Fill event to be inserted if target is not available within the time
+        window specified. If None, the 'null' events will be dropped.
+
+    Returns
+    -------
+    new_events : ndarray
+        The new defined events
+    lag : ndarray
+        time lag between reference and target in  milliseconds.
+    """
+
+    if new_id is None:
+        new_id = reference_id
+
+    tsample = 1e3 / sfreq
+    imin = int(tmin * sfreq)
+    imax = int(tmax * sfreq)
+
+    new_events = []
+    lag = []
+    for event in events.copy().astype('f8'):
+        if event[2] == reference_id:
+            lower = event[0] + imin
+            upper = event[0] + imax
+            res = events[(events[:, 0] > lower) &
+                    (events[:, 0] < upper) & (events[:, 2] == target_id)]
+            if res.any():
+                lag += [event[0] - res[0][0]]
+                event[2] = new_id
+                new_events += [event]
+            elif fill_na is not None:
+                event[2] = fill_na
+                new_events += [event]
+                lag += [fill_na]
+
+    new_events = np.array(new_events)
+
+    lag = np.abs(lag, dtype='f8')
+    if lag.any():
+        lag[lag != fill_na] *= tsample
+    else:
+        lag = np.array([])
+
+    return new_events if new_events.any() else np.array([]), lag
+
+
 def _read_events_fif(fid, tree):
     #   Find the desired block
     events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)

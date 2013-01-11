@@ -1,10 +1,11 @@
 from numpy.testing import assert_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import os.path as op
 import os
 import warnings
 
-from ..utils import set_log_level, set_log_file, _TempDir
+from ..utils import set_log_level, set_log_file, _TempDir, \
+                    get_config, set_config
 from ..fiff import Evoked
 
 fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
@@ -51,9 +52,11 @@ def test_logging():
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
+    new_log_file.close()
+    set_log_file(None) # Need to do this to close the old file
+    os.remove(test_name)
 
     # now go the other way (printing default on)
-    os.remove(test_name)
     set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print
@@ -87,3 +90,21 @@ def test_logging():
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
+
+
+def test_config():
+    """Test mne-python config file support"""
+    key = '_MNE_PYTHON_CONFIG_TESTING'
+    value = '123456'
+    old_val = os.getenv(key, None)
+    os.environ[key] = value
+    assert_true(get_config(key) == value)
+    del os.environ[key]
+    set_config(key, None)
+    assert_true(get_config(key) is None)
+    assert_raises(KeyError, get_config, key, raise_error=True)
+    set_config(key, value)
+    assert_true(get_config(key) == value)
+    set_config(key, None)
+    if old_val is not None:
+        os.environ[key] = old_val

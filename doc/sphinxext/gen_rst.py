@@ -18,6 +18,11 @@ import cPickle
 import re
 import urllib2
 
+try:
+    from PIL import Image
+except:
+    import Image
+
 import matplotlib
 matplotlib.use('Agg')
 
@@ -255,7 +260,7 @@ def generate_example_rst(app):
         }
 
     .figure .caption {
-        width: 170px;
+        width: 180px;
         text-align: center !important;
     }
     </style>
@@ -334,6 +339,34 @@ def generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery):
 
 # modules for which we embed links into example code
 DOCMODULES = ['mne', 'matplotlib', 'numpy', 'mayavi']
+
+
+def make_thumbnail(in_fname, out_fname, width, height):
+    """Make a thumbnail with the same aspect ratio centered in an
+       image with a given width and height
+    """
+    img = Image.open(in_fname)
+    width_in, height_in = img.size
+    scale_w = width / float(width_in)
+    scale_h = height / float(height_in)
+
+    if height_in * scale_w <= height:
+        scale = scale_w
+    else:
+        scale = scale_h
+
+    width_sc = int(round(scale * width_in))
+    height_sc = int(round(scale * height_in))
+
+    # resize the image
+    img.thumbnail((width_sc, height_sc), Image.ANTIALIAS)
+
+    # insert centered
+    thumb = Image.new('RGB', (width, height), (255, 255, 255))
+    pos_insert = ((width - width_sc) / 2, (height - height_sc) / 2)
+    thumb.paste(img, pos_insert)
+
+    thumb.save(out_fname)
 
 
 def get_short_module_name(module_name, obj_name):
@@ -554,13 +587,12 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 
         # generate thumb file
         this_template = plot_rst_template
-        from matplotlib import image
         if os.path.exists(first_image_file):
-            image.thumbnail(first_image_file, thumb_file, 0.2)
+            make_thumbnail(first_image_file, thumb_file, 180, 120)
 
     if not os.path.exists(thumb_file):
-        # create something not to replace the thumbnail
-        shutil.copy('source/_images/mne_helmet.png', thumb_file)
+        # use the default thumbnail
+        make_thumbnail('source/_images/mne_helmet.png', thumb_file, 180, 120)
 
     docstring, short_desc, end_row = extract_docstring(example_file)
 

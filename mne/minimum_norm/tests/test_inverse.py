@@ -17,8 +17,7 @@ from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     write_inverse_operator
 from mne.utils import _TempDir
 
-examples_folder = op.join(op.dirname(__file__), '..', '..', '..', 'examples')
-s_path = op.join(sample.data_path(examples_folder), 'MEG', 'sample')
+s_path = op.join(sample.data_path(), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
@@ -30,8 +29,6 @@ fname_event = op.join(s_path, 'sample_audvis_filt-0-40_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
 
 inverse_operator = read_inverse_operator(fname_inv)
-inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
-inverse_operator_vol = read_inverse_operator(fname_vol_inv)
 label_lh = read_label(fname_label % 'Aud-lh')
 label_rh = read_label(fname_label % 'Aud-rh')
 noise_cov = read_cov(fname_cov)
@@ -66,6 +63,7 @@ def _compare(a, b):
 def test_io_inverse_operator():
     """Test IO of inverse_operator
     """
+    inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     for inv in [inverse_operator, inverse_operator_vol]:
         inv_init = copy.deepcopy(inv)
         out_file = op.join(tempdir, 'test-inv.fif')
@@ -76,7 +74,7 @@ def test_io_inverse_operator():
 
     # just do one example for .gz, as it should generalize
     inv = inverse_operator
-    out_file  = op.join(tempdir, 'test-inv.fif.gz')
+    out_file = op.join(tempdir, 'test-inv.fif.gz')
     write_inverse_operator(out_file, inv)
     this_inv = read_inverse_operator(out_file)
     _compare(inv, this_inv)
@@ -133,6 +131,7 @@ def test_make_inverse_operator_fixed():
     fwd_op = read_forward_solution(fname_fwd, force_fixed=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
                                    loose=None)
+    inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
 
     assert_array_almost_equal(inverse_operator_fixed['depth_prior']['data'],
                               inv_op['depth_prior']['data'])

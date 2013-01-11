@@ -27,7 +27,8 @@ from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     resample, construct_iir_filter
+                     notch_filter, band_stop_filter, resample, \
+                     construct_iir_filter
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -114,7 +115,11 @@ class Raw(object):
     def __del__(self):
         # remove file for memmap
         if hasattr(self, '_data') and hasattr(self._data, 'filename'):
-            os.remove(self._data.filename)
+            # First, close the file out; happens automatically on del
+            filename = self._data.filename
+            del self._data
+            # Now file can be removed
+            os.remove(filename)
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -456,10 +461,18 @@ class Raw(object):
                verbose=None):
         """Filter a subset of channels.
 
-        Applies a zero-phase band-pass filter to the channels selected by
-        "picks". The data of the Raw object is modified inplace.
+        Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
+        filter to the channels selected by "picks". The data of the Raw
+        object is modified inplace.
 
         The Raw object has to be constructed using preload=True (or string).
+
+        l_freq and h_freq are the frequencies below which and above which,
+        respectively, to filter out of the data. Thus the uses are:
+            l_freq < h_freq: band-pass filter
+            l_freq > h_freq: band-stop filter
+            l_freq is not None, h_freq is None: low-pass filter
+            l_freq is None, h_freq is not None: high-pass filter
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               addtional time points need to be temporaily stored in memory.
@@ -509,14 +522,17 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
 
-            # update info if filter is applied to all data channels
-            if h_freq is not None and h_freq < self.info['lowpass']:
+            # update info if filter is applied to all data channels,
+            # and it's not a band-stop filter
+            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
+                    h_freq < self.info['lowpass']:
                 self.info['lowpass'] = h_freq
-            if l_freq is not None and l_freq > self.info['highpass']:
+            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
+                    l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
 
-        # make a local copy since we're going to modify it for speed
         if l_freq is None and h_freq is not None:
+            logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
             if method.lower() == 'iir':
                 iir_params = construct_iir_filter(iir_params, h_freq,
                                                   h_freq + h_trans_bandwidth,
@@ -526,6 +542,7 @@ class Raw(object):
                                 trans_bandwidth=l_trans_bandwidth,
                                 method=method, iir_params=iir_params)
         if l_freq is not None and h_freq is None:
+            logger.info('High-pass filtering at %0.2g Hz' % l_freq)
             if method.lower() == 'iir':
                 iir_params = construct_iir_filter(iir_params, l_freq,
                                                   l_freq - l_trans_bandwidth,
@@ -535,16 +552,106 @@ class Raw(object):
                                 trans_bandwidth=h_trans_bandwidth,
                                 method=method, iir_params=iir_params)
         if l_freq is not None and h_freq is not None:
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, [l_freq, h_freq],
-                     [l_freq - l_trans_bandwidth, h_freq + h_trans_bandwidth],
-                     fs, 'bandpass')
-            self.apply_function(band_pass_filter, picks, None, n_jobs, verbose,
-                                fs, l_freq, h_freq,
-                                filter_length=filter_length,
-                                l_trans_bandwidth=l_trans_bandwidth,
-                                h_trans_bandwidth=h_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            if l_freq < h_freq:
+                logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
+                            % (l_freq, h_freq))
+                if method.lower() == 'iir':
+                    iir_params = construct_iir_filter(iir_params,
+                         [l_freq, h_freq], [l_freq - l_trans_bandwidth,
+                         h_freq + h_trans_bandwidth], fs, 'bandpass')
+                self.apply_function(band_pass_filter, picks, None, n_jobs,
+                                    verbose, fs, l_freq, h_freq,
+                                    filter_length=filter_length,
+                                    l_trans_bandwidth=l_trans_bandwidth,
+                                    h_trans_bandwidth=h_trans_bandwidth,
+                                    method=method, iir_params=iir_params)
+            else:
+                logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
+                            % (h_freq, l_freq))
+                if method.lower() == 'iir':
+                    iir_params = construct_iir_filter(iir_params,
+                         [h_freq, l_freq], [h_freq + h_trans_bandwidth,
+                         l_freq - l_trans_bandwidth], fs, 'bandstop')
+                self.apply_function(band_stop_filter, picks, None, n_jobs,
+                                    verbose, fs, h_freq, l_freq,
+                                    filter_length=filter_length,
+                                    l_trans_bandwidth=h_trans_bandwidth,
+                                    h_trans_bandwidth=l_trans_bandwidth,
+                                    method=method, iir_params=iir_params)
+
+    @verbose
+    def notch_filter(self, freqs, picks=None, filter_length=None,
+                     notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     mt_bandwidth=None, p_value=0.05, verbose=None):
+        """Notch filter a subset of channels.
+
+        Applies a zero-phase notch filter to the channels selected by
+        "picks". The data of the Raw object is modified inplace.
+
+        The Raw object has to be constructed using preload=True (or string).
+
+        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
+              addtional time points need to be temporaily stored in memory.
+
+        Parameters
+        ----------
+        freqs : float | array of float | None
+            Specific frequencies to filter out from data, e.g.,
+            np.arange(60, 60, 241) in the US or np.arange(50, 50, 251) in
+            Europe. None can only be used with the mode 'spectrum_fit',
+            where an F test is used to find sinusoidal components.
+        picks : list of int | None
+            Indices of channels to filter. If None only the data (MEG/EEG)
+            channels will be filtered.
+        filter_length : int (default: None)
+            Length of the filter to use (e.g. 4096).
+            If None or "n_times < filter_length",
+            (n_times: number of timepoints in Raw object) the filter length
+            used is n_times. Otherwise, overlap-add filtering with a
+            filter of the specified length is used (faster for long signals).
+        notch_widths : float | array of float | None
+            Width of each stop band (centred at each freq in freqs) in Hz.
+            If None, freqs / 200 is used.
+        trans_bandwidth : float
+            Width of the transition band in Hz.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        method : str
+            'fft' will use overlap-add FIR filtering, 'iir' will use IIR
+            forward-backward filtering (via filtfilt). 'spectrum_fit' will
+            use multi-taper estimation of sinusoidal components.
+        iir_params : dict
+            Dictionary of parameters to use for IIR filtering.
+            See mne.filter.construct_iir_filter for details.
+        mt_bandwidth : float | None
+            The bandwidth of the multitaper windowing function in Hz.
+            Only used in 'spectrum_fit' mode.
+        p_value : float
+            p-value to use in F-test thresholding to determine significant
+            sinusoidal components to remove when method='spectrum_fit' and
+            freqs=None. Note that this will be Bonferroni corrected for the
+            number of frequencies, so large p-values may be justified.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+
+        Notes
+        -----
+        For details, see mne.filter.notch_filter.
+        """
+        if verbose is None:
+            verbose = self.verbose
+        fs = float(self.info['sfreq'])
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True)
+
+        self.apply_function(notch_filter, picks, None, n_jobs, verbose,
+                            fs, freqs, filter_length=filter_length,
+                            notch_widths=notch_widths,
+                            trans_bandwidth=trans_bandwidth,
+                            method=method, iir_params=iir_params,
+                            mt_bandwidth=mt_bandwidth, p_value=p_value)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
@@ -1027,12 +1134,15 @@ class Raw(object):
 
         return new
 
-    def as_data_frame(self, picks=None, start=None, stop=None, cale_time=1e3,
+    def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
-                      use_time_index=True):
+                      use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
+
+        Caveat! To save memory, depending on selected data size consider
+        setting copy to False.
 
         Parameters
         ----------
@@ -1053,6 +1163,8 @@ class Raw(object):
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
 
         Returns
         -------
@@ -1069,6 +1181,10 @@ class Raw(object):
             picks = range(self.info['nchan'])
 
         data, times = self[picks, start:stop]
+
+        if copy:
+            data = data.copy()
+
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
@@ -1081,22 +1197,22 @@ class Raw(object):
             scaling = scalings[t]
             idx = [picks[i] for i in range(len(picks)) if types[i] == t]
             if len(idx) > 0:
-                data[:, idx] *= scaling
+                data[idx] *= scaling
 
         assert times.shape[0] == data.shape[1]
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times)
+        df.insert(0, 'time', times * scale_time)
 
-        if use_time_index == True:
+        if use_time_index is True:
             df.set_index('time', inplace=True)
             df.index = df.index.astype(int)
 
         return df
 
-    def to_nitime(self, picks=None, start=None, stop=None, use_first_samp=False,
-                  copy=True):
+    def to_nitime(self, picks=None, start=None, stop=None,
+                  use_first_samp=False, copy=True):
         """ Raw data as nitime TimeSeries
 
         Parameters
@@ -1113,7 +1229,7 @@ class Raw(object):
         use_first_samp: bool
             If True, the time returned is relative to the session onset, else
             relative to the recording onset.
-        copy : boolean | None
+        copy : bool
             Whether to copy the raw data or not.
 
         Returns
@@ -1140,7 +1256,7 @@ class Raw(object):
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)
-        return "Raw (%s)" % s
+        return "<Raw  |  %s>" % s
 
 
 def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):

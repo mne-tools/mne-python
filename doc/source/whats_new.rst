@@ -1,9 +1,20 @@
 What's new
 ==========
 
-.. _changes_0_5:
+.. _changes_0_6:
 
 Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+   - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
+
+
+.. _changes_0_5:
+
+Version 0.5
 -----------
 
 Changelog
@@ -98,6 +109,9 @@ Changelog
 
    - Function to visualize connectivity as circular graph by `Martin Luessi`_ and `Alex Gramfort`_
 
+   - Time-frequency Mixed Norm Estimates (TF-MxNE) by `Alex Gramfort`_ and `Daniel Strohmeier`_
+
+
 API
 ~~~
    - Added nave parameter to source_induced_power() and source_band_induced_power(), use nave=1 by default (wrong nave was used before).
@@ -110,6 +124,20 @@ API
 
    - Epochs objects now also take dicts as values for the event_id argument. They now can represent multiple conditions.
 
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   * 313  Eric Larson
+   * 226  Alexandre Gramfort
+   * 219  Denis A. Engemann
+   * 104  Christian Brodbeck
+   *  85  Martin Luessi
+   *   6  Daniel Strohmeier
+   *   4  Teon Brooks
+   *   1  Dan G. Wakeman
 
 
 .. _changes_0_4:
@@ -247,7 +275,7 @@ of commits):
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: http://ivpl.eecs.northwestern.edu/people/mluessi
+.. _Martin Luessi: http://www.nmr.mgh.harvard.edu/martinos/people/showPerson.php?people_id=1600
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
@@ -256,3 +284,5 @@ of commits):
 .. _Eric Larson: http://faculty.washington.edu/larsoner/
 
 .. _Denis Engemann: https://github.com/dengemann
+
+.. _Christian Brodbeck: https://github.com/christianmbrodbeck

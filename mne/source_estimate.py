@@ -452,7 +452,7 @@ class SourceEstimate(object):
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data size : %s x %s" % self.data.shape
-        return "SourceEstimate (%s)" % s
+        return "<SourceEstimate  |  %s>" % s
 
     def crop(self, tmin=None, tmax=None):
         """Restrict SourceEstimate to a time interval
@@ -879,6 +879,14 @@ class SourceEstimate(object):
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, time_viewer=False, subjects_dir=None):
         """Plot SourceEstimates with PySurfer
+
+        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+        which will automatically be set by this function. Plotting multiple
+        SourceEstimates with different values for subjects_dir will cause
+        PySurfer to use the wrong FreeSurfer surfaces when using methods of
+        the returned Brain object. It is therefore recommended to set the
+        SUBJECTS_DIR environment variable or always use the same value for
+        subjects_dir (within the same Python session).
 
         Parameters
         ----------

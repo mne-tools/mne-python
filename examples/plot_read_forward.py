@@ -11,7 +11,7 @@ print __doc__
 
 import mne
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 

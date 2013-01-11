@@ -66,7 +66,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-copyright = u'2012, Alexandre Gramfort'
+copyright = u'2012-2013, MNE Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -178,6 +178,9 @@ html_use_index = False
 # If true, links to the reST sources are added to the pages.
 html_show_sourcelink = False
 
+# variables to pass to HTML templating engine
+html_context = {'use_google_analytics':True}
+
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
 # base URL from which the finished HTML is served.
@@ -202,7 +205,7 @@ htmlhelp_basename = 'mne-doc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'MNE.tex', u'MNE Manual',
-   u'Matti Hämäläinen & Alexandre Gramfort', 'manual'),
+   u'MNE Contributors', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
