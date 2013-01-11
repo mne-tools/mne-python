@@ -3,7 +3,6 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from scipy import sparse
 from nose.tools import assert_true
-import nose
 import copy
 
 from mne.datasets import sample
@@ -209,8 +208,9 @@ def test_apply_mne_inverse_raw():
                                 pick_normal=pick_normal, buffer_size=None)
 
         stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
-                                 label=label_lh, start=start, stop=stop, nave=1,
-                                 pick_normal=pick_normal, buffer_size=3)
+                                 label=label_lh, start=start, stop=stop,
+                                 nave=1, pick_normal=pick_normal,
+                                 buffer_size=3)
 
         if not pick_normal:
             assert_true(np.all(stc.data > 0))
