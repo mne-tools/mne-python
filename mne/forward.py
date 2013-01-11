@@ -572,18 +572,18 @@ def _restrict_gain_matrix(G, forward, ch_names):
     sel = pick_types(info, meg='grad')
     if len(sel) > 0:
         G = G[sel]
-        logger.info('\t%d planar channels' % len(sel))
+        logger.info('    %d planar channels' % len(sel))
     else:
         sel = pick_types(info, meg='mag')
         if len(sel) > 0:
             G = G[sel]
-            logger.info('\t%d magnetometer or axial gradiometer '
+            logger.info('    %d magnetometer or axial gradiometer '
                         'channels' % len(sel))
         else:
             sel = pick_types(info, meg=False, eeg=True)
             if len(sel) > 0:
                 G = G[sel]
-                logger.info('\t%d EEG channels' % len(sel))
+                logger.info('    %d EEG channels' % len(sel))
             else:
                 logger.warn('Could not find MEG or EEG channels')
     return G
@@ -611,8 +611,9 @@ def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None):
 
     # XXX Currently the fwd solns never have "patch_areas" defined
     if 'patch_areas' in forward.keys() and forward['patch_areas'] is not None:
-        depth_prior /= fwd['patch_areas'] ** 2
-        logger.info('\tPatch areas taken into account in the depth weighting')
+        d /= forward['patch_areas'] ** 2
+        logger.info('    Patch areas taken into account in the depth '
+                    'weighting')
 
     w = 1.0 / d
     ws = np.sort(w)
@@ -624,11 +625,11 @@ def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None):
         limit = ws[ind]
         n_limit = ind
 
-    logger.info('\tlimit = %d/%d = %f'
-                 % (n_limit + 1, len(d),
-                 np.sqrt(limit / ws[0])))
+    logger.info('    limit = %d/%d = %f'
+                % (n_limit + 1, len(d),
+                np.sqrt(limit / ws[0])))
     scale = 1.0 / limit
-    logger.info('\tscale = %g exp = %g' % (scale, exp))
+    logger.info('    scale = %g exp = %g' % (scale, exp))
     wpp = np.minimum(w / limit, 1) ** exp
     depth_weight = wpp if is_fixed_ori else np.repeat(wpp, 3)
 
