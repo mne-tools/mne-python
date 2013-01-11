@@ -110,10 +110,6 @@ def _compare_io(inv_op, out_file_ext='.fif'):
     _compare(inv_init, inv_op)
 
 
-from mne import set_log_level
-set_log_level('INFO')
-
-
 def test_apply_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
@@ -173,7 +169,7 @@ def test_make_inverse_operator_diag():
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
     inverse_operator_diag = read_inverse_operator(fname_inv_diag)
-    # XXX This one's only good to zero decimal places
+    # This one's only good to zero decimal places, roundoff error (?)
     _compare_inverses_approx(inverse_operator_diag, inv_op, evoked, 0)
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_diag) == 302)

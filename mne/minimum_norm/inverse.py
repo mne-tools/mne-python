@@ -1074,10 +1074,20 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                              'do depth weighting even when calculating a '
                              'fixed-orientation inverse.')
 
+    #
+    # 1. Read the bad channels
+    # 2. Read the necessary data from the forward solution matrix file
+    # 3. Load the projection data
+    # 4. Load the sensor noise covariance matrix and attach it to the forward
+    #
+
     ch_names, gain, noise_cov, whitener, n_nzero = \
         _prepare_forward(forward, info, noise_cov)
 
-    # Handle depth prior scaling
+    #
+    # 5. Compose the depth-weighting matrix
+    #
+
     if depth is not None:
         depth_prior = compute_depth_prior(gain, exp=depth, forward=forward,
                                           ch_names=ch_names)
@@ -1100,10 +1110,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     logger.info("Computing inverse operator with %d channels."
                 % len(ch_names))
 
-    # Whiten lead field.
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
+    #
+    # 6. Compose the source covariance matrix
+    #
 
+    logger.info('Creating the source covariance matrix')
     source_cov = depth_prior.copy()
     depth_prior = dict(data=depth_prior, kind=FIFF.FIFFV_MNE_DEPTH_PRIOR_COV,
                        bads=[], diag=True, names=[], eig=None,
@@ -1122,6 +1133,21 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     else:
         orient_prior = None
 
+    # 7. Apply fMRI weighting (not done)
+
+    #
+    # 8. Apply the linear projection to the forward solution
+    # 9. Apply whitening to the forward computation matrix
+    #
+    logger.info('Whitening the forward solution.')
+    gain = np.dot(whitener, gain)
+
+    # 10. Exclude the source space points within the labels (not done)
+
+    #
+    # 11. Do appropriate source weighting to the forward computation matrix
+    #
+
     # Adjusting Source Covariance matrix to make trace of G*R*G' equal
     # to number of sensors.
     logger.info('Adjusting source covariance matrix.')
@@ -1139,6 +1165,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     # now np.trace(np.dot(gain, gain.T)) == n_nzero
     # logger.info(np.trace(np.dot(gain, gain.T)), n_nzero)
+
+    #
+    # 12. Decompose the combined matrix
+    #
 
     logger.info('Computing SVD of whitened and weighted lead field '
                 'matrix.')
