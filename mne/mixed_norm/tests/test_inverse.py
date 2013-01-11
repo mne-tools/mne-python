@@ -41,7 +41,7 @@ evoked_l21 = copy.deepcopy(evoked)
 evoked_l21.crop(tmin=0.08, tmax=0.1)
 
 # Handling forward solution
-forward = read_forward_solution(fname_fwd, force_fixed=True)
+forward = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
 label = read_label(fname_label)
 
 # Reduce source space to make test computation faster
