@@ -16,20 +16,25 @@ import numpy as np
 from numpy import sin, cos
 from scipy.optimize import leastsq
 import time
-import sys
 import logging
 import re
 
 class sqd_params(object):
-    '''
-    Extracts all the information from the sqd file.
-    '''
+    """Extracts all the information from the sqd file."""
 
 
     def __init__(self, rawfile, lowpass=None, highpass=None):
-        '''
-        Constructor
-        '''
+        """
+        Parameters
+        ----------
+        rawfile: str
+            raw sqd file to be read
+        lowpass: None | int
+            value of lowpass filter set in MEG160
+        highpass: None | int
+            value of highpass filter set in MEG160
+        
+        """
         self.dynamic_range = 2 ** 12 / 2    # signed integer. range +/- 2048
         self.voltage_range = 5.
         self.rawfile = rawfile
@@ -147,10 +152,11 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, data=None, verbose=True):
+                 sns_fname, data=None, lowpass = None, highpass = None,
+                 verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
-        self.params = sqd_params(data_fname)
+        self.params = sqd_params(data_fname, lowpass = lowpass, highpass = highpass)
         self._data_file = data_fname
         self.mrk_fname = mrk_fname
         self.elp_fname = elp_fname
@@ -191,8 +197,8 @@ class RawKIT(Raw):
 
     @verbose
     def _create_raw_info(self):
-        """ Fills list of dicts for initializing empty fiff with 4D data
-        """
+        """ Fills list of dicts for initializing empty fif with SQD data""" 
+        
         info = {}
 
         info['meas_id'] = None
@@ -216,28 +222,35 @@ class RawKIT(Raw):
         info['dev_ctf_t'] = []
         info['filenames'] = []
 
-        # there is some transformation done to the digitization data that I have not figured out yet.
-        # digitizer points
-        info['dig'] = self._get_dig()
+
 
         # dev-head transformation dict
         info['dev_head_t'] = {}
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
 
-        # transformation matrix
-        info['dev_head_t']['trans'] = self._create_coreg()
+        # transformation matrix and digitizer points
+        # there is some transformation done to the digitization data that 
+        # I have not figured out yet.
+        info['dev_head_t']['trans'], info['dig'] = self._get_coreg()
 
         logger.info('Done.')
         return info
 
     def _create_chs(self):
+        """creates a list of dicts of meg channels for raw.info"""
+        
         logger.info('Setting channel info structure...')
+        p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)')
+        locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
+        self.chan_locs = locs[:, [1, 0, 2]] / 1000    # the arrangement of dimensions in current fiff is y,x,z in [m].
+
         chan_locs = self._get_chan_locs()
 
         chs = []
         for idx, ch_info in enumerate(zip(self.params.ch_names['MEG'] +
-                                                   self.params.ch_names['REF'], chan_locs), 1):
+                                          self.params.ch_names['REF'], 
+                                          chan_locs), 1):
             ch_name, ch_loc = ch_info
             chan_info = {}
             chan_info['cal'] = 1.0 # calibration factor, default is 1
@@ -260,21 +273,16 @@ class RawKIT(Raw):
 
             chs.append(chan_info)
 
-    def _create_stim_ch(self):
+        """create a synthetic channel"""
 
-        '''
-        create a synthetic channel
-        '''
-    def _create_coreg(self):
-        coreg_data = coreg(mrk_fname=self.mrk_fname, elp_fname=self.elp_fname)
+                
+    def _get_coreg(self):
+        """get transformation matrix and hsp points"""
+        
+        coreg_data = coreg(mrk_fname=self.mrk_fname, elp_fname=self.elp_fname,
+                           hsp_fname=self.hsp_fname)
         dev_head_t = coreg_data.fit()
-        return dev_head_t
-    def _get_dig(self):
-        dig_data = dig(hsp_fname=self.hsp_fname)
-        return dig_data.hsp_points
-    def _get_chan_locs(self):
-        chans = chan_locs(sns_fname=self.sns_fname)
-        return chans.chan_locs
+        return dev_head_t, coreg_data.hsp_points
 
 
 class coreg:
@@ -290,10 +298,17 @@ class coreg:
         Path to elp digitizer file.
 
     """
-    def __init__(self, mrk_fname, elp_fname):
+    def __init__(self, mrk_fname, elp_fname, hsp_fname):
         """
-        points : np.array
-        array with shape point by coordinate (x, y, z)
+        Creates coreg transformation matrix from device to head coord.
+        Extracts digitizer points from file.
+        
+        mrk_points : np.array
+            array of 5 points by coordinate (x,y,z) from marker measurement
+        mrk_points : np.array
+            array of 5 points by coordinate (x,y,z) from digitizer laser point
+        hsp_points : np.array
+            array points by coordinate (x, y, z) from digitizer
 
         """
         # marker point extraction
@@ -302,7 +317,9 @@ class coreg:
         # pattern by Tal:
         p = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
         str_points = p.findall(open(mrk_fname).read())
-        self.mrk_points = np.array(str_points, dtype=float)
+        self.mrk_points = np.array(str_points, dtype=float)/1000
+        self.mrk_points = self.mrk_points[:,[1,0,2]]
+        self.mrk_points[:, 0] *= -1
 
         # elp point extraction
         self.elp_src_path = elp_fname
@@ -311,51 +328,9 @@ class coreg:
         p = re.compile('%N\t\d-[A-Z]+\s+([\.\-0-9]+)\t([\.\-0-9]+)\t([\.\-0-9]+)')
         str_points = p.findall(open(elp_fname).read())
         self.elp_points = np.array(str_points, dtype=float)
+        self.elp_points = self.elp_points[:,[1,0,2]]
+        self.elp_points[:, 0] *= -1
 
-
-
-    def fit(self, include=range(5)):
-            """
-            Fit the marker points to the digitizer points.
-
-            include : index (numpy compatible)
-                Which points to include in the fit. Index should select among
-                points [0, 1, 2, 3, 4].
-            """
-            def err(params):
-                T = trans(*params[:3]) * rot(*params[3:])
-                est = self.elp_points[include]
-                tgt = self.mrk_points[include]
-                return (tgt - est).ravel()
-
-            # initial guess
-            params = (0, 0, 0, 0, 0, 0)
-            params, _ = leastsq(err, params)
-            self.est_params = params
-
-            # head-to-device
-            T = trans(*params[:3]) * rot(*params[3:])
-            # returns dev2head by applying the inverse
-            return np.array(T.I)
-
-def trans(x=0, y=0, z=0):
-    "MNE manual p. 95"
-    m = np.matrix([[1, 0, 0, x],
-                   [0, 1, 0, y],
-                   [0, 0, 1, z],
-                   [0, 0, 0, 1]], dtype=float)
-    return m
-
-def rot(x=0, y=0, z=0):
-    "From eelbrain.plot.coreg"
-    r = np.matrix([[cos(y) * cos(z), -cos(x) * sin(z) + sin(x) * sin(y) * cos(z), sin(x) * sin(z) + cos(x) * sin(y) * cos(z), 0],
-                  [cos(y) * sin(z), cos(x) * cos(z) + sin(x) * sin(y) * sin(z), -sin(x) * cos(z) + cos(x) * sin(y) * sin(z), 0],
-                  [-sin(y), sin(x) * cos(y), cos(x) * cos(y), 0],
-                  [0, 0, 0, 1]], dtype=float)
-    return r
-
-class dig:
-    def __init__(self, hsp_fname):
         self.hsp_src_path = hsp_fname
         p = re.compile('//No of rows, no of columns; position of digitized points\s(\d*)\t(\d)\s*')
         v = re.split(p, open(hsp_fname).read())[1:]
@@ -369,12 +344,48 @@ class dig:
             point_dict['r'] = point
             self.hsp_points.append(point_dict)
 
-class chan_locs:
-    def __init__(self, sns_fname):
-        self.chan_locs_src_path = sns_fname
-        p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)')
-        locs = np.array(p.findall(open(sns_fname).read()), dtype='float')
-        self.chan_locs = locs[:, [1, 0, 2]] / 1000    # the arrangement of dimensions in current fiff is y,x,z in [m].
+    def fit(self, include=range(5)):
+            """
+            Fit the marker points to the digitizer points.
+
+            include : index (numpy compatible)
+                Which points to include in the fit. Index should select among
+                points [0, 1, 2, 3, 4].
+            
+            """
+            def err(params):
+                T = self.trans(*params[:3]) * self.rot(*params[3:])
+                pts = T*np.vstack((self.elp_points[include].T, 
+                           np.ones(len(self.elp_points[include]))))
+                est = np.array(pts[:3].T)               
+                tgt = np.array(self.mrk_points[include])
+                return (tgt - est).ravel()
+
+            # initial guess
+            params = (0, 0, 0, 0, 0, 0)
+            params, _ = leastsq(err, params)
+            self.est_params = params
+
+            # head-to-device
+            T = self.trans(*params[:3]) * self.rot(*params[3:])
+            # returns dev2head by applying the inverse
+            return np.array(T.I)
+
+    def trans(self, x=0, y=0, z=0):
+        "MNE manual p. 95"
+        m = np.matrix([[1, 0, 0, x],
+                       [0, 1, 0, y],
+                       [0, 0, 1, z],
+                       [0, 0, 0, 1]], dtype=float)
+        return m
+    
+    def rot(self, x=0, y=0, z=0):
+        "From eelbrain.plot.coreg"
+        r = np.matrix([[cos(y) * cos(z), -cos(x) * sin(z) + sin(x) * sin(y) * cos(z), sin(x) * sin(z) + cos(x) * sin(y) * cos(z), 0],
+                      [cos(y) * sin(z), cos(x) * cos(z) + sin(x) * sin(y) * sin(z), -sin(x) * cos(z) + cos(x) * sin(y) * sin(z), 0],
+                      [-sin(y), sin(x) * cos(y), cos(x) * cos(y), 0],
+                      [0, 0, 0, 1]], dtype=float)
+        return r
 
 
 
