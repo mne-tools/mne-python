@@ -26,7 +26,7 @@ def _transpose_named_matrix(mat):
 
 
 @verbose
-def _read_named_matrix(fid, node, matkind, gap='    ', verbose=None):
+def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
     """Read named matrix from the given node
 
     Parameters
@@ -53,13 +53,13 @@ def _read_named_matrix(fid, node, matkind, gap='    ', verbose=None):
                     node = node['children'][k]
                     break
         else:
-            logger.info(gap + 'Desired named matrix (kind = %d) not available'
-                        % matkind)
+            logger.info(indent + 'Desired named matrix (kind = %d) not '
+                        'available' % matkind)
             return None
     else:
         if not has_tag(node, matkind):
-            logger.info(gap + 'Desired named matrix (kind = %d) not available'
-                        % matkind)
+            logger.info(indent + 'Desired named matrix (kind = %d) not '
+                        'available' % matkind)
             return None
 
     #   Read everything we need
