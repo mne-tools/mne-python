@@ -15,7 +15,7 @@ Changelog
 
    - Define events based on time lag between reference and target event by `Denis Engemann`_
 
-   - ICA convenience function implmenting an automated artifact removal workflow by `Denis Engemann`_
+   - ICA convenience function implementing an automated artifact removal workflow by `Denis Engemann`_
 
 .. _changes_0_5:
 
