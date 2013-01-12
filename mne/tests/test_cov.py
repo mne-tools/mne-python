@@ -185,8 +185,7 @@ def test_evoked_whiten():
 
     ###########################################################################
     # Show result
-    picks = pick_types(evoked.info, meg=True, eeg=True,
-                        exclude=evoked.info['bads'])  # Pick channels to view
+    picks = pick_types(evoked.info, meg=True, eeg=True)
 
     noise_cov = regularize(cov, evoked.info,
                                    grad=0.1, mag=0.1, eeg=0.1)

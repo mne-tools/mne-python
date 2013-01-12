@@ -41,14 +41,14 @@ events = mne.read_events(event_fname)
 
 #   Set up pick list: MEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-exclude = raw.info['bads']  # bads
+# bad channels in raw.info['bads'] will be automatically excluded
 
 #   Set up amplitude-peak rejection values for MEG channels
 reject = dict(grad=4000e-13, mag=4e-12)
 
 # pick MEG channels
 picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                                            include=include, exclude=exclude)
+                   include=include)
 
 # Create epochs including different events
 epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,

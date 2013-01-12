@@ -44,7 +44,6 @@ def test_lcmv():
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
                                 stim=True, eog=True,
-                                exclude=raw.info['bads'],
                                 selection=left_temporal_channels)
 
     # Read epochs
@@ -99,8 +98,7 @@ def test_lcmv_raw():
     # Set up pick list: EEG + MEG - bad channels (modify to your needs)
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                                eog=True, exclude=raw.info['bads'],
-                                selection=left_temporal_channels)
+                                eog=True, selection=left_temporal_channels)
 
     noise_cov = mne.read_cov(fname_cov)
     noise_cov = mne.cov.regularize(noise_cov, raw.info,
@@ -109,7 +107,7 @@ def test_lcmv_raw():
     start, stop = raw.time_as_index([tmin, tmax])
 
     # use only the left-temporal MEG channels for LCMV
-    picks = mne.fiff.pick_types(raw.info, meg=True, exclude=raw.info['bads'],
+    picks = mne.fiff.pick_types(raw.info, meg=True,
                                 selection=left_temporal_channels)
 
     data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)

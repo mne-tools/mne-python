@@ -458,8 +458,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, exclude=info['bads'])
-    pick_eeg = pick_types(info, meg=False, eeg=True, exclude=info['bads'])
+    pick_meg = pick_types(info, meg=True, eeg=False)
+    pick_eeg = pick_types(info, meg=False, eeg=True)
     meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
     C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
     eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
@@ -518,7 +518,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         Regularization factor for EEG
     exclude : list
         List of channels to mark as bad. If None, bads channels
-        are extracted from info and cov['bads'].
+        are extracted from both info['bads'] and cov['bads'].
     proj : bool
         Apply or not projections to keep rank of data.
     verbose : bool, str, int, or None
@@ -616,7 +616,7 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
         The channel names
     """
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True)
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 

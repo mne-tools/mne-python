@@ -31,7 +31,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = Raw(raw_fname, preload=True)
 
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                            ecg=True, stim=False, exclude=raw.info['bads'])
+                            ecg=True, stim=False)
 
 ###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.

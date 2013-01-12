@@ -45,11 +45,11 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=False, include=include, exclude=exclude)
+                                stim=False, include=include)
 
 ch_name = raw.info['ch_names'][picks[0]]
 

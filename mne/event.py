@@ -290,8 +290,7 @@ def find_events(raw, stim_channel='STI 014', verbose=None):
     if not isinstance(stim_channel, list):
         stim_channel = [stim_channel]
 
-    pick = pick_channels(raw.info['ch_names'], include=stim_channel,
-                         exclude=[])
+    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, times = raw[pick, :]

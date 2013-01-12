@@ -30,9 +30,9 @@ noise_cov = mne.read_cov(cov_fname)
 
 ###############################################################################
 # Show result
-picks = mne.fiff.pick_types(evoked.info, meg=True, eeg=True,
-                        exclude=evoked.info['bads'])  # Pick channels to view
 
+  # Pick channels to view
+picks = mne.fiff.pick_types(evoked.info, meg=True, eeg=True)
 evoked.plot(picks=picks)
 
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,

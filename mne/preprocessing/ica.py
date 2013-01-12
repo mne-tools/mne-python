@@ -170,7 +170,7 @@ class ICA(object):
         self.noise_cov = noise_cov
 
         if max_pca_components is not None and \
-           n_components > max_pca_components:
+                n_components > max_pca_components:
             raise ValueError('n_components must be smaller than '
                              'max_pca_components')
 
@@ -249,8 +249,7 @@ class ICA(object):
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                               ecg=False, misc=False, stim=False,
-                               exclude=raw.info['bads'])
+                               ecg=False, misc=False, stim=False)
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -259,7 +258,7 @@ class ICA(object):
         self.ch_names = [raw.ch_names[k] for k in picks]
 
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
-                                                   raw.info, picks)
+                                                    raw.info, picks)
 
         self._decompose(data, self.max_pca_components, 'raw')
 
@@ -298,13 +297,12 @@ class ICA(object):
         logger.info('Computing signal decomposition on epochs. '
                     'Please be patient, this may take some time')
 
-        if picks is None:  # just use epochs good data channels and avoid
-            picks = pick_types(epochs.info, include=epochs.ch_names,  # double
-                               exclude=epochs.info['bads'])  # picking
+        if picks is None:
+            # just use epochs good data channels and avoid double picking
+            picks = pick_types(epochs.info, include=epochs.ch_names)
 
         meeg_picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
-                                ecg=False, misc=False, stim=False,
-                                exclude=epochs.info['bads'])
+                                ecg=False, misc=False, stim=False)
 
         # filter out all the channels the raw wouldn't have initialized
         picks = np.intersect1d(meeg_picks, picks)
@@ -315,9 +313,9 @@ class ICA(object):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
-        data, self._pre_whitener = self._pre_whiten(
-                                np.hstack(epochs.get_data()[:, picks]),
-                                epochs.info, picks)
+        data, self._pre_whitener = \
+            self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
+                             epochs.info, picks)
 
         self._decompose(data, self.max_pca_components, 'epochs')
 
@@ -380,8 +378,7 @@ class ICA(object):
 
     def _get_sources_epochs(self, epochs, concatenate):
 
-        picks = pick_types(epochs.info, include=self.ch_names,
-                               exclude=epochs.info['bads'])
+        picks = pick_types(epochs.info, include=self.ch_names)
 
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
@@ -389,7 +386,7 @@ class ICA(object):
                                'fitted but %i channels supplied. \nPlease '
                                'provide Epochs compatible with '
                                'ica.ch_names' % (len(self.ch_names),
-                                                  len(picks)))
+                                                 len(picks)))
 
         data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
                                    epochs.info, picks)
@@ -485,12 +482,15 @@ class ICA(object):
         for i in xrange(self.n_components_):
             ch_names.append('ICA %03d' % (i + 1))
             ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
-                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
-                kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
-                              0., 0., 0., 1.], dtype=np.float32),
-                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
-                scanno=i + 1, unit_mul=0, coil_trans=None))
+                                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+                                kind=FIFF.FIFFV_MISC_CH,
+                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
+                                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
+                                              0., 0., 0., 1.],
+                                             dtype=np.float32),
+                                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None,
+                                range=1.0, scanno=i + 1, unit_mul=0,
+                                coil_trans=None))
 
         # re-append additionally picked ch_names
         ch_names += [raw.ch_names[k] for k in picks]
@@ -720,7 +720,7 @@ class ICA(object):
         include : list-like | None
             The source indices to use. If None all are used.
         exclude : list-like | None
-            The source indices to remove. If None  all are used.
+            The source indices to remove. If None all are used.
         n_pca_components:
             The number of PCA components to be unwhitened, where
             n_components_ is the lower bound and max_pca_components
@@ -807,7 +807,7 @@ class ICA(object):
 
         sources, pca_data = self._get_sources_epochs(epochs, True)
         picks = pick_types(epochs.info, include=self.ch_names,
-                               exclude=epochs.info['bads'])
+                           exclude=epochs.info['bads'])
 
         if copy is True:
             epochs = epochs.copy()
@@ -873,7 +873,7 @@ class ICA(object):
         if isinstance(self.n_components, float):
             logger.info('Selecting pca_components via explained variance.')
             n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
-                                       < self.n_components)
+                                   < self.n_components)
             to_ica = pca_data[:, :n_components_]
         else:
             logger.info('Selecting pca_components directly.')

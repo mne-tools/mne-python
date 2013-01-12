@@ -24,8 +24,8 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 # Reading
 evoked = fiff.Evoked(fname, setno=0, baseline=(None, 0), proj=True)
 
-picks = fiff.pick_types(evoked.info, meg='grad', eeg=False,
-                        exclude=evoked.info['bads'])  # Pick channels to view
+# Pick channels to view
+picks = fiff.pick_types(evoked.info, meg='grad', eeg=False)
 
 evoked_ts = evoked.to_nitime(picks=picks)
 
