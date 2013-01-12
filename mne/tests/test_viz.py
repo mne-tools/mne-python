@@ -17,7 +17,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = fiff.Raw(raw_fname, preload=True)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
-                        ecg=False, eog=False)
+                        ecg=False, eog=False, exclude='bads')
 # Use a subset of channels for plotting speed
 picks = np.round(np.linspace(0, len(picks) + 1, 50)).astype(int)
 epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,

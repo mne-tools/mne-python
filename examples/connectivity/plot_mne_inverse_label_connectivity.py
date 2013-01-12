@@ -40,7 +40,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True)
+picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                   exclude='bads')
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

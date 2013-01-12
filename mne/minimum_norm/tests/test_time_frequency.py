@@ -38,7 +38,7 @@ def test_tfr_with_inverse_operator():
 
     # picks MEG gradiometers
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                            stim=False)
+                            stim=False, exclude='bads')
 
     # Load condition 1
     event_id = 1
@@ -112,7 +112,8 @@ def test_source_psd_epochs():
     fmin, fmax = 0, 100
 
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                            ecg=True, eog=True, include=['STI 014'])
+                            ecg=True, eog=True, include=['STI 014'],
+                            exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
     events = find_events(raw)

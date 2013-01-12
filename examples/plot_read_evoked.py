@@ -26,5 +26,5 @@ evoked = fiff.Evoked(fname, setno='Left Auditory',
 # Show result
 
 # Pick channels to view
-picks = fiff.pick_types(evoked.info, meg=True, eeg=True)
+picks = fiff.pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
 plot_evoked(evoked, picks=picks)

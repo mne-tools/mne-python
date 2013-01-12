@@ -51,9 +51,9 @@ def write_proj(fname, projs):
 
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
-    mag_ind = pick_types(info, meg='mag')
-    grad_ind = pick_types(info, meg='grad')
-    eeg_ind = pick_types(info, meg=False, eeg=True)
+    mag_ind = pick_types(info, meg='mag', exclude='bads')
+    grad_ind = pick_types(info, meg='grad', exclude='bads')
+    eeg_ind = pick_types(info, meg=False, eeg=True, exclude='bads')
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")
@@ -210,7 +210,8 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         events = make_fixed_length_events(raw, 999, start, stop, duration)
         epochs = Epochs(raw, events, None, tmin=0., tmax=duration,
                         picks=pick_types(raw.info, meg=True, eeg=True,
-                                         eog=True, ecg=True, emg=True),
+                                         eog=True, ecg=True, emg=True,
+                                         exclude='bads'),
                         reject=reject, flat=flat)
         data = _compute_cov_epochs(epochs, n_jobs)
         if not stop:

@@ -8,7 +8,7 @@ from mne.time_frequency import compute_raw_psd
 
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                'test_raw.fif')
+                    'test_raw.fif')
 
 
 def test_psd():
@@ -19,8 +19,8 @@ def test_psd():
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='mag', eeg=False,
-                                    stim=False, exclude=exclude)
+    picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
+                            exclude=exclude)
 
     picks = picks[:2]
 
@@ -31,8 +31,8 @@ def test_psd():
                                   fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
                                   proj=False)
     psds_proj, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                  fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
-                                  proj=True)
+                                       fmin=fmin, fmax=fmax, NFFT=NFFT,
+                                       n_jobs=1, proj=True)
 
     assert_array_almost_equal(psds, psds_proj)
     assert_true(psds.shape == (len(picks), len(freqs)))

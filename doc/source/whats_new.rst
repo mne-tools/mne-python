@@ -17,6 +17,10 @@ Changelog
 
    - ICA convenience function implementing an automated artifact removal workflow by `Denis Engemann`_
 
+API
+~~~
+   - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
+
 .. _changes_0_5:
 
 Version 0.5

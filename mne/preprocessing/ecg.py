@@ -68,7 +68,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             maxTime = np.argmax(window)
             time.append(i + maxTime)
             numcross.append(np.sum(np.diff((window > thresh1).astype(np.int)
-                                            == 1)))
+                                           == 1)))
             rms.append(np.sqrt(np.mean(window ** 2)))
             i += win_size
         else:
@@ -128,12 +128,13 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     # Geting ECG Channel
     if ch_name is None:
         ch_ECG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                                 eog=False, ecg=True, emg=False)
+                                 eog=False, ecg=True, emg=False,
+                                 exclude='bads')
     else:
         ch_ECG = fiff.pick_channels(raw.ch_names, include=[ch_name])
         if len(ch_ECG) == 0:
             raise ValueError('%s not in channel list (%s)' %
-                              (ch_name, raw.ch_names))
+                             (ch_name, raw.ch_names))
 
     if len(ch_ECG) == 0 and ch_name is None:
         raise Exception('No ECG channel found. Please specify ch_name '

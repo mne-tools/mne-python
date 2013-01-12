@@ -49,7 +49,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=False, include=include)
+                        stim=False, include=include, exclude='bads')
 
 ch_name = raw.info['ch_names'][picks[0]]
 
@@ -81,12 +81,12 @@ frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
 epochs_power_1 = single_trial_power(data_condition_1, Fs=Fs,
-                                   frequencies=frequencies,
-                                   n_cycles=n_cycles, use_fft=False)
+                                    frequencies=frequencies,
+                                    n_cycles=n_cycles, use_fft=False)
 
 epochs_power_2 = single_trial_power(data_condition_2, Fs=Fs,
-                                   frequencies=frequencies,
-                                   n_cycles=n_cycles, use_fft=False)
+                                    frequencies=frequencies,
+                                    n_cycles=n_cycles, use_fft=False)
 
 epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
 epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix

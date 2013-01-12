@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 import re
+from warnings import warn
 
 import logging
 logger = logging.getLogger('mne')
@@ -144,9 +145,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include miscellaneous analog channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | None
-        List of channels to exclude. If empty do not exclude any. If None,
-        exclude channels in info['bads'] (default).
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
@@ -159,7 +160,18 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     pick = np.zeros(nchan, dtype=np.bool)
 
     if exclude is None:
+        msg = ('In pick_types, the parameter "exclude" must be specified as '
+               'either "bads" or a list of channels to exclude. In 0.7, the '
+               'default will be changed from [] (current behavior) to "bads".')
+        warn(msg, category=DeprecationWarning)
+        logger.warn(msg)
+        exclude = []
+    elif exclude is 'bads':
         exclude = info.get('bads', [])
+    elif not isinstance(exclude, list):
+        raise ValueError('exclude must either be "bads" or a list of strings.'
+                         ' If only one channel is to be excluded, use '
+                         '[ch_name] instead of passing ch_name.')
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
@@ -303,9 +315,9 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         If True include miscellaneous analog channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-    exclude : list of string | None
-        List of channels to exclude. If empty do not exclude any. If None,
-        exclude channels in info['bads'] (default).
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
 
     Returns
     -------

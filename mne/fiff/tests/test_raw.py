@@ -195,8 +195,8 @@ def test_io_raw():
         # Set up pick list: MEG + STI 014 - bad channels
         include = ['STI 014']
         include += meg_ch_names
-        picks = pick_types(raw.info, meg=True, eeg=False,
-                           stim=True, misc=True, include=include)
+        picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
+                           misc=True, include=include, exclude='bads')
 
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
@@ -368,7 +368,7 @@ def test_preload_modify():
         raw = Raw(fif_fname, preload=preload)
 
         nsamp = raw.last_samp - raw.first_samp + 1
-        picks = pick_types(raw.info, meg='grad')
+        picks = pick_types(raw.info, meg='grad', exclude='bads')
 
         data = np.random.randn(len(picks), nsamp / 2)
 
@@ -395,7 +395,7 @@ def test_filter():
     sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
     raw_lp = raw.copy()
@@ -548,7 +548,7 @@ def test_resample():
 def test_hilbert():
     """ Test computation of analytic signal using hilbert """
     raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
 
     raw2 = raw.copy()
@@ -582,25 +582,25 @@ def test_raw_copy():
 def test_raw_to_nitime():
     """ Test nitime export """
     raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
     assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
     assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
     assert_true(raw_ts.data.shape[0] == len(picks))
 
     raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True)
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
     assert_true(raw_ts.data.shape[0] == len(picks))
