@@ -223,13 +223,18 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     info['nchan'] = len(picks)
     idx_by_type = channel_indices_by_type(info)
 
+    # Ignore bad channels in epoch dropping
+    picks_check = pick_types(info, include=info['ch_names'],
+                             exclude=info['bads'])
+
     # Read data in chuncks
     for first in range(start, stop, step):
         last = first + step
         if last >= stop:
             last = stop
         raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat):
+        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
+                    False, picks_check):
             mu += raw_segment[idx].sum(axis=1)
             data += np.dot(raw_segment[idx], raw_segment[idx].T)
             n_samples += raw_segment.shape[1]
