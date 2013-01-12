@@ -477,6 +477,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
 def _to_fixed_ori(forward):
     """Helper to convert the forward solution to fixed ori from free"""
+    if not forward['surf_ori']:
+        raise ValueError('Only surface-oriented forward solutions can be '
+                         'converted to fixed orientaton')
     forward['sol']['data'] = forward['sol']['data'][:, 2::3]
     forward['sol']['ncol'] = forward['sol']['ncol'] / 3
     forward['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI

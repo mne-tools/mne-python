@@ -83,10 +83,11 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals):
     assert_array_almost_equal(inv_1['source_cov']['data'],
                               inv_2['source_cov']['data'])
 
-    #assert_array_almost_equal(inv_1['eigen_fields']['data'],
-    #                          inv_2['eigen_fields']['data'])
-    #assert_array_almost_equal(inv_1['eigen_leads']['data'],
-    #                          inv_2['eigen_leads']['data'])
+    # These are not as close as we'd like XXX
+    assert_array_almost_equal(np.abs(inv_1['eigen_fields']['data']),
+                              np.abs(inv_2['eigen_fields']['data']), 0)
+    assert_array_almost_equal(np.abs(inv_1['eigen_leads']['data']),
+                              np.abs(inv_2['eigen_leads']['data']), 0)
 
     stc_1 = apply_inverse(evoked, inv_1, lambda2, "dSPM")
     stc_2 = apply_inverse(evoked, inv_2, lambda2, "dSPM")

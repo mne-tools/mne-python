@@ -457,7 +457,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     scale = float(inv['nave']) / nave
     inv['noise_cov']['data'] = scale * inv['noise_cov']['data']
     # deal with diagonal case
-    if inv['noise_cov']['eig'] is None:
+    if inv['noise_cov']['data'].ndim == 1:
         logger.info('    Diagonal noise covariance found')
         inv['noise_cov']['eig'] = inv['noise_cov']['data']
         inv['noise_cov']['eigvec'] = np.eye(len(inv['noise_cov']['data']))
