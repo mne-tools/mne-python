@@ -959,8 +959,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
 
     Returns
     -------
-    maps : dict
-        The morph maps for the 2 hemisphere
+    left_map, right_map : sparse matrix
+        The morph maps for the 2 hemispheres.
     """
 
     subjects_dir = get_subjects_dir(subjects_dir)
@@ -1201,9 +1201,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
     # morph the data
-    lh_data = stc_from.data[:len(stc_from.lh_vertno)]
-    rh_data = stc_from.data[-len(stc_from.rh_vertno):]
-    data = [lh_data, rh_data]
+    data = [stc_from.lh_data, stc_from.rh_data]
     data_morphed = [None, None]
 
     n_chunks = ceil(stc_from.data.shape[1] / float(buffer_size))
@@ -1224,18 +1222,19 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
-    stc_to = copy.deepcopy(stc_from)
-    stc_to.vertno = [nearest[0], nearest[1]]
+    vertices = [nearest[0], nearest[1]]
     if data_morphed[0] is None:
         if data_morphed[1] is None:
-            stc_to.data = np.r_[[], []]
+            data = np.r_[[], []]
         else:
-            stc_to.data = data_morphed[1]
+            data = data_morphed[1]
     elif data_morphed[1] is None:
-        stc_to.data = data_morphed[0]
+        data = data_morphed[0]
     else:
-        stc_to.data = np.r_[data_morphed[0], data_morphed[1]]
+        data = np.r_[data_morphed[0], data_morphed[1]]
 
+    stc_to = SourceEstimate(data, vertices, stc_from.tmin, stc_from.tstep,
+                            verbose=stc_from.verbose)
     logger.info('[done]')
 
     return stc_to
@@ -1396,9 +1395,9 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         raise ValueError('stc_from.data.shape[0] must be the same as '
                          'morph_mat.shape[0]')
 
-    stc_to = copy.deepcopy(stc_from)
-    stc_to.vertno = vertices_to
-    stc_to.data = morph_mat * stc_from.data
+    data = morph_mat * stc_from.data
+    stc_to = SourceEstimate(data, vertices_to, stc_from.tmin, stc_from.tstep,
+                            verbose=stc_from.verbose)
     return stc_to
 
 
