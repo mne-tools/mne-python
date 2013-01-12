@@ -1,15 +1,19 @@
-import copy
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from scipy import linalg
 
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import read_tag, find_tag
-from .fiff.tree import dir_tree_find
-from .fiff.write import start_file, end_file, start_block, end_block, \
+from ..fiff import FIFF
+from ..fiff.open import fiff_open
+from ..fiff.tag import read_tag, find_tag
+from ..fiff.tree import dir_tree_find
+from ..fiff.write import start_file, end_file, start_block, end_block, \
                    write_coord_trans, write_dig_point, write_int
 
 
@@ -91,11 +95,8 @@ def write_trans(fname, info):
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
     """
-    itrans = copy.deepcopy(trans)
-    aux = itrans['from']
-    itrans['from'] = itrans['to']
-    itrans['to'] = aux
-    itrans['trans'] = linalg.inv(itrans['trans'])
+    itrans = {'to': trans['from'], 'from': trans['to'],
+              'trans': linalg.inv(trans['trans'])}
     return itrans
 
 
@@ -106,8 +107,8 @@ def transform_source_space_to(src, dest, trans):
     ----------
     src : dict
         Source space.
-    dest : dict
-        destination coordinate system.
+    dest : int
+        Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
     trans : dict
         Transformation.
 
