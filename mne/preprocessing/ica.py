@@ -76,9 +76,9 @@ class ICA(object):
     correction.
 
     Caveat! If supplying a noise covariance keep track of the projections
-    available in the cov or in the raw object. For example, if you are interested
-    in EOG or ECG artifacts, EOG and ECG projections should be temporally
-    removed before fitting the ICA. You can say:
+    available in the cov or in the raw object. For example, if you are
+    interested in EOG or ECG artifacts, EOG and ECG projections should be
+    temporally removed before fitting the ICA. You can say:
 
     >> projs, raw.info['projs'] = raw.info['projs'], []
     >> ica.decompose_raw(raw)
@@ -131,7 +131,6 @@ class ICA(object):
     current_fit : str
         Flag informing about which data type (raw or epochs) was used for
         the fit.
-    n_components : int | float
     ch_names : list-like
         Channel names resulting from initial picking.
         The number of components used for ICA decomposition.
@@ -159,8 +158,8 @@ class ICA(object):
         dispatched to the .pick_sources methods. Source indices passed to
         the .pick_sources method via the 'exclude' argument are added to the
         .exclude attribute. When saving the ICA also the indices are restored.
-        Hence, artifact components once identified don't have to be added again.
-        To dump this 'artifact memory' say:
+        Hence, artifact components once identified don't have to be added
+        again. To dump this 'artifact memory' say:
         >> ica.exclude = []
     """
     @verbose
@@ -759,7 +758,8 @@ class ICA(object):
             self.n_pca_components = n_pca_components
 
         sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
-        recomposed = self._pick_sources(sources, pca_data, include, self.exclude)
+        recomposed = self._pick_sources(sources, pca_data, include,
+                                        self.exclude)
 
         if copy is True:
             raw = raw.copy()
@@ -1234,6 +1234,188 @@ def read_ica(fname):
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
     ica.exclude = [] if exclude is None else list(exclude)
+    logger.info('Ready.')
+
+    return ica
+
+
+def run_ica(raw, n_components, max_pca_components=100,
+            n_pca_components=64, noise_cov=None, random_state=None,
+            algorithm='parallel', fun='logcosh', fun_args=None,
+            verbose=None, picks=None, start=None, stop=None, start_find=None,
+            stop_find=None, ecg_channel=None, ecg_score_func='corr',
+            ecg_score_min=0.1, veog_channel=None, veog_score_func='corr',
+            veog_score_min=0.1, heog_channel=None, heog_score_func='corr',
+            heog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
+    """ Run ICA decomposition on raw data and ifenitfy artifact sources
+
+    This function implements an automated artifact removal workflow.
+    Note. Consider using shorter times for start_find and stop_find than
+    for start and stop. It can save you much time.
+
+    Example invocation (taking advantage of the defaults):
+    >>> ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
+                      ecg_ch_name='MEG 1531', veog_ch_name='EOG 001',
+                      heog_ch_name='EOG 002')
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data to decompose.
+    n_components : int | float | None
+        The number of components used for ICA decomposition. If int, it must be
+        smaller then max_pca_components. If None, all PCA components will be
+        used. If float between 0 and 1 components can will be selected by the
+        cumulative percentage of explained variance.
+    n_pca_components
+        The number of PCA components used after ICA recomposition. The ensuing
+        attribute allows to balance noise reduction against potential loss of
+        features due to dimensionality reduction. If greater than
+        self.n_components_, the next 'n_pca_components' minus
+        'n_components_' PCA components will be added before restoring the
+        sensor space data. The attribute gets updated each time the according
+        parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
+    max_pca_components : int | None
+        The number of components used for PCA decomposition. If None, no
+        dimension reduction will be applied and max_pca_components will equal
+        the number of channels supplied on decomposing data.
+    noise_cov : None | instance of mne.cov.Covariance
+        Noise covariance used for whitening. If None, channels are just
+        z-scored.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the FastICA estimation.
+        As the estimation is non-deterministic it can be useful to
+        fix the seed to have reproducible results.
+    algorithm : {'parallel', 'deflation'}
+        Apply parallel or deflational algorithm for FastICA
+    fun : string or function, optional. Default: 'logcosh'
+        The functional form of the G function used in the
+        approximation to neg-entropy. Could be either 'logcosh', 'exp',
+        or 'cube'.
+        You can also provide your own function. It should return a tuple
+        containing the value of the function, and of its derivative, in the
+        point.
+    fun_args: dictionary, optional
+        Arguments to send to the functional form.
+        If empty and if fun='logcosh', fun_args will take value
+        {'alpha' : 1.0}
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    picks : array-like
+        Channels to be included. This selection remains throughout the
+        initialized ICA session. If None only good data channels are used.
+    start : int
+        First sample to include (first is 0) for decomposition. If omitted,
+        defaults to the first sample in data.
+    stop : int
+        First sample to not include for decomposition. If omitted, data is
+        included to the end.
+    start_find : int
+        First sample to include (first is 0) for sources detection.
+        If omitted, defaults to the first sample in data.
+    stop_find : int
+        First sample to not include for sources detection. If omitted, data
+        is included to the end.
+    ecg_channel : str | ndarray | None
+        The `target` argumet passed to ica.find_sources_raw. Either the name of
+        the ECG channel or the ECG timeseries. If None, this step will
+        be skipped.
+    ecg_score_func : str | callable
+        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
+        name of function supported by ICA or a custom function.
+    ecg_score_min : float
+        The lower bound for the score used to include ECG sources found.
+        Sources scoring higher that ecg_score_min will be included.
+    veog_channel : str | ndarray | None
+        The `target` argumet passed to ica.find_sources_raw. Either the name of
+        the vertical E0G channel or the corresponding EOG timeseries. If None,
+        this step will be skipped.
+    veog_score_func : str | callable | None
+        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
+        name of function supported by ICA or a custom function.
+    veog_score_min : float
+        The lower bound for the score used to include EOG sources found.
+        Sources scoring higher that veog_score_min will be included.
+    heog_channel : str | ndarray | None
+        The `target` argumet passed to ica.find_sources_raw. Either the name of
+        the horizontal E0G channel or the corresponding EOG timeseries.
+        If None, this step will be skipped.
+    heog_score_func : str | callable
+        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
+        name of function supported by ICA or a custom function.
+    heog_score_min : float
+        The lower bound for the score used to include EOG sources found.
+        Sources scoring higher that veog_score_min will be included.
+    skew_idx : int | ndarray | slice | None
+        The indices of the sorted skewness scores. If None, this step
+        will be skipped.
+    kurt_idx : int | ndarray | slice | None
+        The indices of the sorted kurtosis scores. If None, this step
+        will be skipped.
+    var_idx : int | ndarray | slice | None
+        The indices of the sorted variance scores. If None, this step
+        will be skipped.
+
+    Returns
+    -------
+    ica : instance of ICA
+        The ica object with the detected artifact indices marked for exclusion
+    """
+    ica = ICA(n_components, max_pca_components,
+            n_pca_components, noise_cov, random_state,
+            algorithm, fun, fun_args, verbose)
+
+    ica.decompose_raw(raw, start=start, stop=stop)
+
+    logger.info('    Now searching for artifacts...')
+    if ecg_channel is not None:
+        ecg_scores = ica.find_sources_raw(raw, start=start_find,
+                        stop=stop_find, target=ecg_channel)
+        found = np.where(np.abs(ecg_scores) > ecg_score_min)[0]
+        logger.info('    found %s ECG artifacts' % len(found))
+        ica.exclude += list(found)
+
+    if veog_channel is not None:
+        veog_scores = ica.find_sources_raw(raw, start=start_find,
+                            stop=stop_find, target=veog_channel)
+        found = np.where(np.abs(veog_scores) > veog_score_min)[0]
+        logger.info('    found %s vertical EOG artifacts' % len(found))
+        ica.exclude += list(found)
+
+    if heog_channel is not None:
+        heog_scores = ica.find_sources_raw(raw, start=start, stop=stop,
+                            target=veog_channel)
+        found = np.where(np.abs(heog_scores) > heog_score_min)[0]
+        logger.info('    found %s horizontal EOG artifacts' % len(found))
+        ica.exclude += list(found)
+
+    if skew_idx is not None:
+        skew_scores = ica.find_sources_raw(raw, start=start, stop=stop,
+                                           score_func=stats.skew)
+        found = skew_scores[skew_scores.argmax()[skew_idx]]
+        logger.info('    found %s artifacts based on skewness' % len(found))
+        ica.exclude += list(found)
+
+    if kurt_idx is not None:
+        kurt_scores = ica.find_sources_raw(raw, start=start, stop=stop,
+                                           score_func=stats.kurtosis)
+        found = kurt_scores[kurt_scores.argmax()[kurt_idx]]
+        logger.info('    found %s artifacts based on kurtosis' % len(found))
+        ica.exclude += list(found)
+
+    if var_idx is not None:
+        var_scores = ica.find_sources_raw(raw, start=start, stop=stop,
+                                          score_func=np.var)
+        found = var_scores[var_scores.argmax()[var_idx]]
+        logger.info('    found %s artifacts based on variance' % len(found))
+        ica.exclude += list(found)
+
+    logger.info('    artifact indices found:\n'
+                '    ' + ', '.join(ica.exclude))
+    if len(set(ica.exclude)) != len(ica.exclude):
+        logger.info('   Removing duplicate indices...')
+        ica.exclude = list(set(ica.exclude))
+
     logger.info('Ready.')
 
     return ica
