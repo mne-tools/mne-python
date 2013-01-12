@@ -303,9 +303,9 @@ class Label(dict):
                              'something like label.values.fill(1.0).')
         if(isinstance(grade, np.ndarray)):
             if self.hemi == 'lh':
-                grade = [grade, []]
+                grade = [grade, np.array([])]
             else:
-                grade = [[], grade]
+                grade = [np.array([]), grade]
         if self.hemi == 'lh':
             vertices = [self.vertices, np.array([])]
         else:
