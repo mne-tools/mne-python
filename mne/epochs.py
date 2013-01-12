@@ -969,8 +969,7 @@ class Epochs(object):
             raise Exception('the nitime package is missing')
 
         if picks is None:
-            picks = pick_types(self.info, include=self.ch_names,
-                               exclude=self.info['bads'])
+            picks = pick_types(self.info, include=self.ch_names)
         if epochs_idx is None:
             epochs_idx = slice(len(self.events))
 

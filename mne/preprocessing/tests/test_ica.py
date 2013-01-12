@@ -34,12 +34,10 @@ start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
 raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False)
 
 events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, stim=False,
-                        ecg=False, eog=False, exclude=raw.info['bads'])
+picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False)
 
 # for testing eog functionality
-picks2 = fiff.pick_types(raw.info, meg=True, stim=False,
-                        ecg=False, eog=True, exclude=raw.info['bads'])
+picks2 = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=True)
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)

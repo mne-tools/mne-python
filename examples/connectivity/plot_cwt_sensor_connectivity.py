@@ -37,12 +37,11 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-# Set up pick list
-exclude = raw.info['bads'] + ['MEG 2443']  # bads + 1 more
+# Add a bad channel
+raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude=exclude)
+picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True)
 
 # Create epochs for left-visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5

@@ -29,10 +29,9 @@ def test_compute_proj_epochs():
 
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
-    exclude = []
     bad_ch = 'MEG 2443'
     picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
-                       exclude=exclude)
+                       exclude=[])
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, proj=False)
 

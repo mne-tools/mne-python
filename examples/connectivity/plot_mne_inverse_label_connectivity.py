@@ -36,13 +36,11 @@ inverse_operator = read_inverse_operator(fname_inv)
 raw = Raw(fname_raw)
 events = mne.read_events(fname_event)
 
-# Set up pick list
-include = []
-exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
+# Add a bad channel
+raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   include=include, exclude=exclude)
+picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True)
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

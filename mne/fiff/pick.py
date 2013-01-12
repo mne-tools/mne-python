@@ -68,9 +68,9 @@ def pick_channels(ch_names, include, exclude=[]):
     ch_names : list of string
         List of channels.
     include : list of string
-        List of channels to include. If empty include all available.
+        List of channels to include (if empty include all available).
     exclude : list of string
-        List of channels to exclude. If empty do not exclude any channel.
+        List of channels to exclude (if empty do not exclude any channel).
 
     Returns
     -------
@@ -240,19 +240,17 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
     Parameters
     ----------
     orig : Evoked object
-        One evoked dataset
-
+        One evoked dataset.
     include : list of string, (optional)
-        List of channels to include. (if None, include all available)
-
+        List of channels to include (if empty, include all available).
     exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any)
+        Channels to exclude (if empty, do not exclude any).
 
     Returns
     -------
     res : instance of Evoked
         Evoked data restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
+        exclude are empty it returns orig without copy.
     """
 
     if len(include) == 0 and len(exclude) == 0:
@@ -279,7 +277,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, misc=False, include=[],
-                      exclude=[]):
+                      exclude=None):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -305,9 +303,9 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         If True include miscellaneous analog channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-
-    exclude : list of string
-        List of channels to exclude. If empty do not include any.
+    exclude : list of string | None
+        List of channels to exclude. If empty do not exclude any. If None,
+        exclude channels in info['bads'] (default).
 
     Returns
     -------
@@ -329,10 +327,10 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     ----------
     orig : dict
         A forward solution.
-    include : list of string, (optional)
-        List of channels to include. (if None, include all available).
-    exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any).
+    include : list of string (optional)
+        List of channels to include (if empty, include all available).
+    exclude : list of string (optional)
+        Channels to exclude (if empty, do not exclude any).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -340,7 +338,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     -------
     res : dict
         Forward solution restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
+        exclude are empty it returns orig without copy.
     """
 
     if len(include) == 0 and len(exclude) == 0:
@@ -396,9 +394,8 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
         If True include EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-
     exclude : list of string
-        List of channels to exclude. If empty do not include any.
+        List of channels to exclude. If empty do not exclude any.
 
     Returns
     -------
@@ -431,9 +428,9 @@ def pick_channels_cov(orig, include=[], exclude=[]):
     orig : Covariance
         A covariance.
     include : list of string, (optional)
-        List of channels to include. (if None, include all available).
+        List of channels to include (if empty, include all available).
     exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any).
+        Channels to exclude (if empty, do not exclude any).
 
     Returns
     -------

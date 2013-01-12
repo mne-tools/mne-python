@@ -798,22 +798,23 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
+def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
     """Plot Covariance data
 
     Parameters
     ----------
     cov : instance of Covariance
-        The covariance matrix
+        The covariance matrix.
     info: dict
-        Measurement info
-    exclude : list of string
+        Measurement info.
+    exclude : list of string | None
         List of channels to exclude. If empty do not exclude any channel.
+        If None (default), exclude info['bads'].
     colorbar : bool
-        Show colorbar or not
+        Show colorbar or not.
     proj : bool
-        Apply projections or not
+        Apply projections or not.
     show : bool
         Call pylab.show() as the end or not.
     show_svd : bool
@@ -822,6 +823,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    if exclude is None:
+        exclude = info['bads']
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
     info_ch_names = info['ch_names']

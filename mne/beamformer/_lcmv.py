@@ -60,7 +60,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True)
 
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -253,7 +253,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = epochs.times[0]
 
     # use only the good data channels
-    picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+    picks = pick_types(info, meg=True, eeg=True)
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
@@ -313,7 +313,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     info = raw.info
 
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True)
 
     data, times = raw[picks, start:stop]
     tmin = times[0]
