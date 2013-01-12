@@ -66,11 +66,9 @@ def pick_channels(ch_names, include, exclude=[]):
     Parameters
     ----------
     ch_names : list of string
-        List of channels
-
+        List of channels.
     include : list of string
         List of channels to include. If empty include all available.
-
     exclude : list of string
         List of channels to exclude. If empty do not exclude any channel.
 
@@ -119,34 +117,36 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, misc=False, include=[], exclude=[], selection=None):
+               emg=False, misc=False, include=[], exclude=None,
+               selection=None):
     """Pick channels by type and names
 
     Parameters
     ----------
     info : dict
-        The measurement info
+        The measurement info.
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
         or magnetometers. It can also be 'ref_meg' to get CTF
         reference channels.
     eeg : bool
-        If True include EEG channels
+        If True include EEG channels.
     eog : bool
-        If True include EOG channels
+        If True include EOG channels.
     ecg : bool
-        If True include ECG channels
+        If True include ECG channels.
     emg : bool
-        If True include EMG channels
+        If True include EMG channels.
     stim : bool
-        If True include stimulus channels
+        If True include stimulus channels.
     misc : bool
-        If True include miscellaneous analog channels
+        If True include miscellaneous analog channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
-    exclude : list of string
-        List of channels to exclude. If empty do not exclude any.
+    exclude : list of string | None
+        List of channels to exclude. If empty do not exclude any. If None,
+        exclude channels in info['bads'] (default).
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
@@ -158,10 +158,13 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
+    if exclude is None:
+        exclude = info.get('bads', [])
+
     for k in range(nchan):
         kind = info['chs'][k]['kind']
         if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
-            if meg == True:
+            if meg is True:
                 pick[k] = True
             elif (meg == 'grad'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M):
@@ -353,8 +356,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
-    logger.info('    %d out of %d channels remain after picking' % (nuse,
-                                                            fwd['nchan']))
+    logger.info('    %d out of %d channels remain after picking'
+                % (nuse, fwd['nchan']))
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]
@@ -416,8 +419,6 @@ def channel_indices_by_type(info):
         for key in idx.keys():
             if channel_type(info, k) == key:
                 idx[key].append(k)
-    for key in idx.keys():
-        idx[key] = np.array(idx[key])
 
     return idx
 
@@ -428,13 +429,11 @@ def pick_channels_cov(orig, include=[], exclude=[]):
     Parameters
     ----------
     orig : Covariance
-        A covariance
-
+        A covariance.
     include : list of string, (optional)
-        List of channels to include. (if None, include all available)
-
+        List of channels to include. (if None, include all available).
     exclude : list of string, (optional)
-        Channels to exclude (if None, do not exclude any)
+        Channels to exclude (if None, do not exclude any).
 
     Returns
     -------
