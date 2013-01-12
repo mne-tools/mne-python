@@ -1249,7 +1249,7 @@ def run_ica(raw, n_components, max_pca_components=100,
             eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
     """ Run ICA decomposition on raw data and ifenitfy artifact sources
 
-    This function implements an automated artifact removal workflow.
+    This function implements an automated artifact removal work flow.
     Note. Consider using shorter times for start_find and stop_find than
     for start and stop. It can save you much time.
 
@@ -1316,22 +1316,22 @@ def run_ica(raw, n_components, max_pca_components=100,
         First sample to not include for sources detection. If omitted, data
         is included to the end.
     ecg_channel : str | ndarray | None
-        The `target` argumet passed to ica.find_sources_raw. Either the name of
-        the ECG channel or the ECG timeseries. If None, this step will
+        The `target` argument passed to ica.find_sources_raw. Either the name
+        of the ECG channel or the ECG time series. If None, this step will
         be skipped.
     ecg_score_func : str | callable
-        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
+        The `score_func` argument passed to ica.find_sources_raw. Either the
         name of function supported by ICA or a custom function.
     ecg_score_min : float
         The lower bound for the score used to include ECG sources found.
         Sources scoring higher that ecg_score_min will be included.
     eog_channel : list | str | ndarray | None
-        The `target` argumet or the list of target arguments subsequently
+        The `target` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
-        channel or the corresponding EOG timeseries. If None, this step will
+        channel or the corresponding EOG time series. If None, this step will
         be skipped.
     eog_score_func : str | callable
-        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
+        The `score_func` argument passed to ica.find_sources_raw. Either the
         name of function supported by ICA or a custom function.
     eog_score_min : float
         The lower bound for the score used to include EOG sources found.
