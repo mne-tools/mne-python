@@ -789,19 +789,16 @@ class SourceEstimate(object):
         ----------
         subject : string
             The subject the stc is defined for.
-
         hemi : int, or None
             Calculate the center of mass for the left (0) or right (1)
             hemisphere. If None, one of the hemispheres must be all zeroes,
             and the center of mass will be calculated for the other
             hemisphere (useful for getting COM for clusters).
-
         restrict_vertices : bool, or array of int
             If True, returned vertex will be one from stc. Otherwise, it could
             be any vertex from surf. If an array of int, the returned vertex
             will come from that array. For most accuruate estimates, do not
             restrict vertices.
-
         subjects_dir : str, or None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
@@ -813,10 +810,8 @@ class SourceEstimate(object):
             with each vertex weighted by the sum of the stc across time. For a
             boolean stc, then, this would be weighted purely by the duration
             each vertex was active.
-
         hemi : int
             Hemisphere the vertex was taken from.
-
         t : float
             Time of the temporal center of mass (weighted by the sum across
             source vertices).

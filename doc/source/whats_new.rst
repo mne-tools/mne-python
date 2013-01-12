@@ -11,6 +11,8 @@ Changelog
 
    - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
 
+   - Label morphing between subjects by `Eric Larson`_
+
 
 .. _changes_0_5:
 
