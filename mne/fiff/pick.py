@@ -146,7 +146,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string
-        List of channels to exclude. If empty do not include any.
+        List of channels to exclude. If empty do not exclude any.
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 
@@ -416,6 +416,8 @@ def channel_indices_by_type(info):
         for key in idx.keys():
             if channel_type(info, k) == key:
                 idx[key].append(k)
+    for key in idx.keys():
+        idx[key] = np.array(idx[key])
 
     return idx
 

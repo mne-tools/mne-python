@@ -463,8 +463,11 @@ class Epochs(object):
             if self._reject_time is not None:
                 data = data[:, self._reject_time]
 
+            # Ignore bad channels in epoch dropping
+            picks_check = pick_types(self.info, include=self.ch_names,
+                                     exclude=self.info['bads'])
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True)
+                            self.reject, self.flat, True, picks_check)
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -1204,7 +1207,7 @@ def _area_between_times(t1, t2):
 
 @verbose
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
-             verbose=None):
+             picks=None, verbose=None):
     """Test if data segment e is good according to the criteria
     defined in reject and flat. If full_report=True, it will give
     True/False as well as a list of all offending channels.
@@ -1215,6 +1218,8 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
         if refl is not None:
             for key, thresh in refl.iteritems():
                 idx = channel_type_idx[key]
+                if picks is not None:
+                    idx = idx[in1d(idx, picks)]
                 name = key.upper()
                 if len(idx) > 0:
                     e_idx = e[idx]
