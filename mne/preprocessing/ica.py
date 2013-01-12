@@ -65,7 +65,7 @@ score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
 
 
 __all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs',
-           'read_ica']
+           'read_ica', 'run_ica']
 
 
 class ICA(object):
@@ -1239,14 +1239,14 @@ def read_ica(fname):
     return ica
 
 
+@verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
             algorithm='parallel', fun='logcosh', fun_args=None,
             verbose=None, picks=None, start=None, stop=None, start_find=None,
             stop_find=None, ecg_channel=None, ecg_score_func='corr',
-            ecg_score_min=0.1, veog_channel=None, veog_score_func='corr',
-            veog_score_min=0.1, heog_channel=None, heog_score_func='corr',
-            heog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
+            ecg_score_min=0.1, eog_channel=None, eog_score_func='corr',
+            eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
     """ Run ICA decomposition on raw data and ifenitfy artifact sources
 
     This function implements an automated artifact removal workflow.
@@ -1255,8 +1255,7 @@ def run_ica(raw, n_components, max_pca_components=100,
 
     Example invocation (taking advantage of the defaults):
     >>> ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
-                      ecg_ch_name='MEG 1531', veog_ch_name='EOG 001',
-                      heog_ch_name='EOG 002')
+                      ecg_channel='MEG 1531', eog_channel='EOG 061')
 
     Parameters
     ----------
@@ -1326,26 +1325,17 @@ def run_ica(raw, n_components, max_pca_components=100,
     ecg_score_min : float
         The lower bound for the score used to include ECG sources found.
         Sources scoring higher that ecg_score_min will be included.
-    veog_channel : str | ndarray | None
-        The `target` argumet passed to ica.find_sources_raw. Either the name of
-        the vertical E0G channel or the corresponding EOG timeseries. If None,
-        this step will be skipped.
-    veog_score_func : str | callable | None
+    eog_channel : list | str | ndarray | None
+        The `target` argumet or the list of target arguments subsequently
+        passed to ica.find_sources_raw. Either the name of the vertical EOG
+        channel or the corresponding EOG timeseries. If None, this step will
+        be skipped.
+    eog_score_func : str | callable
         The `score_func` arguemnt passed to ica.find_sources_raw. Either the
         name of function supported by ICA or a custom function.
-    veog_score_min : float
+    eog_score_min : float
         The lower bound for the score used to include EOG sources found.
-        Sources scoring higher that veog_score_min will be included.
-    heog_channel : str | ndarray | None
-        The `target` argumet passed to ica.find_sources_raw. Either the name of
-        the horizontal E0G channel or the corresponding EOG timeseries.
-        If None, this step will be skipped.
-    heog_score_func : str | callable
-        The `score_func` arguemnt passed to ica.find_sources_raw. Either the
-        name of function supported by ICA or a custom function.
-    heog_score_min : float
-        The lower bound for the score used to include EOG sources found.
-        Sources scoring higher that veog_score_min will be included.
+        Sources scoring higher that eog_score_min will be included.
     skew_idx : int | ndarray | slice | None
         The indices of the sorted skewness scores. If None, this step
         will be skipped.
@@ -1368,52 +1358,56 @@ def run_ica(raw, n_components, max_pca_components=100,
     ica.decompose_raw(raw, start=start, stop=stop)
 
     logger.info('    Now searching for artifacts...')
+
     if ecg_channel is not None:
         ecg_scores = ica.find_sources_raw(raw, start=start_find,
                         stop=stop_find, target=ecg_channel)
-        found = np.where(np.abs(ecg_scores) > ecg_score_min)[0]
-        logger.info('    found %s ECG artifacts' % len(found))
-        ica.exclude += list(found)
+        found = list(np.where(np.abs(ecg_scores) > ecg_score_min)[0])
+        case = (len(found), 's' if len(found) > 1 else '')
+        logger.info('    found %s ECG artifact%s' % case)
+        ica.exclude += found
 
-    if veog_channel is not None:
-        veog_scores = ica.find_sources_raw(raw, start=start_find,
-                            stop=stop_find, target=veog_channel)
-        found = np.where(np.abs(veog_scores) > veog_score_min)[0]
-        logger.info('    found %s vertical EOG artifacts' % len(found))
-        ica.exclude += list(found)
+    if eog_channel not in [None, []]:
+        found = []
+        if not isinstance(eog_channel, list):
+            eog_channel = [eog_channel]
+        for eog_ch in eog_channel:
+            scores = ica.find_sources_raw(raw, start=start_find,
+                            stop=stop_find, target=eog_ch)
+            found += list(np.where(np.abs(scores) > eog_score_min)[0])
 
-    if heog_channel is not None:
-        heog_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                            target=veog_channel)
-        found = np.where(np.abs(heog_scores) > heog_score_min)[0]
-        logger.info('    found %s horizontal EOG artifacts' % len(found))
-        ica.exclude += list(found)
+        case = (len(found), 's' if len(found) > 1 else '')
+        logger.info('    found %s EOG artifact%s' % case)
+        ica.exclude += found
 
     if skew_idx is not None:
         skew_scores = ica.find_sources_raw(raw, start=start, stop=stop,
                                            score_func=stats.skew)
-        found = skew_scores[skew_scores.argmax()[skew_idx]]
-        logger.info('    found %s artifacts based on skewness' % len(found))
+        found = np.atleast_1d(skew_scores.argsort()[skew_idx])
+        case = (len(found), 's' if len(found) > 1 else '')
+        logger.info('    found %s artifact%s based on skewness' % case)
         ica.exclude += list(found)
 
     if kurt_idx is not None:
         kurt_scores = ica.find_sources_raw(raw, start=start, stop=stop,
                                            score_func=stats.kurtosis)
-        found = kurt_scores[kurt_scores.argmax()[kurt_idx]]
-        logger.info('    found %s artifacts based on kurtosis' % len(found))
+        found = np.atleast_1d(kurt_scores.argsort()[kurt_idx])
+        case = (len(found), 's' if len(found) > 1 else '')
+        logger.info('    found %s artifact%s based on kurtosis' % case)
         ica.exclude += list(found)
 
     if var_idx is not None:
         var_scores = ica.find_sources_raw(raw, start=start, stop=stop,
                                           score_func=np.var)
-        found = var_scores[var_scores.argmax()[var_idx]]
-        logger.info('    found %s artifacts based on variance' % len(found))
+        found = np.atleast_1d(var_scores.argsort()[var_idx])
+        case = (len(found), 's' if len(found) > 1 else '')
+        logger.info('    found %s artifact%s based on variance' % case)
         ica.exclude += list(found)
 
-    logger.info('    artifact indices found:\n'
-                '    ' + ', '.join(ica.exclude))
+    logger.info('Artifact indices found:\n'
+                '    ' + str(ica.exclude).strip('[]'))
     if len(set(ica.exclude)) != len(ica.exclude):
-        logger.info('   Removing duplicate indices...')
+        logger.info('    Removing duplicate indices...')
         ica.exclude = list(set(ica.exclude))
 
     logger.info('Ready.')
