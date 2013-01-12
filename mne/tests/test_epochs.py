@@ -180,8 +180,8 @@ def test_evoked_standard_error():
 def test_reject_epochs():
     """Test of epochs rejection
     """
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, flat=flat)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
+                    reject=reject, flat=flat)
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
@@ -197,10 +197,9 @@ def test_reject_epochs():
     raw_2 = raw.copy()
     raw_2.info['bads'] = ['MEG 2443']
     reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-3, eog=150e-3)
-    epochs = Epochs(raw_2, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject_crazy, flat=flat)
+    epochs = Epochs(raw_2, events, event_id, tmin, tmax, baseline=(None, 0),
+                    reject=reject_crazy, flat=flat)
     epochs.drop_bad_epochs()
-    assert_true('MEG 2443' in epochs.ch_names)
     assert_true(all(['MEG 2442' in e for e in epochs.drop_log]))
     assert_true(all(['MEG 2443' not in e for e in epochs.drop_log]))
 

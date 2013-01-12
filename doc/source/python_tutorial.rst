@@ -191,20 +191,20 @@ Define epochs parameters:
     >>> tmin = -0.2  # start of each epoch (200ms before the trigger)
     >>> tmax = 0.5  # end of each epoch (500ms after the trigger)
 
-Exclude some channels (bads + 2 more):
+Exclude some channels (original bads + 2 more):
 
-    >>> exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']
+    >>> raw.info['bads'] += ['MEG 2443', 'EEG 053']
 
 The variable raw.info['bads'] is just a python list.
 
-Pick the good channels:
+Pick the good channels, raw.info['bads'] is automatically excluded:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude=exclude)
+    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False)
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude=exclude)
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude=exclude)
+    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True)
+    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True)
 
 Define the baseline period:
 
