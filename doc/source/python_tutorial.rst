@@ -161,7 +161,7 @@ Read and plot a segment of raw data
 
 Save a segment of 150s of raw data (MEG only):
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True)
+    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks) # doctest: +ELLIPSIS
     Reading ...
 
@@ -197,14 +197,14 @@ Exclude some channels (original bads + 2 more):
 
 The variable raw.info['bads'] is just a python list.
 
-Pick the good channels, raw.info['bads'] is automatically excluded:
+Pick the good channels, excluding raw.info['bads']:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False)
+    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True)
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True)
+    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
+    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 
 Define the baseline period:
 

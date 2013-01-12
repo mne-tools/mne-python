@@ -45,7 +45,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True)
+picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                   exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

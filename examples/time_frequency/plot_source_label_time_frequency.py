@@ -41,7 +41,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG channels
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                                stim=False, include=include)
+                                stim=False, include=include, exclude='bads')
 
 # Load condition 1
 event_id = 1

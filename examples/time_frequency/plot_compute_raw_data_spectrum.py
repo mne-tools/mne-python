@@ -36,7 +36,7 @@ raw.add_proj(projs, remove_existing=True)
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
 picks = fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
-                        stim=False, selection=selection)
+                        stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]

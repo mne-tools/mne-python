@@ -41,7 +41,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # pick MEG Gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        include=include)
+                        include=include, exclude='bads')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 data = epochs.get_data()
@@ -55,7 +55,7 @@ T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
 
 significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.info['ch_names'][k]
-                              for k in significant_sensors]
+                             for k in significant_sensors]
 
 print "Number of significant sensors : %d" % len(significant_sensors)
 print "Sensors names : %s" % significant_sensors_names
@@ -70,8 +70,8 @@ layout = read_layout('Vectorview-grad')
 
 # Extract mask and indices of active sensors in layout
 idx_of_sensors = [layout.names.index(name)
-                    for name in significant_sensors_names
-                    if name in layout.names]
+                  for name in significant_sensors_names
+                  if name in layout.names]
 mask_significant_sensors = np.zeros(len(layout.pos), dtype=np.bool)
 mask_significant_sensors[idx_of_sensors] = True
 mask_non_significant_sensors = mask_significant_sensors == False

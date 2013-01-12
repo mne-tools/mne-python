@@ -104,13 +104,13 @@ def test_cov_estimation_with_triggers():
     cov_mne = read_cov(cov_km_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.005)
+                 / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
     assert_true(np.all(cov.data != cov_tmin_tmax.data))
     assert_true((linalg.norm(cov.data - cov_tmin_tmax.data, ord='fro')
-            / linalg.norm(cov_tmin_tmax.data, ord='fro')) < 0.05)
+                 / linalg.norm(cov_tmin_tmax.data, ord='fro')) < 0.05)
 
     # cov using a list of epochs and keep_sample_mean=True
     epochs = [Epochs(raw, events, ev_id, tmin=-0.2, tmax=0,
@@ -126,7 +126,7 @@ def test_cov_estimation_with_triggers():
     cov_mne = read_cov(cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 0.005)
+                 / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
@@ -134,7 +134,7 @@ def test_cov_estimation_with_triggers():
     assert_true(cov_read.ch_names == cov.ch_names)
     assert_true(cov_read.nfree == cov.nfree)
     assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
-            / linalg.norm(cov.data, ord='fro')) < 1e-5)
+                 / linalg.norm(cov.data, ord='fro')) < 1e-5)
 
     # cov with list of epochs with different projectors
     epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
@@ -185,10 +185,9 @@ def test_evoked_whiten():
 
     ###########################################################################
     # Show result
-    picks = pick_types(evoked.info, meg=True, eeg=True)
+    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
 
-    noise_cov = regularize(cov, evoked.info,
-                                   grad=0.1, mag=0.1, eeg=0.1)
+    noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
 
     evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
     whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]

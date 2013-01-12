@@ -34,13 +34,13 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
 
     # Geting EOG Channel
     ch_EOG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                             eog=True, ecg=False, emg=False)
+                             eog=True, ecg=False, emg=False, exclude='bads')
 
     if len(ch_EOG) == 0:
         logger.info('No EOG channels found')
         logger.info('Trying with EEG 061 and EEG 062')
         ch_EOG = fiff.pick_channels(raw.ch_names,
-                                        include=['EEG 061', 'EEG 062'])
+                                    include=['EEG 061', 'EEG 062'])
         if len(ch_EOG) != 2:
             raise ValueError('EEG 61 or EEG 62 channel not found !!')
 

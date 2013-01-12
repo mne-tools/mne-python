@@ -249,7 +249,8 @@ class ICA(object):
 
         if picks is None:  # just use good data channels
             picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                               ecg=False, misc=False, stim=False)
+                               ecg=False, misc=False, stim=False,
+                               exclude='bads')
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -299,10 +300,12 @@ class ICA(object):
 
         if picks is None:
             # just use epochs good data channels and avoid double picking
-            picks = pick_types(epochs.info, include=epochs.ch_names)
+            picks = pick_types(epochs.info, include=epochs.ch_names,
+                               exclude='bads')
 
         meeg_picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
-                                ecg=False, misc=False, stim=False)
+                                ecg=False, misc=False, stim=False,
+                                exclude='bads')
 
         # filter out all the channels the raw wouldn't have initialized
         picks = np.intersect1d(meeg_picks, picks)
@@ -378,7 +381,7 @@ class ICA(object):
 
     def _get_sources_epochs(self, epochs, concatenate):
 
-        picks = pick_types(epochs.info, include=self.ch_names)
+        picks = pick_types(epochs.info, include=self.ch_names, exclude=[])
 
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
@@ -444,13 +447,12 @@ class ICA(object):
         -------
         out : instance of mne.Raw
             Container object for ICA sources
-
         """
 
         # include 'reference' channels for comparison with ICA
         if picks is None:
             picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True)
+                               ecg=True, eog=True, stim=True, exclude='bads')
 
         # merge copied instance and picked data with sources
 
@@ -482,15 +484,12 @@ class ICA(object):
         for i in xrange(self.n_components_):
             ch_names.append('ICA %03d' % (i + 1))
             ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
-                                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
-                                kind=FIFF.FIFFV_MISC_CH,
-                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
-                                              0., 0., 0., 1.],
-                                             dtype=np.float32),
-                                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None,
-                                range=1.0, scanno=i + 1, unit_mul=0,
-                                coil_trans=None))
+                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+                kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
+                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
+                              0., 0., 0., 1.], dtype=np.float32),
+                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
+                scanno=i + 1, unit_mul=0, coil_trans=None))
 
         # re-append additionally picked ch_names
         ch_names += [raw.ch_names[k] for k in picks]
@@ -807,7 +806,7 @@ class ICA(object):
 
         sources, pca_data = self._get_sources_epochs(epochs, True)
         picks = pick_types(epochs.info, include=self.ch_names,
-                           exclude=epochs.info['bads'])
+                           exclude='bads')
 
         if copy is True:
             epochs = epochs.copy()

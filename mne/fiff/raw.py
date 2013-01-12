@@ -520,7 +520,7 @@ class Raw(object):
         if h_freq > (fs / 2.):
             h_freq = None
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -644,7 +644,7 @@ class Raw(object):
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
         self.apply_function(notch_filter, picks, None, n_jobs, verbose,
                             fs, freqs, filter_length=filter_length,
@@ -702,7 +702,8 @@ class Raw(object):
         new_data = list()
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(self.info, meg=False, stim=True)
+            stim_picks = pick_types(self.info, meg=False, stim=True,
+                                    exclude='bads')
         stim_picks = np.asanyarray(stim_picks)
         ratio = sfreq / float(o_sfreq)
         for ri in range(len(self._raw_lengths)):

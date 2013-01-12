@@ -399,7 +399,7 @@ def make_eeg_average_ref_proj(info, verbose=None):
         The SSP/PCA projector.
     """
     logger.info("Adding average EEG reference projection.")
-    eeg_sel = pick_types(info, meg=False, eeg=True)
+    eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
     ch_names = info['ch_names']
     eeg_names = [ch_names[k] for k in eeg_sel]
     n_eeg = len(eeg_sel)
@@ -434,7 +434,7 @@ def setup_proj(info, verbose=None):
     """
     # Add EEG ref reference proj if necessary
     proj_desc = [p['desc'] for p in info['projs']]
-    eeg_sel = pick_types(info, meg=False, eeg=True)
+    eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
     if len(eeg_sel) > 0 and 'Average EEG reference' not in proj_desc:
         eeg_proj = make_eeg_average_ref_proj(info)
         info['projs'].append(eeg_proj)

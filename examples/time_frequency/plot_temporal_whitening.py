@@ -31,7 +31,7 @@ raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
 # Set up pick list: Gradiometers - bad channels
-picks = mne.fiff.pick_types(raw.info, meg='grad')
+picks = mne.fiff.pick_types(raw.info, meg='grad', exclude='bads')
 
 order = 5  # define model order
 picks = picks[:5]
