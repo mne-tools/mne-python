@@ -13,6 +13,9 @@ Changelog
 
    - Label morphing between subjects by `Eric Larson`_
 
+   - Define events based on time lag between reference and target event by `Denis Engemann`_
+
+   - ICA convenience function implmenting an automated artifact removal workflow by `Denis Engemann`_
 
 .. _changes_0_5:
 
