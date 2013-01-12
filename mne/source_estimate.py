@@ -960,7 +960,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     Returns
     -------
     left_map, right_map : sparse matrix
-        The morph maps for the 2 hemisphere.
+        The morph maps for the 2 hemispheres.
     """
 
     subjects_dir = get_subjects_dir(subjects_dir)
