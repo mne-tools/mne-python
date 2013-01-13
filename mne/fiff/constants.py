@@ -543,3 +543,4 @@ FIFF.FIFFV_COIL_VV_MAG_T3          = 3024  # Vectorview SQ20950N magnetometer
 FIFF.FIFFV_COIL_MAGNES_MAG         = 4001  # Magnes WH magnetometer
 FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer
 FIFF.FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
+FIFF.FIFFV_COIL_KIT_GRAD           = 6001  # KIT system axial gradiometer
