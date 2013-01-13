@@ -410,18 +410,20 @@ def read_data(fname):
 
 
 def _correct_padding(fid):
+    """Compensate Padding"""
     curpos = os.lseek(fid, 0, os.SEEK_CUR)
-    if ((curpos % 8) != 0):
-        os.lseek(fid, (8 - (curpos % 8)), os.SEEK_CUR)
+    if ((curpos % BTI.FILE_CURPOS) != 0):
+        offset = curpos % BTI.FILE_CURPOS
+        os.lseek(fid, (BTI.FILE_CURPOS - (offset)), os.SEEK_CUR)
 
 
 def _read_bti_header(fid):
     """ Read bti PDF header
     """
     out = dict(version=bti_read_int16(fid),
-               file_type=bti_read_str(fid, 5))
+               file_type=bti_read_str(fid, BTI.FILE_PDFH_HEADERSIZE))
 
-    os.lseek(fid, 1, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDFH_ENTER, os.SEEK_CUR)
 
     out.update(dict(data_format=bti_read_int16(fid),
                 acq_mode=bti_read_int16(fid),
@@ -430,18 +432,18 @@ def _read_bti_header(fid):
                 total_events=bti_read_int32(fid),
                 total_fixed_events=bti_read_int32(fid),
                 sample_period=bti_read_float(fid),
-                xaxis_label=bti_read_str(fid, 16),
+                xaxis_label=bti_read_str(fid, BTI.FILE_PDFH_XLABEL),
                 total_processes=bti_read_int32(fid),
                 total_chans=bti_read_int16(fid)))
 
-    os.lseek(fid, 2, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDFH_NEXT, os.SEEK_CUR)
     out.update(dict(checksum=bti_read_int32(fid),
                 total_ed_classes=bti_read_int32(fid),
                 total_associated_files=bti_read_int16(fid),
                 last_file_index=bti_read_int16(fid),
                 timestamp=bti_read_int32(fid)))
 
-    os.lseek(fid, 20, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDFH_EXIT, os.SEEK_CUR)
 
     _correct_padding(fid)
 
@@ -458,7 +460,7 @@ def _read_bti_epoch(fid):
                 checksum=bti_read_int32(fid),
                 epoch_timestamp=bti_read_int32(fid))
 
-    os.lseek(fid, 28, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_EPOCH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -466,23 +468,23 @@ def _read_bti_epoch(fid):
 def _read_channel(fid):
     """Read BTi PDF channel"""
 
-    out = dict(chan_label=bti_read_str(fid, 16),
+    out = dict(chan_label=bti_read_str(fid, BTI.FILE_CH_LABELSIZE),
                 chan_no=bti_read_int16(fid),
                 attributes=bti_read_int16(fid),
                 scale=bti_read_float(fid),
-                yaxis_label=bti_read_str(fid, 16),
+                yaxis_label=bti_read_str(fid, BTI.FILE_CH_YLABEL),
                 valid_min_max=bti_read_int16(fid))
 
-    os.lseek(fid, 6, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_CH_NEXT, os.SEEK_CUR)
 
     out.update(dict(ymin=bti_read_double(fid),
                 ymax=bti_read_double(fid),
                 index=bti_read_int32(fid),
                 checksum=bti_read_int32(fid),
-                off_flag=bti_read_str(fid, 16),
+                off_flag=bti_read_str(fid, BTI.FILE_CH_OFF_FLAG),
                 offset=bti_read_float(fid)))
 
-    os.lseek(fid, 12, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_CH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -490,14 +492,14 @@ def _read_channel(fid):
 def _read_event(fid):
     """Read BTi PDF event"""
 
-    out = dict(event_name=bti_read_str(fid, 16),
+    out = dict(event_name=bti_read_str(fid, BTI.FILE_EVENT_NAME),
                 start_lat=bti_read_float(fid),
                 end_lat=bti_read_float(fid),
                 step_size=bti_read_float(fid),
                 fixed_event=bti_read_int16(fid),
                 checksum=bti_read_int32(fid))
 
-    os.lseek(fid, 32, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_EVENT_EXIT, os.SEEK_CUR)
     _correct_padding(fid)
 
     return out
@@ -507,14 +509,14 @@ def _read_process(fid):
     """Read BTi PDF process"""
 
     out = dict(nbytes=bti_read_int32(fid),
-                blocktype=bti_read_str(fid, 20),
+                blocktype=bti_read_str(fid, BTI.FILE_PDF_PROCESS_BLOCKTYPE),
                 checksum=bti_read_int32(fid),
-                user=bti_read_str(fid, 32),
+                user=bti_read_str(fid, BTI.FILE_PDF_PROCESS_USER),
                 timestamp=bti_read_int32(fid),
-                filename=bti_read_str(fid, 256),
+                filename=bti_read_str(fid, BTI.FILE_PDF_PROCESS_FNAME),
                 total_steps=bti_read_int32(fid))
 
-    os.lseek(fid, 32, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_PROCESS_EXIT, os.SEEK_CUR)
 
     _correct_padding(fid)
 
@@ -527,7 +529,7 @@ def _read_assoc_file(fid):
     out = dict(file_id=bti_read_int16(fid),
                 length=bti_read_int16(fid))
 
-    os.lseek(fid, 32, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_ASSOC_NEXT, os.SEEK_CUR)
     out['checksum'] = bti_read_int32(fid)
 
     return out
@@ -537,9 +539,9 @@ def _read_pfid_ed(fid):
     """Read PDF ed file"""
 
     out = dict(comment_size=bti_read_int32(fid),
-             name=bti_read_str(fid, 17))
+             name=bti_read_str(fid, BTI.FILE_PDFED_NAME))
 
-    os.lseek(fid, 9, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
     out.update(dict(pdf_number=bti_read_int16(fid),
                     total_events=bti_read_int32(fid),
                     timestamp=bti_read_int32(fid),
@@ -550,7 +552,7 @@ def _read_pfid_ed(fid):
                     win_width=bti_read_float(fid),
                     win_offset=bti_read_float(fid)))
 
-    os.lseek(fid, 8, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
 
     return out
 
@@ -564,15 +566,14 @@ class PDF(object):
 
         # Now read the last 8 bytes
         hdr_pos = bti_read_int64(fid)
-        mask = 2147483647
-        test_val = hdr_pos & mask
+        test_val = hdr_pos & BTI.FILE_MASK
 
-        if ((ftr_pos + 8 - test_val) <= 2147483647):
+        if ((ftr_pos + BTI.FILE_CURPOS - test_val) <= BTI.FILE_MASK):
             hdr_pos = test_val
 
         # Check for alignment issues
-        if ((hdr_pos % 8) != 0):
-            hdr_pos += (8 - (hdr_pos % 8))
+        if ((hdr_pos % BTI.FILE_CURPOS) != 0):
+            hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
 
         # Finally seek to the start of the header
         os.lseek(fid, hdr_pos, os.SEEK_SET)
