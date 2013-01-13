@@ -1,4 +1,4 @@
-from . import Raw
+from . import Raw, pick_types
 from . constants import BTI
 from . import FIFF
 
@@ -6,19 +6,17 @@ import os
 import os.path as op
 import struct
 import time
-import sys
+
 from datetime import datetime
 from itertools import count
+from math import floor
 
 import numpy as np
 
-from mne import verbose
-from mne.fiff.constants import Bunch, FIFF
-from mne.fiff.raw import Raw, pick_types
+from .. import verbose
 
 import logging
 logger = logging.getLogger('mne')
-import warnings
 
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
@@ -54,7 +52,7 @@ def _unpack_simple(fid, format, count):
     return data[0] if count < 2 else list(data)
 
 
-def read_str(fid, count=1):
+def bti_read_str(fid, count=1):
     format = '>' + ('c' * count)
     data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
 
@@ -410,6 +408,285 @@ def read_data(fname):
     """
     pass
 
+
+def _correct_padding(fid):
+    curpos = os.lseek(fid, 0, os.SEEK_CUR)
+    if ((curpos % 8) != 0):
+        os.lseek(fid, (8 - (curpos % 8)), os.SEEK_CUR)
+
+
+def _read_bti_header(fid):
+    """ Read bti PDF header
+    """
+    out = dict(version=bti_read_int16(fid),
+               file_type=bti_read_str(fid, 5))
+
+    os.lseek(fid, 1, os.SEEK_CUR)
+
+    out.update(dict(data_format=bti_read_int16(fid),
+                acq_mode=bti_read_int16(fid),
+                total_epochs=bti_read_int32(fid),
+                input_epochs=bti_read_int32(fid),
+                total_events=bti_read_int32(fid),
+                total_fixed_events=bti_read_int32(fid),
+                sample_period=bti_read_float(fid),
+                xaxis_label=bti_read_str(fid, 16),
+                total_processes=bti_read_int32(fid),
+                total_chans=bti_read_int16(fid)))
+
+    os.lseek(fid, 2, os.SEEK_CUR)
+    out.update(dict(checksum=bti_read_int32(fid),
+                total_ed_classes=bti_read_int32(fid),
+                total_associated_files=bti_read_int16(fid),
+                last_file_index=bti_read_int16(fid),
+                timestamp=bti_read_int32(fid)))
+
+    os.lseek(fid, 20, os.SEEK_CUR)
+
+    _correct_padding(fid)
+
+    return out
+
+
+def _read_bti_epoch(fid):
+    """Read BTi epoch"""
+    out = dict(pts_in_epoch=bti_read_int32(fid),
+                epoch_duration=bti_read_float(fid),
+                expected_iti=bti_read_float(fid),
+                actual_iti=bti_read_float(fid),
+                total_var_events=bti_read_int32(fid),
+                checksum=bti_read_int32(fid),
+                epoch_timestamp=bti_read_int32(fid))
+
+    os.lseek(fid, 28, os.SEEK_CUR)
+
+    return out
+
+
+def _read_channel(fid):
+    """Read BTi PDF channel"""
+
+    out = dict(chan_label=bti_read_str(fid, 16),
+                chan_no=bti_read_int16(fid),
+                attributes=bti_read_int16(fid),
+                scale=bti_read_float(fid),
+                yaxis_label=bti_read_str(fid, 16),
+                valid_min_max=bti_read_int16(fid))
+
+    os.lseek(fid, 6, os.SEEK_CUR)
+
+    out.update(dict(ymin=bti_read_double(fid),
+                ymax=bti_read_double(fid),
+                index=bti_read_int32(fid),
+                checksum=bti_read_int32(fid),
+                off_flag=bti_read_str(fid, 16),
+                offset=bti_read_float(fid)))
+
+    os.lseek(fid, 12, os.SEEK_CUR)
+
+    return out
+
+
+def _read_event(fid):
+    """Read BTi PDF event"""
+
+    out = dict(event_name=bti_read_str(fid, 16),
+                start_lat=bti_read_float(fid),
+                end_lat=bti_read_float(fid),
+                step_size=bti_read_float(fid),
+                fixed_event=bti_read_int16(fid),
+                checksum=bti_read_int32(fid))
+
+    os.lseek(fid, 32, os.SEEK_CUR)
+    _correct_padding(fid)
+
+    return out
+
+
+def _read_process(fid):
+    """Read BTi PDF process"""
+
+    out = dict(nbytes=bti_read_int32(fid),
+                blocktype=bti_read_str(fid, 20),
+                checksum=bti_read_int32(fid),
+                user=bti_read_str(fid, 32),
+                timestamp=bti_read_int32(fid),
+                filename=bti_read_str(fid, 256),
+                total_steps=bti_read_int32(fid))
+
+    os.lseek(fid, 32, os.SEEK_CUR)
+
+    _correct_padding(fid)
+
+    return out
+
+
+def _read_assoc_file(fid):
+    """Read BTi PDF assocfile"""
+
+    out = dict(file_id=bti_read_int16(fid),
+                length=bti_read_int16(fid))
+
+    os.lseek(fid, 32, os.SEEK_CUR)
+    out['checksum'] = bti_read_int32(fid)
+
+    return out
+
+
+def _read_pfid_ed(fid):
+    """Read PDF ed file"""
+
+    out = dict(comment_size=bti_read_int32(fid),
+             name=bti_read_str(fid, 17))
+
+    os.lseek(fid, 9, os.SEEK_CUR)
+    out.update(dict(pdf_number=bti_read_int16(fid),
+                    total_events=bti_read_int32(fid),
+                    timestamp=bti_read_int32(fid),
+                    flags=bti_read_int32(fid),
+                    de_process=bti_read_int32(fid),
+                    checksum=bti_read_int32(fid),
+                    ed_id=bti_read_int32(fid),
+                    win_width=bti_read_float(fid),
+                    win_offset=bti_read_float(fid)))
+
+    os.lseek(fid, 8, os.SEEK_CUR)
+
+    return out
+
+
+class PDF(object):
+    """ Read Bti processed data file (PDF)
+    """
+    def __init__(self, fid):
+
+        ftr_pos = os.lseek(fid, -8, os.SEEK_END)
+
+        # Now read the last 8 bytes
+        hdr_pos = bti_read_int64(fid)
+        mask = 2147483647
+        test_val = hdr_pos & mask
+
+        if ((ftr_pos + 8 - test_val) <= 2147483647):
+            hdr_pos = test_val
+
+        # Check for alignment issues
+        if ((hdr_pos % 8) != 0):
+            hdr_pos += (8 - (hdr_pos % 8))
+
+        # Finally seek to the start of the header
+        os.lseek(fid, hdr_pos, os.SEEK_SET)
+
+        # Figure out the header size
+        self.hdr_size = ftr_pos - hdr_pos
+
+        self.hdr = _read_bti_header(fid)
+
+        self.epochs = list()
+        for epoch in xrange(self.hdr['total_epochs']):
+            self.epochs += [_read_bti_epoch(epoch)]
+
+        self.channels = list()
+        for channel in range(self.hdr['total_chans']):
+            self.channels += [_read_channel(channel)]
+
+        self.events = list()
+        for event in range(self.hdr['total_events']):
+            self.events += [_read_event(event)]
+
+        self.processes = list()
+        for process in range(self.hdr.total_processes):
+            self.processes += [_read_process(process)]
+
+        self.assocfiles = list()
+        for af in range(self.hdr.total_associated_files):
+            self.assocfiles += [_read_assoc_file(af)]
+
+        self.edclasses = list()
+        for ed_class in range(self.hdr.total_ed_classes):
+            self.edclasses += [_read_pfid_ed(ed_class)]
+
+        # We load any remaining data
+        curpos = os.lseek(fid, 0, os.SEEK_CUR)
+        self.extradata = os.read(fid, ftr_pos - curpos)
+
+        # Stash a copy of the fid in case we need to load data later
+        # We need to take our own copy so that if someone closes it
+        # underneath us, bad things don't happen
+        self.fid = os.fidopen(os.dup(fid), 'r')
+
+        # calculate n_tsl
+        self.total_slices = 0
+        for e in self.epochs:
+            self.total_slices += e.pts_in_epoch
+
+    def get_dtype(self):
+        """Get dtypes"""
+        return BTI.NUMPY_DATATYPES[self.hdr.data_format]
+
+    def get_bytes_per_slice(self):
+        """Get bytes per slice"""
+
+        return self.get_dtype().itemsize * self.hdr.total_chans
+
+    def read_raw_data(self, slices=None, indices=None):
+        """Read raw data"""
+        total_slices = self.total_slices
+
+        # If slices is None, return all data
+        if slices is None:
+            start = 0
+            end = total_slices
+        else:
+            start = slices[0]
+            end = slices[1]
+
+        if (start < 0) or (end > total_slices) or (start >= end):
+            raise RuntimeError('Invalid start and end slices for get_slice_r'
+                               'ange(): %d, %d' % (start, end))
+
+        self.fid.seek(self.get_bytes_per_slice() * start)
+
+        count_ = (end - start) * self.hdr['total_chans']
+        shape = [end - start, self.hdr['total_chans']]
+        _data_unsorted = np.fromfile(self.fid, dtype=self.get_dtype(),
+                                      count=count_).reshape(shape)
+
+        if indices is None:
+            # Return everything unordered
+            data = _data_unsorted
+        else:
+            data = _data_unsorted[:, indices]
+            del _data_unsorted
+
+        return data
+
+    def find_first_event(self, eventname):
+        """Find first event"""
+        for e in self.events:
+            if e.event_name == eventname:
+                return e
+
+        return None
+
+    def slice_to_latency(self, slicenum):
+        """Time as index"""
+        trigev = self.find_first_event('Trigger')
+        period = self.hdr.sample_period
+
+        return (slicenum * period) - trigev.start_lat
+
+    def latency_to_slice(self, latency):
+
+        trigev = self.find_first_event('Trigger')
+        period = self.hdr.sample_period
+
+        ret = float(latency + trigev.start_lat) / float(period)
+
+        # Round
+        return floor(ret + 0.5)
+
+
 def read_config(fname):
     """Read BTi system config file
 
@@ -490,7 +767,7 @@ class RawBTi(Raw):
         self.rawdir = None
         self.proj = None
         self.comp = None
-        self.fids = []
+        self.fids = list()
         self._preloaded = True
         self._projector_hashes = [None]
         self.info = info
