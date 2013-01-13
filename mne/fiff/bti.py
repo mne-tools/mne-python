@@ -421,9 +421,9 @@ def _read_bti_header(fid):
     """ Read bti PDF header
     """
     out = dict(version=bti_read_int16(fid),
-               file_type=bti_read_str(fid, BTI.FILE_PDFH_HEADERSIZE))
+               file_type=bti_read_str(fid, BTI.FILE_PDF_H_SIZE))
 
-    os.lseek(fid, BTI.FILE_PDFH_ENTER, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_H_ENTER, os.SEEK_CUR)
 
     out.update(dict(data_format=bti_read_int16(fid),
                 acq_mode=bti_read_int16(fid),
@@ -432,18 +432,18 @@ def _read_bti_header(fid):
                 total_events=bti_read_int32(fid),
                 total_fixed_events=bti_read_int32(fid),
                 sample_period=bti_read_float(fid),
-                xaxis_label=bti_read_str(fid, BTI.FILE_PDFH_XLABEL),
+                xaxis_label=bti_read_str(fid, BTI.FILE_PDF_H_XLABEL),
                 total_processes=bti_read_int32(fid),
                 total_chans=bti_read_int16(fid)))
 
-    os.lseek(fid, BTI.FILE_PDFH_NEXT, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_H_NEXT, os.SEEK_CUR)
     out.update(dict(checksum=bti_read_int32(fid),
                 total_ed_classes=bti_read_int32(fid),
                 total_associated_files=bti_read_int16(fid),
                 last_file_index=bti_read_int16(fid),
                 timestamp=bti_read_int32(fid)))
 
-    os.lseek(fid, BTI.FILE_PDFH_EXIT, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_H_EXIT, os.SEEK_CUR)
 
     _correct_padding(fid)
 
@@ -460,7 +460,7 @@ def _read_bti_epoch(fid):
                 checksum=bti_read_int32(fid),
                 epoch_timestamp=bti_read_int32(fid))
 
-    os.lseek(fid, BTI.FILE_EPOCH_EXIT, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_EPOCH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -468,23 +468,23 @@ def _read_bti_epoch(fid):
 def _read_channel(fid):
     """Read BTi PDF channel"""
 
-    out = dict(chan_label=bti_read_str(fid, BTI.FILE_CH_LABELSIZE),
+    out = dict(chan_label=bti_read_str(fid, BTI.FILE_PDF_CH_LABELSIZE),
                 chan_no=bti_read_int16(fid),
                 attributes=bti_read_int16(fid),
                 scale=bti_read_float(fid),
-                yaxis_label=bti_read_str(fid, BTI.FILE_CH_YLABEL),
+                yaxis_label=bti_read_str(fid, BTI.FILE_PDF_CH_YLABEL),
                 valid_min_max=bti_read_int16(fid))
 
-    os.lseek(fid, BTI.FILE_CH_NEXT, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_CH_NEXT, os.SEEK_CUR)
 
     out.update(dict(ymin=bti_read_double(fid),
                 ymax=bti_read_double(fid),
                 index=bti_read_int32(fid),
                 checksum=bti_read_int32(fid),
-                off_flag=bti_read_str(fid, BTI.FILE_CH_OFF_FLAG),
+                off_flag=bti_read_str(fid, BTI.FILE_PDF_CH_OFF_FLAG),
                 offset=bti_read_float(fid)))
 
-    os.lseek(fid, BTI.FILE_CH_EXIT, os.SEEK_CUR)
+    os.lseek(fid, BTI.FILE_PDF_CH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -955,4 +955,3 @@ class RawBTi(Raw):
             data = np.fromfile(f, dtype=dtp, count=cnt)
 
         return data.reshape(shape).T
-
