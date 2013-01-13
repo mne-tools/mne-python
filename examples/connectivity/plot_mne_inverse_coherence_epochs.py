@@ -41,13 +41,13 @@ label_lh = mne.read_label(fname_label_lh)
 raw = Raw(fname_raw)
 events = mne.read_events(fname_event)
 
-# Set up pick list
-include = []
-exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
+# Add a bad channel
+raw.info['bads'] += ['MEG 2443']
 
 # pick MEG channels
 picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   include=include, exclude=exclude)
+                   exclude='bads')
+
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,

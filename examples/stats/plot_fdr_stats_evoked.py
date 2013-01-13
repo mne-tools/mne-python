@@ -38,11 +38,12 @@ include = [channel]
 
 ###############################################################################
 # Read epochs for the channel of interest
-picks = fiff.pick_types(raw.info, meg=False, eog=True, include=include)
+picks = fiff.pick_types(raw.info, meg=False, eog=True, include=include,
+                        exclude='bads')
 event_id = 1
 reject = dict(grad=4000e-13, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                     baseline=(None, 0), reject=reject)
+                    baseline=(None, 0), reject=reject)
 X = epochs.get_data()  # as 3D matrix
 X = X[:, 0, :]  # take only one channel to get a 2D array
 

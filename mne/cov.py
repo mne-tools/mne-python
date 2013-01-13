@@ -186,7 +186,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         If flat is None then no rejection is done.
     picks : array of int
         Indices of channels to include (if None, all channels
-        are used).
+        except bad channels are used).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -206,12 +206,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     step = int(ceil(tstep * raw.info['sfreq']))
 
     if picks is None:
-        picks_data = pick_types(raw.info, meg=True, eeg=True, eog=False)
-    else:
-        picks_data = picks
-
-    picks = pick_types(raw.info, meg=True, eeg=True, eog=True)
-    idx = [list(picks).index(k) for k in picks_data]
+        picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
+                           exclude='bads')
 
     data = 0
     n_samples = 0
@@ -230,8 +226,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
             last = stop
         raw_segment, times = raw[picks, first:last]
         if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat):
-            mu += raw_segment[idx].sum(axis=1)
-            data += np.dot(raw_segment[idx], raw_segment[idx].T)
+            mu += raw_segment.sum(axis=1)
+            data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
         else:
             logger.info("Artefact detected in [%d, %d]" % (first, last))
@@ -245,7 +241,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
     cov = Covariance(None)
 
-    ch_names = [raw.info['ch_names'][k] for k in picks_data]
+    ch_names = [raw.info['ch_names'][k] for k in picks]
     # XXX : do not compute eig and eigvec now (think it's better...)
     eig = None
     eigvec = None
@@ -341,7 +337,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     n_samples = np.zeros(n_epoch_types, dtype=np.int)
     n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
-    picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False)
+    picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
+                            exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
 
     for i, epochs_t in enumerate(epochs):
@@ -458,8 +455,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, exclude=info['bads'])
-    pick_eeg = pick_types(info, meg=False, eeg=True, exclude=info['bads'])
+    pick_meg = pick_types(info, meg=True, eeg=False, exclude='bads')
+    pick_eeg = pick_types(info, meg=False, eeg=True, exclude='bads')
     meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
     C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
     eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
@@ -509,16 +506,16 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     cov : Covariance
         The noise covariance matrix.
     info : dict
-        The measurement info (used to get channel types and bad channels)
+        The measurement info (used to get channel types and bad channels).
     mag : float
-        Regularization factor for MEG magnetometers
+        Regularization factor for MEG magnetometers.
     grad : float
-        Regularization factor for MEG gradiometers
+        Regularization factor for MEG gradiometers.
     eeg : float
-        Regularization factor for EEG
-    exclude : list
+        Regularization factor for EEG.
+    exclude : list | None
         List of channels to mark as bad. If None, bads channels
-        are extracted from info and cov['bads'].
+        are extracted from both info['bads'] and cov['bads'].
     proj : bool
         Apply or not projections to keep rank of data.
     verbose : bool, str, int, or None
@@ -599,9 +596,9 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     Parameters
     ----------
     noise_cov : Covariance
-        The noise covariance
+        The noise covariance.
     info : dict
-        The measurement info
+        The measurement info.
     picks : array of int | None
         The channels indices to include. If None the data
         channels in info, except bad channels, are used.
@@ -611,12 +608,12 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     Returns
     -------
     W : 2d array
-        The whitening matrix
+        The whitening matrix.
     ch_names : list
-        The channel names
+        The channel names.
     """
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 

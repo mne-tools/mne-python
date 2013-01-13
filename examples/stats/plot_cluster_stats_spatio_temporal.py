@@ -46,8 +46,8 @@ events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
-exclude = ['MEG 2443']
-picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude=exclude)
+raw.info['bads'] += ['MEG 2443']
+picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 event_id = 1  # L auditory
 reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
 epochs1 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

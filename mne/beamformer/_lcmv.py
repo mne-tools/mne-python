@@ -33,34 +33,35 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         and a single stc is returned. If data.ndim == 3 or if data is
         a list / iterable, a list of stc's is returned.
     info : dict
-        Measurement info
+        Measurement info.
     tmin : float
-        Time of first sample
+        Time of first sample.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : Covariance
-        The noise covariance
+        The noise covariance.
     data_cov : Covariance
-        The data covariance
+        The data covariance.
     reg : float
         The regularization for the whitened data covariance.
     label : Label
-        Restricts the LCMV solution to a given label
-    picks : array of int
-        Indices (in info) of data channels
+        Restricts the LCMV solution to a given label.
+    picks : array of int | None
+        Indices (in info) of data channels. If None, MEG and EEG data channels
+        (without bad channels) will be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     stc : SourceEstimate (or list of SourceEstimate)
-        Source time courses
+        Source time courses.
     """
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -253,7 +254,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = epochs.times[0]
 
     # use only the good data channels
-    picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+    picks = pick_types(info, meg=True, eeg=True, exclude='bads')
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
@@ -293,7 +294,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         Index of first time sample not to include (index not time is seconds).
     picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
-        are used).
+        are used except bad channels).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -313,7 +314,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     info = raw.info
 
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude=info['bads'])
+        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     data, times = raw[picks, start:stop]
     tmin = times[0]

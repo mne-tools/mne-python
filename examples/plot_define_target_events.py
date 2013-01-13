@@ -36,11 +36,11 @@ events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['EEG 053']  # bads
+raw.info['bads'] += ['EEG 053']  # bads
 
 # pick MEG channels
 picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
-                        include=include, exclude=exclude)
+                        include=include, exclude='bads')
 
 ###############################################################################
 # Find stimulus event followed by quick button presses

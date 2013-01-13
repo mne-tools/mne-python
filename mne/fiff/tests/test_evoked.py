@@ -86,7 +86,7 @@ def test_evoked_detrend():
     ave_normal = read_evoked(fname, 0)
     ave.detrend(0)
     ave_normal.data -= np.mean(ave_normal.data, axis=1)[:, np.newaxis]
-    picks = pick_types(ave.info, meg=True, eeg=True)
+    picks = pick_types(ave.info, meg=True, eeg=True, exclude='bads')
     assert_true(np.allclose(ave.data[picks], ave_normal.data[picks],
                             rtol=1e-8, atol=1e-16))
 

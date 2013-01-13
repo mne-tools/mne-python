@@ -25,7 +25,8 @@ event_id_2 = 2
 raw = fiff.Raw(raw_fname)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
-                        ecg=True, eog=True, include=['STI 014'])
+                        ecg=True, eog=True, include=['STI 014'],
+                        exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -47,7 +48,7 @@ def test_read_write_epochs():
     assert_array_equal(data, epochs_no_id.get_data())
 
     eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
-                                eog=True)
+                                eog=True, exclude='bads')
     epochs.drop_picks(eog_picks)
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
@@ -172,8 +173,6 @@ def test_evoked_standard_error():
             assert_array_almost_equal(ave.times, ave2.times)
             assert_equal(ave.nave, ave2.nave)
             assert_equal(ave._aspect_kind, ave2._aspect_kind)
-            print ave._aspect_kind
-            print ave2._aspect_kind
             assert_equal(ave.kind, ave2.kind)
             assert_equal(ave.last, ave2.last)
             assert_equal(ave.first, ave2.first)
@@ -182,8 +181,8 @@ def test_evoked_standard_error():
 def test_reject_epochs():
     """Test of epochs rejection
     """
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, flat=flat)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
+                    reject=reject, flat=flat)
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
@@ -194,6 +193,16 @@ def test_reject_epochs():
     assert_true(n_clean_epochs == 3)
     assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
                                     ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
+
+    # Ensure epochs are not dropped based on a bad channel
+    raw_2 = raw.copy()
+    raw_2.info['bads'] = ['MEG 2443']
+    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
+    epochs = Epochs(raw_2, events, event_id, tmin, tmax, baseline=(None, 0),
+                    reject=reject_crazy, flat=flat)
+    epochs.drop_bad_epochs()
+    assert_true(all(['MEG 2442' in e for e in epochs.drop_log]))
+    assert_true(all(['MEG 2443' not in e for e in epochs.drop_log]))
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat,
@@ -365,7 +374,8 @@ def test_detrend():
                       baseline=None, detrend=1)
     epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=None)
-    data_picks = fiff.pick_types(epochs_1.info, meg=True, eeg=True)
+    data_picks = fiff.pick_types(epochs_1.info, meg=True, eeg=True,
+                                 exclude='bads')
     evoked_1 = epochs_1.average()
     evoked_2 = epochs_2.average()
     evoked_2.detrend(1)

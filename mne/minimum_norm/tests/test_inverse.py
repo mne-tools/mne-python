@@ -219,7 +219,8 @@ def test_apply_mne_inverse_epochs():
     event_id, tmin, tmax = 1, -0.2, 0.5
 
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                            ecg=True, eog=True, include=['STI 014'])
+                            ecg=True, eog=True, include=['STI 014'],
+                            exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
     flat = dict(grad=1e-15, mag=1e-15)
 

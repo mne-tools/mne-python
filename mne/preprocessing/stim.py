@@ -17,39 +17,39 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     Parameters
     ----------
     raw : Raw object
-        raw data object
+        raw data object.
     events : array, shape (n_events, 3)
-        The list of events
+        The list of events.
     event_id : int
         The id of the events generating the stimulation artifacts.
     tmin : float
-        Start time before event in seconds
+        Start time before event in seconds.
     tmax : float
-        End time after event in seconds
+        End time after event in seconds.
     mode : 'linear' | 'window'
-        way to fill the artifacted time interval
+        way to fill the artifacted time interval.
         'linear' does linear interpolation
-        'window' applies a (1 - hanning) window
+        'window' applies a (1 - hanning) window.
 
     Returns
     -------
     raw: Raw object
-        raw data object
+        raw data object.
     """
     if not raw._preloaded:
         raise RuntimeError('Modifying data of Raw is only supported '
-                            'when preloading is used. Use preload=True '
-                            '(or string) in the constructor.')
+                           'when preloading is used. Use preload=True '
+                           '(or string) in the constructor.')
     events_sel = (events[:, 2] == event_id)
     event_start = events[events_sel, 0]
     s_start = np.ceil(raw.info['sfreq'] * np.abs(tmin))
     s_end = np.ceil(raw.info['sfreq'] * tmax)
 
-    picks = pick_types(raw.info, meg=True, eeg=True)
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
 
     if mode == 'window':
         window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4),
-                            signal.hann(4)[-2:]].T
+                           signal.hann(4)[-2:]].T
 
     for k in range(len(event_start)):
         first_samp = event_start[k] - raw.first_samp - s_start

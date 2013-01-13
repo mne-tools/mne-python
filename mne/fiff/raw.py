@@ -351,25 +351,19 @@ class Raw(object):
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-
         picks : list of int
             Indices of channels to apply the function to.
-
         dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
-
         n_jobs: int
             Number of jobs to run in parallel.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
-
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
-
         **kwargs :
             Keyword arguments to pass to fun.
         """
@@ -489,7 +483,7 @@ class Raw(object):
             high-passed.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+            channels will be filtered (except bad channels).
         filter_length : int (default: None)
             Length of the filter to use (e.g. 4096).
             If None or "n_times < filter_length",
@@ -520,7 +514,7 @@ class Raw(object):
         if h_freq > (fs / 2.):
             h_freq = None
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -603,7 +597,7 @@ class Raw(object):
             where an F test is used to find sinusoidal components.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered.
+            channels will be filtered (excep bad channels).
         filter_length : int (default: None)
             Length of the filter to use (e.g. 4096).
             If None or "n_times < filter_length",
@@ -644,7 +638,7 @@ class Raw(object):
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
         self.apply_function(notch_filter, picks, None, n_jobs, verbose,
                             fs, freqs, filter_length=filter_length,
@@ -682,7 +676,7 @@ class Raw(object):
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
-            mne.fiff.pick_types(raw.info, meg=False, stim=True).
+            mne.fiff.pick_types(raw.info, meg=False, stim=True, exclude=[]).
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
@@ -702,7 +696,8 @@ class Raw(object):
         new_data = list()
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(self.info, meg=False, stim=True)
+            stim_picks = pick_types(self.info, meg=False, stim=True,
+                                    exclude=[])
         stim_picks = np.asanyarray(stim_picks)
         ratio = sfreq / float(o_sfreq)
         for ri in range(len(self._raw_lengths)):
@@ -711,7 +706,7 @@ class Raw(object):
             # for speed and to save memory (faster not to use array_split, too)
             parallel, my_resample, _ = parallel_func(resample, n_jobs)
             new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                                npad, 0) for d in data_chunk)))
+                                              npad, 0) for d in data_chunk)))
             new_ntimes = new_data[ri].shape[1]
 
             # Now deal with the stim channels. In empirical testing, it was
@@ -786,7 +781,7 @@ class Raw(object):
         raw._raw_lengths = raw._last_samps - raw._first_samps + 1
         raw.fids = [f for fi, f in enumerate(raw.fids) if fi in keepers]
         raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
-                        if ri in keepers]
+                       if ri in keepers]
         if raw._preloaded:
             raw._data = raw._data[:, smin:smax + 1]
         raw.first_samp = raw._first_samps[0]

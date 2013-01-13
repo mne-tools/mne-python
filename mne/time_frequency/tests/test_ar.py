@@ -31,7 +31,7 @@ def test_ar_raw():
     raw = fiff.Raw(raw_fname)
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='grad')
+    picks = fiff.pick_types(raw.info, meg='grad', exclude='bads')
 
     picks = picks[:2]
 
