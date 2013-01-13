@@ -226,14 +226,14 @@ def pick_info(info, sel=[]):
     Parameters
     ----------
     info : dict
-        Info structure from evoked or raw data
+        Info structure from evoked or raw data.
     sel : list of int
-        Indices of channels to include
+        Indices of channels to include.
 
     Returns
     -------
     res : dict
-        Info structure restricted to a selection of channels
+        Info structure restricted to a selection of channels.
     """
 
     res = deepcopy(info)

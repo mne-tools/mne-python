@@ -580,7 +580,7 @@ def _restrict_gain_matrix(G, info):
     if not (len(info['chs']) == G.shape[0]):
         raise ValueError("G.shape[0] and length of info['chs'] do not match: "
                          "%d != %d" % (G.shape[0], len(info['chs'])))
-    sel = pick_types(info, meg='grad')
+    sel = pick_types(info, meg='grad', exclude=[])
     if len(sel) > 0:
         G = G[sel]
         logger.info('    %d planar channels' % len(sel))

@@ -1102,6 +1102,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     #
 
     if depth is not None:
+        patch_areas = forward.get('patch_areas', None)
         depth_prior = compute_depth_prior(gain, gain_info, is_fixed_ori,
                                           exp=depth, patch_areas=patch_areas,
                                           limit_depth_chs=limit_depth_chs)
