@@ -165,7 +165,7 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
     For example, one could do:
 
         >>> from mne.datasets import megsim
-        >>> megsim.load_megis('visual', 'raw', 'experimental', os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> megsim.load_data('visual', 'raw', 'experimental', os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
     And this would download the raw visual experimental MEGSIM dataset to the
     'datasets' folder, and prompt the user to save the 'datasets' path to the
