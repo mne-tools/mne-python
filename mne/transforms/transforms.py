@@ -18,6 +18,34 @@ from ..fiff.write import start_file, end_file, start_block, end_block, \
                    write_coord_trans, write_dig_point, write_int
 
 
+def apply_trans(trans, pts):
+    """Apply a transform matrix to an array of points
+
+    Parameters
+    ----------
+    trans : array, shape = (4, 4)
+        Transform matrix.
+    pts : array, shape = (3,) | (n, 3)
+        Array with coordinates for one or n points.
+
+    Returns
+    -------
+    transformed_pts : shape = (3,) | (n, 3)
+        Transformed point(s).
+    """
+    trans = np.asarray(trans)
+    pts = np.asarray(pts)
+    if pts.ndim == 1:
+        pts = np.vstack((pts[:, None], [1]))
+        pts = np.dot(trans, pts)
+        pts = pts[:3, 0]
+    else:
+        pts = np.vstack((pts.T, np.ones(len(pts))))
+        pts = np.dot(trans, pts)
+        pts = pts[:3].T
+    return pts
+
+
 def rotation(x=0, y=0, z=0):
     """Create an array with a rotation matrix
 
