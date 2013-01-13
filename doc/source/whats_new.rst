@@ -17,6 +17,9 @@ Changelog
 
    - ICA convenience function implementing an automated artifact removal workflow by `Denis Engemann`_
 
+   - Bad channels no longer included in epochs by default by `Eric Larson`_
+
+
 API
 ~~~
    - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
