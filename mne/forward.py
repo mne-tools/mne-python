@@ -602,14 +602,16 @@ def _restrict_gain_matrix(G, forward, ch_names):
     return G
 
 
-def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None):
+def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None,
+                        limit_depth_chs=False):
     """Compute weighting for depth prior
     """
     logger.info('Creating the depth weighting matrix...')
     is_fixed_ori = is_fixed_orient(forward)
 
     # If possible, pick best depth-weighting channels
-    if forward is not None and ch_names is not None:
+    if forward is not None and ch_names is not None \
+            and limit_depth_chs is True:
         G = _restrict_gain_matrix(G, forward, ch_names)
 
     # Compute the gain matrix
