@@ -404,7 +404,7 @@ def combine_xyz(vec, square=False):
     return comb
 
 
-def _chech_ch_names(inv, info):
+def _check_ch_names(inv, info):
     """Check that channels in inverse operator are measurements"""
 
     inv_ch_names = inv['eigen_fields']['col_names']
@@ -694,7 +694,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     #
     nave = evoked.nave
 
-    _chech_ch_names(inverse_operator, evoked.info)
+    _check_ch_names(inverse_operator, evoked.info)
 
     inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
@@ -780,7 +780,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     """
     method = _check_method(method, dSPM)
 
-    _chech_ch_names(inverse_operator, raw.info)
+    _check_ch_names(inverse_operator, raw.info)
 
     #
     #   Set up the inverse according to the parameters
@@ -843,7 +843,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
 
-    _chech_ch_names(inverse_operator, epochs.info)
+    _check_ch_names(inverse_operator, epochs.info)
 
     #
     #   Set up the inverse according to the parameters
@@ -1015,7 +1015,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
 
     fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
-    fwd_info = pick_info(info, fwd_idx)
+    info_idx = [info['ch_names'].index(name) for name in ch_names]
+    fwd_info = pick_info(info, info_idx)
 
     logger.info('Total rank is %d' % n_nzero)
 
