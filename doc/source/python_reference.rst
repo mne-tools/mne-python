@@ -200,6 +200,7 @@ Projections:
    ica_find_ecg_events
    ica_find_eog_events
    read_ica
+   run_ica
 
 :py:mod:`mne.filter`:
 
@@ -228,6 +229,7 @@ Events
    :toctree: generated/
    :template: function.rst
 
+   define_target_events
    concatenate_events
    find_events
    make_fixed_length_events
