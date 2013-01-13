@@ -139,7 +139,7 @@ def _read_one(fid, node):
 
     try:
         one['sol'] = _read_named_matrix(fid, node,
-                                            FIFF.FIFF_MNE_FORWARD_SOLUTION)
+                                        FIFF.FIFF_MNE_FORWARD_SOLUTION)
         one['sol'] = _transpose_named_matrix(one['sol'])
     except:
         fid.close()
@@ -314,8 +314,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         else:
             ori = 'free'
         logger.info('    Read EEG forward solution (%d sources, %d channels, '
-                     '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
-                                           ori))
+                    '%s orientations)' % (eegfwd['nsource'], eegfwd['nchan'],
+                                          ori))
 
     #   Merge the MEG and EEG solutions together
     if megfwd is not None and eegfwd is not None:
@@ -361,7 +361,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
             mri_head_t = invert_transform(mri_head_t)
             if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
-                or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
+                    or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation not '
                                  'found')
@@ -395,7 +395,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         raise ValueError('Source spaces do not match the forward solution.')
 
     logger.info('    Source spaces transformed to the forward solution '
-                     'coordinate frame')
+                'coordinate frame')
     fwd['src'] = src
 
     #   Handle the source locations and orientations
@@ -477,9 +477,9 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
 def _to_fixed_ori(forward):
     """Helper to convert the forward solution to fixed ori from free"""
-    if not forward['surf_ori']:
-        raise ValueError('Only surface-oriented forward solutions can be '
-                         'converted to fixed orientaton')
+    if not forward['surf_ori'] or is_fixed_orient(forward):
+        raise ValueError('Only surface-oriented, free-orientation forward '
+                         'solutions can be converted to fixed orientaton')
     forward['sol']['data'] = forward['sol']['data'][:, 2::3]
     forward['sol']['ncol'] = forward['sol']['ncol'] / 3
     forward['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
