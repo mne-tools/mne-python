@@ -162,12 +162,12 @@ def test_make_inverse_operator_fixed():
                   noise_cov, depth=0.8, loose=None)
     # can't make fixed inv without surf ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
-                  noise_cov, depth=0.8, loose=None, force_fixed=True)
+                  noise_cov, depth=0.8, loose=None, fixed=True)
     # can't make fixed inv with depth weighting without free ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
-                  noise_cov, depth=0.8, loose=None, force_fixed=True)
+                  noise_cov, depth=0.8, loose=None, fixed=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
-                                   loose=None, force_fixed=True,
+                                   loose=None, fixed=True,
                                    limit_depth_chs=True)
     _compare_io(inv_op)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
@@ -177,9 +177,9 @@ def test_make_inverse_operator_fixed():
 
     # Now without depth weighting, these should be equivalent
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
-                                   loose=None, force_fixed=True)
+                                   loose=None, fixed=True)
     inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
-                                  loose=None, force_fixed=True,
+                                  loose=None, fixed=True,
                                   limit_depth_chs=True)
     _compare_inverses_approx(inv_op, inv_2, evoked, 2)
     _compare_io(inv_op)
@@ -261,7 +261,7 @@ def test_apply_mne_inverse_fixed_raw():
     # create a fixed-orientation inverse operator
     fwd = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8, force_fixed=True)
+                                   loose=None, depth=0.8, fixed=True)
 
     stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                             label=label_lh, start=start, stop=stop, nave=1,
