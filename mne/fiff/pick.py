@@ -166,7 +166,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         warn(msg, category=DeprecationWarning)
         logger.warn(msg)
         exclude = []
-    elif exclude is 'bads':
+    elif exclude == 'bads':
         exclude = info.get('bads', [])
     elif not isinstance(exclude, list):
         raise ValueError('exclude must either be "bads" or a list of strings.'
