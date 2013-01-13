@@ -161,7 +161,7 @@ Read and plot a segment of raw data
 
 Save a segment of 150s of raw data (MEG only):
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True)
+    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks) # doctest: +ELLIPSIS
     Reading ...
 
@@ -191,20 +191,20 @@ Define epochs parameters:
     >>> tmin = -0.2  # start of each epoch (200ms before the trigger)
     >>> tmax = 0.5  # end of each epoch (500ms after the trigger)
 
-Exclude some channels (bads + 2 more):
+Exclude some channels (original bads + 2 more):
 
-    >>> exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']
+    >>> raw.info['bads'] += ['MEG 2443', 'EEG 053']
 
 The variable raw.info['bads'] is just a python list.
 
-Pick the good channels:
+Pick the good channels, excluding raw.info['bads']:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude=exclude)
+    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude=exclude)
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude=exclude)
+    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
+    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 
 Define the baseline period:
 

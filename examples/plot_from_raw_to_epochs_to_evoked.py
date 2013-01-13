@@ -33,11 +33,11 @@ events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
+raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
 picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
-                                            include=include, exclude=exclude)
+                        include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))

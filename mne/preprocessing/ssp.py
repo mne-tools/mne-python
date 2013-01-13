@@ -116,9 +116,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if mode == 'ECG':
         logger.info('Running ECG SSP computation')
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
-                           event_id=event_id, l_freq=exg_l_freq,
-                           h_freq=exg_h_freq, tstart=tstart,
-                           qrs_threshold=qrs_threshold)
+                                       event_id=event_id, l_freq=exg_l_freq,
+                                       h_freq=exg_h_freq, tstart=tstart,
+                                       qrs_threshold=qrs_threshold)
     elif mode == 'EOG':
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
@@ -132,29 +132,38 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         return None, events
 
     logger.info('Computing projector')
+    my_info = cp.deepcopy(raw.info)
+    my_info['bads'] += bads
 
     # Handler rejection parameters
     if reject is not None:  # make sure they didn't pass None
-        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+        if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
+                          exclude='bads')) == 0:
             del reject['grad']
-        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+        if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
+                          exclude='bads')) == 0:
             del reject['mag']
-        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+        if len(pick_types(my_info, meg=False, eeg=True, eog=False,
+                          exclude='bads')) == 0:
             del reject['eeg']
-        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+        if len(pick_types(my_info, meg=False, eeg=False, eog=True,
+                          exclude='bads')) == 0:
             del reject['eog']
     if flat is not None:  # make sure they didn't pass None
-        if len(pick_types(raw.info, meg='grad', eeg=False, eog=False)) == 0:
+        if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
+                          exclude='bads')) == 0:
             del flat['grad']
-        if len(pick_types(raw.info, meg='mag', eeg=False, eog=False)) == 0:
+        if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
+                          exclude='bads')) == 0:
             del flat['mag']
-        if len(pick_types(raw.info, meg=False, eeg=True, eog=False)) == 0:
+        if len(pick_types(my_info, meg=False, eeg=True, eog=False,
+                          exclude='bads')) == 0:
             del flat['eeg']
-        if len(pick_types(raw.info, meg=False, eeg=False, eog=True)) == 0:
+        if len(pick_types(my_info, meg=False, eeg=False, eog=True,
+                          exclude='bads')) == 0:
             del flat['eog']
 
-    picks = pick_types(raw.info, meg=True, eeg=True, eog=True,
-                       exclude=raw.info['bads'] + bads)
+    picks = pick_types(my_info, meg=True, eeg=True, eog=True, exclude='bads')
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params)
 
@@ -169,10 +178,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if average:
         evoked = epochs.average()
         ev_projs = compute_proj_evoked(evoked, n_grad=n_grad, n_mag=n_mag,
-                                        n_eeg=n_eeg)
+                                       n_eeg=n_eeg)
     else:
         ev_projs = compute_proj_epochs(epochs, n_grad=n_grad, n_mag=n_mag,
-                                        n_eeg=n_eeg, n_jobs=n_jobs)
+                                       n_eeg=n_eeg, n_jobs=n_jobs)
 
     for p in ev_projs:
         p['desc'] = mode + "-" + p['desc']
@@ -189,8 +198,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length=4096, n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), flat=None, bads=[], avg_ref=False, no_proj=False,
-                     event_id=999, ecg_l_freq=5, ecg_h_freq=35,
+                     eog=250e-6), flat=None, bads=[], avg_ref=False,
+                     no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold=0.6, filter_method='fft',
                      iir_params=dict(order=4, ftype='butter'), verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
