@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 from scipy import linalg
 
@@ -91,11 +90,8 @@ def write_trans(fname, info):
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
     """
-    itrans = copy.deepcopy(trans)
-    aux = itrans['from']
-    itrans['from'] = itrans['to']
-    itrans['to'] = aux
-    itrans['trans'] = linalg.inv(itrans['trans'])
+    itrans = {'to': trans['from'], 'from': trans['to'],
+              'trans': linalg.inv(trans['trans'])}
     return itrans
 
 
