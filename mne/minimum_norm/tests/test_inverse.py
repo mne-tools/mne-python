@@ -2,7 +2,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
 from scipy import sparse
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import copy
 
 from mne.datasets import sample
@@ -19,6 +19,8 @@ from mne.utils import _TempDir
 s_path = op.join(sample.data_path(), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
+fname_inv_nodepth = op.join(s_path,
+                           'sample_audvis-meg-oct-6-meg-nodepth-fixed-inv.fif')
 fname_inv_diag = op.join(s_path,
                          'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
@@ -149,15 +151,38 @@ def test_apply_inverse_operator():
 
 
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation with fixed orientation
+    """Test MNE inverse computation w/ fixed orientation (& no depth weighting)
     """
-    fwd_op = read_forward_solution(fname_fwd, force_fixed=False,
-                                   surf_ori=True)
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    fwd_1 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=False)
+    fwd_2 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=True)
+    # can't make fixed inv without force_fixed
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_op,
+                  noise_cov, depth=0.8, loose=None)
+    # can't make fixed inv without surf ori fwd
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
+                  noise_cov, depth=0.8, loose=None, force_fixed=True)
+    # can't make fixed inv with depth weighting without free ori fwd
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
+                  noise_cov, depth=0.8, loose=None, force_fixed=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
-                                   loose=None)
+                                   loose=None, force_fixed=True)
     _compare_io(inv_op)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
     _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked, 2)
+    # Inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
+
+    # Now without depth weighting, these should be equivalent
+    inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
+                                   loose=None, force_fixed=True)
+    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
+                                  loose=None, force_fixed=True)
+    _compare_inverses_approx(inv_op, inv_2, evoked, 2)
+    _compare_io(inv_op)
+    # now compare to C solution
+    inverse_operator_nodepth = read_inverse_operator(fname_inv_nodepth)
+    _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 2)
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
 
@@ -233,7 +258,7 @@ def test_apply_mne_inverse_fixed_raw():
     # create a fixed-orientation inverse operator
     fwd = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
-                                   loose=None, depth=0.8)
+                                   loose=None, depth=0.8, force_fixed=True)
 
     stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                             label=label_lh, start=start, stop=stop, nave=1,
