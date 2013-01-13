@@ -19,6 +19,8 @@ Changelog
 
    - Bad channels no longer included in epochs by default by `Eric Larson`_
 
+   - Support for diagonal noise covariances in inverse methods and rank computation by `Eric Larson`_
+
 
 API
 ~~~
