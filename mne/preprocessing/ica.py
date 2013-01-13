@@ -1258,8 +1258,9 @@ def run_ica(raw, n_components, max_pca_components=100,
     for start and stop. It can save you much time.
 
     Example invocation (taking advantage of the defaults):
-    >>> ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
-                      ecg_channel='MEG 1531', eog_channel='EOG 061')
+
+    ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
+                  ecg_channel='MEG 1531', eog_channel='EOG 061')
 
     Parameters
     ----------
