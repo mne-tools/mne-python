@@ -1,3 +1,8 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from scipy import linalg
 
@@ -102,8 +107,8 @@ def transform_source_space_to(src, dest, trans):
     ----------
     src : dict
         Source space.
-    dest : dict
-        destination coordinate system.
+    dest : int
+        Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
     trans : dict
         Transformation.
 
