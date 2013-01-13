@@ -1023,7 +1023,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
-                          force_fixed=False, verbose=None):
+                          force_fixed=False, limit_depth_chs=False,
+                          verbose=None):
     """Assemble inverse operator
 
     Parameters
@@ -1045,6 +1046,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     force_fixed : bool
         If True, return a fixed-orientation inverse operator. If True,
         loose=None must also be used.
+    limit_depth_chs : bool
+        If True, use only grad channels in depth weighting (equivalent to MNE
+        C code). If grad chanels aren't present, only mag channels will be
+        used (if no mag, then eeg). If False, use all channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1096,7 +1101,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     if depth is not None:
         depth_prior = compute_depth_prior(gain, exp=depth, forward=forward,
-                                          ch_names=ch_names)
+                                          ch_names=ch_names,
+                                          limit_depth_chs=limit_depth_chs)
     else:
         depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
 
