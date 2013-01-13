@@ -167,14 +167,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         _to_fixed_ori(forward)
 
     info = evoked[0].info
-    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
-                                                      info, noise_cov, pca)
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
+                                                       noise_cov, pca)
 
     # Whiten lead field.
     gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                            depth, loose, weights, weights_min)
+                                                 depth, loose, weights,
+                                                 weights_min)
 
-    sel = [all_ch_names.index(name) for name in ch_names]
+    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
@@ -230,9 +231,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         cnt += len(e.times)
 
         if return_residual:
-            sel = [forward['sol']['row_names'].index(c) for c in ch_names]
+            sel = [forward['sol']['row_names'].index(c)
+                                                for c in gain_info['ch_names']]
             r = deepcopy(e)
-            r = pick_channels_evoked(r, include=ch_names)
+            r = pick_channels_evoked(r, include=gain_info['ch_names'])
             r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], Xe)
             residual.append(r)
 
@@ -363,7 +365,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward,
                                                       info, noise_cov, pca)
 
     # Whiten lead field.
@@ -373,7 +375,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if window is not None:
         evoked = _window_evoked(evoked, window)
 
-    sel = [all_ch_names.index(name) for name in ch_names]
+    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
     M = evoked.data[sel]
 
     # Whiten data
@@ -408,9 +410,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X /= source_weighting[active_set][:, None]
 
     if return_residual:
-        sel = [forward['sol']['row_names'].index(c) for c in ch_names]
+        sel = [forward['sol']['row_names'].index(c)
+                                            for c in gain_info['ch_names']]
         residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual, include=ch_names)
+        residual = pick_channels_evoked(residual, include=gain_info['ch_names'])
         residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
                                 X)
 

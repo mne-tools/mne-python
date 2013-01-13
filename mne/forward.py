@@ -574,14 +574,12 @@ def compute_orient_prior(forward, loose=0.2, verbose=None):
     return orient_prior
 
 
-def _restrict_gain_matrix(G, forward, ch_names):
+def _restrict_gain_matrix(G, info):
     """Restrict gain matrix entries for optimal depth weighting"""
     # Figure out which ones have been used
-    info = forward['info']
-    sel = pick_channels(info['ch_names'], ch_names)
-    if not len(sel) == G.shape[0]:
-        raise ValueError('Could not interpret forward information')
-    info = pick_info(info, sel=sel)
+    if not (len(info['chs']) == G.shape[0]):
+        raise ValueError("G.shape[0] and length of info['chs'] do not match: "
+                         "%d != %d" % (G.shape[0], len(info['chs'])))
     sel = pick_types(info, meg='grad')
     if len(sel) > 0:
         G = G[sel]
@@ -602,17 +600,15 @@ def _restrict_gain_matrix(G, forward, ch_names):
     return G
 
 
-def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None,
-                        limit_depth_chs=False):
+def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
+                        patch_areas=None, limit_depth_chs=False):
     """Compute weighting for depth prior
     """
     logger.info('Creating the depth weighting matrix...')
-    is_fixed_ori = is_fixed_orient(forward)
 
     # If possible, pick best depth-weighting channels
-    if forward is not None and ch_names is not None \
-            and limit_depth_chs is True:
-        G = _restrict_gain_matrix(G, forward, ch_names)
+    if limit_depth_chs is True:
+        G = _restrict_gain_matrix(G, gain_info)
 
     # Compute the gain matrix
     if is_fixed_ori:
@@ -625,8 +621,8 @@ def compute_depth_prior(G, exp=0.8, limit=10.0, forward=None, ch_names=None,
             d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
 
     # XXX Currently the fwd solns never have "patch_areas" defined
-    if 'patch_areas' in forward.keys() and forward['patch_areas'] is not None:
-        d /= forward['patch_areas'] ** 2
+    if patch_areas is not None:
+        d /= patch_areas ** 2
         logger.info('    Patch areas taken into account in the depth '
                     'weighting')
 
