@@ -46,7 +46,8 @@ label = read_label(fname_label)
 
 # Reduce source space to make test computation faster
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=loose, depth=depth)
+                                         loose=loose, depth=depth,
+                                         force_fixed=True)
 stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 del inverse_operator

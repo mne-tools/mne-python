@@ -1023,7 +1023,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
-                          verbose=None):
+                          force_fixed=False, verbose=None):
     """Assemble inverse operator
 
     Parameters
@@ -1042,6 +1042,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         whose source coordinate system is not surface based.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
+    force_fixed : bool
+        If True, return a fixed-orientation inverse operator. If True,
+        loose=None must also be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1051,28 +1054,31 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Inverse operator.
     """
     is_fixed_ori = is_fixed_orient(forward)
-    if is_fixed_ori and loose is not None:
-        warnings.warn('Ignoring loose parameter with forward operator with '
-                      'fixed orientation.')
-        loose = None
 
+    # loose=None and force_fixed=True: Make fixed
+    #    depth=None, can use fixed fwd, depth=0<x<1 must use free ori
+    if loose is None:
+        if not force_fixed:
+            raise ValueError('Cannot make inverse with fixed-orientation '
+                             'forward solution unless force_fixed is True.')
+        if not is_fixed_ori and not forward['surf_ori']:
+            raise ValueError('For a fixed orientation inverse solution, the '
+                             'forward solution must be fixed-orientation '
+                             'and/or in surface orientation')
+        # Special case for fixed solution when depth-weighting is on
+        if depth is not None and (is_fixed_ori or not forward['surf_ori']):
+            raise ValueError('You need a free-orientation, surface-oriented '
+                             'forward solution to do depth weighting even '
+                             'when calculating a fixed-orientation inverse.')
     if not forward['surf_ori'] and loose is not None:
         raise ValueError('Forward operator is not oriented in surface '
                          'coordinates. loose parameter should be None '
                          'not %s.' % loose)
-
     if loose is not None and not (0 <= loose <= 1):
         raise ValueError('loose value should be smaller than 1 and bigger than'
                          ' 0, or None for not loose orientations.')
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
-
-    # Special case for fixed solution when depth-weighting is on
-    if loose is None and depth is not None:
-        if is_fixed_ori or not forward['surf_ori']:
-            raise ValueError('You need a free-orientation forward solution to '
-                             'do depth weighting even when calculating a '
-                             'fixed-orientation inverse.')
 
     #
     # 1. Read the bad channels
@@ -1094,18 +1100,20 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     else:
         depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
 
-    # Special case for fixed solution when depth-weighting is on
-    if loose is None and depth is not None:
-        # Convert the depth prior into a fixed-orientation one
-        depth_prior = depth_prior[2::3]
-        logger.info('    Picked elements from a free-orientation '
-                    'depth-weighting prior into the fixed-orientation one')
-        # Convert to the fixed orientation forward solution now
-        forward = deepcopy(forward)
-        _to_fixed_ori(forward)
-        is_fixed_ori = is_fixed_orient(forward)
-        ch_names, gain, noise_cov, whitener, n_nzero = \
-            _prepare_forward(forward, info, noise_cov, verbose=False)
+    # Deal with fixed orientation forward / inverse
+    if loose is None:
+        if depth is not None:
+            # Convert the depth prior into a fixed-orientation one
+            logger.info('    Picked elements from a free-orientation '
+                        'depth-weighting prior into the fixed-orientation one')
+        if not is_fixed_ori:
+            # Convert to the fixed orientation forward solution now
+            depth_prior = depth_prior[2::3]
+            forward = deepcopy(forward)
+            _to_fixed_ori(forward)
+            is_fixed_ori = is_fixed_orient(forward)
+            ch_names, gain, noise_cov, whitener, n_nzero = \
+                _prepare_forward(forward, info, noise_cov, verbose=False)
 
     logger.info("Computing inverse operator with %d channels."
                 % len(ch_names))
