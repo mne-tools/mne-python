@@ -225,12 +225,12 @@ class ICA(object):
         picks : array-like
             Channels to be included. This selection remains throughout the
             initialized ICA session. If None only good data channels are used.
-        start : int
+        start : int | None
             First sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int
+            first sample in data. If None, the entire data will be used.
+        stop : int | None
             First sample to not include. If omitted, data is included to the
-            end.
+            end. If None, the entire data will be used.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -330,11 +330,12 @@ class ICA(object):
         ----------
         raw : instance of Raw
             Raw object to draw sources from.
-        start : int
+        start : int | None
             First sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int
-            First sample to not include.
+            first sample in data. If None, the entire data will be used.
+        stop : int | None
+            First sample to not include.  If None, the entire data will
+            be used.
             If omitted, data is included to the end.
 
         Returns
@@ -435,12 +436,12 @@ class ICA(object):
         picks : array-like
             Channels to be included in addition to the sources. If None,
             artifact and stimulus channels will be included.
-        start : int
+        start : int | None
             First sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int
+            first sample in data.  If None, the entire data will be used.
+        stop : int | None
             First sample to not include. If omitted, data is included to the
-            end.
+            end. If None, the entire data will be used.
 
         Returns
         -------
@@ -523,10 +524,10 @@ class ICA(object):
             Number of components fitted.
         source_idx : array-like
             Indices for subsetting the sources.
-        ncol : int
-            Number of panel-columns.
-        nrow : int
-            Number of panel-rows.
+        ncol : int | None
+            Number of panel-columns. If None, the entire data will be plotted.
+        nrow : int | None
+            Number of panel-rows. If None, the entire data will be plotted.
         show : bool
             If True, plot will be shown, else just the figure is returned.
 
@@ -570,10 +571,10 @@ class ICA(object):
             Example: arg_sort = np.argsort(np.var(sources)).
         sources : ndarray
             Sources as drawn from self.get_sources.
-        start : int
-            X-axis start index. If None from the beginning.
-        stop : int
-            X-axis stop index. If None to the end.
+        start : int | None
+            X-axis start index. If None, the entire data will be plotted.
+        stop : int | None
+            X-axis stop index. If None, the entire data will be plotted.
         n_components : int
             Number of components fitted.
         source_idx : array-like
@@ -630,12 +631,13 @@ class ICA(object):
             scipy.stats taking compatible input arguments are supported. These
             function have been modified to support iteration over the rows of a
             2D array.
-        start : int
+        start : int | None
             First sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int
+            first sample in data. If None, the entire data will be used.
+        stop : int | None
             First sample to not include.
-            If omitted, data is included to the end.
+            If omitted, data is included to the end. If None, the entire data
+            will be used.
         scores : ndarray
             Scores for each source as returned from score_func.
 
@@ -727,9 +729,11 @@ class ICA(object):
             be added before restoring the sensor space data. This can be used
             to take back the PCA dimension reduction.
         start : int | None
-            The first time index to include.
+            The first time index to include. If None, the entire data will
+            be returned.
         stop : int | None
-            The first time index to exclude.
+            The first time index to exclude. If None, the entire data will
+            be returned.
         copy: bool
             modify raw instance in place or return modified copy.
 
@@ -1247,7 +1251,7 @@ def run_ica(raw, n_components, max_pca_components=100,
             stop_find=None, ecg_channel=None, ecg_score_func='corr',
             ecg_score_min=0.1, eog_channel=None, eog_score_func='corr',
             eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
-    """ Run ICA decomposition on raw data and ifenitfy artifact sources
+    """ Run ICA decomposition on raw data and identify artifact sources
 
     This function implements an automated artifact removal work flow.
     Note. Consider using shorter times for start_find and stop_find than
@@ -1303,18 +1307,21 @@ def run_ica(raw, n_components, max_pca_components=100,
     picks : array-like
         Channels to be included. This selection remains throughout the
         initialized ICA session. If None only good data channels are used.
-    start : int
+    start : int | None
         First sample to include (first is 0) for decomposition. If omitted,
-        defaults to the first sample in data.
-    stop : int
+        defaults to the first sample in data. If None, the entire data will
+        be used.
+    stop : int | None
         First sample to not include for decomposition. If omitted, data is
-        included to the end.
-    start_find : int
+        included to the end. If None, the entire data will
+        be used.
+    start_find : int | None
         First sample to include (first is 0) for sources detection.
-        If omitted, defaults to the first sample in data.
-    stop_find : int
+        If omitted, defaults to the first sample in data. If None, the entire
+        data will be used.
+    stop_find : int | None
         First sample to not include for sources detection. If omitted, data
-        is included to the end.
+        is included to the end. If None, the entire data will be used.
     ecg_channel : str | ndarray | None
         The `target` argument passed to ica.find_sources_raw. Either the name
         of the ECG channel or the ECG time series. If None, this step will
