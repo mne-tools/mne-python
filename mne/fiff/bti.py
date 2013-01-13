@@ -53,16 +53,11 @@ def _unpack_simple(fid, format, count):
 
 
 def bti_read_str(fid, count=1):
+    """ Read string """
     format = '>' + ('c' * count)
     data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
 
-    # Sort out NUL termination
-    try:
-        l = data.index('\x00')
-    except:
-        l = count
-
-    return ''.join(data[0:l])
+    return ''.join(data[0:data.index('\x00') if '\x00' in data else count])
 
 
 def bti_read_char(fid, count=1):
