@@ -808,9 +808,9 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
         The covariance matrix.
     info: dict
         Measurement info.
-    exclude : list of string | None
+    exclude : list of string | str
         List of channels to exclude. If empty do not exclude any channel.
-        If None (default), exclude info['bads'].
+        If 'bads', exclude info['bads'].
     colorbar : bool
         Show colorbar or not.
     proj : bool
@@ -823,7 +823,7 @@ def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    if exclude is None:
+    if exclude == 'bads':
         exclude = info['bads']
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]

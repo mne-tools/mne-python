@@ -483,7 +483,7 @@ class Raw(object):
             high-passed.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered (excep bad channels).
+            channels will be filtered (except bad channels).
         filter_length : int (default: None)
             Length of the filter to use (e.g. 4096).
             If None or "n_times < filter_length",
