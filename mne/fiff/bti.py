@@ -162,6 +162,14 @@ def bti_read_double_matrix(fid, rows, cols):
     return _unpack_matrix(fid, format, rows, cols, 'f8')
 
 
+def bti_read_transform(fid, rows):
+    """ Read 64bit float matrix transform from bti file """
+
+    format = '>' + ('d' * 4 * 4)
+
+    return _unpack_matrix(fid, format, 4, 4, 'f8')
+
+
 ###############################################################################
 # Transforms
 
@@ -423,7 +431,6 @@ def _correct_offset(fid):
 def _read_bti_header(fid):
     """ Read bti PDF header
     """
-
     fid.seek(BTI.FILE_END, os.SEEK_END)
     ftr_pos = fid.tell()
     hdr_pos = bti_read_int64(fid)
@@ -471,7 +478,6 @@ def _read_bti_header(fid):
 
 def _read_bti_epoch(fid):
     """Read BTi epoch"""
-
     out = dict(pts_in_epoch=bti_read_int32(fid),
                 epoch_duration=bti_read_float(fid),
                 expected_iti=bti_read_float(fid),
@@ -487,7 +493,6 @@ def _read_bti_epoch(fid):
 
 def _read_channel(fid):
     """Read BTi PDF channel"""
-
     out = dict(chan_label=bti_read_str(fid, BTI.FILE_PDF_CH_LABELSIZE),
                 chan_no=bti_read_int16(fid),
                 attributes=bti_read_int16(fid),
@@ -511,7 +516,6 @@ def _read_channel(fid):
 
 def _read_event(fid):
     """Read BTi PDF event"""
-
     out = dict(event_name=bti_read_str(fid, BTI.FILE_PDF_EVENT_NAME),
                 start_lat=bti_read_float(fid),
                 end_lat=bti_read_float(fid),
@@ -577,6 +581,202 @@ def _read_pfid_ed(fid):
     return out
 
 
+def _read_userblock(fid, blocks):
+    """ Read user block from config """
+
+    block = dict()
+    block['hdr'] = dict(
+         nbytes=bti_read_int32(fid),
+         kind=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_TYPE),
+         checksum=bti_read_int32(fid),
+         username=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_UNAME),
+         timestamp=bti_read_int32(fid),
+         user_space_size=bti_read_int32(fid),
+         reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED))
+
+    kind, data = block['hdr']['kind'], dict()
+    if kind in [k for k in BTI if k[:6] == 'UBLOCK']:
+        if kind == BTI.FILE_CONF_UBLOCK_MAG_INFO:
+            data['version'] = bti_read_int32(fid)
+            fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+            data['headers'] = list()
+            for i in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
+                d = dict(name=bti_read_str(fid, BTI.FILE_UBLOCK_BHNAME),
+                         transform=bti_read_transform(fid),
+                         units_per_bit=bti_read_float(fid))
+                data['headers'] += [d]
+
+        elif kind == BTI.UBLOCK_COH_PNTS:
+            data['num_points'] = bti_read_int32(fid)
+            data['status'] = bti_read_int32(fid)
+            data['points'] = []
+            for i in xrange(BTI.UBLOCK_PRANGE):
+                d = dict(pos=bti_read_double_matrix(fid, 1, 3),
+                         direction=bti_read_double_matrix(fid, 1, 3),
+                         error=bti_read_double(fid))
+                data['points'] += [d]
+
+        elif kind == BTI.UBLOCK_CCP_XFM:
+            data['method'] = bti_read_int32(fid)
+            fid.seek(BTI.FILE_CONF_UBLOCK_XFM, os.SEEK_CUR)
+            data['transform'] = bti_read_transform(fid)
+
+        elif kind == BTI.UBLOCK_EEG_LOCS:
+            data['electrodes'] = []
+            while True:
+                if e.label == BTI.FILE_CONF_UBLOCK_ELABEL_END:
+                    break
+                d = dict(label=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_ELABEL),
+                          location=bti_read_double_matrix(fid, 1, 3))
+                data['electrodes'] += [d]
+
+        elif kind in [BTI.UBLOCK_WHC_CHAN_MAP_VER, BTI.UBLOCK_WHS_SUBS_VER]:
+            data['version'] = bti_read_int16(fid)
+            data['struct_size'] = bti_read_int16(fid)
+            data['entries'] = bti_read_int16(fid)
+            fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, os.SEEK_CUR)
+
+        elif kind == BTI.UBLOCK_WHC_CHAN_MAP:
+            num_channels = None
+            for block in blocks:
+                if block['hdr']['kind'] == BTI.UBLOCK_WHC_CHAN_MAP_VER:
+                    num_channels = block['data']['entries']
+                    break
+
+            if num_channels is None:
+                raise ValueError('Cannot find block %s to determine number'
+                                 'of channels' % BTI.UBLOCK_WHC_CHAN_MAP_VER)
+
+            data['channels'] = list()
+            for i in xrange(num_channels):
+                d = dict(subsys_type=bti_read_int16(fid),
+                         subsys_num=bti_read_int16(fid),
+                         card_num=bti_read_int16(fid),
+                         chan_num=bti_read_int16(fid),
+                         recdspnum=bta_read_int16(fid))
+                d += [d]
+
+        elif kind == BTI.UBLOCK_WHS_SUBS:
+            num_subsys = None
+            for block in blocks:
+                if block['hdr']['kind'] == BTI.UBLOCK_WHS_SUBS_VER:
+                    num_subsys = block['data']['entries']
+                    break
+
+            if num_subsys is None:
+                raise ValueError('Cannot find block %s to determine number o'
+                                 'f subsystems' % BTI.UBLOCK_WHS_SUBS_VER)
+
+            data['subsys'] = list()
+            for sub_key in range(num_subsys):
+                d = dict(subsys_type=bti_read_int16(fid),
+                        subsys_num=bti_read_int16(fid),
+                        cards_per_sys=bti_read_int16(fid),
+                        channels_per_card=bti_read_int16(fid),
+                        card_version=bti_read_int16(fid))
+                fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+                d.update(dict(offsetdacgain=bti_read_float(fid),
+                        squid_type=bti_read_int32(fid),
+                        timesliceoffset=bti_read_int16(fid),
+                        padding=bti_read_int16(fid),
+                        volts_per_bit=bti_read_float(fid)))
+                data['subkeys'] += [d]
+
+        elif kind == BTI.UBLOCK_CH_LABEL:
+            data['version'] = bti_read_int32(fid)
+            data['entries'] = bti_read_int32(fid)
+            fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, os.SEEK_CUR)
+
+            data['labels'] = list()
+            for label in xrange(data['entries']):
+                += [bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_LABEL)]
+   
+        elif kind == BTI.UBLOCK_CH_CAL:                                      # 'B_Calibration'
+        elif kind == BTI.UBLOCK_SYS_CONF:                                    # 'B_SysConfigTime'
+        elif kind == BTI.UBLOCK_SYS_DELT_ENA:                                # 'B_DELTA_ENABLED'
+        elif kind == BTI.UBLOCK_ETABLE_USED:                                 # 'B_E_table_used'
+        elif kind == BTI.UBLOCK_ETABLE:                                      # 'B_E_TABLE'
+        elif kind == BTI.UBLOCK_WEIGHTS_USED:                                # 'B_weights_used'
+        elif kind == BTI.UBLOCK_TRIG_MASK:                                   # 'B_trig_mask'
+    elif  kind[:4] == BTI.UBLOCK_WEIGHT_TABLE:
+
+    else:
+
+
+    _correct_offset(fid)
+
+    retun = block    
+
+
+def _read_dev_hdr(fid):
+    """ Read device header """
+    return dict(size=bti_read_int32(fid),
+                checksum=bti_read_int32(fid),
+                reserved=bti_read_str(fid, BTI.FILE_CONF_CH_RESERVED))
+
+
+def _read_coil_def(fid):
+    """ Read coil definition """
+    coildef = dict(position=bti_read_double_matrix(fid, 1, 3),
+                   orientation=bti_read_double_matrix(fid, 1, 3),
+                   radius=bti_read_double(fid),
+                   wire_radius=bti_read_double(fid),
+                   turns=bti_read_int16(fid))
+    fid.seek(fid, 2, os.SEEK_CUR)
+    coildef['checksum'] = bti_read_int32(fid)
+    coildef['reserved'] = bti_read_str(fid, 32)
+
+
+def _read_ch_config(fid):
+    """Read BTi channel config"""
+
+    cfg = dict(name=bti_read_str(fid, BTI.FILE_CONF_CH_NAME),
+            chan_no=bti_read_int16(fid),
+            ch_type=bti_read_uint16(fid),
+            sensor_no=bti_read_int16(fid))
+
+    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, os.SEEK_CUR)
+
+    cfg.update(dict(
+            gain=bti_read_float(fid),
+            units_per_bit=bti_read_float(fid),
+            yaxis_label=bti_read_str(fid, BTI.FILE_CONF_CH_YLABEL),
+            aar_val=bti_read_double(fid),
+            checksum=bti_read_int32(fid),
+            reserved=bti_read_str(fid, BTI.FILE_CONF_CH_RESERVED)))
+
+    _correct_offset(fid)
+
+    # Then the channel info
+    ch_type, chan = cfg['ch_type'], dict()
+    chan['dev'] = _read_dev_hdr(fid)
+    if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
+        chan['loops'] = [_read_coil_def(fid) for d in
+                        range(chan['dev']['total_loops'])]
+
+    elif ch_type == BTI.CHTYPE_EEG:
+        chan['impedance'] = bti_read_float(fid)
+        chan['padding'] = bti_read_str(fid, BTI.FILE_CONF_CH_PADDING)
+        chan['transform'] = bti_read_transform(fid)
+        chan['reserved'] = bti_read_char(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    elif ch_type in [BTI.CHTYPE_TRIGGER,  BTI.CHTYPE_EXTERNAL,
+                     BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
+        chan['user_space_size'] = bti_read_int32(fid)
+        if ch_type == BTI.CHTYPE_TRIGGER:
+            fid.seek(2, os.SEEK_CUR)
+        chan['reserved'] = bti_read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    elif ch_type == BTI.CHTYPE_SHORTED:
+        chan['reserved'] = bti_read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    cfg['chan'] = chan
+
+    _correct_offset(fid)
+
+    return cfg
+
+
 def read_raw_data(info, start=None, stop=None, order='by_name',
                   dtype='f8'):
     """ Read Bti processed data file (PDF)
@@ -624,7 +824,7 @@ def read_raw_data(info, start=None, stop=None, order='by_name',
         mapping = [(i, d['chan_label']) for i, d in
                    enumerate(info['channels'])]
         sort = sorted(mapping, key=lambda c: int(c[1][1:])
-               if c[1].startswith('A') else c[1])
+                      if c[1][0] == BTI.DATA_MEG_CH_CHAR else c[1])
         order = [idx[0] for idx in sort]
 
     return data if order is None else data[order]
@@ -699,10 +899,34 @@ def read_config(fname):
         The channels X time slices MEG measurments.
 
     """
+    with open(fname, 'rb') as fid:
+        cfg = dict(version=bti_read_int16(fid),
+                    site_name=bti_read_str(fid, BTI.FILE_CONF_SITENAME),
+                    dap_hostname=bti_read_str(fid, BTI.FILE_CONF_HOSTNAME),
+                    sys_type=bti_read_int16(fid),
+                    sys_options=bti_read_int32(fid),
+                    supply_freq=bti_read_int16(fid),
+                    total_chans=bti_read_int16(fid),
+                    system_fixed_gain=bti_read_float(fid),
+                    volts_per_bit=bti_read_float(fid),
+                    total_sensors=bti_read_int16(fid),
+                    total_user_blocks=bti_read_int16(fid),
+                    next_der_chan_no=bti_read_int16(fid))
 
+        fid.seek(fid, BTI.FILE_CONF_NEXT, os.SEEK_CUR)
+        cfg['checksum'] = bti_read_uint32(fid)
+        cfg['reserved'] = bti_read_char(fid, BTI.FILE_CONF_RESERVED)
+        cfg['transforms'] = [bti_read_transform(fid) for xfm in
+                             xrange(cfg['hdr']['total_sensors'])]
 
-def read_userblocks(fname):
-    pass
+        cfg['user_blocks'] = [_read_userblock(fid) for block in
+                              xrange(cfg['total_user_blocks'])]
+
+        # Finally, the channel information
+        cfg['channels'] = [_read_ch_config(fid) for ch in
+                           xrange(cfg['total_chans'])]
+
+    return cfg
 
 
 class RawBTi(Raw):
