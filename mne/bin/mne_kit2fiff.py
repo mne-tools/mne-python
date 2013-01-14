@@ -11,7 +11,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 from mne.fiff.raw import Raw
 from mne import verbose
-from mne.fiff.constants import FIFF
+from mne.fiff.constants import Bunch, FIFF
 from struct import unpack
 import numpy as np
 from numpy import sin, cos
@@ -20,61 +20,64 @@ import time
 import logging
 import re
 
+KIT = Bunch()
+KIT.BASIC_INFO = 16
+KIT.INT = 4
+KIT.DOUBLE = 8
+KIT.STRING = 128
+KIT.CALIB_FACTOR = 1.0
+KIT.AMPLIFIER_INFO = 112
+KIT.CHAN_SENS = 80
+KIT.SAMPLE_INFO = 128
+KIT.DATA_OFFSET = 144
+KIT.nmegchan = 157
+KIT.nrefchan = 3
+KIT.ntrigchan = 8
+KIT.RANGE = 1.
+
 
 class sqd_params(object):
-    """Extracts all the information from the sqd file."""
+    """
+    Extracts all the information from the sqd file.
+
+    Parameters
+    ----------
+    rawfile: str
+        raw sqd file to be read
+    lowpass: None | int
+        value of lowpass filter set in MEG160
+    highpass: None | int
+        value of highpass filter set in MEG160
+
+        """
 
     def __init__(self, rawfile, lowpass=None, highpass=None):
-        """
-        Parameters
-        ----------
-        rawfile: str
-            raw sqd file to be read
-        lowpass: None | int
-            value of lowpass filter set in MEG160
-        highpass: None | int
-            value of highpass filter set in MEG160
-
-        """
         self.dynamic_range = 2 ** 12 / 2  # signed integer. range +/- 2048
         self.voltage_range = 5.
         self.rawfile = rawfile
         fid = open(rawfile, 'r')
-        fid.seek(16)  # get offset of basic info
-        basic_offset = unpack('i', fid.read(4))[0]  # integer are 4 bytes
+        fid.seek(KIT.BASIC_INFO)
+        basic_offset = unpack('i', fid.read(KIT.INT))[0]  # integer are 4 bytes
         fid.seek(basic_offset)
 
         # basic info
-        self.version = unpack('i', fid.read(4))[0]
-        self.revision = unpack('i', fid.read(4))[0]
-        self.sysid = unpack('i', fid.read(4))[0]
-        self.sysname = unpack('128s', fid.read(128))[0].split('\n')[0]
-        self.modelname = unpack('128s', fid.read(128))[0].split('\n')[0]
-        self.nchan = unpack('i', fid.read(4))[0]
+        self.version = unpack('i', fid.read(KIT.INT))[0]
+        self.revision = unpack('i', fid.read(KIT.INT))[0]
+        self.sysid = unpack('i', fid.read(KIT.INT))[0]
+        self.sysname = unpack('128s', fid.read(KIT.STRING))[0].split('\n')[0]
+        self.modelname = unpack('128s', fid.read(KIT.STRING))[0].split('\n')[0]
+        self.nchan = unpack('i', fid.read(KIT.INT))[0]
         self.chan_no = range(self.nchan)
-        self.nmegchan = 157
-        self.nrefchan = 3
-        self.ntrigchan = 8
-        self.nmiscchan = (self.nchan - self.nmegchan
-                          - self.nrefchan - self.ntrigchan)
-        self.ch_names = {}
-        self.ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, self.nmegchan + 1)]
-        self.ch_names['REF'] = ['REF %03d' % ch for ch
-                                in range(1, self.nrefchan + 1)]
-        self.ch_names['TRIG'] = ['TRIG %03d' % ch for ch
-                                 in range(1, self.ntrigchan + 1)]
-        self.ch_names['MISC'] = ['MISC %03d' % ch for ch
-                                 in range(1, self.nmiscchan + 1)]
-        self.ch_names['STIM'] = ['STIM 101']
+        self.nmiscchan = (self.nchan - KIT.nmegchan
+                          - KIT.nrefchan - KIT.ntrigchan)
         self.lowpass = lowpass
         self.highpass = highpass
 
         # amplifier gain
-        fid.seek(112)
-        amp_offset = unpack('i', fid.read(4))[0]
+        fid.seek(KIT.AMPLIFIER_INFO)
+        amp_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(amp_offset)
-        amp_data = unpack('i', fid.read(4))[0]
+        amp_data = unpack('i', fid.read(KIT.INT))[0]
         input_gain_bit = 11  # stored in Bit-11 to 12
         input_gain_mask = 6144  # (0x1800)
         # input_gain: 0:x1, 1:x2, 2:x5, 3:x10
@@ -88,33 +91,33 @@ class sqd_params(object):
         self.output_gain = output_gains[(output_gain_mask & amp_data)
                                         >> output_gain_bit]
 
-        # channel sensitivities
         # only channels 0-159 requires gain. the additional channels
         # (trigger channels, audio and voice channels) are passed
         # through unaffected
 
-        fid.seek(80)
-        sens_offset = unpack('i', fid.read(4))[0]
+        fid.seek(KIT.CHAN_SENS)
+        sens_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=self.nchan * 2)
-        self._sensitivities = np.reshape(sens, (self.nchan, 2))
+        self.n_sens = KIT.nmegchan + KIT.nrefchan
+        self._sensitivities = (np.reshape(sens, (self.nchan, 2))
+                               [:self.n_sens, 0])
         self.sensor_gain = np.ones(self.nchan)
-        self.sensor_gain[:160] = self._sensitivities[:160, 1]
+        self.sensor_gain[:self.n_sens] = self._sensitivities
 
-        # sampling info
-        fid.seek(128)
-        acqcond_offset = unpack('i', fid.read(4))[0]
+        fid.seek(KIT.SAMPLE_INFO)
+        acqcond_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(acqcond_offset)
-        acq_type = unpack('i', fid.read(4))[0]
+        acq_type = unpack('i', fid.read(KIT.INT))[0]
         if acq_type == 1:
-            self.sfreq = unpack('d', fid.read(8))[0]
-            _ = fid.read(4)  # initialized estimate of samples
-            self.nsamples = unpack('i', fid.read(4))[0]
+            self.sfreq = unpack('d', fid.read(KIT.DOUBLE))[0]
+            _ = fid.read(KIT.INT)  # initialized estimate of samples
+            self.nsamples = unpack('i', fid.read(KIT.INT))[0]
         else:
             raise NotImplementedError
 
+        fid.seek(KIT.DATA_OFFSET)
         # data offset info
-        fid.seek(144)
         self.data_offset = unpack('i', fid.read(4))[0]
 
     def get_data(self):
@@ -126,7 +129,8 @@ class sqd_params(object):
         data = np.reshape(data, (self.nsamples, self.nchan))
         # amplifier applies only to the sensor channels 0-159
         amp_gain = self.output_gain * self.input_gain
-        self.sensor_gain[:160] = self.sensor_gain[:160] / amp_gain
+        self.sensor_gain[:self.n_sens] = (self.sensor_gain[:self.n_sens] /
+                                          amp_gain)
         conv_factor = np.array((self.voltage_range / self.dynamic_range) *
                                self.sensor_gain, ndmin=2)
         self.x = (conv_factor * data).T
@@ -135,36 +139,36 @@ logger = logging.getLogger('mne')
 
 
 class RawKIT(Raw):
-    """ Raw object from KIT SQD file
-        Adapted from mne_bti2fiff.py
-
     """
+    Raw object from KIT SQD file
+    Adapted from mne_bti2fiff.py
+
+    Parameters
+    ----------
+    data_fname : str
+        absolute path to the sqd file.
+    mrk_fname : str
+        absolute path to marker coils file.
+    elp_fname : str
+        absolute path to elp digitizer laser points file.
+    hsp_fname : str
+        absolute path to elp digitizer head shape points file.
+    data : bool | array-like
+        if array-like custom data matching the header info to be used
+        instead of the data from data_fname
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes & Methods
+    --------------------
+    See documentation for mne.fiff.Raw
+
+        """
     @verbose
     def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
                  sns_fname, data=None, lowpass=None, highpass=None,
                  verbose=True):
-        """
-        Parameters
-        ----------
-        data_fname : str
-            absolute path to the sqd file.
-        mrk_fname : str
-            absolute path to marker coils file.
-        elp_fname : str
-            absolute path to elp digitizer laser points file.
-        hsp_fname : str
-            absolute path to elp digitizer head shape points file.
-        data : bool | array-like
-            if array-like custom data matching the header info to be used
-            instead of the data from data_fname
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
 
-        Attributes & Methods
-        --------------------
-        See documentation for mne.fiff.Raw
-
-        """
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname, lowpass=lowpass,
                                  highpass=highpass)
@@ -237,6 +241,16 @@ class RawKIT(Raw):
         """creates a list of dicts of meg channels for raw.info"""
 
         logger.info('Setting channel info structure...')
+        self.ch_names = {}
+        self.ch_names['MEG'] = ['MEG %03d' % ch for ch
+                                in range(1, KIT.nmegchan + 1)]
+        self.ch_names['REF'] = ['REF %03d' % ch for ch
+                                in range(1, KIT.nrefchan + 1)]
+        self.ch_names['TRIG'] = ['TRIG %03d' % ch for ch
+                                 in range(1, KIT.ntrigchan + 1)]
+        self.ch_names['MISC'] = ['MISC %03d' % ch for ch
+                                 in range(1, KIT.nmiscchan + 1)]
+        self.ch_names['STIM'] = ['STIM 101']
         p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)' +
                        r'([\.\-0-9]+),([\.\-0-9]+)')
         locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
@@ -245,12 +259,12 @@ class RawKIT(Raw):
         self.chan_locs = locs[:, [1, 0, 2]] / 1000
         self.chan_locs[:, 0] *= -1
         chs = []
-        for idx, ch_info in enumerate(zip(self.params.ch_names['MEG'] +
-                                          self.params.ch_names['REF'],
+        for idx, ch_info in enumerate(zip(self.ch_names['MEG'] +
+                                          self.ch_names['REF'],
                                           self.chan_locs), 1):
             ch_name, ch_loc = ch_info
             chan_info = {}
-            chan_info['cal'] = 1.0  # calibration factor, default is 1
+            chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['eeg_loc'] = None
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
@@ -259,7 +273,7 @@ class RawKIT(Raw):
             chan_info['ch_name'] = ch_name
             if ch_name.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
-                chan_info['coil_type'] = 6001
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['unit'] = FIFF.FIFF_UNIT_T  # 112 = T
                 # this has the coordinates,
@@ -296,35 +310,30 @@ class coreg:
     hsp_points : np.array
         array points by coordinate (x, y, z) from digitizer
 
+    Parameters
+    ----------
+    mrk_fname : str
+        Path to marker avg file (saved as text form MEG160).
+    elp_fname : str
+        Path to elp digitizer file.
+
     """
     def __init__(self, mrk_fname, elp_fname, hsp_fname):
-        """
-        Parameters
-        ----------
-        mrk_fname : str
-            Path to marker avg file (saved as text form MEG160).
-        elp_fname : str
-            Path to elp digitizer file.
 
-        """
         # marker point extraction
         self.mrk_src_path = mrk_fname
         # pattern by Tal:
         p = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), ' +
                        r'y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
         str_points = p.findall(open(mrk_fname).read())
-        self.mrk_points = np.array(str_points, dtype=float) / 1000
-        self.mrk_points = self.mrk_points[:, [1, 0, 2]]
-        self.mrk_points[:, 0] *= -1
+        self.mrk_points = self.transform_pts(np.array(str_points, dtype=float))
         # elp point extraction
         self.elp_src_path = elp_fname
         # pattern modified from Tal's mrk pattern:
         p = re.compile('%N\t\d-[A-Z]+\s+([\.\-0-9]+)\t' +
                        '([\.\-0-9]+)\t([\.\-0-9]+)')
         str_points = p.findall(open(elp_fname).read())
-        self.elp_points = np.array(str_points, dtype=float)
-        self.elp_points = self.elp_points[:, [1, 0, 2]]
-        self.elp_points[:, 0] *= -1
+        self.elp_points = self.transform_pts(np.array(str_points, dtype=float))
         # hsp point extraction
         self.hsp_src_path = hsp_fname
         p = re.compile(r'//No.+\n(\d*)\t(\d)\s*')
@@ -340,6 +349,11 @@ class coreg:
             point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
             point_dict['r'] = point
             self.hsp_points.append(point_dict)
+
+    def transform_pts(self, pts):
+        pts = pts / 1e3
+        pts = pts[:, [1, 0, 2]]
+        pts[:, 0] = -1
 
     def fit(self, include=range(5)):
         """
@@ -383,8 +397,10 @@ class coreg:
     def rot(self, x=0, y=0, z=0):
         "From eelbrain.plot.coreg, a method for rotating a matrix"
         c_x = cos(x); c_y = cos(y); c_z = cos(z); s_x = sin(x); s_y = sin(y); s_z = sin(z);
-        r = np.matrix([[c_y * c_z, -c_x * s_z + s_x * s_y * c_z, s_x * s_z + c_x * s_y * c_z, 0],
-                       [c_y * s_z, c_x * c_z + s_x * s_y * s_z, -s_x * c_z + c_x * s_y * s_z, 0],
+        r = np.matrix([[c_y * c_z, -c_x * s_z + s_x * s_y * c_z,
+                        s_x * s_z + c_x * s_y * c_z, 0],
+                       [c_y * s_z, c_x * c_z + s_x * s_y * s_z,
+                        - s_x * c_z + c_x * s_y * s_z, 0],
                        [-s_y, s_x * c_y, c_x * c_y, 0],
                        [0, 0, 0, 1]], dtype=float)
         return r
