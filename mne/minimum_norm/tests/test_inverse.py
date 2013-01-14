@@ -71,12 +71,14 @@ def _compare(a, b):
         assert_true(a == b)
 
 
-def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals):
-    if inv_1['depth_prior'] is not None:
-        assert_array_almost_equal(inv_1['depth_prior']['data'],
-                                  inv_2['depth_prior']['data'])
-    else:
-        assert_true(inv_2['depth_prior'] is None)
+def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals,
+                             check_depth=True):
+    if check_depth:
+        if inv_1['depth_prior'] is not None:
+            assert_array_almost_equal(inv_1['depth_prior']['data'],
+                                      inv_2['depth_prior']['data'])
+        else:
+            assert_true(inv_2['depth_prior'] is None)
     if inv_1['orient_prior'] is not None:
         assert_array_almost_equal(inv_1['orient_prior']['data'],
                                   inv_2['orient_prior']['data'])
@@ -117,11 +119,20 @@ def test_apply_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
 
-    # Test MNE inverse computation starting from forward operator
+    # Test old version of inverse computation starting from forward operator
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8,
-                                      limit_depth_chs=True)
+                                      limit_depth_chs=False)
+    _compare_io(my_inv_op)
+    _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2,
+                             check_depth=False)
+    # Inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank_inverse(inverse_operator) == 302)
+
+    # Test MNE inverse computation starting from forward operator
+    my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                      loose=0.2, depth=0.8)
     _compare_io(my_inv_op)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2)
     # Inverse has 306 channels - 4 proj = 302
@@ -167,8 +178,7 @@ def test_make_inverse_operator_fixed():
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
                   noise_cov, depth=0.8, loose=None, fixed=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
-                                   loose=None, fixed=True,
-                                   limit_depth_chs=True)
+                                   loose=None, fixed=True)
     _compare_io(inv_op)
     inverse_operator_fixed = read_inverse_operator(fname_inv_fixed)
     _compare_inverses_approx(inverse_operator_fixed, inv_op, evoked, 2)
@@ -179,8 +189,7 @@ def test_make_inverse_operator_fixed():
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
                                    loose=None, fixed=True)
     inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
-                                  loose=None, fixed=True,
-                                  limit_depth_chs=True)
+                                  loose=None, fixed=True)
     _compare_inverses_approx(inv_op, inv_2, evoked, 2)
     _compare_io(inv_op)
     # now compare to C solution
@@ -195,7 +204,7 @@ def test_make_inverse_operator_diag():
     """
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
-                                   loose=0.2, depth=0.8, limit_depth_chs=True)
+                                   loose=0.2, depth=0.8)
     _compare_io(inv_op)
     inverse_operator_diag = read_inverse_operator(fname_inv_diag)
     # This one's only good to zero decimal places, roundoff error (?)

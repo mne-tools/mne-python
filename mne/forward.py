@@ -629,12 +629,20 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     w = 1.0 / d
     ws = np.sort(w)
     weight_limit = limit ** 2
-    limit = ws[-1]
-    n_limit = len(d)
-    if ws[-1] > weight_limit * ws[0]:
-        ind = np.where(ws > weight_limit * ws[0])[0][0]
-        limit = ws[ind]
+    if limit_depth_chs is False:
+        # match old mne-python behavor
+        ind = np.argmin(ws)
         n_limit = ind
+        limit = ws[ind] * weight_limit
+        wpp = (np.minimum(w / limit, 1)) ** exp
+    else:
+        # match C code behavior
+        limit = ws[-1]
+        n_limit = len(d)
+        if ws[-1] > weight_limit * ws[0]:
+            ind = np.where(ws > weight_limit * ws[0])[0][0]
+            limit = ws[ind]
+            n_limit = ind
 
     logger.info('    limit = %d/%d = %f'
                 % (n_limit + 1, len(d),
@@ -642,9 +650,10 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     scale = 1.0 / limit
     logger.info('    scale = %g exp = %g' % (scale, exp))
     wpp = np.minimum(w / limit, 1) ** exp
-    depth_weight = wpp if is_fixed_ori else np.repeat(wpp, 3)
 
-    return depth_weight
+    depth_prior = wpp if is_fixed_ori else np.repeat(wpp, 3)
+
+    return depth_prior
 
 
 def _stc_src_sel(src, stc):
