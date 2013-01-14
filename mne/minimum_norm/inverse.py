@@ -1025,8 +1025,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
-                          fixed=False, limit_depth_chs=False,
-                          verbose=None):
+                          fixed=False, limit_depth_chs=True, verbose=None):
     """Assemble inverse operator
 
     Parameters
