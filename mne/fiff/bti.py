@@ -1,3 +1,12 @@
+# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Yuval Harpaz <yuvharpaz@gmail.com>
+#
+#          simplified bsd-3 license
+
+
 from . import Raw, pick_types
 from . constants import BTI
 from . import FIFF
@@ -9,7 +18,6 @@ import time
 
 from datetime import datetime
 from itertools import count
-from math import floor
 
 import numpy as np
 
@@ -1070,17 +1078,13 @@ class RawBTi(Raw):
 
     """
     @verbose
-    def __init__(self, pdf_fname, config_fname, head_shape_fname, data=None,
-                 rotation_x=2, translation=(0.0, 0.02, 0.11), use_hpi=False,
+    def __init__(self, pdf_fname, config_fname='config',
+                 head_shape_fname='hs_file', rotation_x=2,
+                 translation=(0.0, 0.02, 0.11), use_hpi=False,
                  force_units=False, verbose=True):
 
-        logger.info('Opening 4-D header file %s...' % hdr_fname)
-        self.hdr = read_bti_ascii(hdr_fname)
-        self._root, self._hdr_name = op.split(hdr_fname)
-        self._data_file = data_fname
-        self.dev_head_t_fname = dev_head_t_fname
-        self.head_shape_fname = head_shape_fname
-        self.sep = seperator
+        logger.info('Reading 4D PDF file %s...' % pdf_fname)
+        self.bti_info = read_pdf_info(pdf_fname)
         self._use_hpi = use_hpi
         self.bti_to_nm = _get_m_to_nm(rotation_x, translation)
 
@@ -1101,9 +1105,9 @@ class RawBTi(Raw):
         self._projector_hashes = [None]
         self.info = info
 
-        logger.info('Reading raw data from %s...' % data_fname)
+        logger.info('Reading raw data from %s...' % pdf_fname)
         # rescale
-        self._data = self._read_data() if not data else data
+        self._data = read_raw_data()
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         assert len(self._data) == len(self.info['ch_names'])
         self._times = np.arange(self.first_samp, \
@@ -1143,7 +1147,9 @@ class RawBTi(Raw):
         sfreq = self.hdr[BTI.HDR_FILEINFO]['Sample Frequency'][:-2]
         info['sfreq'] = float(sfreq)
         info['nchan'] = int(self.hdr[BTI.HDR_CH_GROUPS]['CHANNELS'])
-        ch_names = _bti_get_channel_names(self.hdr)
+        ch_names = [d['ch_label'] for d in self.bti_info.channels]
+        ch_names = sorted(ch_names, key=lambda c: int(c[0:])
+                          if c[0] == BTI.DATA_MEG_CH_CHAR else c)
         info['ch_names'] = list(_rename_channels(ch_names))
         ch_mapping = zip(ch_names, info['ch_names'])
 
