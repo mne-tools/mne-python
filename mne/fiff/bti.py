@@ -30,6 +30,9 @@ FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
 FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
+BTI_WH2500_REF_MAG = ['MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA']
+BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
+
 dtypes = zip(range(1, 5), ('i2', 'i4', 'f4', 'f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
@@ -581,7 +584,7 @@ def _read_pfid_ed(fid):
     return out
 
 
-def _read_userblock(fid, blocks):
+def _read_userblock(fid, blocks, acq_env):
     """ Read user block from config """
 
     block = dict()
@@ -594,60 +597,60 @@ def _read_userblock(fid, blocks):
          user_space_size=bti_read_int32(fid),
          reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED))
 
-    kind, data = block['hdr']['kind'], dict()
+    kind, cfg = block['hdr']['kind'], dict()
     if kind in [k for k in BTI if k[:6] == 'UBLOCK']:
         if kind == BTI.FILE_CONF_UBLOCK_MAG_INFO:
-            data['version'] = bti_read_int32(fid)
+            cfg['version'] = bti_read_int32(fid)
             fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
-            data['headers'] = list()
-            for i in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
+            cfg['headers'] = list()
+            for hdr in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
                 d = dict(name=bti_read_str(fid, BTI.FILE_UBLOCK_BHNAME),
                          transform=bti_read_transform(fid),
                          units_per_bit=bti_read_float(fid))
-                data['headers'] += [d]
+                cfg['headers'] += [d]
 
         elif kind == BTI.UBLOCK_COH_PNTS:
-            data['num_points'] = bti_read_int32(fid)
-            data['status'] = bti_read_int32(fid)
-            data['points'] = []
-            for i in xrange(BTI.UBLOCK_PRANGE):
+            cfg['num_points'] = bti_read_int32(fid)
+            cfg['status'] = bti_read_int32(fid)
+            cfg['points'] = []
+            for pnt in xrange(BTI.UBLOCK_PRANGE):
                 d = dict(pos=bti_read_double_matrix(fid, 1, 3),
                          direction=bti_read_double_matrix(fid, 1, 3),
                          error=bti_read_double(fid))
-                data['points'] += [d]
+                cfg['points'] += [d]
 
         elif kind == BTI.UBLOCK_CCP_XFM:
-            data['method'] = bti_read_int32(fid)
+            cfg['method'] = bti_read_int32(fid)
             fid.seek(BTI.FILE_CONF_UBLOCK_XFM, os.SEEK_CUR)
-            data['transform'] = bti_read_transform(fid)
+            cfg['transform'] = bti_read_transform(fid)
 
         elif kind == BTI.UBLOCK_EEG_LOCS:
-            data['electrodes'] = []
+            cfg['electrodes'] = []
             while True:
-                if e.label == BTI.FILE_CONF_UBLOCK_ELABEL_END:
+                if e['label'] == BTI.FILE_CONF_UBLOCK_ELABEL_END:
                     break
                 d = dict(label=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_ELABEL),
                           location=bti_read_double_matrix(fid, 1, 3))
-                data['electrodes'] += [d]
+                cfg['electrodes'] += [d]
 
         elif kind in [BTI.UBLOCK_WHC_CHAN_MAP_VER, BTI.UBLOCK_WHS_SUBS_VER]:
-            data['version'] = bti_read_int16(fid)
-            data['struct_size'] = bti_read_int16(fid)
-            data['entries'] = bti_read_int16(fid)
+            cfg['version'] = bti_read_int16(fid)
+            cfg['struct_size'] = bti_read_int16(fid)
+            cfg['entries'] = bti_read_int16(fid)
             fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, os.SEEK_CUR)
 
         elif kind == BTI.UBLOCK_WHC_CHAN_MAP:
             num_channels = None
             for block in blocks:
                 if block['hdr']['kind'] == BTI.UBLOCK_WHC_CHAN_MAP_VER:
-                    num_channels = block['data']['entries']
+                    num_channels = block['cfg']['entries']
                     break
 
             if num_channels is None:
                 raise ValueError('Cannot find block %s to determine number'
                                  'of channels' % BTI.UBLOCK_WHC_CHAN_MAP_VER)
 
-            data['channels'] = list()
+            cfg['channels'] = list()
             for i in xrange(num_channels):
                 d = dict(subsys_type=bti_read_int16(fid),
                          subsys_num=bti_read_int16(fid),
@@ -660,14 +663,14 @@ def _read_userblock(fid, blocks):
             num_subsys = None
             for block in blocks:
                 if block['hdr']['kind'] == BTI.UBLOCK_WHS_SUBS_VER:
-                    num_subsys = block['data']['entries']
+                    num_subsys = block['cfg']['entries']
                     break
 
             if num_subsys is None:
                 raise ValueError('Cannot find block %s to determine number o'
                                  'f subsystems' % BTI.UBLOCK_WHS_SUBS_VER)
 
-            data['subsys'] = list()
+            cfg['subsys'] = list()
             for sub_key in range(num_subsys):
                 d = dict(subsys_type=bti_read_int16(fid),
                         subsys_num=bti_read_int16(fid),
@@ -680,32 +683,136 @@ def _read_userblock(fid, blocks):
                         timesliceoffset=bti_read_int16(fid),
                         padding=bti_read_int16(fid),
                         volts_per_bit=bti_read_float(fid)))
-                data['subkeys'] += [d]
+                cfg['subkeys'] += [d]
 
         elif kind == BTI.UBLOCK_CH_LABEL:
-            data['version'] = bti_read_int32(fid)
-            data['entries'] = bti_read_int32(fid)
+            cfg['version'] = bti_read_int32(fid)
+            cfg['entries'] = bti_read_int32(fid)
             fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, os.SEEK_CUR)
 
-            data['labels'] = list()
-            for label in xrange(data['entries']):
-                += [bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_LABEL)]
-   
-        elif kind == BTI.UBLOCK_CH_CAL:                                      # 'B_Calibration'
-        elif kind == BTI.UBLOCK_SYS_CONF:                                    # 'B_SysConfigTime'
-        elif kind == BTI.UBLOCK_SYS_DELT_ENA:                                # 'B_DELTA_ENABLED'
-        elif kind == BTI.UBLOCK_ETABLE_USED:                                 # 'B_E_table_used'
-        elif kind == BTI.UBLOCK_ETABLE:                                      # 'B_E_TABLE'
-        elif kind == BTI.UBLOCK_WEIGHTS_USED:                                # 'B_weights_used'
-        elif kind == BTI.UBLOCK_TRIG_MASK:                                   # 'B_trig_mask'
-    elif  kind[:4] == BTI.UBLOCK_WEIGHT_TABLE:
+            cfg['labels'] = list()
+            for label in xrange(cfg['entries']):
+                cfg['labels'] += [bti_read_str(fid,
+                                   BTI.FILE_CONF_UBLOCK_CH_LABEL)]
+
+        elif kind == BTI.UBLOCK_CH_CAL:
+            if acq_env == 'solaris':
+                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS = 256
+            elif acq_env == 'linux':
+                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS = 512
+
+            cfg['sensor_no'] = bti_read_int16(fid)
+            fid.seek(fid, BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+            cfg['timestamp'] = bti_read_int32(fid)
+            cfg['logdir'] = bti_read_str(fid, size)
+
+        elif kind == BTI.UBLOCK_SYS_CONF:
+            cfg['sysconfig_name'] = bti_read_str(fid,
+                                        BTI.FILE_CONF_UBLOCK_SYS_CONFIG)
+            cfg['timestamp'] = bti_read_int32(fid)
+
+        elif kind == BTI.UBLOCK_SYS_DELT_ENA:
+            cfg['delta_enabled'] = bti_read_int16(fid)
+
+        elif kind in [BTI.UBLOCK_ETABLE_USED, BTI.UBLOCK_ETABLE]:
+
+            cfg['hdr'] = dict(version=bti_read_int32(fid),
+                              entry_size=bti_read_int32(fid),
+                              num_entries=bti_read_int32(fid),
+                              filtername=bti_read_str(fid,
+                                            BTI.FILE_CONF_UBLOCK_ETAB_FILNAME),
+                              num_E_values=bti_read_int32(fid),
+                              reserved=bti_read_str(fid,
+                                            BTI.FILE_CONF_UBLOCK_ETAB_RESERVED
+                                            ))
+
+            if cfg['hdr']['version'] == BTI.FILE_CONF_UBLOCK_ETAB_HDR_VER:
+                size = BTI.FILE_CONF_UBLOCK_ETAB_CH_NAME
+                cfg['ch_names'] = [bti_read_str(fid, size) for ch in
+                                      range(cfg['hdr']['num_entries'])]
+                rows = cfg['hdr']['num_entries']
+                cols = cfg['hdr']['num_E_values']
+                cfg['etable'] = bti_read_float_matrix(fid, rows)
+            else:
+                # handle MAGNES2500 naming scheme
+                cfg['ch_names'] = ['WH2500'] * cfg['hdr']['num_E_values']
+                cfg['hdr']['num_E_values'] = BTI.FILE_CONF_UBLOCK_ETAB_WH2500
+                cfg['e_ch_names'] = BTI_WH2500_REF_MAG
+                rows = cfg['hdr']['num_entries']
+                cols = cfg['hdr']['num_E_values']
+                cfg['etable'] = bti_read_float_matrix(fid, rows, cols)
+
+                _correct_offset(fid)
+
+        elif any([kind == BTI.UBLOCK_WEIGHTS_USED,
+                  kind[:4] == BTI.UBLOCK_WEIGHT_TABLE]):
+            cfg['hdr'] = dict(version=bti_read_int32(fid),
+                                 entry_size=bti_read_int32(fid),
+                                 num_entries=bti_read_int32(fid),
+                                 name=bti_read_str(fid,
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_NAME),
+                                 description=bti_read_str(fid,
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_DESCR),
+                                 num_anlg=bti_read_int32(fid),
+                                 num_dsp=bti_read_int32(fid),
+                                 reserved=bti_read_str(fid,
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_RESERVED))
+
+            if cfg['hdr']['version'] == BTI.FILE_CONF_UBLOCK_WEIGHT_HDR_VER:
+                cfg['ch_names'] = [bti_read_str(fid,
+                                   BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                   for v in range(cfg['hdr']['num_entries'])]
+                cfg['anlg_ch_names'] = [bti_read_str(fid,
+                                        BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                        for v in range(cfg['hdr']['num_anlg'])]
+
+                cfg['dsp_ch_names'] = [bti_read_str(fid,
+                                       BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                       for val in range(cfg['hdr']['num_dsp'])]
+
+                rows = cfg['hdr']['num_entries']
+                cols = cfg['hdr']['num_anlg']
+                cfg['dsp_wts'] = bti_read_float_matrix(fid, rows, cols)
+                cfg['anlg_wts'] = bti_read_int16_matrix(fid, rows, cols)
+
+            else:  # handle MAGNES2500 naming scheme
+                cfg['ch_names'] = ['WH2500'] * cfg['hdr']['num_entries']
+                cfg['anlg_ch_names'] = BTI_WH2500_REF_MAG[:3]
+                cfg['hdr']['num_anlg'] = len(cfg['anlg_ch_names'])
+                cfg['dsp_ch_names'] = BTI_WH2500_REF_GRAD
+                cfg['hdr.num_dsp'] = len(cfg['dsp_ch_names'])
+                cfg_ = (cfg['hdr']['num_entries'], cfg['hdr']['num_anlg'])
+                cfg['anlg_wts'] = np.zeros(cfg_, dtype='i2')
+                cfg['dsp_wts'] = np.zeros((cfg['hdr']['num_entries'],
+                                          cfg['hdr']['num_dsp']), dtype='f4')
+                for n in range(cfg['hdr']['num_entries']):
+                    cfg['anlg_wts'][d, :] = bti_read_int16_matrix(fid, 1,
+                                                    cfg['hdr']['num_anlg'])
+                    bti_read_int16(fid)
+                    cfg['dsp_wts'][d, :] = bti_read_float_matrix(fid, 1,
+                                                cfg['hdr']['num_dsp'])
+
+                _correct_offset(fid)
+        elif kind == BTI.UBLOCK_TRIG_MASK:
+            cfg['version'] = bti_read_int32(fid)
+            cfg['entries'] = bti_read_int32(fid)
+            fid.seek(BTI.FILE_CONF_UBLOCK_MASK_PADDING, os.SEEK_CUR)
+
+            cfg['masks'] = []
+            for entry in range(cfg['entries']):
+                d = dict(name=bti_read_str(fid, 20),
+                         nbits=bti_read_uint16(fid),
+                         shift=bti_read_uint16(fid),
+                         mask=bti_read_uint32(fid))
+                cfg['masks'] += [d]
 
     else:
-
+        cfg['unknown'] = dict(cfg=bti_read_char(fid,
+                              cfg['hdr']['user_space_size']))
 
     _correct_offset(fid)
 
-    retun = block    
+    return cfg
 
 
 def _read_dev_hdr(fid):
