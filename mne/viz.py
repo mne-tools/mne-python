@@ -8,7 +8,7 @@
 # License: Simplified BSD
 import os
 import warnings
-from itertools import cycle, combinations
+from itertools import cycle
 from functools import partial
 from operator import add
 
