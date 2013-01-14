@@ -30,6 +30,9 @@ FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
 FIFF_INFO_DIG_FIELDS = ("kind", "ident", "r", "coord_frame")
 FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 
+dtypes = zip(range(1, 5), ('i2', 'i4', 'f4', 'f8'))
+DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
+
 ###############################################################################
 # Reading
 
@@ -37,7 +40,9 @@ FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 def _unpack_matrix(fid, format, rows, cols, dtype):
     """ Aux Function """
     out = np.zeros([rows, cols], dtype=dtype)
-    data = struct.unpack(format, fid.read(struct.calcsize(format)))
+    bsize = struct.calcsize(format)
+    string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
+    data = struct.unpack(format, string)
     iter_mat = [(r, c) for r in xrange(rows) for c in xrange(cols)]
     for idx, (row, col) in enumerate(iter_mat):
         out[row, col] = data[idx]
@@ -47,7 +52,9 @@ def _unpack_matrix(fid, format, rows, cols, dtype):
 
 def _unpack_simple(fid, format, count):
     """ Aux Function """
-    data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
+    bsize = struct.calcsize(format)
+    string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
+    data = list(struct.unpack(format, string))
 
     return data[0] if count < 2 else list(data)
 
@@ -404,21 +411,38 @@ def read_data(fname):
     pass
 
 
-def _correct_padding(fid):
-    """Compensate Padding"""
-    curpos = os.lseek(fid, 0, os.SEEK_CUR)
-    if ((curpos % BTI.FILE_CURPOS) != 0):
-        offset = curpos % BTI.FILE_CURPOS
-        os.lseek(fid, (BTI.FILE_CURPOS - (offset)), os.SEEK_CUR)
+def _correct_offset(fid):
+    """Compensate offset padding"""
+    current = fid.tell()
+    fid.seek(0, os.SEEK_CUR)
+    if ((current % BTI.FILE_CURPOS) != 0):
+        offset = current % BTI.FILE_CURPOS
+        fid.seek(BTI.FILE_CURPOS - (offset), os.SEEK_CUR)
 
 
 def _read_bti_header(fid):
     """ Read bti PDF header
     """
-    out = dict(version=bti_read_int16(fid),
-               file_type=bti_read_str(fid, BTI.FILE_PDF_H_SIZE))
 
-    os.lseek(fid, BTI.FILE_PDF_H_ENTER, os.SEEK_CUR)
+    fid.seek(BTI.FILE_END, os.SEEK_END)
+    ftr_pos = fid.tell()
+    hdr_pos = bti_read_int64(fid)
+    test_val = hdr_pos & BTI.FILE_MASK
+
+    if ((ftr_pos + BTI.FILE_CURPOS - test_val) <= BTI.FILE_MASK):
+        hdr_pos = test_val
+
+    if ((hdr_pos % BTI.FILE_CURPOS) != 0):
+        hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
+
+    fid.seek(hdr_pos, os.SEEK_SET)
+
+    hdr_size = ftr_pos - hdr_pos
+
+    out = dict(version=bti_read_int16(fid),
+               file_type=bti_read_str(fid, BTI.FILE_PDF_H_FTYPE))
+
+    fid.seek(BTI.FILE_PDF_H_ENTER, os.SEEK_CUR)
 
     out.update(dict(data_format=bti_read_int16(fid),
                 acq_mode=bti_read_int16(fid),
@@ -431,22 +455,23 @@ def _read_bti_header(fid):
                 total_processes=bti_read_int32(fid),
                 total_chans=bti_read_int16(fid)))
 
-    os.lseek(fid, BTI.FILE_PDF_H_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_H_NEXT, os.SEEK_CUR)
     out.update(dict(checksum=bti_read_int32(fid),
                 total_ed_classes=bti_read_int32(fid),
                 total_associated_files=bti_read_int16(fid),
                 last_file_index=bti_read_int16(fid),
                 timestamp=bti_read_int32(fid)))
 
-    os.lseek(fid, BTI.FILE_PDF_H_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_H_EXIT, os.SEEK_CUR)
 
-    _correct_padding(fid)
+    _correct_offset(fid)
 
-    return out
+    return out, hdr_size, ftr_pos
 
 
 def _read_bti_epoch(fid):
     """Read BTi epoch"""
+
     out = dict(pts_in_epoch=bti_read_int32(fid),
                 epoch_duration=bti_read_float(fid),
                 expected_iti=bti_read_float(fid),
@@ -455,7 +480,7 @@ def _read_bti_epoch(fid):
                 checksum=bti_read_int32(fid),
                 epoch_timestamp=bti_read_int32(fid))
 
-    os.lseek(fid, BTI.FILE_PDF_EPOCH_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_EPOCH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -470,7 +495,7 @@ def _read_channel(fid):
                 yaxis_label=bti_read_str(fid, BTI.FILE_PDF_CH_YLABEL),
                 valid_min_max=bti_read_int16(fid))
 
-    os.lseek(fid, BTI.FILE_PDF_CH_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_CH_NEXT, os.SEEK_CUR)
 
     out.update(dict(ymin=bti_read_double(fid),
                 ymax=bti_read_double(fid),
@@ -479,7 +504,7 @@ def _read_channel(fid):
                 off_flag=bti_read_str(fid, BTI.FILE_PDF_CH_OFF_FLAG),
                 offset=bti_read_float(fid)))
 
-    os.lseek(fid, BTI.FILE_PDF_CH_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_CH_EXIT, os.SEEK_CUR)
 
     return out
 
@@ -487,15 +512,15 @@ def _read_channel(fid):
 def _read_event(fid):
     """Read BTi PDF event"""
 
-    out = dict(event_name=bti_read_str(fid, BTI.FILE_EVENT_NAME),
+    out = dict(event_name=bti_read_str(fid, BTI.FILE_PDF_EVENT_NAME),
                 start_lat=bti_read_float(fid),
                 end_lat=bti_read_float(fid),
                 step_size=bti_read_float(fid),
                 fixed_event=bti_read_int16(fid),
                 checksum=bti_read_int32(fid))
 
-    os.lseek(fid, BTI.FILE_PDF_EVENT_EXIT, os.SEEK_CUR)
-    _correct_padding(fid)
+    fid.seek(BTI.FILE_PDF_EVENT_EXIT, os.SEEK_CUR)
+    _correct_offset(fid)
 
     return out
 
@@ -511,9 +536,9 @@ def _read_process(fid):
                 filename=bti_read_str(fid, BTI.FILE_PDF_PROCESS_FNAME),
                 total_steps=bti_read_int32(fid))
 
-    os.lseek(fid, BTI.FILE_PDF_PROCESS_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_PROCESS_EXIT, os.SEEK_CUR)
 
-    _correct_padding(fid)
+    _correct_offset(fid)
 
     return out
 
@@ -524,7 +549,7 @@ def _read_assoc_file(fid):
     out = dict(file_id=bti_read_int16(fid),
                 length=bti_read_int16(fid))
 
-    os.lseek(fid, BTI.FILE_PDF_ASSOC_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_ASSOC_NEXT, os.SEEK_CUR)
     out['checksum'] = bti_read_int32(fid)
 
     return out
@@ -536,7 +561,7 @@ def _read_pfid_ed(fid):
     out = dict(comment_size=bti_read_int32(fid),
              name=bti_read_str(fid, BTI.FILE_PDFED_NAME))
 
-    os.lseek(fid, BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
     out.update(dict(pdf_number=bti_read_int16(fid),
                     total_events=bti_read_int32(fid),
                     timestamp=bti_read_int32(fid),
@@ -547,140 +572,117 @@ def _read_pfid_ed(fid):
                     win_width=bti_read_float(fid),
                     win_offset=bti_read_float(fid)))
 
-    os.lseek(fid, BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
 
     return out
 
 
-class PDF(object):
+def read_raw_data(info, start=None, stop=None, order='by_name',
+                  dtype='f8'):
     """ Read Bti processed data file (PDF)
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info drawn from the BTi processed data file (PDF).
+    start : int | None
+        The number of the first time slice to read. If None, all data will
+        be read from the begninning.
+    stop : int | None
+        The number of the last time slice to read. If None, all data will
+        be read to the end.
+    order : index | 'by_name' | None
+        The order of the data along the channel axis. If 'by_name',
+        data will be returnend sorted by channel names, if None, by
+        acquisition order.
+    dtype : str | dtype object
+        The type the data are casted to.
+
+    Returns
+    -------
+    data : ndarray
+        The measurement data, a channels x timeslices array.
     """
-    def __init__(self, fid):
+    total_slices = info['total_slices']
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = total_slices
 
-        ftr_pos = os.lseek(fid, -8, os.SEEK_END)
+    if any([start < 0, stop > total_slices, start >= stop]):
+        raise RuntimeError('Invalid data range supplied:'
+                           ' %d, %d' % (start, stop))
 
-        # Now read the last 8 bytes
-        hdr_pos = bti_read_int64(fid)
-        test_val = hdr_pos & BTI.FILE_MASK
+    info['fid'].seek(info['bytes_per_slice'] * start)
 
-        if ((ftr_pos + BTI.FILE_CURPOS - test_val) <= BTI.FILE_MASK):
-            hdr_pos = test_val
+    cnt = (stop - start) * info['total_chans']
+    shape = [stop - start, info['total_chans']]
+    data = np.fromfile(info['fid'], dtype=info['dtype'],
+                       count=cnt).reshape(shape).T.astype(dtype)
 
-        # Check for alignment issues
-        if ((hdr_pos % BTI.FILE_CURPOS) != 0):
-            hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
+    if order == 'by_name':
+        mapping = [(i, d['chan_label']) for i, d in
+                   enumerate(info['channels'])]
+        sort = sorted(mapping, key=lambda c: int(c[1][1:])
+               if c[1].startswith('A') else c[1])
+        order = [idx[0] for idx in sort]
 
-        # Finally seek to the start of the header
-        os.lseek(fid, hdr_pos, os.SEEK_SET)
+    return data if order is None else data[order]
 
-        # Figure out the header size
-        self.hdr_size = ftr_pos - hdr_pos
 
-        self.hdr = _read_bti_header(fid)
+def read_pdf_info(fname):
+    """ Read Bti processed data file (PDF)
 
-        self.epochs = list()
-        for epoch in xrange(self.hdr['total_epochs']):
-            self.epochs += [_read_bti_epoch(epoch)]
+    Parameters
+    ----------
+    fname : str
+        The file name of the bti processed data file (PDF)
 
-        self.channels = list()
-        for channel in range(self.hdr['total_chans']):
-            self.channels += [_read_channel(channel)]
+    Returns
+    -------
+    info : dict
+        The info structure from the BTi PDF header
+    """
 
-        self.events = list()
-        for event in range(self.hdr['total_events']):
-            self.events += [_read_event(event)]
+    with open(fname, 'rb') as fid:
 
-        self.processes = list()
-        for process in range(self.hdr.total_processes):
-            self.processes += [_read_process(process)]
+        info, hdr_size, ftr_pos = _read_bti_header(fid)
 
-        self.assocfiles = list()
-        for af in range(self.hdr.total_associated_files):
-            self.assocfiles += [_read_assoc_file(af)]
+        info['epochs'] = [_read_bti_epoch(fid) for epoch in
+                          xrange(info['total_epochs'])]
 
-        self.edclasses = list()
-        for ed_class in range(self.hdr.total_ed_classes):
-            self.edclasses += [_read_pfid_ed(ed_class)]
+        info['channels'] = [_read_channel(fid) for ch in
+                            xrange(info['total_chans'])]
+
+        info['events'] = [_read_event(fid) for event in
+                          xrange(info['total_events'])]
+
+        info['processes'] = [_read_process(fid) for process in
+                             xrange(info['total_processes'])]
+
+        info['assocfiles'] = [_read_assoc_file(fid) for af in
+                              xrange(info['total_associated_files'])]
+
+        info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
+                             range(info['total_ed_classes'])]
 
         # We load any remaining data
-        curpos = os.lseek(fid, 0, os.SEEK_CUR)
-        self.extradata = os.read(fid, ftr_pos - curpos)
+        fid.seek(0, os.SEEK_CUR)
+        info['extradata'] = fid.read(ftr_pos - fid.tell())
 
-        # Stash a copy of the fid in case we need to load data later
-        # We need to take our own copy so that if someone closes it
-        # underneath us, bad things don't happen
-        self.fid = os.fidopen(os.dup(fid), 'r')
+        # copy of fid into info
+        info['fid'] = os.fdopen(os.dup(fid.fileno()), 'r')
 
         # calculate n_tsl
-        self.total_slices = 0
-        for e in self.epochs:
-            self.total_slices += e.pts_in_epoch
+        info['total_slices'] = sum(e['pts_in_epoch'] for e in
+                                   info['epochs'])
 
-    def get_dtype(self):
-        """Get dtypes"""
-        return BTI.NUMPY_DATATYPES[self.hdr.data_format]
+        info['dtype'] = DTYPES[info['data_format']]
 
-    def get_bytes_per_slice(self):
-        """Get bytes per slice"""
+        bps = info['dtype'].itemsize * info['total_chans']
+        info['bytes_per_slice'] = bps
 
-        return self.get_dtype().itemsize * self.hdr.total_chans
-
-    def read_raw_data(self, slices=None, indices=None):
-        """Read raw data"""
-        total_slices = self.total_slices
-
-        # If slices is None, return all data
-        if slices is None:
-            start = 0
-            end = total_slices
-        else:
-            start = slices[0]
-            end = slices[1]
-
-        if (start < 0) or (end > total_slices) or (start >= end):
-            raise RuntimeError('Invalid start and end slices for get_slice_r'
-                               'ange(): %d, %d' % (start, end))
-
-        self.fid.seek(self.get_bytes_per_slice() * start)
-
-        count_ = (end - start) * self.hdr['total_chans']
-        shape = [end - start, self.hdr['total_chans']]
-        _data_unsorted = np.fromfile(self.fid, dtype=self.get_dtype(),
-                                      count=count_).reshape(shape)
-
-        if indices is None:
-            # Return everything unordered
-            data = _data_unsorted
-        else:
-            data = _data_unsorted[:, indices]
-            del _data_unsorted
-
-        return data
-
-    def find_first_event(self, eventname):
-        """Find first event"""
-        for e in self.events:
-            if e.event_name == eventname:
-                return e
-
-        return None
-
-    def slice_to_latency(self, slicenum):
-        """Time as index"""
-        trigev = self.find_first_event('Trigger')
-        period = self.hdr.sample_period
-
-        return (slicenum * period) - trigev.start_lat
-
-    def latency_to_slice(self, latency):
-
-        trigev = self.find_first_event('Trigger')
-        period = self.hdr.sample_period
-
-        ret = float(latency + trigev.start_lat) / float(period)
-
-        # Round
-        return floor(ret + 0.5)
+        return info
 
 
 def read_config(fname):
