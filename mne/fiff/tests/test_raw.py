@@ -399,16 +399,17 @@ def test_filter():
     picks = picks_meg[:4]
 
     raw_lp = raw.copy()
-    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2, skip_check=True)
 
     raw_hp = raw.copy()
-    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
+    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2, skip_check=True)
 
     raw_bp = raw.copy()
-    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
+    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks, skip_check=True)
 
     raw_bs = raw.copy()
-    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2,
+                  skip_check=True)
 
     data, _ = raw[picks, :]
 
@@ -443,16 +444,19 @@ def test_filter():
     # do a very simple check on line filtering
     raw_bs = raw.copy()
     with warnings.catch_warnings(True) as w:
-        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
+        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2,
+                      skip_check=True)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
-        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft',
+                               skip_check=True)
     data_notch, _ = raw_notch[picks, :]
     assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
 
     # now use the sinusoidal fitting
     raw_notch = raw.copy()
-    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit',
+                           skip_check=True)
     data_notch, _ = raw_notch[picks, :]
     data, _ = raw[picks, :]
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)

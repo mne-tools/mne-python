@@ -452,7 +452,7 @@ class Raw(object):
     def filter(self, l_freq, h_freq, picks=None, filter_length=None,
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
                method='fft', iir_params=dict(order=4, ftype='butter'),
-               verbose=None):
+               skip_check=False, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -502,6 +502,9 @@ class Raw(object):
         iir_params : dict
             Dictionary of parameters to use for IIR filtering.
             See mne.filter.construct_iir_filter for details.
+        skip_check : bool
+            If True, skip filter attenuation check. Only used in FFT-based
+            filtering (and only recommended for advanced users).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -534,7 +537,8 @@ class Raw(object):
             self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
                                 fs, h_freq, filter_length=filter_length,
                                 trans_bandwidth=l_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+                                method=method, iir_params=iir_params,
+                                skip_check=skip_check)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
             if method.lower() == 'iir':
@@ -544,7 +548,8 @@ class Raw(object):
             self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
                                 fs, l_freq, filter_length=filter_length,
                                 trans_bandwidth=h_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+                                method=method, iir_params=iir_params,
+                                skip_check=skip_check)
         if l_freq is not None and h_freq is not None:
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
@@ -558,7 +563,8 @@ class Raw(object):
                                     filter_length=filter_length,
                                     l_trans_bandwidth=l_trans_bandwidth,
                                     h_trans_bandwidth=h_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                                    method=method, iir_params=iir_params,
+                                    skip_check=skip_check)
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
@@ -571,13 +577,15 @@ class Raw(object):
                                     filter_length=filter_length,
                                     l_trans_bandwidth=h_trans_bandwidth,
                                     h_trans_bandwidth=l_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                                    method=method, iir_params=iir_params,
+                                    skip_check=skip_check)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length=None,
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
-                     mt_bandwidth=None, p_value=0.05, verbose=None):
+                     mt_bandwidth=None, p_value=0.05, skip_check=False,
+                     verbose=None):
         """Notch filter a subset of channels.
 
         Applies a zero-phase notch filter to the channels selected by
@@ -626,6 +634,9 @@ class Raw(object):
             sinusoidal components to remove when method='spectrum_fit' and
             freqs=None. Note that this will be Bonferroni corrected for the
             number of frequencies, so large p-values may be justified.
+        skip_check : bool
+            If True, skip filter attenuation check. Only used in FFT-based
+            filtering (and only recommended for advanced users).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -645,7 +656,8 @@ class Raw(object):
                             notch_widths=notch_widths,
                             trans_bandwidth=trans_bandwidth,
                             method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth, p_value=p_value)
+                            mt_bandwidth=mt_bandwidth, p_value=p_value,
+                            skip_check=skip_check)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
