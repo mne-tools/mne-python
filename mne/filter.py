@@ -146,7 +146,10 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
 
 
 def _filter_attenuation(h, freq, gain):
-    """Compute minimum attenuation at stop frequency"""
+    """Compute minimum attenuation at stop frequency
+
+    Warning: This can be time consuming.
+    """
 
     _, filt_resp = freqz(h, worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
@@ -159,7 +162,7 @@ def _filter_attenuation(h, freq, gain):
     return att_db, att_freq
 
 
-def _filter(x, Fs, freq, gain, filter_length=None):
+def _filter(x, Fs, freq, gain, filter_length=None, skip_check=False):
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hamming window (window
@@ -180,6 +183,9 @@ def _filter(x, Fs, freq, gain, filter_length=None):
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    skip_check : bool
+        If True, skip filter attenuation check. Only recommended for advanced
+        users.
 
     Returns
     -------
@@ -210,11 +216,12 @@ def _filter(x, Fs, freq, gain, filter_length=None):
 
         H = firwin2(N, freq, gain)
 
-        att_db, att_freq = _filter_attenuation(H, freq, gain)
-        if att_db < min_att_db:
-            att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB.' % (att_freq, att_db))
+        if not skip_check:
+            att_db, att_freq = _filter_attenuation(H, freq, gain)
+            if att_db < min_att_db:
+                att_freq *= Fs / 2
+                warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                              '%0.1fdB.' % (att_freq, att_db))
 
         # Make zero-phase filter function
         B = np.abs(fft(H))
@@ -233,13 +240,14 @@ def _filter(x, Fs, freq, gain, filter_length=None):
 
         H = firwin2(N, freq, gain)
 
-        att_db, att_freq = _filter_attenuation(H, freq, gain)
-        att_db += 6  # the filter is applied twice (zero phase)
-        if att_db < min_att_db:
-            att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB. Increase filter_length for higher '
-                          'attenuation.' % (att_freq, att_db))
+        if not skip_check:
+            att_db, att_freq = _filter_attenuation(H, freq, gain)
+            att_db += 6  # the filter is applied twice (zero phase)
+            if att_db < min_att_db:
+                att_freq *= Fs / 2
+                warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                              '%0.1fdB. Increase filter_length for higher '
+                              'attenuation.' % (att_freq, att_db))
 
         xf = _overlap_add_filter(x, H, zero_phase=True)
 
@@ -387,7 +395,8 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     skip_check=False):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -416,6 +425,9 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    skip_check : bool
+        If True, skip filter attenuation check. Only used in FFT-based
+        filtering (and only recommended for advanced users).
 
     Returns
     -------
@@ -456,7 +468,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
     if method == 'fft':
         xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2],
-                     [0, 0, 1, 1, 0, 0], filter_length)
+                     [0, 0, 1, 1, 0, 0], filter_length, skip_check)
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
@@ -468,7 +480,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     skip_check=False):
     """Bandstop filter for the signal x.
 
     Applies a zero-phase bandstop filter to the signal x.
@@ -497,6 +510,9 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    skip_check : bool
+        If True, skip filter attenuation check. Only used in FFT-based
+        filtering (and only recommended for advanced users).
 
     Returns
     -------
@@ -550,7 +566,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         mags = mags[order]
         if np.any(np.abs(np.diff(mags, 2)) > 1):
             raise ValueError('Stop bands are not sufficiently separated.')
-        xf = _filter(x, Fs, freqs, mags, filter_length)
+        xf = _filter(x, Fs, freqs, mags, filter_length, skip_check)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
@@ -563,7 +579,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    method='fft', iir_params=dict(order=4, ftype='butter')):
+                    method='fft', iir_params=dict(order=4, ftype='butter'),
+                    skip_check=False):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -588,6 +605,9 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    skip_check : bool
+        If True, skip filter attenuation check. Only used in FFT-based
+        filtering (and only recommended for advanced users).
 
     Returns
     -------
@@ -617,7 +637,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     Fstop = Fp + trans_bandwidth
     if method == 'fft':
         xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
-                     filter_length)
+                     filter_length, skip_check)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
         padlen = min(iir_params['padlen'], len(x))
@@ -627,7 +647,8 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     skip_check=False):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -652,6 +673,9 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    skip_check : bool
+        If True, skip filter attenuation check. Only used in FFT-based
+        filtering (and only recommended for advanced users).
 
     Returns
     -------
@@ -688,7 +712,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
     if method == 'fft':
         xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1],
-                     filter_length)
+                     filter_length, skip_check)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
         padlen = min(iir_params['padlen'], len(x))
@@ -701,7 +725,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
                  trans_bandwidth=1, method='fft',
                  iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
-                 p_value=0.05, verbose=None):
+                 p_value=0.05, skip_check=False, verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x.
@@ -742,6 +766,9 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
+    skip_check : bool
+        If True, skip filter attenuation check. Only used in FFT-based
+        filtering (and only recommended for advanced users).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -808,7 +835,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
-                              method, iir_params)
+                              method, iir_params, skip_check)
     elif method == 'spectrum_fit':
         xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, notch_widths,
                                            mt_bandwidth, p_value)
