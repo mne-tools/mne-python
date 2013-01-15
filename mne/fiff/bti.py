@@ -411,25 +411,6 @@ def read_head_shape(fname):
     return idx_points, dig_points
 
 
-def read_data(fname):
-    """Read BTi PDF file
-
-    Parameters
-    ----------
-    fname : str
-        The absolute path to the processed data file (PDF)
-
-    Returns
-    -------
-    header : dict
-        The measurement info.
-    data : ndarray
-        The channels X time slices MEG measurments.
-
-    """
-    pass
-
-
 def _correct_offset(fid):
     """Compensate offset padding"""
     current = fid.tell()
@@ -664,7 +645,7 @@ def _read_userblock(fid, blocks, acq_env):
                          subsys_num=bti_read_int16(fid),
                          card_num=bti_read_int16(fid),
                          chan_num=bti_read_int16(fid),
-                         recdspnum=bta_read_int16(fid))
+                         recdspnum=bti_read_int16(fid))
                 d += [d]
 
         elif kind == BTI.UBLOCK_WHS_SUBS:
@@ -705,9 +686,9 @@ def _read_userblock(fid, blocks, acq_env):
 
         elif kind == BTI.UBLOCK_CH_CAL:
             if acq_env == 'solaris':
-                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS = 256
+                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS
             elif acq_env == 'linux':
-                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS = 512
+                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS
 
             cfg['sensor_no'] = bti_read_int16(fid)
             fid.seek(fid, BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
@@ -1277,15 +1258,3 @@ class RawBTi(Raw):
 
         logger.info('Done.')
         return info
-
-    def _read_data(self, count=-1, dtype=np.float32):
-        """ Reads data from binary string file (dumped: time slices x channels)
-        """
-        _ntsl = self.hdr[BTI.HDR_FILEINFO]['Time slices']
-        ntsl = int(_ntsl.replace(' slices', ''))
-        cnt, dtp = count, dtype
-        with open(self._data_file, 'rb') as f:
-            shape = (ntsl, self.info['nchan'])
-            data = np.fromfile(f, dtype=dtp, count=cnt)
-
-        return data.reshape(shape).T
