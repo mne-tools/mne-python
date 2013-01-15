@@ -39,43 +39,16 @@ def is_power2(num):
     return num != 0 and ((num & (num - 1)) == 0)
 
 
-def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
-    """ Filter using overlap-add FFTs.
-
-    Filters the signal x using a filter with the impulse response h.
-    If zero_phase==True, the amplitude response is scaled and the filter is
-    applied in forward and backward direction, resulting in a zero-phase
-    filter.
-
-    Parameters
-    ----------
-    x : 1d array
-        Signal to filter
-    h : 1d array
-        Filter impulse response (FIR filter coefficients)
-    n_fft : int
-        Length of the FFT. If None, the best size is determined automatically.
-    zero_phase : bool
-        If True: the filter is applied in forward and backward direction,
-        resulting in a zero-phase filter
-
-    Returns
-    -------
-    xf : 1d array
-        x filtered
-    """
-    n_h = len(h)
-
-    # Extend the signal by mirroring the edges to reduce transient filter
-    # response
-    n_edge = min(n_h, len(x))
-
-    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1], \
-                  x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
-
-    n_x = len(x_ext)
+def _setup_overlap_filter(h, n_fft, zero_phase, len_x, params):
+    """Helper function to make freq domain filter for overlap add"""
+    if all([key in params
+            for key in ['h_fft', 'n_fft', 'n_x', 'n_h', 'n_edge']]):
+        return params
 
     # Determine FFT length to use
+    n_h = len(h)
+    n_edge = min(n_h, len_x)
+    n_x = len_x + 2 * n_edge - 2
     if n_fft is None:
         if n_x > n_h:
             n_tot = 2 * n_x if zero_phase else n_x
@@ -106,6 +79,51 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
         idx = np.where(np.abs(h_fft) > 1e-6)
         h_fft[idx] = h_fft[idx] / np.sqrt(np.abs(h_fft[idx]))
 
+    params = deepcopy(params)
+    params['h_fft'] = h_fft
+    params['n_fft'] = n_fft
+    params['n_x'] = n_x
+    params['n_h'] = n_h
+    params['n_edge'] = n_edge
+    return params
+
+
+def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, params=dict()):
+    """ Filter using overlap-add FFTs.
+
+    Filters the signal x using a filter with the impulse response h.
+    If zero_phase==True, the amplitude response is scaled and the filter is
+    applied in forward and backward direction, resulting in a zero-phase
+    filter.
+
+    Parameters
+    ----------
+    x : 1d array
+        Signal to filter
+    h : 1d array
+        Filter impulse response (FIR filter coefficients)
+    n_fft : int
+        Length of the FFT. If None, the best size is determined automatically.
+    zero_phase : bool
+        If True: the filter is applied in forward and backward direction,
+        resulting in a zero-phase filter
+
+    Returns
+    -------
+    xf : 1d array
+        x filtered
+    """
+    # Get the filter
+    params = _setup_overlap_filter(h, n_fft, zero_phase, len(x), params)
+    h_fft = params['h_fft']
+    n_fft = params['n_fft']
+    n_x = params['n_x']
+    n_h = params['n_h']
+    n_edge = params['n_h']
+    # Extend the signal by mirroring the edges to reduce transient filter
+    # response
+    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1],
+                  x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
     x_filtered = np.zeros_like(x_ext)
 
     # Segment length for signal x
@@ -159,7 +177,70 @@ def _filter_attenuation(h, freq, gain):
     return att_db, att_freq
 
 
-def _filter(x, Fs, freq, gain, filter_length=None):
+def _setup_fft_filter(x, Fs, freq, gain, filter_length, params):
+    # issue a warning if attenuation is less than this
+    min_att_db = 20
+
+    assert x.ndim == 1
+
+    # normalize frequencies
+    freq = np.array([f / (Fs / 2) for f in freq])
+    gain = np.array(gain)
+
+    extend_x = False
+    Norig = len(x)
+    if filter_length is None or len(x) <= filter_length:
+        # Use direct FFT filtering for short signals
+        use_overlap = False
+
+        if (gain[-1] == 0.0 and Norig % 2 == 1) \
+                or (gain[-1] == 1.0 and Norig % 2 != 1):
+            # Gain at Nyquist freq: 1: make x EVEN, 0: make x ODD
+            extend_x = True
+            N = Norig + 1
+        else:
+            N = Norig
+
+        H = firwin2(N, freq, gain)
+
+        att_db, att_freq = _filter_attenuation(H, freq, gain)
+        if att_db < min_att_db:
+            att_freq *= Fs / 2
+            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                          '%0.1fdB.' % (att_freq, att_db))
+    else:
+        # Use overlap-add filter with a fixed length
+        use_overlap = True
+        N = filter_length
+
+        if (gain[-1] == 0.0 and N % 2 == 1) \
+                or (gain[-1] == 1.0 and N % 2 != 1):
+            # Gain at Nyquist freq: 1: make N EVEN, 0: make N ODD
+            N += 1
+
+        H = firwin2(N, freq, gain)
+
+    att_db, att_freq = _filter_attenuation(H, freq, gain)
+    att_db += 6  # the filter is applied twice (zero phase)
+    if att_db < min_att_db:
+        att_freq *= Fs / 2
+        warnings.warn('Attenuation at stop frequency %0.1fHz is only '
+                      '%0.1fdB. Increase filter_length for higher '
+                      'attenuation.' % (att_freq, att_db))
+
+    if not use_overlap:
+        # Make zero-phase filter function
+        H = np.abs(fft(H))
+
+    params = deepcopy(params)
+    params['H'] = H
+    params['Norig'] = Norig
+    params['use_overlap'] = use_overlap
+    params['extend_x'] = extend_x
+    return params
+
+
+def _filter(x, Fs, freq, gain, filter_length=None, params=dict()):
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hamming window (window
@@ -186,61 +267,18 @@ def _filter(x, Fs, freq, gain, filter_length=None):
     xf : 1d array
         x filtered
     """
-
-    # issue a warning if attenuation is less than this
-    min_att_db = 20
-
-    assert x.ndim == 1
-
-    # normalize frequencies
-    freq = np.array([f / (Fs / 2) for f in freq])
-    gain = np.array(gain)
-
-    if filter_length is None or len(x) <= filter_length:
-        # Use direct FFT filtering for short signals
-
-        Norig = len(x)
-
-        if (gain[-1] == 0.0 and Norig % 2 == 1) \
-                or (gain[-1] == 1.0 and Norig % 2 != 1):
-            # Gain at Nyquist freq: 1: make x EVEN, 0: make x ODD
+    params = _setup_fft_filter(x, Fs, freq, gain, filter_length, params)
+    H = params['H']
+    Norig = params['Norig']
+    use_overlap = params['use_overlap']
+    extend_x = params['extend_x']
+    if not use_overlap:
+        if extend_x:
             x = np.r_[x, x[-1]]
-
-        N = len(x)
-
-        H = firwin2(N, freq, gain)
-
-        att_db, att_freq = _filter_attenuation(H, freq, gain)
-        if att_db < min_att_db:
-            att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB.' % (att_freq, att_db))
-
-        # Make zero-phase filter function
-        B = np.abs(fft(H))
-
-        xf = np.real(ifft(fft(x) * B))
+        xf = np.real(ifft(fft(x) * H))
         xf = np.array(xf[:Norig], dtype=x.dtype)
         x = x[:Norig]
     else:
-        # Use overlap-add filter with a fixed length
-        N = filter_length
-
-        if (gain[-1] == 0.0 and N % 2 == 1) \
-                or (gain[-1] == 1.0 and N % 2 != 1):
-            # Gain at Nyquist freq: 1: make N EVEN, 0: make N ODD
-            N += 1
-
-        H = firwin2(N, freq, gain)
-
-        att_db, att_freq = _filter_attenuation(H, freq, gain)
-        att_db += 6  # the filter is applied twice (zero phase)
-        if att_db < min_att_db:
-            att_freq *= Fs / 2
-            warnings.warn('Attenuation at stop frequency %0.1fHz is only '
-                          '%0.1fdB. Increase filter_length for higher '
-                          'attenuation.' % (att_freq, att_db))
-
         xf = _overlap_add_filter(x, H, zero_phase=True)
 
     return xf
