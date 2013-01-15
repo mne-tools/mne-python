@@ -665,4 +665,3 @@ def test_with_statement():
     for preload in [True, False]:
         with Raw(fif_fname, preload=preload) as raw_:
             print raw_
-    print 'raw_' in locals()
