@@ -786,6 +786,50 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     return xf
 
 
+def _notch_setup(len_x, Fs, freqs, notch_widths, trans_bandwidth,
+                 filter_length, method, _fft_params=dict()):
+    """Helper for notch filtering"""
+    if method not in ['fft', 'iir', 'spectrum_fit']:
+        raise RuntimeError('method should be fft, iir, or spectrum_fit '
+                           '(not %s)' % method)
+
+    lows = None
+    highs = None
+    tb_2 = trans_bandwidth / 2.0
+    if freqs is not None:
+        # Deal with notch_widths for non-autodetect
+        freqs = np.atleast_1d(freqs)
+        if notch_widths is None:
+            notch_widths = freqs / 200.0
+        elif np.any(notch_widths < 0):
+            raise ValueError('notch_widths must be >= 0')
+        else:
+            notch_widths = np.atleast_1d(notch_widths)
+            if len(notch_widths) == 1:
+                notch_widths = notch_widths[0] * np.ones_like(freqs)
+            elif len(notch_widths) != len(freqs):
+                raise ValueError('notch_widths must be None, scalar, or the '
+                                 'same length as freqs')
+
+        lows = [freq - nw / 2.0 - tb_2
+                for freq, nw in zip(freqs, notch_widths)]
+        highs = [freq + nw / 2.0 + tb_2
+                 for freq, nw in zip(freqs, notch_widths)]
+
+        if method == 'fft':
+            # Speed this up by computing the fourier coefficients once
+            Fp1 = np.atleast_1d(lows)
+            Fp2 = np.atleast_1d(highs)
+            Fs1 = Fp1 + tb_2
+            Fs2 = Fp2 - tb_2
+            _fft_params = _band_stop_setup(len_x, Fs, Fp1, Fp2, Fs1, Fs2,
+                                           filter_length, _fft_params)[2]
+    elif method != 'spectrum_fit':
+            raise ValueError('freqs=None can only be used with method '
+                             'spectrum_fit')
+    return freqs, lows, highs, tb_2, notch_widths, _fft_params
+
+
 @verbose
 def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
                  trans_bandwidth=1, method='fft',
@@ -865,37 +909,11 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
     """
 
     method = method.lower()
-    if method not in ['fft', 'iir', 'spectrum_fit']:
-        raise RuntimeError('method should be fft, iir, or spectrum_fit '
-                           '(not %s)' % method)
-
-    if freqs is not None:
-        freqs = np.atleast_1d(freqs)
-    elif method != 'spectrum_fit':
-            raise ValueError('freqs=None can only be used with method '
-                             'spectrum_fit')
-
-    # Only have to deal with notch_widths for non-autodetect
-    if freqs is not None:
-        if notch_widths is None:
-            notch_widths = freqs / 200.0
-        elif np.any(notch_widths < 0):
-            raise ValueError('notch_widths must be >= 0')
-        else:
-            notch_widths = np.atleast_1d(notch_widths)
-            if len(notch_widths) == 1:
-                notch_widths = notch_widths[0] * np.ones_like(freqs)
-            elif len(notch_widths) != len(freqs):
-                raise ValueError('notch_widths must be None, scalar, or the '
-                                 'same length as freqs')
+    freqs, lows, highs, tb_2, notch_widths, _fft_params = \
+        _notch_setup(len(x), Fs, freqs, notch_widths, trans_bandwidth,
+                     filter_length, method, _fft_params)
 
     if method in ['fft', 'iir']:
-        # Speed this up by computing the fourier coefficients once
-        tb_2 = trans_bandwidth / 2.0
-        lows = [freq - nw / 2.0 - tb_2
-                for freq, nw in zip(freqs, notch_widths)]
-        highs = [freq + nw / 2.0 + tb_2
-                 for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
                               method, iir_params, _fft_params)
     elif method == 'spectrum_fit':

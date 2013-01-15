@@ -30,7 +30,7 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample, \
                      construct_iir_filter, _low_pass_setup, \
                      _high_pass_setup, _band_pass_setup, \
-                     _band_stop_setup
+                     _band_stop_setup, _notch_setup
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -666,12 +666,18 @@ class Raw(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
+        _fft_params = dict()
+        if method.lower() == 'fft':
+            _fft_params = _notch_setup(self.n_times, fs, freqs, notch_widths,
+                                       trans_bandwidth, filter_length, method,
+                                       _fft_params)[5]
         self.apply_function(notch_filter, picks, None, n_jobs, verbose,
                             fs, freqs, filter_length=filter_length,
                             notch_widths=notch_widths,
                             trans_bandwidth=trans_bandwidth,
                             method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth, p_value=p_value)
+                            mt_bandwidth=mt_bandwidth, p_value=p_value,
+                            _fft_params=_fft_params)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
