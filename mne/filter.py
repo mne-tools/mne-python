@@ -88,7 +88,7 @@ def _setup_overlap_filter(h, n_fft, zero_phase, len_x, params):
     return params
 
 
-def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, params=dict()):
+def _overlap_add_filter(x, zero_phase=True, params=dict()):
     """ Filter using overlap-add FFTs.
 
     Filters the signal x using a filter with the impulse response h.
@@ -114,7 +114,6 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, params=dict()):
         x filtered
     """
     # Get the filter
-    params = _setup_overlap_filter(h, n_fft, zero_phase, len(x), params)
     h_fft = params['h_fft']
     n_fft = params['n_fft']
     n_x = params['n_x']
@@ -177,19 +176,23 @@ def _filter_attenuation(h, freq, gain):
     return att_db, att_freq
 
 
-def _setup_fft_filter(x, Fs, freq, gain, filter_length, params):
+def _setup_fft_filter(len_x, Fs, freq, gain, filter_length, params=dict()):
+    """Helper function to set up FFT filtering"""
+    # skip if it's been defined already
+    if all([key in params
+            for key in ['H', 'Norig', 'use_overlap', 'extend_x']]):
+        return params
+
     # issue a warning if attenuation is less than this
     min_att_db = 20
-
-    assert x.ndim == 1
 
     # normalize frequencies
     freq = np.array([f / (Fs / 2) for f in freq])
     gain = np.array(gain)
 
     extend_x = False
-    Norig = len(x)
-    if filter_length is None or len(x) <= filter_length:
+    Norig = len_x
+    if filter_length is None or len_x <= filter_length:
         # Use direct FFT filtering for short signals
         use_overlap = False
 
@@ -219,6 +222,7 @@ def _setup_fft_filter(x, Fs, freq, gain, filter_length, params):
             N += 1
 
         H = firwin2(N, freq, gain)
+        params = _setup_overlap_filter(H, None, True, len_x, params)
 
     att_db, att_freq = _filter_attenuation(H, freq, gain)
     att_db += 6  # the filter is applied twice (zero phase)
@@ -267,19 +271,20 @@ def _filter(x, Fs, freq, gain, filter_length=None, params=dict()):
     xf : 1d array
         x filtered
     """
-    params = _setup_fft_filter(x, Fs, freq, gain, filter_length, params)
-    H = params['H']
-    Norig = params['Norig']
+    assert x.ndim == 1
+    params = _setup_fft_filter(len(x), Fs, freq, gain, filter_length, params)
     use_overlap = params['use_overlap']
-    extend_x = params['extend_x']
     if not use_overlap:
+        H = params['H']
+        Norig = params['Norig']
+        extend_x = params['extend_x']
         if extend_x:
             x = np.r_[x, x[-1]]
         xf = np.real(ifft(fft(x) * H))
         xf = np.array(xf[:Norig], dtype=x.dtype)
         x = x[:Norig]
     else:
-        xf = _overlap_add_filter(x, H, zero_phase=True)
+        xf = _overlap_add_filter(x, params=params)
 
     return xf
 
@@ -423,9 +428,74 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     return iir_params
 
 
+def _band_pass_setup(len_x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length,
+                     _fft_params=dict()):
+    """Helper for BP filtering"""
+    if Fs1 <= 0:
+        raise ValueError('Filter specification invalid: Lower stop frequency '
+                         'too low (%0.1fHz). Increase Fp1 or reduce '
+                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
+    Fs = float(Fs)
+    Fp1 = float(Fp1)
+    Fp2 = float(Fp2)
+    Fs1 = float(Fs1)
+    Fs2 = float(Fs2)
+    freq = [0, Fs1, Fp1, Fp2, Fs2, Fs / 2]
+    gain = [0, 0, 1, 1, 0, 0]
+    _fft_params = _setup_fft_filter(len_x, Fs, freq, gain, filter_length,
+                                    _fft_params)
+    return freq, gain, _fft_params
+
+
+def _band_stop_setup(len_x, Fs, Fp1, Fp2, Fs1, Fs2, filter_length,
+                     _fft_params=dict()):
+    """Helper for BS filtering"""
+    Fs = float(Fs)
+    if np.any(Fs1 <= 0):
+        raise ValueError('Filter specification invalid: Lower stop frequency '
+                         'too low (%0.1fHz). Increase Fp1 or reduce '
+                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
+    freqs = np.r_[0, Fp1, Fs1, Fs2, Fp2, Fs / 2]
+    mags = np.r_[1, np.ones_like(Fp1), np.zeros_like(Fs1),
+                 np.zeros_like(Fs2), np.ones_like(Fp2), 1]
+    order = np.argsort(freqs)
+    freqs = freqs[order]
+    gains = mags[order]
+    if np.any(np.abs(np.diff(gains, 2)) > 1):
+        raise ValueError('Stop bands are not sufficiently separated.')
+    _fft_params = _setup_fft_filter(len_x, Fs, freqs, gains, filter_length,
+                                    _fft_params)
+    return freqs, gains, _fft_params
+
+
+def _low_pass_setup(len_x, Fs, Fp, Fstop, filter_length, _fft_params=dict()):
+    """Helper for LP filtering"""
+    Fs = float(Fs)
+    Fp = float(Fp)
+    Fstop = float(Fstop)
+    freq = [0, Fp, Fstop, Fs / 2]
+    gain = [1, 1, 0, 0]
+    _fft_params = _setup_fft_filter(len_x, Fs, freq, gain, filter_length,
+                                    _fft_params)
+    return freq, gain, _fft_params
+
+
+def _high_pass_setup(len_x, Fs, Fp, Fstop, filter_length, _fft_params=dict()):
+    """Helper for HP filtering"""
+    Fs = float(Fs)
+    Fp = float(Fp)
+    Fstop = float(Fstop)
+    freq = [0, Fstop, Fp, Fs / 2]
+    gain = [0, 0, 1, 1]
+    _fft_params = _setup_fft_filter(len_x, Fs, freq, gain, filter_length,
+                                    _fft_params)
+    return freq, gain, _fft_params
+
+
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     _fft_params=dict()):
     """Bandpass filter for the signal x.
 
     Applies a zero-phase bandpass filter to the signal x.
@@ -481,20 +551,14 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
     if method not in ['fft', 'iir']:
         raise RuntimeError('method should be fft or iir (not %s)' % method)
 
-    Fs = float(Fs)
-    Fp1 = float(Fp1)
-    Fp2 = float(Fp2)
     Fs1 = Fp1 - l_trans_bandwidth
     Fs2 = Fp2 + h_trans_bandwidth
 
-    if Fs1 <= 0:
-        raise ValueError('Filter specification invalid: Lower stop frequency '
-                         'too low (%0.1fHz). Increase Fp1 or reduce '
-                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
-
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2],
-                     [0, 0, 1, 1, 0, 0], filter_length)
+        freq, gain, _fft_params = _band_pass_setup(len(x), Fs, Fp1, Fp2,
+                                                   Fs1, Fs2,
+                                                   filter_length, _fft_params)
+        xf = _filter(x, Fs, freq, gain, filter_length, _fft_params)
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
@@ -506,7 +570,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     _fft_params=dict()):
     """Bandstop filter for the signal x.
 
     Applies a zero-phase bandstop filter to the signal x.
@@ -568,27 +633,14 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
     if not len(Fp1) == len(Fp2):
         raise ValueError('Fp1 and Fp2 must be the same length')
 
-    Fs = float(Fs)
-    Fp1 = Fp1.astype(float)
-    Fp2 = Fp2.astype(float)
     Fs1 = Fp1 + l_trans_bandwidth
     Fs2 = Fp2 - h_trans_bandwidth
 
-    if np.any(Fs1 <= 0):
-        raise ValueError('Filter specification invalid: Lower stop frequency '
-                         'too low (%0.1fHz). Increase Fp1 or reduce '
-                         'transition bandwidth (l_trans_bandwidth)' % Fs1)
-
     if method == 'fft':
-        freqs = np.r_[0, Fp1, Fs1, Fs2, Fp2, Fs / 2]
-        mags = np.r_[1, np.ones_like(Fp1), np.zeros_like(Fs1),
-                     np.zeros_like(Fs2), np.ones_like(Fp2), 1]
-        order = np.argsort(freqs)
-        freqs = freqs[order]
-        mags = mags[order]
-        if np.any(np.abs(np.diff(mags, 2)) > 1):
-            raise ValueError('Stop bands are not sufficiently separated.')
-        xf = _filter(x, Fs, freqs, mags, filter_length)
+        freq, gain, _fft_params = _band_stop_setup(len(x), Fs, Fp1, Fp2,
+                                                   Fs1, Fs2,
+                                                   filter_length, _fft_params)
+        xf = _filter(x, Fs, freq, gain, filter_length, _fft_params)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
@@ -601,7 +653,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    method='fft', iir_params=dict(order=4, ftype='butter')):
+                    method='fft', iir_params=dict(order=4, ftype='butter'),
+                    _fft_params=dict()):
     """Lowpass filter for the signal x.
 
     Applies a zero-phase lowpass filter to the signal x.
@@ -650,12 +703,11 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     if method not in ['fft', 'iir']:
         raise RuntimeError('method should be fft or iir (not %s)' % method)
 
-    Fs = float(Fs)
-    Fp = float(Fp)
     Fstop = Fp + trans_bandwidth
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
-                     filter_length)
+        freq, gain, _fft_params = _low_pass_setup(len(x), Fs, Fp, Fstop,
+                                                  filter_length, _fft_params)
+        xf = _filter(x, Fs, freq, gain, filter_length, _fft_params)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
         padlen = min(iir_params['padlen'], len(x))
@@ -665,7 +717,8 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     _fft_params=dict()):
     """Highpass filter for the signal x.
 
     Applies a zero-phase highpass filter to the signal x.
@@ -715,9 +768,6 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     if method not in ['fft', 'iir']:
         raise RuntimeError('method should be fft or iir (not %s)' % method)
 
-    Fs = float(Fs)
-    Fp = float(Fp)
-
     Fstop = Fp - trans_bandwidth
     if Fstop <= 0:
         raise ValueError('Filter specification invalid: Stop frequency too low'
@@ -725,8 +775,9 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                          'bandwidth (trans_bandwidth)' % Fstop)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1],
-                     filter_length)
+        freq, gain, _fft_params = _high_pass_setup(len(x), Fs, Fp, Fstop,
+                                                   filter_length, _fft_params)
+        xf = _filter(x, Fs, freq, gain, filter_length, _fft_params)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
         padlen = min(iir_params['padlen'], len(x))
@@ -739,7 +790,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
                  trans_bandwidth=1, method='fft',
                  iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
-                 p_value=0.05, verbose=None):
+                 p_value=0.05, _fft_params=dict(), verbose=None):
     """Notch filter for the signal x.
 
     Applies a zero-phase notch filter to the signal x.
@@ -846,7 +897,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
-                              method, iir_params)
+                              method, iir_params, _fft_params)
     elif method == 'spectrum_fit':
         xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, notch_widths,
                                            mt_bandwidth, p_value)

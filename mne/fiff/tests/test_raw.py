@@ -27,6 +27,7 @@ bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 tempdir = _TempDir()
 
 
+
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
