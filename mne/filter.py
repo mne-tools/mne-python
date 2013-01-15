@@ -56,10 +56,10 @@ def _setup_overlap_filter(h, n_fft, zero_phase, len_x, params):
             N = 2 ** np.arange(np.ceil(np.log2(n_h)),
                                np.floor(np.log2(n_tot)))
             cost = np.ceil(n_tot / (N - n_h + 1)) * N * (np.log2(N) + 1)
-            n_fft = N[np.argmin(cost)]
+            n_fft = int(N[np.argmin(cost)])
         else:
             # Use only a single block
-            n_fft = 2 ** np.ceil(np.log2(n_x + n_h - 1))
+            n_fft = int(2 ** np.ceil(np.log2(n_x + n_h - 1)))
 
     if n_fft <= 0:
         raise ValueError('n_fft is too short, has to be at least len(h)')
