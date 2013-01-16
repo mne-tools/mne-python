@@ -553,7 +553,7 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         Call pylab.show() as the end or not.
     ylim : dict
         ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
-        Valid keys are eeg, mag, grad
+        Valid keys are eeg, mag, grad, misc
     xlim : 'tight' | tuple | None
         xlim for plots.
     proj : bool
@@ -571,7 +571,11 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
-    dict_args = dict(scalings=scalings, units=units, titles=titles, ylim=ylim)
+    dict_args = dict(scalings=scalings, units=units, titles=titles)
+
+    if isinstance(ylim, dict):
+        dict_args['ylim'] = ylim
+
     channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
 
     import pylab as pl
