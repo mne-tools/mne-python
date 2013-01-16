@@ -1761,3 +1761,92 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     pl.grid(True, axis='y')
     pl.show()
     return perc
+
+
+class gui_base(object):
+    def __init__(self, **fig_kwargs):
+        from matplotlib import pyplot as plt
+        self.figure = plt.figure(**fig_kwargs)
+        self.canvas = self.figure.canvas
+
+    def close(self):
+        "Close the figure"
+        from matplotlib import pyplot as plt
+        plt.close(self.figure)
+
+    def _draw(self):
+        import matplotlib as mpl
+        from matplotlib import pyplot as plt
+        self.canvas.draw()
+#        self._store_canvas()
+        if mpl.get_backend() == 'WXAgg':
+            plt.show(block=False)
+
+    def _redraw(self, axes=[]):
+        "Redraw parts of the figure"
+#        self.canvas.restore_region(self._background)
+        for ax in axes:
+            ax.draw_artist(ax)
+            extent = ax.get_window_extent()
+            self.canvas.blit(extent)
+
+#    def _store_canvas(self):
+#        self._background = self.canvas.copy_from_bbox(self.figure.bbox)
+
+
+class gui_select_proj(gui_base):
+    """
+
+    LMB on any projection:
+        Toggle projections
+
+    """
+    def __init__(self, evoked, nrows=6, ncols=6, size=1):
+        figsize = (size * nrows, size * ncols)
+        super(gui_select_proj, self).__init__(figsize=figsize)
+
+        self.figure.subplots_adjust(left=.01, right=.99, bottom=.05, top=.95,
+                                    hspace=.5)
+
+#        projs = evoked.info['projs']
+
+        self._axes = []
+        for i in xrange(ncols):
+            ax = self.figure.add_subplot(ncols, nrows, i * ncols + 1)
+            ax._ID = i
+            ax._state = True
+            ax.set_axis_bgcolor('white')
+#            ax.set_axis_off()
+            self._axes.append(ax)
+
+        self._draw()
+
+        # connect canvas
+        self.canvas.mpl_connect('button_press_event', self._on_click)
+
+    def set(self, i, state):
+        "Set the state of the ith projection (True/False)"
+        ax = self._axes[i]
+        state = bool(state)
+        if state == ax._state:
+            return
+
+        ax._state = state
+        if state:
+            ax.set_axis_bgcolor('white')
+        else:
+            ax.set_axis_bgcolor('r')
+
+        self._redraw(axes=[ax])
+
+    def toggle(self, i):
+        "Toggle the ith projection"
+        ax = self._axes[i]
+        self.set(i, not ax._state)
+
+    def _on_click(self, event):
+        "called by mouse clicks"
+        logging.debug('click: ')
+        ax = event.inaxes
+        if ax and ax._ID >= 0:
+            self.toggle(ax._ID)
