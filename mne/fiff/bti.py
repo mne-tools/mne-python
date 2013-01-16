@@ -418,16 +418,16 @@ def read_head_shape(fname):
 def _correct_offset(fid):
     """Compensate offset padding"""
     current = fid.tell()
-    fid.seek(0, os.SEEK_CUR)
+    fid.seek(0, 1)
     if ((current % BTI.FILE_CURPOS) != 0):
         offset = current % BTI.FILE_CURPOS
-        fid.seek(BTI.FILE_CURPOS - (offset), os.SEEK_CUR)
+        fid.seek(BTI.FILE_CURPOS - (offset), 1)
 
 
 def _read_bti_header(fid):
     """ Read bti PDF header
     """
-    fid.seek(BTI.FILE_END, os.SEEK_END)
+    fid.seek(BTI.FILE_END, 2)
     ftr_pos = fid.tell()
     hdr_pos = bti_read_int64(fid)
     test_val = hdr_pos & BTI.FILE_MASK
@@ -438,14 +438,14 @@ def _read_bti_header(fid):
     if ((hdr_pos % BTI.FILE_CURPOS) != 0):
         hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
 
-    fid.seek(hdr_pos, os.SEEK_SET)
+    fid.seek(hdr_pos, 0)
 
     hdr_size = ftr_pos - hdr_pos
 
     out = dict(version=bti_read_int16(fid),
                file_type=bti_read_str(fid, BTI.FILE_PDF_H_FTYPE))
 
-    fid.seek(BTI.FILE_PDF_H_ENTER, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_H_ENTER, 1)
 
     out.update(dict(data_format=bti_read_int16(fid),
                 acq_mode=bti_read_int16(fid),
@@ -458,14 +458,14 @@ def _read_bti_header(fid):
                 total_processes=bti_read_int32(fid),
                 total_chans=bti_read_int16(fid)))
 
-    fid.seek(BTI.FILE_PDF_H_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_H_NEXT, 1)
     out.update(dict(checksum=bti_read_int32(fid),
                 total_ed_classes=bti_read_int32(fid),
                 total_associated_files=bti_read_int16(fid),
                 last_file_index=bti_read_int16(fid),
                 timestamp=bti_read_int32(fid)))
 
-    fid.seek(BTI.FILE_PDF_H_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_H_EXIT, 1)
 
     _correct_offset(fid)
 
@@ -482,7 +482,7 @@ def _read_bti_epoch(fid):
                 checksum=bti_read_int32(fid),
                 epoch_timestamp=bti_read_int32(fid))
 
-    fid.seek(BTI.FILE_PDF_EPOCH_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_EPOCH_EXIT, 1)
 
     return out
 
@@ -496,7 +496,7 @@ def _read_channel(fid):
                 yaxis_label=bti_read_str(fid, BTI.FILE_PDF_CH_YLABEL),
                 valid_min_max=bti_read_int16(fid))
 
-    fid.seek(BTI.FILE_PDF_CH_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_CH_NEXT, 1)
 
     out.update(dict(ymin=bti_read_double(fid),
                 ymax=bti_read_double(fid),
@@ -505,7 +505,7 @@ def _read_channel(fid):
                 off_flag=bti_read_str(fid, BTI.FILE_PDF_CH_OFF_FLAG),
                 offset=bti_read_float(fid)))
 
-    fid.seek(BTI.FILE_PDF_CH_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_CH_EXIT, 1)
 
     return out
 
@@ -519,7 +519,7 @@ def _read_event(fid):
                 fixed_event=bti_read_int16(fid),
                 checksum=bti_read_int32(fid))
 
-    fid.seek(BTI.FILE_PDF_EVENT_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_EVENT_EXIT, 1)
     _correct_offset(fid)
 
     return out
@@ -536,7 +536,7 @@ def _read_process(fid):
                 filename=bti_read_str(fid, BTI.FILE_PDF_PROCESS_FNAME),
                 total_steps=bti_read_int32(fid))
 
-    fid.seek(BTI.FILE_PDF_PROCESS_EXIT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_PROCESS_EXIT, 1)
 
     _correct_offset(fid)
 
@@ -549,7 +549,7 @@ def _read_assoc_file(fid):
     out = dict(file_id=bti_read_int16(fid),
                 length=bti_read_int16(fid))
 
-    fid.seek(BTI.FILE_PDF_ASSOC_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDF_ASSOC_NEXT, 1)
     out['checksum'] = bti_read_int32(fid)
 
     return out
@@ -561,7 +561,7 @@ def _read_pfid_ed(fid):
     out = dict(comment_size=bti_read_int32(fid),
              name=bti_read_str(fid, BTI.FILE_PDFED_NAME))
 
-    fid.seek(BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDFED_NEXT, 1)
     out.update(dict(pdf_number=bti_read_int16(fid),
                     total_events=bti_read_int32(fid),
                     timestamp=bti_read_int32(fid),
@@ -572,7 +572,7 @@ def _read_pfid_ed(fid):
                     win_width=bti_read_float(fid),
                     win_offset=bti_read_float(fid)))
 
-    fid.seek(BTI.FILE_PDFED_NEXT, os.SEEK_CUR)
+    fid.seek(BTI.FILE_PDFED_NEXT, 1)
 
     return out
 
@@ -594,7 +594,7 @@ def _read_userblock(fid, blocks, acq_env):
     if kind in [v for k, v in BTI.items() if k[:6] == 'UBLOCK']:
         if kind == BTI.UBLOCK_MAG_INFO:
             cfg['version'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+            fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, 1)
             cfg['headers'] = list()
             for hdr in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
                 d = dict(name=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_BHNAME),
@@ -618,7 +618,7 @@ def _read_userblock(fid, blocks, acq_env):
                 size = BTI.FILE_CONF_UBLOCK_XFM_SOLARIS
             elif acq_env == 'linux':
                 size = BTI.FILE_CONF_UBLOCK_XFM_LINUX
-            fid.seek(size, os.SEEK_CUR)
+            fid.seek(size, 1)
             cfg['transform'] = bti_read_transform(fid)
 
         elif kind == BTI.UBLOCK_EEG_LOCS:
@@ -634,7 +634,7 @@ def _read_userblock(fid, blocks, acq_env):
             cfg['version'] = bti_read_int16(fid)
             cfg['struct_size'] = bti_read_int16(fid)
             cfg['entries'] = bti_read_int16(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, os.SEEK_CUR)
+            fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, 1)
 
         elif kind == BTI.UBLOCK_WHC_CHAN_MAP:
             num_channels = None
@@ -675,7 +675,7 @@ def _read_userblock(fid, blocks, acq_env):
                         channels_per_card=bti_read_int16(fid),
                         card_version=bti_read_int16(fid))
 
-                fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+                fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, 1)
                 d.update(dict(offsetdacgain=bti_read_float(fid),
                         squid_type=bti_read_int32(fid),
                         timesliceoffset=bti_read_int16(fid),
@@ -686,7 +686,7 @@ def _read_userblock(fid, blocks, acq_env):
         elif kind == BTI.UBLOCK_CH_LABEL:
             cfg['version'] = bti_read_int32(fid)
             cfg['entries'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, os.SEEK_CUR)
+            fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, 1)
 
             cfg['labels'] = list()
             for label in xrange(cfg['entries']):
@@ -695,7 +695,7 @@ def _read_userblock(fid, blocks, acq_env):
 
         elif kind == BTI.UBLOCK_CH_CAL:
             cfg['sensor_no'] = bti_read_int16(fid)
-            fid.seek(fid, BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
+            fid.seek(fid, BTI.FILE_CONF_UBLOCK_CH_CAL_PADDING, 1)
             cfg['timestamp'] = bti_read_int32(fid)
             cfg['logdir'] = bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_CAL)
 
@@ -716,7 +716,7 @@ def _read_userblock(fid, blocks, acq_env):
                               entry_size=bti_read_int32(fid),
                               num_entries=bti_read_int32(fid),
                               filtername=bti_read_str(fid,
-                                            BTI.FILE_CONF_UBLOCK_ETAB_FILNAME),
+                                            BTI.FILE_CONF_UBLOCK_ETAB_FTNAME),
                               num_E_values=bti_read_int32(fid),
                               reserved=bti_read_str(fid,
                                             BTI.FILE_CONF_UBLOCK_ETAB_RESERVED
@@ -792,18 +792,19 @@ def _read_userblock(fid, blocks, acq_env):
         elif kind == BTI.UBLOCK_TRIG_MASK:
             cfg['version'] = bti_read_int32(fid)
             cfg['entries'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_MASK_PADDING, os.SEEK_CUR)
+            fid.seek(BTI.FILE_CONF_UBLOCK_MASK_PADDING, 1)
 
             cfg['masks'] = []
             for entry in range(cfg['entries']):
-                d = dict(name=bti_read_str(fid, 20),
+                d = dict(name=bti_read_str(fid,
+                                BTI.FILE_CONF_UBLOCK_MASK_NAME),
                          nbits=bti_read_uint16(fid),
                          shift=bti_read_uint16(fid),
                          mask=bti_read_uint32(fid))
                 cfg['masks'] += [d]
 
     else:
-        cfg['unknown'] = dict(cfg=bti_read_char(fid,
+        cfg['unknown'] = dict(hdr=bti_read_char(fid,
                               cfg['hdr']['user_space_size']))
 
     _correct_offset(fid)
@@ -825,7 +826,7 @@ def _read_coil_def(fid):
                    radius=bti_read_double(fid),
                    wire_radius=bti_read_double(fid),
                    turns=bti_read_int16(fid))
-    fid.seek(fid, 2, os.SEEK_CUR)
+    fid.seek(fid, 2, 1)
     coildef['checksum'] = bti_read_int32(fid)
     coildef['reserved'] = bti_read_str(fid, 32)
 
@@ -838,7 +839,7 @@ def _read_ch_config(fid):
             ch_type=bti_read_uint16(fid),
             sensor_no=bti_read_int16(fid))
 
-    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, os.SEEK_CUR)
+    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, 1)
 
     cfg.update(dict(
             gain=bti_read_float(fid),
@@ -867,7 +868,7 @@ def _read_ch_config(fid):
                      BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
         chan['user_space_size'] = bti_read_int32(fid)
         if ch_type == BTI.CHTYPE_TRIGGER:
-            fid.seek(2, os.SEEK_CUR)
+            fid.seek(2, 1)
         chan['reserved'] = bti_read_str(fid, BTI.FILE_CONF_CH_RESERVED)
 
     elif ch_type == BTI.CHTYPE_SHORTED:
@@ -970,7 +971,7 @@ def read_pdf_info(fname):
                              range(info['total_ed_classes'])]
 
         # We load any remaining data
-        fid.seek(0, os.SEEK_CUR)
+        fid.seek(0, 1)
         info['extradata'] = fid.read(ftr_pos - fid.tell())
 
         # copy of fid into info
@@ -1017,7 +1018,7 @@ def read_config(fname):
                         total_user_blocks=bti_read_int16(fid),
                         next_der_chan_no=bti_read_int16(fid))
 
-        fid.seek(BTI.FILE_CONF_NEXT, os.SEEK_CUR)
+        fid.seek(BTI.FILE_CONF_NEXT, 1)
         cfg['checksum'] = bti_read_uint32(fid)
         cfg['reserved'] = bti_read_char(fid, BTI.FILE_CONF_RESERVED)
         cfg['transforms'] = [bti_read_transform(fid) for xfm in
