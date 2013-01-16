@@ -26,12 +26,12 @@ evoked = fiff.Evoked(fname, setno=0, baseline=(None, 0), proj=True)
 
 import pylab as pl
 import matplotlib.delaunay as delaunay
-from mne.layouts import Layout
+from mne.layouts import read_layout
 
 def plot_topo2d(evoked, time, ch_type='mag', layout=None,
                 colorbar=True, show=True):
     if layout is None:
-        layout = Layout('Vectorview-%s' % ch_type)
+        layout = read_layout('Vectorview-%s' % ch_type)
 
     picks = fiff.pick_types(evoked.info, meg=ch_type,
                     exclude=evoked.info['bads'])  # Pick channels to view
