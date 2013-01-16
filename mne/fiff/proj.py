@@ -25,9 +25,9 @@ class Projection(dict):
     """
     def __repr__(self):
         s = "%s" % self['desc']
-        s += ", active : %s " % self['active']
-        s += ", nb of channels : %s " % self['data']['ncol']
-        return "Projection (%s)" % s
+        s += ", active : %s" % self['active']
+        s += ", n_channels : %s" % self['data']['ncol']
+        return "<Projection  |  %s>" % s
 
 
 def proj_equal(a, b):
