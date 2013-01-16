@@ -27,6 +27,75 @@ bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 tempdir = _TempDir()
 
 
+def test_filter():
+    """ Test filtering (FIR and IIR) and Raw.apply_function interface """
+    raw = Raw(fif_fname, preload=True).crop(0, 10, False)
+    sig_dec = 11
+    sig_dec_notch = 12
+    sig_dec_notch_fit = 12
+    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
+    picks = picks_meg[:4]
+
+    raw_lp = raw.copy()
+    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
+
+    raw_hp = raw.copy()
+    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
+
+    raw_bp = raw.copy()
+    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
+
+    raw_bs = raw.copy()
+    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
+
+    data, _ = raw[picks, :]
+
+    lp_data, _ = raw_lp[picks, :]
+    hp_data, _ = raw_hp[picks, :]
+    bp_data, _ = raw_bp[picks, :]
+    bs_data, _ = raw_bs[picks, :]
+
+    assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
+    assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
+
+    raw_lp_iir = raw.copy()
+    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
+    raw_hp_iir = raw.copy()
+    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
+    raw_bp_iir = raw.copy()
+    raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
+    lp_data_iir, _ = raw_lp_iir[picks, :]
+    hp_data_iir, _ = raw_hp_iir[picks, :]
+    bp_data_iir, _ = raw_bp_iir[picks, :]
+    summation = lp_data_iir + hp_data_iir + bp_data_iir
+    assert_array_almost_equal(data[:, 100:-100], summation[:, 100:-100],
+                              sig_dec)
+
+    # make sure we didn't touch other channels
+    data, _ = raw[picks_meg[4:], :]
+    bp_data, _ = raw_bp[picks_meg[4:], :]
+    assert_array_equal(data, bp_data)
+    bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
+    assert_array_equal(data, bp_data_iir)
+
+    # do a very simple check on line filtering
+    raw_bs = raw.copy()
+    with warnings.catch_warnings(True) as w:
+        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
+        data_bs, _ = raw_bs[picks, :]
+        raw_notch = raw.copy()
+        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
+    data_notch, _ = raw_notch[picks, :]
+    assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
+
+    # now use the sinusoidal fitting
+    raw_notch = raw.copy()
+    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
+    data_notch, _ = raw_notch[picks, :]
+    data, _ = raw[picks, :]
+    assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
+
+
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
@@ -389,73 +458,12 @@ def test_preload_modify():
         assert_array_almost_equal(data, data_new)
 
 
-def test_filter():
-    """ Test filtering (FIR and IIR) and Raw.apply_function interface """
-    raw = Raw(fif_fname, preload=True).crop(0, 10, False)
-    sig_dec = 11
-    sig_dec_notch = 12
-    sig_dec_notch_fit = 12
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
 
-    raw_lp = raw.copy()
-    raw_lp.filter(0., 4.0 - 0.25, picks=picks, n_jobs=2)
 
-    raw_hp = raw.copy()
-    raw_hp.filter(8.0 + 0.25, None, picks=picks, n_jobs=2)
 
-    raw_bp = raw.copy()
-    raw_bp.filter(4.0 + 0.25, 8.0 - 0.25, picks=picks)
 
-    raw_bs = raw.copy()
-    raw_bs.filter(8.0 + 0.25, 4.0 - 0.25, picks=picks, n_jobs=2)
 
-    data, _ = raw[picks, :]
 
-    lp_data, _ = raw_lp[picks, :]
-    hp_data, _ = raw_hp[picks, :]
-    bp_data, _ = raw_bp[picks, :]
-    bs_data, _ = raw_bs[picks, :]
-
-    assert_array_almost_equal(data, lp_data + bp_data + hp_data, sig_dec)
-    assert_array_almost_equal(data, bp_data + bs_data, sig_dec)
-
-    raw_lp_iir = raw.copy()
-    raw_lp_iir.filter(0., 4.0, picks=picks, n_jobs=2, method='iir')
-    raw_hp_iir = raw.copy()
-    raw_hp_iir.filter(8.0, None, picks=picks, n_jobs=2, method='iir')
-    raw_bp_iir = raw.copy()
-    raw_bp_iir.filter(4.0, 8.0, picks=picks, method='iir')
-    lp_data_iir, _ = raw_lp_iir[picks, :]
-    hp_data_iir, _ = raw_hp_iir[picks, :]
-    bp_data_iir, _ = raw_bp_iir[picks, :]
-    summation = lp_data_iir + hp_data_iir + bp_data_iir
-    assert_array_almost_equal(data[:, 100:-100], summation[:, 100:-100],
-                              sig_dec)
-
-    # make sure we didn't touch other channels
-    data, _ = raw[picks_meg[4:], :]
-    bp_data, _ = raw_bp[picks_meg[4:], :]
-    assert_array_equal(data, bp_data)
-    bp_data_iir, _ = raw_bp_iir[picks_meg[4:], :]
-    assert_array_equal(data, bp_data_iir)
-
-    # do a very simple check on line filtering
-    raw_bs = raw.copy()
-    with warnings.catch_warnings(True) as w:
-        raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
-        data_bs, _ = raw_bs[picks, :]
-        raw_notch = raw.copy()
-        raw_notch.notch_filter(60.0, picks=picks, n_jobs=2, method='fft')
-    data_notch, _ = raw_notch[picks, :]
-    assert_array_almost_equal(data_bs, data_notch, sig_dec_notch)
-
-    # now use the sinusoidal fitting
-    raw_notch = raw.copy()
-    raw_notch.notch_filter(None, picks=picks, n_jobs=2, method='spectrum_fit')
-    data_notch, _ = raw_notch[picks, :]
-    data, _ = raw[picks, :]
-    assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
 
 def test_crop():
