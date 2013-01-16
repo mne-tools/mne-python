@@ -577,27 +577,29 @@ def _read_pfid_ed(fid):
     return out
 
 
-def _read_userblock(fid, blocks, acq_env):
+def _read_userblock(fid, blocks, arch):
     """ Read user block from config """
 
     cfg = dict()
     cfg['hdr'] = dict(
          nbytes=bti_read_int32(fid),
-         kind=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_TYPE),
+         kind=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_TYPE),  # 20
          checksum=bti_read_int32(fid),
-         username=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_UNAME),
+         username=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_UNAME),  # 32
          timestamp=bti_read_int32(fid),
          user_space_size=bti_read_int32(fid),
-         reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED))
+         reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED)) # 32
+
+    _correct_offset(fid)
 
     kind = cfg['hdr']['kind']
     if kind in [v for k, v in BTI.items() if k[:6] == 'UBLOCK']:
         if kind == BTI.UBLOCK_MAG_INFO:
             cfg['version'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, 1)
+            fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, 1)  # 20
             cfg['headers'] = list()
-            for hdr in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
-                d = dict(name=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_BHNAME),
+            for hdr in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):  # 6
+                d = dict(name=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_BHNAME), # 16
                          transform=bti_read_transform(fid),
                          units_per_bit=bti_read_float(fid))
                 cfg['headers'] += [d]
@@ -606,7 +608,7 @@ def _read_userblock(fid, blocks, acq_env):
             cfg['num_points'] = bti_read_int32(fid)
             cfg['status'] = bti_read_int32(fid)
             cfg['points'] = []
-            for pnt in xrange(BTI.FILE_CONF_UBLOCK_PRANGE):
+            for pnt in xrange(BTI.FILE_CONF_UBLOCK_PRANGE):  # 16
                 d = dict(pos=bti_read_double_matrix(fid, 1, 3),
                          direction=bti_read_double_matrix(fid, 1, 3),
                          error=bti_read_double(fid))
@@ -614,9 +616,9 @@ def _read_userblock(fid, blocks, acq_env):
 
         elif kind == BTI.UBLOCK_CCP_XFM:
             cfg['method'] = bti_read_int32(fid)
-            if acq_env == 'solaris':
+            if arch == 'solaris':
                 size = BTI.FILE_CONF_UBLOCK_XFM_SOLARIS
-            elif acq_env == 'linux':
+            elif arch == 'linux':
                 size = BTI.FILE_CONF_UBLOCK_XFM_LINUX
             fid.seek(size, 1)
             cfg['transform'] = bti_read_transform(fid)
@@ -626,15 +628,15 @@ def _read_userblock(fid, blocks, acq_env):
             while True:
                 if d['label'] == BTI.FILE_CONF_UBLOCK_ELABEL_END:
                     break
-                d = dict(label=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_ELABEL),
-                          location=bti_read_double_matrix(fid, 1, 3))
+                d = dict(label=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_ELABEL),  # 16
+                         location=bti_read_double_matrix(fid, 1, 3))
                 cfg['electrodes'] += [d]
 
         elif kind in [BTI.UBLOCK_WHC_CHAN_MAP_VER, BTI.UBLOCK_WHS_SUBS_VER]:
             cfg['version'] = bti_read_int16(fid)
             cfg['struct_size'] = bti_read_int16(fid)
             cfg['entries'] = bti_read_int16(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, 1)
+            fid.seek(BTI.FILE_CONF_UBLOCK_SVERS, 1)  # 8
 
         elif kind == BTI.UBLOCK_WHC_CHAN_MAP:
             num_channels = None
@@ -675,7 +677,7 @@ def _read_userblock(fid, blocks, acq_env):
                         channels_per_card=bti_read_int16(fid),
                         card_version=bti_read_int16(fid))
 
-                fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, 1)
+                fid.seek(BTI.FILE_CONF_UBLOCK_WHC_SUB_PADDING, 1)  # 2
                 d.update(dict(offsetdacgain=bti_read_float(fid),
                         squid_type=bti_read_int32(fid),
                         timesliceoffset=bti_read_int16(fid),
@@ -686,24 +688,24 @@ def _read_userblock(fid, blocks, acq_env):
         elif kind == BTI.UBLOCK_CH_LABEL:
             cfg['version'] = bti_read_int32(fid)
             cfg['entries'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, 1)
+            fid.seek(BTI.FILE_CONF_UBLOCK_CH_PADDING, 1)  # 16
 
             cfg['labels'] = list()
             for label in xrange(cfg['entries']):
                 cfg['labels'] += [bti_read_str(fid,
-                                   BTI.FILE_CONF_UBLOCK_CH_LABEL)]
+                                   BTI.FILE_CONF_UBLOCK_CH_LABEL)]  # 16
 
         elif kind == BTI.UBLOCK_CH_CAL:
             cfg['sensor_no'] = bti_read_int16(fid)
             fid.seek(fid, BTI.FILE_CONF_UBLOCK_CH_CAL_PADDING, 1)
             cfg['timestamp'] = bti_read_int32(fid)
-            cfg['logdir'] = bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_CAL)
+            cfg['logdir'] = bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_CAL) # 256
 
         elif kind == BTI.UBLOCK_SYS_CONF:
-            if acq_env == 'solaris':
-                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_SOLARIS
-            elif acq_env == 'linux':
-                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_LINUX
+            if arch == 'solaris':
+                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_SOLARIS  # 512
+            elif arch == 'linux':
+                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_LINUX    # 256
             cfg['sysconfig_name'] = bti_read_str(fid, size)
             cfg['timestamp'] = bti_read_int32(fid)
 
@@ -716,13 +718,13 @@ def _read_userblock(fid, blocks, acq_env):
                               entry_size=bti_read_int32(fid),
                               num_entries=bti_read_int32(fid),
                               filtername=bti_read_str(fid,
-                                            BTI.FILE_CONF_UBLOCK_ETAB_FTNAME),
+                                            BTI.FILE_CONF_UBLOCK_ETAB_FTNAME),  #16
                               num_E_values=bti_read_int32(fid),
                               reserved=bti_read_str(fid,
-                                            BTI.FILE_CONF_UBLOCK_ETAB_RESERVED
+                                            BTI.FILE_CONF_UBLOCK_ETAB_RESERVED  # 28
                                             ))
 
-            if cfg['hdr']['version'] == BTI.FILE_CONF_UBLOCK_ETAB_HDR_VER:
+            if cfg['hdr']['version'] == BTI.FILE_CONF_UBLOCK_ETAB_HDR_VER:  # 2
                 size = BTI.FILE_CONF_UBLOCK_ETAB_CH_NAME
                 cfg['ch_names'] = [bti_read_str(fid, size) for ch in
                                       range(cfg['hdr']['num_entries'])]
@@ -746,24 +748,24 @@ def _read_userblock(fid, blocks, acq_env):
                                  entry_size=bti_read_int32(fid),
                                  num_entries=bti_read_int32(fid),
                                  name=bti_read_str(fid,
-                                    BTI.FILE_CONF_UBLOCK_WEIGHT_NAME),
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_NAME),  #32
                                  description=bti_read_str(fid,
-                                    BTI.FILE_CONF_UBLOCK_WEIGHT_DESCR),
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_DESCR),  # 80
                                  num_anlg=bti_read_int32(fid),
                                  num_dsp=bti_read_int32(fid),
                                  reserved=bti_read_str(fid,
-                                    BTI.FILE_CONF_UBLOCK_WEIGHT_RESERVED))
+                                    BTI.FILE_CONF_UBLOCK_WEIGHT_RESERVED))  #72
 
             if cfg['hdr']['version'] == BTI.FILE_CONF_UBLOCK_WEIGHT_HDR_VER:
                 cfg['ch_names'] = [bti_read_str(fid,
-                                   BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                   BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)  # 16
                                    for v in range(cfg['hdr']['num_entries'])]
                 cfg['anlg_ch_names'] = [bti_read_str(fid,
-                                        BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                        BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)  # 16
                                         for v in range(cfg['hdr']['num_anlg'])]
 
                 cfg['dsp_ch_names'] = [bti_read_str(fid,
-                                       BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME)
+                                       BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME) # 16
                                        for val in range(cfg['hdr']['num_dsp'])]
 
                 rows = cfg['hdr']['num_entries']
@@ -789,6 +791,7 @@ def _read_userblock(fid, blocks, acq_env):
                                                 cfg['hdr']['num_dsp'])
 
                 _correct_offset(fid)
+
         elif kind == BTI.UBLOCK_TRIG_MASK:
             cfg['version'] = bti_read_int32(fid)
             cfg['entries'] = bti_read_int32(fid)
@@ -802,6 +805,7 @@ def _read_userblock(fid, blocks, acq_env):
                          shift=bti_read_uint16(fid),
                          mask=bti_read_uint32(fid))
                 cfg['masks'] += [d]
+                fid.seek(BTI.FILE_CONF_UBLOCK_MASK_HDR_OFFSET)
 
     else:
         cfg['unknown'] = dict(hdr=bti_read_char(fid,
@@ -989,13 +993,15 @@ def read_pdf_info(fname):
         return info
 
 
-def read_config(fname):
+def read_config(fname, arch):
     """Read BTi system config file
 
     Parameters
     ----------
     fname : str
         The absolute path to the config file
+    arch : 'linux' | 'solaris'
+        The architecture of the acuisition setup used.
 
     Returns
     -------
@@ -1003,6 +1009,9 @@ def read_config(fname):
         The channels X time slices MEG measurments.
 
     """
+    if arch not in ['linux', 'solaris']:
+        raise ValueError('Arch must be \'linux\' or \'solaris\'')
+
     with open('config', 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = dict(version=bti_read_int16(fid),
@@ -1027,11 +1036,11 @@ def read_config(fname):
         cfg['user_blocks'] = list()
         for block in xrange(cfg['hdr']['total_user_blocks']):
             cfg['user_blocks'] += [_read_userblock(fid, cfg['user_blocks'],
-                                                   'linux')]
+                                                   arch)]
 
         # Finally, the channel information
-        cfg['channels'] = [_read_ch_config(fid) for ch in
-                           xrange(cfg['total_chans'])]
+        # cfg['channels'] = [_read_ch_config(fid) for ch in
+                           # xrange(cfg['total_chans'])]
 
         return cfg
 
