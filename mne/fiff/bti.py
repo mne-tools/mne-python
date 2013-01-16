@@ -67,7 +67,11 @@ def _unpack_simple(fid, format, count):
     string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
     data = list(struct.unpack(format, string))
 
-    return data[0] if count < 2 else list(data)
+    out = data if count < 2 else list(data)
+    if len(out) > 0:
+        out = out[0]
+
+    return out
 
 
 def bti_read_str(fid, count=1):
@@ -173,7 +177,7 @@ def bti_read_double_matrix(fid, rows, cols):
     return _unpack_matrix(fid, format, rows, cols, 'f8')
 
 
-def bti_read_transform(fid, rows):
+def bti_read_transform(fid):
     """ Read 64bit float matrix transform from bti file """
 
     format = '>' + ('d' * 4 * 4)
@@ -576,8 +580,8 @@ def _read_pfid_ed(fid):
 def _read_userblock(fid, blocks, acq_env):
     """ Read user block from config """
 
-    block = dict()
-    block['hdr'] = dict(
+    cfg = dict()
+    cfg['hdr'] = dict(
          nbytes=bti_read_int32(fid),
          kind=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_TYPE),
          checksum=bti_read_int32(fid),
@@ -586,7 +590,7 @@ def _read_userblock(fid, blocks, acq_env):
          user_space_size=bti_read_int32(fid),
          reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED))
 
-    kind, cfg = block['hdr']['kind'], dict()
+    kind = cfg['hdr']['kind']
     if kind in [k for k in BTI if k[:6] == 'UBLOCK']:
         if kind == BTI.FILE_CONF_UBLOCK_MAG_INFO:
             cfg['version'] = bti_read_int32(fid)
@@ -616,7 +620,7 @@ def _read_userblock(fid, blocks, acq_env):
         elif kind == BTI.UBLOCK_EEG_LOCS:
             cfg['electrodes'] = []
             while True:
-                if e['label'] == BTI.FILE_CONF_UBLOCK_ELABEL_END:
+                if d['label'] == BTI.FILE_CONF_UBLOCK_ELABEL_END:
                     break
                 d = dict(label=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_ELABEL),
                           location=bti_read_double_matrix(fid, 1, 3))
@@ -685,17 +689,16 @@ def _read_userblock(fid, blocks, acq_env):
                                    BTI.FILE_CONF_UBLOCK_CH_LABEL)]
 
         elif kind == BTI.UBLOCK_CH_CAL:
-            if acq_env == 'solaris':
-                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS
-            elif acq_env == 'linux':
-                size = BTI.FILE_CONF_UBLOCK_CH_CAL_SOLARIS
-
             cfg['sensor_no'] = bti_read_int16(fid)
             fid.seek(fid, BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
             cfg['timestamp'] = bti_read_int32(fid)
-            cfg['logdir'] = bti_read_str(fid, size)
+            cfg['logdir'] = bti_read_str(fid, BTI.FILE_CONF_UBLOCK_CH_CAL)
 
         elif kind == BTI.UBLOCK_SYS_CONF:
+            if acq_env == 'solaris':
+                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_SOLARIS
+            elif acq_env == 'linux':
+                size = BTI.FILE_CONF_UBLOCK_SYS_CONF_LINUX
             cfg['sysconfig_name'] = bti_read_str(fid,
                                         BTI.FILE_CONF_UBLOCK_SYS_CONFIG)
             cfg['timestamp'] = bti_read_int32(fid)
@@ -996,27 +999,30 @@ def read_config(fname):
 
     """
     with open(fname, 'rb') as fid:
-        cfg = dict(version=bti_read_int16(fid),
-                    site_name=bti_read_str(fid, BTI.FILE_CONF_SITENAME),
-                    dap_hostname=bti_read_str(fid, BTI.FILE_CONF_HOSTNAME),
-                    sys_type=bti_read_int16(fid),
-                    sys_options=bti_read_int32(fid),
-                    supply_freq=bti_read_int16(fid),
-                    total_chans=bti_read_int16(fid),
-                    system_fixed_gain=bti_read_float(fid),
-                    volts_per_bit=bti_read_float(fid),
-                    total_sensors=bti_read_int16(fid),
-                    total_user_blocks=bti_read_int16(fid),
-                    next_der_chan_no=bti_read_int16(fid))
+        cfg = dict()
+        cfg['hdr'] = dict(version=bti_read_int16(fid),
+                        site_name=bti_read_str(fid, BTI.FILE_CONF_SITENAME),
+                        dap_hostname=bti_read_str(fid, BTI.FILE_CONF_HOSTNAME),
+                        sys_type=bti_read_int16(fid),
+                        sys_options=bti_read_int32(fid),
+                        supply_freq=bti_read_int16(fid),
+                        total_chans=bti_read_int16(fid),
+                        system_fixed_gain=bti_read_float(fid),
+                        volts_per_bit=bti_read_float(fid),
+                        total_sensors=bti_read_int16(fid),
+                        total_user_blocks=bti_read_int16(fid),
+                        next_der_chan_no=bti_read_int16(fid))
 
-        fid.seek(fid, BTI.FILE_CONF_NEXT, os.SEEK_CUR)
+        fid.seek(BTI.FILE_CONF_NEXT, os.SEEK_CUR)
         cfg['checksum'] = bti_read_uint32(fid)
         cfg['reserved'] = bti_read_char(fid, BTI.FILE_CONF_RESERVED)
         cfg['transforms'] = [bti_read_transform(fid) for xfm in
                              xrange(cfg['hdr']['total_sensors'])]
 
-        cfg['user_blocks'] = [_read_userblock(fid) for block in
-                              xrange(cfg['total_user_blocks'])]
+        cfg['user_blocks'] = list()
+        for block in xrange(cfg['hdr']['total_user_blocks']):
+            cfg['user_blocks'] += [_read_userblock(fid, cfg['user_blocks'],
+                                                   'linux')]
 
         # Finally, the channel information
         cfg['channels'] = [_read_ch_config(fid) for ch in
