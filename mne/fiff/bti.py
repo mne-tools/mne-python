@@ -21,7 +21,7 @@ from itertools import count
 
 import numpy as np
 
-from .. import verbose
+from ..utils import verbose
 
 import logging
 logger = logging.getLogger('mne')
@@ -591,13 +591,13 @@ def _read_userblock(fid, blocks, acq_env):
          reserved=bti_read_char(fid, BTI.FILE_CONF_UBLOCK_RESERVED))
 
     kind = cfg['hdr']['kind']
-    if kind in [k for k in BTI if k[:6] == 'UBLOCK']:
-        if kind == BTI.FILE_CONF_UBLOCK_MAG_INFO:
+    if kind in [v for k, v in BTI.items() if k[:6] == 'UBLOCK']:
+        if kind == BTI.UBLOCK_MAG_INFO:
             cfg['version'] = bti_read_int32(fid)
             fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
             cfg['headers'] = list()
             for hdr in xrange(BTI.FILE_CONF_UBLOCK_BHRANGE):
-                d = dict(name=bti_read_str(fid, BTI.FILE_UBLOCK_BHNAME),
+                d = dict(name=bti_read_str(fid, BTI.FILE_CONF_UBLOCK_BHNAME),
                          transform=bti_read_transform(fid),
                          units_per_bit=bti_read_float(fid))
                 cfg['headers'] += [d]
@@ -606,7 +606,7 @@ def _read_userblock(fid, blocks, acq_env):
             cfg['num_points'] = bti_read_int32(fid)
             cfg['status'] = bti_read_int32(fid)
             cfg['points'] = []
-            for pnt in xrange(BTI.UBLOCK_PRANGE):
+            for pnt in xrange(BTI.FILE_CONF_UBLOCK_PRANGE):
                 d = dict(pos=bti_read_double_matrix(fid, 1, 3),
                          direction=bti_read_double_matrix(fid, 1, 3),
                          error=bti_read_double(fid))
@@ -614,7 +614,11 @@ def _read_userblock(fid, blocks, acq_env):
 
         elif kind == BTI.UBLOCK_CCP_XFM:
             cfg['method'] = bti_read_int32(fid)
-            fid.seek(BTI.FILE_CONF_UBLOCK_XFM, os.SEEK_CUR)
+            if acq_env == 'solaris':
+                size = BTI.FILE_CONF_UBLOCK_XFM_SOLARIS
+            elif acq_env == 'linux':
+                size = BTI.FILE_CONF_UBLOCK_XFM_LINUX
+            fid.seek(size, os.SEEK_CUR)
             cfg['transform'] = bti_read_transform(fid)
 
         elif kind == BTI.UBLOCK_EEG_LOCS:
@@ -656,7 +660,7 @@ def _read_userblock(fid, blocks, acq_env):
             num_subsys = None
             for block in blocks:
                 if block['hdr']['kind'] == BTI.UBLOCK_WHS_SUBS_VER:
-                    num_subsys = block['cfg']['entries']
+                    num_subsys = block['entries']
                     break
 
             if num_subsys is None:
@@ -670,6 +674,7 @@ def _read_userblock(fid, blocks, acq_env):
                         cards_per_sys=bti_read_int16(fid),
                         channels_per_card=bti_read_int16(fid),
                         card_version=bti_read_int16(fid))
+
                 fid.seek(BTI.FILE_CONF_UBLOCK_PADDING, os.SEEK_CUR)
                 d.update(dict(offsetdacgain=bti_read_float(fid),
                         squid_type=bti_read_int32(fid),
@@ -699,8 +704,7 @@ def _read_userblock(fid, blocks, acq_env):
                 size = BTI.FILE_CONF_UBLOCK_SYS_CONF_SOLARIS
             elif acq_env == 'linux':
                 size = BTI.FILE_CONF_UBLOCK_SYS_CONF_LINUX
-            cfg['sysconfig_name'] = bti_read_str(fid,
-                                        BTI.FILE_CONF_UBLOCK_SYS_CONFIG)
+            cfg['sysconfig_name'] = bti_read_str(fid, size)
             cfg['timestamp'] = bti_read_int32(fid)
 
         elif kind == BTI.UBLOCK_SYS_DELT_ENA:
@@ -998,7 +1002,7 @@ def read_config(fname):
         The channels X time slices MEG measurments.
 
     """
-    with open(fname, 'rb') as fid:
+    with open('config', 'rb') as fid:
         cfg = dict()
         cfg['hdr'] = dict(version=bti_read_int16(fid),
                         site_name=bti_read_str(fid, BTI.FILE_CONF_SITENAME),
@@ -1028,7 +1032,7 @@ def read_config(fname):
         cfg['channels'] = [_read_ch_config(fid) for ch in
                            xrange(cfg['total_chans'])]
 
-    return cfg
+        return cfg
 
 
 class RawBTi(Raw):
