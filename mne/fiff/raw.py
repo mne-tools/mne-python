@@ -396,10 +396,9 @@ class Raw(object):
         else:
             # use parallel function
             parallel, p_fun, _ = parallel_func(fun, n_jobs)
-
-            data_picks = data_in[picks, :]
             data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
-                                      for x in data_picks))
+                                      for xi, x in enumerate(data_in)
+                                      if xi in picks))
 
             self._data[picks, :] = data_picks_new
 
@@ -524,6 +523,9 @@ class Raw(object):
             l_freq = None
         if h_freq > (fs / 2.):
             h_freq = None
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
@@ -535,54 +537,39 @@ class Raw(object):
             if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                     l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
-
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, h_freq,
-                                                  h_freq + h_trans_bandwidth,
-                                                  fs, 'lowpass')
-            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
-                                fs, h_freq, filter_length=filter_length,
-                                trans_bandwidth=l_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            low_pass_filter(self._data, fs, h_freq,
+                            filter_length=filter_length,
+                            trans_bandwidth=l_trans_bandwidth, method=method,
+                            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                            copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, l_freq,
-                                                  l_freq - l_trans_bandwidth,
-                                                  fs, 'highpass')
-            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
-                                fs, l_freq, filter_length=filter_length,
-                                trans_bandwidth=h_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            high_pass_filter(self._data, fs, l_freq,
+                             filter_length=filter_length,
+                             trans_bandwidth=h_trans_bandwidth, method=method,
+                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                             copy=False)
         if l_freq is not None and h_freq is not None:
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [l_freq, h_freq], [l_freq - l_trans_bandwidth,
-                         h_freq + h_trans_bandwidth], fs, 'bandpass')
-                self.apply_function(band_pass_filter, picks, None, n_jobs,
-                                    verbose, fs, l_freq, h_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=l_trans_bandwidth,
-                                    h_trans_bandwidth=h_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_pass_filter(self._data, fs, l_freq, h_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=l_trans_bandwidth,
+                    h_trans_bandwidth=h_trans_bandwidth,
+                    method=method, iir_params=iir_params, picks=picks,
+                    n_jobs=n_jobs, copy=False)
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [h_freq, l_freq], [h_freq + h_trans_bandwidth,
-                         l_freq - l_trans_bandwidth], fs, 'bandstop')
-                self.apply_function(band_stop_filter, picks, None, n_jobs,
-                                    verbose, fs, h_freq, l_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=h_trans_bandwidth,
-                                    h_trans_bandwidth=l_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_stop_filter(self._data, fs, h_freq, l_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=h_trans_bandwidth,
+                    h_trans_bandwidth=l_trans_bandwidth, method=method,
+                    iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                    copy=False)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length=None,
@@ -650,13 +637,17 @@ class Raw(object):
         fs = float(self.info['sfreq'])
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
 
-        self.apply_function(notch_filter, picks, None, n_jobs, verbose,
-                            fs, freqs, filter_length=filter_length,
-                            notch_widths=notch_widths,
-                            trans_bandwidth=trans_bandwidth,
-                            method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth, p_value=p_value)
+        self._data = notch_filter(self._data, fs, freqs,
+                                  filter_length=filter_length,
+                                  notch_widths=notch_widths,
+                                  trans_bandwidth=trans_bandwidth,
+                                  method=method, iir_params=iir_params,
+                                  mt_bandwidth=mt_bandwidth, p_value=p_value,
+                                  picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',

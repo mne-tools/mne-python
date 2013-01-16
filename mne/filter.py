@@ -13,6 +13,31 @@ logger = logging.getLogger('mne')
 from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
+from .parallel import parallel_func
+from .utils import sizeof_fmt
+
+
+# Support CUDA for FFTs
+if get_config('MNE_USE_CUDA', 'false') == 'true':
+    try:
+        # Initialize CUDA
+        import pycuda.autoinit
+        import pycuda.gpuarray as gpuarray
+        from pycuda.driver import mem_get_info
+        from scikits.cuda import fft as cudafft
+    except:
+        cuda_capable = False
+    else:
+        cuda_capable = True
+        # Choose some reasonable limits for CUDA FFT calculations
+        cuda_lower_limit = 2 ** 10
+        # let's make sure each array uses under 5% of available memory
+        mem_size = cuda.mem_get_info()[0]
+        cuda_upper_limit = int(mem_size / 8 * 0.05)
+        logger.info('Enabling CUDA with maximum memory %s' % sizeof_fmt())
+        # cuda_upper_limit = 2 ** 20
+else:
+    cuda_capable = False
 
 
 def is_power2(num):
@@ -39,7 +64,8 @@ def is_power2(num):
     return num != 0 and ((num & (num - 1)) == 0)
 
 
-def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
+def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
+                        n_jobs=1):
     """ Filter using overlap-add FFTs.
 
     Filters the signal x using a filter with the impulse response h.
@@ -47,33 +73,38 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
     applied in forward and backward direction, resulting in a zero-phase
     filter.
 
+    WARNING: This operates on the data in-place.
+
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : 2d array
+        Signal to filter.
     h : 1d array
-        Filter impulse response (FIR filter coefficients)
+        Filter impulse response (FIR filter coefficients).
     n_fft : int
         Length of the FFT. If None, the best size is determined automatically.
     zero_phase : bool
         If True: the filter is applied in forward and backward direction,
-        resulting in a zero-phase filter
+        resulting in a zero-phase filter.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
 
     Returns
     -------
-    xf : 1d array
-        x filtered
+    xf : 2d array
+        x filtered.
     """
-    n_h = len(h)
+    if picks is None:
+        picks = np.arange(x.shape[0])
 
     # Extend the signal by mirroring the edges to reduce transient filter
     # response
-    n_edge = min(n_h, len(x))
+    n_h = len(h)
+    n_edge = min(n_h, x.shape[1])
 
-    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1], \
-                  x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
-
-    n_x = len(x_ext)
+    n_x = x.shape[1] + 2 * n_edge - 2
 
     # Determine FFT length to use
     if n_fft is None:
@@ -106,16 +137,38 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
         idx = np.where(np.abs(h_fft) > 1e-6)
         h_fft[idx] = h_fft[idx] / np.sqrt(np.abs(h_fft[idx]))
 
-    x_filtered = np.zeros_like(x_ext)
-
     # Segment length for signal x
     n_seg = n_fft - n_h + 1
 
     # Number of segments (including fractional segments)
     n_segments = int(np.ceil(n_x / float(n_seg)))
 
-    filter_input = x_ext
+    # Process each row separately
+    if n_jobs == 1:
+        for ii, x_ in enumerate(x):
+            if ii in picks:
+                x[ii] = _1d_overlap_filter(x_, h_fft, n_edge, n_fft,
+                                           zero_phase, n_segments, n_seg)
+    else:
+        parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
+        data_new = np.array(parallel(p_fun(x_, h_fft, n_edge, n_fft,
+                                           zero_phase, n_segments, n_seg)
+                                     for xi, x_ in enumerate(x)
+                                     if xi in picks))
+        x[picks, :] = data_new
 
+    return x
+
+
+def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
+                       is_parallel=True):
+    """Do one-dimensional in overlap-add filtering"""
+    # pad to reduce ringing
+    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1], \
+                  x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
+    n_x = len(x_ext)
+    filter_input = x_ext
+    x_filtered = np.zeros_like(filter_input)
     for pass_no in range(2) if zero_phase else range(1):
 
         if pass_no == 1:
@@ -125,15 +178,17 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
 
         for seg_idx in range(n_segments):
             seg = filter_input[seg_idx * n_seg:(seg_idx + 1) * n_seg]
+            # do the fourier-domain operations
             seg_fft = fft(np.r_[seg, np.zeros(n_fft - len(seg))])
+            prod = np.real(ifft(h_fft * seg_fft))
 
             if seg_idx * n_seg + n_fft < n_x:
                 x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft]\
-                    += np.real(ifft(h_fft * seg_fft))
+                    += prod
             else:
                 # Last segment
                 x_filtered[seg_idx * n_seg:] \
-                    += np.real(ifft(h_fft * seg_fft))[:n_x - seg_idx * n_seg]
+                    += prod[:n_x - seg_idx * n_seg]
 
     # Remove mirrored edges that we added
     x_filtered = x_filtered[n_edge - 1:-n_edge + 1]
@@ -148,7 +203,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True):
 def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency"""
 
-    _, filt_resp = freqz(h, worN=np.pi * freq)
+    _, filt_resp = freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp /= np.max(filt_resp)
     filt_resp[np.where(gain == 1)] = 0
@@ -159,56 +214,91 @@ def _filter_attenuation(h, freq, gain):
     return att_db, att_freq
 
 
-def _filter(x, Fs, freq, gain, filter_length=None):
+def _1d_fftmult(x, B, extend_x):
+    """Helper to parallelize FFT FIR"""
+    if extend_x is True:
+        xf = np.real(ifft(fft(np.r_[x, x[-1]]) * B))[:, :-1]
+        xf.shape = np.prod(xf.shape)
+    else:
+        xf = np.real(ifft(fft(x) * B))
+    # Have to ravel() because ifft/fft functions return 2d arrays
+    return xf.ravel()
+
+
+def _prep_for_filtering(x, copy, picks):
+    """Set up array as 2D for filtering ease"""
+    if copy is True:
+        x = x.copy()
+    orig_shape = x.shape
+    x = np.atleast_2d(x)
+    new_shape = x.shape
+    x.shape = (np.prod(x.shape[:-1]), x.shape[-1])
+    if picks is None:
+        picks = np.arange(x.shape[0])
+    return x, orig_shape, picks
+
+
+def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
+            copy=True):
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hamming window (window
     used in "firwin2" function) to avoid ripples in the frequency reponse
     (windowing is a smoothing in frequency domain). The filter is zero-phase.
 
+    If x is multi-dimensional, this operates along the last dimension.
+
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     freq : 1d array
-        Frequency sampling points in Hz
+        Frequency sampling points in Hz.
     gain : 1d array
-        Filter gain at frequency sampling points
+        Filter gain at frequency sampling points.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
         filter of the specified length is used (faster for long signals).
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
 
     Returns
     -------
-    xf : 1d array
-        x filtered
+    xf : array
+        x filtered.
     """
+    # set up array for filtering, reshape to 2D, operate on last axis
+    x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
 
     # issue a warning if attenuation is less than this
     min_att_db = 20
-
-    assert x.ndim == 1
 
     # normalize frequencies
     freq = np.array([f / (Fs / 2) for f in freq])
     gain = np.array(gain)
 
-    if filter_length is None or len(x) <= filter_length:
+    if filter_length is None or x.shape[1] <= filter_length:
         # Use direct FFT filtering for short signals
 
-        Norig = len(x)
+        Norig = x.shape[1]
 
+        extend_x = False
         if (gain[-1] == 0.0 and Norig % 2 == 1) \
                 or (gain[-1] == 1.0 and Norig % 2 != 1):
             # Gain at Nyquist freq: 1: make x EVEN, 0: make x ODD
-            x = np.r_[x, x[-1]]
+            extend_x = True
 
-        N = len(x)
+        N = x.shape[1] + (extend_x is True)
 
-        H = firwin2(N, freq, gain)
+        H = firwin2(N, freq, gain)[np.newaxis, :]
 
         att_db, att_freq = _filter_attenuation(H, freq, gain)
         if att_db < min_att_db:
@@ -219,9 +309,16 @@ def _filter(x, Fs, freq, gain, filter_length=None):
         # Make zero-phase filter function
         B = np.abs(fft(H))
 
-        xf = np.real(ifft(fft(x) * B))
-        xf = np.array(xf[:Norig], dtype=x.dtype)
-        x = x[:Norig]
+        if n_jobs == 1:
+            for xi, x_ in enumerate(x):
+                if xi in picks:
+                    x[xi] = _1d_fftmult(x_, B, extend_x)
+        else:
+            parallel, p_fun, _ = parallel_func(_1d_fftmult, n_jobs)
+            data_new = np.array(parallel(p_fun(x_, B, extend_x)
+                                         for xi, x_ in enumerate(x)
+                                         if xi in picks))
+            x[picks, :] = data_new
     else:
         # Use overlap-add filter with a fixed length
         N = filter_length
@@ -241,9 +338,28 @@ def _filter(x, Fs, freq, gain, filter_length=None):
                           '%0.1fdB. Increase filter_length for higher '
                           'attenuation.' % (att_freq, att_db))
 
-        xf = _overlap_add_filter(x, H, zero_phase=True)
+        x = _overlap_add_filter(x, H, zero_phase=True, picks=picks)
 
-    return xf
+    x.shape = orig_shape
+    return x
+
+
+def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
+    """Helper to more easily call filtfilt"""
+    # set up array for filtering, reshape to 2D, operate on last axis
+    x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
+    if n_jobs == 1:
+        for ii, x_ in enumerate(x):
+            if ii in picks:
+                x[ii] = filtfilt(b, a, x_, padlen=padlen)
+    else:
+        parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
+        data_new = np.array(parallel(p_fun(b, a, x_, padlen=padlen)
+                                     for xi, x_ in enumerate(x)
+                                     if xi in picks))
+        x[picks, :] = data_new
+    x.shape = orig_shape
+    return x
 
 
 def _estimate_ringing_samples(b, a):
@@ -385,23 +501,26 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     return iir_params
 
 
+@verbose
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     picks=None, n_jobs=1, copy=True, verbose=None):
     """Bandpass filter for the signal x.
 
-    Applies a zero-phase bandpass filter to the signal x.
+    Applies a zero-phase bandpass filter to the signal x, operating on the
+    last dimension.
 
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     Fp1 : float
-        Low cut-off frequency in Hz
+        Low cut-off frequency in Hz.
     Fp2 : float
-        High cut-off frequency in Hz
+        High cut-off frequency in Hz.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -416,11 +535,20 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     xf : array
-        x filtered
+        x filtered.
 
     Notes
     -----
@@ -455,34 +583,39 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fs1, Fp1, Fp2, Fs2, Fs / 2],
-                     [0, 0, 1, 1, 0, 0], filter_length)
+        freq = [0, Fs1, Fp1, Fp2, Fs2, Fs / 2]
+        gain = [0, 0, 1, 1, 0, 0]
+        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         iir_params = construct_iir_filter(iir_params, [Fp1, Fp2],
                                           [Fs1, Fs2], Fs, 'bandpass')
         padlen = min(iir_params['padlen'], len(x))
-        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
+        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
+                       picks, n_jobs, copy)
 
     return xf
 
 
+@verbose
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     picks=None, n_jobs=1, copy=True, verbose=None):
     """Bandstop filter for the signal x.
 
-    Applies a zero-phase bandstop filter to the signal x.
+    Applies a zero-phase bandstop filter to the signal x, operating on the
+    last dimension.
 
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     Fp1 : float | array of float
-        Low cut-off frequency in Hz
+        Low cut-off frequency in Hz.
     Fp2 : float | array of float
-        High cut-off frequency in Hz
+        High cut-off frequency in Hz.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -497,11 +630,20 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     xf : array
-        x filtered
+        x filtered.
 
     Notes
     -----
@@ -542,40 +684,43 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
                          'transition bandwidth (l_trans_bandwidth)' % Fs1)
 
     if method == 'fft':
-        freqs = np.r_[0, Fp1, Fs1, Fs2, Fp2, Fs / 2]
-        mags = np.r_[1, np.ones_like(Fp1), np.zeros_like(Fs1),
+        freq = np.r_[0, Fp1, Fs1, Fs2, Fp2, Fs / 2]
+        gain = np.r_[1, np.ones_like(Fp1), np.zeros_like(Fs1),
                      np.zeros_like(Fs2), np.ones_like(Fp2), 1]
-        order = np.argsort(freqs)
-        freqs = freqs[order]
-        mags = mags[order]
-        if np.any(np.abs(np.diff(mags, 2)) > 1):
+        order = np.argsort(freq)
+        freq = freq[order]
+        gain = gain[order]
+        if np.any(np.abs(np.diff(gain, 2)) > 1):
             raise ValueError('Stop bands are not sufficiently separated.')
-        xf = _filter(x, Fs, freqs, mags, filter_length)
+        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         for fp_1, fp_2, fs_1, fs_2 in zip(Fp1, Fp2, Fs1, Fs2):
             iir_params_new = construct_iir_filter(iir_params, [fp_1, fp_2],
                                                   [fs_1, fs_2], Fs, 'bandstop')
             padlen = min(iir_params_new['padlen'], len(x))
-            xf = filtfilt(iir_params_new['b'], iir_params_new['a'],
-                          x, padlen=padlen)
+            xf = _filtfilt(x, iir_params_new['b'], iir_params_new['a'], padlen,
+                           picks, n_jobs, copy)
 
     return xf
 
 
+@verbose
 def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                    method='fft', iir_params=dict(order=4, ftype='butter')):
+                    method='fft', iir_params=dict(order=4, ftype='butter'),
+                    picks=None, n_jobs=1, copy=True, verbose=None):
     """Lowpass filter for the signal x.
 
-    Applies a zero-phase lowpass filter to the signal x.
+    Applies a zero-phase lowpass filter to the signal x, operating on the
+    last dimension.
 
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     Fp : float
-        Cut-off frequency in Hz
+        Cut-off frequency in Hz.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -588,11 +733,20 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     xf : array
-        x filtered
+        x filtered.
 
     Notes
     -----
@@ -616,30 +770,35 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     Fp = float(Fp)
     Fstop = Fp + trans_bandwidth
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fp, Fstop, Fs / 2], [1, 1, 0, 0],
-                     filter_length)
+        freq = [0, Fp, Fstop, Fs / 2]
+        gain = [1, 1, 0, 0]
+        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'low')
         padlen = min(iir_params['padlen'], len(x))
-        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
+        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
+                       picks, n_jobs, copy)
 
     return xf
 
 
+@verbose
 def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter')):
+                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     picks=None, n_jobs=1, copy=True, verbose=None):
     """Highpass filter for the signal x.
 
-    Applies a zero-phase highpass filter to the signal x.
+    Applies a zero-phase highpass filter to the signal x, operating on the
+    last dimension.
 
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     Fp : float
-        Cut-off frequency in Hz
+        Cut-off frequency in Hz.
     filter_length : int (default: None)
         Length of the filter to use. If None or "len(x) < filter_length", the
         filter length used is len(x). Otherwise, overlap-add filtering with a
@@ -652,11 +811,20 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     xf : array
-        x filtered
+        x filtered.
 
     Notes
     -----
@@ -687,12 +855,14 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
                          'bandwidth (trans_bandwidth)' % Fstop)
 
     if method == 'fft':
-        xf = _filter(x, Fs, [0, Fstop, Fp, Fs / 2], [0, 0, 1, 1],
-                     filter_length)
+        freq = [0, Fstop, Fp, Fs / 2]
+        gain = [0, 0, 1, 1]
+        xf = _filter(x, Fs, freq, gain, filter_length, picks, n_jobs, copy)
     else:
         iir_params = construct_iir_filter(iir_params, Fp, Fstop, Fs, 'high')
         padlen = min(iir_params['padlen'], len(x))
-        xf = filtfilt(iir_params['b'], iir_params['a'], x, padlen=padlen)
+        xf = _filtfilt(x, iir_params['b'], iir_params['a'], padlen,
+                       picks, n_jobs, copy)
 
     return xf
 
@@ -701,17 +871,18 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
                  trans_bandwidth=1, method='fft',
                  iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
-                 p_value=0.05, verbose=None):
+                 p_value=0.05, picks=None, n_jobs=1, copy=True, verbose=None):
     """Notch filter for the signal x.
 
-    Applies a zero-phase notch filter to the signal x.
+    Applies a zero-phase notch filter to the signal x, operating on the last
+    dimension.
 
     Parameters
     ----------
-    x : 1d array
-        Signal to filter
+    x : array
+        Signal to filter.
     Fs : float
-        Sampling rate in Hz
+        Sampling rate in Hz.
     freqs : float | array of float | None
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
         None can only be used with the mode 'spectrum_fit', where an F
@@ -742,14 +913,20 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
+    picks : list of int | None
+        Indices to filter. If None all indices will be filtered.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    copy : bool
+        If True, a copy of x, filtered, is returned. Otherwise, it operates
+        on x in place.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
 
     Returns
     -------
     xf : array
-        x filtered
+        x filtered.
 
     Notes
     -----
@@ -808,18 +985,48 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
-                              method, iir_params)
+                              method, iir_params, picks, n_jobs, copy)
     elif method == 'spectrum_fit':
-        xf, rm_freqs = _mt_spectrum_remove(x, Fs, freqs, notch_widths,
-                                           mt_bandwidth, p_value)
-        if freqs is None:
+        xf = _mt_spectrum_proc(x, Fs, freqs, notch_widths, mt_bandwidth,
+                               p_value, picks, n_jobs, copy)
+
+    return xf
+
+
+def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
+                      p_value, picks, n_jobs, copy):
+    """Helper to more easily call _mt_spectrum_remove"""
+    # set up array for filtering, reshape to 2D, operate on last axis
+    x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
+    if n_jobs == 1:
+        freq_list = list()
+        for ii, x_ in enumerate(x):
+            if ii in picks:
+                x[ii], f = _mt_spectrum_remove(x_, sfreq, line_freqs,
+                                               notch_widths, mt_bandwidth,
+                                               p_value)
+                freq_list.append(f)
+    else:
+        parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
+        data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
+                                  mt_bandwidth, p_value)
+                            for xi, x_ in enumerate(x)
+                            if xi in picks)
+        freq_list = [d[1] for d in data_new]
+        data_new = np.array([d[0] for d in data_new])
+        x[picks, :] = data_new
+
+    # report found frequencies
+    for rm_freqs in freq_list:
+        if line_freqs is None:
             if len(rm_freqs) > 0:
                 logger.info('Detected notch frequencies:\n%s'
                             % ', '.join([str(f) for f in rm_freqs]))
             else:
                 logger.info('Detected notch frequecies:\nNone')
 
-    return xf
+    x.shape = orig_shape
+    return x
 
 
 def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
