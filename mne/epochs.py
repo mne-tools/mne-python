@@ -38,7 +38,317 @@ from .fixes import in1d
 from .viz import _mutable_defaults
 
 
-class Epochs(ProjMixin):
+class _BaseEpochs(ProjMixin):
+    """Abstract base class for Epochs-type classes
+
+    This class provides basic functionality and should never be instantiated
+    directly. See Epochs below for an explanation of the parameters.
+    """
+    def __init__(self, info, event_id, tmin, tmax, baseline=(None, 0),
+                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
+                 reject=None, flat=None, decim=1, reject_tmin=None,
+                 reject_tmax=None, detrend=None, add_eeg_ref=True,
+                 verbose=None):
+
+        self.verbose = verbose
+        self.name = name
+
+        if isinstance(event_id, dict):
+            if not all([isinstance(v, int) for v in event_id.values()]):
+                raise ValueError('Event IDs must be of type integer')
+            if not all([isinstance(k, basestring) for k in event_id]):
+                raise ValueError('Event names must be of type str')
+            self.event_id = event_id
+        elif isinstance(event_id, list):
+            if not all([isinstance(v, int) for v in event_id]):
+                raise ValueError('Event IDs must be of type integer')
+            self.event_id = dict(zip((str(i) for i in event_id), event_id))
+        elif isinstance(event_id, int):
+            self.event_id = {str(event_id): event_id}
+        else:
+            raise ValueError('event_id must be dict or int.')
+
+        # check reject_tmin and reject_tmax
+        if (reject_tmin is not None) and (reject_tmin < tmin):
+            raise ValueError("reject_tmin needs to be None or >= tmin")
+        if (reject_tmax is not None) and (reject_tmax > tmax):
+            raise ValueError("reject_tmax needs to be None or <= tmax")
+        if (reject_tmin is not None) and (reject_tmax is not None):
+            if reject_tmin >= reject_tmax:
+                raise ValueError('reject_tmin needs to be < reject_tmax')
+        if not detrend in [None, 0, 1]:
+            raise ValueError('detrend must be None, 0, or 1')
+
+        self.tmin = tmin
+        self.tmax = tmax
+        self.keep_comp = keep_comp
+        self.dest_comp = dest_comp
+        self.baseline = baseline
+        self.reject = reject
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
+        self.flat = flat
+        self.decim = decim = int(decim)
+        self._bad_dropped = False
+        self.drop_log = None
+        self.detrend = detrend
+
+        # Handle measurement info
+        self.info = info
+        if picks is None:
+            picks = range(len(self.info['ch_names']))
+        else:
+            self.info['chs'] = [self.info['chs'][k] for k in picks]
+            self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
+            self.info['nchan'] = len(picks)
+        self.picks = picks
+
+        if len(picks) == 0:
+            raise ValueError("Picks cannot be empty.")
+
+        #   XXX : deprecate CTF compensator
+        if dest_comp is not None or keep_comp is not None:
+            raise ValueError('current_comp and keep_comp are deprecated.'
+                             ' Use the compensation parameter in Raw.')
+
+        # Handle times
+        if tmin >= tmax:
+            raise ValueError('tmin has to be smaller than tmax')
+        sfreq = float(self.info['sfreq'])
+        n_times_min = int(round(tmin * sfreq))
+        n_times_max = int(round(tmax * sfreq))
+        times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) / sfreq
+        self.times = times
+        self._raw_times = times  # times before decimation
+        self._epoch_stop = ep_len = len(self.times)
+        if decim > 1:
+            new_sfreq = sfreq / decim
+            lowpass = self.info['lowpass']
+            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
+                msg = ('The measurement information indicates a low-pass '
+                       'frequency of %g Hz. The decim=%i parameter will '
+                       'result in a sampling frequency of %g Hz, which can '
+                       'cause aliasing artifacts.'
+                       % (lowpass, decim, new_sfreq))
+                warnings.warn(msg)
+
+            i_start = n_times_min % decim
+            self._decim_idx = slice(i_start, ep_len, decim)
+            self.times = self.times[self._decim_idx]
+            self.info['sfreq'] = new_sfreq
+
+        self.preload = False
+        self._data = None
+
+        # setup epoch rejection
+        self._reject_setup()
+
+    def _reject_setup(self):
+        """Sets self._reject_time and self._channel_type_idx (called from
+        __init__)
+        """
+        if self.reject is None and self.flat is None:
+            return
+
+        idx = channel_indices_by_type(self.info)
+        for key in idx.keys():
+            if (self.reject is not None and key in self.reject) \
+                    or (self.flat is not None and key in self.flat):
+                if len(idx[key]) == 0:
+                    raise ValueError("No %s channel found. Cannot reject based"
+                                     " on %s." % (key.upper(), key.upper()))
+
+        self._channel_type_idx = idx
+
+        if (self.reject_tmin is None) and (self.reject_tmax is None):
+            self._reject_time = None
+        else:
+            if self.reject_tmin is None:
+                reject_imin = None
+            else:
+                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
+                reject_imin = idxs[0]
+            if self.reject_tmax is None:
+                reject_imax = None
+            else:
+                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
+                reject_imax = idxs[-1]
+
+            self._reject_time = slice(reject_imin, reject_imax)
+
+    @verbose
+    def _is_good_epoch(self, data, verbose=None):
+        """Determine if epoch is good"""
+        if data is None:
+            return False, ['NO_DATA']
+        n_times = len(self.times)
+        if data.shape[1] < n_times:
+            # epoch is too short ie at the end of the data
+            return False, ['TOO_SHORT']
+        if self.reject is None and self.flat is None:
+            return True, None
+        else:
+            if self._reject_time is not None:
+                data = data[:, self._reject_time]
+
+            return _is_good(data, self.ch_names, self._channel_type_idx,
+                            self.reject, self.flat, full_report=True,
+                            ignore_chs=self.info['bads'])
+
+    def get_data(self):
+        """Get all epochs as a 3D array
+
+        Returns
+        -------
+        data : array of shape [n_epochs, n_channels, n_times]
+            The epochs data
+        """
+        if self.preload:
+            return self._data
+        else:
+            data = self._get_data_from_disk()
+            return data
+
+    def iter_evoked(self):
+        """Iterate over Evoked objects with nave=1
+        """
+        self._current = 0
+
+        while True:
+
+            evoked = Evoked(None)
+            evoked.info = cp.deepcopy(self.info)
+
+            evoked.times = self.times.copy()
+            evoked.nave = 1
+            evoked.first = int(self.times[0] * self.info['sfreq'])
+            evoked.last = evoked.first + len(self.times) - 1
+
+            evoked.data, event_id = self.next(True)
+            evoked.comment = str(event_id)
+
+            yield evoked
+
+    def _get_data_from_disk(self, out=True, verbose=None):
+        raise NotImplementedError('_get_data_from_disk() must be implemented '
+                                  'in derived class.')
+
+    def __iter__(self):
+        """To make iteration over epochs easy.
+        """
+        self._current = 0
+        return self
+
+    def next(self, return_event_id=False):
+        raise NotImplementedError('next() must be implemented in derived '
+                                  'class.')
+
+    def average(self, picks=None):
+        """Compute average of epochs
+
+        Parameters
+        ----------
+
+        picks : None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
+
+        Returns
+        -------
+        evoked : Evoked instance
+            The averaged epochs
+        """
+
+        return self._compute_mean_or_stderr(picks, 'ave')
+
+    def standard_error(self, picks=None):
+        """Compute standard error over epochs
+
+        Parameters
+        ----------
+        picks : None | array of int
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
+
+        Returns
+        -------
+        evoked : Evoked instance
+            The standard error over epochs
+        """
+        return self._compute_mean_or_stderr(picks, 'stderr')
+
+    def _compute_mean_or_stderr(self, picks, mode='ave'):
+        """Compute the mean or std over epochs and return Evoked"""
+
+        _do_std = True if mode == 'stderr' else False
+        evoked = Evoked(None)
+        evoked.info = cp.deepcopy(self.info)
+        # make sure projs are really copied.
+        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
+        n_channels = len(self.ch_names)
+        n_times = len(self.times)
+        if self.preload:
+            n_events = len(self.events)
+            if not _do_std:
+                data = np.mean(self._data, axis=0)
+            else:
+                data = np.std(self._data, axis=0)
+            assert len(self.events) == len(self._data)
+        else:
+            data = np.zeros((n_channels, n_times))
+            n_events = 0
+            for e in self:
+                data += e
+                n_events += 1
+            data /= n_events
+            # convert to stderr if requested, could do in one pass but do in
+            # two (slower) in case there are large numbers
+            if _do_std:
+                data_mean = cp.copy(data)
+                data.fill(0.)
+                for e in self:
+                    data += (e - data_mean) ** 2
+                data = np.sqrt(data / n_events)
+
+        evoked.data = data
+        evoked.times = self.times.copy()
+        evoked.comment = self.name
+        evoked.nave = n_events
+        evoked.first = int(self.times[0] * self.info['sfreq'])
+        evoked.last = evoked.first + len(self.times) - 1
+        if not _do_std:
+            evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
+        else:
+            evoked._aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
+            evoked.data /= np.sqrt(evoked.nave)
+        evoked.kind = aspect_rev.get(str(evoked._aspect_kind), 'Unknown')
+
+        # dropping EOG, ECG and STIM channels. Keeping only data
+        if picks is None:
+            picks = pick_types(evoked.info, meg=True, eeg=True,
+                               stim=False, eog=False, ecg=False,
+                               emg=False, exclude=[])
+            if len(picks) == 0:
+                raise ValueError('No data channel found when averaging.')
+
+        picks = np.sort(picks)  # make sure channel order does not change
+        evoked.info['chs'] = [evoked.info['chs'][k] for k in picks]
+        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
+                                   for k in picks]
+        evoked.info['nchan'] = len(picks)
+        evoked.data = evoked.data[picks]
+        # otherwise the apply_proj will be confused
+        evoked.proj = True if self.proj is True else None
+        evoked.verbose = self.verbose
+
+        return evoked
+
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+
+class Epochs(_BaseEpochs):
     """List of Epochs
 
     Parameters
@@ -47,11 +357,12 @@ class Epochs(ProjMixin):
         An instance of Raw.
     events : array, of shape [n_events, 3]
         Returned by the read_events function.
-    event_id : int | dict | None
+    event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to acces associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
-        the id as string. If None, all events will be used with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
     tmin : float
@@ -178,121 +489,47 @@ class Epochs(ProjMixin):
         if raw is None:
             return
 
+        # prepare for calling the base constructor
+
+        # Handle measurement info
+        info = cp.deepcopy(raw.info)
+        # make sure projs are really copied.
+        info['projs'] = [cp.deepcopy(p) for p in info['projs']]
+
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+
+        # call _BaseEpochs constructor
+        super(Epochs, self).__init__(info, event_id, tmin, tmax,
+                baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,
+                dest_comp=dest_comp, reject=reject, flat=flat,
+                decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
+                detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
+
+        # do the rest
         self.raw = raw
-        self.verbose = raw.verbose if verbose is None else verbose
-        self.name = name
-        if isinstance(event_id, dict):
-            if not all([isinstance(v, int) for v in event_id.values()]):
-                raise ValueError('Event IDs must be of type integer')
-            if not all([isinstance(k, basestring) for k in event_id]):
-                raise ValueError('Event names must be of type str')
-            self.event_id = event_id
-        elif isinstance(event_id, int):
-            self.event_id = {str(event_id): event_id}
-        elif event_id is None:
-            self.event_id = dict((str(e), e) for e in np.unique(events[:, 2]))
-        else:
-            raise ValueError('event_id must be dict or int.')
-
-        # check reject_tmin and reject_tmax
-        if (reject_tmin is not None) and (reject_tmin < tmin):
-            raise ValueError("reject_tmin needs to be None or >= tmin")
-        if (reject_tmax is not None) and (reject_tmax > tmax):
-            raise ValueError("reject_tmax needs to be None or <= tmax")
-        if (reject_tmin is not None) and (reject_tmax is not None):
-            if reject_tmin >= reject_tmax:
-                raise ValueError('reject_tmin needs to be < reject_tmax')
-        if not detrend in [None, 0, 1]:
-            raise ValueError('detrend must be None, 0, or 1')
-
-        self.tmin = tmin
-        self.tmax = tmax
-        self.keep_comp = keep_comp
-        self.dest_comp = dest_comp
-        self.baseline = baseline
-        self.preload = preload
-        self.reject = reject
-        self.reject_tmin = reject_tmin
-        self.reject_tmax = reject_tmax
-        self.flat = flat
-
         proj = proj or raw.proj  # proj is on when applied in Raw
         if proj not in [True, 'delayed', False]:
             raise ValueError(r"'proj' must either be 'True', 'False' or "
                               "'delayed'")
         self.proj = proj
-
-        self.decim = decim = int(decim)
-        self._bad_dropped = False
-        self.drop_log = None
-        self.detrend = detrend
-
-        # Handle measurement info
-        self.info = cp.deepcopy(raw.info)
-        # make sure projs are really copied.
-        self.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
-        if picks is None:
-            picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                               ecg=True, eog=True, misc=True, ref_meg=True,
-                               exclude=[])
-        self.info['chs'] = [self.info['chs'][k] for k in picks]
-        self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
-        self.info['nchan'] = len(picks)
-        self.picks = picks
-
-        if len(picks) == 0:
-            raise ValueError("Picks cannot be empty.")
-
         if self._check_delayed():
             logger.info('Entering delayed SSP mode.')
 
         activate = False if self._check_delayed() else self.proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
-
-        #   XXX : deprecate CTF compensator
-        if dest_comp is not None or keep_comp is not None:
-            raise ValueError('current_comp and keep_comp are deprecated.'
-                             ' Use the compensation parameter in Raw.')
-
-        #    Select the desired events
-        self.events = events
+        # Select the desired events
         selected = in1d(events[:, 2], self.event_id.values())
         self.events = events[selected]
 
         n_events = len(self.events)
-
         if n_events > 0:
             logger.info('%d matching events found' % n_events)
         else:
             raise ValueError('No desired events found.')
 
-        # Handle times
-        assert tmin < tmax
-        sfreq = float(raw.info['sfreq'])
-        n_times_min = int(round(tmin * sfreq))
-        n_times_max = int(round(tmax * sfreq))
-        times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) / sfreq
-        self.times = self._raw_times = times
-        self._epoch_stop = ep_len = len(self.times)
-        if decim > 1:
-            new_sfreq = sfreq / decim
-            lowpass = self.info['lowpass']
-            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
-                msg = ("The raw file indicates a low-pass frequency of %g Hz. "
-                       "The decim=%i parameter will result in a sampling "
-                       "frequency of %g Hz, which can cause aliasing "
-                       "artifacts." % (lowpass, decim, new_sfreq))
-                warnings.warn(msg)
-
-            i_start = n_times_min % decim
-            self._decim_idx = slice(i_start, ep_len, decim)
-            self.times = self.times[self._decim_idx]
-            self.info['sfreq'] = new_sfreq
-
-        # setup epoch rejection
-        self._reject_setup()
-
+        self.preload = preload
         if self.preload:
             self._data = self._get_data_from_disk()
             self.raw = None
@@ -586,7 +823,7 @@ class Epochs(ProjMixin):
         self._current = 0
         return self
 
-    def next(self):
+    def next(self, return_event_id=False):
         """To make iteration over epochs easy.
         """
         if self.preload:
@@ -610,7 +847,10 @@ class Epochs(ProjMixin):
             if self._check_delayed():
                 epoch = self._preprocess(epoch_raw)
 
-        return epoch
+        if not return_event_id:
+            return epoch
+        else:
+            return epoch, self.events[self._current - 1][-1]
 
     def __repr__(self):
         """ Build string representation
@@ -668,106 +908,6 @@ class Epochs(ProjMixin):
             epochs._data = epochs._data[select]
 
         return epochs
-
-    def average(self, picks=None):
-        """Compute average of epochs
-
-        Parameters
-        ----------
-
-        picks : None | array of int
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
-
-        Returns
-        -------
-        evoked : Evoked instance
-            The averaged epochs
-        """
-
-        return self._compute_mean_or_stderr(picks, 'ave')
-
-    def standard_error(self, picks=None):
-        """Compute standard error over epochs
-
-        Parameters
-        ----------
-        picks : None | array of int
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
-
-        Returns
-        -------
-        evoked : Evoked instance
-            The standard error over epochs
-        """
-        return self._compute_mean_or_stderr(picks, 'stderr')
-
-    def _compute_mean_or_stderr(self, picks, mode='ave'):
-        """Compute the mean or std over epochs and return Evoked"""
-
-        _do_std = True if mode == 'stderr' else False
-        evoked = Evoked(None)
-        evoked.info = cp.deepcopy(self.info)
-        # make sure projs are really copied.
-        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
-        n_channels = len(self.ch_names)
-        n_times = len(self.times)
-        if self.preload:
-            n_events = len(self.events)
-            if not _do_std:
-                data = np.mean(self._data, axis=0)
-            else:
-                data = np.std(self._data, axis=0)
-            assert len(self.events) == len(self._data)
-        else:
-            data = np.zeros((n_channels, n_times))
-            n_events = 0
-            for e in self:
-                data += e
-                n_events += 1
-            data /= n_events
-            # convert to stderr if requested, could do in one pass but do in
-            # two (slower) in case there are large numbers
-            if _do_std:
-                data_mean = cp.copy(data)
-                data.fill(0.)
-                for e in self:
-                    data += (e - data_mean) ** 2
-                data = np.sqrt(data / n_events)
-
-        evoked.data = data
-        evoked.times = self.times.copy()
-        evoked.comment = self.name
-        evoked.nave = n_events
-        evoked.first = int(self.times[0] * self.info['sfreq'])
-        evoked.last = evoked.first + len(self.times) - 1
-        if not _do_std:
-            evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
-        else:
-            evoked._aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
-            evoked.data /= np.sqrt(evoked.nave)
-        evoked.kind = aspect_rev.get(str(evoked._aspect_kind), 'Unknown')
-
-        # dropping EOG, ECG and STIM channels. Keeping only data
-        if picks is None:
-            picks = pick_types(evoked.info, meg=True, eeg=True,
-                               stim=False, eog=False, ecg=False,
-                               emg=False, ref_meg=True, exclude=[])
-            if len(picks) == 0:
-                raise ValueError('No data channel found when averaging.')
-
-        picks = np.sort(picks)  # make sure channel order does not change
-        evoked.info['chs'] = [evoked.info['chs'][k] for k in picks]
-        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
-                                   for k in picks]
-        evoked.info['nchan'] = len(picks)
-        evoked.data = evoked.data[picks]
-        # otherwise the apply_proj will be confused
-        evoked.proj = True if self.proj is True else None
-        evoked.verbose = self.verbose
-
-        return evoked
 
     def crop(self, tmin=None, tmax=None, copy=False):
         """Crops a time interval from epochs object.
@@ -1144,10 +1284,6 @@ class Epochs(ProjMixin):
         epochs.drop_epochs(indices)
         # actually remove the indices
         return epochs, indices
-
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
