@@ -6,6 +6,7 @@ from scipy.fftpack import fft, ifft
 from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
 from scipy import signal, stats
 from copy import deepcopy
+import sys
 
 try:
     import pycuda.gpuarray as gpuarray
@@ -27,16 +28,17 @@ from .utils import sizeof_fmt, get_config
 cuda_capable = False
 cuda_multiply_inplace = None
 
+
 def init_cuda():
     global cuda_capable
     global cuda_multiply_inplace
     if get_config('MNE_USE_CUDA', 'false') == 'true':
         try:
-            # Initialize CUDA
+            # Initialize CUDA; happens with importing autoinit
             import pycuda.autoinit
-            import pycuda.gpuarray as gpuarray
+            assert 'pycuda.gpuarray' in sys.modules
+            assert 'scikits.cuda' in sys.modules
             from pycuda.driver import mem_get_info
-            from scikits.cuda import fft as cudafft
             from pycuda.elementwise import ElementwiseKernel
             # let's construct our own CUDA multiply in-place function
             dtype = 'pycuda::complex<double>'
@@ -73,7 +75,10 @@ def _setup_cuda(n_jobs, h_fft):
                     cuda_fft_len = int(n_fft / 2 + 1)
                 seg_fft = gpuarray.empty(cuda_fft_len, np.complex128)
                 seg = gpuarray.empty(int(n_fft), np.float64)
-                h_fft = gpuarray.to_gpu(h_fft[:cuda_fft_len].astype('complex128'))
+                cuda_h_fft = h_fft[:cuda_fft_len].astype('complex128')
+                # do the IFFT normalization now so we don't have to later
+                cuda_h_fft /= len(h_fft)
+                h_fft = gpuarray.to_gpu(cuda_h_fft)
             except:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
@@ -207,7 +212,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
                                            cuda_dict)
     else:
         if not isinstance(n_jobs, int):
-            logger.info('n_jobs must be an integer, or "cuda"')
+            raise ValueError('n_jobs must be an integer, or "cuda"')
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], h_fft, n_edge, n_fft, zero_phase,
                                   n_segments, n_seg, cuda_dict)
@@ -233,7 +238,6 @@ def _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan, cuda_ifft_plan,
         # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_seg_fft, cuda_seg, cuda_ifft_plan, False)
         prod = cuda_seg.get()
-        prod = prod / len(prod)
     return prod
 
 
@@ -304,7 +308,6 @@ def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
     cuda_ifft_plan = cuda_dict['ifft_plan']
     cuda_seg_fft = cuda_dict['seg_fft']
     cuda_seg = cuda_dict['seg']
-    cuda_fft_len = cuda_dict['fft_len']
 
     # extend, if necessary
     if extend_x is True:
@@ -415,7 +418,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
                     x[xi] = _1d_fftmult_ext(x_, B, extend_x, cuda_dict)
         else:
             if not isinstance(n_jobs, int):
-                logger.info('n_jobs must be an integer, or "cuda"')
+                raise ValueError('n_jobs must be an integer, or "cuda"')
             parallel, p_fun, _ = parallel_func(_1d_fftmult_ext, n_jobs)
             data_new = parallel(p_fun(x[p], B, extend_x, cuda_dict)
                                 for p in picks)
@@ -456,6 +459,8 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
             if ii in picks:
                 x[ii] = filtfilt(b, a, x_, padlen=padlen)
     else:
+        if not isinstance(n_jobs, int):
+            raise ValueError('n_jobs must be an integer for IIR filtering')
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
         data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
                             for p in picks)
@@ -642,7 +647,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -738,7 +743,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -842,7 +847,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -921,7 +926,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -1024,7 +1029,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -1115,6 +1120,8 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                                                p_value)
                 freq_list.append(f)
     else:
+        if not isinstance(n_jobs, int):
+            raise ValueError('n_jobs must be an integer')
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   mt_bandwidth, p_value)
