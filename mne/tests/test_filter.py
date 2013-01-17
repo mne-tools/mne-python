@@ -8,7 +8,7 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        notch_filter, detrend
 
 from mne import set_log_file
-from mne.utils import _TempDir
+from mne.utils import _TempDir, requires_cuda
 
 tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')
@@ -118,3 +118,41 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+
+
+@requires_cuda
+def test_cuda():
+    """Test CUDA-based filtering
+    """
+    Fs = 500
+    sig_len_secs = 20
+
+    # Filtering of short signals (filter length = len(a))
+    a = np.random.randn(sig_len_secs * Fs)
+
+    for fl in [None, 2048]:
+        bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
+        bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
+                              filter_length=fl)
+        lp = low_pass_filter(a, Fs, 8, n_jobs=1, filter_length=fl)
+        hp = high_pass_filter(lp, Fs, 4, n_jobs=1, filter_length=fl)
+
+        set_log_file(log_file, overwrite=True)
+        bp_c = band_pass_filter(a, Fs, 4, 8, n_jobs='cuda', filter_length=fl,
+                                verbose='INFO')
+        bs_c = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
+                                filter_length=fl, verbose='INFO')
+        lp_c = low_pass_filter(a, Fs, 8, n_jobs='cuda', filter_length=fl,
+                               verbose='INFO')
+        hp_c = high_pass_filter(lp, Fs, 4, n_jobs='cuda', filter_length=fl,
+                                verbose='INFO')
+
+        assert_array_almost_equal(bp, bp_c)
+        assert_array_almost_equal(bs, bs_c)
+        assert_array_almost_equal(lp, lp_c)
+        assert_array_almost_equal(hp, hp_c)
+
+    # check to make sure we actually used CUDA
+    set_log_file()
+    out = open(log_file).readlines()
+    assert_true(all(['Using CUDA for FFT FIR filtering' in o for o in out]))

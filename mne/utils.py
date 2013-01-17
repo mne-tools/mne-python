@@ -284,6 +284,7 @@ def make_skipper_dec(module, skip_str):
 
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
+requires_cuda = make_skipper_dec(True, 'CUDA not available')
 
 
 ###############################################################################
@@ -400,6 +401,16 @@ def get_config_path():
     return val
 
 
+# List the known configuration values
+known_config_types = [
+    'MNE_DATASETS_MEGSIM_PATH',
+    'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_LOGGING_LEVEL',
+    'MNE_USE_CUDA',
+    'SUBJECTS_DIR',
+    ]
+
+
 def get_config(key, default=None, raise_error=False):
     """Read mne(-python) preference from env, then mne-python config
 
@@ -471,6 +482,8 @@ def set_config(key, value):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, basestring) and value is not None:
         raise ValueError('value must be a string or None')
+    if not key in known_config_types:
+        warnings.warn('Setting non-standard config type: "%s"', key)
 
     # Read all previous values
     config_path = get_config_path()
