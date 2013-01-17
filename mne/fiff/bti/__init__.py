@@ -2,4 +2,4 @@
 
 # Author: Denis A. Engemann <d.engemann@fz-juelich.de>
 
-from .pdf import Raw
+from .raw import Raw
