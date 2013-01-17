@@ -7,6 +7,12 @@ from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
 from scipy import signal, stats
 from copy import deepcopy
 
+try:
+    import pycuda.gpuarray as gpuarray
+    from scikits.cuda import fft as cudafft
+except:
+    pass
+
 import logging
 logger = logging.getLogger('mne')
 
@@ -14,30 +20,68 @@ from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 from .parallel import parallel_func
-from .utils import sizeof_fmt
+from .utils import sizeof_fmt, get_config
 
 
 # Support CUDA for FFTs
-if get_config('MNE_USE_CUDA', 'false') == 'true':
-    try:
-        # Initialize CUDA
-        import pycuda.autoinit
-        import pycuda.gpuarray as gpuarray
-        from pycuda.driver import mem_get_info
-        from scikits.cuda import fft as cudafft
-    except:
-        cuda_capable = False
+cuda_capable = False
+
+
+def init_cuda():
+    if get_config('MNE_USE_CUDA', '0') == 'true':
+        try:
+            # Initialize CUDA
+            import pycuda.autoinit
+            import pycuda.gpuarray as gpuarray
+            from pycuda.driver import mem_get_info
+            from scikits.cuda import fft as cudafft
+        except:
+            cuda_capable = False
+        else:
+            cuda_capable = True
+            # Figure out limit for CUDA FFT calculations
+            logger.info('Enabling CUDA with %s available memory'
+                        % sizeof_fmt(mem_get_info()[0]))
     else:
-        cuda_capable = True
-        # Choose some reasonable limits for CUDA FFT calculations
-        cuda_lower_limit = 2 ** 10
-        # let's make sure each array uses under 5% of available memory
-        mem_size = cuda.mem_get_info()[0]
-        cuda_upper_limit = int(mem_size / 8 * 0.05)
-        logger.info('Enabling CUDA with maximum memory %s' % sizeof_fmt())
-        # cuda_upper_limit = 2 ** 20
-else:
-    cuda_capable = False
+        cuda_capable = False
+    return cuda_capable, np.testing.dec.skipif(not cuda_capable,
+                                               'CUDA not available')
+
+
+
+def _setup_cuda(n_jobs, n_fft):
+    """Set up cuda processing"""
+    cuda_dict = dict(use_cuda=False, fft_plan=None, ifft_plan=None,
+                     seg_fft=None, seg=None, fft_len=None)
+    if n_jobs == 'cuda':
+        n_jobs = 1
+        if cuda_capable:
+            # set up all arrays necessary for CUDA
+            try:
+                fft_plan = cudafft.Plan(n_fft, np.float64, np.complex128)
+                ifft_plan = cudafft.Plan(n_fft, np.complex128, np.float64)
+                if n_fft % 2 == 1:
+                    cuda_fft_len = int((n_fft + 1) / 2 + 1)
+                else:
+                    cuda_fft_len = int(n_fft / 2 + 1)
+                seg_fft = gpuarray.empty(cuda_fft_len, np.complex128)
+                seg = gpuarray.empty(int(n_fft), np.float64)
+            except:
+                logger.info('CUDA not used, could not instantiate memory '
+                            '(arrays may be too large), falling back to '
+                            'n_jobs=1')
+            else:
+                logger.info('Using CUDA for FFT FIR filtering')
+                cuda_dict['use_cuda'] = True
+                cuda_dict['fft_plan'] = fft_plan
+                cuda_dict['ifft_plan'] = ifft_plan
+                cuda_dict['seg_fft'] = seg_fft
+                cuda_dict['seg'] = seg
+                cuda_dict['fft_len'] = cuda_fft_len
+        else:
+            logger.info('CUDA not used, machine is not CUDA capable, '
+                        'falling back to n_jobs=1')
+    return n_jobs, cuda_dict
 
 
 def is_power2(num):
@@ -112,12 +156,12 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
             n_tot = 2 * n_x if zero_phase else n_x
 
             N = 2 ** np.arange(np.ceil(np.log2(n_h)),
-                               np.floor(np.log2(n_tot)))
+                               np.floor(np.log2(n_tot)), dtype=int)
             cost = np.ceil(n_tot / (N - n_h + 1)) * N * (np.log2(N) + 1)
             n_fft = N[np.argmin(cost)]
         else:
             # Use only a single block
-            n_fft = 2 ** np.ceil(np.log2(n_x + n_h - 1))
+            n_fft = 2 ** int(np.ceil(np.log2(n_x + n_h - 1)))
 
     if n_fft <= 0:
         raise ValueError('n_fft is too short, has to be at least len(h)')
@@ -143,16 +187,23 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     # Number of segments (including fractional segments)
     n_segments = int(np.ceil(n_x / float(n_seg)))
 
+    # Figure out if we should use CUDA
+    n_jobs, cuda_dict = _setup_cuda(n_jobs, n_fft)
+
     # Process each row separately
     if n_jobs == 1:
         for ii, x_ in enumerate(x):
             if ii in picks:
                 x[ii] = _1d_overlap_filter(x_, h_fft, n_edge, n_fft,
-                                           zero_phase, n_segments, n_seg)
+                                           zero_phase, n_segments, n_seg,
+                                           cuda_dict)
     else:
+        if not isinstance(n_jobs, int):
+            logger.info('n_jobs must be an integer, or "cuda"')
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = np.array(parallel(p_fun(x_, h_fft, n_edge, n_fft,
-                                           zero_phase, n_segments, n_seg)
+                                           zero_phase, n_segments, n_seg,
+                                           cuda_dict)
                                      for xi, x_ in enumerate(x)
                                      if xi in picks))
         x[picks, :] = data_new
@@ -160,15 +211,42 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     return x
 
 
+def _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan, cuda_ifft_plan,
+              cuda_seg_fft, cuda_seg, cuda_fft_len):
+    """Helper for Fourier-domain multiplication"""
+    if not use_cuda:
+        # do the fourier-domain operations
+        prod = np.real(ifft(h_fft * fft(seg)))
+    else:
+        # do the fourier-domain operations, results in second param
+        cuda_seg.set(seg)
+        cudafft.fft(cuda_seg, cuda_seg_fft, cuda_fft_plan)
+        # This could use cuda.linalg, but requires cula
+        # (painful to install)
+        cuda_seg_fft.set(cuda_seg_fft.get() * h_fft[:cuda_fft_len])
+        cudafft.ifft(cuda_seg_fft, cuda_seg, cuda_ifft_plan, False)
+        prod = cuda_seg.get()
+        prod = prod / len(prod)
+    return prod
+
+
 def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
-                       is_parallel=True):
-    """Do one-dimensional in overlap-add filtering"""
+                       cuda_dict):
+    """Do one-dimensional overlap-add FFT FIR filtering"""
     # pad to reduce ringing
-    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1], \
+    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1],
                   x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
     n_x = len(x_ext)
     filter_input = x_ext
     x_filtered = np.zeros_like(filter_input)
+
+    use_cuda = cuda_dict['use_cuda']
+    cuda_fft_plan = cuda_dict['fft_plan']
+    cuda_ifft_plan = cuda_dict['ifft_plan']
+    cuda_seg_fft = cuda_dict['seg_fft']
+    cuda_seg = cuda_dict['seg']
+    cuda_fft_len = cuda_dict['fft_len']
+
     for pass_no in range(2) if zero_phase else range(1):
 
         if pass_no == 1:
@@ -178,10 +256,10 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
 
         for seg_idx in range(n_segments):
             seg = filter_input[seg_idx * n_seg:(seg_idx + 1) * n_seg]
-            # do the fourier-domain operations
-            seg_fft = fft(np.r_[seg, np.zeros(n_fft - len(seg))])
-            prod = np.real(ifft(h_fft * seg_fft))
-
+            seg = np.r_[seg, np.zeros(n_fft - len(seg))]
+            prod = _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan,
+                             cuda_ifft_plan, cuda_seg_fft, cuda_seg,
+                             cuda_fft_len)
             if seg_idx * n_seg + n_fft < n_x:
                 x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft]\
                     += prod
@@ -214,15 +292,29 @@ def _filter_attenuation(h, freq, gain):
     return att_db, att_freq
 
 
-def _1d_fftmult(x, B, extend_x):
-    """Helper to parallelize FFT FIR"""
+def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
+    """Helper to parallelize FFT FIR, with extension if necessary"""
+
+    use_cuda = cuda_dict['use_cuda']
+    cuda_fft_plan = cuda_dict['fft_plan']
+    cuda_ifft_plan = cuda_dict['ifft_plan']
+    cuda_seg_fft = cuda_dict['seg_fft']
+    cuda_seg = cuda_dict['seg']
+    cuda_fft_len = cuda_dict['fft_len']
+
+    # extend, if necessary
     if extend_x is True:
-        xf = np.real(ifft(fft(np.r_[x, x[-1]]) * B))[:, :-1]
-        xf.shape = np.prod(xf.shape)
-    else:
-        xf = np.real(ifft(fft(x) * B))
-    # Have to ravel() because ifft/fft functions return 2d arrays
-    return xf.ravel()
+        x = np.r_[x, x[-1]]
+
+    # do Fourier transforms
+    xf = _fft_mult(B, x, use_cuda, cuda_fft_plan, cuda_ifft_plan,
+                   cuda_seg_fft, cuda_seg, cuda_fft_len).ravel()
+
+    # put back to original size
+    if extend_x is True:
+        xf = xf[:-1]
+
+    return xf
 
 
 def _prep_for_filtering(x, copy, picks):
@@ -231,7 +323,6 @@ def _prep_for_filtering(x, copy, picks):
         x = x.copy()
     orig_shape = x.shape
     x = np.atleast_2d(x)
-    new_shape = x.shape
     x.shape = (np.prod(x.shape[:-1]), x.shape[-1])
     if picks is None:
         picks = np.arange(x.shape[0])
@@ -307,15 +398,20 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
                           '%0.1fdB.' % (att_freq, att_db))
 
         # Make zero-phase filter function
-        B = np.abs(fft(H))
+        B = np.abs(fft(H)).ravel()
+
+        # Figure out if we should use CUDA
+        n_jobs, cuda_dict = _setup_cuda(n_jobs, len(B))
 
         if n_jobs == 1:
             for xi, x_ in enumerate(x):
                 if xi in picks:
-                    x[xi] = _1d_fftmult(x_, B, extend_x)
+                    x[xi] = _1d_fftmult_ext(x_, B, extend_x, cuda_dict)
         else:
-            parallel, p_fun, _ = parallel_func(_1d_fftmult, n_jobs)
-            data_new = np.array(parallel(p_fun(x_, B, extend_x)
+            if not isinstance(n_jobs, int):
+                logger.info('n_jobs must be an integer, or "cuda"')
+            parallel, p_fun, _ = parallel_func(_1d_fftmult_ext, n_jobs)
+            data_new = np.array(parallel(p_fun(x_, B, extend_x, cuda_dict)
                                          for xi, x_ in enumerate(x)
                                          if xi in picks))
             x[picks, :] = data_new
@@ -338,7 +434,8 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
                           '%0.1fdB. Increase filter_length for higher '
                           'attenuation.' % (att_freq, att_db))
 
-        x = _overlap_add_filter(x, H, zero_phase=True, picks=picks)
+        x = _overlap_add_filter(x, H, zero_phase=True, picks=picks,
+                                n_jobs=n_jobs)
 
     x.shape = orig_shape
     return x
