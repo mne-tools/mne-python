@@ -203,7 +203,7 @@ def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
         x = np.r_[x, x[-1]]
 
     # do Fourier transforms
-    xf = fft_multiply_repeated(B, x, cuda_dict).ravel()
+    xf = fft_multiply_repeated(B, x, cuda_dict)
 
     # put back to original size and type
     if extend_x is True:

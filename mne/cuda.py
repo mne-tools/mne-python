@@ -8,6 +8,7 @@ from scipy.fftpack import fft, ifft
 try:
     import pycuda.gpuarray as gpuarray
     from scikits.cuda import fft as cudafft
+    from pycuda.driver import mem_get_info
 except:
     pass
 
@@ -31,7 +32,7 @@ def init_cuda():
             import pycuda.autoinit
             assert 'pycuda.gpuarray' in sys.modules
             assert 'scikits.cuda' in sys.modules
-            from pycuda.driver import mem_get_info
+            assert 'pycuda.driver' in sys.modules
             from pycuda.elementwise import ElementwiseKernel
             # let's construct our own CUDA multiply in-place function
             dtype = 'pycuda::complex<double>'
@@ -130,21 +131,21 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
 
     Parameters
     ----------
-    h_fft : array or gpuarray
-        The filtering array.
-    x : array
+    h_fft : 1-d array or gpuarray
+        The filtering array to apply.
+    x : 1-d array
         The array to filter.
     cuda_dict : dict
         Dictionary constructed using setup_cuda_multiply_repeated.
 
     Returns
     -------
-    x : array
+    x : 1-d array
         Filtered version of x.
     """
     if not cuda_dict['use_cuda']:
         # do the fourier-domain operations
-        x = np.real(ifft(h_fft * fft(x), overwrite_x=True))
+        x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
     else:
         # do the fourier-domain operations, results in second param
         cuda_dict['x'].set(x)
