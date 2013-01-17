@@ -582,14 +582,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     import pylab as pl
 
     dict_args = dict(scalings=scalings, units=units, titles=titles)
-<<<<<<< HEAD
-=======
 
-    if isinstance(ylim, dict):
-        dict_args['ylim'] = ylim
->>>>>>> ENH + FIX: correct logic
-
-    dict_args = dict(scalings=scalings, units=units, titles=titles, ylim=ylim)
     channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
     if picks is None:
         picks = range(evoked.info['nchan'])
