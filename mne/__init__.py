@@ -40,6 +40,7 @@ from .selection import read_selection
 from .dipole import read_dip
 from . import beamformer
 from . import connectivity
+from . import cuda
 from . import datasets
 from . import epochs
 from . import fiff
@@ -59,4 +60,4 @@ set_log_level(None, False)
 set_log_file()
 
 # initialize CUDA
-utils.requires_cuda = filter.init_cuda()
+utils.requires_cuda = cuda.init_cuda()
