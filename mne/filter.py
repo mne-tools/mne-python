@@ -25,16 +25,24 @@ from .utils import sizeof_fmt, get_config
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
-
+cuda_multiply_inplace = None
 
 def init_cuda():
-    if get_config('MNE_USE_CUDA', '0') == 'true':
+    global cuda_capable
+    global cuda_multiply_inplace
+    if get_config('MNE_USE_CUDA', 'false') == 'true':
         try:
             # Initialize CUDA
             import pycuda.autoinit
             import pycuda.gpuarray as gpuarray
             from pycuda.driver import mem_get_info
             from scikits.cuda import fft as cudafft
+            from pycuda.elementwise import ElementwiseKernel
+            # let's construct our own CUDA multiply in-place function
+            dtype = 'pycuda::complex<double>'
+            cuda_multiply_inplace = \
+                ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
+                                  'b[i] = a[i] * b[i]', 'multiply_inplace')
         except:
             cuda_capable = False
         else:
@@ -44,14 +52,14 @@ def init_cuda():
                         % sizeof_fmt(mem_get_info()[0]))
     else:
         cuda_capable = False
-    return cuda_capable, np.testing.dec.skipif(not cuda_capable,
-                                               'CUDA not available')
+    return np.testing.dec.skipif(not cuda_capable, 'CUDA not available')
 
 
-def _setup_cuda(n_jobs, n_fft):
+def _setup_cuda(n_jobs, h_fft):
     """Set up cuda processing"""
     cuda_dict = dict(use_cuda=False, fft_plan=None, ifft_plan=None,
                      seg_fft=None, seg=None, fft_len=None)
+    n_fft = len(h_fft)
     if n_jobs == 'cuda':
         n_jobs = 1
         if cuda_capable:
@@ -65,6 +73,7 @@ def _setup_cuda(n_jobs, n_fft):
                     cuda_fft_len = int(n_fft / 2 + 1)
                 seg_fft = gpuarray.empty(cuda_fft_len, np.complex128)
                 seg = gpuarray.empty(int(n_fft), np.float64)
+                h_fft = gpuarray.to_gpu(h_fft[:cuda_fft_len].astype('complex128'))
             except:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
@@ -76,11 +85,10 @@ def _setup_cuda(n_jobs, n_fft):
                 cuda_dict['ifft_plan'] = ifft_plan
                 cuda_dict['seg_fft'] = seg_fft
                 cuda_dict['seg'] = seg
-                cuda_dict['fft_len'] = cuda_fft_len
         else:
             logger.info('CUDA not used, machine is not CUDA capable, '
                         'falling back to n_jobs=1')
-    return n_jobs, cuda_dict
+    return n_jobs, cuda_dict, h_fft
 
 
 def is_power2(num):
@@ -187,7 +195,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     n_segments = int(np.ceil(n_x / float(n_seg)))
 
     # Figure out if we should use CUDA
-    n_jobs, cuda_dict = _setup_cuda(n_jobs, n_fft)
+    n_jobs, cuda_dict, h_fft = _setup_cuda(n_jobs, h_fft)
 
     # Process each row separately
     if n_jobs == 1:
@@ -200,18 +208,17 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         if not isinstance(n_jobs, int):
             logger.info('n_jobs must be an integer, or "cuda"')
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
-        data_new = np.array(parallel(p_fun(x_, h_fft, n_edge, n_fft,
-                                           zero_phase, n_segments, n_seg,
-                                           cuda_dict)
-                                     for xi, x_ in enumerate(x)
-                                     if xi in picks))
-        x[picks, :] = data_new
+        data_new = parallel(p_fun(x[p], h_fft, n_edge, n_fft, zero_phase,
+                                  n_segments, n_seg, cuda_dict)
+                            for p in picks)
+        for pp, p in enumerate(picks):
+            x[p] = data_new[pp]
 
     return x
 
 
 def _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan, cuda_ifft_plan,
-              cuda_seg_fft, cuda_seg, cuda_fft_len):
+              cuda_seg_fft, cuda_seg):
     """Helper for Fourier-domain multiplication"""
     if not use_cuda:
         # do the fourier-domain operations
@@ -220,9 +227,9 @@ def _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan, cuda_ifft_plan,
         # do the fourier-domain operations, results in second param
         cuda_seg.set(seg)
         cudafft.fft(cuda_seg, cuda_seg_fft, cuda_fft_plan)
-        # This could use cuda.linalg, but requires cula
-        # (painful to install)
-        cuda_seg_fft.set(cuda_seg_fft.get() * h_fft[:cuda_fft_len])
+        cuda_multiply_inplace(h_fft, cuda_seg_fft)
+        # If we wanted to do it locally instead of using our own kernel:
+        # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_seg_fft, cuda_seg, cuda_ifft_plan, False)
         prod = cuda_seg.get()
         prod = prod / len(prod)
@@ -244,7 +251,6 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
     cuda_ifft_plan = cuda_dict['ifft_plan']
     cuda_seg_fft = cuda_dict['seg_fft']
     cuda_seg = cuda_dict['seg']
-    cuda_fft_len = cuda_dict['fft_len']
 
     for pass_no in range(2) if zero_phase else range(1):
 
@@ -257,8 +263,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
             seg = filter_input[seg_idx * n_seg:(seg_idx + 1) * n_seg]
             seg = np.r_[seg, np.zeros(n_fft - len(seg))]
             prod = _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan,
-                             cuda_ifft_plan, cuda_seg_fft, cuda_seg,
-                             cuda_fft_len)
+                             cuda_ifft_plan, cuda_seg_fft, cuda_seg)
             if seg_idx * n_seg + n_fft < n_x:
                 x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft] += prod
             else:
@@ -272,6 +277,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
         # flip signal back
         x_filtered = np.flipud(x_filtered)
 
+    x_filtered = x_filtered.astype(x.dtype)
     return x_filtered
 
 
@@ -305,12 +311,13 @@ def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
 
     # do Fourier transforms
     xf = _fft_mult(B, x, use_cuda, cuda_fft_plan, cuda_ifft_plan,
-                   cuda_seg_fft, cuda_seg, cuda_fft_len).ravel()
+                   cuda_seg_fft, cuda_seg).ravel()
 
-    # put back to original size
+    # put back to original size and type
     if extend_x is True:
         xf = xf[:-1]
 
+    xf = xf.astype(x.dtype)
     return xf
 
 
@@ -398,7 +405,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         B = np.abs(fft(H)).ravel()
 
         # Figure out if we should use CUDA
-        n_jobs, cuda_dict = _setup_cuda(n_jobs, len(B))
+        n_jobs, cuda_dict, B = _setup_cuda(n_jobs, B)
 
         if n_jobs == 1:
             for xi, x_ in enumerate(x):
@@ -408,10 +415,10 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
             if not isinstance(n_jobs, int):
                 logger.info('n_jobs must be an integer, or "cuda"')
             parallel, p_fun, _ = parallel_func(_1d_fftmult_ext, n_jobs)
-            data_new = np.array(parallel(p_fun(x_, B, extend_x, cuda_dict)
-                                         for xi, x_ in enumerate(x)
-                                         if xi in picks))
-            x[picks, :] = data_new
+            data_new = parallel(p_fun(x[p], B, extend_x, cuda_dict)
+                                for p in picks)
+            for pp, p in enumerate(picks):
+                x[p] = data_new[pp]
     else:
         # Use overlap-add filter with a fixed length
         N = filter_length
@@ -448,10 +455,10 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
                 x[ii] = filtfilt(b, a, x_, padlen=padlen)
     else:
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
-        data_new = np.array(parallel(p_fun(b, a, x_, padlen=padlen)
-                                     for xi, x_ in enumerate(x)
-                                     if xi in picks))
-        x[picks, :] = data_new
+        data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
+                            for p in picks)
+        for pp, p in enumerate(picks):
+            x[p] = data_new[pp]
     x.shape = orig_shape
     return x
 

@@ -59,4 +59,4 @@ set_log_level(None, False)
 set_log_file()
 
 # initialize CUDA
-filter.cuda_capable, utils.requires_cuda = filter.init_cuda()
+utils.requires_cuda = filter.init_cuda()
