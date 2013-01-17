@@ -29,6 +29,9 @@ cuda_capable = False
 cuda_multiply_inplace = None
 
 
+###########################################################################
+# CUDA-related functions
+
 def init_cuda():
     global cuda_capable
     global cuda_multiply_inplace
@@ -57,10 +60,46 @@ def init_cuda():
     return np.testing.dec.skipif(not cuda_capable, 'CUDA not available')
 
 
-def _setup_cuda(n_jobs, h_fft):
-    """Set up cuda processing"""
+def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
+    """Set up repeated cuda FFT multiplication with a given filter
+
+    Parameters
+    ----------
+    n_jobs : int | str
+        If n_jobs == 'cuda', the function will attempt to set up for CUDA
+        FFT multiplication.
+    h_fft : array
+        The filtering function that will be used repeatedly.
+
+    Returns
+    -------
+    n_jobs : int
+        Sets n_jobs = 1 if n_jobs == 'cuda' was passed in, otherwise
+        original n_jobs is passed.
+    cuda_dict : dict
+        Dictionary with the following CUDA-related variables:
+            use_cuda : bool
+                Whether CUDA should be used.
+            fft_plan : instance of FFTPlan
+                FFT plan to use in calculating the FFT.
+            ifft_plan : instance of FFTPlan
+                FFT plan to use in calculating the IFFT.
+            x_fft : instance of gpuarray
+                Memory allocation space for storing the result of the
+                frequency-domain multiplication.
+            x : instance of gpuarray
+                The data to filter.
+    h_fft : array | instance of gpuarray
+        This will either be a gpuarray (if CUDA enabled) or np.ndarray.
+        If CUDA is enabled, h_fft will be modified appropriately for use
+        with filter.fft_multiply().
+
+    Notes
+    -----
+    This function is designed to be used with filter.fft_multiply().
+    """
     cuda_dict = dict(use_cuda=False, fft_plan=None, ifft_plan=None,
-                     seg_fft=None, seg=None, fft_len=None)
+                     x_fft=None, x=None, fft_len=None)
     n_fft = len(h_fft)
     if n_jobs == 'cuda':
         n_jobs = 1
@@ -73,8 +112,8 @@ def _setup_cuda(n_jobs, h_fft):
                     cuda_fft_len = int((n_fft + 1) / 2 + 1)
                 else:
                     cuda_fft_len = int(n_fft / 2 + 1)
-                seg_fft = gpuarray.empty(cuda_fft_len, np.complex128)
-                seg = gpuarray.empty(int(n_fft), np.float64)
+                x_fft = gpuarray.empty(cuda_fft_len, np.complex128)
+                x = gpuarray.empty(int(n_fft), np.float64)
                 cuda_h_fft = h_fft[:cuda_fft_len].astype('complex128')
                 # do the IFFT normalization now so we don't have to later
                 cuda_h_fft /= len(h_fft)
@@ -88,12 +127,49 @@ def _setup_cuda(n_jobs, h_fft):
                 cuda_dict['use_cuda'] = True
                 cuda_dict['fft_plan'] = fft_plan
                 cuda_dict['ifft_plan'] = ifft_plan
-                cuda_dict['seg_fft'] = seg_fft
-                cuda_dict['seg'] = seg
+                cuda_dict['x_fft'] = x_fft
+                cuda_dict['x'] = x
         else:
             logger.info('CUDA not used, machine is not CUDA capable, '
                         'falling back to n_jobs=1')
     return n_jobs, cuda_dict, h_fft
+
+
+def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
+    """Do FFT multiplication using a filter function
+
+    Parameters
+    ----------
+    h_fft : array or gpuarray
+        The filtering array.
+    x : array
+        The array to filter.
+    cuda_dict : dict
+        Dictionary constructed using setup_cuda_multiply_repeated.
+
+    Returns
+    -------
+    x : array
+        Filtered version of x.
+    """
+    if not cuda_dict['use_cuda']:
+        # do the fourier-domain operations
+        x = np.real(ifft(h_fft * fft(x)))
+    else:
+        # do the fourier-domain operations, results in second param
+        cuda_dict['x'].set(x)
+        cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
+        cuda_multiply_inplace(h_fft, cuda_dict['x_fft'])
+        # If we wanted to do it locally instead of using our own kernel:
+        # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
+        cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
+                     cuda_dict['ifft_plan'], False)
+        x = cuda_dict['x'].get()
+    return x
+
+
+###########################################################################
+# General functions
 
 
 def is_power2(num):
@@ -201,7 +277,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     n_segments = int(np.ceil(n_x / float(n_seg)))
 
     # Figure out if we should use CUDA
-    n_jobs, cuda_dict, h_fft = _setup_cuda(n_jobs, h_fft)
+    n_jobs, cuda_dict, h_fft = setup_cuda_fft_multiply_repeated(n_jobs, h_fft)
 
     # Process each row separately
     if n_jobs == 1:
@@ -223,24 +299,6 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     return x
 
 
-def _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan, cuda_ifft_plan,
-              cuda_seg_fft, cuda_seg):
-    """Helper for Fourier-domain multiplication"""
-    if not use_cuda:
-        # do the fourier-domain operations
-        prod = np.real(ifft(h_fft * fft(seg)))
-    else:
-        # do the fourier-domain operations, results in second param
-        cuda_seg.set(seg)
-        cudafft.fft(cuda_seg, cuda_seg_fft, cuda_fft_plan)
-        cuda_multiply_inplace(h_fft, cuda_seg_fft)
-        # If we wanted to do it locally instead of using our own kernel:
-        # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
-        cudafft.ifft(cuda_seg_fft, cuda_seg, cuda_ifft_plan, False)
-        prod = cuda_seg.get()
-    return prod
-
-
 def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
                        cuda_dict):
     """Do one-dimensional overlap-add FFT FIR filtering"""
@@ -250,12 +308,6 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
     n_x = len(x_ext)
     filter_input = x_ext
     x_filtered = np.zeros_like(filter_input)
-
-    use_cuda = cuda_dict['use_cuda']
-    cuda_fft_plan = cuda_dict['fft_plan']
-    cuda_ifft_plan = cuda_dict['ifft_plan']
-    cuda_seg_fft = cuda_dict['seg_fft']
-    cuda_seg = cuda_dict['seg']
 
     for pass_no in range(2) if zero_phase else range(1):
 
@@ -267,8 +319,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
         for seg_idx in range(n_segments):
             seg = filter_input[seg_idx * n_seg:(seg_idx + 1) * n_seg]
             seg = np.r_[seg, np.zeros(n_fft - len(seg))]
-            prod = _fft_mult(h_fft, seg, use_cuda, cuda_fft_plan,
-                             cuda_ifft_plan, cuda_seg_fft, cuda_seg)
+            prod = fft_multiply_repeated(h_fft, seg, cuda_dict)
             if seg_idx * n_seg + n_fft < n_x:
                 x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft] += prod
             else:
@@ -302,20 +353,12 @@ def _filter_attenuation(h, freq, gain):
 
 def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
     """Helper to parallelize FFT FIR, with extension if necessary"""
-
-    use_cuda = cuda_dict['use_cuda']
-    cuda_fft_plan = cuda_dict['fft_plan']
-    cuda_ifft_plan = cuda_dict['ifft_plan']
-    cuda_seg_fft = cuda_dict['seg_fft']
-    cuda_seg = cuda_dict['seg']
-
     # extend, if necessary
     if extend_x is True:
         x = np.r_[x, x[-1]]
 
     # do Fourier transforms
-    xf = _fft_mult(B, x, use_cuda, cuda_fft_plan, cuda_ifft_plan,
-                   cuda_seg_fft, cuda_seg).ravel()
+    xf = fft_multiply_repeated(B, x, cuda_dict).ravel()
 
     # put back to original size and type
     if extend_x is True:
@@ -410,7 +453,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         B = np.abs(fft(H)).ravel()
 
         # Figure out if we should use CUDA
-        n_jobs, cuda_dict, B = _setup_cuda(n_jobs, B)
+        n_jobs, cuda_dict, B = setup_cuda_fft_multiply_repeated(n_jobs, B)
 
         if n_jobs == 1:
             for xi, x_ in enumerate(x):
