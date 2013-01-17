@@ -395,11 +395,10 @@ class Raw(object):
         else:
             # use parallel function
             parallel, p_fun, _ = parallel_func(fun, n_jobs)
-            data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
-                                      for xi, x in enumerate(data_in)
-                                      if xi in picks))
-
-            self._data[picks, :] = data_picks_new
+            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+                                      for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
 
     @verbose
     def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=None):
