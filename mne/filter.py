@@ -23,7 +23,7 @@ from .parallel import parallel_func
 from .utils import sizeof_fmt, get_config
 
 
-# Support CUDA for FFTs
+# Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
 
 
@@ -46,7 +46,6 @@ def init_cuda():
         cuda_capable = False
     return cuda_capable, np.testing.dec.skipif(not cuda_capable,
                                                'CUDA not available')
-
 
 
 def _setup_cuda(n_jobs, n_fft):
@@ -261,12 +260,10 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
                              cuda_ifft_plan, cuda_seg_fft, cuda_seg,
                              cuda_fft_len)
             if seg_idx * n_seg + n_fft < n_x:
-                x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft]\
-                    += prod
+                x_filtered[seg_idx * n_seg:seg_idx * n_seg + n_fft] += prod
             else:
                 # Last segment
-                x_filtered[seg_idx * n_seg:] \
-                    += prod[:n_x - seg_idx * n_seg]
+                x_filtered[seg_idx * n_seg:] += prod[:n_x - seg_idx * n_seg]
 
     # Remove mirrored edges that we added
     x_filtered = x_filtered[n_edge - 1:-n_edge + 1]

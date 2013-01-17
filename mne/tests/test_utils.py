@@ -100,7 +100,10 @@ def test_config():
     os.environ[key] = value
     assert_true(get_config(key) == value)
     del os.environ[key]
-    set_config(key, None)
+    # catch the warning about it being a non-standard config key
+    with warnings.catch_warnings(True) as w:
+        set_config(key, None)
+        assert_true(len(w) == 1)
     assert_true(get_config(key) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
     set_config(key, value)

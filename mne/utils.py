@@ -483,7 +483,7 @@ def set_config(key, value):
     if not isinstance(value, basestring) and value is not None:
         raise ValueError('value must be a string or None')
     if not key in known_config_types:
-        warnings.warn('Setting non-standard config type: "%s"', key)
+        warnings.warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path()
