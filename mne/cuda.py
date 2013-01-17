@@ -1,3 +1,7 @@
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 import sys
 from scipy.fftpack import fft, ifft
