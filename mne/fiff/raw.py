@@ -27,8 +27,7 @@ from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     notch_filter, band_stop_filter, resample, \
-                     construct_iir_filter
+                     notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -506,7 +505,7 @@ class Raw(object):
             Width of the transition band at the high cut-off frequency in Hz.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly.
+            is installed properly and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
@@ -610,7 +609,7 @@ class Raw(object):
             Width of the transition band in Hz.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly.
+            is installed properly and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
