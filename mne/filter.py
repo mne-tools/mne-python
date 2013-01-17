@@ -97,12 +97,12 @@ def is_power2(num):
     Parameters
     ----------
     num : int
-        Number
+        Number.
 
     Returns
     -------
     b : bool
-        True if is power of 2
+        True if is power of 2.
 
     Example
     -------
@@ -139,8 +139,9 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         resulting in a zero-phase filter.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
 
     Returns
     -------
@@ -359,8 +360,9 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         filter of the specified length is used (faster for long signals).
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -638,8 +640,9 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         See mne.filter.construct_iir_filter for details.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -733,8 +736,9 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         See mne.filter.construct_iir_filter for details.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -836,8 +840,9 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         See mne.filter.construct_iir_filter for details.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -914,8 +919,9 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         See mne.filter.construct_iir_filter for details.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -1016,8 +1022,9 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         number of frequencies, so large p-values may be justified.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
