@@ -130,6 +130,7 @@ def test_cuda():
     sig_len_secs = 20
     a = np.random.randn(sig_len_secs * Fs)
 
+    set_log_file(log_file, overwrite=True)
     for fl in [None, 2048]:
         bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
         bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
@@ -137,7 +138,6 @@ def test_cuda():
         lp = low_pass_filter(a, Fs, 8, n_jobs=1, filter_length=fl)
         hp = high_pass_filter(lp, Fs, 4, n_jobs=1, filter_length=fl)
 
-        set_log_file(log_file, overwrite=True)
         bp_c = band_pass_filter(a, Fs, 4, 8, n_jobs='cuda', filter_length=fl,
                                 verbose='INFO')
         bs_c = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
@@ -156,4 +156,5 @@ def test_cuda():
     # check to make sure we actually used CUDA
     set_log_file()
     out = open(log_file).readlines()
-    assert_true(all(['Using CUDA for FFT FIR filtering' in o for o in out]))
+    assert_true(sum(['Using CUDA for FFT FIR filtering' in o
+                     for o in out]) == 8)
