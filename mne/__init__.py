@@ -60,4 +60,4 @@ set_log_level(None, False)
 set_log_file()
 
 # initialize CUDA
-utils.requires_cuda = cuda.init_cuda()
+cuda.init_cuda()

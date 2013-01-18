@@ -284,7 +284,6 @@ def make_skipper_dec(module, skip_str):
 
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
-requires_cuda = make_skipper_dec(True, 'CUDA not available')
 
 
 ###############################################################################
