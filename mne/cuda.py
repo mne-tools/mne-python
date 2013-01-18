@@ -39,18 +39,22 @@ def init_cuda():
     global cuda_capable
     global cuda_multiply_inplace
     global requires_cuda
+    if cuda_capable is True:
+        logger.info('CUDA previously enabled, currently %s available memory'
+                    % sizeof_fmt(mem_get_info()[0]))
+        return
     # Triage possible errors for informative messaging
     cuda_capable = False
     try:
-        assert 'pycuda.gpuarray' in sys.modules
-        assert 'pycuda.driver' in sys.modules
-    except:
+        import pycuda.gpuarray
+        import pycuda.driver
+    except ImportError:
         logger.warn('module pycuda not found, CUDA not enabled')
     else:
         try:
             # Initialize CUDA; happens with importing autoinit
             import pycuda.autoinit
-        except:
+        except ImportError:
             logger.warn('pycuda.autoinit could not be imported, likely '
                         'a hardware error')
         else:
@@ -69,8 +73,8 @@ def init_cuda():
                                    'system information and pycuda version')
             else:
                 try:
-                    assert 'scikits.cuda' in sys.modules
-                except:
+                    import scikits.cuda
+                except ImportError:
                     logger.warn('modudle scikits.cuda not found, CUDA not '
                                 'enabled')
                 else:
@@ -110,10 +114,10 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
             ifft_plan : instance of FFTPlan
                 FFT plan to use in calculating the IFFT.
             x_fft : instance of gpuarray
-                Memory allocation space for storing the result of the
+                Empty allocated GPU space for storing the result of the
                 frequency-domain multiplication.
             x : instance of gpuarray
-                The data to filter.
+                Empty allocated GPU space for the data to filter.
     h_fft : array | instance of gpuarray
         This will either be a gpuarray (if CUDA enabled) or np.ndarray.
         If CUDA is enabled, h_fft will be modified appropriately for use
