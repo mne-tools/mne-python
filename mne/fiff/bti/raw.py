@@ -200,221 +200,6 @@ def _correct_offset(fid):
         fid.seek(BTI.FILE_CURPOS - (offset), 1)
 
 
-def _read_bti_header(fid):
-    """ Read bti PDF header
-    """
-    fid.seek(BTI.FILE_END, 2)
-    ftr_pos = fid.tell()
-    hdr_pos = read_int64(fid)
-    check_value = hdr_pos & BTI.FILE_MASK
-
-    if ((ftr_pos + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
-        hdr_pos = check_value
-
-    if ((hdr_pos % BTI.FILE_CURPOS) != 0):
-        hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
-
-    fid.seek(hdr_pos, 0)
-
-    hdr_size = ftr_pos - hdr_pos
-
-    out = {'version': read_int16(fid),
-           'file_type': read_str(fid, 5)}
-
-    fid.seek(1, 1)
-
-    out.update({'data_format': read_int16(fid),
-                'acq_mode': read_int16(fid),
-                'total_epochs': read_int32(fid),
-                'input_epochs': read_int32(fid),
-                'total_events': read_int32(fid),
-                'total_fixed_events': read_int32(fid),
-                'sample_period': read_float(fid),
-                'xaxis_label': read_str(fid, 16),
-                'total_processes': read_int32(fid),
-                'total_chans': read_int16(fid)})
-
-    fid.seek(2, 1)
-    out.update({'checksum': read_int32(fid),
-                'total_ed_classes': read_int32(fid),
-                'total_associated_files': read_int16(fid),
-                'last_file_index': read_int16(fid),
-                'timestamp': read_int32(fid)})
-
-    fid.seek(20, 1)
-    _correct_offset(fid)
-
-    return out, hdr_size, ftr_pos
-
-
-def _read_epoch(fid):
-    """Read BTi PDF epoch"""
-    out = {'pts_in_epoch': read_int32(fid),
-           'epoch_duration': read_float(fid),
-           'expected_iti': read_float(fid),
-           'actual_iti': read_float(fid),
-           'total_var_events': read_int32(fid),
-           'checksum': read_int32(fid),
-           'epoch_timestamp': read_int32(fid)}
-
-    fid.seek(28, 1)
-
-    return out
-
-
-def _read_channel(fid):
-    """Read BTi PDF channel"""
-    out = {'chan_label': read_str(fid, 16),
-           'chan_no': read_int16(fid),
-           'attributes': read_int16(fid),
-           'scale': read_float(fid),
-           'yaxis_label': read_str(fid, 16),
-           'valid_min_max': read_int16(fid)}
-
-    fid.seek(6, 1)
-    out.update({'ymin': read_double(fid),
-                'ymax': read_double(fid),
-                'index': read_int32(fid),
-                'checksum': read_int32(fid),
-                'off_flag': read_str(fid, 16),
-                'offset': read_float(fid)})
-
-    fid.seek(12, 1)
-
-    return out
-
-
-def _read_event(fid):
-    """Read BTi PDF event"""
-    out = {'event_name': read_str(fid, 16),
-           'start_lat': read_float(fid),
-           'end_lat': read_float(fid),
-           'step_size': read_float(fid),
-           'fixed_event': read_int16(fid),
-           'checksum': read_int32(fid)}
-
-    fid.seek(32, 1)
-    _correct_offset(fid)
-
-    return out
-
-
-def _read_process(fid):
-    """Read BTi PDF process"""
-
-    out = {'nbytes': read_int32(fid),
-           'blocktype': read_str(fid, 20),
-           'checksum': read_int32(fid),
-           'user': read_str(fid, 32),
-           'timestamp': read_int32(fid),
-           'filename': read_str(fid, 256),
-           'total_steps': read_int32(fid)}
-
-    fid.seek(32, 1)
-    _correct_offset(fid)
-
-    return out
-
-
-def _read_assoc_file(fid):
-    """Read BTi PDF assocfile"""
-
-    out = {'file_id': read_int16(fid),
-           'length': read_int16(fid)}
-
-    fid.seek(32, 1)
-    out['checksum'] = read_int32(fid)
-
-    return out
-
-
-def _read_pfid_ed(fid):
-    """Read PDF ed file"""
-
-    out = dict(comment_size=read_int32(fid),
-             name=read_str(fid, 17))
-
-    fid.seek(9, 1)
-    out.update({'pdf_number': read_int16(fid),
-                'total_events': read_int32(fid),
-                'timestamp': read_int32(fid),
-                'flags': read_int32(fid),
-                'de_process': read_int32(fid),
-                'checksum': read_int32(fid),
-                'ed_id': read_int32(fid),
-                'win_width': read_float(fid),
-                'win_offset': read_float(fid)})
-
-    fid.seek(8, 1)
-
-    return out
-
-
-def _read_coil_def(fid):
-    """ Read coil definition """
-    coildef = {'position': read_double_matrix(fid, 1, 3),
-               'orientation': read_double_matrix(fid, 1, 3),
-               'radius': read_double(fid),
-               'wire_radius': read_double(fid),
-               'turns': read_int16(fid)}
-
-    fid.seek(fid, 2, 1)
-    coildef['checksum'] = read_int32(fid)
-    coildef['reserved'] = read_str(fid, 32)
-
-
-def _read_ch_config(fid):
-    """Read BTi channel config"""
-
-    cfg = dict(name=read_str(fid, BTI.FILE_CONF_CH_NAME),
-            chan_no=read_int16(fid),
-            ch_type=read_uint16(fid),
-            sensor_no=read_int16(fid))
-
-    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, 1)
-
-    cfg.update(dict(
-            gain=read_float(fid),
-            units_per_bit=read_float(fid),
-            yaxis_label=read_str(fid, BTI.FILE_CONF_CH_YLABEL),
-            aar_val=read_double(fid),
-            checksum=read_int32(fid),
-            reserved=read_str(fid, BTI.FILE_CONF_CH_RESERVED)))
-
-    _correct_offset(fid)
-
-    # Then the channel info
-    ch_type, chan = cfg['ch_type'], dict()
-    chan['dev'] = {'size': read_int32(fid),
-                   'checksum': read_int32(fid),
-                   'reserved': read_str(fid, 32)}
-    if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
-        chan['loops'] = [_read_coil_def(fid) for d in
-                        range(chan['dev']['total_loops'])]
-
-    elif ch_type == BTI.CHTYPE_EEG:
-        chan['impedance'] = read_float(fid)
-        chan['padding'] = read_str(fid, BTI.FILE_CONF_CH_PADDING)
-        chan['transform'] = read_transform(fid)
-        chan['reserved'] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type in [BTI.CHTYPE_TRIGGER,  BTI.CHTYPE_EXTERNAL,
-                     BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
-        chan['user_space_size'] = read_int32(fid)
-        if ch_type == BTI.CHTYPE_TRIGGER:
-            fid.seek(2, 1)
-        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    elif ch_type == BTI.CHTYPE_SHORTED:
-        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
-
-    cfg['chan'] = chan
-
-    _correct_offset(fid)
-
-    return cfg
-
-
 def read_config(fname):
     """Read BTi system config file
 
@@ -763,6 +548,248 @@ def read_config(fname):
     return cfg
 
 
+def _read_epoch(fid):
+    """Read BTi PDF epoch"""
+    out = {'pts_in_epoch': read_int32(fid),
+           'epoch_duration': read_float(fid),
+           'expected_iti': read_float(fid),
+           'actual_iti': read_float(fid),
+           'total_var_events': read_int32(fid),
+           'checksum': read_int32(fid),
+           'epoch_timestamp': read_int32(fid)}
+
+    fid.seek(28, 1)
+
+    return out
+
+
+def _read_channel(fid):
+    """Read BTi PDF channel"""
+    out = {'chan_label': read_str(fid, 16),
+           'chan_no': read_int16(fid),
+           'attributes': read_int16(fid),
+           'scale': read_float(fid),
+           'yaxis_label': read_str(fid, 16),
+           'valid_min_max': read_int16(fid)}
+
+    fid.seek(6, 1)
+    out.update({'ymin': read_double(fid),
+                'ymax': read_double(fid),
+                'index': read_int32(fid),
+                'checksum': read_int32(fid),
+                'off_flag': read_str(fid, 16),
+                'offset': read_float(fid)})
+
+    fid.seek(12, 1)
+
+    return out
+
+
+def _read_event(fid):
+    """Read BTi PDF event"""
+    out = {'event_name': read_str(fid, 16),
+           'start_lat': read_float(fid),
+           'end_lat': read_float(fid),
+           'step_size': read_float(fid),
+           'fixed_event': read_int16(fid),
+           'checksum': read_int32(fid)}
+
+    fid.seek(32, 1)
+    _correct_offset(fid)
+
+    return out
+
+
+def _read_process(fid):
+    """Read BTi PDF process"""
+
+    out = {'nbytes': read_int32(fid),
+           'blocktype': read_str(fid, 20),
+           'checksum': read_int32(fid),
+           'user': read_str(fid, 32),
+           'timestamp': read_int32(fid),
+           'filename': read_str(fid, 256),
+           'total_steps': read_int32(fid)}
+
+    fid.seek(32, 1)
+    _correct_offset(fid)
+
+    return out
+
+
+def _read_assoc_file(fid):
+    """Read BTi PDF assocfile"""
+
+    out = {'file_id': read_int16(fid),
+           'length': read_int16(fid)}
+
+    fid.seek(32, 1)
+    out['checksum'] = read_int32(fid)
+
+    return out
+
+
+def _read_pfid_ed(fid):
+    """Read PDF ed file"""
+
+    out = {'comment_size': read_int32(fid),
+           'name': read_str(fid, 17)}
+
+    fid.seek(9, 1)
+    out.update({'pdf_number': read_int16(fid),
+                'total_events': read_int32(fid),
+                'timestamp': read_int32(fid),
+                'flags': read_int32(fid),
+                'de_process': read_int32(fid),
+                'checksum': read_int32(fid),
+                'ed_id': read_int32(fid),
+                'win_width': read_float(fid),
+                'win_offset': read_float(fid)})
+
+    fid.seek(8, 1)
+
+    return out
+
+
+def _read_coil_def(fid):
+    """ Read coil definition """
+    coildef = {'position': read_double_matrix(fid, 1, 3),
+               'orientation': read_double_matrix(fid, 1, 3),
+               'radius': read_double(fid),
+               'wire_radius': read_double(fid),
+               'turns': read_int16(fid)}
+
+    fid.seek(fid, 2, 1)
+    coildef['checksum'] = read_int32(fid)
+    coildef['reserved'] = read_str(fid, 32)
+
+
+def _read_ch_config(fid):
+    """Read BTi channel config"""
+
+    cfg = {'name': read_str(fid, BTI.FILE_CONF_CH_NAME),
+           'chan_no': read_int16(fid),
+           'ch_type': read_uint16(fid),
+           'sensor_no': read_int16(fid)}
+
+    fid.seek(fid, BTI.FILE_CONF_CH_NEXT, 1)
+
+    cfg.update({'gain': read_float(fid),
+                'units_per_bit': read_float(fid),
+                'yaxis_label': read_str(fid, BTI.FILE_CONF_CH_YLABEL),
+                'aar_val': read_double(fid),
+                'checksum': read_int32(fid),
+                'reserved': read_str(fid, BTI.FILE_CONF_CH_RESERVED)})
+
+    _correct_offset(fid)
+
+    # Then the channel info
+    ch_type, chan = cfg['ch_type'], dict()
+    chan['dev'] = {'size': read_int32(fid),
+                   'checksum': read_int32(fid),
+                   'reserved': read_str(fid, 32)}
+    if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
+        chan['loops'] = [_read_coil_def(fid) for d in
+                        range(chan['dev']['total_loops'])]
+
+    elif ch_type == BTI.CHTYPE_EEG:
+        chan['impedance'] = read_float(fid)
+        chan['padding'] = read_str(fid, BTI.FILE_CONF_CH_PADDING)
+        chan['transform'] = read_transform(fid)
+        chan['reserved'] = read_char(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    elif ch_type in [BTI.CHTYPE_TRIGGER,  BTI.CHTYPE_EXTERNAL,
+                     BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
+        chan['user_space_size'] = read_int32(fid)
+        if ch_type == BTI.CHTYPE_TRIGGER:
+            fid.seek(2, 1)
+        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    elif ch_type == BTI.CHTYPE_SHORTED:
+        chan['reserved'] = read_str(fid, BTI.FILE_CONF_CH_RESERVED)
+
+    cfg['chan'] = chan
+
+    _correct_offset(fid)
+
+    return cfg
+
+
+def _read_bti_header(fid):
+    """ Read bti PDF header
+    """
+    fid.seek(BTI.FILE_END, 2)
+    start = fid.tell()
+    header_position = read_int64(fid)
+    check_value = header_position & BTI.FILE_MASK
+
+    if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
+        hdr_pos = check_value
+
+    if ((hdr_pos % BTI.FILE_CURPOS) != 0):
+        hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
+
+    fid.seek(hdr_pos, 0)
+
+    info = {'version': read_int16(fid),
+           'file_type': read_str(fid, 5),
+           'hdr_size': start - header_position,
+           'start': start}
+
+    fid.seek(1, 1)
+
+    info.update({'data_format': read_int16(fid),
+                'acq_mode': read_int16(fid),
+                'total_epochs': read_int32(fid),
+                'input_epochs': read_int32(fid),
+                'total_events': read_int32(fid),
+                'total_fixed_events': read_int32(fid),
+                'sample_period': read_float(fid),
+                'xaxis_label': read_str(fid, 16),
+                'total_processes': read_int32(fid),
+                'total_chans': read_int16(fid)})
+
+    fid.seek(2, 1)
+    info.update({'checksum': read_int32(fid),
+                'total_ed_classes': read_int32(fid),
+                'total_associated_files': read_int16(fid),
+                'last_file_index': read_int16(fid),
+                'timestamp': read_int32(fid)})
+
+    fid.seek(20, 1)
+    _correct_offset(fid)
+    info['epochs'] = [_read_epoch(fid) for epoch in
+                       range(info['total_epochs'])]
+
+    info['chs'] = [_read_channel(fid) for ch in
+                   range(info['total_chans'])]
+
+    info['events'] = [_read_event(fid) for event in
+                      range(info['total_events'])]
+
+    info['processes'] = [_read_process(fid) for process in
+                         range(info['total_processes'])]
+
+    info['assocfiles'] = [_read_assoc_file(fid) for af in
+                          range(info['total_associated_files'])]
+
+    info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
+                         range(info['total_ed_classes'])]
+
+    fid.seek(0, 1)
+    info['extra_data'] = fid.read(start - fid.tell())
+    info['fid'] = fid
+
+    info['total_slices'] = sum(e['pts_in_epoch'] for e in
+                               info['epochs'])
+
+    info['dtype'] = DTYPES[info['data_format']]
+    bps = info['dtype'].itemsize * info['total_chans']
+    info['bytes_per_slice'] = bps
+
+    return info
+
+
 def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     """ Helper function: read Bti processed data file (PDF)
 
@@ -786,36 +813,7 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
 
     fid = open(fname, 'rb')
 
-    info, hdr_size, ftr_pos = _read_bti_header(fid)
-
-    info['epochs'] = [_read_epoch(fid) for epoch in
-                       range(info['total_epochs'])]
-
-    info['chs'] = [_read_channel(fid) for ch in
-                   range(info['total_chans'])]
-
-    info['events'] = [_read_event(fid) for event in
-                      range(info['total_events'])]
-
-    info['processes'] = [_read_process(fid) for process in
-                         range(info['total_processes'])]
-
-    info['assocfiles'] = [_read_assoc_file(fid) for af in
-                          range(info['total_associated_files'])]
-
-    info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
-                         range(info['total_ed_classes'])]
-
-    fid.seek(0, 1)
-    info['extradata'] = fid.read(ftr_pos - fid.tell())
-    info['fid'] = fid
-
-    info['total_slices'] = sum(e['pts_in_epoch'] for e in
-                               info['epochs'])
-
-    info['dtype'] = DTYPES[info['data_format']]
-    bps = info['dtype'].itemsize * info['total_chans']
-    info['bytes_per_slice'] = bps
+    info = _read_bti_header(fid)
 
     total_slices = info['total_slices']
     if start is None:
@@ -834,23 +832,24 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     data = np.fromfile(info['fid'], dtype=info['dtype'],
                        count=cnt).reshape(shape).T.astype(dtype)
 
-    mapping = [(i, d['chan_label']) for i, d in
-               enumerate(info['channels'])]
-    sort = sorted(mapping, key=lambda c: int(c[1][1:])
-                  if c[1][0] == BTI.DATA_MEG_CH_CHAR else c[1])
-    order = [idx[0] for idx in sort]
-
     cfg = read_config(config_fname)
     info['bti_transform'] = cfg.transforms
 
     # augment channel list by according info from config.
     # get channels from config present in PDF
     chans = sorted(info['channels'], key=lambda c: c['chan_no'])
-    chans_cfg = sorted(cfg.channels, key=lambda c: c['hdr']['chan_no'])
+    chans_cfg = [c for c in cfg.channels if c['chan_no']
+                 in [c['chan_no'] for c in chans]]
+    chans_cfg.sort(key=lambda c: c['chan_no'])
 
-    # check we got everything
-    assert [c['hdr']['chan_no'] for c in chans_cfg] == \
-           [c['chan_no'] for c in chans]
+    # check all pdf chanels are present in config
+    match = [c['chan_no'] for c in chans_cfg] == \
+            [c['chan_no'] for c in chans_cfg]
+
+    if not match:
+        raise RuntimeError('Could not match raw data channels with'
+                           ' config channels. Some of the channels'
+                           ' found are not described in config.')
 
     # transfer channel info from config to channel info
     for ch, ch_cfg in zip(chans, chans_cfg):
@@ -859,13 +858,20 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
         ch['name'] = ch_cfg['name']
         ch['loc'] = ch_cfg['data']['transform'].copy()
 
-    for idx in order:  # unpack data as float
+    # now sort channels and data
+    by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
+    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
+
+    order = [idx[0] for idx in by_name]
+
+    # finally unpack data as float
+    for idx in order:
         cal = info['chs'][idx]['scale']
         cal *= info['chs'][idx]['gain']
         cal /= info['chs'][idx]['upb']
         data[idx] *= cal
 
-    return info, data
+    return info, data[order]
 
 
 class Raw(Raw):

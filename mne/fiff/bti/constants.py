@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-
 class Bunch(dict):
     """ Container object for datasets: dictionnary-like object that
         exposes its keys as attributes.
@@ -59,51 +58,6 @@ BTI.FILE_PDFED_NAME                    = 17
 BTI.FILE_PDFED_NEXT                    = 9
 BTI.FILE_PDFED_EXIT                    = 8
 
-
-# config jumps in order as they occur   
-BTI.FILE_CONF_SITENAME                 = 32
-BTI.FILE_CONF_HOSTNAME                 = 16
-BTI.FILE_CONF_NEXT                     = 2
-BTI.FILE_CONF_RESERVED                 = 32
-   
-BTI.FILE_CONF_CH_NAME                  = 16
-BTI.FILE_CONF_CH_NEXT                  = 2
-BTI.FILE_CONF_CH_YLABEL                = 16
-BTI.FILE_CONF_CH_RESERVED              = 32
-BTI.FILE_CONF_CH_PADDING               = 4
- 
-BTI.FILE_CONF_UBLOCK_TYPE              = 20  
-BTI.FILE_CONF_UBLOCK_UNAME             = 32  
-BTI.FILE_CONF_UBLOCK_RESERVED          = 32  
-BTI.FILE_CONF_UBLOCK_PADDING           = 20  
-BTI.FILE_CONF_UBLOCK_BHRANGE           = 6   
-BTI.FILE_CONF_UBLOCK_BHNAME            = 16  
-BTI.FILE_CONF_UBLOCK_PRANGE            = 16  
-BTI.FILE_CONF_UBLOCK_XFM_SOLARIS       = 4   
-BTI.FILE_CONF_UBLOCK_XFM_LINUX         = 132 
-BTI.FILE_CONF_UBLOCK_ELABEL            = 16  
-BTI.FILE_CONF_UBLOCK_ELABEL_END        = ''  
-BTI.FILE_CONF_UBLOCK_SVERS             = 8   
-BTI.FILE_CONF_UBLOCK_WHC_SUB_PADDING   = 2   
-BTI.FILE_CONF_UBLOCK_CH_PADDING        = 16  
-BTI.FILE_CONF_UBLOCK_CH_LABEL          = 16  
-BTI.FILE_CONF_UBLOCK_CH_CAL_PADDING    = 2   
-BTI.FILE_CONF_UBLOCK_CH_CAL            = 256 
-BTI.FILE_CONF_UBLOCK_SYS_CONF_SOLARIS  = 512 
-BTI.FILE_CONF_UBLOCK_SYS_CONF_LINUX    = 256 
-BTI.FILE_CONF_UBLOCK_ETAB_FTNAME       = 16  
-BTI.FILE_CONF_UBLOCK_ETAB_RESERVED     = 28  
-BTI.FILE_CONF_UBLOCK_ETAB_HDR_VER      = 2   
-BTI.FILE_CONF_UBLOCK_ETAB_CH_NAME      = 16  
-BTI.FILE_CONF_UBLOCK_ETAB_WH2500       = 6   
-BTI.FILE_CONF_UBLOCK_WEIGHT_NAME       = 32  
-BTI.FILE_CONF_UBLOCK_WEIGHT_DESCR      = 80  
-BTI.FILE_CONF_UBLOCK_WEIGHT_RESERVED   = 72  
-BTI.FILE_CONF_UBLOCK_WEIGHT_HDR_VER    = 2   
-BTI.FILE_CONF_UBLOCK_WEIGHT_CH_NAME    = 16  
-BTI.FILE_CONF_UBLOCK_MASK_PADDING      = 16  
-BTI.FILE_CONF_UBLOCK_MASK_NAME         = 20  
-BTI.FILE_CONF_UBLOCK_MASK_HDR_OFFSET   = 8   
 #
 ## General data constants
 #
@@ -112,7 +66,6 @@ BTI.DATA_ROT_N_ROW             = 3
 BTI.DATA_ROT_N_COL             = 3
 BTI.DATA_XFM_N_COL             = 4
 BTI.DATA_XFM_N_ROW             = 4
-BTI.DATA_MEG_CH_CHAR           = 'A'
 #
 ## Channel Types
 #
@@ -133,7 +86,7 @@ BTI.UB_B_CCP_XFM_BLOCK    = 'b_ccp_xfm_block'
 BTI.UB_B_EEG_LOCS         = 'b_eeg_elec_locs'
 BTI.UB_B_WHC_CHAN_MAP_VER = 'B_WHChanMapVer'
 BTI.UB_B_WHC_CHAN_MAP     = 'B_WHChanMap'
-BTI.UB_B_WHS_SUBSYS_VER   = 'B_WHSubsysVer'
+BTI.UB_B_WHS_SUBSYS_VER   = 'B_WHSubsysVer'  # B_WHSubsysVer
 BTI.UB_B_WHS_SUBSYS       = 'B_WHSubsys'
 BTI.UB_B_CH_LABELS        = 'B_ch_labels'
 BTI.UB_B_CALIBRATION      = 'B_Calibration'
