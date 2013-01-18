@@ -743,7 +743,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
     mlab.clf()
-    f.scene.disable_render = True
+    if mlab.options.backend != 'test':
+        f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                                    use_faces, color=brain_color,
                                    opacity=opacity, **kwargs)
@@ -803,7 +804,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
+def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
     """Plot Covariance data
 
@@ -1151,7 +1152,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         sources = sources[source_idx]
     if source_idx is None:
         source_idx = np.arange(n_components)
-    elif source_idx.shape > 30:
+    elif source_idx.shape > nrow * ncol:
         logger.info('More sources selected than rows and cols specified.'
                     'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
@@ -1206,7 +1207,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
-def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
+def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=dict(eeg='uV', grad='fT/cm', mag='fT'),
                       scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
@@ -1216,8 +1217,9 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs
-    picks : int | array of int
-        The indices of the channels to consider
+    picks : int | array of int | None
+        The indices of the channels to consider. If None, all good
+        data channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image.
@@ -1248,6 +1250,8 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         One figure per channel displayed
     """
     import pylab as pl
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
 
     if units.keys() != scalings.keys():
         raise ValueError('Scalings and units must have the same keys.')
