@@ -20,7 +20,8 @@ from .utils import sizeof_fmt
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
-cuda_multiply_inplace = None
+cuda_multiply_inplace_complex64 = None
+cuda_multiply_inplace_complex32 = None
 requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
@@ -37,7 +38,8 @@ def init_cuda():
     be manually executed.
     """
     global cuda_capable
-    global cuda_multiply_inplace
+    global cuda_multiply_inplace_complex64
+    global cuda_multiply_inplace_complex32
     global requires_cuda
     if cuda_capable is True:
         logger.info('CUDA previously enabled, currently %s available memory'
@@ -62,7 +64,11 @@ def init_cuda():
                 from pycuda.elementwise import ElementwiseKernel
                 # let's construct our own CUDA multiply in-place function
                 dtype = 'pycuda::complex<double>'
-                cuda_multiply_inplace = \
+                cuda_multiply_inplace_complex64 = \
+                    ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
+                                      'b[i] = a[i] * b[i]', 'multiply_inplace')
+                dtype = 'pycuda::complex<float>'
+                cuda_multiply_inplace_complex32 = \
                     ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
                                       'b[i] = a[i] * b[i]', 'multiply_inplace')
             except:
@@ -73,7 +79,7 @@ def init_cuda():
                                    'system information and pycuda version')
             else:
                 try:
-                    import scikits.cuda
+                    from scikits.cuda import fft as cudafft
                 except ImportError:
                     logger.warn('modudle scikits.cuda not found, CUDA not '
                                 'enabled')
@@ -134,32 +140,67 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         n_jobs = 1
         if cuda_capable:
             # set up all arrays necessary for CUDA
+            if n_fft % 2 == 1:
+                cuda_fft_len = int((n_fft + 1) / 2 + 1)
+            else:
+                cuda_fft_len = int(n_fft / 2 + 1)
+            use_cuda = False
+            # try setting up for float64
             try:
                 fft_plan = cudafft.Plan(n_fft, np.float64, np.complex128)
-                ifft_plan = cudafft.Plan(n_fft, np.complex128, np.float64)
-                if n_fft % 2 == 1:
-                    cuda_fft_len = int((n_fft + 1) / 2 + 1)
-                else:
-                    cuda_fft_len = int(n_fft / 2 + 1)
-                x_fft = gpuarray.empty(cuda_fft_len, np.complex128)
-                x = gpuarray.empty(int(n_fft), np.float64)
-                cuda_h_fft = h_fft[:cuda_fft_len].astype('complex128')
-                # do the IFFT normalization now so we don't have to later
-                cuda_h_fft /= len(h_fft)
-                h_fft = gpuarray.to_gpu(cuda_h_fft)
             except:
-                logger.info('CUDA not used, could not instantiate memory '
-                            '(arrays may be too large), falling back to '
-                            'n_jobs=1')
+                # The system can't handle float64 FFTs, try float32
+                try:
+                    fft_plan = cudafft.Plan(n_fft, np.float32, np.complex64)
+                    ifft_plan = cudafft.Plan(n_fft, np.complex64, np.float32)
+                    x_fft = gpuarray.empty(cuda_fft_len, np.complex64)
+                    x = gpuarray.empty(int(n_fft), np.float32)
+                    cuda_h_fft = h_fft[:cuda_fft_len].astype('complex64')
+                    # do the IFFT normalization now so we don't have to later
+                    cuda_h_fft /= len(h_fft)
+                    h_fft = gpuarray.to_gpu(cuda_h_fft)
+                    dtype = np.float32
+                    multiply_inplace = cuda_multiply_inplace_complex32
+                except:
+                    logger.info('CUDA not used, could not instantiate memory '
+                                '(arrays may be too large), falling back to '
+                                'n_jobs=1')
+                else:
+                    logger.warn('Graphics processor on this machine does '
+                                'not support float64 operations, falling '
+                                'back to float32 (be wary of the reduced '
+                                'precision).')
+                    use_cuda = True
             else:
+                # Continue trying to load data
+                try:
+                    ifft_plan = cudafft.Plan(n_fft, np.complex128, np.float64)
+                    x_fft = gpuarray.empty(cuda_fft_len, np.complex128)
+                    x = gpuarray.empty(int(n_fft), np.float64)
+                    cuda_h_fft = h_fft[:cuda_fft_len].astype('complex128')
+                    # do the IFFT normalization now so we don't have to later
+                    cuda_h_fft /= len(h_fft)
+                    h_fft = gpuarray.to_gpu(cuda_h_fft)
+                    dtype = np.float64
+                    multiply_inplace = cuda_multiply_inplace_complex64
+                except:
+                    logger.info('CUDA not used, could not instantiate memory '
+                                '(arrays may be too large), falling back to '
+                                'n_jobs=1')
+                else:
+                    use_cuda = True
+
+            if use_cuda is True:
                 logger.info('Using CUDA for FFT FIR filtering')
                 cuda_dict['use_cuda'] = True
                 cuda_dict['fft_plan'] = fft_plan
                 cuda_dict['ifft_plan'] = ifft_plan
                 cuda_dict['x_fft'] = x_fft
                 cuda_dict['x'] = x
+                cuda_dict['dtype'] = dtype
+                cuda_dict['multiply_inplace'] = multiply_inplace
         else:
-            logger.info('CUDA not used, machine is not CUDA capable, '
+            logger.info('CUDA not used, CUDA has not been initialized, '
                         'falling back to n_jobs=1')
     return n_jobs, cuda_dict, h_fft
 
@@ -186,12 +227,12 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
     else:
         # do the fourier-domain operations, results in second param
-        cuda_dict['x'].set(x)
+        cuda_dict['x'].set(x.astype(cuda_dict['dtype']))
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
-        cuda_multiply_inplace(h_fft, cuda_dict['x_fft'])
+        cuda_dict['multiply_inplace'](h_fft, cuda_dict['x_fft'])
         # If we wanted to do it locally instead of using our own kernel:
         # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
                      cuda_dict['ifft_plan'], False)
-        x = cuda_dict['x'].get()
+        x = cuda_dict['x'].get().astype(x.dtype)
     return x
