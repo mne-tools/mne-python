@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-
 import os
 import os.path as op
 from copy import deepcopy
@@ -21,7 +20,7 @@ from mne.fiff.bti.transforms import apply_trans, inverse_trans,\
 from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), 'data')
-pdf_fname = op.join(base_dir, 'test_pdf')
+pdf_fname = op.join(base_dir, 'test_pdf_file')
 config_fname = op.join(base_dir, 'test_config')
 config_solaris_fname = op.join(base_dir, 'test_config_solaris')
 hs_fname = op.join(base_dir, 'test_hs_file')
