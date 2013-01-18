@@ -128,8 +128,6 @@ def test_cuda():
     """
     Fs = 500
     sig_len_secs = 20
-
-    # Filtering of short signals (filter length = len(a))
     a = np.random.randn(sig_len_secs * Fs)
 
     for fl in [None, 2048]:

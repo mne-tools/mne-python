@@ -21,7 +21,7 @@ from .utils import sizeof_fmt, get_config
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
 cuda_multiply_inplace = None
-requires_cuda = None
+requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
 def init_cuda():
@@ -55,7 +55,7 @@ def init_cuda():
 
 
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
-    """Set up repeated cuda FFT multiplication with a given filter
+    """Set up repeated CUDA FFT multiplication with a given filter
 
     Parameters
     ----------
@@ -64,6 +64,9 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         FFT multiplication.
     h_fft : array
         The filtering function that will be used repeatedly.
+        If n_jobs='cuda', this function will be shortened (since CUDA
+        assumes FFTs of real signals are half the length of the signal)
+        and turned into a gpuarray.
 
     Returns
     -------
@@ -90,7 +93,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
 
     Notes
     -----
-    This function is designed to be used with filter.fft_multiply().
+    This function is designed to be used with fft_multiply_repeated().
     """
     cuda_dict = dict(use_cuda=False, fft_plan=None, ifft_plan=None,
                      x_fft=None, x=None, fft_len=None)
@@ -130,7 +133,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
 
 
 def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
-    """Do FFT multiplication using a filter function
+    """Do FFT multiplication by a filter function (possibly using CUDA)
 
     Parameters
     ----------
@@ -139,7 +142,7 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
     x : 1-d array
         The array to filter.
     cuda_dict : dict
-        Dictionary constructed using setup_cuda_multiply_repeated.
+        Dictionary constructed using setup_cuda_multiply_repeated().
 
     Returns
     -------
