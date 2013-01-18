@@ -21,11 +21,13 @@ from .utils import sizeof_fmt, get_config
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
 cuda_multiply_inplace = None
+requires_cuda = None
 
 
 def init_cuda():
     global cuda_capable
     global cuda_multiply_inplace
+    global requires_cuda
     if get_config('MNE_USE_CUDA', 'false') == 'true':
         try:
             # Initialize CUDA; happens with importing autoinit
@@ -48,7 +50,8 @@ def init_cuda():
                         % sizeof_fmt(mem_get_info()[0]))
     else:
         cuda_capable = False
-    return np.testing.dec.skipif(not cuda_capable, 'CUDA not available')
+    requires_cuda = np.testing.dec.skipif(not cuda_capable,
+                                          'CUDA not available')
 
 
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):

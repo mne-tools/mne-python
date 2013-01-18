@@ -8,7 +8,9 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        notch_filter, detrend
 
 from mne import set_log_file
-from mne.utils import _TempDir, requires_cuda
+from mne.utils import _TempDir
+from mne.cuda import requires_cuda
+
 
 tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')
