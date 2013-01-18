@@ -59,6 +59,19 @@ Logging and Configuration
    get_config
    set_config
 
+:py:mod:`mne.cuda`:
+
+.. automodule:: mne.cuda
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.cuda
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   init_cuda
 
 File I/O
 ========
