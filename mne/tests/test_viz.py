@@ -104,6 +104,8 @@ def test_plot_evoked():
     # Assert we get an error with incorrect dict specification
     assert_raises(ValueError, plot_evoked, evoked, hline=[1],
                   units=dict(eeg=10))
+    # test dict keys may differ as long as all channel types are supplied w/keys
+    evoked.plot(hline=[1], units=dict(mag='fT',grad='fT/cm', misc='AU'))
 
 
 @requires_mayavi
