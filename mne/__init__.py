@@ -60,4 +60,5 @@ set_log_level(None, False)
 set_log_file()
 
 # initialize CUDA
-cuda.init_cuda()
+if utils.get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+    cuda.init_cuda()

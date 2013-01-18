@@ -7,15 +7,15 @@ import sys
 from scipy.fftpack import fft, ifft
 try:
     import pycuda.gpuarray as gpuarray
-    from scikits.cuda import fft as cudafft
     from pycuda.driver import mem_get_info
+    from scikits.cuda import fft as cudafft
 except:
     pass
 
 import logging
 logger = logging.getLogger('mne')
 
-from .utils import sizeof_fmt, get_config
+from .utils import sizeof_fmt
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -25,31 +25,39 @@ requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
 def init_cuda():
+    """Initialize CUDA functionality
+
+    This function attempts to load the necessary interfaces
+    (hardware connectivity) to run CUDA-based filering. This
+    function should only need to be run once per session.
+
+    If the config var (set via mne.utils.set_config or in ENV)
+    MNE_USE_CUDA == 'true', this function will be executed when
+    importing mne. If this variable is not set, this function can
+    be manually executed.
+    """
     global cuda_capable
     global cuda_multiply_inplace
     global requires_cuda
-    if get_config('MNE_USE_CUDA', 'false') == 'true':
-        try:
-            # Initialize CUDA; happens with importing autoinit
-            import pycuda.autoinit
-            assert 'pycuda.gpuarray' in sys.modules
-            assert 'scikits.cuda' in sys.modules
-            assert 'pycuda.driver' in sys.modules
-            from pycuda.elementwise import ElementwiseKernel
-            # let's construct our own CUDA multiply in-place function
-            dtype = 'pycuda::complex<double>'
-            cuda_multiply_inplace = \
-                ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
-                                  'b[i] = a[i] * b[i]', 'multiply_inplace')
-        except:
-            cuda_capable = False
-        else:
-            cuda_capable = True
-            # Figure out limit for CUDA FFT calculations
-            logger.info('Enabling CUDA with %s available memory'
-                        % sizeof_fmt(mem_get_info()[0]))
-    else:
+    try:
+        # Initialize CUDA; happens with importing autoinit
+        import pycuda.autoinit
+        assert 'pycuda.gpuarray' in sys.modules
+        assert 'scikits.cuda' in sys.modules
+        assert 'pycuda.driver' in sys.modules
+        from pycuda.elementwise import ElementwiseKernel
+        # let's construct our own CUDA multiply in-place function
+        dtype = 'pycuda::complex<double>'
+        cuda_multiply_inplace = \
+            ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
+                              'b[i] = a[i] * b[i]', 'multiply_inplace')
+    except:
         cuda_capable = False
+    else:
+        cuda_capable = True
+        # Figure out limit for CUDA FFT calculations
+        logger.info('Enabling CUDA with %s available memory'
+                    % sizeof_fmt(mem_get_info()[0]))
     requires_cuda = np.testing.dec.skipif(not cuda_capable,
                                           'CUDA not available')
 
