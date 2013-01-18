@@ -15,7 +15,7 @@ except ImportError:
 import logging
 logger = logging.getLogger('mne')
 
-from .utils import sizeof_fmt
+from .utils import sizeof_fmt, get_config
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -166,10 +166,12 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                                 '(arrays may be too large), falling back to '
                                 'n_jobs=1')
                 else:
-                    logger.warn('Graphics processor on this machine does '
-                                'not support float64 operations, falling '
-                                'back to float32 (be wary of the reduced '
-                                'precision).')
+                    ignore = get_config('MNE_CUDA_IGNORE_PRECISION', 'false')
+                    if ignore.lower() != 'true':
+                        logger.warn('Graphics processor on this machine does '
+                                    'not support float64 operations, falling '
+                                    'back to float32 (be wary of the reduced '
+                                    'precision).')
                     use_cuda = True
             else:
                 # Continue trying to load data
