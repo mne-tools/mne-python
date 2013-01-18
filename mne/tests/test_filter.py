@@ -147,11 +147,10 @@ def test_cuda():
         hp_c = high_pass_filter(lp, Fs, 4, n_jobs='cuda', filter_length=fl,
                                 verbose='INFO')
 
-        # 4 decimals in case the GPU only supports 32-bit ops
-        assert_array_almost_equal(bp, bp_c, 4)
-        assert_array_almost_equal(bs, bs_c, 4)
-        assert_array_almost_equal(lp, lp_c, 4)
-        assert_array_almost_equal(hp, hp_c, 4)
+        assert_array_almost_equal(bp, bp_c, 12)
+        assert_array_almost_equal(bs, bs_c, 12)
+        assert_array_almost_equal(lp, lp_c, 12)
+        assert_array_almost_equal(hp, hp_c, 12)
 
     # check to make sure we actually used CUDA
     set_log_file()
