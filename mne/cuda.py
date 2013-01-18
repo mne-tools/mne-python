@@ -214,5 +214,5 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
                      cuda_dict['ifft_plan'], False)
-        x = cuda_dict['x'].get().astype(x.dtype)
+        x = cuda_dict['x'].get().astype(x.dtype, subok=True, copy=False)
     return x
