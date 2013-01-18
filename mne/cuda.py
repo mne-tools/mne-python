@@ -40,11 +40,11 @@ def init_cuda():
     global cuda_multiply_inplace
     global requires_cuda
     # Triage possible errors for informative messaging
+    cuda_capable = False
     try:
         assert 'pycuda.gpuarray' in sys.modules
         assert 'pycuda.driver' in sys.modules
     except:
-        cuda_capable = False
         logger.warn('module pycuda not found, CUDA not enabled')
     else:
         try:
@@ -71,7 +71,6 @@ def init_cuda():
                 try:
                     assert 'scikits.cuda' in sys.modules
                 except:
-                    cuda_capable = False
                     logger.warn('modudle scikits.cuda not found, CUDA not '
                                 'enabled')
                 else:
