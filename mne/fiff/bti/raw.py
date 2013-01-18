@@ -6,16 +6,17 @@
 #
 #          simplified bsd-3 license
 
-from .fiff import Raw, pick_types
-from .fiff.constants import BTI, Bunch
-from .fiff import FIFF
-from .fiff.bti.read import read_int32, read_int16, read_str,\
+from ...fiff import Raw, pick_types
+from ...fiff.constants import Bunch
+from ...fiff import FIFF
+from ...fiff.bti.constants import BTI
+from ...fiff.bti.read import read_int32, read_int16, read_str,\
                   read_float,  read_double, read_transform,\
                   read_char, read_int64, read_uint16, \
                   read_uint32, read_double_matrix, \
                   read_float_matrix, read_int16_matrix
 
-from .fiff.bti.transforms import bti_to_vv_trans, bti_to_vv_coil_trans,\
+from ...fiff.bti.transforms import bti_to_vv_trans, bti_to_vv_coil_trans,\
                                  inverse_trans, merge_trans
 
 import time
@@ -27,7 +28,7 @@ from itertools import count
 
 import numpy as np
 
-from mne.utils import verbose
+from ...utils import verbose
 
 import logging
 logger = logging.getLogger('mne')
@@ -452,8 +453,9 @@ def read_config(fname):
     cfg.transforms = read_transform(fid)
 
     cfg.user_blocks = list()
+    print cfg
     for block in range(cfg.hdr['total_user_blocks']):
-        _correct_offset(fid)
+        # _correct_offset(fid)
         ub = dict()
         cfg.user_blocks += [ub]
         ub['hdr'] = {'nbytes': read_int32(fid),
@@ -465,8 +467,9 @@ def read_config(fname):
                      'reserved': read_char(fid, 32)}
 
         ub['data'] = dict()
+        print ub
         kind, dta = ub['hdr']['kind'], ub['data']
-        fid.seek(4, 1)  # very important anti-padding (see bst / FT)
+        # fid.seek(4, 1)  # very important anti-padding (see bst / FT)
         if kind in [v for k, v in BTI.items() if k[:5] == 'UB_B_']:
             if kind == BTI.UB_B_MAG_INFO:
                 dta['version'] = read_int32(fid)
@@ -676,7 +679,7 @@ def read_config(fname):
             dta['unknown'] = {'hdr': read_char(fid,
                                 ub['hdr']['user_space_size'])}
 
-        # _correct_offset(fid)  # after reading.
+        _correct_offset(fid)  # after reading.
         # fid.seek(ub['hdr']['user_space_size'], 1)
 
     cfg.channels = []
@@ -757,8 +760,7 @@ def read_config(fname):
     return cfg
 
 
-def _read_data(self, fname, config_fname, start=None, stop=None,
-               dtype='f8'):
+def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     """ Helper function: read Bti processed data file (PDF)
 
     Parameters
@@ -779,7 +781,7 @@ def _read_data(self, fname, config_fname, start=None, stop=None,
         The measurement data, a channels x timeslices array.
     """
 
-    fid = open(self.fname, 'rb')
+    fid = open(fname, 'rb')
 
     info, hdr_size, ftr_pos = _read_bti_header(fid)
 

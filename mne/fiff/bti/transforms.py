@@ -3,7 +3,7 @@
 #          simplified bsd-3 license
 
 
-from .. constants import BTI
+from . constants import BTI
 
 import numpy as np
 
