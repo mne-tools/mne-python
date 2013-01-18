@@ -446,16 +446,15 @@ def read_config(fname):
                'total_user_blocks': read_int16(fid),
                'next_der_chan_no': read_int16(fid)}
 
-    fid.seek(2, 1)  # compensate for padding
+    fid.seek(2, 1)
 
     cfg.checksum = read_uint32(fid)
     cfg.reserved = read_char(fid, 32)
-    cfg.transforms = read_transform(fid)
+    cfg.transforms = [read_transform(fid) for t in
+                      range(cfg.hdr['total_sensors'])]
 
     cfg.user_blocks = list()
-    print cfg
     for block in range(cfg.hdr['total_user_blocks']):
-        # _correct_offset(fid)
         ub = dict()
         cfg.user_blocks += [ub]
         ub['hdr'] = {'nbytes': read_int32(fid),
@@ -466,8 +465,8 @@ def read_config(fname):
                      'user_space_size': read_int32(fid),
                      'reserved': read_char(fid, 32)}
 
+        _correct_offset(fid)
         ub['data'] = dict()
-        print ub
         kind, dta = ub['hdr']['kind'], ub['data']
         # fid.seek(4, 1)  # very important anti-padding (see bst / FT)
         if kind in [v for k, v in BTI.items() if k[:5] == 'UB_B_']:
@@ -637,8 +636,9 @@ def read_config(fname):
                                            range(dta['hdr']['n_dsp'])]
 
                     rows = dta['hdr']['n_entries']
-                    cols = dta['hdr']['n_anlg']
+                    cols = dta['hdr']['n_dsp']
                     dta['dsp_wts'] = read_float_matrix(fid, rows, cols)
+                    cols = dta['hdr']['n_anlg']
                     dta['anlg_wts'] = read_int16_matrix(fid, rows, cols)
 
                 else:  # handle MAGNES2500 naming scheme
@@ -680,7 +680,6 @@ def read_config(fname):
                                 ub['hdr']['user_space_size'])}
 
         _correct_offset(fid)  # after reading.
-        # fid.seek(ub['hdr']['user_space_size'], 1)
 
     cfg.channels = []
 
