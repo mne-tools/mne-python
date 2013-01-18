@@ -67,7 +67,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and CUDA is initialized.
 
     Returns
     -------
@@ -251,7 +251,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly.
+        is installed properly and CUDA is initialized.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -531,7 +531,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and method='fft'.
+        is installed properly, CUDA is initialized, and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -627,7 +627,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and method='fft'.
+        is installed properly, CUDA is initialized, and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -731,7 +731,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and method='fft'.
+        is installed properly, CUDA is initialized, and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -810,7 +810,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and method='fft'.
+        is installed properly, CUDA is initialized, and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.
@@ -913,7 +913,7 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-        is installed properly and method='fft'.
+        is installed properly, CUDA is initialized, and method='fft'.
     copy : bool
         If True, a copy of x, filtered, is returned. Otherwise, it operates
         on x in place.

@@ -504,7 +504,7 @@ class Raw(object):
             Width of the transition band at the high cut-off frequency in Hz.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly and method='fft'.
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
@@ -608,7 +608,7 @@ class Raw(object):
             Width of the transition band in Hz.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
-            is installed properly and method='fft'.
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
