@@ -126,11 +126,9 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
 
     # Process each row separately
     if n_jobs == 1:
-        for ii, x_ in enumerate(x):
-            if ii in picks:
-                x[ii] = _1d_overlap_filter(x_, h_fft, n_edge, n_fft,
-                                           zero_phase, n_segments, n_seg,
-                                           cuda_dict)
+        for p in picks:
+            x[p] = _1d_overlap_filter(x[p], h_fft, n_edge, n_fft, zero_phase,
+                                      n_segments, n_seg, cuda_dict)
     else:
         if not isinstance(n_jobs, int):
             raise ValueError('n_jobs must be an integer, or "cuda"')
@@ -301,9 +299,8 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         n_jobs, cuda_dict, B = setup_cuda_fft_multiply_repeated(n_jobs, B)
 
         if n_jobs == 1:
-            for xi, x_ in enumerate(x):
-                if xi in picks:
-                    x[xi] = _1d_fftmult_ext(x_, B, extend_x, cuda_dict)
+            for p in picks:
+                x[p] = _1d_fftmult_ext(x[p], B, extend_x, cuda_dict)
         else:
             if not isinstance(n_jobs, int):
                 raise ValueError('n_jobs must be an integer, or "cuda"')
@@ -343,9 +340,8 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if n_jobs == 1:
-        for ii, x_ in enumerate(x):
-            if ii in picks:
-                x[ii] = filtfilt(b, a, x_, padlen=padlen)
+        for p in picks:
+            x[p] = filtfilt(b, a, x[p], padlen=padlen)
     else:
         if not isinstance(n_jobs, int):
             raise ValueError('n_jobs must be an integer for IIR filtering')
