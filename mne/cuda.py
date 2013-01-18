@@ -39,27 +39,48 @@ def init_cuda():
     global cuda_capable
     global cuda_multiply_inplace
     global requires_cuda
+    # Triage possible errors for informative messaging
     try:
-        # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit
         assert 'pycuda.gpuarray' in sys.modules
-        assert 'scikits.cuda' in sys.modules
         assert 'pycuda.driver' in sys.modules
-        from pycuda.elementwise import ElementwiseKernel
-        # let's construct our own CUDA multiply in-place function
-        dtype = 'pycuda::complex<double>'
-        cuda_multiply_inplace = \
-            ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
-                              'b[i] = a[i] * b[i]', 'multiply_inplace')
     except:
         cuda_capable = False
+        logger.warn('module pycuda not found, CUDA not enabled')
     else:
-        cuda_capable = True
-        # Figure out limit for CUDA FFT calculations
-        logger.info('Enabling CUDA with %s available memory'
-                    % sizeof_fmt(mem_get_info()[0]))
+        try:
+            # Initialize CUDA; happens with importing autoinit
+            import pycuda.autoinit
+        except:
+            logger.warn('pycuda.autoinit could not be imported, likely '
+                        'a hardware error')
+        else:
+            try:
+                from pycuda.elementwise import ElementwiseKernel
+                # let's construct our own CUDA multiply in-place function
+                dtype = 'pycuda::complex<double>'
+                cuda_multiply_inplace = \
+                    ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
+                                      'b[i] = a[i] * b[i]', 'multiply_inplace')
+            except:
+                # This should never happen
+                raise RuntimeError('pycuda ElementwiseKernel could not be '
+                                   'constructed, please report this issue '
+                                   'to mne-python developers with your '
+                                   'system information and pycuda version')
+            else:
+                try:
+                    assert 'scikits.cuda' in sys.modules
+                except:
+                    cuda_capable = False
+                    logger.warn('modudle scikits.cuda not found, CUDA not '
+                                'enabled')
+                else:
+                    cuda_capable = True
+                    # Figure out limit for CUDA FFT calculations
+                    logger.info('Enabling CUDA with %s available memory'
+                                % sizeof_fmt(mem_get_info()[0]))
     requires_cuda = np.testing.dec.skipif(not cuda_capable,
-                                          'CUDA not available')
+                                          'CUDA not initialized')
 
 
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
