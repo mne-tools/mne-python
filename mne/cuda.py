@@ -9,7 +9,7 @@ try:
     import pycuda.gpuarray as gpuarray
     from pycuda.driver import mem_get_info
     from scikits.cuda import fft as cudafft
-except:
+except ImportError:
     pass
 
 import logging
