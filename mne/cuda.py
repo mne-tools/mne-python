@@ -84,7 +84,7 @@ def init_cuda():
                 else:
                     # Make sure we can use 64-bit FFTs
                     try:
-                        fft_plan = cudafft.Plan(16, np.float32, np.complex64)
+                        fft_plan = cudafft.Plan(16, np.float64, np.complex128)
                         del fft_plan
                     except:
                         logger.warn('Device does not support 64-bit FFTs, '
