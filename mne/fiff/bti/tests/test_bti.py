@@ -31,7 +31,6 @@ def test_read_config():
     """ Test read bti config file """
     # for config in config_fname, config_solaris_fname:
     cfg = read_config(config_solaris_fname)
-
     return cfg
 
 
