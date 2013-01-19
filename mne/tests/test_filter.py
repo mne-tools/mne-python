@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
+from scipy.signal import resample as sp_resample
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        band_stop_filter, resample, construct_iir_filter, \
@@ -94,8 +95,15 @@ def test_filters():
     bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    # note that on systems without CUDA, this line serves as a test for a
+    # graceful fallback to n_jobs=1
     bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs='cuda'), 1, 2,
                         n_jobs='cuda')
+    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    # test to make sure our resamling matches scipy's
+    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * len(bp_oa), window='boxcar'),
+                           len(bp_oa), window='boxcar')
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
