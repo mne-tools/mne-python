@@ -2,7 +2,8 @@
 
 import warnings
 import numpy as np
-from scipy.fftpack import fft
+from scipy.fftpack import fft, ifft, ifftshift, fftfreq
+from scipy.signal.windows import get_window
 from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
 from scipy import signal, stats
 from copy import deepcopy
@@ -14,7 +15,10 @@ from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 from .parallel import parallel_func
-from .cuda import setup_cuda_fft_multiply_repeated, fft_multiply_repeated
+
+
+from .cuda import setup_cuda_fft_multiply_repeated, fft_multiply_repeated, \
+                  setup_cuda_fft_resample, fft_resample, _smart_pad
 
 
 def is_power2(num):
@@ -146,8 +150,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
                        cuda_dict):
     """Do one-dimensional overlap-add FFT FIR filtering"""
     # pad to reduce ringing
-    x_ext = np.r_[2 * x[0] - x[n_edge - 1:0:-1],
-                  x, 2 * x[-1] - x[-2:-n_edge - 1:-1]]
+    x_ext = _smart_pad(x, n_edge - 1)
     n_x = len(x_ext)
     filter_input = x_ext
     x_filtered = np.zeros_like(filter_input)
@@ -211,7 +214,7 @@ def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
     return xf
 
 
-def _prep_for_filtering(x, copy, picks):
+def _prep_for_filtering(x, copy, picks=None):
     """Set up array as 2D for filtering ease"""
     if copy is True:
         x = x.copy()
@@ -1125,8 +1128,11 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     return x - datafit, rm_freqs
 
 
-def resample(x, up, down, npad=100, axis=0, window='boxcar'):
-    """Resample the array x.
+@verbose
+def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
+    """Resample the array x
+
+    Operates along the last dimension of the array.
 
     Parameters
     ----------
@@ -1138,10 +1144,12 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
         Factor to downsample by.
     npad : integer
         Number of samples to use at the beginning and end for padding.
-    axis : integer
-        Axis of the array to operate on.
     window : string or tuple
         See scipy.signal.resample for description.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1159,42 +1167,57 @@ def resample(x, up, down, npad=100, axis=0, window='boxcar'):
     compatibility in case we decide to use an upfirdn implementation. The
     current implementation is functionally equivalent to passing
     up=up/down and down=1.
-
     """
     # make sure our arithmetic will work
     ratio = float(up) / down
+    x, orig_shape = _prep_for_filtering(x, False)[:2]
 
-    if axis > len(x.shape):
-        raise ValueError('x does not have %d axes' % axis)
-
-    x_len = x.shape[axis]
+    x_len = x.shape[1]
     if x_len > 0:
-        # add some padding at beginning and end to make scipy's FFT
-        # method work a little cleaner
-        pad_shape = np.array(x.shape, dtype=np.int)
-        pad_shape[axis] = npad
-        keep = np.zeros(x_len, dtype='bool')
-        # pad both ends because signal is not assumed periodic
-        keep[0] = True
-        pad = np.ones(pad_shape) * np.compress(keep, x, axis=axis)
-        # do the padding
-        x_padded = np.concatenate((pad, x, pad), axis=axis)
-        new_len = ratio * x_padded.shape[axis]
+        # prep for resampling now
+        orig_len = x_len + 2 * npad  # length after padding
+        new_len = ratio * orig_len   # length after resampling padded signal
+        to_remove = np.round(ratio * npad).astype(int)
+
+        # figure out windowing function
+        if window is not None:
+            if callable(window):
+                W = window(fftfreq(orig_len))
+            elif isinstance(window, np.ndarray) and \
+                    window.shape == (orig_len,):
+                W = window
+            else:
+                W = ifftshift(get_window(window, orig_len))
+        else:
+            W = np.ones(orig_len)
+        W *= (float(new_len) / float(orig_len))
+        W = W.astype(np.complex128)
+
+        # figure out if we should use CUDA
+        n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
 
         # do the resampling using scipy's FFT-based resample function
         # use of the 'flat' window is recommended for minimal ringing
-        y = signal.resample(x_padded, new_len, axis=axis, window=window)
+        if n_jobs == 1:
+            y = np.zeros((len(x), new_len - 2 * to_remove), dtype=x.dtype)
+            for xi, x_ in enumerate(x):
+                y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
+                                     cuda_dict)
+        else:
+            if not isinstance(n_jobs, int):
+                raise ValueError('n_jobs must be an integer, or "cuda"')
+            parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
+            y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
+                               for x_ in x)
+            y = np.array(y)
 
-        # now let's trim it back to the correct size (if there was padding)
-        to_remove = np.round(ratio * npad).astype(int)
-        if to_remove > 0:
-            keep = np.ones((new_len), dtype='bool')
-            keep[:to_remove] = False
-            keep[-to_remove:] = False
-            y = np.compress(keep, y, axis=axis)
+        # Restore the original array shape (modified for resampling)
+        orig_shape = list(orig_shape)
+        orig_shape[-1] = y.shape[1]
+        y.shape = tuple(orig_shape)
     else:
-        warnings.warn('x has zero length along axis=%d, returning a copy of '
-                      'x' % axis)
+        warnings.warn('x has zero length along last axis, returning a copy of '
+                      'x')
         y = x.copy()
     return y
 

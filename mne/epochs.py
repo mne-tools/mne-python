@@ -756,15 +756,8 @@ class Epochs(object):
         """
         if self.preload:
             o_sfreq = self.info['sfreq']
-            orig_dims = self._data.shape[:2]
-            new_data = self._data
-            new_data.shape = (np.prod(orig_dims), self._data.shape[2])
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data = parallel(my_resample(d, sfreq, o_sfreq, npad, 1)
-                                for d in np.array_split(new_data, n_jobs))
-            new_data = np.concatenate(new_data)
-            new_data.shape = orig_dims + (new_data.shape[1],)
-            self._data = new_data
+            self._data = resample(self._data, sfreq, o_sfreq, npad,
+                                  n_jobs=n_jobs)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
             self.times = (np.arange(self._data.shape[2], dtype=np.float)

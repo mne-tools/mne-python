@@ -500,11 +500,7 @@ class SourceEstimate(object):
         Note that the sample rate of the original data is inferred from tstep.
         """
         o_sfreq = 1.0 / self.tstep
-        # use parallel function to resample each source separately
-        # for speed and to save memory
-        parallel, my_resample, _ = parallel_func(resample, n_jobs)
-        self.data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
-                          npad, 1) for d in np.array_split(self.data, n_jobs)))
+        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
