@@ -377,7 +377,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
 ###############################################################################
 # Misc
 
-# this has to go in mne.cude instead of mne.filter to avoid import errors
+# this has to go in mne.cuda instead of mne.filter to avoid import errors
 def _smart_pad(x, n_pad):
     """Pad vector x
     """
