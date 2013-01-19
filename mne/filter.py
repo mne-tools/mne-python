@@ -1157,9 +1157,10 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     Notes
     -----
     This uses (hopefully) intelligent edge padding and frequency-domain
-    windowing improve scipy.signal.resample's resampling. Choices of
-    npad and window have important consequences, and these choices should
-    work well for most natural signals.
+    windowing improve scipy.signal.resample's resampling method, which
+    we have adapted for our use here. Choices of npad and window have
+    important consequences, and the default choices should work well
+    for most natural signals.
 
     Resampling arguments are broken into "up" and "down" components for future
     compatibility in case we decide to use an upfirdn implementation. The
@@ -1194,7 +1195,7 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
         # figure out if we should use CUDA
         n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
 
-        # do the resampling using scipy's FFT-based resample function
+        # do the resampling using an adaptation of scipy's FFT-based resample()
         # use of the 'flat' window is recommended for minimal ringing
         if n_jobs == 1:
             y = np.zeros((len(x), new_len - 2 * to_remove), dtype=x.dtype)
@@ -1206,7 +1207,7 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
                 raise ValueError('n_jobs must be an integer, or "cuda"')
             parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
             y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
-                               for x_ in x)
+                         for x_ in x)
             y = np.array(y)
 
         # Restore the original array shape (modified for resampling)
