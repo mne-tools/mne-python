@@ -704,11 +704,8 @@ class Raw(object):
         ratio = sfreq / float(o_sfreq)
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-            # use parallel function to resample each channel separately
-            # for speed and to save memory (faster not to use array_split, too)
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                              npad, 0) for d in data_chunk)))
+            new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
+                                     n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
             # Now deal with the stim channels. In empirical testing, it was

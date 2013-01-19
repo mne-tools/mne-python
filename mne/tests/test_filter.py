@@ -58,12 +58,13 @@ def test_notch_filters():
 
 
 def test_filters():
-    """Test low-, band-, high-pass, and band-stop filters"""
+    """Test low-, band-, high-pass, and band-stop filters plus resampling
+    """
     Fs = 500
     sig_len_secs = 30
 
     # Filtering of short signals (filter length = len(a))
-    a = np.random.randn(sig_len_secs * Fs)
+    a = np.random.randn(2, sig_len_secs * Fs)
     bp = band_pass_filter(a, Fs, 4, 8)
     bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5)
     lp = low_pass_filter(a, Fs, 8)
@@ -90,15 +91,20 @@ def test_filters():
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
-    bp_up_dn = resample(resample(bp_oa, 2, 1), 1, 2)
+    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs='cuda'), 1, 2,
+                        n_jobs='cuda')
+    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+
     # make sure we don't alias
-    t = np.array(range(Fs*sig_len_secs))/float(Fs)
+    t = np.array(range(Fs * sig_len_secs)) / float(Fs)
     # make sinusoid close to the Nyquist frequency
-    sig = np.sin(2*np.pi*Fs/2.2*t)
+    sig = np.sin(2 * np.pi * Fs / 2.2 * t)
     # signal should disappear with 2x downsampling
-    sig_gone = resample(sig,1,2)[n_resamp_ignore:-n_resamp_ignore]
+    sig_gone = resample(sig, 1, 2)[n_resamp_ignore:-n_resamp_ignore]
     assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
 
     # let's construct some filters

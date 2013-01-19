@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import sys
 from scipy.fftpack import fft, ifft
 try:
     import pycuda.gpuarray as gpuarray
@@ -15,7 +14,7 @@ except ImportError:
 import logging
 logger = logging.getLogger('mne')
 
-from .utils import sizeof_fmt, get_config
+from .utils import sizeof_fmt
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -98,6 +97,9 @@ def init_cuda():
                                           'CUDA not initialized')
 
 
+###############################################################################
+# Repeated FFT multiplication
+
 def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
     """Set up repeated CUDA FFT multiplication with a given filter
 
@@ -146,10 +148,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         n_jobs = 1
         if cuda_capable:
             # set up all arrays necessary for CUDA
-            if n_fft % 2 == 1:
-                cuda_fft_len = int((n_fft + 1) / 2 + 1)
-            else:
-                cuda_fft_len = int(n_fft / 2 + 1)
+            cuda_fft_len = int((n_fft + (n_fft % 2)) / 2 + 1)
             use_cuda = False
             # try setting up for float64
             try:
@@ -216,3 +215,170 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
                      cuda_dict['ifft_plan'], False)
         x = cuda_dict['x'].get().astype(x.dtype, subok=True, copy=False)
     return x
+
+
+###############################################################################
+# FFT Resampling
+
+def setup_cuda_fft_resample(n_jobs, W, new_len):
+    """Set up CUDA FFT resampling
+
+    Parameters
+    ----------
+    n_jobs : int | str
+        If n_jobs == 'cuda', the function will attempt to set up for CUDA
+        FFT resampling.
+    W : array
+        The filtering function to be used during resampling.
+        If n_jobs='cuda', this function will be shortened (since CUDA
+        assumes FFTs of real signals are half the length of the signal)
+        and turned into a gpuarray.
+    new_len : int
+        The size of the array following resampling.
+
+    Returns
+    -------
+    n_jobs : int
+        Sets n_jobs = 1 if n_jobs == 'cuda' was passed in, otherwise
+        original n_jobs is passed.
+    cuda_dict : dict
+        Dictionary with the following CUDA-related variables:
+            use_cuda : bool
+                Whether CUDA should be used.
+            fft_plan : instance of FFTPlan
+                FFT plan to use in calculating the FFT.
+            ifft_plan : instance of FFTPlan
+                FFT plan to use in calculating the IFFT.
+            x_fft : instance of gpuarray
+                Empty allocated GPU space for storing the result of the
+                frequency-domain multiplication.
+            y_fft : instance of gpuarray
+                Empty allocated GPU space for storing the result of the
+                resampling.
+            x : instance of gpuarray
+                Empty allocated GPU space for the data to resample.
+            y : instance of gpuarray
+                Empty allocated GPU space for the resampled data.
+    W : array | instance of gpuarray
+        This will either be a gpuarray (if CUDA enabled) or np.ndarray.
+        If CUDA is enabled, W will be modified appropriately for use
+        with filter.fft_multiply().
+
+    Notes
+    -----
+    This function is designed to be used with fft_resample().
+    """
+    cuda_dict = dict(use_cuda=False, fft_plan=None, ifft_plan=None,
+                     x_fft=None, x=None, y_fft=None, y=None)
+    if n_jobs == 'cuda':
+        n_jobs = 1
+        if cuda_capable:
+            use_cuda = False
+            # try setting up for float64
+            try:
+                n_fft_x = len(W)
+                cuda_fft_len_x = int((n_fft_x + (n_fft_x % 2)) / 2 + 1)
+                n_fft_y = new_len
+                cuda_fft_len_y = int((n_fft_y + (n_fft_y % 2)) / 2 + 1)
+                fft_plan = cudafft.Plan(n_fft_x, np.float64, np.complex128)
+                ifft_plan = cudafft.Plan(n_fft_y, np.complex128, np.float64)
+                x_fft = gpuarray.empty(cuda_fft_len_x, np.complex128)
+                y_fft = gpuarray.empty(cuda_fft_len_y, np.complex128)
+                x = gpuarray.empty(int(n_fft_x), np.float64)
+                y = gpuarray.empty(int(n_fft_y), np.float64)
+                cuda_W = W[:cuda_fft_len_x].astype('complex128')
+                # do the IFFT normalization now so we don't have to later
+                cuda_W /= n_fft_y
+                W = gpuarray.to_gpu(cuda_W)
+                dtype = np.float64
+                multiply_inplace = cuda_multiply_inplace_complex64
+            except:
+                logger.info('CUDA not used, could not instantiate memory '
+                            '(arrays may be too large), falling back to '
+                            'n_jobs=1')
+            else:
+                use_cuda = True
+
+            if use_cuda is True:
+                logger.info('Using CUDA for FFT FIR filtering')
+                cuda_dict['use_cuda'] = True
+                cuda_dict['fft_plan'] = fft_plan
+                cuda_dict['ifft_plan'] = ifft_plan
+                cuda_dict['x_fft'] = x_fft
+                cuda_dict['y_fft'] = y_fft
+                cuda_dict['x'] = x
+                cuda_dict['y'] = y
+                cuda_dict['dtype'] = dtype
+                cuda_dict['multiply_inplace'] = multiply_inplace
+        else:
+            logger.info('CUDA not used, CUDA has not been initialized, '
+                        'falling back to n_jobs=1')
+    return n_jobs, cuda_dict, W
+
+
+def fft_resample(x, W, new_len, npad, to_remove,
+                 cuda_dict=dict(use_cuda=False)):
+    """Do FFT resampling with a filter function (possibly using CUDA)
+
+    Parameters
+    ----------
+    x : 1-d array
+        The array to resample.
+    W : 1-d array or gpuarray
+        The filtering function to apply.
+    new_len : int
+        The size of the output array (before removing padding).
+    npad : int
+        Amount of padding to apply before resampling.
+    to_remove : int
+        Number of samples to remove after resampling.
+    cuda_dict : dict
+        Dictionary constructed using setup_cuda_multiply_repeated().
+
+    Returns
+    -------
+    x : 1-d array
+        Filtered version of x.
+    """
+    # add some padding at beginning and end to make this work a little cleaner
+    x = _smart_pad(x, npad)
+    N = int(np.minimum(new_len, len(x)))
+    sl_1 = slice((N + 1) / 2)
+    y_fft = np.zeros(new_len, np.complex128)
+    if not cuda_dict['use_cuda']:
+        x_fft = fft(x).ravel()
+        x_fft *= W
+        y_fft[sl_1] = x_fft[sl_1]
+        sl_2 = slice(-(N - 1) / 2, None)
+        y_fft[sl_2] = x_fft[sl_2]
+        y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
+    else:
+        # do the fourier-domain operations, results in second param
+        cuda_dict['x'].set(x.astype(cuda_dict['dtype']))
+        cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
+        cuda_dict['multiply_inplace'](W, cuda_dict['x_fft'])
+        x_fft = cuda_dict['x_fft'].get()
+        y_fft[sl_1] = x_fft[sl_1]
+        cuda_dict['y_fft'].set(y_fft[:cuda_dict['y_fft'].size])
+        cudafft.ifft(cuda_dict['y_fft'], cuda_dict['y'],
+                     cuda_dict['ifft_plan'], False)
+        y = cuda_dict['y'].get().astype(x.dtype, subok=True, copy=False)
+
+    # now let's trim it back to the correct size (if there was padding)
+    if to_remove > 0:
+        keep = np.ones((new_len), dtype='bool')
+        keep[:to_remove] = False
+        keep[-to_remove:] = False
+        y = np.compress(keep, y)
+
+    return y
+
+
+###############################################################################
+# Misc
+
+# this has to go in mne.cude instead of mne.filter to avoid import errors
+def _smart_pad(x, n_pad):
+    """Pad vector x
+    """
+    return np.r_[2 * x[0] - x[n_pad:0:-1], x, 2 * x[-1] - x[-2:-n_pad - 2:-1]]

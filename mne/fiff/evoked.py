@@ -482,7 +482,7 @@ class Evoked(object):
             Window to use in resampling. See scipy.signal.resample.
         """
         o_sfreq = self.info['sfreq']
-        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        self.data = resample(self.data, sfreq, o_sfreq, npad, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
         self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
