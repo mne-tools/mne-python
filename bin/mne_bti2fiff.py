@@ -34,12 +34,12 @@ if __name__ == '__main__':
                     help='Default translation, meter',
                     default=(0.00, 0.02, 0.11))
     parser.add_option('-u', '--use_hpi', dest='use_hpi',
-                    help='Use all or onlye the first three HPI coils',
+                    help='Use all or only the first three HPI coils',
                     default=False)
     parser.add_option('-f', '--force_units', dest='force_units',
                     help='Scaling applied to MEG channels.', default=False)
     parser.add_option('-v', '--verbose', dest='verbose',
-                    help='Print single processing steps to command line',
+                    help='Print processing steps to command line',
                     default=True)
 
     options, args = parser.parse_args()
