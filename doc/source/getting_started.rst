@@ -100,13 +100,13 @@ To initialize mne-python cuda support, after installing these dependencies
 and running their associated unit tests (to ensure your installation is correct)
 you can run:
 
-    >>> mne.cuda.init_cuda()
+    >>> mne.cuda.init_cuda() # doctest: +SKIP
 
 If you have everything installed correctly, you should see an INFO-level log
 message telling you your CUDA hardware's available memory. To have CUDA
 initialized on startup, you can do:
 
-    >>> mne.utils.set_config('MNE_USE_CUDA', 'true')
+    >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
 
 You can test if MNE CUDA support is working by running the associated test:
 
