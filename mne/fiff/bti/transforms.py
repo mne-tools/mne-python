@@ -7,11 +7,21 @@ from . constants import BTI
 
 import numpy as np
 
-BTI.T_ROT_VV = ((0, -1, 0, 0), (1, 0, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
-BTI.T_IDENT = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
-BTI.T_ROT_IX = slice(0, 3), slice(0, 3)
-BTI.T_TRANS_IX = slice(0, 3), slice(3, 4)
-BTI.T_SCA_IX = slice(3, 4), slice(0, 4)
+
+def bti_identity_trans(dtype='f8'):
+    """ Get BTi identity transform
+
+    Parameters
+    ----------
+    dtype : str | dtype object
+        The data format of the transform
+
+    Returns
+    -------
+    itrans : ndarray
+        The 4 x 4 transformation matrix.
+    """
+    return np.array(BTI.T_IDENT, dtype=dtype)
 
 
 def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
@@ -33,7 +43,7 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
 
     """
     flip_t = np.array(BTI.T_ROT_VV, np.float64)
-    adjust_t = np.array(BTI.T_IDENT, np.float64)
+    adjust_t = bti_identity_trans()
     adjust = 0 if adjust is None else adjust
     deg = np.deg2rad(float(adjust))
     adjust_t[[1, 2], [1, 2]] = np.cos(deg)
@@ -49,8 +59,6 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
 def bti_to_vv_coil_trans(ch_t, bti_t, nm_t, nm_default_scale=True):
     """ transforms 4D coil position to fiff / Neuromag
     """
-    ch_t = np.array(ch_t.split(', '), dtype=float).reshape([4, 4])
-
     nm_coil_trans = apply_trans(inverse_trans(ch_t, bti_t), nm_t)
 
     if nm_default_scale:
@@ -88,7 +96,7 @@ def apply_trans(x, t, rot=BTI.T_ROT_IX, trans=BTI.T_TRANS_IX,
 def merge_trans(t1, t2):
     """ Merge two transforms
     """
-    t = np.array(BTI.T_IDENT, dtype=np.float32)
+    t = bti_identity_trans('f4')
     t[BTI.T_ROT_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_ROT_IX])
     t[BTI.T_TRANS_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_TRANS_IX])
     t[BTI.T_TRANS_IX] += t1[BTI.T_TRANS_IX]

@@ -66,6 +66,7 @@ BTI.DATA_ROT_N_ROW             = 3
 BTI.DATA_ROT_N_COL             = 3
 BTI.DATA_XFM_N_COL             = 4
 BTI.DATA_XFM_N_ROW             = 4
+BTI.FIFF_LOGNO                 = 111
 #
 ## Channel Types
 #
@@ -97,3 +98,11 @@ BTI.UB_B_E_TABLE          = 'B_E_TABLE'
 BTI.UB_B_WEIGHTS_USED     = 'B_weights_used'
 BTI.UB_B_TRIG_MASK        = 'B_trig_mask'
 BTI.UB_B_WEIGHT_TABLE     = 'BWT_'
+#
+## transforms
+#
+BTI.T_ROT_VV = ((0, -1, 0, 0), (1, 0, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
+BTI.T_IDENT = ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (1, 1, 1, 1))
+BTI.T_ROT_IX = slice(0, 3), slice(0, 3)
+BTI.T_TRANS_IX = slice(0, 3), slice(3, 4)
+BTI.T_SCA_IX = slice(3, 4), slice(0, 4)
