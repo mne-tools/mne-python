@@ -21,6 +21,8 @@ Changelog
 
    - Support for diagonal noise covariances in inverse methods and rank computation by `Eric Larson`_
 
+   - Support for using CUDA in FFT-based FIR filtering (method='fft') and resampling by `Eric Larson`_
+
 
 API
 ~~~
