@@ -954,7 +954,7 @@ class RawBTi(Raw):
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info, bti_data = _read_data(pdf_fname, config_fname)
 
-        bti_trans = bti_info['bti_transform'][0]  # XXX informed guess.
+        dev_ctf_t = bti_info['bti_transform'][0]  # XXX indx is informed guess.
         bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
                                     translation=translation)
 
@@ -999,7 +999,7 @@ class RawBTi(Raw):
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
-                    t, loc = _convert_coil_trans(t, bti_trans, bti_to_nm)
+                    t, loc = _convert_coil_trans(t, dev_ctf_t, bti_to_nm)
                     if idx == 1:
                         logger.info('... putting coil transforms in Neuromag'
                                     ' coordinates')
@@ -1046,8 +1046,6 @@ class RawBTi(Raw):
 
         info['chs'] = chs
 
-        nm_dev_head_t = bti_identity_trans()
-
         if not op.isabs(head_shape_fname):
             op.isabs(head_shape_fname)
             head_shape_fname = op.join(op.abspath(op.curdir),
@@ -1062,14 +1060,22 @@ class RawBTi(Raw):
                     head_shape_fname)
         logger.info('... putting digitization points in Neuromag c'
                     'oordinates')
-        info['dig'], m_h_nm_h = _setup_head_shape(head_shape_fname, use_hpi)
+        info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
         logger.info('... Computing new device to head transform.')
-        nm_dev_head_t = _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h)
+        dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm, ctf_head_t)
 
         info['dev_head_t'] = dict()
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['dev_head_t']['trans'] = nm_dev_head_t
+        info['dev_head_t']['trans'] = dev_head_t
+        info['dev_ctf_t'] = dict()
+        info['dev_ctf_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_DEVICE
+        info['dev_ctf_t']['to'] = FIFF.FIFFV_COORD_HEAD
+        info['dev_ctf_t']['trans'] = dev_ctf_t
+        info['ctf_head_t'] = dict()
+        info['ctf_head_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+        info['ctf_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
+        info['ctf_head_t']['trans'] = ctf_head_t
 
         logger.info('Done.')
 
