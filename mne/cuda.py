@@ -213,7 +213,8 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
                      cuda_dict['ifft_plan'], False)
-        x = cuda_dict['x'].get().astype(x.dtype, subok=True, copy=False)
+        x = np.array(cuda_dict['x'].get(), dtype=x.dtype, subok=True,
+                     copy=False)
     return x
 
 
@@ -362,7 +363,8 @@ def fft_resample(x, W, new_len, npad, to_remove,
         cuda_dict['y_fft'].set(y_fft[:cuda_dict['y_fft'].size])
         cudafft.ifft(cuda_dict['y_fft'], cuda_dict['y'],
                      cuda_dict['ifft_plan'], False)
-        y = cuda_dict['y'].get().astype(x.dtype, subok=True, copy=False)
+        y = np.array(cuda_dict['y'].get(), dtype=x.dtype, subok=True,
+                     copy=False)
 
     # now let's trim it back to the correct size (if there was padding)
     if to_remove > 0:
