@@ -679,8 +679,9 @@ class Raw(object):
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             mne.fiff.pick_types(raw.info, meg=False, stim=True, exclude=[]).
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly and CUDA is initialized.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
