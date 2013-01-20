@@ -24,7 +24,10 @@ Changelog
 
 API
 ~~~
+
    - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
+
+   - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
 .. _changes_0_5:
 
