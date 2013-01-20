@@ -48,10 +48,12 @@ plot_evoked(evoked, ylim=ylim, proj=True)
 # Run solver
 alpha = 70  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
+limit_depth_chs = False  # remove depth bias with all channels (optional)
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=loose, depth=depth)
+                                         loose=loose, depth=depth,
+                                         limit_depth_chs=limit_depth_chs)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
