@@ -13,7 +13,7 @@ logger = logging.getLogger('mne')
 
 def _unpack_matrix(fid, format, rows, cols, dtype):
     """ Aux Function """
-    out = np.zeros([rows, cols], dtype=dtype)
+    out = np.zeros((rows, cols), dtype=dtype)
     bsize = struct.calcsize(format)
     string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
     data = struct.unpack(format, string)

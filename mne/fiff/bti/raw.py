@@ -1,3 +1,4 @@
+
 # Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
@@ -72,12 +73,12 @@ def _rename_channels(names):
         List fo names, channel names in Neuromag style
     """
     new = list()
-    ref_mag, ref_grad, eog, ext = ((lambda: count(1))() for i in range(4))
+    ref_mag, ref_grad, eog, ext = [count(1) for _ in range(4)]
     for i, name in enumerate(names, 1):
         if name.startswith('A'):
             name = 'MEG %3.3d' % i
         elif name == 'RESPONSE':
-            name = 'SRI 013'
+            name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
         elif name.startswith('EOG'):
@@ -112,7 +113,38 @@ def _read_head_shape(fname):
     return idx_points, dig_points
 
 
-def setup_head_shape(fname, use_hpi=True):
+def _convert_head_shape(idx_points, dig_points):
+    """ Helper function """
+
+    fp = idx_points
+    dp = np.sum(fp[2] * (fp[0] - fp[1]))
+    tmp1, tmp2 = np.sum(fp[2] ** 2), np.sum((fp[0] - fp[1]) ** 2)
+    dcos = -dp / np.sqrt(tmp1 * tmp2)
+    dsin = np.sqrt(1. - dcos * dcos)
+    dt = dp / np.sqrt(tmp2)
+
+    idx_points_nm = np.ones((len(fp), 3))
+    idx_points_nm[:, 0] = dcos * fp[:, 0] - dsin * fp[:, 0] + dt
+    idx_points_nm[:, 1] = dsin * fp[:, 1] + dcos * fp[:, 1]
+    idx_points_nm[:, 2] = fp[:, 2]
+
+    # adjust order of fiducials to Neuromag
+    idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
+
+    t = bti_identity_trans('f4')
+    t[0, 0] = dcos
+    t[0, 1] = -dsin
+    t[1, 0] = dsin
+    t[1, 1] = dcos
+    t[0, 3] = dt
+
+    dig_points_nm = np.dot(t[BTI.T_ROT_IX], dig_points.T).T
+    dig_points_nm += t[BTI.T_TRANS_IX].T
+
+    return dig_points_nm, dig_points_nm, t
+
+
+def _setup_head_shape(fname, use_hpi=True):
     """Read index points and dig points from BTi head shape file
 
     Parameters
@@ -123,96 +155,66 @@ def setup_head_shape(fname, use_hpi=True):
     Returns
     -------
     dig : list of dicts
-        The list of dig point info structures needed for the fiff info stucture.
+        The list of dig point info structures needed for the fiff info
+        stucture.
     use_hpi : bool
         Whether to treat additional hpi coils as digitization points or not.
         If False, hpi coils will be discarded.
     """
     idx_points, dig_points = _read_head_shape(fname)
-
+    idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
     all_points = np.r_[idx_points, dig_points]
-    fiducials_idents = range(1, 4) + range(1, (len(idx_points) + 1) - 3)
+
+    idx_idents = range(1, 4) + range(1, (len(idx_points) + 1) - 3)
     dig = []
     for idx in xrange(all_points.shape[0]):
         point_info = dict(zip(FIFF_INFO_DIG_FIELDS, FIFF_INFO_DIG_DEFAULTS))
         point_info['r'] = all_points[idx]
         if idx < 3:
             point_info['kind'] = FIFF.FIFFV_POINT_CARDINAL
-            point_info['ident'] = fiducials_idents[idx]
+            point_info['ident'] = idx_idents[idx]
         if 2 < idx < len(idx_points) and use_hpi:
             point_info['kind'] = FIFF.FIFFV_POINT_HPI
-            point_info['ident'] = fiducials_idents[idx]
+            point_info['ident'] = idx_idents[idx]
         elif idx > 4:
             point_info['kind'] = FIFF.FIFFV_POINT_EXTRA
-            point_info['ident'] = (idx + 1) - len(fiducials_idents)
+            point_info['ident'] = (idx + 1) - len(idx_idents)
 
         if 2 < idx < len(idx_points) and not use_hpi:
             pass
         else:
             dig += [point_info]
 
-    return dig
+    return dig, t
 
 
-def convert_coord_frame(info):
-    """ Convert dig points and compute BTi to Neuromag head transform
+def _convert_coil_trans(coil_trans, bti_trans, bti_to_nm):
+    """ Helper Function """
+    t = bti_to_vv_coil_trans(coil_trans, bti_trans, bti_to_nm)
+    loc = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
 
-    This function will modify the info in-place.
-    Parameters
-    ----------
-    info : dict
-        The measurement info
+    return t, loc
 
-    Returns
-    -------
-    t : ndarray
-        The 4 x 4 matrix describing the Magnes3600WH head to Neuromag head
-        transformation.
-    """
 
-    fp = np.array([d['r'] for d in info['dig']
-                  if d['kind'] != FIFF.FIFFV_POINT_EXTRA])
-    dp = np.sum(fp[2] * (fp[0] - fp[1]))
-    tmp1, tmp2 = np.sum(fp[2] ** 2), np.sum((fp[0] - fp[1]) ** 2)
-    dcos = -dp / np.sqrt(tmp1 * tmp2)
-    dsin = np.sqrt(1. - dcos * dcos)
-    dt = dp / np.sqrt(tmp2)
+def _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h):
+    """ Helper Function """
+    nm_to_m_sensor = inverse_trans(bti_identity_trans(), bti_to_nm)
+    nm_sensor_m_head = merge_trans(bti_trans, nm_to_m_sensor)
+    nm_dev_head_t = merge_trans(m_h_nm_h, nm_sensor_m_head)
+    nm_dev_head_t[3, :3] = 0.
 
-    fiducials_nm = np.ones([len(fp), 3])
-    fiducials_nm[:, 0] = dcos * fp[:, 0] - dsin * fp[:, 0] + dt
-    fiducials_nm[:, 1] = dsin * fp[: 1] + dcos * fp[:, 1]
-    fiducials_nm[:, 2] = fp[:, 2]
-
-    # adjust order of fiducials to Neuromag
-    fiducials_nm[[1, 2]] = fiducials_nm[[2, 1]]
-
-    t = bti_identity_trans('f8')
-    t[0, 0] = dcos
-    t[0, 1] = -dsin
-    t[1, 0] = dsin
-    t[1, 1] = dcos
-    t[0, 3] = dt
-
-    dpnts = np.array([d['r'] for d in info['dig']
-                     if d['kind'] != FIFF.FIFFV_POINT_EXTRA])
-    dig_points_nm = np.dot(t[BTI.T_ROT_IX], dpnts).T
-    dig_points_nm += t[BTI.T_TRANS_IX].T
-
-    for idx, pnt in enumerate([np.r_[fiducials_nm, dig_points_nm]]):
-        info['dig'][idx]['r'] = pnt
-
-    return t
+    return nm_dev_head_t
 
 
 def _correct_offset(fid):
-    """Align fid pointer"""
+    """ Align fid pointer """
     current = fid.tell()
     if ((current % BTI.FILE_CURPOS) != 0):
         offset = current % BTI.FILE_CURPOS
         fid.seek(BTI.FILE_CURPOS - (offset), 1)
 
 
-def read_config(fname):
+def _read_config(fname):
     """Read BTi system config file
 
     Parameters
@@ -222,36 +224,36 @@ def read_config(fname):
 
     Returns
     -------
-    cfg : Bunch
-        A dict like structure including the config blocks found.
+    cfg : dict
+        The config blocks found.
 
     """
     fid = open(fname, 'rb')
 
-    cfg = Bunch()
+    cfg = dict()
 
-    cfg.hdr = {'version': read_int16(fid),
-               'site_name': read_str(fid, 32),
-               'dap_hostname': read_str(fid, 16),
-               'sys_type': read_int16(fid),
-               'sys_options': read_int32(fid),
-               'supply_freq': read_int16(fid),
-               'total_chans': read_int16(fid),
-               'system_fixed_gain': read_float(fid),
-               'volts_per_bit': read_float(fid),
-               'total_sensors': read_int16(fid),
-               'total_user_blocks': read_int16(fid),
-               'next_der_chan_no': read_int16(fid)}
+    cfg['hdr'] = {'version': read_int16(fid),
+                  'site_name': read_str(fid, 32),
+                  'dap_hostname': read_str(fid, 16),
+                  'sys_type': read_int16(fid),
+                  'sys_options': read_int32(fid),
+                  'supply_freq': read_int16(fid),
+                  'total_chans': read_int16(fid),
+                  'system_fixed_gain': read_float(fid),
+                  'volts_per_bit': read_float(fid),
+                  'total_sensors': read_int16(fid),
+                  'total_user_blocks': read_int16(fid),
+                  'next_der_chan_no': read_int16(fid)}
 
     fid.seek(2, 1)
 
-    cfg.checksum = read_uint32(fid)
-    cfg.reserved = read_char(fid, 32)
-    cfg.transforms = [read_transform(fid) for t in
-                      range(cfg.hdr['total_sensors'])]
+    cfg['checksum'] = read_uint32(fid)
+    cfg['reserved'] = read_char(fid, 32)
+    cfg['transforms'] = [read_transform(fid) for t in
+                         range(cfg['hdr']['total_sensors'])]
 
-    cfg.user_blocks = dict()
-    for block in range(cfg.hdr['total_user_blocks']):
+    cfg['user_blocks'] = dict()
+    for block in range(cfg['hdr']['total_user_blocks']):
         ub = dict()
         ub['hdr'] = {'nbytes': read_int32(fid),
                      'kind': read_str(fid, 20),
@@ -268,7 +270,7 @@ def read_config(fname):
                                ' acquired data using a BTi verison currently'
                                'not supported. Please contact the mne-python'
                                ' developers.')
-        dta, cfg.user_blocks[kind] = dict(), ub
+        dta, cfg['user_blocks'][kind] = dict(), ub
         if kind in [v for k, v in BTI.items() if k[:5] == 'UB_B_']:
             if kind == BTI.UB_B_MAG_INFO:
                 dta['version'] = read_int32(fid)
@@ -293,7 +295,9 @@ def read_config(fname):
 
             elif kind == BTI.UB_B_CCP_XFM_BLOCK:
                 dta['method'] = read_int32(fid)
-                fid.seek(4, 1)
+                # handle difference btw/ linux (0) and solaris (4)
+                size = 0 if ub['hdr']['user_space_size'] == 132 else 4
+                fid.seek(size, 1)
                 dta['transform'] = read_transform(fid)
 
             elif kind == BTI.UB_B_EEG_LOCS:
@@ -314,7 +318,7 @@ def read_config(fname):
 
             elif kind == BTI.UB_B_WHC_CHAN_MAP:
                 num_channels = None
-                for name, data in cfg.user_blocks.items():
+                for name, data in cfg['user_blocks'].items():
                     if name == BTI.UB_B_WHC_CHAN_MAP_VER:
                         num_channels = data['entries']
                         break
@@ -335,7 +339,7 @@ def read_config(fname):
 
             elif kind == BTI.UB_B_WHS_SUBSYS:
                 num_subsys = None
-                for name, data in cfg.user_blocks.items():
+                for name, data in cfg['user_blocks'].items():
                     if name == BTI.UB_B_WHS_SUBSYS_VER:
                         num_subsys = data['entries']
                         break
@@ -379,7 +383,9 @@ def read_config(fname):
                 dta['logdir'] = read_str(fid, 256)
 
             elif kind == BTI.UB_B_SYS_CONFIG_TIME:
-                dta['sysconfig_name'] = read_str(fid, 512)
+                # handle difference btw/ linux (256) and solaris (512)
+                size = 256 if ub['hdr']['user_space_size'] == 260 else 512
+                dta['sysconfig_name'] = read_str(fid, size)
                 dta['timestamp'] = read_int32(fid)
 
             elif kind == BTI.UB_B_DELTA_ENABLED:
@@ -479,14 +485,14 @@ def read_config(fname):
         ub.update(dta)  # finally update the userblock data
         _correct_offset(fid)  # after reading.
 
-    cfg.channels = list()
+    cfg['chs'] = list()
 
     # prepare reading channels
     dev_header = lambda x: {'size': read_int32(x),
                             'checksum': read_int32(x),
                             'reserved': read_str(x, 32)}
 
-    for channel in range(cfg.hdr['total_chans']):
+    for channel in range(cfg['hdr']['total_chans']):
         ch = {'name': read_str(fid, 16),
               'chan_no': read_int16(fid),
               'ch_type': read_uint16(fid),
@@ -501,7 +507,7 @@ def read_config(fname):
                    'checksum': read_int32(fid),
                    'reserved': read_str(fid, 32)})
 
-        cfg.channels += [ch]
+        cfg['chs'] += [ch]
         _correct_offset(fid)  # before and after
         dta = dict()
         if ch['ch_type'] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
@@ -809,7 +815,7 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     fname
     start : int | None
         The number of the first time slice to read. If None, all data will
-        be read from the begninning.
+        be read from the beginning.
     stop : int | None
         The number of the last time slice to read. If None, all data will
         be read to the end.
@@ -818,6 +824,8 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
 
     Returns
     -------
+    info : dict
+        The measurement info.
     data : ndarray
         The measurement data, a channels x timeslices array.
     """
@@ -843,14 +851,14 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     data = np.fromfile(info['fid'], dtype=info['dtype'],
                        count=cnt).reshape(shape).T.astype(dtype)
 
-    cfg = read_config(config_fname)
-    info['bti_transform'] = cfg.transforms
+    cfg = _read_config(config_fname)
+    info['bti_transform'] = cfg['transforms']
 
     # augment channel list by according info from config.
     # get channels from config present in PDF
     chans = info['chs']
     chans.sort(key=lambda c: c['chan_no'])
-    chans_cfg = [c for c in cfg.channels if c['chan_no']
+    chans_cfg = [c for c in cfg['chs'] if c['chan_no']
                  in [c_['chan_no'] for c_ in chans]]
     chans_cfg.sort(key=lambda c: c['chan_no'])
 
@@ -888,15 +896,15 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     info['chs'] = [chans[pos] for pos in by_name]
 
     # finally add some important fields from the config
-    info['e_table'] = cfg.user_blocks[BTI.UB_B_E_TABLE_USED]
-    info['weights'] = cfg.user_blocks[BTI.UB_B_WEIGHTS_USED]
+    info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
+    info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
     info['ch_names'] = [ch['name'] for ch in info['chs']]
 
     return info, data[by_name] * np.array([cal[by_name]]).T
 
 
-class Raw(Raw):
-    """ Raw object from 4-D Neuroimaging MagnesWH3600 data
+class RawBTi(Raw):
+    """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Parameters
     ----------
@@ -920,9 +928,6 @@ class Raw(Raw):
     force_units : bool | float
         If True and MEG sensors are scaled to 1, data will be scaled to
         base_units. If float, data will be scaled to the value supplied.
-    to_vv : bool
-        If True, all coordinates are put in Neuromag space.
-        Else coordinatrs will be keept as found in the measurement files.
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -936,7 +941,7 @@ class Raw(Raw):
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=2,
                  translation=(0.0, 0.02, 0.11), use_hpi=False,
-                 force_units=False, to_vv=True, verbose=True):
+                 force_units=False, verbose=None):
 
         if not op.isabs(config_fname):
             config_fname = op.join(op.abspath(op.curdir),
@@ -948,17 +953,10 @@ class Raw(Raw):
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info, bti_data = _read_data(pdf_fname, config_fname)
-        _use_hpi = use_hpi
 
-        bti_sys_trans = bti_info['bti_transform'][0]  # XXX informed guess.
-
-        if to_vv:
-            bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
-                                        translation=translation)
-            coord_frame = FIFF.FIFFV_COORD_DEVICE
-        else:
-            bti_to_nm = bti_identity_trans('f8')
-            coord_frame = FIFF.FIFFV_COORD_HEAD
+        bti_trans = bti_info['bti_transform'][0]  # XXX informed guess.
+        bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
+                                    translation=translation)
 
         logger.info('Creating Neuromag info structure ...')
         info = dict()
@@ -972,13 +970,13 @@ class Raw(Raw):
         info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
         info['nchan'] = len(bti_info['chs'])
         filtname = bti_info['e_table']['hdr']['filtername']
-        low, high = 0, 600
+        low, high = 0, .4 * info['sfreq']  # XXX find a better default
         if filtname:
             filtname = filtname.split(',')
             if len(filtname) < 2:
                 low = float(filtname[0])
             else:
-                low, high = np.array(filtname, dtype='f8')
+                low, high = np.array(filtname, dtype='f4')
         info['highpass'] = low
         info['lowpass'] = high
         info['acq_pars'], info['acq_stim'] = None, None
@@ -1000,20 +998,20 @@ class Raw(Raw):
 
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
-                if to_vv and t is not None:
-                    t = bti_to_vv_coil_trans(t, bti_sys_trans, bti_to_nm)
-                    loc = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
+                if t is not None:
+                    t, loc = _convert_coil_trans(t, bti_trans, bti_to_nm)
                     if idx == 1:
                         logger.info('... putting coil transforms in Neuromag'
                                     ' coordinates')
                 chan_info['coil_trans'] = t
-                chan_info['loc'] = loc
+                if loc is not None:
+                    chan_info['loc'] = loc
                 chan_info['logno'] = idx
 
             if chan_vv.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_MAG
-                chan_info['coord_frame'] = coord_frame
+                chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['unit'] = FIFF.FIFF_UNIT_T
 
             elif chan_vv.startswith('RFM'):
@@ -1056,26 +1054,20 @@ class Raw(Raw):
                                        op.basename(head_shape_fname))
 
         if not op.exists(head_shape_fname):
-            raise ValueError('Could not find the head_shape file %s. You should'
-                       ' check whether you are in the right directory or p'
-                       'ass the correct file name.' % head_shape_fname)
+            raise ValueError('Could not find the head_shape file %s. You shoul'
+                             'd check whether you are in the right directory o'
+                             'r pass the full file name.' % head_shape_fname)
 
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)
-        info['dig'] = setup_head_shape(head_shape_fname, _use_hpi)
+        logger.info('... putting digitization points in Neuromag c'
+                    'oordinates')
+        info['dig'], m_h_nm_h = _setup_head_shape(head_shape_fname, use_hpi)
+        logger.info('... Computing new device to head transform.')
+        nm_dev_head_t = _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h)
 
-        if to_vv:
-            logger.info('... putting digitization points in Neuromag c'
-                        'oordinates')
-            m_h_nm_h = convert_coord_frame(info)
-            logger.info('... Computing new device to head transform.')
-            nm_to_m_sensor = inverse_trans(bti_identity_trans(), bti_to_nm)
-            nm_sensor_m_head = merge_trans(bti_sys_trans, nm_to_m_sensor)
-            nm_dev_head_t = merge_trans(m_h_nm_h, nm_sensor_m_head)
-            nm_dev_head_t[3, :3] = 0.
-
-        info['dev_head_t'] = {}
-        info['dev_head_t']['from'] = coord_frame
+        info['dev_head_t'] = dict()
+        info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
         info['dev_head_t']['trans'] = nm_dev_head_t
 
@@ -1150,7 +1142,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
         If not None, override default verbose level (see mne.verbose).
 
     """
-    return Raw(pdf_fname, config_fname=config_fname,
-               head_shape_fname=head_shape_fname,
-               rotation_x=rotation_x, translation=translation, use_hpi=use_hpi,
-               force_units=True, to_vv=True, verbose=verbose)
+    return RawBTi(pdf_fname, config_fname=config_fname,
+                  head_shape_fname=head_shape_fname,
+                  rotation_x=rotation_x, translation=translation,
+                  use_hpi=use_hpi, force_units=True, verbose=verbose)

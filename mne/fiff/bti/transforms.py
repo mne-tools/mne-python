@@ -8,7 +8,7 @@ from . constants import BTI
 import numpy as np
 
 
-def bti_identity_trans(dtype='f8'):
+def bti_identity_trans(dtype='f4'):
     """ Get BTi identity transform
 
     Parameters
