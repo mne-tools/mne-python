@@ -1003,7 +1003,7 @@ class Raw(Raw):
                 if to_vv and t is not None:
                     t = bti_to_vv_coil_trans(t, bti_sys_trans, bti_to_nm)
                     loc = np.roll(t.copy().T, 1, 0)[:, :3].flatten()
-                    if idx < 1:
+                    if idx == 1:
                         logger.info('... putting coil transforms in Neuromag'
                                     ' coordinates')
                 chan_info['coil_trans'] = t
@@ -1105,6 +1105,7 @@ class Raw(Raw):
         # rescale
         self._data = bti_data
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
+
         assert len(self._data) == len(self.info['ch_names'])
         self._times = np.arange(self.first_samp, \
                                 self.last_samp + 1) / info['sfreq']
