@@ -1144,8 +1144,9 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
         Number of samples to use at the beginning and end for padding.
     window : string or tuple
         See scipy.signal.resample for description.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly and CUDA is initialized.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
