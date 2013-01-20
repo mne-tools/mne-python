@@ -27,8 +27,7 @@ from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     notch_filter, band_stop_filter, resample, \
-                     construct_iir_filter
+                     notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
@@ -396,12 +395,10 @@ class Raw(object):
         else:
             # use parallel function
             parallel, p_fun, _ = parallel_func(fun, n_jobs)
-
-            data_picks = data_in[picks, :]
-            data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
-                                      for x in data_picks))
-
-            self._data[picks, :] = data_picks_new
+            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+                                      for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
 
     @verbose
     def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=None):
@@ -505,8 +502,9 @@ class Raw(object):
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
             Width of the transition band at the high cut-off frequency in Hz.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
@@ -524,6 +522,9 @@ class Raw(object):
             l_freq = None
         if h_freq > (fs / 2.):
             h_freq = None
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
 
@@ -535,54 +536,39 @@ class Raw(object):
             if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                     l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
-
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, h_freq,
-                                                  h_freq + h_trans_bandwidth,
-                                                  fs, 'lowpass')
-            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
-                                fs, h_freq, filter_length=filter_length,
-                                trans_bandwidth=l_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            low_pass_filter(self._data, fs, h_freq,
+                            filter_length=filter_length,
+                            trans_bandwidth=l_trans_bandwidth, method=method,
+                            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                            copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, l_freq,
-                                                  l_freq - l_trans_bandwidth,
-                                                  fs, 'highpass')
-            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
-                                fs, l_freq, filter_length=filter_length,
-                                trans_bandwidth=h_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            high_pass_filter(self._data, fs, l_freq,
+                             filter_length=filter_length,
+                             trans_bandwidth=h_trans_bandwidth, method=method,
+                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                             copy=False)
         if l_freq is not None and h_freq is not None:
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [l_freq, h_freq], [l_freq - l_trans_bandwidth,
-                         h_freq + h_trans_bandwidth], fs, 'bandpass')
-                self.apply_function(band_pass_filter, picks, None, n_jobs,
-                                    verbose, fs, l_freq, h_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=l_trans_bandwidth,
-                                    h_trans_bandwidth=h_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_pass_filter(self._data, fs, l_freq, h_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=l_trans_bandwidth,
+                    h_trans_bandwidth=h_trans_bandwidth,
+                    method=method, iir_params=iir_params, picks=picks,
+                    n_jobs=n_jobs, copy=False)
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [h_freq, l_freq], [h_freq + h_trans_bandwidth,
-                         l_freq - l_trans_bandwidth], fs, 'bandstop')
-                self.apply_function(band_stop_filter, picks, None, n_jobs,
-                                    verbose, fs, h_freq, l_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=h_trans_bandwidth,
-                                    h_trans_bandwidth=l_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_stop_filter(self._data, fs, h_freq, l_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=h_trans_bandwidth,
+                    h_trans_bandwidth=l_trans_bandwidth, method=method,
+                    iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                    copy=False)
 
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length=None,
@@ -620,8 +606,9 @@ class Raw(object):
             If None, freqs / 200 is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
@@ -650,13 +637,17 @@ class Raw(object):
         fs = float(self.info['sfreq'])
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
 
-        self.apply_function(notch_filter, picks, None, n_jobs, verbose,
-                            fs, freqs, filter_length=filter_length,
-                            notch_widths=notch_widths,
-                            trans_bandwidth=trans_bandwidth,
-                            method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth, p_value=p_value)
+        self._data = notch_filter(self._data, fs, freqs,
+                                  filter_length=filter_length,
+                                  notch_widths=notch_widths,
+                                  trans_bandwidth=trans_bandwidth,
+                                  method=method, iir_params=iir_params,
+                                  mt_bandwidth=mt_bandwidth, p_value=p_value,
+                                  picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
@@ -688,8 +679,9 @@ class Raw(object):
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             mne.fiff.pick_types(raw.info, meg=False, stim=True, exclude=[]).
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly and CUDA is initialized.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -713,11 +705,8 @@ class Raw(object):
         ratio = sfreq / float(o_sfreq)
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-            # use parallel function to resample each channel separately
-            # for speed and to save memory (faster not to use array_split, too)
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                              npad, 0) for d in data_chunk)))
+            new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
+                                     n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
             # Now deal with the stim channels. In empirical testing, it was

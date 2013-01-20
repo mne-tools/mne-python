@@ -72,6 +72,13 @@ To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
 when you run an example ... but be patient)
 
+To use NVIDIA CUDA for FFT FIR filtering, you will also need to install
+the NVIDIA CUDA SDK, pycuda, and scikits.cuda. The difficulty of this varies
+by platform; consider reading the following site for help getting pycuda
+to work (typically the most difficult to configure):
+
+http://wiki.tiker.net/PyCuda/Installation/
+
 Contribute to mne-python
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
