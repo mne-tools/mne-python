@@ -40,6 +40,7 @@ from .selection import read_selection
 from .dipole import read_dip
 from . import beamformer
 from . import connectivity
+from . import cuda
 from . import datasets
 from . import epochs
 from . import fiff
@@ -54,6 +55,10 @@ from . import tests
 from . import time_frequency
 from . import viz
 
-# deal with logging
+# initialize logging
 set_log_level(None, False)
 set_log_file()
+
+# initialize CUDA
+if utils.get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+    cuda.init_cuda()

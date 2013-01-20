@@ -173,7 +173,7 @@ def test_extract_label_time_course():
                   src, mode='notamode')
 
     # have an empty label
-    empty_label = deepcopy(labels[0])
+    empty_label = labels[0].copy()
     empty_label.vertices += 1000000
     assert_raises(ValueError, extract_label_time_course, stcs, empty_label,
                   src, mode='mean')

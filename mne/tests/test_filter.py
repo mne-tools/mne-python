@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
+from scipy.signal import resample as sp_resample
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        band_stop_filter, resample, construct_iir_filter, \
@@ -9,6 +10,8 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
 
 from mne import set_log_file
 from mne.utils import _TempDir
+from mne.cuda import requires_cuda
+
 
 tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')
@@ -56,12 +59,13 @@ def test_notch_filters():
 
 
 def test_filters():
-    """Test low-, band-, high-pass, and band-stop filters"""
+    """Test low-, band-, high-pass, and band-stop filters plus resampling
+    """
     Fs = 500
     sig_len_secs = 30
 
     # Filtering of short signals (filter length = len(a))
-    a = np.random.randn(sig_len_secs * Fs)
+    a = np.random.randn(2, sig_len_secs * Fs)
     bp = band_pass_filter(a, Fs, 4, 8)
     bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5)
     lp = low_pass_filter(a, Fs, 8)
@@ -88,15 +92,27 @@ def test_filters():
 
     # and since these are low-passed, downsampling/upsampling should be close
     n_resamp_ignore = 10
-    bp_up_dn = resample(resample(bp_oa, 2, 1), 1, 2)
+    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs=2), 1, 2, n_jobs=2)
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    # note that on systems without CUDA, this line serves as a test for a
+    # graceful fallback to n_jobs=1
+    bp_up_dn = resample(resample(bp_oa, 2, 1, n_jobs='cuda'), 1, 2,
+                        n_jobs='cuda')
+    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+    # test to make sure our resamling matches scipy's
+    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * len(bp_oa), window='boxcar'),
+                           len(bp_oa), window='boxcar')
+    assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
+                              bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
+
     # make sure we don't alias
-    t = np.array(range(Fs*sig_len_secs))/float(Fs)
+    t = np.array(range(Fs * sig_len_secs)) / float(Fs)
     # make sinusoid close to the Nyquist frequency
-    sig = np.sin(2*np.pi*Fs/2.2*t)
+    sig = np.sin(2 * np.pi * Fs / 2.2 * t)
     # signal should disappear with 2x downsampling
-    sig_gone = resample(sig,1,2)[n_resamp_ignore:-n_resamp_ignore]
+    sig_gone = resample(sig, 1, 2)[n_resamp_ignore:-n_resamp_ignore]
     assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
 
     # let's construct some filters
@@ -118,3 +134,40 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+
+
+@requires_cuda
+def test_cuda():
+    """Test CUDA-based filtering
+    """
+    Fs = 500
+    sig_len_secs = 20
+    a = np.random.randn(sig_len_secs * Fs)
+
+    set_log_file(log_file, overwrite=True)
+    for fl in [None, 2048]:
+        bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
+        bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
+                              filter_length=fl)
+        lp = low_pass_filter(a, Fs, 8, n_jobs=1, filter_length=fl)
+        hp = high_pass_filter(lp, Fs, 4, n_jobs=1, filter_length=fl)
+
+        bp_c = band_pass_filter(a, Fs, 4, 8, n_jobs='cuda', filter_length=fl,
+                                verbose='INFO')
+        bs_c = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
+                                filter_length=fl, verbose='INFO')
+        lp_c = low_pass_filter(a, Fs, 8, n_jobs='cuda', filter_length=fl,
+                               verbose='INFO')
+        hp_c = high_pass_filter(lp, Fs, 4, n_jobs='cuda', filter_length=fl,
+                                verbose='INFO')
+
+        assert_array_almost_equal(bp, bp_c, 12)
+        assert_array_almost_equal(bs, bs_c, 12)
+        assert_array_almost_equal(lp, lp_c, 12)
+        assert_array_almost_equal(hp, hp_c, 12)
+
+    # check to make sure we actually used CUDA
+    set_log_file()
+    out = open(log_file).readlines()
+    assert_true(sum(['Using CUDA for FFT FIR filtering' in o
+                     for o in out]) == 8)
