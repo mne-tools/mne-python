@@ -7,31 +7,21 @@
 #
 #          simplified bsd-3 license
 
-from .. import Raw, pick_types
-from .. constants import Bunch
+from .. import Raw
 from .. import FIFF
 from .  constants import BTI
 from . read import read_int32, read_int16, read_str, read_float, read_double,\
                    read_transform, read_char, read_int64, read_uint16,\
                    read_uint32, read_double_matrix, read_float_matrix,\
                    read_int16_matrix
-
 from .transforms import bti_identity_trans, bti_to_vv_trans,\
                         bti_to_vv_coil_trans, inverse_trans, merge_trans
-
-import time
+from ...utils import verbose
+import logging
 import os.path as op
-from copy import deepcopy
-
-from datetime import datetime
 from itertools import count
-from scipy.sparse import dia_matrix
-
 import numpy as np
 
-from ...utils import verbose
-
-import logging
 logger = logging.getLogger('mne')
 
 
@@ -98,9 +88,6 @@ def _rename_channels(names):
 
     return new
 
-
-###############################################################################
-# Read files
 
 def _read_head_shape(fname):
     """ Helper Function """
@@ -346,8 +333,8 @@ def _read_config(fname):
 
                 if num_subsys is None:
                     raise ValueError('Cannot find block %s to determine'
-                                     ' number o'
-                                     'f subsystems' % BTI.UB_B_WHS_SUBSYS_VER)
+                                     ' number of subsystems'
+                                     % BTI.UB_B_WHS_SUBSYS_VER)
 
                 dta['subsys'] = list()
                 for sub_key in range(num_subsys):
@@ -1123,7 +1110,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=2,
                  translation=(0.0, 0.02, 0.11), use_hpi=False,
                  verbose=True):
-    """ Raw object from 4-D Neuroimaging MagnesWH3600 data
+    """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Parameters
     ----------

@@ -4,8 +4,6 @@
 
 import os
 import os.path as op
-from copy import deepcopy
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -15,7 +13,6 @@ from mne.fiff import Raw as Raw
 
 from mne.fiff.bti.raw import _read_config, _setup_head_shape,\
                              read_raw_bti, _read_data
-from mne.fiff.bti.constants import BTI
 from mne.fiff.bti.transforms import apply_trans, inverse_trans,\
                                     merge_trans
 
