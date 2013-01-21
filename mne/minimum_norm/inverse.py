@@ -1039,14 +1039,14 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         The noise covariance matrix.
     loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
-        defining the tangent space of the cortical surfaces. Should be None
-        for fixed-orientation forward solutions and for forward solutions
-        whose source coordinate system is not surface based.
+        defining the tangent space of the cortical surfaces. Requires surface-
+        based, free orientation forward solutions; loose is automatically set
+        to None with fixed=True.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     fixed : bool
         If True, return a fixed-orientation inverse operator. If True,
-        loose=None must also be used.
+        loose is automatically set to None.
     limit_depth_chs : bool
         If True, use only grad channels in depth weighting (equivalent to MNE
         C code). If grad chanels aren't present, only mag channels will be
@@ -1060,6 +1060,11 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         Inverse operator.
     """
     is_fixed_ori = is_fixed_orient(forward)
+
+    if fixed and loose is not None:
+        warnings.warn("When invoking make_inverse_operator with fixed=True, "
+                      "the loose parameter is ignored.")
+        loose = None
 
     # loose=None and fixed=True: Make fixed
     #    depth=None, can use fixed fwd, depth=0<x<1 must use free ori
