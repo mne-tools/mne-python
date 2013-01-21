@@ -1094,7 +1094,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                              'loose inverse operator (loose parameter other '
                              'than None) requires a surface-based, free '
                              'orientation forward operator.')
-        if not forward['surf_ori']:
+        if loose < 1 and not forward['surf_ori']:
             raise ValueError('Forward operator is not oriented in surface '
                              'coordinates. A loose inverse operator (loose '
                              'parameter other than None) requires a surface-'
