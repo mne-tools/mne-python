@@ -342,11 +342,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
         Filtered version of x.
     """
     # add some padding at beginning and end to make this work a little cleaner
-    print x.shape
-    print npad
     x = _smart_pad(x, npad)
-    print x.shape
-    print W.shape
     N = int(np.minimum(new_len, len(x)))
     sl_1 = slice((N + 1) / 2)
     y_fft = np.zeros(new_len, np.complex128)
