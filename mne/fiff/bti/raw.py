@@ -71,9 +71,9 @@ def _rename_channels(names):
             name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif name.startswith('EOG'):
+        elif name.startswith('EOG') or name.startswith('E6'):
             name = 'EOG %3.3d' % eog.next()
-        elif name == 'ECG':
+        elif name == 'ECG' or name.startswith('E3'):
             name = 'ECG 001'
         elif name == 'UACurrent':
             name = 'UTL 001'
@@ -719,9 +719,11 @@ def _read_ch_config(fid):
     return cfg
 
 
-def _read_bti_header(fid):
+def _read_bti_header(pdf_fname, config_fname):
     """ Read bti PDF header
     """
+    fid = open(pdf_fname, 'rb')
+
     fid.seek(BTI.FILE_END, 2)
     start = fid.tell()
     header_position = read_int64(fid)
@@ -791,15 +793,56 @@ def _read_bti_header(fid):
     bps = info['dtype'].itemsize * info['total_chans']
     info['bytes_per_slice'] = bps
 
+    cfg = _read_config(config_fname)
+    info['bti_transform'] = cfg['transforms']
+
+    # augment channel list by according info from config.
+    # get channels from config present in PDF
+    chans = info['chs']
+    chans_cfg = [c for c in cfg['chs'] if c['chan_no']
+                 in [c_['chan_no'] for c_ in chans]]
+
+    # check all pdf chanels are present in config
+    match = [c['chan_no'] for c in chans_cfg] == \
+            [c['chan_no'] for c in chans]
+
+    if not match:
+        raise RuntimeError('Could not match raw data channels with'
+                           ' config channels. Some of the channels'
+                           ' found are not described in config.')
+
+    # transfer channel info from config to channel info
+    for ch, ch_cfg in zip(chans, chans_cfg):
+        ch['upb'] = ch_cfg['units_per_bit']
+        ch['gain'] = ch_cfg['gain']
+        ch['name'] = ch_cfg['name']
+        ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
+                            if 'dev' in ch_cfg else None)
+        if info['data_format'] >= 3:
+            ch['cal'] = ch['scale'] * ch['upb'] * (ch['gain'] ** -1)
+        else:
+            ch['cal'] = ch['scale'] * ch['gain']
+
+    by_name = [(i, d['name']) for i, d in enumerate(chans)]
+    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
+    by_name = [idx[0] for idx in by_name]
+    # finally add some important fields from the config
+    info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
+    info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
+    info['order'] = by_name
+    info['chs'] = [chans[pos] for pos in by_name]
+    info['cal'] = [c['cal'] for c in info['chs']]
+
     return info
 
 
-def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
+def _read_data(info, start=None, stop=None):
     """ Helper function: read Bti processed data file (PDF)
 
     Parameters
     ----------
-    fname
+    info : dict
+        The measurement info.
     start : int | None
         The number of the first time slice to read. If None, all data will
         be read from the beginning.
@@ -811,15 +854,9 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
 
     Returns
     -------
-    info : dict
-        The measurement info.
     data : ndarray
         The measurement data, a channels x timeslices array.
     """
-
-    fid = open(fname, 'rb')
-
-    info = _read_bti_header(fid)
 
     total_slices = info['total_slices']
     if start is None:
@@ -836,58 +873,11 @@ def _read_data(fname, config_fname, start=None, stop=None, dtype='f8'):
     cnt = (stop - start) * info['total_chans']
     shape = [stop - start, info['total_chans']]
     data = np.fromfile(info['fid'], dtype=info['dtype'],
-                       count=cnt).reshape(shape).T.astype(dtype)
+                       count=cnt).reshape(shape).T
+    data *= np.array([info['cal']]).T
+    info['chs'] = [info['chs'][k] for k in info['order']]
 
-    cfg = _read_config(config_fname)
-    info['bti_transform'] = cfg['transforms']
-
-    # augment channel list by according info from config.
-    # get channels from config present in PDF
-    chans = info['chs']
-    chans.sort(key=lambda c: c['chan_no'])
-    chans_cfg = [c for c in cfg['chs'] if c['chan_no']
-                 in [c_['chan_no'] for c_ in chans]]
-    chans_cfg.sort(key=lambda c: c['chan_no'])
-
-    # check all pdf chanels are present in config
-    match = [c['chan_no'] for c in chans_cfg] == \
-            [c['chan_no'] for c in chans]
-
-    if not match:
-        raise RuntimeError('Could not match raw data channels with'
-                           ' config channels. Some of the channels'
-                           ' found are not described in config.')
-
-    # transfer channel info from config to channel info
-    for ch, ch_cfg in zip(chans, chans_cfg):
-        ch['upb'] = ch_cfg.get('units_per_bit', None)
-        ch['gain'] = ch_cfg.get('gain', None)
-        ch['name'] = ch_cfg['name']
-        ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
-                            if 'dev' in ch_cfg else None)
-
-    # calibrate data
-    keys = ['scale', 'upb', 'gain']
-    upb, gain, scale = [np.array([c[k] for c in chans], 'f8') for k in keys]
-    cal = (scale * upb * (gain ** -1) if info['data_format'] < 3
-           else scale * gain)
-
-    # store calibration values
-    for idx, ch in enumerate(chans):
-        ch['cal'] = cal[idx]
-
-    # now sort channels and data
-    by_name = [(i, d['name']) for i, d in enumerate(chans)]
-    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
-    by_name = [idx[0] for idx in by_name]
-    info['chs'] = [chans[pos] for pos in by_name]
-
-    # finally add some important fields from the config
-    info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
-    info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
-    info['ch_names'] = [ch['name'] for ch in info['chs']]
-
-    return info, data[by_name] * np.array([cal[by_name]]).T
+    return data[info['order']]
 
 
 class RawBTi(Raw):
@@ -912,10 +902,9 @@ class RawBTi(Raw):
     use_hpi : bool
         Whether to treat hpi coils as digitization points or not. If
         False, HPI coils will be discarded.
-    force_units : bool | float
-        If True and MEG sensors are scaled to 1, data will be scaled to
-        base_units. If float, data will be scaled to the value supplied.
-
+    picks : None | array-like | 'str'
+        The channels to be included. If None, all channels will be used.
+        Else channels will be selecte by group or by position.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -926,7 +915,7 @@ class RawBTi(Raw):
     """
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=2,
+                 head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), use_hpi=False,
                  force_units=False, verbose=None):
 
@@ -939,7 +928,7 @@ class RawBTi(Raw):
                              'or pass the full name' % config_fname)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
-        bti_info, bti_data = _read_data(pdf_fname, config_fname)
+        bti_info = _read_bti_header(pdf_fname, config_fname)
 
         dev_ctf_t = bti_info['bti_transform'][0]  # XXX indx is informed guess.
         bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
@@ -960,9 +949,9 @@ class RawBTi(Raw):
         low, high = 0, .4 * info['sfreq']  # XXX find a better default
         if filtname:
             filtname = filtname.split(',')
-            if len(filtname) < 2:
+            if len(filtname) < 2 and not filtname[0].isalpha():
                 low = float(filtname[0])
-            else:
+            elif not any([n.isalpha() for n in filtname]):
                 low, high = np.array(filtname, dtype='f4')
         info['highpass'] = low
         info['lowpass'] = high
@@ -973,15 +962,16 @@ class RawBTi(Raw):
         info['filenames'] = []
         chs = []
 
-        info['ch_names'] = _rename_channels(bti_info['ch_names'])
-        ch_mapping = zip(bti_info['ch_names'], info['ch_names'])
+        ch_names = [ch['name'] for ch in bti_info['chs']]
+        info['ch_names'] = _rename_channels(ch_names)
+        ch_mapping = zip(ch_names, info['ch_names'])
         logger.info('... Setting channel info structure.')
-        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping, 1):
+        for idx, (chan_4d, chan_vv) in enumerate(ch_mapping):
             chan_info = dict(zip(FIFF_INFO_CHS_FIELDS, FIFF_INFO_CHS_DEFAULTS))
             chan_info['ch_name'] = chan_vv
             chan_info['logno'] = idx + BTI.FIFF_LOGNO
-            chan_info['scanno'] = idx
-            chan_info['cal'] = bti_info['chs'][idx - 1]['cal']
+            chan_info['scanno'] = idx + 1
+            chan_info['cal'] = bti_info['chs'][idx]['upb']
 
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
@@ -993,7 +983,6 @@ class RawBTi(Raw):
                 chan_info['coil_trans'] = t
                 if loc is not None:
                     chan_info['loc'] = loc
-                chan_info['logno'] = idx
 
             if chan_vv.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
@@ -1087,8 +1076,7 @@ class RawBTi(Raw):
         self.info = info
 
         logger.info('Reading raw data from %s...' % pdf_fname)
-        # rescale
-        self._data = bti_data
+        self._data = _read_data(bti_info)
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
 
         assert len(self._data) == len(self.info['ch_names'])
@@ -1100,14 +1088,11 @@ class RawBTi(Raw):
                    float(self.first_samp) / info['sfreq'],
                    float(self.last_samp) / info['sfreq']))
 
-        if force_units is not None:
-            pass  # TODO, maybe obsolete
-
         logger.info('Ready.')
 
 
 def read_raw_bti(pdf_fname, config_fname='config',
-                 head_shape_fname='hs_file', rotation_x=2,
+                 head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), use_hpi=False,
                  verbose=True):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data

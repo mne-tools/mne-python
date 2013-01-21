@@ -42,10 +42,10 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
         4 x 4 rotation, translation, scaling matrix.
 
     """
-    flip_t = np.array(BTI.T_ROT_VV, np.float64)
+    flip_t = np.array(BTI.T_ROT_VV, dtype='f4')
     adjust_t = bti_identity_trans()
     adjust = 0 if adjust is None else adjust
-    deg = np.deg2rad(float(adjust))
+    deg = np.deg2rad(np.float32(adjust))
     adjust_t[[1, 2], [1, 2]] = np.cos(deg)
     adjust_t[[1, 2], [2, 1]] = -np.sin(deg), np.sin(deg)
     m_nm_t = np.ones([4, 4])

@@ -12,7 +12,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.fiff import Raw as Raw
 
 from mne.fiff.bti.raw import _read_config, _setup_head_shape,\
-                             read_raw_bti, _read_data
+                             read_raw_bti, _read_data, _read_bti_header
 from mne.fiff.bti.transforms import apply_trans, inverse_trans,\
                                     merge_trans
 
@@ -38,7 +38,8 @@ def test_read_config():
 def test_read_pdf():
     """ Test read bti PDF file """
     for pdf, config in zip(pdf_fnames, config_fnames):
-        info, data = _read_data(pdf, config)
+        info = _read_bti_header(pdf, config)
+        data = _read_data(info)
         info['fid'].close()
 
 
