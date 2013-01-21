@@ -1070,26 +1070,33 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     # loose=None and fixed=True: Make fixed
     #    depth=None, can use fixed fwd, depth=0<x<1 must use free ori
-    if loose is None:
-        if not fixed:
-            raise ValueError('Cannot make inverse with fixed-orientation '
-                             'forward solution unless fixed is True.')
-        if not is_fixed_ori and not forward['surf_ori']:
-            raise ValueError('For a fixed orientation inverse solution, the '
-                             'forward solution must be fixed-orientation '
-                             'and/or in surface orientation')
+    if is_fixed_ori and not fixed:
+        raise ValueError('Forward operator has fixed orientation and can only '
+                         'be used to make a fixed-orientation inverse '
+                         'operator.')
+    if fixed and not (is_fixed_ori or forward['surf_ori']):
+        raise ValueError('For a fixed orientation inverse solution, the '
+                         'forward solution must be fixed-orientation '
+                         'and/or in surface orientation')
+    if depth is not None and (is_fixed_ori or not forward['surf_ori']):
         # Special case for fixed solution when depth-weighting is on
-        if depth is not None and (is_fixed_ori or not forward['surf_ori']):
-            raise ValueError('You need a free-orientation, surface-oriented '
-                             'forward solution to do depth weighting even '
-                             'when calculating a fixed-orientation inverse.')
-    if not forward['surf_ori'] and loose is not None:
-        raise ValueError('Forward operator is not oriented in surface '
-                         'coordinates. loose parameter should be None '
-                         'not %s.' % loose)
-    if loose is not None and not (0 <= loose <= 1):
-        raise ValueError('loose value should be smaller than 1 and bigger than'
-                         ' 0, or None for not loose orientations.')
+        raise ValueError('You need a free-orientation, surface-oriented '
+                         'forward solution to do depth weighting even '
+                         'when calculating a fixed-orientation inverse.')
+    if loose is not None:
+        if is_fixed_ori:
+            raise ValueError('Forward operator has fixed orientation. A '
+                             'loose inverse operator (loose parameter other '
+                             'than None) requires a surface-based, free '
+                             'orientation forward operator.')
+        if not forward['surf_ori']:
+            raise ValueError('Forward operator is not oriented in surface '
+                             'coordinates. A loose inverse operator (loose '
+                             'parameter other than None) requires a surface-'
+                             'based, free orientation forward operator.')
+        if not (0 <= loose <= 1):
+            raise ValueError('loose value should be smaller than 1 and bigger '
+                             'than 0, or None for not loose orientations.')
     if depth is not None and not (0 < depth <= 1):
         raise ValueError('depth should be a scalar between 0 and 1')
 
@@ -1116,7 +1123,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
 
     # Deal with fixed orientation forward / inverse
-    if loose is None:
+    if fixed:
         if depth is not None:
             # Convert the depth prior into a fixed-orientation one
             logger.info('    Picked elements from a free-orientation '
@@ -1226,7 +1233,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         methods = FIFF.FIFFV_MNE_EEG
 
     # We set this for consistency with mne C code written inverses
-    if depth is None or loose is None:
+    if fixed or (depth is None):
         depth_prior = None
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,
