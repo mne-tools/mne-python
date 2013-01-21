@@ -447,8 +447,7 @@ def pick_channels_cov(orig, include=[], exclude=[]):
     Returns
     -------
     res : dict
-        Covariance solution restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
+        Covariance solution restricted to selected channels.
     """
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)

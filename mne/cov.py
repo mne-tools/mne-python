@@ -18,7 +18,8 @@ from . import fiff, verbose
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov
+from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
+                       pick_channels
 from .fiff.constants import FIFF
 from .epochs import _is_good
 
@@ -236,9 +237,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
 
+    # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           exclude='bads')
+                           exclude=[])
 
     data = 0
     n_samples = 0
@@ -256,7 +258,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         if last >= stop:
             last = stop
         raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat):
+        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
+                    ignore_chs=info['bads']):
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
@@ -560,6 +563,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     reg_cov : Covariance
         The regularized covariance matrix.
     """
+    cov = cp.deepcopy(cov)
     if exclude is None:
         exclude = info['bads'] + cov['bads']
 
@@ -572,6 +576,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     ch_names_mag = [info_ch_names[i] for i in sel_mag]
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
 
+    # This actually removes bad channels from the cov, which is not backward
+    # compatible, but leaving them in breaks beamforming XXX
     cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
     ch_names = cov.ch_names
 

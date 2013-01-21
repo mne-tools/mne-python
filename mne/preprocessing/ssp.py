@@ -163,6 +163,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                           exclude='bads')) == 0:
             del flat['eog']
 
+    # exclude bad channels from projection
     picks = pick_types(my_info, meg=True, eeg=True, eog=True, exclude='bads')
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params)
