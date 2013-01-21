@@ -342,7 +342,11 @@ def fft_resample(x, W, new_len, npad, to_remove,
         Filtered version of x.
     """
     # add some padding at beginning and end to make this work a little cleaner
+    print x.shape
+    print npad
     x = _smart_pad(x, npad)
+    print x.shape
+    print W.shape
     N = int(np.minimum(new_len, len(x)))
     sl_1 = slice((N + 1) / 2)
     y_fft = np.zeros(new_len, np.complex128)
@@ -383,4 +387,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
 def _smart_pad(x, n_pad):
     """Pad vector x
     """
-    return np.r_[2 * x[0] - x[n_pad:0:-1], x, 2 * x[-1] - x[-2:-n_pad - 2:-1]]
+    # need to pad with zeros if len(x) <= npad
+    z_pad = np.zeros(max(n_pad - len(x) + 1, 0), dtype=x.dtype)
+    return np.r_[z_pad, 2 * x[0] - x[n_pad:0:-1], x,
+                 2 * x[-1] - x[-2:-n_pad - 2:-1], z_pad]
