@@ -65,10 +65,10 @@ def test_raw():
                 dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
                               for r_ in r, e]
                 assert_array_almost_equal(dig1, dig2)
-                coil1, coil2 = [np.array([d['coil_trans'] for d in r_])
-                                for r_ in r, e]
-                assert_array_almost_equal(coil1, coil2)
 
+                coil1, coil2 = [np.array([d['coil_trans'] for d in
+                                r_.info['chs']]) for r_ in r, e]
+                assert_array_almost_equal(coil1, coil2)
                 assert_array_almost_equal(r._data[:NCH], e._data[:NCH, ntsl])
                 assert_true(r.ch_names[:NCH] == e.ch_names)
                 assert_true(r.cals[:NCH] == e.cals)
