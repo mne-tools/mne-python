@@ -984,8 +984,15 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
     ch_names = [c['ch_name'] for c in info['chs']
-                if (c['ch_name'] not in info['bads'])
-                and (c['ch_name'] in fwd_ch_names)]
+                if (c['ch_name'] not in info['bads']
+                    and c['ch_name'] not in noise_cov['bads'])
+                and (c['ch_name'] in fwd_ch_names
+                     and c['ch_name'] in noise_cov.ch_names)]
+
+    if not len(info['bads']) == len(noise_cov['bads']) or \
+            not all([b in noise_cov['bads'] for b in info['bads']]):
+        raise ValueError('info["bads"] and noise_cov["bads"] do not match')
+
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
 
