@@ -585,13 +585,13 @@ def _restrict_gain_matrix(G, info):
         G = G[sel]
         logger.info('    %d planar channels' % len(sel))
     else:
-        sel = pick_types(info, meg='mag')
+        sel = pick_types(info, meg='mag', exclude=[])
         if len(sel) > 0:
             G = G[sel]
             logger.info('    %d magnetometer or axial gradiometer '
                         'channels' % len(sel))
         else:
-            sel = pick_types(info, meg=False, eeg=True)
+            sel = pick_types(info, meg=False, eeg=True, exclude=[])
             if len(sel) > 0:
                 G = G[sel]
                 logger.info('    %d EEG channels' % len(sel))

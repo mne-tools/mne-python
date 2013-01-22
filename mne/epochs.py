@@ -72,7 +72,7 @@ class Epochs(object):
         interval is used.
     picks : None (default) or array of int
         Indices of channels to include (if None, all channels
-        are used except for channels in raw.info['bads']).
+        are used).
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -235,7 +235,7 @@ class Epochs(object):
         self.info = cp.deepcopy(raw.info)
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                               ecg=True, eog=True, misc=True, exclude='bads')
+                               ecg=True, eog=True, misc=True, exclude=[])
         self.info['chs'] = [self.info['chs'][k] for k in picks]
         self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
         self.ch_names = self.info['ch_names']
@@ -466,7 +466,8 @@ class Epochs(object):
                 data = data[:, self._reject_time]
 
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True)
+                            self.reject, self.flat, full_report=True,
+                            ignore_chs=self.info['bads'])
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -536,7 +537,7 @@ class Epochs(object):
                     raise StopIteration
                 epoch = self._get_epoch_from_disk(self._current)
                 self._current += 1
-                is_good, _ = self._is_good_epoch(epoch)
+                is_good = self._is_good_epoch(epoch)[0]
 
         return epoch
 
@@ -1199,13 +1200,16 @@ def _area_between_times(t1, t2):
 
 @verbose
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
-             verbose=None):
+             ignore_chs=[], verbose=None):
     """Test if data segment e is good according to the criteria
     defined in reject and flat. If full_report=True, it will give
     True/False as well as a list of all offending channels.
     """
     bad_list = list()
     has_printed = False
+    checkable = np.ones(len(ch_names), dtype=bool)
+    checkable[np.array([c in ignore_chs
+                        for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
             for key, thresh in refl.iteritems():
@@ -1214,7 +1218,9 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 if len(idx) > 0:
                     e_idx = e[idx]
                     deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                    idx_deltas = np.where(f(deltas, thresh))[0]
+                    checkable_idx = checkable[idx]
+                    idx_deltas = np.where(np.logical_and(f(deltas, thresh),
+                                                         checkable_idx))[0]
 
                     if len(idx_deltas) > 0:
                         ch_name = [ch_names[idx[i]] for i in idx_deltas]
