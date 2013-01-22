@@ -16,6 +16,7 @@ from collections import Counter
 import copy
 import inspect
 
+from matplotlib import delaunay
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -29,6 +30,7 @@ from warnings import warn
 from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
+from .fiff import FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
@@ -533,6 +535,58 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                      x_label='Time (s)', y_label='Epoch')
 
     return fig
+
+
+def plot_proj_topomap(proj, layout):
+    data = proj['data']['data'][0]
+    idx = [layout.names.index(name) for name in proj['data']['col_names']]
+    pos = layout.pos[idx, :2]
+    plot_topomap(data, pos)
+
+
+def plot_topomap(data, pos, vmax=None, cmap=None, res=100, axes=None):
+    """Plot a topographic map as image
+
+    Parameters
+    ----------
+    data : array, length = n_points
+        The data values to plot.
+    pos : array, shape = (n_points, 2)
+        For each data point, the x and y coordinates.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    axes : matplotlib axes | None
+        The axes on which to plot. If None, use :func:`pylab.gca`.
+
+    """
+    import pylab as pl
+    if axes is None:
+        axes = pl.gca()
+
+    if vmax is None:
+        vmax = np.abs(data).max()
+
+    pl.xticks(())
+    pl.yticks(())
+
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    triang = delaunay.Triangulation(pos_x, pos_y)
+    interp = triang.linear_interpolator(data)
+    x = np.linspace(xmin, xmax, res)
+    y = np.linspace(ymin, ymax, res)
+    xi, yi = np.meshgrid(x, y)
+
+    im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
+                xi.min():xi.max():complex(0, xi.shape[1])]
+    im = np.ma.masked_array(im, im == np.nan)
+
+    pl.imshow(im, cmap=cmap, vmin= -vmax, vmax=vmax, origin='lower',
+              aspect='equal', extent=(xmin, xmax, ymin, ymax), axes=axes)
+
+    return axes
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
@@ -1801,21 +1855,27 @@ class gui_select_proj(gui_base):
         Toggle projections
 
     """
-    def __init__(self, evoked, nrows=6, ncols=6, size=1):
-        figsize = (size * nrows, size * ncols)
+    def __init__(self, evoked, layout, size=1):
+        projs = evoked.info['projs']
+        projs = [p for p in projs if p['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD]
+
+        nrows = len(projs)
+        ncols = 4
+        figsize = (size * ncols, size * nrows)
         super(gui_select_proj, self).__init__(figsize=figsize)
 
         self.figure.subplots_adjust(left=.01, right=.99, bottom=.05, top=.95,
-                                    hspace=.5)
+                                    hspace=.05, wspace=.05)
 
 #        projs = evoked.info['projs']
 
         self._axes = []
-        for i in xrange(ncols):
-            ax = self.figure.add_subplot(ncols, nrows, i * ncols + 1)
+        for i, proj in enumerate(projs):
+            ax = self.figure.add_subplot(nrows, ncols, i * ncols + 1)
             ax._ID = i
             ax._state = True
             ax.set_axis_bgcolor('white')
+            plot_proj_topomap(proj, layout)
 #            ax.set_axis_off()
             self._axes.append(ax)
 
