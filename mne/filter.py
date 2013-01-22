@@ -93,7 +93,8 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
 
             N = 2 ** np.arange(np.ceil(np.log2(n_h)),
                                np.floor(np.log2(n_tot)), dtype=int)
-            cost = np.ceil(n_tot / (N - n_h + 1)) * N * (np.log2(N) + 1)
+            cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float))
+                    * N * (np.log2(N) + 1))
             n_fft = N[np.argmin(cost)]
         else:
             # Use only a single block
