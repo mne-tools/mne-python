@@ -577,9 +577,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
 
     # This actually removes bad channels from the cov, which is not backward
-    # compatible, but leaving them in breaks beamforming XXX
-    cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
-    ch_names = cov.ch_names
+    # compatible, so let's leave all channels in
+    cov_good = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
+    ch_names = cov_good.ch_names
 
     idx_eeg, idx_mag, idx_grad = [], [], []
     for i, ch in enumerate(ch_names):
@@ -592,12 +592,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         else:
             raise Exception('channel is unknown type')
 
-    C = cov['data']
+    C = cov_good['data']
 
     assert len(C) == (len(idx_eeg) + len(idx_mag) + len(idx_grad))
 
     if proj:
-        projs = info['projs'] + cov['projs']
+        projs = info['projs'] + cov_good['projs']
         projs = activate_proj(projs)
 
     for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
@@ -625,7 +625,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
 
         C[np.ix_(idx, idx)] = this_C
 
-    cov['data'] = C
+    # Put data back in correct locations
+    idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
+    cov['data'][np.ix_(idx, idx)] = C
 
     return cov
 
