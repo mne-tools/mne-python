@@ -818,20 +818,20 @@ def _read_bti_header(pdf_fname, config_fname):
         ch['name'] = ch_cfg['name']
         ch['coil_trans'] = (ch_cfg['dev'].get('transform', None)
                             if 'dev' in ch_cfg else None)
-        if info['data_format'] >= 3:
+        if info['data_format'] <= 2:
             ch['cal'] = ch['scale'] * ch['upb'] * (ch['gain'] ** -1)
         else:
             ch['cal'] = ch['scale'] * ch['gain']
 
-    by_name = [(i, d['name']) for i, d in enumerate(chans)]
-    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
-    by_name = [idx[0] for idx in by_name]
+    # by_name = [(i, d['name']) for i, d in enumerate(chans)]
+    # by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
+    # by_name = [idx[0] for idx in by_name]
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
     info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
-    info['order'] = by_name
-    info['chs'] = [chans[pos] for pos in by_name]
+    info['order'] = [c['index'] for c in chans]
     info['cal'] = [c['cal'] for c in info['chs']]
+    info['chs'] = [chans[pos] for pos in info['order']]
 
     return info
 
@@ -873,11 +873,10 @@ def _read_data(info, start=None, stop=None):
     cnt = (stop - start) * info['total_chans']
     shape = [stop - start, info['total_chans']]
     data = np.fromfile(info['fid'], dtype=info['dtype'],
-                       count=cnt).reshape(shape).T
-    data *= np.array([info['cal']]).T
-    info['chs'] = [info['chs'][k] for k in info['order']]
+                       count=cnt).reshape(shape).T.astype('f4')
+    data[info['order']] *= np.array([info['cal']])[:, info['order']].T
 
-    return data[info['order']]
+    return data
 
 
 class RawBTi(Raw):
