@@ -142,7 +142,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
 
-    return x
+    return x, n_fft
 
 
 def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
