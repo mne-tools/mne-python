@@ -972,7 +972,7 @@ class RawBTi(Raw):
             chan_info['ch_name'] = chan_vv
             chan_info['logno'] = idx + BTI.FIFF_LOGNO
             chan_info['scanno'] = idx + 1
-            chan_info['cal'] = bti_info['chs'][idx]['cal']
+            chan_info['cal'] = bti_info['chs'][idx]['scale']
 
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None

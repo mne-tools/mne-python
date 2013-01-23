@@ -70,7 +70,7 @@ def test_raw():
                                 for d in r_.info['chs'][:NCH]]) for r_ in r, e]
                 assert_array_almost_equal(coil1, coil2, 7)
                 assert_array_almost_equal(r._data[:NCH], e._data[:NCH], 9)
-                assert_array_almost_equal(r.cals[:NCH] == e.cals[:NCH], 0)
+                assert_array_almost_equal(r.cals[:NCH], e.cals[:NCH], 10)
                 r.save(tmp_raw_fname)
             with Raw(tmp_raw_fname) as r:
                 print r
