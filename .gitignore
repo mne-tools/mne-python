@@ -30,6 +30,7 @@ tmtags
 auto_examples
 MNE-sample-data
 build
+coverage
 
 dist/
 doc/_build/
