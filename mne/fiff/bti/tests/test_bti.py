@@ -51,27 +51,27 @@ def test_raw():
     """ Test conversion to Raw object """
 
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
-                               exported_fnames)[:1]:
+                               exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
         assert_raises(ValueError, read_raw_bti, pdf, 'eggs')
         assert_raises(ValueError, read_raw_bti, pdf, config, 'spam')
         if op.exists(tmp_raw_fname):
             os.remove(tmp_raw_fname)
-        with Raw(exported, preload=True) as e:
-            with read_raw_bti(pdf, config, hs) as r:
-                assert_equal(e.ch_names[:NCH], r.ch_names[:NCH])
-                assert_array_almost_equal(e.info['dev_head_t']['trans'],
-                                          r.info['dev_head_t']['trans'], 7)
+        with Raw(exported, preload=True) as ex:
+            with read_raw_bti(pdf, config, hs) as ra:
+                assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
+                assert_array_almost_equal(ex.info['dev_head_t']['trans'],
+                                          ra.info['dev_head_t']['trans'], 7)
                 dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
-                              for r_ in r, e]
+                              for r_ in ra, ex]
                 assert_array_almost_equal(dig1, dig2, 8)
 
                 coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
-                                for d in r_.info['chs'][:NCH]]) for r_ in r, e]
+                                for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
                 assert_array_almost_equal(coil1, coil2, 7)
-                assert_array_almost_equal(r._data[:NCH], e._data[:NCH], 9)
-                assert_array_almost_equal(r.cals[:NCH], e.cals[:NCH], 10)
-                r.save(tmp_raw_fname)
+                assert_array_almost_equal(ra._data[:NCH], ex._data[:NCH], 9)
+                assert_array_almost_equal(ra.cals[:NCH], ex.cals[:NCH], 10)
+                ra.save(tmp_raw_fname)
             with Raw(tmp_raw_fname) as r:
                 print r
         os.remove(tmp_raw_fname)

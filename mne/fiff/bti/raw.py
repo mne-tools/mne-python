@@ -188,6 +188,7 @@ def _convert_dev_head_t(bti_trans, bti_to_nm, m_h_nm_h):
     """ Helper Function """
     nm_to_m_sensor = inverse_trans(bti_identity_trans(), bti_to_nm)
     nm_sensor_m_head = merge_trans(bti_trans, nm_to_m_sensor)
+
     nm_dev_head_t = merge_trans(m_h_nm_h, nm_sensor_m_head)
     nm_dev_head_t[3, :3] = 0.
 
@@ -243,6 +244,7 @@ def _read_config(fname):
     cfg['user_blocks'] = dict()
     for block in range(cfg['hdr']['total_user_blocks']):
         ub = dict()
+
         ub['hdr'] = {'nbytes': read_int32(fid),
                      'kind': read_str(fid, 20),
                      'checksum': read_int32(fid),
@@ -302,6 +304,7 @@ def _read_config(fname):
                 dta['version'] = read_int16(fid)
                 dta['struct_size'] = read_int16(fid)
                 dta['entries'] = read_int16(fid)
+
                 fid.seek(8, 1)
 
             elif kind == BTI.UB_B_WHC_CHAN_MAP:
@@ -363,6 +366,7 @@ def _read_config(fname):
                 dta['labels'] = list()
                 for label in xrange(dta['entries']):
                     dta['labels'] += [read_str(fid, 16)]
+
 
             elif kind == BTI.UB_B_CALIBRATION:
                 dta['sensor_no'] = read_int16(fid)
@@ -947,11 +951,20 @@ class RawBTi(Raw):
         info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
         info['nchan'] = len(bti_info['chs'])
         filtname = bti_info['e_table']['hdr']['filtername']
+        filtname = [c for c in filtname.split(',') if 'Hz' in c]
         low, high = 0, .4 * info['sfreq']  # XXX find a better default
         if filtname:
-            filtname = filtname.split(',')
-            if len(filtname) < 2 and not filtname[0].isalpha():
-                low = float(filtname[0])
+            filtname = filtname
+            if any('lp' in name for name in filtname):
+                lp = [name for name in filtname if 'Hzlp' in filtname]
+                low = float(''.join([c for c in lp[0] if c.isdigit()]))
+            if any('Hzhp' in name for name in filtname):
+                hp = [name for name in filtname if 'Hzhp' in filtname]
+                high = float(''.join([c for c in hp[0] if c.isdigit()]))
+            if any('Hzbp' in name for name in filtname):
+                bp = [name for name in filtname if 'Hzbp' in filtname]
+                bp = bp[0].replace('Hzbp', '')
+                high, low = [float(c) for c in bp.split('-')]
             elif not any([n.isalpha() for n in filtname]):
                 low, high = np.array(filtname, dtype='f4')
         info['highpass'] = low
