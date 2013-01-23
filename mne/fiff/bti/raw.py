@@ -111,9 +111,10 @@ def _convert_head_shape(idx_points, dig_points):
     dt = dp / np.sqrt(tmp2)
 
     idx_points_nm = np.ones((len(fp), 3))
-    idx_points_nm[:, 0] = dcos * fp[:, 0] - dsin * fp[:, 0] + dt
-    idx_points_nm[:, 1] = dsin * fp[:, 1] + dcos * fp[:, 1]
-    idx_points_nm[:, 2] = fp[:, 2]
+    for idx, f in enumerate(fp):
+        idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
+        idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
+        idx_points_nm[idx, 2] = f[2]
 
     # adjust order of fiducials to Neuromag
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
@@ -128,7 +129,7 @@ def _convert_head_shape(idx_points, dig_points):
     dig_points_nm = np.dot(t[BTI.T_ROT_IX], dig_points.T).T
     dig_points_nm += t[BTI.T_TRANS_IX].T
 
-    return dig_points_nm, dig_points_nm, t
+    return idx_points_nm, dig_points_nm, t
 
 
 def _setup_head_shape(fname, use_hpi=True):
@@ -823,15 +824,14 @@ def _read_bti_header(pdf_fname, config_fname):
         else:
             ch['cal'] = ch['scale'] * ch['gain']
 
-    # by_name = [(i, d['name']) for i, d in enumerate(chans)]
-    # by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
-    # by_name = [idx[0] for idx in by_name]
+    by_name = [(i, d['name']) for i, d in enumerate(chans)]
+    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
+    by_name = [idx[0] for idx in by_name]
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
     info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
-    info['order'] = [c['index'] for c in chans]
-    info['cal'] = [c['cal'] for c in info['chs']]
-    info['chs'] = [chans[pos] for pos in info['order']]
+    info['order'] = by_name
+    info['chs'] = [chans[pos] for pos in by_name]
 
     return info
 
@@ -873,10 +873,12 @@ def _read_data(info, start=None, stop=None):
     cnt = (stop - start) * info['total_chans']
     shape = [stop - start, info['total_chans']]
     data = np.fromfile(info['fid'], dtype=info['dtype'],
-                       count=cnt).reshape(shape).T.astype('f4')
-    data[info['order']] *= np.array([info['cal']])[:, info['order']].T
+                       count=cnt).reshape(shape).T.astype('f8')
 
-    return data
+    for ch in info['chs']:
+        data[ch['index']] *= ch['cal']
+
+    return data[info['order']]
 
 
 class RawBTi(Raw):
@@ -916,7 +918,7 @@ class RawBTi(Raw):
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), use_hpi=False,
-                 force_units=False, verbose=None):
+                 verbose=None):
 
         if not op.isabs(config_fname):
             config_fname = op.join(op.abspath(op.curdir),
@@ -970,7 +972,7 @@ class RawBTi(Raw):
             chan_info['ch_name'] = chan_vv
             chan_info['logno'] = idx + BTI.FIFF_LOGNO
             chan_info['scanno'] = idx + 1
-            chan_info['cal'] = bti_info['chs'][idx]['upb']
+            chan_info['cal'] = bti_info['chs'][idx]['cal']
 
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
@@ -1042,7 +1044,7 @@ class RawBTi(Raw):
         info['dev_head_t'] = dict()
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['dev_head_t']['trans'] = dev_head_t
+        info['dev_head_t']['trans'] = dev_head_t.astype('f4')
         info['dev_ctf_t'] = dict()
         info['dev_ctf_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_DEVICE
         info['dev_ctf_t']['to'] = FIFF.FIFFV_COORD_HEAD
@@ -1122,4 +1124,4 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                  use_hpi=use_hpi, force_units=True, verbose=verbose)
+                  use_hpi=use_hpi, verbose=verbose)
