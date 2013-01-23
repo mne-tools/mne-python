@@ -91,17 +91,27 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         if n_x > n_h:
             n_tot = 2 * n_x if zero_phase else n_x
 
-            N = 2 ** np.arange(np.ceil(np.log2(n_h)),
-                               np.floor(np.log2(n_tot)), dtype=int)
+            min_fft = 2 * n_h - 1
+            max_fft = n_x
+
+            # cost function based on number of multiplications
+            N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
+                               np.floor(np.log2(max_fft)) + 1, dtype=int)
             cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float))
                     * N * (np.log2(N) + 1))
+
+            # add a heuristic term to prevent too-long FFT's which are slow
+            # (not predicted by mult. cost alone, 4e-5 exp. determined)
+            cost += 4e-5 * N * n_tot
+
             n_fft = N[np.argmin(cost)]
         else:
             # Use only a single block
             n_fft = 2 ** int(np.ceil(np.log2(n_x + n_h - 1)))
 
-    if n_fft <= 0:
-        raise ValueError('n_fft is too short, has to be at least len(h)')
+    if n_fft < 2 * n_h - 1:
+        raise ValueError('n_fft is too short, has to be at least '
+                         '"2 * len(h) - 1"')
 
     if not is_power2(n_fft):
         warnings.warn("FFT length is not a power of 2. Can be slower.")
@@ -142,7 +152,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
         for pp, p in enumerate(picks):
             x[p] = data_new[pp]
 
-    return x, n_fft
+    return x
 
 
 def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
