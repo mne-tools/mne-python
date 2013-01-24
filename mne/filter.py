@@ -96,7 +96,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
 
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
-                               np.floor(np.log2(max_fft)) + 1, dtype=int)
+                               np.ceil(np.log2(max_fft)) + 1, dtype=int)
             cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float))
                     * N * (np.log2(N) + 1))
 
