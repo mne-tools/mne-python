@@ -43,15 +43,15 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11), dtype='>f8'):
 
     """
     flip_t = np.array(BTI.T_ROT_VV, dtype=dtype)
-    adjust_t = bti_identity_trans()
+    adjust_t = bti_identity_trans(dtype=dtype)
     adjust = 0 if adjust is None else adjust
     deg = np.deg2rad(np.float64(adjust))
     adjust_t[[1, 2], [1, 2]] = np.cos(deg)
     adjust_t[[1, 2], [2, 1]] = -np.sin(deg), np.sin(deg)
-    m_nm_t = np.ones([4, 4])
+    m_nm_t = np.ones([4, 4], dtype=dtype)
     m_nm_t[BTI.T_ROT_IX] = np.dot(flip_t[BTI.T_ROT_IX],
                                   adjust_t[BTI.T_ROT_IX])
-    m_nm_t[BTI.T_TRANS_IX] = np.matrix(translation).T
+    m_nm_t[BTI.T_TRANS_IX] = np.matrix(translation, dtype=dtype).T
 
     return m_nm_t
 

@@ -37,7 +37,7 @@ def test_read_config():
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
         cfg = _read_config(config)
-        assert_true(all([all([k not in block.lower() for k in ['', 'unkown']]
+        assert_true(all([all([k not in block.lower() for k in ['', 'unknown']]
                     for block in cfg['user_blocks'])]))
 
 
@@ -73,6 +73,11 @@ def test_raw():
                 coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
                                 for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
                 assert_array_almost_equal(coil1, coil2, 7)
+
+                loc1, loc2 = [np.concatenate([d['loc'].flatten()
+                for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
+                assert_array_equal(loc1, loc2)
+
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
                 assert_array_equal(ra.cals[:NCH], ex.cals[:NCH])
                 ra.save(tmp_raw_fname)

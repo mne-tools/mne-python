@@ -1031,7 +1031,7 @@ class RawBTi(Raw):
                                     'coordinates')
                 chan_info['coil_trans'] = t
                 if loc is not None:
-                    chan_info['loc'] = loc
+                    chan_info['loc'] = loc.astype('>f4')
 
             if chan_vv.startswith('MEG'):
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
