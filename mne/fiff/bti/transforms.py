@@ -8,7 +8,7 @@ from . constants import BTI
 import numpy as np
 
 
-def bti_identity_trans(dtype='f4'):
+def bti_identity_trans(dtype='>f8'):
     """ Get BTi identity transform
 
     Parameters
@@ -24,7 +24,7 @@ def bti_identity_trans(dtype='f4'):
     return np.array(BTI.T_IDENT, dtype=dtype)
 
 
-def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
+def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11), dtype='>f8'):
     """ Get the general Magnes3600WH to Neuromag coordinate transform
 
     Parameters
@@ -42,10 +42,10 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11)):
         4 x 4 rotation, translation, scaling matrix.
 
     """
-    flip_t = np.array(BTI.T_ROT_VV, dtype='f4')
+    flip_t = np.array(BTI.T_ROT_VV, dtype=dtype)
     adjust_t = bti_identity_trans()
     adjust = 0 if adjust is None else adjust
-    deg = np.deg2rad(np.float32(adjust))
+    deg = np.deg2rad(np.float64(adjust))
     adjust_t[[1, 2], [1, 2]] = np.cos(deg)
     adjust_t[[1, 2], [2, 1]] = -np.sin(deg), np.sin(deg)
     m_nm_t = np.ones([4, 4])
@@ -68,7 +68,7 @@ def bti_to_vv_coil_trans(ch_t, bti_t, nm_t, nm_default_scale=True):
 
 
 def inverse_trans(x, t, rot=BTI.T_ROT_IX, trans=BTI.T_TRANS_IX,
-               scal=BTI.T_SCA_IX):
+                  scal=BTI.T_SCA_IX):
     """ Undo a transform
     """
     x = x.copy()
@@ -93,10 +93,10 @@ def apply_trans(x, t, rot=BTI.T_ROT_IX, trans=BTI.T_TRANS_IX,
     return x
 
 
-def merge_trans(t1, t2):
+def merge_trans(t1, t2, dtype='>f8'):
     """ Merge two transforms
     """
-    t = bti_identity_trans('f4')
+    t = bti_identity_trans(dtype=dtype)
     t[BTI.T_ROT_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_ROT_IX])
     t[BTI.T_TRANS_IX] = np.dot(t1[BTI.T_ROT_IX], t2[BTI.T_TRANS_IX])
     t[BTI.T_TRANS_IX] += t1[BTI.T_TRANS_IX]

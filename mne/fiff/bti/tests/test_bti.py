@@ -36,7 +36,9 @@ def test_read_config():
     """ Test read bti config file """
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
-        _read_config(config)
+        cfg = _read_config(config)
+        assert_true(all([all([k not in block.lower() for k in ['', 'unkown']]
+                    for block in cfg['user_blocks'])]))
 
 
 def test_read_pdf():
@@ -44,6 +46,8 @@ def test_read_pdf():
     for pdf, config in zip(pdf_fnames, config_fnames):
         info = _read_bti_header(pdf, config)
         data = _read_data(info)
+        shape = (info['total_chans'], info['total_slices'])
+        assert_true(data.shape == shape)
         info['fid'].close()
 
 
@@ -64,7 +68,7 @@ def test_raw():
                                           ra.info['dev_head_t']['trans'], 7)
                 dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
                               for r_ in ra, ex]
-                assert_array_almost_equal(dig1, dig2, 8)
+                assert_array_equal(dig1, dig2)
 
                 coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
                                 for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]

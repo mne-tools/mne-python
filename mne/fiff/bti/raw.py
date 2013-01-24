@@ -103,14 +103,14 @@ def _read_head_shape(fname):
 def _convert_head_shape(idx_points, dig_points):
     """ Helper function """
 
-    fp = idx_points
+    fp = idx_points.astype('>f8')
     dp = np.sum(fp[2] * (fp[0] - fp[1]))
     tmp1, tmp2 = np.sum(fp[2] ** 2), np.sum((fp[0] - fp[1]) ** 2)
     dcos = -dp / np.sqrt(tmp1 * tmp2)
     dsin = np.sqrt(1. - dcos * dcos)
     dt = dp / np.sqrt(tmp2)
 
-    idx_points_nm = np.ones((len(fp), 3))
+    idx_points_nm = np.ones((len(fp), 3), dtype='>f8')
     for idx, f in enumerate(fp):
         idx_points_nm[idx, 0] = dcos * f[0] - dsin * f[1] + dt
         idx_points_nm[idx, 1] = dsin * f[0] + dcos * f[1]
@@ -119,7 +119,7 @@ def _convert_head_shape(idx_points, dig_points):
     # adjust order of fiducials to Neuromag
     idx_points_nm[[1, 2]] = idx_points_nm[[2, 1]]
 
-    t = bti_identity_trans('f4')
+    t = bti_identity_trans('>f8')
     t[0, 0] = dcos
     t[0, 1] = -dsin
     t[1, 0] = dsin
@@ -151,7 +151,7 @@ def _setup_head_shape(fname, use_hpi=True):
     """
     idx_points, dig_points = _read_head_shape(fname)
     idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
-    all_points = np.r_[idx_points, dig_points]
+    all_points = np.r_[idx_points, dig_points].astype('>f4')
 
     idx_idents = range(1, 4) + range(1, (len(idx_points) + 1) - 3)
     dig = []
@@ -970,9 +970,10 @@ class RawBTi(Raw):
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
-        dev_ctf_t = bti_info['bti_transform'][0]  # XXX indx is informed guess.
+         # XXX indx is informed guess. Normally only one transform is stored.
+        dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
         bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
-                                    translation=translation)
+                                    translation=translation, dtype='>f8')
 
         logger.info('Creating Neuromag info structure ...')
         info = dict()
@@ -1006,8 +1007,6 @@ class RawBTi(Raw):
         info['lowpass'] = high
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
-        info['ctf_head_t'] = None
-        info['dev_ctf_t'] = []
         info['filenames'] = []
         chs = []
 
@@ -1025,10 +1024,11 @@ class RawBTi(Raw):
             if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
-                    t, loc = _convert_coil_trans(t, dev_ctf_t, bti_to_nm)
+                    t, loc = _convert_coil_trans(t.astype('>f8'), dev_ctf_t,
+                                                 bti_to_nm)
                     if idx == 1:
-                        logger.info('... putting coil transforms in Neuromag'
-                                    ' coordinates')
+                        logger.info('... putting coil transforms in Neuromag '
+                                    'coordinates')
                 chan_info['coil_trans'] = t
                 if loc is not None:
                     chan_info['loc'] = loc
@@ -1087,12 +1087,13 @@ class RawBTi(Raw):
                     'oordinates')
         info['dig'], ctf_head_t = _setup_head_shape(head_shape_fname, use_hpi)
         logger.info('... Computing new device to head transform.')
-        dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm, ctf_head_t)
+        dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
+                                         ctf_head_t)
 
         info['dev_head_t'] = dict()
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['dev_head_t']['trans'] = dev_head_t.astype('f4')
+        info['dev_head_t']['trans'] = dev_head_t
         info['dev_ctf_t'] = dict()
         info['dev_ctf_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_DEVICE
         info['dev_ctf_t']['to'] = FIFF.FIFFV_COORD_HEAD
