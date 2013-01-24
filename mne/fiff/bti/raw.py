@@ -39,7 +39,7 @@ FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 BTI_WH2500_REF_MAG = ['MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA']
 BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
 
-dtypes = zip(range(1, 5), ('i2', 'i4', 'f4', 'f8'))
+dtypes = zip(range(1, 5), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
 RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
@@ -621,7 +621,7 @@ def _read_process(fid):
 
     fid.seek(32, 1)
     _correct_offset(fid)
-    procesing_steps = list()
+    out['procesing_steps'] = list()
     for step in range(out['total_steps']):
         this_step = {'nbytes': read_int32(fid),
                      'process_type': read_str(fid, 20),
@@ -648,7 +648,7 @@ def _read_process(fid):
             fid.seek(32, 1)
             fid.seek(jump, 1)
 
-        procesing_steps += [this_step]
+        out['procesing_steps'] += [this_step]
         _correct_offset(fid)
 
     return out
@@ -763,12 +763,10 @@ def _read_bti_header(pdf_fname, config_fname):
     check_value = header_position & BTI.FILE_MASK
 
     if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
-        hdr_pos = check_value
+        header_position = check_value
 
-    if ((hdr_pos % BTI.FILE_CURPOS) != 0):
-        hdr_pos += (BTI.FILE_CURPOS - (hdr_pos % BTI.FILE_CURPOS))
-
-    fid.seek(hdr_pos, 0)
+    _correct_offset(fid)
+    fid.seek(header_position, 0)
 
     # actual header starts here
     info = {'version': read_int16(fid),
@@ -819,7 +817,6 @@ def _read_bti_header(pdf_fname, config_fname):
     info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
                          range(info['total_ed_classes'])]
 
-    fid.seek(0, 1)
     info['extra_data'] = fid.read(start - fid.tell())
     info['fid'] = fid
 
@@ -860,14 +857,20 @@ def _read_bti_header(pdf_fname, config_fname):
         else:
             ch['cal'] = ch['scale'] * ch['gain']
 
-    by_name = [(i, d['name']) for i, d in enumerate(chans)]
+    by_index = [(i, d['index']) for i, d in enumerate(chans)]
+    by_index.sort(key=lambda c: c[1])
+    by_index = [idx[0] for idx in by_index]
+    info['chs'] = [chans[pos] for pos in by_index]
+
+    by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
     by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
     by_name = [idx[0] for idx in by_name]
+    info['chs'] = [chans[pos] for pos in by_name]
+    info['order'] = by_name
+
     # finally add some important fields from the config
     info['e_table'] = cfg['user_blocks'][BTI.UB_B_E_TABLE_USED]
     info['weights'] = cfg['user_blocks'][BTI.UB_B_WEIGHTS_USED]
-    info['order'] = by_name
-    info['chs'] = [chans[pos] for pos in by_name]
 
     return info
 
@@ -904,17 +907,17 @@ def _read_data(info, start=None, stop=None):
         raise RuntimeError('Invalid data range supplied:'
                            ' %d, %d' % (start, stop))
 
-    info['fid'].seek(info['bytes_per_slice'] * start)
+    info['fid'].seek(info['bytes_per_slice'] * start, 0)
 
     cnt = (stop - start) * info['total_chans']
     shape = [stop - start, info['total_chans']]
     data = np.fromfile(info['fid'], dtype=info['dtype'],
-                       count=cnt).reshape(shape).T.astype('f8')
+                       count=cnt).astype('f4').reshape(shape)
 
     for ch in info['chs']:
-        data[ch['index']] *= ch['cal']
+        data[:, ch['index']] *= ch['cal']
 
-    return data[info['order']]
+    return data[:, info['order']].T
 
 
 class RawBTi(Raw):
