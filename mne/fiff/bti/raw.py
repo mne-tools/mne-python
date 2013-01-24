@@ -367,7 +367,6 @@ def _read_config(fname):
                 for label in xrange(dta['entries']):
                     dta['labels'] += [read_str(fid, 16)]
 
-
             elif kind == BTI.UB_B_CALIBRATION:
                 dta['sensor_no'] = read_int16(fid)
                 fid.seek(2, 1)
@@ -613,7 +612,7 @@ def _read_process(fid):
     """Read BTi PDF process"""
 
     out = {'nbytes': read_int32(fid),
-           'blocktype': read_str(fid, 20),
+           'process_type': read_str(fid, 20),
            'checksum': read_int32(fid),
            'user': read_str(fid, 32),
            'timestamp': read_int32(fid),
@@ -622,6 +621,35 @@ def _read_process(fid):
 
     fid.seek(32, 1)
     _correct_offset(fid)
+    procesing_steps = list()
+    for step in range(out['total_steps']):
+        this_step = {'nbytes': read_int32(fid),
+                     'process_type': read_str(fid, 20),
+                     'checksum': read_int32(fid)}
+        ptype = this_step['process_type']
+        if ptype == BTI.PROC_DEFAULTS:
+            this_step['scale_option'] = read_int32(fid)
+
+            fid.seek(4, 1)
+            this_step['scale'] = read_double(fid)
+            this_step['dtype'] = read_int32(fid)
+            this_step['selected'] = read_int16(fid)
+            this_step['color_display'] = read_int16(fid)
+
+            fid.seek(32, 1)
+        elif ptype in BTI.PROC_FILTER:
+            this_step['freq'] = read_float(fid)
+            fid.seek(32, 1)
+        elif ptype in BTI.PROC_BPFILTER:
+            this_step['high_freq'] = read_float(fid)
+            this_step['low_frew'] = read_float(fid)
+        else:
+            jump = this_step['user_space_size'] = read_int32(fid)
+            fid.seek(32, 1)
+            fid.seek(jump, 1)
+
+        procesing_steps += [this_step]
+        _correct_offset(fid)
 
     return out
 
@@ -729,7 +757,7 @@ def _read_bti_header(pdf_fname, config_fname):
     """
     fid = open(pdf_fname, 'rb')
 
-    fid.seek(BTI.FILE_END, 2)
+    fid.seek(-8, 2)
     start = fid.tell()
     header_position = read_int64(fid)
     check_value = header_position & BTI.FILE_MASK
@@ -742,9 +770,10 @@ def _read_bti_header(pdf_fname, config_fname):
 
     fid.seek(hdr_pos, 0)
 
+    # actual header starts here
     info = {'version': read_int16(fid),
            'file_type': read_str(fid, 5),
-           'hdr_size': start - header_position,
+           'hdr_size': start - header_position,  # add to info for convenience
            'start': start}
 
     fid.seek(1, 1)
@@ -769,6 +798,9 @@ def _read_bti_header(pdf_fname, config_fname):
 
     fid.seek(20, 1)
     _correct_offset(fid)
+
+    # actual header ends here, so dar seems ok.
+
     info['epochs'] = [_read_epoch(fid) for epoch in
                        range(info['total_epochs'])]
 
