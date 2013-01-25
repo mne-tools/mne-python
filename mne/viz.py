@@ -1817,7 +1817,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     return perc
 
 
-class gui_base(object):
+class _GuiBase(object):
     def __init__(self, **fig_kwargs):
         from matplotlib import pyplot as plt
         self.figure = plt.figure(**fig_kwargs)
@@ -1848,7 +1848,7 @@ class gui_base(object):
 #        self._background = self.canvas.copy_from_bbox(self.figure.bbox)
 
 
-class gui_select_proj(gui_base):
+class GuiSelectProj(_GuiBase):
     """
 
     LMB on any projection:
@@ -1862,7 +1862,7 @@ class gui_select_proj(gui_base):
         nrows = len(projs)
         ncols = 4
         figsize = (size * ncols, size * nrows)
-        super(gui_select_proj, self).__init__(figsize=figsize)
+        super(GuiSelectProj, self).__init__(figsize=figsize)
 
         self.figure.subplots_adjust(left=.01, right=.99, bottom=.05, top=.95,
                                     hspace=.05, wspace=.05)
