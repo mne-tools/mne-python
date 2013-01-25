@@ -10,7 +10,7 @@
 
 """ Import BTi / 4D MagnesWH3600 data to fif file.
 
-example usage: mne_bti2fiff.py -pdf C,rfDC -p my_raw.fif
+example usage: mne_bti2fiff.py -pdf C,rfDC -o my_raw.fif
 
 """
 
