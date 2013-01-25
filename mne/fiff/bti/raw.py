@@ -60,8 +60,8 @@ def _rename_channels(names):
 
     Returns
     -------
-    gnew : list
-        List fo names, channel names in Neuromag style
+    new : list
+        List of names, channel names in Neuromag style
     """
     new = list()
     ref_mag, ref_grad, eog, ext = [count(1) for _ in range(4)]
@@ -139,13 +139,13 @@ def _setup_head_shape(fname, use_hpi=True):
     Parameters
     ----------
     fname : str
-        The absolute path to the headshape file
+        The absolute path to the head shape file
 
     Returns
     -------
     dig : list of dicts
         The list of dig point info structures needed for the fiff info
-        stucture.
+        structure.
     use_hpi : bool
         Whether to treat additional hpi coils as digitization points or not.
         If False, hpi coils will be discarded.
@@ -895,7 +895,7 @@ def _read_data(info, start=None, stop=None):
     Returns
     -------
     data : ndarray
-        The measurement data, a channels x timeslices array.
+        The measurement data, a channels x time slices array.
     """
 
     total_slices = info['total_slices']
@@ -929,7 +929,7 @@ class RawBTi(Raw):
     pdf_fname : str | None
         absolute path to the processed data file (PDF)
     config_fname : str | None
-        absolute path to system confnig file. If None, it is assumed to be in
+        absolute path to system config file. If None, it is assumed to be in
         the same directory.
     head_shape_fname : str
         absolute path to the head shape file. If None, it is assumed to be in
