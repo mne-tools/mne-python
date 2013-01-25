@@ -33,11 +33,6 @@ if __name__ == '__main__':
     parser.add_option('-T', '--translation', dest='translation', type='str',
                     help='Default translation, meter',
                     default=(0.00, 0.02, 0.11))
-    parser.add_option('-u', '--use_hpi', dest='use_hpi',
-                    help='Use all or only the first three HPI coils',
-                    default=False)
-    parser.add_option('-f', '--force_units', dest='force_units',
-                    help='Scaling applied to MEG channels.', default=False)
     parser.add_option('-v', '--verbose', dest='verbose',
                     help='Print processing steps to command line',
                     default=True)
@@ -50,8 +45,6 @@ if __name__ == '__main__':
     out_fname = options.out_fname
     rotation_x = options.rotation_x
     translation = options.translation
-    use_hpi = options.use_hpi
-    force_units = options.force_units
     verbose = options.verbose
 
     if out_fname == 'as_data_fname':
@@ -60,7 +53,6 @@ if __name__ == '__main__':
     raw = read_raw_bti(pdf_fname=pdf_fname, config_fname=config_fname,
                        head_shape_fname=head_shape_fname,
                        rotation_x=rotation_x, translation=translation,
-                       use_hpi=use_hpi, force_units=force_units,
                        verbose=verbose)
 
     raw.save(out_fname)
