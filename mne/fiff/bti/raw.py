@@ -1150,6 +1150,7 @@ class RawBTi(Raw):
         logger.info('Ready.')
 
 
+@verbose
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), verbose=True):
