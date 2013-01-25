@@ -9,6 +9,7 @@
 
 from .. import Raw
 from .. import FIFF
+from .. ctf import write_named_matrix
 from .  constants import BTI
 from . read import read_int32, read_int16, read_str, read_float, read_double,\
                    read_transform, read_char, read_int64, read_uint16,\
@@ -621,7 +622,7 @@ def _read_process(fid):
 
     fid.seek(32, 1)
     _correct_offset(fid)
-    out['procesing_steps'] = list()
+    out['processing_steps'] = list()
     for step in range(out['total_steps']):
         this_step = {'nbytes': read_int32(fid),
                      'process_type': read_str(fid, 20),
@@ -648,7 +649,7 @@ def _read_process(fid):
             fid.seek(32, 1)
             fid.seek(jump, 1)
 
-        out['procesing_steps'] += [this_step]
+        out['processing_steps'] += [this_step]
         _correct_offset(fid)
 
     return out
@@ -939,12 +940,6 @@ class RawBTi(Raw):
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
-    use_hpi : bool
-        Whether to treat hpi coils as digitization points or not. If
-        False, HPI coils will be discarded.
-    picks : None | array-like | 'str'
-        The channels to be included. If None, all channels will be used.
-        Else channels will be selecte by group or by position.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -956,8 +951,7 @@ class RawBTi(Raw):
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), use_hpi=False,
-                 verbose=None):
+                 translation=(0.0, 0.02, 0.11), verbose=None):
 
         if not op.isabs(config_fname):
             config_fname = op.join(op.abspath(op.curdir),
@@ -975,6 +969,7 @@ class RawBTi(Raw):
         bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
                                     translation=translation, dtype='>f8')
 
+        use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
         info = dict()
         info['bads'] = []
@@ -986,23 +981,19 @@ class RawBTi(Raw):
         info['meas_date'] = [date, 0]
         info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
         info['nchan'] = len(bti_info['chs'])
-        filtname = bti_info['e_table']['hdr']['filtername']
-        filtname = [c for c in filtname.split(',') if 'Hz' in c]
-        low, high = 0, .4 * info['sfreq']  # XXX find a better default
-        if filtname:
-            filtname = filtname
-            if any('lp' in name for name in filtname):
-                lp = [name for name in filtname if 'Hzlp' in filtname]
-                low = float(''.join([c for c in lp[0] if c.isdigit()]))
-            if any('Hzhp' in name for name in filtname):
-                hp = [name for name in filtname if 'Hzhp' in filtname]
-                high = float(''.join([c for c in hp[0] if c.isdigit()]))
-            if any('Hzbp' in name for name in filtname):
-                bp = [name for name in filtname if 'Hzbp' in filtname]
-                bp = bp[0].replace('Hzbp', '')
-                high, low = [float(c) for c in bp.split('-')]
-            elif not any([n.isalpha() for n in filtname]):
-                low, high = np.array(filtname, dtype='f4')
+
+        # browse processing info for filter specs.
+        high, low = 0.0, info['sfreq'] * 0.3  # find better default
+        for proc in bti_info['processes']:
+            if 'filt' in proc['process_type']:
+                for step in proc['processing_steps']:
+                    if 'high_freq' in step:
+                        high, low = step['high_freq'], step['low_freq']
+                    elif 'hp' in step['process_type']:
+                        low = step['freq']
+                    elif 'lp' in step['process_type']:
+                        high = step['freq']
+
         info['highpass'] = low
         info['lowpass'] = high
         info['acq_pars'], info['acq_stim'] = None, None
@@ -1102,8 +1093,26 @@ class RawBTi(Raw):
         info['ctf_head_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_HEAD
         info['ctf_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
         info['ctf_head_t']['trans'] = ctf_head_t
-
         logger.info('Done.')
+
+        # include digital weigths from reference channel
+        info['comps'] = list()
+        if True:  # reminds of a later support for picking
+            by_name = lambda x: x[1]
+            chn = dict(ch_mapping)
+            col_ = [chn[k] for k in bti_info['weights']['dsp_ch_names']]
+            row_ = [chn[k] for k in bti_info['weights']['ch_names']]
+            col_ord, col_names = zip(*sorted(enumerate(col_), key=by_name))
+            row_ord, row_names = zip(*sorted(enumerate(row_), key=by_name))
+            mat = bti_info['weights']['dsp_wts'][row_ord, :][:, col_ord]
+            comp_data = dict(data=mat,
+                             col_names=col_names,
+                             row_names=row_names,
+                             nrow=mat.shape[0], ncol=mat.shape[1])
+            info['comps'] += [dict(data=comp_data, ctfkind=101,
+                                   rowcals=np.ones(mat.shape[0], dtype='>f4'),
+                                   colcals=np.ones(mat.shape[1], dtype='>f4'),
+                                   save_calibrated=0)]
 
         # check that the info is complete
         assert not set(RAW_INFO_FIELDS) - set(info.keys())
@@ -1143,8 +1152,7 @@ class RawBTi(Raw):
 
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), use_hpi=False,
-                 verbose=True):
+                 translation=(0.0, 0.02, 0.11), verbose=True):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Parameters
@@ -1163,9 +1171,6 @@ def read_raw_bti(pdf_fname, config_fname='config',
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
-    use_hpi : bool
-        Whether to treat hpi coils as digitization points or not. If
-        False, HPI coils will be discarded.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1173,4 +1178,4 @@ def read_raw_bti(pdf_fname, config_fname='config',
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                  use_hpi=use_hpi, verbose=verbose)
+                  verbose=verbose)
