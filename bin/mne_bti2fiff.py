@@ -11,6 +11,7 @@
 """ Import BTi / 4-D MagnesWH3600 data to fif file. """
 
 from mne.fiff.bti import read_raw_bti
+from mne import verbose
 import sys
 
 if __name__ == '__main__':
@@ -22,7 +23,7 @@ if __name__ == '__main__':
                     help='Input data file ', metavar='FILE')
     parser.add_option('-c', '--config', dest='config_fname',
                     help='Input data file ', metavar='FILE', default='config')
-    parser.add_option(--'head_shape', dest='head_shape_fname',
+    parser.add_option('--head_shape', dest='head_shape_fname',
                     help='Headshape file name', metavar='FILE',
                     default='hs_file')
     parser.add_option('-o', '--out_fname', dest='out_fname',
@@ -45,15 +46,15 @@ if __name__ == '__main__':
     out_fname = options.out_fname
     rotation_x = options.rotation_x
     translation = options.translation
-    verbose = options.verbose
+    level = options.verbose
 
-    if out_fname == 'as_data_fname':
+    if out_fname == 'as_data_fname' and pdf_fname is not None:
         out_fname = pdf_fname + '_raw.fif'
 
     raw = read_raw_bti(pdf_fname=pdf_fname, config_fname=config_fname,
                        head_shape_fname=head_shape_fname,
                        rotation_x=rotation_x, translation=translation,
-                       verbose=verbose)
+                       verbose=level)
 
     raw.save(out_fname)
     raw.close()
