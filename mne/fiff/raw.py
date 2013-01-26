@@ -32,6 +32,8 @@ from ..parallel import parallel_func
 from ..utils import deprecated
 from .. import verbose
 
+from numpy.testing import assert_array_equal
+
 
 class Raw(object):
     """Raw data
@@ -1305,7 +1307,7 @@ class _RawShell():
         self._projector = None
 
 
-@verbose
+#@verbose
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     verbose=None, proj=None):
     """Read a chunck of raw data
@@ -1405,27 +1407,6 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
             #  Do we need this buffer
             if this['last'] >= start_loc:
-                if this['ent'] is None:
-                    #  Take the easy route: skip is translated to zeros
-                    logger.debug('S')
-                    one = np.zeros((n_sel_channels, this['nsamp']))
-                else:
-                    tag = read_tag(raw.fids[fi], this['ent'].pos)
-
-                    # decide what datatype to use
-                    if np.isrealobj(tag.data):
-                        dtype = np.float
-                    else:
-                        dtype = np.complex64
-
-                    one = tag.data.reshape(this['nsamp'],
-                                           nchan).astype(dtype).T
-                    if mult is not None:  # use proj + cal factors in mult
-                        one = np.dot(mult[fi], one)
-                        one = one[idx]
-                    else:  # apply just the calibration factors
-                        one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
-
                 #  The picking logic is a bit complicated
                 if stop_loc > this['last'] and start_loc < this['first']:
                     #    We need the whole buffer
@@ -1452,6 +1433,29 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 #   Now we are ready to pick
                 picksamp = last_pick - first_pick
                 if picksamp > 0:
+                    if this['ent'] is None:
+                        #  Take the easy route: skip is translated to zeros
+                        logger.debug('S')
+                        one = np.zeros((n_sel_channels, this['nsamp']))
+                    else:
+                        tag = read_tag(raw.fids[fi], this['ent'].pos)
+
+                        # decide what datatype to use
+                        if np.isrealobj(tag.data):
+                            dtype = np.float
+                        else:
+                            dtype = np.complex64
+
+                        one = tag.data.reshape(this['nsamp'],
+                                               nchan).astype(dtype).T
+                        one = one[:, first_pick:last_pick]
+                        if mult is not None:  # use proj + cal factors in mult
+                            one = np.dot(mult[fi], one)
+                            one = one[idx]
+                        else:  # apply just the calibration factors
+                            one = one[idx]
+                            one *= raw.cals.ravel()[idx][:, np.newaxis]
+
                     if data is None:
                         # if not already done, allocate array with right type
                         if isinstance(data_buffer, basestring):
@@ -1460,8 +1464,33 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                                              dtype=dtype, shape=data_shape)
                         else:
                             data = np.empty(data_shape, dtype=dtype)
-                    data[:, dest:(dest + picksamp)] = \
-                        one[:, first_pick:last_pick]
+                    data[:, dest:(dest + picksamp)] = one
+
+
+
+                    #
+                    # Test new method
+                    #
+                    two = one
+                    if this['ent'] is None:
+                        one = np.zeros((n_sel_channels, picksamp))
+                    else:
+                        tag = read_tag(raw.fids[fi], this['ent'].pos,
+                                       shape=(this['nsamp'], nchan),
+                                       rlims=(first_pick, last_pick))
+                        one = tag.data.reshape(picksamp,
+                                               nchan).astype(dtype).T
+                        if mult is not None:  # use proj + cal factors in mult
+                            one = np.dot(mult[fi], one)
+                            one = one[idx]
+                        else:  # apply just the calibration factors
+                            one = one[idx]
+                            one *= raw.cals.ravel()[idx][:, np.newaxis]
+                    assert_array_equal(two, one)
+
+
+
+
                     dest += picksamp
 
             #   Done?
