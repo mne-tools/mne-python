@@ -8,6 +8,7 @@ import numpy as np
 from scipy import linalg
 import os
 import gzip
+from numpy.testing import assert_array_equal
 
 from .constants import FIFF
 
@@ -18,20 +19,15 @@ class Tag(object):
     Parameters
     ----------
     kind : int
-        Kind of Tag
-
+        Kind of Tag.
     type_ : int
-        Type of Tag
-
+        Type of Tag.
     size : int
-        Size in bytes
-
+        Size in bytes.
     int : next
-        Position of next Tag
-
+        Position of next Tag.
     pos : int
         Position of Tag is the original file.
-
     """
 
     def __init__(self, kind, type_, size, next, pos=None):
@@ -149,21 +145,74 @@ def read_tag_info(fid):
     return tag
 
 
-def read_tag(fid, pos=None):
+def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None,
+                     is_complex=False):
+    if shape is not None:
+        item_size = np.dtype(dtype).itemsize
+        if is_complex is True:
+            raise ValueError('not implemented yet')
+            # shape = (shape[0] * 2, shape[1])
+        if not len(shape) == 2:
+            raise ValueError('Only implemented for 2D matrices')
+        if not np.prod(shape) == tag_size / item_size:
+            raise ValueError('Wrong shape specified')
+        if not len(rlims) == 2:
+            raise ValueError('rlims must have two elements')
+        n_row_file = shape[0]
+        n_row_out = rlims[1] - rlims[0]
+        if n_row_out <= 0:
+            raise ValueError('rlims must yield at least one '
+                             'output')
+        # we are storing row-major
+        out = np.empty((shape[1], n_row_out), dtype=dtype)
+        # number of bytes to skip for each channel
+        start_skip = rlims[0] * item_size
+        end_skip = (n_row_file - n_row_out) * item_size
+        # number of bytes to read for each row
+        chunk_size = item_size * n_row_out
+        if not shape[1] * (start_skip + chunk_size + end_skip) == tag_size:
+            raise ValueError('badness')
+        for ri in range(shape[1]):
+            # Move ahead the pointer if necessary
+            fid.seek(start_skip, 1)
+            # Do the reading
+            out[ri, :] = np.fromstring(fid.read(chunk_size), dtype=dtype)
+            # Move ahead the pointer again if necessary
+            fid.seek(end_skip, 1)
+        out.shape = (n_row_out * shape[1],)
+
+        out2 = np.fromstring(fid.read(tag_size), dtype=dtype)
+        out2 = np.asanyarray(out2, order='F')
+        out2.shape = shape
+        out2 = out2[rlims[0]:rlims[1], :]
+        out2.shape = (n_row_out * shape[1],)
+        assert_array_equal(out, out2)
+    else:
+        out = np.fromstring(fid.read(tag_size), dtype=dtype)
+    if is_complex is True:
+        out = out[::2] + 1j * out[1::2]
+    return out
+
+
+def read_tag(fid, pos=None, shape=None, rlims=None):
     """Read a Tag from a file at a given position
 
     Parameters
     ----------
     fid : file
-        The open FIF file descriptor
-
+        The open FIF file descriptor.
     pos : int
         The position of the Tag in the file.
+    shape : tuple | None
+        If tuple, the shape of the stored matrix.
+    rlims : tuple | None
+        If tuple, the first and last rows to retrieve. Note that data are
+        assumed to be stored row-major in the file.
 
     Returns
     -------
     tag : Tag
-        The Tag read
+        The Tag read.
     """
     if pos is not None:
         fid.seek(pos, 0)
@@ -275,30 +324,44 @@ def read_tag(fid, pos=None):
 
             #   Simple types
             if tag.type == FIFF.FIFFT_BYTE:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">B1")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">B1",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_SHORT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">i2")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_INT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">i4")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">i4",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_USHORT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">u2")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">u2",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_UINT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">u4")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">u4",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_FLOAT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">f4")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">f4",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_DOUBLE:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">f8")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">f8",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_STRING:
+                if shape is not None:
+                    raise ValueError('not implemented yet')
                 tag.data = np.fromstring(fid.read(tag.size), dtype=">c")
                 tag.data = ''.join(tag.data)
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">i2")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
+                                            shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">f4")
-                tag.data = tag.data[::2] + 1j * tag.data[1::2]
+                # data gets stored twice as large
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">f4",
+                                            shape=shape, rlims=rlims,
+                                            is_complex=True)
             elif tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">f8")
-                tag.data = tag.data[::2] + 1j * tag.data[1::2]
+                # data gets stored twice as large
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">f8",
+                                            shape=shape, rlims=rlims,
+                                            is_complex=True)
             #
             #   Structures
             #
@@ -354,9 +417,9 @@ def read_tag(fid, pos=None):
                 loc = tag.data['loc']
                 kind = tag.data['kind']
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    tag.data['coil_trans'] = np.r_[np.c_[loc[3:6], loc[6:9],
-                                                         loc[9:12], loc[0:3]],
-                                        np.array([0, 0, 0, 1]).reshape(1, 4)]
+                    tag.data['coil_trans'] = np.concatenate(
+                            [loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
+                             np.array([0, 0, 0, 1]).reshape(1, 4)])
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
                     if linalg.norm(loc[3:6]) > 0.:
