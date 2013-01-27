@@ -1358,12 +1358,13 @@ def run_ica(raw, n_components, max_pca_components=100,
     ica : instance of ICA
         The ica object with the detected artifact indices marked for exclusion
     """
-    ica = ICA(n_components, max_pca_components,
-            n_pca_components, noise_cov, random_state,
-            algorithm, fun, fun_args, verbose)
+    ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
+              n_pca_components=n_pca_components, noise_cov=noise_cov,
+              random_state=random_state, algorithm=algorithm, fun=fun,
+              fun_args=fun_args, verbose=verbose)
 
-    ica.decompose_raw(raw, start=start, stop=stop)
-
+    ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+    logger.info(repr(ica))
     logger.info('    Now searching for artifacts...')
 
     if ecg_channel is not None:
