@@ -1047,13 +1047,12 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     loose : None | float in [0, 1]
         Value that weights the source variances of the dipole components
         defining the tangent space of the cortical surfaces. Requires surface-
-        based, free orientation forward solutions; loose is automatically set
-        to None with fixed=True.
+        based, free orientation forward solutions.
     depth : None | float in [0, 1]
         Depth weighting coefficients. If None, no depth weighting is performed.
     fixed : bool
-        If True, return a fixed-orientation inverse operator. If True,
-        loose is automatically set to None.
+        Use fixed source orientations normal to the cortical mantle. If True,
+        the loose parameter is ignored.
     limit_depth_chs : bool
         If True, use only grad channels in depth weighting (equivalent to MNE
         C code). If grad chanels aren't present, only mag channels will be
@@ -1073,8 +1072,6 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                       "the loose parameter is ignored.")
         loose = None
 
-    # loose=None and fixed=True: Make fixed
-    #    depth=None, can use fixed fwd, depth=0<x<1 must use free ori
     if is_fixed_ori and not fixed:
         raise ValueError('Forward operator has fixed orientation and can only '
                          'be used to make a fixed-orientation inverse '
@@ -1083,27 +1080,25 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         raise ValueError('For a fixed orientation inverse solution, the '
                          'forward solution must be fixed-orientation '
                          'and/or in surface orientation')
-    if depth is not None and (is_fixed_ori or not forward['surf_ori']):
-        # Special case for fixed solution when depth-weighting is on
-        raise ValueError('You need a free-orientation, surface-oriented '
-                         'forward solution to do depth weighting even '
-                         'when calculating a fixed-orientation inverse.')
+
+    # depth=None can use fixed fwd, depth=0<x<1 must use free ori
+    if depth is not None:
+        if not (0 < depth <= 1):
+            raise ValueError('depth should be a scalar between 0 and 1')
+        if is_fixed_ori or not forward['surf_ori']:
+            raise ValueError('You need a free-orientation, surface-oriented '
+                             'forward solution to do depth weighting even '
+                             'when calculating a fixed-orientation inverse.')
+
     if loose is not None:
-        if is_fixed_ori:
-            raise ValueError('Forward operator has fixed orientation. A '
-                             'loose inverse operator (loose parameter other '
-                             'than None) requires a surface-based, free '
-                             'orientation forward operator.')
-        if loose < 1 and not forward['surf_ori']:
-            raise ValueError('Forward operator is not oriented in surface '
-                             'coordinates. A loose inverse operator (loose '
-                             'parameter other than None) requires a surface-'
-                             'based, free orientation forward operator.')
         if not (0 <= loose <= 1):
             raise ValueError('loose value should be smaller than 1 and bigger '
                              'than 0, or None for not loose orientations.')
-    if depth is not None and not (0 < depth <= 1):
-        raise ValueError('depth should be a scalar between 0 and 1')
+        if loose < 1 and not forward['surf_ori']:
+            raise ValueError('Forward operator is not oriented in surface '
+                             'coordinates. A loose inverse operator requires '
+                             'a surface-based, free orientation forward '
+                             'operator.')
 
     #
     # 1. Read the bad channels
