@@ -1364,7 +1364,7 @@ def run_ica(raw, n_components, max_pca_components=100,
               fun_args=fun_args, verbose=verbose)
 
     ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
-    logger.info(repr(ica))
+    logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 
     if ecg_channel is not None:
