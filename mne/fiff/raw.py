@@ -1305,7 +1305,7 @@ class _RawShell():
         self._projector = None
 
 
-@verbose
+#@verbose
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     verbose=None, proj=None):
     """Read a chunck of raw data
@@ -1445,10 +1445,15 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
                     if mult is not None:  # use proj + cal factors in mult
                         one = np.dot(mult[fi], one)
-                        one = one[idx]
                     else:  # apply just the calibration factors
-                        one = one[idx]
-                        one *= raw.cals.ravel()[idx][:, np.newaxis]
+                        # this logic is designed to limit memory copies
+                        if isinstance(idx, slice):
+                            # This is a view operation, so it's fast
+                            one[idx] *= raw.cals.ravel()[idx][:, np.newaxis]
+                        else:
+                            # Extra operations are actually faster here
+                            # than creating a new array (fancy indexing)
+                            one *= raw.cals.ravel()[:, np.newaxis]
 
                     if data is None:
                         # if not already done, allocate array with right type
@@ -1458,7 +1463,15 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                                              dtype=dtype, shape=data_shape)
                         else:
                             data = np.empty(data_shape, dtype=dtype)
-                    data[:, dest:(dest + picksamp)] = one
+                    if isinstance(idx, slice):
+                        # faster to slice in data than doing one = one[idx]
+                        # sooner
+                        data[:, dest:(dest + picksamp)] = one[idx]
+                    else:
+                        # faster than doing one = one[idx]
+                        data_view = data[:, dest:(dest + picksamp)]
+                        for ii, ix in enumerate(idx):
+                            data_view[ii] = one[ix]
                     dest += picksamp
 
             #   Done?
