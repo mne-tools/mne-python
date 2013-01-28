@@ -63,7 +63,7 @@ def _rename_channels(names):
         List of names, channel names in Neuromag style
     """
     new = list()
-    ref_mag, ref_grad, eog, ext = [count(1) for _ in range(4)]
+    ref_mag, ref_grad, eog, eeg, ext = [count(1) for _ in range(5)]
     for i, name in enumerate(names, 1):
         if name.startswith('A'):
             name = 'MEG %3.3d' % i
@@ -71,10 +71,12 @@ def _rename_channels(names):
             name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif name.startswith('EOG') or name.startswith('E6'):
+        elif name.startswith('E6'):
             name = 'EOG %3.3d' % eog.next()
         elif name == 'ECG' or name.startswith('E3'):
             name = 'ECG 001'
+        elif name.startswith('E'):
+            name = 'EEG %3.3d' % eeg.next()
         elif name == 'UACurrent':
             name = 'UTL 001'
         elif name.startswith('M'):
@@ -982,19 +984,19 @@ class RawBTi(Raw):
         info['nchan'] = len(bti_info['chs'])
 
         # browse processing info for filter specs.
-        high, low = 0.0, info['sfreq'] * 0.3  # find better default
+        hp, lp = 0.0, info['sfreq'] * 0.4  # find better default
         for proc in bti_info['processes']:
             if 'filt' in proc['process_type']:
                 for step in proc['processing_steps']:
                     if 'high_freq' in step:
-                        high, low = step['high_freq'], step['low_freq']
+                        hp, lp = step['high_freq'], step['low_freq']
                     elif 'hp' in step['process_type']:
-                        low = step['freq']
+                        hp = step['freq']
                     elif 'lp' in step['process_type']:
-                        high = step['freq']
+                        lp = step['freq']
 
-        info['highpass'] = low
-        info['lowpass'] = high
+        info['highpass'] = hp
+        info['lowpass'] = lp
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
         info['filenames'] = []
