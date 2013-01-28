@@ -137,7 +137,6 @@ def test_multiple_files():
 def test_load_bad_channels():
     """Test reading/writing of bad channels
     """
-
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
     correct_bads = raw_marked.info['bads']
@@ -176,6 +175,24 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
+    # Let's construct a simple test for IO first
+    raw = Raw(fif_fname, preload=True)
+    raw.crop(0, 3.5)
+    # put in some data that we know the values of
+    data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
+    raw._data[:, :] = data
+    # save it somewhere
+    fname = op.join(tempdir, 'test_copy_raw.fif')
+    raw.save(fname, buffer_size_sec=1.0)
+    # read it in, make sure the whole thing matches
+    raw = Raw(fname)
+    assert_true(np.allclose(data, raw[:, :][0], 1e-6, 1e-20))
+    # let's read portions across the 1-sec tag boundary, too
+    inds = raw.time_as_index([1.75, 2.25])
+    sl = slice(inds[0], inds[1])
+    assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
+
+    # now let's do some real I/O
     fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
     fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
     for fname_in, fname_out in zip(fnames_in, fnames_out):
@@ -218,7 +235,7 @@ def test_io_raw():
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
 
-        assert_array_almost_equal(data, data2)
+        assert_true(np.allclose(data, data2, 1e-6, 1e-20))
         assert_array_almost_equal(times, times2)
         assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
 
