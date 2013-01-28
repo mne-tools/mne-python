@@ -189,10 +189,12 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
     pos : int
         The position of the Tag in the file.
     shape : tuple | None
-        If tuple, the shape of the stored matrix.
+        If tuple, the shape of the stored matrix. Only to be used with
+        data stored as a vector (not implemented for matrices yet).
     rlims : tuple | None
         If tuple, the first and last rows to retrieve. Note that data are
-        assumed to be stored row-major in the file.
+        assumed to be stored row-major in the file. Only to be used with
+        data stored as a vector (not implemented for matrices yet).
 
     Returns
     -------
@@ -218,6 +220,12 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
         matrix_coding = is_matrix & tag.type
         if matrix_coding != 0:
             matrix_coding = matrix_coding >> 16
+
+            # This should be easy to implement (see _fromstring_rows)
+            # if we need it, but for now, it's not...
+            if shape is not None:
+                raise ValueError('Row reading not implemented for matrices '
+                                 'yet')
 
             #   Matrices
             if matrix_coding == matrix_coding_dense:
