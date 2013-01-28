@@ -428,7 +428,7 @@ class Epochs(object):
                 # faster to pre-allocate memory here
                 epoch = self._get_epoch_from_disk(ii)
                 if ii == 0:
-                    data = np.zeros((n_events, epoch.shape[0],
+                    data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
                 data[ii] = epoch
         else:
@@ -443,7 +443,7 @@ class Epochs(object):
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
-                            data = np.zeros((n_events, epoch.shape[0],
+                            data = np.empty((n_events, epoch.shape[0],
                                              epoch.shape[1]),
                                             dtype=epoch.dtype)
                         data[n_out] = epoch
