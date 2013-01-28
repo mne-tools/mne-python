@@ -1439,7 +1439,7 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                     one = read_tag(raw.fids[fi], this['ent'].pos,
                                    shape=(this['nsamp'], nchan),
                                    rlims=(first_pick, last_pick)).data
-                    dtype = np.float if np.isrealobj(one) else np.complex64
+                    dtype = np.float if np.isrealobj(one) else np.complex128
                     one.shape = (picksamp, nchan)
                     one = one.T.astype(dtype)
 
