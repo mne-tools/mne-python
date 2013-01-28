@@ -420,6 +420,7 @@ class Epochs(object):
             Defaults to self.verbose.
         """
         n_events = len(self.events)
+        data = np.array([])
         if self._bad_dropped:
             if not out:
                 return
@@ -434,7 +435,6 @@ class Epochs(object):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
-
             for idx in xrange(n_events):
                 epoch = self._get_epoch_from_disk(idx)
                 is_good, offenders = self._is_good_epoch(epoch)
