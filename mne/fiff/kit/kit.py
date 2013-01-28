@@ -337,9 +337,9 @@ class coreg:
             self.hsp_points.append(point_dict)
 
     def transform_pts(self, pts):
-        pts = pts / 1e3
+        pts /= 1e3
         pts = pts[:, [1, 0, 2]]
-        pts[:, 0] = -1
+        pts[:, 0] *= -1
 
     def fit(self, include=range(5)):
         """
