@@ -144,14 +144,10 @@ def read_tag_info(fid):
     return tag
 
 
-def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None,
-                     is_complex=False):
+def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     """Helper for getting a range of rows from a large tag"""
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
-        if is_complex is True:
-            # complex data are stored twice as wide
-            shape = (shape[0], shape[1] * 2)
         if not len(shape) == 2:
             raise ValueError('Only implemented for 2D matrices')
         if not np.prod(shape) == tag_size / item_size:
@@ -174,8 +170,6 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None,
         fid.seek(end_pos)
     else:
         out = np.fromstring(fid.read(tag_size), dtype=dtype)
-    if is_complex is True:
-        out = out[::2] + 1j * out[1::2]
     return out
 
 
@@ -346,14 +340,18 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                                             shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_COMPLEX_FLOAT:
                 # data gets stored twice as large
+                if shape is not None:
+                    shape = (shape[0], shape[1] * 2)
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">f4",
-                                            shape=shape, rlims=rlims,
-                                            is_complex=True)
+                                            shape=shape, rlims=rlims)
+                tag.data = tag.data[::2] + 1j * tag.data[1::2]
             elif tag.type == FIFF.FIFFT_COMPLEX_DOUBLE:
                 # data gets stored twice as large
+                if shape is not None:
+                    shape = (shape[0], shape[1] * 2)
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">f8",
-                                            shape=shape, rlims=rlims,
-                                            is_complex=True)
+                                            shape=shape, rlims=rlims)
+                tag.data = tag.data[::2] + 1j * tag.data[1::2]
             #
             #   Structures
             #
