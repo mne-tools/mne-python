@@ -8,8 +8,10 @@
 # License: Simplified BSD
 import os
 import warnings
-from itertools import cycle, combinations
+from itertools import cycle
 from functools import partial
+from operator import add
+
 import copy
 import inspect
 
@@ -569,24 +571,8 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
-
-    keys = [scalings.keys(), units.keys(), titles.keys()]
-    iter_keys = combinations(keys, 2)
-    if any([len(set(a) - set(b)) for a, b in iter_keys]):
-        names = ['scalings', 'units', 'titles']
-        keys_unique = np.unique(np.concatenate(keys))
-        misses = [[k for k in keys_unique if k not in k2] for k2 in keys]
-        inds = np.array([len(m) for m in misses]) > 0
-        names = np.array(names)[inds]
-        misses = np.array(misses)[inds]
-        strs = ''.join(['    ' + n + ' was missing: "' + '", "'.join(m) + '"\n'
-                        for n, m in zip(names, misses)])
-
-        raise ValueError('scalings, units, and titles must all have the same '
-                         'keys.\nPassed keys: "%s"\n%s'
-                         % ('", "'.join(keys_unique), strs))
-    else:
-        channel_types = sorted(scalings.keys())
+    dict_args = dict(scalings=scalings, units=units, titles=titles, ylim=ylim)
+    channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
 
     import pylab as pl
     if picks is None:
@@ -598,6 +584,18 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         if t in types:
             n_channel_types += 1
             ch_types_used.append(t)
+
+    check_k = dict(((k, t), not t in v) for t in ch_types_used
+                   for (k, v) in dict_args.items())
+    if any(check_k.values()):
+        missings = dict((k, t) for (k, t), misses in check_k.items() if misses)
+        msg = ('For some of the data types in evoked parameters'
+               ' are missing:')
+        for param, t in missings.items():
+            msg += ('\n   No \'%s\' parameter for channels of type'
+                    ' %s.' % (param, t))
+
+        raise ValueError(msg)
 
     if axes is None:
         pl.clf()
@@ -800,22 +798,23 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
+def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
     """Plot Covariance data
 
     Parameters
     ----------
     cov : instance of Covariance
-        The covariance matrix
+        The covariance matrix.
     info: dict
-        Measurement info
-    exclude : list of string
+        Measurement info.
+    exclude : list of string | str
         List of channels to exclude. If empty do not exclude any channel.
+        If 'bads', exclude info['bads'].
     colorbar : bool
-        Show colorbar or not
+        Show colorbar or not.
     proj : bool
-        Apply projections or not
+        Apply projections or not.
     show : bool
         Call pylab.show() as the end or not.
     show_svd : bool
@@ -824,6 +823,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    if exclude == 'bads':
+        exclude = info['bads']
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
     info_ch_names = info['ch_names']

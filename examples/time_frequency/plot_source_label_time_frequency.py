@@ -37,11 +37,11 @@ events = mne.find_events(raw)
 inverse_operator = read_inverse_operator(fname_inv)
 
 include = []
-exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
+raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG channels
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                                stim=False, include=include, exclude=exclude)
+                                stim=False, include=include, exclude='bads')
 
 # Load condition 1
 event_id = 1

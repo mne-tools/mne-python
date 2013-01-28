@@ -55,7 +55,7 @@ cov = mne.read_cov(cov_fname)
 # Handling average file
 setno = 'Left visual'
 evoked = fiff.read_evoked(ave_fname, setno=setno, baseline=(None, 0))
-evoked = fiff.pick.pick_channels_evoked(evoked, exclude=evoked.info['bads'])
+evoked = fiff.pick.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
 evoked.crop(tmin=-0.1, tmax=0.4)

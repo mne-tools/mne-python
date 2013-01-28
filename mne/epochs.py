@@ -70,6 +70,9 @@ class Epochs(object):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
+    picks : None (default) or array of int
+        Indices of channels to include (if None, all channels
+        are used except for channels in raw.info['bads']).
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -231,13 +234,12 @@ class Epochs(object):
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
         if picks is None:
-            picks = range(len(self.info['ch_names']))
-            self.ch_names = self.info['ch_names']
-        else:
-            self.info['chs'] = [self.info['chs'][k] for k in picks]
-            self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
-            self.ch_names = self.info['ch_names']
-            self.info['nchan'] = len(picks)
+            picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
+                               ecg=True, eog=True, misc=True, exclude='bads')
+        self.info['chs'] = [self.info['chs'][k] for k in picks]
+        self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
+        self.ch_names = self.info['ch_names']
+        self.info['nchan'] = len(picks)
         self.picks = picks
 
         if len(picks) == 0:
@@ -391,7 +393,7 @@ class Epochs(object):
         # Detrend
         if self.detrend is not None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False)
+                               eog=False, ecg=False, emg=False, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct
@@ -670,7 +672,7 @@ class Epochs(object):
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True,
                                stim=False, eog=False, ecg=False,
-                               emg=False)
+                               emg=False, exclude=[])
             if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
@@ -968,7 +970,7 @@ class Epochs(object):
 
         if picks is None:
             picks = pick_types(self.info, include=self.ch_names,
-                               exclude=self.info['bads'])
+                               exclude='bads')
         if epochs_idx is None:
             epochs_idx = slice(len(self.events))
 

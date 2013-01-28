@@ -8,9 +8,9 @@ from mne.time_frequency import induced_power, single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                'test_raw.fif')
+                    'test_raw.fif')
 event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                'data', 'test-eve.fif')
+                      'data', 'test-eve.fif')
 
 
 def test_morlet():
@@ -43,7 +43,7 @@ def test_time_frequency():
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0))
+                    baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
 
@@ -59,7 +59,7 @@ def test_time_frequency():
     assert_true(np.sum(phase_lock <= 0) == 0)
 
     power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                       n_cycles=2, use_fft=False)
+                                      n_cycles=2, use_fft=False)
 
     assert_true(power.shape == (len(picks), len(frequencies), len(times)))
     assert_true(power.shape == phase_lock.shape)

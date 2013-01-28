@@ -85,8 +85,11 @@ def fiff_open(fname, preload=False, verbose=None):
         while tag.next >= 0:
             pos = fid.tell()
             tag = read_tag_info(fid)
-            tag.pos = pos
-            directory.append(tag)
+            if tag is None:
+                break  # HACK : to fix file ending with empty tag...
+            else:
+                tag.pos = pos
+                directory.append(tag)
 
     tree, _ = make_dir_tree(fid, directory)
 

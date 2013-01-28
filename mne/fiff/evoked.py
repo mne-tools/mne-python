@@ -505,7 +505,7 @@ class Evoked(object):
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False)
+                               eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def __add__(self, evoked):

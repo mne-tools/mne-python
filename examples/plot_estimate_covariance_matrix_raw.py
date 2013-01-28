@@ -25,5 +25,5 @@ print cov
 
 ###############################################################################
 # Show covariance
-mne.viz.plot_cov(cov, raw.info, exclude=raw.info['bads'], colorbar=True,
-                 proj=True)  # try setting proj to False to see the effect
+mne.viz.plot_cov(cov, raw.info, colorbar=True, proj=True)
+# try setting proj to False to see the effect

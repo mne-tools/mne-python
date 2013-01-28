@@ -35,15 +35,15 @@ events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
-exclude = raw.info['bads'] + ['EEG 053']  # bads + 1 more
+raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
 picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
-                                            include=include, exclude=exclude)
-# Read epochs
+                                            include=include, exclude='bads')
+# Read epochs, with proj off by default so we can plot either way later
 reject = dict(grad=4000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject)
+                    baseline=(None, 0), reject=reject, proj=False)
 
 # Compute the covariance on baseline
 cov = mne.compute_covariance(epochs, tmin=None, tmax=0)
@@ -51,5 +51,5 @@ print cov
 
 ###############################################################################
 # Show covariance
-mne.viz.plot_cov(cov, raw.info, exclude=raw.info['bads'], colorbar=True,
-                 proj=True)  # try setting proj to False to see the effect
+mne.viz.plot_cov(cov, raw.info, colorbar=True, proj=True)
+# try setting proj to False to see the effect

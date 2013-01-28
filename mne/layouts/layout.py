@@ -137,7 +137,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
         The generated Layout
     """
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
-    inds = pick_types(info, meg=False, eeg=True)
+    inds = pick_types(info, meg=False, eeg=True, exclude='bads')
     hsp = [info['chs'][ii]['eeg_loc'][:, 0] for ii in inds]
     names = [info['chs'][ii]['ch_name'] for ii in inds]
     if len(hsp) <= 0:
@@ -184,17 +184,16 @@ def make_grid_layout(info, picks=None):
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
     picks : array-like | None
-        The indices of the channels to be included. If None, al misc channels will
-        be included.
+        The indices of the channels to be included. If None, al misc channels
+        will be included.
 
     Returns
     -------
     layout : Layout
         The generated layout.
-
     """
     if picks is None:
-        picks = pick_types(info, misc=True)
+        picks = pick_types(info, misc=True, exclude='bads')
 
     names = [info['chs'][k]['ch_name'] for k in picks]
 

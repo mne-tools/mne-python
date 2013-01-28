@@ -16,7 +16,7 @@ from itertools import product
 
 from mne import fiff, Epochs, read_events, cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
-                              read_ica
+                              read_ica, run_ica
 from mne.preprocessing.ica import score_funcs
 from mne.utils import _TempDir, requires_sklearn
 
@@ -34,12 +34,12 @@ start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
 raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False)
 
 events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, stim=False,
-                        ecg=False, eog=False, exclude=raw.info['bads'])
+picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
+                        exclude='bads')
 
 # for testing eog functionality
-picks2 = fiff.pick_types(raw.info, meg=True, stim=False,
-                        ecg=False, eog=True, exclude=raw.info['bads'])
+picks2 = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=True,
+                         exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -227,7 +227,7 @@ def test_ica_additional():
     with warnings.catch_warnings(True) as w:
         sfunc_test = [ica.find_sources_raw(raw, target='EOG 061',
                 score_func=n, start=0, stop=10)
-                for  n, f in score_funcs.items()]
+                for n, f in score_funcs.items()]
     # score funcs raw
 
     # check lenght of scores
@@ -247,7 +247,7 @@ def test_ica_additional():
     with warnings.catch_warnings(True) as w:
         sfunc_test = [ica.find_sources_epochs(epochs_eog, target='EOG 061',
                 score_func=n)
-                for  n, f in score_funcs.items()]
+                for n, f in score_funcs.items()]
 
     # check lenght of scores
     [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
@@ -291,3 +291,14 @@ def test_ica_additional():
                   order=np.arange(50))
     assert_raises(ValueError, ica.plot_sources_epochs, epochs,
                   order=np.arange(50))
+
+
+def test_run_ica():
+    """Test run_ica function"""
+    params = []
+    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx params
+    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
+    for idx, ch_name in product(*params):
+        run_ica(raw, n_components=.9, start=0, stop=100, start_find=0,
+                stop_find=50, ecg_channel=ch_name, eog_channel=ch_name,
+                skew_idx=idx, var_idx=idx, kurt_idx=idx)

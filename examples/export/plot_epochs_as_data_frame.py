@@ -107,9 +107,10 @@ raw = Raw(raw_fname)
 # For simplicity we will only consider the first 10 epochs
 events = mne.read_events(event_fname)[:10]
 
-raw.info['bads'] = ['MEG 2443']
+# Add a bad channel
+raw.info['bads'] += ['MEG 2443']
 picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=False, exclude=raw.info['bads'])
+                            stim=False, exclude='bads')
 
 tmin, tmax = -0.2, 0.5
 baseline = (None, 0)

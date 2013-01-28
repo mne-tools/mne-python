@@ -30,7 +30,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = Raw(raw_fname, preload=True)
 
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude=raw.info['bads'])
+                            stim=False, exclude='bads')
 
 ###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.
@@ -86,7 +86,7 @@ eog_events = ica_find_eog_events(raw=raw, eog_source=sources[eog_source_idx],
 
 # Read epochs
 picks = pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
-                   include=['EOG 061'])
+                   include=['EOG 061'], exclude='bads')
 
 tmin, tmax = -0.2, 0.2
 epochs = mne.Epochs(raw, eog_events, event_id, tmin, tmax, picks=picks,
