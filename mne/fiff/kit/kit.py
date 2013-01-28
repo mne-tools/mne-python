@@ -11,7 +11,8 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 from mne.fiff.raw import Raw
 from mne import verbose
-from mne.fiff.constants import Bunch, FIFF
+from mne.fiff.constants import FIFF
+from .  constants import KIT
 from struct import unpack
 import numpy as np
 from numpy import sin, cos
@@ -20,20 +21,7 @@ import time
 import logging
 import re
 
-KIT = Bunch()
-KIT.BASIC_INFO = 16
-KIT.INT = 4
-KIT.DOUBLE = 8
-KIT.STRING = 128
-KIT.CALIB_FACTOR = 1.0
-KIT.AMPLIFIER_INFO = 112
-KIT.CHAN_SENS = 80
-KIT.SAMPLE_INFO = 128
-KIT.DATA_OFFSET = 144
-KIT.nmegchan = 157
-KIT.nrefchan = 3
-KIT.ntrigchan = 8
-KIT.RANGE = 1.
+
 
 
 class sqd_params(object):
@@ -68,8 +56,6 @@ class sqd_params(object):
         self.modelname = unpack('128s', fid.read(KIT.STRING))[0].split('\n')[0]
         self.nchan = unpack('i', fid.read(KIT.INT))[0]
         self.chan_no = range(self.nchan)
-        self.nmiscchan = (self.nchan - KIT.nmegchan
-                          - KIT.nrefchan - KIT.ntrigchan)
         self.lowpass = lowpass
         self.highpass = highpass
 
@@ -351,9 +337,9 @@ class coreg:
             self.hsp_points.append(point_dict)
 
     def transform_pts(self, pts):
-        pts = pts / 1e3
+        pts /= 1e3
         pts = pts[:, [1, 0, 2]]
-        pts[:, 0] = -1
+        pts[:, 0] *= -1
 
     def fit(self, include=range(5)):
         """
