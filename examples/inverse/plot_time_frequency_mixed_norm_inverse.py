@@ -89,9 +89,6 @@ stc, residual = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                     weights=stc_dspm, weights_min=8., debias=True,
                     wsize=16, tstep=4, window=0.05, return_residual=True)
 
-evoked = mne.fiff.pick_types_evoked(evoked, meg='grad')
-residual = mne.fiff.pick_types_evoked(residual, meg='grad')
-
 # Crop to remove edges
 stc.crop(tmin=-0.05, tmax=0.3)
 evoked.crop(tmin=-0.05, tmax=0.3)
@@ -100,11 +97,13 @@ residual.crop(tmin=-0.05, tmax=0.3)
 import pylab as pl
 pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-plot_evoked(evoked, ylim=ylim, proj=True,
+picks = fiff.pick_types(evoked.info, meg='grad', exclude='bads')
+plot_evoked(evoked, picks=picks, ylim=ylim, proj=True,
             titles=dict(grad='Evoked Response (grad)'))
 
 pl.figure()
-plot_evoked(residual, ylim=ylim, proj=True,
+picks = fiff.pick_types(residual.info, meg='grad', exclude='bads')
+plot_evoked(residual, picks=picks, ylim=ylim, proj=True,
             titles=dict(grad='Residual (grad)'))
 
 ###############################################################################
