@@ -162,16 +162,16 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None,
         if n_row_out <= 0:
             raise ValueError('rlims must yield at least one output')
         row_size = item_size * shape[1]
-        # # of bytes to skip at the beginning and end, and # to read
+        # # of bytes to skip at the beginning, # to read, where to end
         start_skip = rlims[0] * row_size
-        end_skip = (shape[0] - rlims[1]) * row_size
         read_size = n_row_out * row_size
+        end_pos = fid.tell() + tag_size
         # Move the pointer ahead to the read point
         fid.seek(start_skip, 1)
         # Do the reading
         out = np.fromstring(fid.read(read_size), dtype=dtype)
         # Move the pointer ahead to the end of the tag
-        fid.seek(end_skip, 1)
+        fid.seek(end_pos)
     else:
         out = np.fromstring(fid.read(tag_size), dtype=dtype)
     if is_complex is True:
