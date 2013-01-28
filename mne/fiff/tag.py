@@ -8,7 +8,6 @@ import numpy as np
 from scipy import linalg
 import os
 import gzip
-from numpy.testing import assert_array_equal
 
 from .constants import FIFF
 
@@ -147,46 +146,32 @@ def read_tag_info(fid):
 
 def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None,
                      is_complex=False):
+    """Helper for getting a range of rows from a large tag"""
     if shape is not None:
         item_size = np.dtype(dtype).itemsize
         if is_complex is True:
-            raise ValueError('not implemented yet')
-            # shape = (shape[0] * 2, shape[1])
+            # complex data are stored twice as wide
+            shape = (shape[0], shape[1] * 2)
         if not len(shape) == 2:
             raise ValueError('Only implemented for 2D matrices')
         if not np.prod(shape) == tag_size / item_size:
             raise ValueError('Wrong shape specified')
         if not len(rlims) == 2:
             raise ValueError('rlims must have two elements')
-        n_row_file = shape[0]
         n_row_out = rlims[1] - rlims[0]
         if n_row_out <= 0:
-            raise ValueError('rlims must yield at least one '
-                             'output')
-        # we are storing row-major
-        out = np.empty((shape[1], n_row_out), dtype=dtype)
-        # number of bytes to skip for each channel
-        start_skip = rlims[0] * item_size
-        end_skip = (n_row_file - n_row_out) * item_size
-        # number of bytes to read for each row
-        chunk_size = item_size * n_row_out
-        if not shape[1] * (start_skip + chunk_size + end_skip) == tag_size:
-            raise ValueError('badness')
-        for ri in range(shape[1]):
-            # Move ahead the pointer if necessary
-            fid.seek(start_skip, 1)
-            # Do the reading
-            out[ri, :] = np.fromstring(fid.read(chunk_size), dtype=dtype)
-            # Move ahead the pointer again if necessary
-            fid.seek(end_skip, 1)
-        out.shape = (n_row_out * shape[1],)
-
-        out2 = np.fromstring(fid.read(tag_size), dtype=dtype)
-        out2 = np.asanyarray(out2, order='F')
-        out2.shape = shape
-        out2 = out2[rlims[0]:rlims[1], :]
-        out2.shape = (n_row_out * shape[1],)
-        assert_array_equal(out, out2)
+            raise ValueError('rlims must yield at least one output')
+        row_size = item_size * shape[1]
+        # # of bytes to skip at the beginning and end, and # to read
+        start_skip = rlims[0] * row_size
+        end_skip = (shape[0] - rlims[1]) * row_size
+        read_size = n_row_out * row_size
+        # Move the pointer ahead to the read point
+        fid.seek(start_skip, 1)
+        # Do the reading
+        out = np.fromstring(fid.read(read_size), dtype=dtype)
+        # Move the pointer ahead to the end of the tag
+        fid.seek(end_skip, 1)
     else:
         out = np.fromstring(fid.read(tag_size), dtype=dtype)
     if is_complex is True:
@@ -345,9 +330,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">f8",
                                             shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_STRING:
-                if shape is not None:
-                    raise ValueError('not implemented yet')
-                tag.data = np.fromstring(fid.read(tag.size), dtype=">c")
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">c",
+                                            shape=shape, rlims=rlims)
                 tag.data = ''.join(tag.data)
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
