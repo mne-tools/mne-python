@@ -22,3 +22,4 @@ KIT.nrefchan = 3
 KIT.ntrigchan = 8
 KIT.nmiscchan = (KIT.nchan - KIT.nmegchan - KIT.nrefchan - KIT.ntrigchan)
 KIT.RANGE = 1.
+KIT.TRIGGER_LENGTH = 10
