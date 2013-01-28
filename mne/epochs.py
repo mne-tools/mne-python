@@ -419,15 +419,21 @@ class Epochs(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        n_events = len(self.events)
         if self._bad_dropped:
             if not out:
                 return
-            epochs = map(self._get_epoch_from_disk, xrange(len(self.events)))
+            for ii in xrange(n_events):
+                # faster to pre-allocate memory here
+                epoch = self._get_epoch_from_disk(ii)
+                if ii == 0:
+                    data = np.zeros((n_events, epoch.shape[0],
+                                     epoch.shape[1]), dtype=epoch.dtype)
+                data[ii] = epoch
         else:
             good_events = []
-            epochs = []
-            n_events = len(self.events)
             drop_log = [[] for _ in range(n_events)]
+            n_out = 0
 
             for idx in xrange(n_events):
                 epoch = self._get_epoch_from_disk(idx)
@@ -435,7 +441,13 @@ class Epochs(object):
                 if is_good:
                     good_events.append(idx)
                     if out:
-                        epochs.append(epoch)
+                        # faster to pre-allocate, then trim as necessary
+                        if n_out == 0:
+                            data = np.zeros((n_events, epoch.shape[0],
+                                             epoch.shape[1]),
+                                            dtype=epoch.dtype)
+                        data[n_out] = epoch
+                        n_out += 1
                 else:
                     drop_log[idx] = offenders
 
@@ -446,8 +458,9 @@ class Epochs(object):
                         % (n_events - len(good_events)))
             if not out:
                 return
-
-        data = np.array(epochs)
+            # just take the good ones
+            assert len(good_events) == n_out
+            data = data[:len(good_events)]
         return data
 
     @verbose
