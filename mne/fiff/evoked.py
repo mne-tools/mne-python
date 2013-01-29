@@ -335,17 +335,22 @@ class Evoked(object):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def plot(self, picks=None, unit=True, show=True, ylim=None,
+    def plot(self, picks=None, exclude=[], unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
              mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
              mag='Magnetometers'), axes=None):
         """Plot evoked data
 
+        Note: If bad channels are not excluded they are shown in black.
+
         Parameters
         ----------
         picks : None | array-like of int
             The indices of channels to plot. If None show all.
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded.
         unit : bool
             Scale plot with channel (SI) unit.
         show : bool
@@ -370,8 +375,8 @@ class Evoked(object):
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
         """
-        plot_evoked(self, picks=picks, unit=unit, show=show, ylim=ylim,
-                    proj=proj, xlim=xlim, hline=hline, units=units,
+        plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
+                    ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
                     scalings=scalings, titles=titles, axes=axes)
 
     def to_nitime(self, picks=None):

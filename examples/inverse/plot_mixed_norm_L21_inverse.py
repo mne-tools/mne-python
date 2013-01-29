@@ -42,8 +42,8 @@ cov = mne.cov.regularize(cov, evoked.info)
 import pylab as pl
 pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-picks = fiff.pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-plot_evoked(evoked, picks=picks, ylim=ylim, proj=True)
+picks = fiff.pick_types(evoked.info, meg=True, eeg=True)
+plot_evoked(evoked, picks=picks, ylim=ylim, proj=True, exclude='bads')
 
 ###############################################################################
 # Run solver
@@ -65,8 +65,8 @@ stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                  return_residual=True)
 
 pl.figure()
-picks = fiff.pick_types(residual.info, meg=True, eeg=True, exclude='bads')
-plot_evoked(residual, picks=picks, ylim=ylim, proj=True)
+picks = fiff.pick_types(residual.info, meg=True, eeg=True)
+plot_evoked(residual, picks=picks, ylim=ylim, proj=True, exclude='bads')
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)

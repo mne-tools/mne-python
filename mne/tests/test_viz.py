@@ -101,6 +101,11 @@ def test_plot_evoked():
     """Test plotting of evoked
     """
     evoked.plot(proj=True, hline=[1])
+
+    # plot with bad channels excluded
+    evoked.plot(exclude='bads')
+    evoked.plot(exclude=evoked.info['bads'])  # does the same thing
+
     # Assert we get an error with incorrect dict specification
     assert_raises(ValueError, plot_evoked, evoked, hline=[1],
                   units=dict(eeg=10))
