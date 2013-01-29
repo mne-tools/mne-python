@@ -2,6 +2,8 @@
 Created on Jan 28, 2013
 
 @author: teon
+pattern matching for coreg is from Tal Linzen
+coreg methods are adapted from Christian Brodbeck's eelbrain.plot.coreg
 '''
 
 import re

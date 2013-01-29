@@ -4,21 +4,19 @@ Created on Dec 27, 2012
 @author: teon
 sqd_params class is adapted from Yoshiaki Adachi's Meginfo2.cpp
 and sqdread's getdata.m
-pattern matching for coreg is from Tal Linzen
-coreg methods are adapted from Christian Brodbeck's eelbrain.plot.coreg
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 '''
 
 from mne.fiff.raw import Raw
 from mne import verbose
 from mne.fiff.constants import FIFF
-from .  constants import KIT
+from . constants import KIT
+from . import coreg
 from struct import unpack
 import numpy as np
 import time
 import logging
 import re
-from . import coreg
 
 
 
@@ -152,7 +150,8 @@ class RawKIT(Raw):
     @verbose
     def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
                  sns_fname, data=None, lowpass=None, highpass=None,
-                 verbose=True):
+                 stim=xrange(160, 168), direction='d',
+                 stimthresh, add_chs, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname, lowpass=lowpass,
@@ -162,6 +161,14 @@ class RawKIT(Raw):
         self.elp_fname = elp_fname
         self.hsp_fname = hsp_fname
         self.sns_fname = sns_fname
+        self.stim = stim
+        self.stimthresh = stimthresh
+        if direction is 'a':
+            self.endian = 1
+        elif direction is 'd':
+            self.endian = -1
+        else:
+            raise NotImplementedError
 
         logger.info('Reading raw data from %s...' % data_fname)
         if not data:
@@ -269,8 +276,25 @@ class RawKIT(Raw):
             elif ch_name == 'STI 014':
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             chs.append(chan_info)
-            return chs
+
         """create a synthetic channel"""
+        trig_chs = self._data[self.stim, :]
+        trig_chs = trig_chs > self.stimthresh
+        trig_vals = np.array([2 ** (n - 1) for n in
+                              xrange(len(self.stim), 0, self.endian)])
+        trig_chs = trig_chs * trig_vals
+        stim_ch = trig_chs.sum(axis=1)
+
+        # deals with spurious triggering
+        idx = np.where(stim_ch > 0)[0]
+        idy = idx + KIT.TRIGGER_LENGTH
+        diff = stim_ch[idy] - stim_ch[idx]
+        index = np.where(diff != 0)
+        stim_ch[index] = 0
+
+        self._data = np.vstack((self._data, stim_ch))
+        return chs
+
 
     def _get_coreg(self):
         """get transformation matrix and hsp points"""
