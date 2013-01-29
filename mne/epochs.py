@@ -445,7 +445,7 @@ class Epochs(object):
                         if n_out == 0:
                             data = np.empty((n_events, epoch.shape[0],
                                              epoch.shape[1]),
-                                            dtype=epoch.dtype)
+                                            dtype=epoch.dtype, order='C')
                         data[n_out] = epoch
                         n_out += 1
                 else:
@@ -461,8 +461,13 @@ class Epochs(object):
             # just take the good ones
             assert len(good_events) == n_out
             if n_out > 0:
-                # slicing won't free the space, so we resize
-                data.resize((n_out,) + data.shape[1:], refcheck=False)
+                # this should always be true, but just to be safe...
+                if data.flags.c_contiguous is True:
+                    # slicing won't free the space, so we resize
+                    data.resize((n_out,) + data.shape[1:], refcheck=False)
+                else:
+                    # equivalent (but more memory usage/ops) version
+                    data = data[:n_out].copy()
         return data
 
     @verbose
