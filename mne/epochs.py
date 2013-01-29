@@ -460,7 +460,9 @@ class Epochs(object):
                 return
             # just take the good ones
             assert len(good_events) == n_out
-            data = data[:len(good_events)]
+            if n_out > 0:
+                # slicing won't free the space, so we resize
+                data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
     @verbose
