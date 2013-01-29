@@ -168,9 +168,7 @@ def test_make_inverse_operator_fixed():
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     fwd_1 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=False)
     fwd_2 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=True)
-    # can't make fixed inv without force_fixed
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_op,
-                  noise_cov, depth=0.8, loose=None)
+
     # can't make fixed inv without surf ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
                   noise_cov, depth=0.8, loose=None, fixed=True)
@@ -197,6 +195,30 @@ def test_make_inverse_operator_fixed():
     _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 2)
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
+
+
+def test_make_inverse_operator_free():
+    """Test MNE inverse computation with free orientation
+    """
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+    fwd_1 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=False)
+    fwd_2 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=True)
+
+    # can't make free inv with fixed fwd
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
+                  noise_cov, depth=None)
+
+    # for free ori inv, loose=None and loose=1 should be equivalent
+    inv_1 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
+    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=1)
+    _compare_inverses_approx(inv_1, inv_2, evoked, 2)
+
+    # for depth=None, surf_ori of the fwd should not matter
+    inv_3 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
+                                  loose=None)
+    inv_4 = make_inverse_operator(evoked.info, fwd_1, noise_cov, depth=None,
+                                  loose=None)
+    _compare_inverses_approx(inv_3, inv_4, evoked, 2)
 
 
 def test_make_inverse_operator_diag():
