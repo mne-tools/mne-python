@@ -32,7 +32,7 @@ from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
 
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
@@ -534,12 +534,15 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
-                proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
-                grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
-                mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
+def plot_evoked(evoked, picks=None, exclude=[], unit=True, show=True,
+                ylim=None, proj=False, xlim='tight', hline=None,
+                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
+                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
+                titles=dict(eeg='EEG', grad='Gradiometers',
                 mag='Magnetometers'), axes=None):
     """Plot evoked data
+
+    Note: If bad channels are not excluded they are shown in black.
 
     Parameters
     ----------
@@ -547,6 +550,9 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         The evoked data
     picks : None | array-like of int
         The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
@@ -572,12 +578,28 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
+    import pylab as pl
+
     dict_args = dict(scalings=scalings, units=units, titles=titles)
 
     channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
-    import pylab as pl
     if picks is None:
         picks = range(evoked.info['nchan'])
+
+    bad_ch_idx = [evoked.ch_names.index(ch) for ch in evoked.info['bads']
+                  if ch in evoked.ch_names]
+    if len(exclude) > 0:
+        if isinstance(exclude, basestring) and exclude == 'bads':
+            exclude = bad_ch_idx
+        elif (isinstance(exclude, list)
+              and all([isinstance(ch, basestring) for ch in exclude])):
+            exclude = [evoked.ch_names.index(ch) for ch in exclude]
+        else:
+            raise ValueError('exlude has to be a list of channel names or '
+                             '"bads"')
+
+        picks = list(set(picks).difference(exclude))
+
     types = [channel_type(evoked.info, idx) for idx in picks]
     n_channel_types = 0
     ch_types_used = []
@@ -617,6 +639,17 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
+            if any([i in bad_ch_idx for i in idx]):
+                ccycle = cycle(COLORS)
+                colors = [ccycle.next() for i in range(len(idx))]
+                for i in bad_ch_idx:
+                    if i in idx:
+                        colors[idx.index(i)] = 'k'
+
+                ax._get_lines.color_cycle = cycle(colors)
+            else:
+                ax._get_lines.color_cycle = cycle(COLORS)
+
             D = this_scaling * evoked.data[idx, :]
             if proj:
                 projs = activate_proj(evoked.info['projs'])
