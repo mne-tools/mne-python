@@ -1305,7 +1305,7 @@ class _RawShell():
         self._projector = None
 
 
-#@verbose
+@verbose
 def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     verbose=None, proj=None):
     """Read a chunck of raw data
