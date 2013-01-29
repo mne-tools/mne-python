@@ -49,7 +49,7 @@ RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
                    'ctf_head_t']
 
 
-def _rename_channels(names):
+def _rename_channels(names, ecg_ch='32', eog_ch=('63', '64')):
     """Renames appropriately ordered list of channel names
 
     Parameters
@@ -71,9 +71,9 @@ def _rename_channels(names):
             name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif name.startswith('E6'):
+        elif any([name.endswith(k) for k in eog_ch]):
             name = 'EOG %3.3d' % eog.next()
-        elif name == 'ECG' or name.startswith('E3'):
+        elif name.endswith(ecg_ch):
             name = 'ECG 001'
         elif name.startswith('E'):
             name = 'EEG %3.3d' % eeg.next()
