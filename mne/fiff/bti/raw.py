@@ -49,7 +49,7 @@ RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
                    'ctf_head_t']
 
 
-def _rename_channels(names, ecg_ch='32', eog_ch=('63', '64')):
+def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
     """Renames appropriately ordered list of channel names
 
     Parameters
@@ -71,9 +71,9 @@ def _rename_channels(names, ecg_ch='32', eog_ch=('63', '64')):
             name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif any([name.endswith(k) for k in eog_ch]):
+        elif any([name == k for k in eog_ch]):
             name = 'EOG %3.3d' % eog.next()
-        elif name.endswith(ecg_ch):
+        elif name == ecg_ch:
             name = 'ECG 001'
         elif name.startswith('E'):
             name = 'EEG %3.3d' % eeg.next()
@@ -941,6 +941,12 @@ class RawBTi(Raw):
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
+    ecg_ch: str | None
+      The 4D name of the ECG channel. If None, the channel will be treated
+      as regular EEG channel.
+    eog_ch: tuple of str | None
+      The 4D names of the EOG channels. If None, the channels will be treated
+      as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -952,7 +958,8 @@ class RawBTi(Raw):
     @verbose
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), verbose=None):
+                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
+                 eog_ch=('E63', 'E64'), verbose=None):
 
         if not op.isabs(config_fname):
             config_fname = op.join(op.abspath(op.curdir),
@@ -1096,10 +1103,10 @@ class RawBTi(Raw):
         info['ctf_head_t']['trans'] = ctf_head_t
         logger.info('Done.')
 
-        # include digital weights from reference channel
-        comps = info['comps'] = list()
-        weights = bti_info['weights']
-        if True:  # reminds of a later support for picking
+        if False:  # reminds us to support this as we go
+            # include digital weights from reference channel
+            comps = info['comps'] = list()
+            weights = bti_info['weights']
             by_name = lambda x: x[1]
             chn = dict(ch_mapping)
             columns = [chn[k] for k in weights['dsp_ch_names']]
@@ -1117,6 +1124,12 @@ class RawBTi(Raw):
                            rowcals=np.ones(mat.shape[0], dtype='>f4'),
                            colcals=np.ones(mat.shape[1], dtype='>f4'),
                            save_calibrated=0)]
+        else:
+            logger.warning('Warning. Currently direct inclusion of 4D weight t'
+                           'ables is not supported. For critical use cases '
+                           '\nplease take into account the MNE command '
+                           '\'mne_create_comp_data\' to include weights as '
+                           'printed out \nby the 4D \'print_table\' routine.')
 
         # check that the info is complete
         assert not set(RAW_INFO_FIELDS) - set(info.keys())
@@ -1157,8 +1170,19 @@ class RawBTi(Raw):
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
-                 translation=(0.0, 0.02, 0.11), verbose=True):
+                 translation=(0.0, 0.02, 0.11), ecg_ch='E31',
+                 eog_ch=('E63', 'E64'), verbose=True):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
+
+    Note.
+    1) Currently direct inclusion of reference channel weights
+    is not supported. Please use \'mne_create_comp_data\' to include
+    the weights or use the low level functions from this module to
+    include them by yourself.
+    2) The informed guess for the 4D name is E31 for the ECG channel and
+    E63, E63 for the EOG channels. Pleas check and adjust if those channels
+    are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
+    appear in the channel names of the raw object.
 
     Parameters
     ----------
@@ -1176,6 +1200,12 @@ def read_raw_bti(pdf_fname, config_fname='config',
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
+    ecg_ch: str | None
+      The 4D name of the ECG channel. If None, the channel will be treated
+      as regular EEG channel.
+    eog_ch: tuple of str | None
+      The 4D names of the EOG channels. If None, the channels will be treated
+      as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
