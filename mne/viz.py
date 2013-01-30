@@ -645,7 +645,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                     if i in idx:
                         colors[idx.index(i)] = 'r'
 
-                ax._get_lines.color_cycle = cycle(colors)
+                ax._get_lines.color_cycle = iter(colors)
             else:
                 ax._get_lines.color_cycle = cycle(['k'])
 
