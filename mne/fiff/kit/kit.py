@@ -148,10 +148,9 @@ class RawKIT(Raw):
 
         """
     @verbose
-    def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, data=None, lowpass=None, highpass=None,
-                 stim=xrange(160, 168), direction='d',
-                 stimthresh, add_chs, verbose=True):
+    def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+                 data=None, lowpass=None, highpass=None, stim=range(167, 159, -1),
+                 stimthresh=3500, add_chs=None, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname, lowpass=lowpass,
@@ -163,13 +162,6 @@ class RawKIT(Raw):
         self.sns_fname = sns_fname
         self.stim = stim
         self.stimthresh = stimthresh
-        if direction is 'a':
-            self.endian = 1
-        elif direction is 'd':
-            self.endian = -1
-        else:
-            raise NotImplementedError
-
         logger.info('Reading raw data from %s...' % data_fname)
         if not data:
             self.params.get_data()
@@ -177,18 +169,17 @@ class RawKIT(Raw):
         else:
             self._data = data
         logger.info('Creating Raw.info structure...')
-        info = self._create_raw_info()
+        assert len(self._data) == self.params.nchan
+        self._create_raw_info()
         self.verbose = verbose
         self._preloaded = True
-        self.info = info
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        assert len(self._data) == self.params.nchan
         self._times = np.arange(self.first_samp, \
-                                self.last_samp + 1) / info['sfreq']
+                                self.last_samp + 1) / self.info['sfreq']
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                    self.first_samp, self.last_samp,
-                   float(self.first_samp) / info['sfreq'],
-                   float(self.last_samp) / info['sfreq']))
+                   float(self.first_samp) / self.info['sfreq'],
+                   float(self.last_samp) / self.info['sfreq']))
         # remove subclass helper attributes to create a proper Raw object.
         for attr in self.__dict__:
             if attr not in Raw.__dict__:
@@ -208,10 +199,8 @@ class RawKIT(Raw):
         info['lowpass'] = self.params.lowpass
         info['highpass'] = self.params.highpass
         info['sfreq'] = float(self.params.sfreq)
-        info['chs'] = self._create_chs_dict()
-        info['nchan'] = self.params.nchan
-        info['ch_names'] = (self.params.ch_names['MEG']
-                            + self.params.ch_names['STIM'])
+        info['chs'], info['ch_names'] = self._create_chs_dict()
+        info['nchan'] = self.params.nchan + 1 # synthetic channel
         info['bads'] = []
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
@@ -227,34 +216,36 @@ class RawKIT(Raw):
         # I have not figured out yet.
         info['dev_head_t']['trans'], info['dig'] = self._get_coreg()
         logger.info('Done.')
-        return info
+        self.info = info
 
     def _create_chs_dict(self):
         """creates a list of dicts of meg channels for raw.info"""
 
         logger.info('Setting channel info structure...')
-        self.ch_names = {}
-        self.ch_names['MEG'] = ['MEG %03d' % ch for ch
+        ch_names = {}
+        ch_names['MEG'] = ['MEG %03d' % ch for ch
                                 in range(1, KIT.nmegchan + 1)]
-        self.ch_names['REF'] = ['REF %03d' % ch for ch
+        ch_names['REF'] = ['REF %03d' % ch for ch
                                 in range(1, KIT.nrefchan + 1)]
-        self.ch_names['TRIG'] = ['TRIG %03d' % ch for ch
+        ch_names['TRIG'] = ['TRIG %03d' % ch for ch
                                  in range(1, KIT.ntrigchan + 1)]
-        self.ch_names['MISC'] = ['MISC %03d' % ch for ch
+        ch_names['MISC'] = ['MISC %03d' % ch for ch
                                  in range(1, KIT.nmiscchan + 1)]
-        self.ch_names['STIM'] = ['STIM 101']
+        ch_names['STIM'] = ['STIM 101']
         p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)' +
                        r'([\.\-0-9]+),([\.\-0-9]+)')
         locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
         # the arrangement of dimensions in current fif is y,x,z in [m].
         # this is to orient in Neuromag coordinates.
-        self.chan_locs = locs[:, [1, 0, 2]] / 1000
-        self.chan_locs[:, 0] *= -1
+        chan_locs = locs[:, [1, 0, 2]] / 1000
+        chan_locs[:, 0] *= -1
+        chan_angles = locs[:, [3, 4]]
         chs = []
-        for idx, ch_info in enumerate(zip(self.ch_names['MEG'] +
-                                          self.ch_names['REF'],
-                                          self.chan_locs), 1):
-            ch_name, ch_loc = ch_info
+        for idx, ch_info in enumerate(zip(ch_names['MEG'] +
+                                          ch_names['REF'],
+                                          chan_locs,
+                                          chan_angles), 1):
+            ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['eeg_loc'] = None
@@ -275,32 +266,41 @@ class RawKIT(Raw):
                 chan_info['coil_trans'] = None
             elif ch_name == 'STI 014':
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            # 0: theta, 1: phi
+            ch_angles = np.radians(ch_angles)
+            x = np.sin(ch_angles[0]) * np.cos(ch_angles[1])
+            y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
+            z = np.cos(ch_angles[0])
+            point = np.array([x, y, z])
+            length = np.linalg.norm(point)
+            point = point / length
+            vec1 = np.empty(point.size, dtype=float)
+            vec1 = vec1 - np.sum(vec1 * point) * point
+            length1 = np.linalg.norm(vec1)
+            vec1 = vec1 / length1
+            vec2 = np.cross(point, vec1)
+            chan_info['loc'] = np.hstack((ch_loc, point, vec1, vec2))
             chs.append(chan_info)
 
         """create a synthetic channel"""
         trig_chs = self._data[self.stim, :]
         trig_chs = trig_chs > self.stimthresh
-        trig_vals = np.array([2 ** (n - 1) for n in
-                              xrange(len(self.stim), 0, self.endian)])
+        trig_vals = np.array(2 ** np.arange(len(self.stim)), ndmin=2).T
         trig_chs = trig_chs * trig_vals
-        stim_ch = trig_chs.sum(axis=1)
-
-        # deals with spurious triggering
-        idx = np.where(stim_ch > 0)[0]
-        idy = idx + KIT.TRIGGER_LENGTH
-        diff = stim_ch[idy] - stim_ch[idx]
-        index = np.where(diff != 0)
-        stim_ch[index] = 0
-
+        stim_ch = trig_chs.sum(axis=0)
         self._data = np.vstack((self._data, stim_ch))
-        return chs
+
+        ch_names = (ch_names['MEG'] + ch_names['REF'] +
+                    ch_names['TRIG'] + ch_names['MISC'] + ch_names['STIM'])
+        return chs, ch_names
 
 
     def _get_coreg(self):
         """get transformation matrix and hsp points"""
 
-        coreg_data = coreg(mrk_fname=self.mrk_fname, elp_fname=self.elp_fname,
-                           hsp_fname=self.hsp_fname)
+        coreg_data = coreg.coreg(mrk_fname=self.mrk_fname,
+                                 elp_fname=self.elp_fname,
+                                 hsp_fname=self.hsp_fname)
         dev_head_t = coreg_data.fit()
         return dev_head_t, coreg_data.hsp_points
 
