@@ -458,16 +458,13 @@ class Epochs(object):
                         % (n_events - len(good_events)))
             if not out:
                 return
-            # just take the good ones
+            # just take the good events
             assert len(good_events) == n_out
             if n_out > 0:
-                # this should always be true, but just to be safe...
-                if data.flags.c_contiguous is True:
-                    # slicing won't free the space, so we resize
-                    data.resize((n_out,) + data.shape[1:], refcheck=False)
-                else:
-                    # equivalent (but more memory usage/ops) version
-                    data = data[:n_out].copy()
+                # slicing won't free the space, so we resize
+                # we have ensured the C-contiguity of the array in allocation
+                # so this operation will be safe unless np is very broken
+                data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
     @verbose
