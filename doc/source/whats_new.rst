@@ -23,6 +23,9 @@ Changelog
 
    - Support for using CUDA in FFT-based FIR filtering (method='fft') and resampling by `Eric Larson`_
 
+   - Optmimized FFT length selection for faster overlap-add filtering by `Martin Luessi`_
+
+   - Ability to exclude bad channels from evoked plots or shown them in red by `Martin Luessi`_
 
 API
 ~~~
