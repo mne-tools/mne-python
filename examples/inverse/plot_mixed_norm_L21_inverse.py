@@ -20,7 +20,7 @@ from mne import fiff
 from mne.datasets import sample
 from mne.mixed_norm import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.viz import plot_sparse_source_estimates, plot_evoked
+from mne.viz import plot_sparse_source_estimates
 
 data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -41,8 +41,7 @@ cov = mne.cov.regularize(cov, evoked.info)
 import pylab as pl
 pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
-picks = fiff.pick_types(evoked.info, meg=True, eeg=True)
-plot_evoked(evoked, picks=picks, ylim=ylim, proj=True, exclude='bads')
+evoked.plot(ylim=ylim, proj=True)
 
 ###############################################################################
 # Run solver
@@ -62,8 +61,7 @@ stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                  return_residual=True)
 
 pl.figure()
-picks = fiff.pick_types(residual.info, meg=True, eeg=True)
-plot_evoked(residual, picks=picks, ylim=ylim, proj=True, exclude='bads')
+residual.plot(ylim=ylim, proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
