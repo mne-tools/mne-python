@@ -71,6 +71,7 @@ class coreg:
         pts /= 1e3
         pts = pts[:, [1, 0, 2]]
         pts[:, 0] *= -1
+        return pts
 
     def fit(self, include=range(5)):
         """
