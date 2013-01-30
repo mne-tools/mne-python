@@ -859,7 +859,7 @@ class Raw(object):
         tmax : float
             Time in seconds of last sample to save.
         buffer_size_sec : float
-            Size of data chuncks in seconds.
+            Size of data chunks in seconds.
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
@@ -1405,27 +1405,6 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
             #  Do we need this buffer
             if this['last'] >= start_loc:
-                if this['ent'] is None:
-                    #  Take the easy route: skip is translated to zeros
-                    logger.debug('S')
-                    one = np.zeros((n_sel_channels, this['nsamp']))
-                else:
-                    tag = read_tag(raw.fids[fi], this['ent'].pos)
-
-                    # decide what datatype to use
-                    if np.isrealobj(tag.data):
-                        dtype = np.float
-                    else:
-                        dtype = np.complex64
-
-                    one = tag.data.reshape(this['nsamp'],
-                                           nchan).astype(dtype).T
-                    if mult is not None:  # use proj + cal factors in mult
-                        one = np.dot(mult[fi], one)
-                        one = one[idx]
-                    else:  # apply just the calibration factors
-                        one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
-
                 #  The picking logic is a bit complicated
                 if stop_loc > this['last'] and start_loc < this['first']:
                     #    We need the whole buffer
@@ -1452,6 +1431,30 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 #   Now we are ready to pick
                 picksamp = last_pick - first_pick
                 if picksamp > 0:
+                    if this['ent'] is None:
+                        # We should ever encounter this since we
+                        # never read in during the "skip" period
+                        raise RuntimeError('should never read skip')
+
+                    one = read_tag(raw.fids[fi], this['ent'].pos,
+                                   shape=(this['nsamp'], nchan),
+                                   rlims=(first_pick, last_pick)).data
+                    dtype = np.float if np.isrealobj(one) else np.complex128
+                    one.shape = (picksamp, nchan)
+                    one = one.T.astype(dtype)
+
+                    if mult is not None:  # use proj + cal factors in mult
+                        one = np.dot(mult[fi], one)
+                    else:  # apply just the calibration factors
+                        # this logic is designed to limit memory copies
+                        if isinstance(idx, slice):
+                            # This is a view operation, so it's fast
+                            one[idx] *= raw.cals.ravel()[idx][:, np.newaxis]
+                        else:
+                            # Extra operations are actually faster here
+                            # than creating a new array (fancy indexing)
+                            one *= raw.cals.ravel()[:, np.newaxis]
+
                     if data is None:
                         # if not already done, allocate array with right type
                         if isinstance(data_buffer, basestring):
@@ -1460,8 +1463,15 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                                              dtype=dtype, shape=data_shape)
                         else:
                             data = np.empty(data_shape, dtype=dtype)
-                    data[:, dest:(dest + picksamp)] = \
-                        one[:, first_pick:last_pick]
+                    if isinstance(idx, slice):
+                        # faster to slice in data than doing one = one[idx]
+                        # sooner
+                        data[:, dest:(dest + picksamp)] = one[idx]
+                    else:
+                        # faster than doing one = one[idx]
+                        data_view = data[:, dest:(dest + picksamp)]
+                        for ii, ix in enumerate(idx):
+                            data_view[ii] = one[ix]
                     dest += picksamp
 
             #   Done?
