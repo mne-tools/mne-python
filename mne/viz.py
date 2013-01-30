@@ -595,7 +595,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
               and all([isinstance(ch, basestring) for ch in exclude])):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
-            raise ValueError('exlude has to be a list of channel names or '
+            raise ValueError('exclude has to be a list of channel names or '
                              '"bads"')
 
         picks = list(set(picks).difference(exclude))
