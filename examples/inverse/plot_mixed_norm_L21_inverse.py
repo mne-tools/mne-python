@@ -50,7 +50,7 @@ loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 
 # Compute dSPM solution to be used as weights in MxNE
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=loose, depth=depth, fixed=True)
+                                         loose=None, depth=depth, fixed=True)
 stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 
