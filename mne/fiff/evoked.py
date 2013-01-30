@@ -335,14 +335,14 @@ class Evoked(object):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def plot(self, picks=None, exclude=[], unit=True, show=True, ylim=None,
+    def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
              mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
              mag='Magnetometers'), axes=None):
         """Plot evoked data
 
-        Note: If bad channels are not excluded they are shown in black.
+        Note: If bad channels are not excluded they are shown in red.
 
         Parameters
         ----------

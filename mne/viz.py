@@ -32,7 +32,7 @@ from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
 
-COLORS = ['b', 'g', 'r', 'c', 'm', 'y', '#473C8B', '#458B74',
+COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
 
@@ -534,7 +534,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked(evoked, picks=None, exclude=[], unit=True, show=True,
+def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None,
                 units=dict(eeg='uV', grad='fT/cm', mag='fT'),
                 scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
@@ -542,7 +542,7 @@ def plot_evoked(evoked, picks=None, exclude=[], unit=True, show=True,
                 mag='Magnetometers'), axes=None):
     """Plot evoked data
 
-    Note: If bad channels are not excluded they are shown in black.
+    Note: If bad channels are not excluded they are shown in red.
 
     Parameters
     ----------
@@ -640,15 +640,14 @@ def plot_evoked(evoked, picks=None, exclude=[], unit=True, show=True,
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
             if any([i in bad_ch_idx for i in idx]):
-                ccycle = cycle(COLORS)
-                colors = [ccycle.next() for i in range(len(idx))]
+                colors = ['k'] * len(idx)
                 for i in bad_ch_idx:
                     if i in idx:
-                        colors[idx.index(i)] = 'k'
+                        colors[idx.index(i)] = 'r'
 
                 ax._get_lines.color_cycle = cycle(colors)
             else:
-                ax._get_lines.color_cycle = cycle(COLORS)
+                ax._get_lines.color_cycle = cycle(['k'])
 
             D = this_scaling * evoked.data[idx, :]
             if proj:
