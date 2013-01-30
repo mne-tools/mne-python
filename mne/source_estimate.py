@@ -888,8 +888,9 @@ class SourceEstimate(object):
             variable SUBJECT. If None the environment will be used.
         surface : str
             The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh'
-            The hemisphere to display.
+        hemi : str, 'lh' | 'rh' | 'both'
+            The hemisphere to display. Using 'both' opens two seperate figures,
+            one for each hemisphere.
         colormap : str
             The type of colormap to use.
         time_label : str
@@ -913,7 +914,9 @@ class SourceEstimate(object):
         Returns
         -------
         brain : Brain
-            A instance of surfer.viz.Brain from PySurfer.
+            A instance of surfer.viz.Brain from PySurfer For hemi='both',
+            a list with Brain instances for the left and right hemisphere is
+            returned.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
                         hemi=hemi, colormap=colormap, time_label=time_label,
