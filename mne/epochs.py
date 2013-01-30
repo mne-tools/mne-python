@@ -419,23 +419,35 @@ class Epochs(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        n_events = len(self.events)
+        data = np.array([])
         if self._bad_dropped:
             if not out:
                 return
-            epochs = map(self._get_epoch_from_disk, xrange(len(self.events)))
+            for ii in xrange(n_events):
+                # faster to pre-allocate memory here
+                epoch = self._get_epoch_from_disk(ii)
+                if ii == 0:
+                    data = np.empty((n_events, epoch.shape[0],
+                                     epoch.shape[1]), dtype=epoch.dtype)
+                data[ii] = epoch
         else:
             good_events = []
-            epochs = []
-            n_events = len(self.events)
             drop_log = [[] for _ in range(n_events)]
-
+            n_out = 0
             for idx in xrange(n_events):
                 epoch = self._get_epoch_from_disk(idx)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
                     if out:
-                        epochs.append(epoch)
+                        # faster to pre-allocate, then trim as necessary
+                        if n_out == 0:
+                            data = np.empty((n_events, epoch.shape[0],
+                                             epoch.shape[1]),
+                                            dtype=epoch.dtype, order='C')
+                        data[n_out] = epoch
+                        n_out += 1
                 else:
                     drop_log[idx] = offenders
 
@@ -446,8 +458,13 @@ class Epochs(object):
                         % (n_events - len(good_events)))
             if not out:
                 return
-
-        data = np.array(epochs)
+            # just take the good events
+            assert len(good_events) == n_out
+            if n_out > 0:
+                # slicing won't free the space, so we resize
+                # we have ensured the C-contiguity of the array in allocation
+                # so this operation will be safe unless np is very broken
+                data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
     @verbose
