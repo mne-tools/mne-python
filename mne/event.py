@@ -269,7 +269,8 @@ def write_events(filename, event_list):
 
 
 @verbose
-def find_events(raw, stim_channel='STI 014', verbose=None):
+def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
+                consecutive=False, min_duration=1):
     """Find events from raw file
 
     Parameters
@@ -281,6 +282,12 @@ def find_events(raw, stim_channel='STI 014', verbose=None):
         affected by the trigger.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    detect : 'onset' | 'offset'
+        Whether to report when events start or when events end
+    consecutive : bool
+        Whether to consider consecutive events as events
+    min_duration : int
+        The minimum duration of an event in samples
 
     Returns
     -------
@@ -299,10 +306,36 @@ def find_events(raw, stim_channel='STI 014', verbose=None):
                     'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
-    idx = np.where(np.all(np.logical_and(np.diff(data, axis=1) != 0,
-                                         data[:, 1:] > 0), axis=0))[0]
-    events_id = data[0, idx + 1].astype(np.int)
-    idx += raw.first_samp + 1
+
+    # Determine event onsets and offsets
+    changed = np.diff(data, axis=1) != 0
+    if consecutive:
+        onsets = np.logical_and(changed, data[:, 1:] > 0)
+        offsets = np.logical_and(changed, data[:, :-1] > 0)
+    else:
+        onsets = np.logical_and(changed, data[:, :-1] == 0)
+        offsets = np.logical_and(changed, data[:, 1:] == 0)
+    
+    onset_idx = np.where(np.all(onsets, axis=0))[0] + 1
+    offset_idx = np.where(np.all(offsets, axis=0))[0]
+
+    if np.all(data[:, 0] != 0, axis=0):
+        onset_idx = np.insert(onset_idx, 0, 0)
+    if np.all(data[:, -1] != 0, axis=0):
+        offset_idx = np.append(offset_idx, data.shape[1]-1)
+
+    # Only keep events longer than min_duration
+    keep = (offset_idx - onset_idx + 1) >= min_duration
+    if detect == 'onset':
+        idx = onset_idx[keep]
+    elif detect == 'offset':
+        idx = offset_idx[keep]
+    else:
+        raise Exception("Invalid detect parameter %r" % detect)
+
+    events_id = data[0, idx].astype(np.int)
+    idx += raw.first_samp 
+
     events = np.c_[idx, np.zeros_like(idx), events_id]
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))
