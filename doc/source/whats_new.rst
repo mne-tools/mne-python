@@ -27,6 +27,8 @@ Changelog
 
    - Ability to exclude bad channels from evoked plots or shown them in red by `Martin Luessi`_
 
+   - Option to show both hemispheres when plotting SourceEstimate with PySurfer by `Martin Luessi`_
+
 API
 ~~~
 

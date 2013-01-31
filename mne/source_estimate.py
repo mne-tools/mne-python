@@ -913,7 +913,7 @@ class SourceEstimate(object):
 
         Returns
         -------
-        brain : Brain
+        brain : Brain | list of Brain
             A instance of surfer.viz.Brain from PySurfer For hemi='both',
             a list with Brain instances for the left and right hemisphere is
             returned.
