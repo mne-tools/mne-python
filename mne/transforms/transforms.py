@@ -1,16 +1,117 @@
-import copy
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
+from numpy import sin, cos
 from scipy import linalg
 
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import read_tag, find_tag
-from .fiff.tree import dir_tree_find
-from .fiff.write import start_file, end_file, start_block, end_block, \
+from ..fiff import FIFF
+from ..fiff.open import fiff_open
+from ..fiff.tag import read_tag, find_tag
+from ..fiff.tree import dir_tree_find
+from ..fiff.write import start_file, end_file, start_block, end_block, \
                    write_coord_trans, write_dig_point, write_int
+
+
+def apply_trans(trans, pts):
+    """Apply a transform matrix to an array of points
+
+    Parameters
+    ----------
+    trans : array, shape = (4, 4)
+        Transform matrix.
+    pts : array, shape = (3,) | (n, 3)
+        Array with coordinates for one or n points.
+
+    Returns
+    -------
+    transformed_pts : shape = (3,) | (n, 3)
+        Transformed point(s).
+    """
+    trans = np.asarray(trans)
+    pts = np.asarray(pts)
+    if pts.ndim == 1:
+        pts = np.vstack((pts[:, None], [1]))
+        pts = np.dot(trans, pts)
+        pts = pts[:3, 0]
+    else:
+        pts = np.vstack((pts.T, np.ones(len(pts))))
+        pts = np.dot(trans, pts)
+        pts = pts[:3].T
+    return pts
+
+
+def rotation(x=0, y=0, z=0):
+    """Create an array with a rotation matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Rotation around the origin (in rad).
+
+    Returns
+    -------
+    r : array, shape = (4, 4)
+        The rotation matrix.
+    """
+    cos_x = cos(x)
+    cos_y = cos(y)
+    cos_z = cos(z)
+    sin_x = sin(x)
+    sin_y = sin(y)
+    sin_z = sin(z)
+    r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
+                   sin_x * sin_z + cos_x * sin_y * cos_z, 0],
+                  [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
+                   - sin_x * cos_z + cos_x * sin_y * sin_z, 0],
+                  [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
+                  [0, 0, 0, 1]], dtype=float)
+    return r
+
+
+def scaling(x=1, y=1, z=1):
+    """Create an array with a scaling matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Scaling factors.
+
+    Returns
+    -------
+    s : array, shape = (4, 4)
+        The scaling matrix.
+    """
+    s = np.array([[x, 0, 0, 0],
+                  [0, y, 0, 0],
+                  [0, 0, z, 0],
+                  [0, 0, 0, 1]], dtype=float)
+    return s
+
+
+def translation(x=0, y=0, z=0):
+    """Create an array with a translation matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Translation parameters.
+
+    Returns
+    -------
+    m : array, shape = (4, 4)
+        The translation matrix.
+    """
+    m = np.array([[1, 0, 0, x],
+                  [0, 1, 0, y],
+                  [0, 0, 1, z],
+                  [0, 0, 0, 1]], dtype=float)
+    return m
 
 
 def read_trans(fname):
@@ -91,11 +192,8 @@ def write_trans(fname, info):
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
     """
-    itrans = copy.deepcopy(trans)
-    aux = itrans['from']
-    itrans['from'] = itrans['to']
-    itrans['to'] = aux
-    itrans['trans'] = linalg.inv(itrans['trans'])
+    itrans = {'to': trans['from'], 'from': trans['to'],
+              'trans': linalg.inv(trans['trans'])}
     return itrans
 
 
@@ -105,16 +203,16 @@ def transform_source_space_to(src, dest, trans):
     Parameters
     ----------
     src : dict
-        Source space
-    dest : dict
-        destination coordinate system
+        Source space.
+    dest : int
+        Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
     trans : dict
         Transformation
 
     Returns
     -------
     res : dict
-        Transformed source space
+        Transformed source space.
     """
 
     if src['coord_frame'] == dest:
