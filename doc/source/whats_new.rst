@@ -29,12 +29,18 @@ Changelog
 
    - Option to show both hemispheres when plotting SourceEstimate with PySurfer by `Martin Luessi`_
 
+   - Optimized Raw reading and epoching routines to limit memory copies by `Eric Larson`_
+
+   - Advanced options to save raw files in short or double precision by `Eric Larson`_
+
 API
 ~~~
 
    - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
 
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
+
+   - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 
 .. _changes_0_5:
 
