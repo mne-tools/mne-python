@@ -299,7 +299,7 @@ def find_events(raw, stim_channel='STI 014', verbose=None):
                     'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
-    idx = np.where(np.all(np.diff(data, axis=1) > 0, axis=0))[0]
+    idx = np.where(np.all(np.logical_and(np.diff(data, axis=1) != 0, data[:, 1:] > 0), axis=0))[0]
     events_id = data[0, idx + 1].astype(np.int)
     idx += raw.first_samp + 1
     events = np.c_[idx, np.zeros_like(idx), events_id]
