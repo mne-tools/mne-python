@@ -945,8 +945,9 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         variable SUBJECT. If None the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh'
-        The hemisphere to display.
+    hemi : str, 'lh' | 'rh' | 'both'
+        The hemisphere to display. Using 'both' opens two seperate figures,
+        one for each hemisphere.
     colormap : str
         The type of colormap to use.
     time_label : str
@@ -969,16 +970,17 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
 
     Returns
     -------
-    brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
+    brain : Brain | list of Brain
+        A instance of surfer.viz.Brain from PySurfer. For hemi='both',
+        a list with Brain instances for the left and right hemisphere is
+        returned.
     """
     from surfer import Brain, TimeViewer
 
-    assert hemi in ['lh', 'rh']
+    if hemi not in ['lh', 'rh', 'both']:
+        raise ValueError('hemi has to be either "lh", "rh", or "both"')
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-
-    hemi_idx = 0 if hemi == 'lh' else 1
 
     if subject is None:
         if 'SUBJECT' in os.environ:
@@ -986,36 +988,51 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    args = inspect.getargspec(Brain.__init__)[0]
-    if 'subjects_dir' in args:
-        brain = Brain(subject, hemi, surface, subjects_dir=subjects_dir)
+    if hemi == 'both':
+        hemis = ['lh', 'rh']
     else:
-        # Current PySurfer versions need the SUBJECTS_DIR env. var.
-        # so we set it here. This is a hack as it can break other things
-        # XXX reminder to remove this once upstream pysurfer is changed
-        os.environ['SUBJECTS_DIR'] = subjects_dir
-        brain = Brain(subject, hemi, surface)
+        hemis = [hemi]
 
-    if hemi_idx == 0:
-        data = stc.data[:len(stc.vertno[0])]
-    else:
-        data = stc.data[len(stc.vertno[0]):]
+    brains = list()
+    for hemi in hemis:
+        hemi_idx = 0 if hemi == 'lh' else 1
 
-    vertices = stc.vertno[hemi_idx]
+        title = '%s-%s' % (subject, hemi)
+        args = inspect.getargspec(Brain.__init__)[0]
+        if 'subjects_dir' in args:
+            brain = Brain(subject, hemi, surface, title=title,
+                          subjects_dir=subjects_dir)
+        else:
+            # Current PySurfer versions need the SUBJECTS_DIR env. var.
+            # so we set it here. This is a hack as it can break other things
+            # XXX reminder to remove this once upstream pysurfer is changed
+            os.environ['SUBJECTS_DIR'] = subjects_dir
+            brain = Brain(subject, hemi, surface, title=title)
 
-    time = 1e3 * stc.times
-    brain.add_data(data, colormap=colormap, vertices=vertices,
-                   smoothing_steps=smoothing_steps, time=time,
-                   time_label=time_label)
+        if hemi_idx == 0:
+            data = stc.data[:len(stc.vertno[0])]
+        else:
+            data = stc.data[len(stc.vertno[0]):]
 
-    # scale colormap and set time (index) to display
-    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                              transparent=transparent)
+        vertices = stc.vertno[hemi_idx]
+
+        time = 1e3 * stc.times
+        brain.add_data(data, colormap=colormap, vertices=vertices,
+                       smoothing_steps=smoothing_steps, time=time,
+                       time_label=time_label)
+
+        # scale colormap and set time (index) to display
+        brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
+                                  transparent=transparent)
+        brains.append(brain)
 
     if time_viewer:
-        viewer = TimeViewer(brain)
+        viewer = TimeViewer(brains)
 
-    return brain
+    if len(brains) == 1:
+        return brains[0]
+    else:
+        return brains
 
 
 @deprecated('Use plot_source_estimates. Will be removed in v0.7.')
