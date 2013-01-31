@@ -875,9 +875,11 @@ class Raw(object):
         format : str
             Format to use to save raw data. Valid options are 'double',
             'single', and 'short' for 64-, 32-, and 16-bit entries.
-            Complex data cannot be saved as 'short'. Note that 'single'
-            is the standard for MNE command-line tools. Complex data types
-            or real data stored as 'double' cannot be loaded with MNE
+            It is STRONGLY recommended to use 'single', as this is backward-
+            compatible, and is standard for maintaining precision. Note that
+            using 'short' may result in loss of precision, complex data
+            cannot be saved as 'short', and neither complex data types
+            nor real data stored as 'double' can be loaded with the MNE
             command-line tools.
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
