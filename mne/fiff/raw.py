@@ -905,7 +905,7 @@ class Raw(object):
         reset_dict = dict(short=False, single=True, double=True)
 
         data_test = self[0, 0][0]
-        if format_dict[format] < 32 and np.iscomplex(data_test):
+        if format_dict[format] < 32 and np.iscomplexobj(data_test):
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
