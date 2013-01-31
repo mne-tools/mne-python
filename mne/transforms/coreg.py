@@ -23,7 +23,7 @@ def fit_matched_pts(src_pts, tgt_pts, params=False):
         Points to which the transform should be applied.
     tgt_pts : array, shape = (n, 3)
         Points to which src_pts should be fitted. Each point in tgt_pts should
-        correspond to the point in src_pts withthe same index.
+        correspond to the point in src_pts with the same index.
     params : bool
         Also return the estimated rotation and translation parameters.
 
@@ -44,9 +44,7 @@ def fit_matched_pts(src_pts, tgt_pts, params=False):
         return (tgt_pts - est).ravel()
 
     x0 = (0, 0, 0, 0, 0, 0)
-    x, info = leastsq(error, x0)
-    if info not in [1, 2, 3, 4]:
-        raise RuntimeError("Fit failed with code %r" % info)
+    x, _ = leastsq(error, x0)
 
     transl = x[:3]
     rot = x[3:]
