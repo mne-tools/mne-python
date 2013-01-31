@@ -306,9 +306,8 @@ class RawKIT(Raw):
         coreg_data = coreg.coreg(mrk_fname=self.mrk_fname,
                                  elp_fname=self.elp_fname,
                                  hsp_fname=self.hsp_fname)
-        head_dev_t = fit_matched_pts(src_pts=coreg_data.elp_points,
-                                     tgt_pts=coreg_data.mrk_points)
-        dev_head_t = np.array(head_dev_t.I)
+        dev_head_t = fit_matched_pts(tgt_pts=coreg_data.mrk_points,
+                                     src_pts=coreg_data.elp_points)
         return dev_head_t, coreg_data.hsp_points
 
 def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
