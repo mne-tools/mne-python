@@ -29,7 +29,7 @@ from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
-from ..utils import deprecated
+from ..utils import deprecated, _check_fname
 from .. import verbose
 
 
@@ -896,25 +896,20 @@ class Raw(object):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
 
-        format_dict = dict(short=16, single=32, double=64)
-        if not format in format_dict.keys():
-            raise ValueError('format must be "short", "single", or "double"')
         type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
+        if not format in type_dict.keys():
+            raise ValueError('format must be "short", "single", or "double"')
         reset_dict = dict(short=False, single=True, double=True)
 
         data_test = self[0, 0][0]
-        if format_dict[format] < 32 and np.iscomplexobj(data_test):
+        if format == 'short' and np.iscomplexobj(data_test):
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
-        if op.isfile(fname):
-            if not overwrite:
-                raise IOError('Destination file exists. Please use option '
-                              '"overwrite=True" to force overwriting.')
-            else:
-                logger.info('Overwriting existing file.')
+        # check for file existence
+        _check_fname(fname, overwrite)
 
         if proj_active:
             info = copy.deepcopy(self.info)
@@ -963,7 +958,7 @@ class Raw(object):
                             '[done]')
                 break
             logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals, precision=format_dict[format])
+            write_raw_buffer(outfid, data, cals, format)
             logger.info('[done]')
 
         finish_writing_raw(outfid)
@@ -1644,7 +1639,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals, precision=32):
+def write_raw_buffer(fid, buf, cals, format):
     """Write raw buffer
 
     Parameters
@@ -1655,15 +1650,18 @@ def write_raw_buffer(fid, buf, cals, precision=32):
         The buffer to write.
     cals : array
         Calibration factors.
-    precision : int
-        16, 32 or 64, number of bits to use per item. This will be
-        effectively doubled for complex datatypes.
+    format : str
+        'short', 'single', or 'double' for 16, 32 or 64 bits to use per
+        item. This will be doubled for complex datatypes. Note that short
+        format cannot be used for complex data.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if not precision in [16, 32, 64]:
-        raise ValueError('precision must be 16, 32, or 64')
+    format_dict = dict(short=16, single=32, double=64)
+    if not format in format_dict.keys():
+        raise ValueError('format must be "short", "single", or "double"')
+    precision = format_dict[format]
 
     if np.isrealobj(buf):
         if precision == 16:

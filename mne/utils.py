@@ -568,3 +568,13 @@ def _url_to_local_path(url, path):
         raise ValueError('Invalid URL')
     destination = os.path.join(path, urllib2.url2pathname(destination)[1:])
     return destination
+
+
+def _check_fname(fname, overwrite):
+    """Helper to check for file existence"""
+    if op.isfile(fname):
+        if not overwrite:
+            raise IOError('Destination file exists. Please use option '
+                          '"overwrite=True" to force overwriting.')
+        else:
+            logger.info('Overwriting existing file.')
