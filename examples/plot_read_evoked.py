@@ -23,8 +23,6 @@ evoked = fiff.Evoked(fname, setno='Left Auditory',
                      baseline=(None, 0), proj=True)
 
 ###############################################################################
-# Show result
-
-# Pick channels to view
-picks = fiff.pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-plot_evoked(evoked, picks=picks)
+# Show result:
+# By using exclude=[] bad channels are not excluded and are shown in red
+plot_evoked(evoked, exclude=[])
