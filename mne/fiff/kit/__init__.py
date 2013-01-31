@@ -1,11 +1,10 @@
-'''
-KIT module for conversion to FIF
-Created on Jan 29, 2013
+"""KIT module for conversion to FIF"""
 
-# Author: Teon Brooks <teon@nyu.edu>
-'''
+# Author: Teon Brooks <teon.brooks@gmail.com>
+#
+# License: BSD (3-clause)
 
-#from . raw import read_raw_bti
+from . kit import read_raw_kit
 from . import kit
 from . import coreg
 from . import constants
