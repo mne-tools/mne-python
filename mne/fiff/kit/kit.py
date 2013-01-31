@@ -1,14 +1,17 @@
-'''
-Created on Dec 27, 2012
+"""Conversion tool from SQD to FIF
 
-@author: teon
 sqd_params class is adapted from Yoshiaki Adachi's Meginfo2.cpp
-and sqdread's getdata.m
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
-'''
+
+"""
+
+# Author: Teon Brooks <teon.brooks@gmail.com>
+#
+# License: BSD (3-clause)
 
 from mne.fiff.raw import Raw
 from mne import verbose
+from mne.transforms.coreg import fit_matched_pts
 from mne.fiff.constants import FIFF
 from . constants import KIT
 from . import coreg
@@ -19,11 +22,8 @@ import logging
 import re
 
 
-
-
 class sqd_params(object):
-    """
-    Extracts all the information from the sqd file.
+    """Extracts all the information from the sqd file.
 
     Parameters
     ----------
@@ -34,11 +34,8 @@ class sqd_params(object):
     highpass: None | int
         value of highpass filter set in MEG160
 
-        """
-
+    """
     def __init__(self, rawfile, lowpass=None, highpass=None):
-        self.dynamic_range = 2 ** 12 / 2  # signed integer. range +/- 2048
-        self.voltage_range = 5.
         self.rawfile = rawfile
         fid = open(rawfile, 'r')
         fid.seek(KIT.BASIC_INFO)
@@ -61,18 +58,11 @@ class sqd_params(object):
         amp_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(amp_offset)
         amp_data = unpack('i', fid.read(KIT.INT))[0]
-        input_gain_bit = 11  # stored in Bit-11 to 12
-        input_gain_mask = 6144  # (0x1800)
-        # input_gain: 0:x1, 1:x2, 2:x5, 3:x10
-        input_gains = [1, 2, 5, 10]
-        self.input_gain = input_gains[(input_gain_mask & amp_data)
-                                      >> input_gain_bit]
-        # 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
-        output_gains = [1, 2, 5, 10, 20, 50, 100, 200]
-        output_gain_bit = 0  # stored in Bit-0 to 2
-        output_gain_mask = 7  # (0x0007)
-        self.output_gain = output_gains[(output_gain_mask & amp_data)
-                                        >> output_gain_bit]
+
+        self.input_gain = KIT.input_gains[(KIT.input_gain_mask & amp_data)
+                                          >> KIT.input_gain_bit]
+        self.output_gain = KIT.output_gains[(KIT.output_gain_mask & amp_data)
+                                            >> KIT.output_gain_bit]
 
         # only channels 0-159 requires gain. the additional channels
         # (trigger channels, audio and voice channels) are passed
@@ -82,11 +72,11 @@ class sqd_params(object):
         sens_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=self.nchan * 2)
-        self.n_sens = KIT.nmegchan + KIT.nrefchan
+        KIT.n_sens = KIT.nmegchan + KIT.nrefchan
         self._sensitivities = (np.reshape(sens, (self.nchan, 2))
-                               [:self.n_sens, 0])
+                               [:KIT.n_sens, 0])
         self.sensor_gain = np.ones(self.nchan)
-        self.sensor_gain[:self.n_sens] = self._sensitivities
+        self.sensor_gain[:KIT.n_sens] = self._sensitivities
 
         fid.seek(KIT.SAMPLE_INFO)
         acqcond_offset = unpack('i', fid.read(KIT.INT))[0]
@@ -101,7 +91,7 @@ class sqd_params(object):
 
         fid.seek(KIT.DATA_OFFSET)
         # data offset info
-        self.data_offset = unpack('i', fid.read(4))[0]
+        self.data_offset = unpack('i', fid.read(KIT.INT))[0]
 
     def get_data(self):
         """returns an array with data extracted from sqd file"""
@@ -112,9 +102,9 @@ class sqd_params(object):
         data = np.reshape(data, (self.nsamples, self.nchan))
         # amplifier applies only to the sensor channels 0-159
         amp_gain = self.output_gain * self.input_gain
-        self.sensor_gain[:self.n_sens] = (self.sensor_gain[:self.n_sens] /
+        self.sensor_gain[:KIT.n_sens] = (self.sensor_gain[:KIT.n_sens] /
                                           amp_gain)
-        conv_factor = np.array((self.voltage_range / self.dynamic_range) *
+        conv_factor = np.array((KIT.VOLTAGE_RANGE / KIT.DYNAMIC_RANGE) *
                                self.sensor_gain, ndmin=2)
         self.x = (conv_factor * data).T
 
@@ -122,13 +112,11 @@ logger = logging.getLogger('mne')
 
 
 class RawKIT(Raw):
-    """
-    Raw object from KIT SQD file
-    Adapted from mne_bti2fiff.py
+    """Raw object from KIT SQD file adapted from bti/raw.py
 
     Parameters
     ----------
-    data_fname : str
+    input_fname : str
         absolute path to the sqd file.
     mrk_fname : str
         absolute path to marker coils file.
@@ -136,9 +124,19 @@ class RawKIT(Raw):
         absolute path to elp digitizer laser points file.
     hsp_fname : str
         absolute path to elp digitizer head shape points file.
+    sns_fname : str
+        absolute path to sensor information file.
     data : bool | array-like
         if array-like custom data matching the header info to be used
         instead of the data from data_fname
+    lowpass : int
+        low-pass filter setting of the sqd file.
+    highpass : int
+        high-pass filter setting of the sqd file.
+    stim : list
+        list of trigger channels.
+    stimthresh : float
+        The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -148,21 +146,21 @@ class RawKIT(Raw):
 
         """
     @verbose
-    def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
                  data=None, lowpass=None, highpass=None, stim=range(167, 159, -1),
-                 stimthresh=3.5, add_chs=None, verbose=True):
+                 stimthresh=3.5, verbose=True):
 
-        logger.info('Extracting SQD Parameters from %s...' % data_fname)
-        self.params = sqd_params(data_fname, lowpass=lowpass,
+        logger.info('Extracting SQD Parameters from %s...' % input_fname)
+        self.params = sqd_params(input_fname, lowpass=lowpass,
                                  highpass=highpass)
-        self._data_file = data_fname
+        self._data_file = input_fname
         self.mrk_fname = mrk_fname
         self.elp_fname = elp_fname
         self.hsp_fname = hsp_fname
         self.sns_fname = sns_fname
         self.stim = stim
         self.stimthresh = stimthresh
-        logger.info('Reading raw data from %s...' % data_fname)
+        logger.info('Reading raw data from %s...' % input_fname)
         if not data:
             self.params.get_data()
             self._data = self.params.x
@@ -175,12 +173,12 @@ class RawKIT(Raw):
         self.verbose = verbose
         self._preloaded = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp, \
-                                self.last_samp + 1) / self.info['sfreq']
-        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                   self.first_samp, self.last_samp,
-                   float(self.first_samp) / self.info['sfreq'],
-                   float(self.last_samp) / self.info['sfreq']))
+        self._times = np.arange(self.first_samp, self.last_samp + 1)
+        self._times /= self.info['sfreq']
+        logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
+                    % (self.first_samp, self.last_samp,
+                       float(self.first_samp) / self.info['sfreq'],
+                       float(self.last_samp) / self.info['sfreq']))
         # remove subclass helper attributes to create a proper Raw object.
         for attr in self.__dict__:
             if attr not in Raw.__dict__:
@@ -201,20 +199,16 @@ class RawKIT(Raw):
         info['highpass'] = self.params.highpass
         info['sfreq'] = float(self.params.sfreq)
         info['chs'], info['ch_names'] = self._create_chs_dict()
-        info['nchan'] = self.params.nchan + 1 # synthetic channel
+        info['nchan'] = self.params.nchan + 1  # adds synthetic channel
         info['bads'] = []
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
         info['ctf_head_t'] = None
         info['dev_ctf_t'] = []
         info['filenames'] = []
-        # dev-head transformation dict
         info['dev_head_t'] = {}
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        # transformation matrix and digitizer points
-        # there is some transformation done to the digitization data that
-        # I have not figured out yet.
         info['dev_head_t']['trans'], info['dig'] = self._get_coreg()
         logger.info('Done.')
         self.info = info
@@ -232,29 +226,24 @@ class RawKIT(Raw):
                                  in range(1, KIT.ntrigchan + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                                  in range(1, KIT.nmiscchan + 1)]
-        ch_names['STIM'] = ['STIM 101']
+        ch_names['STIM'] = ['STI 014']
         p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)' +
                        r'([\.\-0-9]+),([\.\-0-9]+)')
         locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
-        # the arrangement of dimensions in current fif is y,x,z in [m].
-        # this is to orient in Neuromag coordinates.
-        chan_locs = locs[:, [1, 0, 2]] / 1000
-        chan_locs[:, 0] *= -1
+        chan_locs = coreg.transform_pts(locs[:, [1, 0, 2]])
         chan_angles = locs[:, [3, 4]]
         chs = []
-        for idx, ch_info in enumerate(zip(ch_names['MEG'] +
-                                          ch_names['REF'],
-                                          chan_locs,
-                                          chan_angles), 1):
+        for idx, ch_info in enumerate(zip(ch_names['MEG'] + ch_names['REF'],
+                                          chan_locs, chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
-            chan_info['range'] = 1.0
-            chan_info['unit_mul'] = 0  # default is 0 mne_manual p.273
+            chan_info['range'] = KIT.RANGE
+            chan_info['unit_mul'] = KIT.UNIT_MUL
             chan_info['ch_name'] = ch_name
-            chan_info['unit'] = FIFF.FIFF_UNIT_T  # 112 = T
+            chan_info['unit'] = FIFF.FIFF_UNIT_T
             if ch_name.startswith('MEG'):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
@@ -291,7 +280,7 @@ class RawKIT(Raw):
             chan_info['unit_mul'] = 0  # default is 0 mne_manual p.273
             chan_info['ch_name'] = ch_name
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            if ch_name == 'STI 014':
+            if ch_name.startswith('STI'):
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             else:
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
@@ -317,8 +306,39 @@ class RawKIT(Raw):
         coreg_data = coreg.coreg(mrk_fname=self.mrk_fname,
                                  elp_fname=self.elp_fname,
                                  hsp_fname=self.hsp_fname)
-        dev_head_t = coreg_data.fit()
+        dev_head_t = fit_matched_pts(tgt_pts=coreg_data.mrk_points,
+                                     src_pts=coreg_data.elp_points)
         return dev_head_t, coreg_data.hsp_points
 
+def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
+                 stim=range(167, 159, -1), stimthresh=3.5):
+    """Reader function for KIT conversion to FIF
 
+    Parameters
+    ----------
+    input_fname : str
+        absolute path to the sqd file.
+    mrk_fname : str
+        absolute path to marker coils file.
+    elp_fname : str
+        absolute path to elp digitizer laser points file.
+    hsp_fname : str
+        absolute path to elp digitizer head shape points file.
+    sns_fname : str
+        absolute path to sensor information file.
+    data : bool | array-like
+        if array-like custom data matching the header info to be used
+        instead of the data from data_fname
+    lowpass : int
+        low-pass filter setting of the sqd file.
+    highpass : int
+        high-pass filter setting of the sqd file.
+    stim : list
+        list of trigger channels.
+    stimthresh : float
+        The threshold level for accepting voltage change as a trigger event.
 
+    """
+    return RawKIT(input_fname=input_fname, sns_fname=sns_fname,
+                  hsp_fname=hsp_fname, elp_fname=elp_fname,
+                  mrk_fname=mrk_fname, stim=stim, stimthresh=stimthresh)
