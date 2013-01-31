@@ -220,10 +220,14 @@ class Raw(object):
                     nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
                     nsamp = ent.size / (4 * nchan)
+                elif ent.type == FIFF.FIFFT_DOUBLE:
+                    nsamp = ent.size / (8 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
                     nsamp = ent.size / (4 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
                     nsamp = ent.size / (8 * nchan)
+                elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+                    nsamp = ent.size / (16 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
@@ -844,7 +848,8 @@ class Raw(object):
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=False, verbose=None):
+             drop_small_buffer=False, proj_active=False, format='single',
+             overwrite=False, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -867,6 +872,16 @@ class Raw(object):
             If True the data is saved with the projections applied (active).
             Note: If apply_projector() was used to apply the projectons,
             the projectons will be active even if proj_active is False.
+        format : str
+            Format to use to save raw data. Valid options are 'double',
+            'single', and 'short' for 64-, 32-, and 16-bit entries.
+            Complex data cannot be saved as 'short'. Note that 'single'
+            is the standard for MNE command-line tools. Complex data types
+            or real data stored as 'double' cannot be loaded with MNE
+            command-line tools.
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -881,6 +896,26 @@ class Raw(object):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
 
+        format_dict = dict(short=16, single=32, double=64)
+        if not format in format_dict.keys():
+            raise ValueError('format must be "short", "single", or "double"')
+        type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
+                         single=FIFF.FIFFT_FLOAT,
+                         double=FIFF.FIFFT_DOUBLE)
+        reset_dict = dict(short=False, single=True, double=True)
+
+        data_test = self[0, 0][0]
+        if format_dict[format] < 32 and np.iscomplex(data_test):
+            raise ValueError('Complex data must be saved as "single" or '
+                             '"double", not "short"')
+
+        if op.isfile(fname):
+            if not overwrite:
+                raise IOError('Destination file exists. Please use option '
+                              '"overwrite=True" to force overwriting.')
+            else:
+                logger.info('Overwriting existing file.')
+
         if proj_active:
             info = copy.deepcopy(self.info)
             proj, info = setup_proj(info)
@@ -889,7 +924,8 @@ class Raw(object):
             info = self.info
             proj = None
 
-        outfid, cals = start_writing_raw(fname, info, picks)
+        outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
+                                         reset_range=reset_dict[format])
         #
         #   Set up the reading parameters
         #
@@ -927,7 +963,7 @@ class Raw(object):
                             '[done]')
                 break
             logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals)
+            write_raw_buffer(outfid, data, cals, precision=format_dict[format])
             logger.info('[done]')
 
         finish_writing_raw(outfid)
@@ -1527,10 +1563,12 @@ def read_raw_segment_times(raw, start, stop, sel=None, verbose=None):
 # Writing
 
 from .write import start_file, end_file, start_block, end_block, \
-                   write_float, write_complex64, write_int, write_id
+                   write_dau_pack16, write_float, write_double, \
+                   write_complex64, write_complex128, write_int, write_id
 
 
-def start_writing_raw(name, info, sel=None):
+def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
+                      reset_range=True):
     """Start write raw data in file
 
     Data will be written in float
@@ -1539,18 +1577,21 @@ def start_writing_raw(name, info, sel=None):
     ----------
     name : string
         Name of the file to create.
-
     info : dict
         Measurement info.
-
     sel : array of int, optional
         Indices of channels to include. By default all channels are included.
+    data_type : int
+        The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
+        5 (FIFFT_DOUBLE), or 16 (mne.fiff.FIFF.FIFFT_DAU_PACK16) for
+        raw data.
+    reset_range : bool
+        If True, the info['chs'][k]['range'] parameter will be set to unity.
 
     Returns
     -------
     fid : file
         The file descriptor.
-
     cals : list
         calibration factors.
     """
@@ -1565,8 +1606,8 @@ def start_writing_raw(name, info, sel=None):
     #
     #    Measurement info
     #
+    info = copy.deepcopy(info)
     if sel is not None:
-        info = copy.deepcopy(info)
         info['chs'] = [info['chs'][k] for k in sel]
         info['nchan'] = len(sel)
 
@@ -1589,10 +1630,11 @@ def start_writing_raw(name, info, sel=None):
         #   Scan numbers may have been messed up
         #
         info['chs'][k]['scanno'] = k + 1  # scanno starts at 1 in FIF format
-        info['chs'][k]['range'] = 1.0
-        cals.append(info['chs'][k]['cal'])
+        if reset_range is True:
+            info['chs'][k]['range'] = 1.0
+        cals.append(info['chs'][k]['cal'] * info['chs'][k]['range'])
 
-    write_meas_info(fid, info, data_type=4)
+    write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
 
     #
     # Start the raw data
@@ -1602,28 +1644,42 @@ def start_writing_raw(name, info, sel=None):
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals):
+def write_raw_buffer(fid, buf, cals, precision=32):
     """Write raw buffer
 
     Parameters
     ----------
     fid : file descriptor
         an open raw data file.
-
     buf : array
         The buffer to write.
-
     cals : array
         Calibration factors.
+    precision : int
+        16, 32 or 64, number of bits to use per item. This will be
+        effectively doubled for complex datatypes.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
+    if not precision in [16, 32, 64]:
+        raise ValueError('precision must be 16, 32, or 64')
+
     if np.isrealobj(buf):
-        write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+        if precision == 16:
+            write_function = write_dau_pack16
+        elif precision == 32:
+            write_function = write_float
+        else:
+            write_function = write_double
     else:
-        write_complex64(fid, FIFF.FIFF_DATA_BUFFER,
-                        buf / np.ravel(cals)[:, None])
+        if precision == 16:
+            raise ValueError('short format not supported for complex data')
+        elif precision == 32:
+            write_function = write_complex64
+        else:
+            write_function = write_complex128
+    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):
