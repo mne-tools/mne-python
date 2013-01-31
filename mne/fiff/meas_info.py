@@ -238,7 +238,7 @@ def read_meas_info(fid, tree, verbose=None):
     return info, meas
 
 
-def write_meas_info(fid, info, data_type=None):
+def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info in fif file.
 
     Parameters
@@ -248,7 +248,11 @@ def write_meas_info(fid, info, data_type=None):
     info : dict
         The measurement info structure
     data_type : int
-        The data_type is case it is necessary. Should be 4 for raw data.
+        The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
+        5 (FIFFT_DOUBLE), or 16 (mne.fiff.FIFF.FIFFT_DAU_PACK16) for
+        raw data.
+    reset_range : bool
+        If True, info['chs'][k]['range'] will be set to unity.
 
     Note
     ----
@@ -322,7 +326,9 @@ def write_meas_info(fid, info, data_type=None):
         #   Scan numbers may have been messed up
         c = deepcopy(c)
         c['scanno'] = k + 1
-        c['range'] = 1.0
+        # XXX WHY WAS THIS SET?
+        if reset_range is True:
+            c['range'] = 1.0
         write_ch_info(fid, c)
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)

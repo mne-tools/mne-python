@@ -104,7 +104,7 @@ def test_compute_proj_raw():
 
         # test that you can save them
         raw.info['projs'] += projs
-        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii))
+        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
     with warnings.catch_warnings(True) as w:
