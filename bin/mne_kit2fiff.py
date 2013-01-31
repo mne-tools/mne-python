@@ -25,12 +25,11 @@ if __name__ == '__main__':
                     help='Headshape file name', metavar='FILE')
     parser.add_option('--mrk', dest='marker_fname',
                     help='MEG Marker file name', metavar='FILE')
-    parser.add_option('--stimthresh', dest='stimtresh',
+    parser.add_option('--stimthresh', dest='stimthresh', default=3.5,
                       help='Threshold value for trigger channels')
-    parser.add_option('--stim', dest='stim',
-                      help='Stimulus Trigger Channels') 
-    parser.add_option('-a', '--add', dest='add_chs',
-                      help='Add additional channels')                                            
+    parser.add_option('--stim', dest='stim', 
+    				  default='167:166:165:164:163:162:161:160',
+                      help='Stimulus Trigger Channels')                                             
     parser.add_option('-o', '--output', dest='out_fname',
                       help='Name of the resulting fiff file')
                      
@@ -48,17 +47,14 @@ if __name__ == '__main__':
     mrk_fname = options.mrk_fname
     stim = options.stim
     stimthresh = options.stimtresh
-    add_chs = options.add_chs
     out_fname = options.out_fname
 
-
-#     if out_fname == 'as_data_fname':
-#         out_fname = sqd_fname + '_raw.fif'
+	if isinstance(stim, str):
+		stim = np.array(stim.split(':'))
 
     raw = read_raw_kit(input_fname=input_fname, sns_fname=sns_fname,
                        hsp_fname=hsp_fname, elp_fname=elp_fname,
-                       mrk_fname=mrk_fname, stim=stim, stimthresh=stimtresh,
-                       add_chs=add_chs)
+                       mrk_fname=mrk_fname, stim=stim, stimthresh=stimthresh)
 
     raw.save(out_fname)
     raw.close()
