@@ -150,7 +150,7 @@ class RawKIT(Raw):
     @verbose
     def __init__(self, data_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
                  data=None, lowpass=None, highpass=None, stim=range(167, 159, -1),
-                 stimthresh=3500, add_chs=None, verbose=True):
+                 stimthresh=3.5, add_chs=None, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % data_fname)
         self.params = sqd_params(data_fname, lowpass=lowpass,
@@ -170,7 +170,8 @@ class RawKIT(Raw):
             self._data = data
         logger.info('Creating Raw.info structure...')
         assert len(self._data) == self.params.nchan
-        self._create_raw_info()
+        self._create_raw_info_dict()
+        self._create_synth_ch()
         self.verbose = verbose
         self._preloaded = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
@@ -187,13 +188,13 @@ class RawKIT(Raw):
         logger.info('Ready.')
 
     @verbose
-    def _create_raw_info(self):
-        """ Fills list of dicts for initializing empty fif with SQD data"""
+    def _create_raw_info_dict(self):
+        """Create raw.info dict for raw fif object with SQD data"""
 
         info = {}
         info['meas_id'] = None
         info['file_id'] = None
-        info['meas_date'] = time.ctime()
+        info['meas_date'] = int(time.time())
         info['projs'] = []
         info['comps'] = []
         info['lowpass'] = self.params.lowpass
@@ -248,25 +249,22 @@ class RawKIT(Raw):
             ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['eeg_loc'] = None
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
             chan_info['range'] = 1.0
             chan_info['unit_mul'] = 0  # default is 0 mne_manual p.273
             chan_info['ch_name'] = ch_name
+            chan_info['unit'] = FIFF.FIFF_UNIT_T  # 112 = T
             if ch_name.startswith('MEG'):
-                chan_info['kind'] = FIFF.FIFFV_MEG_CH
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-                chan_info['unit'] = FIFF.FIFF_UNIT_T  # 112 = T
-                # this has the coordinates,
-                # but the three unit vectors (mne p.273)
-                chan_info['loc'] = ch_loc
-                # this needs to be sorted out
-                chan_info['coil_trans'] = None
-            elif ch_name == 'STI 014':
-                chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            # 0: theta, 1: phi
+                chan_info['kind'] = FIFF.FIFFV_MEG_CH
+            if ch_name.startswith('REF'):
+                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+
+            #    create three orthogonal vector
+            #    0: theta, 1: phi
             ch_angles = np.radians(ch_angles)
             x = np.sin(ch_angles[0]) * np.cos(ch_angles[1])
             y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
@@ -282,18 +280,36 @@ class RawKIT(Raw):
             chan_info['loc'] = np.hstack((ch_loc, point, vec1, vec2))
             chs.append(chan_info)
 
+        #    label trigger and misc channels
+        for idy, ch_name in enumerate(ch_names['TRIG'] + ch_names['MISC'] +
+                                      ch_names['STIM']):
+            idy = idx + idy + 1
+            chan_info['cal'] = KIT.CALIB_FACTOR
+            chan_info['logno'] = idy
+            chan_info['scanno'] = idy
+            chan_info['range'] = 1.0
+            chan_info['unit_mul'] = 0  # default is 0 mne_manual p.273
+            chan_info['ch_name'] = ch_name
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            if ch_name == 'STI 014':
+                chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            else:
+                chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            chs.append(chan_info)
+
+        ch_names = (ch_names['MEG'] + ch_names['REF'] +
+                    ch_names['TRIG'] + ch_names['MISC'] + ch_names['STIM'])
+        return chs, ch_names
+
+    def _create_synth_ch(self):
         """create a synthetic channel"""
+
         trig_chs = self._data[self.stim, :]
         trig_chs = trig_chs > self.stimthresh
         trig_vals = np.array(2 ** np.arange(len(self.stim)), ndmin=2).T
         trig_chs = trig_chs * trig_vals
         stim_ch = trig_chs.sum(axis=0)
         self._data = np.vstack((self._data, stim_ch))
-
-        ch_names = (ch_names['MEG'] + ch_names['REF'] +
-                    ch_names['TRIG'] + ch_names['MISC'] + ch_names['STIM'])
-        return chs, ch_names
-
 
     def _get_coreg(self):
         """get transformation matrix and hsp points"""
