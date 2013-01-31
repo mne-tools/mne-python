@@ -1,5 +1,4 @@
 import os.path as op
-import numpy as np
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -84,14 +83,14 @@ def test_find_events():
     assert_array_almost_equal(events, events2)
 
     # Test that we can handle consecutive events with no gap
-    raw.last_samp -= raw.first_samp
-    raw.first_samp = 0
     stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
-    raw._data = np.zeros_like(raw._data)
-    raw._data[stim_channel, 10:20] = np.repeat(5, 10)
-    raw._data[stim_channel, 20:30] = np.repeat(6, 10)
-    raw._data[stim_channel, 30:40] = np.repeat(5, 10)
-    raw._data[stim_channel, 40:50] = np.repeat(6, 10)
+    raw._data[stim_channel, :] = 0
+    raw._data[stim_channel, 10:20] = 5
+    raw._data[stim_channel, 20:30] = 6
+    raw._data[stim_channel, 30:40] = 5
+    raw._data[stim_channel, 40:50] = 6
+    # Re-reference first_samp to 0 for ease of comparison
+    raw.first_samp = 0
     events = find_events(raw)
     assert_array_equal(events,
         [[10,  0,  5],
