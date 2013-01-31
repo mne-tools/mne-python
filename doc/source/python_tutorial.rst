@@ -162,7 +162,7 @@ Read and plot a segment of raw data
 Save a segment of 150s of raw data (MEG only):
 
     >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
-    >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks) # doctest: +ELLIPSIS
+    >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks, overwrite=True) # doctest: +ELLIPSIS
     Reading ...
 
 Define and read epochs
