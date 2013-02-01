@@ -23,15 +23,16 @@ if __name__ == '__main__':
                     help='Headshape file name', metavar='filename')
     parser.add_option('--elp', dest='elp_fname',
                     help='Headshape file name', metavar='FILE')
-    parser.add_option('--mrk', dest='marker_fname',
+    parser.add_option('--mrk', dest='mrk_fname',
                     help='MEG Marker file name', metavar='FILE')
     parser.add_option('--stimthresh', dest='stimthresh', default=3.5,
-                      help='Threshold value for trigger channels')
+                      help='Threshold value for trigger channels',
+                      metavar='INT')
     parser.add_option('--stim', dest='stim',
-    				  default='167:166:165:164:163:162:161:160',
-                      help='Stimulus Trigger Channels')
+                      default='167:166:165:164:163:162:161:160',
+                      help='Stimulus Trigger Channels', metavar='LIST')
     parser.add_option('-o', '--output', dest='out_fname',
-                      help='Name of the resulting fiff file', metavar='filename')
+                      help='Name of the resulting fiff file', metavar='FILE')
 
     options, args = parser.parse_args()
 
