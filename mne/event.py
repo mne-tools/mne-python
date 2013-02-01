@@ -284,11 +284,13 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
         If not None, override default verbose level (see mne.verbose).
     detect : 'onset' | 'offset'
         Whether to report when events start or when events end.
-    consecutive : bool
+    consecutive : bool | 'increasing'
         If True, consider instances where the value of the events 
         channel changes without first returning to zero as multiple
-        events. If False, report only instances where the value of
-        the events channel changes from/to zero.
+        events. If False, report only instances where the value of the
+        events channel changes from/to zero. If 'increasing', report
+        adjacent events only when the second event code is greater than
+        the first; this was the default in MNE <= 0.5.
     min_duration : float
         The minimum duration of a change in the events channel required
         to consider it as an event.
@@ -362,6 +364,13 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
 
     # Only keep events longer than min_duration
     keep = offset_idx - onset_idx >= np.round(min_duration * raw.info['sfreq']) - 1
+    if consecutive == 'increasing':
+        keep[1:] = np.logical_and(keep[1:],
+                                  np.logical_or(onset_idx[1:] !=
+                                                offset_idx[:-1] + 1,
+                                                data[0, onset_idx[1:]] >
+                                                data[0, onset_idx[:-1]]))
+        
     if detect == 'onset':
         idx = onset_idx[keep]
     elif detect == 'offset':

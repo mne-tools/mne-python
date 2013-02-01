@@ -109,6 +109,12 @@ def test_find_events():
           [   30,     0,     5],
           [   40,     0,     6],
           [14399,     0,     9]])
+    assert_array_equal(find_events(raw, consecutive='increasing'),
+         [[    0,     0,     1],
+          [   10,     0,     5],
+          [   20,     0,     6],
+          [   40,     0,     6],
+          [14399,     0,     9]])
     assert_array_equal(find_events(raw, detect='offset'),
          [[    0,     0,     1],
           [   31,     0,     5],
@@ -138,10 +144,6 @@ def test_find_events():
          [[   10,     0,     5],
           [   20,     0,     6]])
 
-    raw._data[stim_channel, :] = 0
-    stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
-    raw._data = np.zeros((raw._data.shape[0], 5))
-    raw._data[stim_channel, :] = [0, 32, 32, 33, 0]
 
 def test_make_fixed_length_events():
     """Test making events of a fixed length
