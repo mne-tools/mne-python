@@ -62,6 +62,7 @@ def read_mrk(mrk_fname):
     mrk_points = np.array(mrk_points, dtype=float)
     return mrk_points
 
+
 def read_elp(elp_fname):
     """elp point extraction"""
 
@@ -70,6 +71,7 @@ def read_elp(elp_fname):
     elp_points = p.findall(open(elp_fname).read())
     elp_points = np.array(elp_points, dtype=float)
     return elp_points
+
 
 def read_hsp(hsp_fname):
     """hsp point extraction"""
@@ -80,6 +82,7 @@ def read_hsp(hsp_fname):
     hsp_points = hsp_points.reshape(int(v[0]), int(v[1]))
     return hsp_points
 
+
 def read_sns(sns_fname):
     """sns coordinate extraction"""
 
@@ -88,6 +91,7 @@ def read_sns(sns_fname):
                    r'([\.\-0-9]+),([\.\-0-9]+)')
     locs = np.array(p.findall(open(sns_fname).read()), dtype='float')
     return locs
+
 
 def transform_pts(pts):
     """KIT-Neuromag transformer
