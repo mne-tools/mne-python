@@ -256,8 +256,10 @@ class Evoked(object):
                               % (all_data.shape[1], nsamp))
 
         # Calibrate
-        cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-        all_data = cals[:, None] * all_data
+        cals = np.array([info['chs'][k]['cal']
+                         * info['chs'][k].get('scale', 1.0)
+                         for k in range(info['nchan'])])
+        all_data *= cals[:, np.newaxis]
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
@@ -669,11 +671,12 @@ def write_evoked(fname, evoked):
         write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
         write_int(fid, FIFF.FIFF_NAVE, e.nave)
 
-        decal = np.zeros((e.info['nchan'], e.info['nchan']))
+        decal = np.zeros((e.info['nchan'], 1))
         for k in range(e.info['nchan']):
-            decal[k, k] = 1.0 / e.info['chs'][k]['cal']
+            decal[k] = 1.0 / (e.info['chs'][k]['cal']
+                              * e.info['chs'][k].get('scale', 1.0))
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, e.data))
+        write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
         end_block(fid, FIFF.FIFFB_ASPECT)
         end_block(fid, FIFF.FIFFB_EVOKED)
 
