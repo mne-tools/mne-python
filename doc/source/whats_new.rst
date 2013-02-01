@@ -33,6 +33,8 @@ Changelog
 
    - Advanced options to save raw files in short or double precision by `Eric Larson`_
 
+   - Option to detect decreasing events using find_events by `Simon Kornblith`_
+
 API
 ~~~
 
@@ -316,3 +318,5 @@ of commits):
 .. _Denis Engemann: https://github.com/dengemann
 
 .. _Christian Brodbeck: https://github.com/christianmbrodbeck
+
+.. _Simon Kornblith: http://simonster.com
