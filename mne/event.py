@@ -363,7 +363,8 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
         offset_idx = np.append(offset_idx, data.shape[1]-1)
 
     # Only keep events longer than min_duration
-    keep = offset_idx - onset_idx >= np.round(min_duration * raw.info['sfreq']) - 1
+    keep = offset_idx - onset_idx >= np.round(min_duration *
+                                              raw.info['sfreq']) - 1
     if consecutive == 'increasing':
         keep[1:] = np.logical_and(keep[1:],
                                   np.logical_or(onset_idx[1:] !=
