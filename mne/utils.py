@@ -409,7 +409,7 @@ known_config_types = [
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     ]
-# These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_0' is okay key
+# These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
     ]

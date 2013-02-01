@@ -81,8 +81,9 @@ def test_find_events():
     events = read_events(fname)
     raw = fiff.Raw(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
-    orig_envs = [os.getenv('MNE_STIM_CHANNEL_%d' % ii) for ii in range(2)]
-    os.environ['MNE_STIM_CHANNEL_0'] = 'STI 014'
+    extra_ends = ['', '_1']
+    orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
+    os.environ['MNE_STIM_CHANNEL'] = 'STI 014'
     if 'MNE_STIM_CHANNEL_1' in os.environ:
         del os.environ['MNE_STIM_CHANNEL_1']
     events2 = find_events(raw)
@@ -156,9 +157,9 @@ def test_find_events():
                        [[10, 0, 5],
                         [20, 0, 6]])
     # put back the env vars we trampled on
-    for ii, o in enumerate(orig_envs):
+    for s, o in zip(extra_ends, orig_envs):
         if o is not None:
-            os.environ['MNE_STIM_CHANNEL_%d' % ii] = o
+            os.environ['MNE_STIM_CHANNEL%s' % s] = o
 
 
 def test_make_fixed_length_events():
