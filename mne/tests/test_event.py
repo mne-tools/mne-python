@@ -1,4 +1,5 @@
 import os.path as op
+import numpy as np
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -91,8 +92,10 @@ def test_find_events():
     raw._data[stim_channel, 30:32] = 5
     raw._data[stim_channel, 40] = 6
     raw._data[stim_channel, -1] = 9
-    # Re-reference first_samp to 0 for ease of comparison
+
+    # Reset some data for ease of comparison
     raw.first_samp = 0
+    raw.info['sfreq'] = 1000
 
     assert_array_equal(find_events(raw),
          [[    0,     0,     1],
@@ -118,23 +121,27 @@ def test_find_events():
           [   31,     0,     5],
           [   40,     0,     6],
           [14399,     0,     9]])
-    assert_array_equal(find_events(raw, min_duration=2),
+    assert_array_equal(find_events(raw, min_duration=0.002),
          [[   10,     0,     5]])
-    assert_array_equal(find_events(raw, consecutive=True, min_duration=2),
+    assert_array_equal(find_events(raw, consecutive=True, min_duration=0.002),
          [[   10,     0,     5],
           [   20,     0,     6],
           [   30,     0,     5]])
-    assert_array_equal(find_events(raw, detect='offset', min_duration=2),
+    assert_array_equal(find_events(raw, detect='offset', min_duration=0.002),
          [[   31,     0,     5]])
     assert_array_equal(find_events(raw, detect='offset', consecutive=True,
-                                   min_duration=2),
+                                   min_duration=0.002),
          [[   19,     0,     5],
           [   29,     0,     6],
           [   31,     0,     5]])
-    assert_array_equal(find_events(raw, consecutive=True, min_duration=3),
+    assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
          [[   10,     0,     5],
           [   20,     0,     6]])
 
+    raw._data[stim_channel, :] = 0
+    stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
+    raw._data = np.zeros((raw._data.shape[0], 5))
+    raw._data[stim_channel, :] = [0, 32, 32, 33, 0]
 
 def test_make_fixed_length_events():
     """Test making events of a fixed length
