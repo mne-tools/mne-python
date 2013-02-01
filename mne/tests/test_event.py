@@ -1,4 +1,5 @@
 import os.path as op
+import numpy as np
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -78,9 +79,77 @@ def test_find_events():
     """Test find events in raw file
     """
     events = read_events(fname)
-    raw = fiff.Raw(raw_fname)
+    raw = fiff.Raw(raw_fname, preload=True)
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+
+    # Test that we can handle consecutive events with no gap
+    stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
+    raw._data[stim_channel, :] = 0
+    raw._data[stim_channel, 0] = 1
+    raw._data[stim_channel, 10:20] = 5
+    raw._data[stim_channel, 20:30] = 6
+    raw._data[stim_channel, 30:32] = 5
+    raw._data[stim_channel, 40] = 6
+    raw._data[stim_channel, -1] = 9
+
+    # Reset some data for ease of comparison
+    raw.first_samp = 0
+    raw.info['sfreq'] = 1000
+
+    assert_array_equal(find_events(raw),
+                       [[0, 0, 1],
+                        [10, 0, 5],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
+    assert_array_equal(find_events(raw, consecutive=True),
+                       [[0, 0, 1],
+                        [10, 0, 5],
+                        [20, 0, 6],
+                        [30, 0, 5],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
+    assert_array_equal(find_events(raw, consecutive='increasing'),
+                       [[0, 0, 1],
+                        [10, 0, 5],
+                        [20, 0, 6],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
+    assert_array_equal(find_events(raw, detect='offset'),
+                       [[0, 0, 1],
+                        [31, 0, 5],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
+    assert_array_equal(find_events(raw, detect='offset', consecutive=True),
+                       [[0, 0, 1],
+                        [19, 0, 5],
+                        [29, 0, 6],
+                        [31, 0, 5],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
+    assert_array_equal(
+        find_events(raw, detect='offset', consecutive='increasing'),
+        [[0, 0, 1],
+         [19, 0, 5],
+         [31, 0, 5],
+         [40, 0, 6],
+         [14399, 0, 9]])
+    assert_array_equal(find_events(raw, min_duration=0.002),
+                       [[10, 0, 5]])
+    assert_array_equal(find_events(raw, consecutive=True, min_duration=0.002),
+                       [[10, 0, 5],
+                        [20, 0, 6],
+                        [30, 0, 5]])
+    assert_array_equal(find_events(raw, detect='offset', min_duration=0.002),
+                       [[31, 0, 5]])
+    assert_array_equal(find_events(raw, detect='offset', consecutive=True,
+                                   min_duration=0.002),
+                       [[19, 0, 5],
+                        [29, 0, 6],
+                        [31, 0, 5]])
+    assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
+                       [[10, 0, 5],
+                        [20, 0, 6]])
 
 
 def test_make_fixed_length_events():
@@ -92,12 +161,12 @@ def test_make_fixed_length_events():
 
 
 def test_define_events():
-    """Teste defining response events
+    """Test defining response events
     """
     events = read_events(fname)
     raw = fiff.Raw(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
-        .2, 0.7, 42, 99)
+                                      .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]
     n_miss = events_[events_[:, 2] == 99].shape[0]
     n_target_ = events_[events_[:, 2] == 42].shape[0]
