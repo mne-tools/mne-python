@@ -18,6 +18,7 @@ from .fiff.tag import read_tag
 from .fiff.open import fiff_open
 from .fiff.write import write_int, start_block, start_file, end_block, end_file
 from .fiff.pick import pick_channels
+from .utils import get_config
 from . import verbose
 
 
@@ -269,7 +270,7 @@ def write_events(filename, event_list):
 
 
 @verbose
-def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
+def find_events(raw, stim_channel=None, verbose=None, detect='onset',
                 consecutive=False, min_duration=0):
     """Find events from raw file
 
@@ -277,9 +278,12 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
     ----------
     raw : Raw object
         The raw data.
-    stim_channel : string or list of string
+    stim_channel : None | string | list of string
         Name of the stim channel or all the stim channels
-        affected by the trigger.
+        affected by the trigger. If None, the config variables
+        'MNE_STIM_CHANNEL_0', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+        etc. are read. If these are not found, it will default to
+        'STI 014'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     detect : 'onset' | 'offset'
@@ -330,8 +334,8 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
                           min_duration=0.002))
     [[ 1  0 32]]
     """
-    if not isinstance(stim_channel, list):
-        stim_channel = [stim_channel]
+    # pull stim channel from config if necessary
+    stim_channel = _get_stim_channel(stim_channel)
 
     pick = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(pick) == 0:
@@ -493,3 +497,25 @@ def concatenate_events(events, first_samps, last_samps):
         events_out = np.concatenate((events_out, e2), axis=0)
 
     return events_out
+
+
+def _get_stim_channel(stim_channel):
+    if stim_channel is not None:
+        if not isinstance(stim_channel, list):
+            if not isinstance(stim_channel, basestring):
+                raise ValueError('stim_channel must be a str, list, or None')
+            stim_channel = [stim_channel]
+        if not all([isinstance(s, basestring) for s in stim_channel]):
+            raise ValueError('stim_channel list must contain all strings')
+        return stim_channel
+
+    stim_channel = list()
+    ch_count = 0
+    ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
+    while(ch is not None):
+        stim_channel.append(ch)
+        ch_count += 1
+        ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
+    if ch_count == 0:
+        stim_channel = ['STI 014']
+    return stim_channel

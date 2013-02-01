@@ -33,7 +33,7 @@ tmin, tmax, event_id = -0.2, 0.5, 1
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
-events = mne.find_events(raw)
+events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 
 include = []

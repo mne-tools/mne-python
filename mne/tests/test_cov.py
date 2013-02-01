@@ -90,7 +90,7 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers
     """
-    events = find_events(raw)
+    events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
 
