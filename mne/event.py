@@ -281,7 +281,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     stim_channel : None | string | list of string
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
-        'MNE_STIM_CHANNEL_0', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+        'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
         etc. are read. If these are not found, it will default to
         'STI 014'.
     verbose : bool, str, int, or None
@@ -511,7 +511,7 @@ def _get_stim_channel(stim_channel):
 
     stim_channel = list()
     ch_count = 0
-    ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
+    ch = get_config('MNE_STIM_CHANNEL')
     while(ch is not None):
         stim_channel.append(ch)
         ch_count += 1
