@@ -68,7 +68,7 @@ def test_multiple_files():
         fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
-    events = [find_events(r) for r in raws]
+    events = [find_events(r, stim_channel='STI 014') for r in raws]
     last_samps = [r.last_samp for r in raws]
     first_samps = [r.first_samp for r in raws]
 
@@ -83,7 +83,7 @@ def test_multiple_files():
 
     # test proper event treatment for split files
     events = concatenate_events(events, first_samps, last_samps)
-    events2 = find_events(all_raw_2)
+    events2 = find_events(all_raw_2, stim_channel='STI 014')
     assert_array_equal(events, events2)
 
     # test various methods of combining files
@@ -109,7 +109,8 @@ def test_multiple_files():
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=False)])
     assert_true(raw_combos[1]._preloaded == False)
-    assert_array_equal(find_events(raw_combos[4]), find_events(raw_combos[0]))
+    assert_array_equal(find_events(raw_combos[4], stim_channel='STI 014'),
+                       find_events(raw_combos[0], stim_channel='STI 014'))
 
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
@@ -144,11 +145,12 @@ def test_multiple_files():
     assert_raises(ValueError, raw.append, Raw(fif_fname, preload=True))
 
     # now test event treatment for concatenated raw files
-    events = [find_events(raw), find_events(raw)]
+    events = [find_events(raw, stim_channel='STI 014'),
+              find_events(raw, stim_channel='STI 014')]
     last_samps = [raw.last_samp, raw.last_samp]
     first_samps = [raw.first_samp, raw.first_samp]
     events = concatenate_events(events, first_samps, last_samps)
-    events2 = find_events(raw_combos[0])
+    events2 = find_events(raw_combos[0], stim_channel='STI 014')
     assert_array_equal(events, events2)
 
     # check out the len method
