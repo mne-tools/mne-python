@@ -100,6 +100,7 @@ class Raw(object):
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.info['filenames'] = fnames
+        self.orig_format = raws[0].orig_format
 
         if preload:
             self._preload_data(preload)
@@ -207,6 +208,7 @@ class Raw(object):
         #   Go through the remaining tags in the directory
         rawdir = list()
         nskip = 0
+        orig_format = None
         for k in range(first, nent):
             ent = directory[k]
             if ent.kind == FIFF.FIFF_DATA_SKIP:
@@ -232,6 +234,21 @@ class Raw(object):
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
                                                                       ent.type)
+                if orig_format is None:
+                    if ent.type == FIFF.FIFFT_DAU_PACK16:
+                        orig_format = 'short'
+                    elif ent.type == FIFF.FIFFT_SHORT:
+                        orig_format = 'short'
+                    elif ent.type == FIFF.FIFFT_FLOAT:
+                        orig_format = 'single'
+                    elif ent.type == FIFF.FIFFT_DOUBLE:
+                        orig_format = 'double'
+                    elif ent.type == FIFF.FIFFT_INT:
+                        orig_format = 'int'
+                    elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
+                        orig_format = 'single'
+                    elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+                        orig_format = 'double'
 
                 #  Do we have an initial skip pending?
                 if first_skip > 0:
@@ -254,6 +271,7 @@ class Raw(object):
                 first_samp += nsamp
 
         raw.last_samp = first_samp - 1
+        raw.orig_format = orig_format
 
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])
@@ -874,13 +892,14 @@ class Raw(object):
             the projectons will be active even if proj_active is False.
         format : str
             Format to use to save raw data. Valid options are 'double',
-            'single', and 'short' for 64-, 32-, and 16-bit entries.
-            It is STRONGLY recommended to use 'single', as this is backward-
-            compatible, and is standard for maintaining precision. Note that
-            using 'short' may result in loss of precision, complex data
-            cannot be saved as 'short', and neither complex data types
-            nor real data stored as 'double' can be loaded with the MNE
-            command-line tools.
+            'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
+            16-bit integers, respectively. It is STRONGLY recommended to use
+            'single', as this is backward-compatible, and is standard for
+            maintaining precision. Note that using 'short' or 'int' may result
+            in loss of precision, complex data cannot be saved as 'short',
+            and neither complex data types nor real data stored as 'double'
+            can be loaded with the MNE command-line tools. See raw.orig_format
+            to determine the format the original data were stored in.
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
@@ -899,11 +918,13 @@ class Raw(object):
                               'with command-line MNE tools will not work.')
 
         type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
+                         int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
         if not format in type_dict.keys():
-            raise ValueError('format must be "short", "single", or "double"')
-        reset_dict = dict(short=False, single=True, double=True)
+            raise ValueError('format must be "short", "int", "single", '
+                             'or "double"')
+        reset_dict = dict(short=False, int=False, single=True, double=True)
 
         data_test = self[0, 0][0]
         if format == 'short' and np.iscomplexobj(data_test):
@@ -1580,8 +1601,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         Indices of channels to include. By default all channels are included.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
-        5 (FIFFT_DOUBLE), or 16 (mne.fiff.FIFF.FIFFT_DAU_PACK16) for
-        raw data.
+        5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
     reset_range : bool
         If True, the info['chs'][k]['range'] parameter will be set to unity.
 
@@ -1653,32 +1673,33 @@ def write_raw_buffer(fid, buf, cals, format):
     cals : array
         Calibration factors.
     format : str
-        'short', 'single', or 'double' for 16, 32 or 64 bits to use per
-        item. This will be doubled for complex datatypes. Note that short
-        format cannot be used for complex data.
+        'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
+        float for each item. This will be doubled for complex datatypes. Note
+        that short and int formats cannot be used for complex data.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    format_dict = dict(short=16, single=32, double=64)
-    if not format in format_dict.keys():
+    if not format in ['short', 'int', 'single', 'double']:
         raise ValueError('format must be "short", "single", or "double"')
-    precision = format_dict[format]
 
     if np.isrealobj(buf):
-        if precision == 16:
+        if format == 'short':
             write_function = write_dau_pack16
-        elif precision == 32:
+        elif format == 'int':
+            write_function = write_int
+        elif format == 'single':
             write_function = write_float
         else:
             write_function = write_double
     else:
-        if precision == 16:
-            raise ValueError('short format not supported for complex data')
-        elif precision == 32:
+        if format == 'single':
             write_function = write_complex64
-        else:
+        elif format == 'double':
             write_function = write_complex128
+        else:
+            raise ValueError('only "single" and "double" supported for '
+                             'writing complex data')
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
@@ -1720,6 +1741,11 @@ def _check_raw_compatibility(raw):
         if not all(proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
+    if not all([r.orig_format == raw[0].orig_format for r in raw]):
+        warnings.warn('raw files do not all have the same data format, '
+                      'could result in precision mismatch. Setting '
+                      'raw.orig_format="unknown"')
+        raw[0].orig_format = 'unknown'
 
 
 def concatenate_raws(raws, preload=None):
