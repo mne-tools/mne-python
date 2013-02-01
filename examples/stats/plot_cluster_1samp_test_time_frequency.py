@@ -40,7 +40,7 @@ tmax = 0.6
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
-events = mne.find_events(raw)
+events = mne.find_events(raw, stim_channel='STI 014')
 
 include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more

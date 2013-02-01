@@ -1,5 +1,5 @@
 import os.path as op
-import numpy as np
+import os
 
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -80,6 +80,11 @@ def test_find_events():
     """
     events = read_events(fname)
     raw = fiff.Raw(raw_fname, preload=True)
+    # let's test the defaulting behavior while we're at it
+    orig_envs = [os.getenv('MNE_STIM_CHANNEL_%d' % ii) for ii in range(2)]
+    os.environ['MNE_STIM_CHANNEL_0'] = 'STI 014'
+    if 'MNE_STIM_CHANNEL_1' in os.environ:
+        del os.environ['MNE_STIM_CHANNEL_1']
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
 
@@ -150,6 +155,10 @@ def test_find_events():
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
                        [[10, 0, 5],
                         [20, 0, 6]])
+    # put back the env vars we trampled on
+    for ii, o in enumerate(orig_envs):
+        if o is not None:
+            os.environ['MNE_STIM_CHANNEL_%d' % ii] = o
 
 
 def test_make_fixed_length_events():

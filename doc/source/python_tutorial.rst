@@ -182,6 +182,12 @@ First extract events:
      [7304    0    4]
      [7413    0    2]]
 
+Note that, by default, we use stim_channel='STI 014'. If you have a different
+system (e.g., a newer system that uses channel 'STI101' by default), you can
+use the following to set the default stim channel to use for finding events:
+
+    >>> mne.utils.set_config('MNE_STIM_CHANNEL_0', 'STI101') # doctest: +SKIP
+
 Events are stored as 2D numpy array where the first column is the time instant
 and the last one is the event number. It is therefore easy to manipulate.
 

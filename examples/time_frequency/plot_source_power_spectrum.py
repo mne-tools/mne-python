@@ -26,7 +26,7 @@ fname_label = data_path + '/MEG/sample/labels/Aud-lh.label'
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname, verbose=False)
-events = mne.find_events(raw)
+events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
 
