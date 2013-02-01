@@ -127,6 +127,12 @@ def test_find_events():
           [   31,     0,     5],
           [   40,     0,     6],
           [14399,     0,     9]])
+    assert_array_equal(find_events(raw, detect='offset', consecutive='increasing'),
+         [[    0,     0,     1],
+          [   19,     0,     5],
+          [   31,     0,     5],
+          [   40,     0,     6],
+          [14399,     0,     9]])
     assert_array_equal(find_events(raw, min_duration=0.002),
          [[   10,     0,     5]])
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.002),
