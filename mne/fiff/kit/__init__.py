@@ -1,6 +1,6 @@
 """KIT module for conversion to FIF"""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
+# Author: Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
