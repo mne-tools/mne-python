@@ -74,7 +74,7 @@ class sqd_params(object):
         sens = np.fromfile(fid, dtype='d', count=self.nchan * 2)
         KIT.n_sens = KIT.nmegchan + KIT.nrefchan
         self._sensitivities = (np.reshape(sens, (self.nchan, 2))
-                               [:KIT.n_sens, 0])
+                               [:KIT.n_sens, 1])
         self.sensor_gain = np.ones(self.nchan)
         self.sensor_gain[:KIT.n_sens] = self._sensitivities
 
@@ -102,8 +102,7 @@ class sqd_params(object):
         data = np.reshape(data, (self.nsamples, self.nchan))
         # amplifier applies only to the sensor channels 0-159
         amp_gain = self.output_gain * self.input_gain
-        self.sensor_gain[:KIT.n_sens] = (self.sensor_gain[:KIT.n_sens] /
-                                          amp_gain)
+        self.sensor_gain[:KIT.n_sens] /= amp_gain
         conv_factor = np.array((KIT.VOLTAGE_RANGE / KIT.DYNAMIC_RANGE) *
                                self.sensor_gain, ndmin=2)
         self.x = (conv_factor * data).T
@@ -287,10 +286,13 @@ class RawKIT(Raw):
             chan_info['logno'] = idy
             chan_info['scanno'] = idy
             chan_info['range'] = 1.0
+            chan_info['unit'] = FIFF.FIFF_UNIT_V
             chan_info['unit_mul'] = 0  # default is 0 mne_manual p.273
             chan_info['ch_name'] = ch_name
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['loc'] = np.zeros(12)
             if ch_name.startswith('STI'):
+                chan_info['unit'] = FIFF.FIFF_UNIT_NONE
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             else:
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
