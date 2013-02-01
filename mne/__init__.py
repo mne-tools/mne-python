@@ -4,7 +4,8 @@
 __version__ = '0.6.git'
 
 # have to import verbose first since it's needed by many things
-from .utils import set_log_level, set_log_file, verbose
+from .utils import set_log_level, set_log_file, verbose, set_config, \
+                   get_config, get_config_path
 
 from .cov import read_cov, write_cov, Covariance, \
                  compute_covariance, compute_raw_data_covariance, \
@@ -60,5 +61,5 @@ set_log_level(None, False)
 set_log_file()
 
 # initialize CUDA
-if utils.get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+if get_config('MNE_USE_CUDA', 'false').lower() == 'true':
     cuda.init_cuda()

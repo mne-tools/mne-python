@@ -500,6 +500,7 @@ def concatenate_events(events, first_samps, last_samps):
 
 
 def _get_stim_channel(stim_channel):
+    """Helper to determine the appropriate stim_channel"""
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, basestring):
