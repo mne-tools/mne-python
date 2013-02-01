@@ -5,7 +5,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 """
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
+# Author: Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -147,8 +147,8 @@ class RawKIT(Raw):
         """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 data=None, lowpass=None, highpass=None, stim=range(167, 159, -1),
-                 stimthresh=3.5, verbose=True):
+                 data=None, lowpass=None, highpass=None,
+                 stim=range(167, 159, -1), stimthresh=3.5, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self.params = sqd_params(input_fname, lowpass=lowpass,
@@ -172,6 +172,7 @@ class RawKIT(Raw):
         self._create_synth_ch()
         self.verbose = verbose
         self._preloaded = True
+        self.fids = list()
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1)
         self._times /= self.info['sfreq']
@@ -227,11 +228,9 @@ class RawKIT(Raw):
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                                  in range(1, KIT.nmiscchan + 1)]
         ch_names['STIM'] = ['STI 014']
-        p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),([\.\-0-9]+),([\.\-0-9]+)' +
-                       r'([\.\-0-9]+),([\.\-0-9]+)')
-        locs = np.array(p.findall(open(self.sns_fname).read()), dtype='float')
-        chan_locs = coreg.transform_pts(locs[:, [1, 0, 2]])
-        chan_angles = locs[:, [3, 4]]
+        locs = coreg.read_sns(sns_fname=self.sns_fname)
+        chan_locs = coreg.transform_pts(locs[:, :3])
+        chan_angles = locs[:, 3:]
         chs = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'] + ch_names['REF'],
                                           chan_locs, chan_angles), 1):
@@ -258,21 +257,32 @@ class RawKIT(Raw):
             x = np.sin(ch_angles[0]) * np.cos(ch_angles[1])
             y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
             z = np.cos(ch_angles[0])
-            point = np.array([x, y, z])
-            length = np.linalg.norm(point)
-            point = point / length
-            vec1 = np.empty(point.size, dtype=float)
-            vec1 = vec1 - np.sum(vec1 * point) * point
-            length1 = np.linalg.norm(vec1)
-            vec1 = vec1 / length1
-            vec2 = np.cross(point, vec1)
-            chan_info['loc'] = np.hstack((ch_loc, point, vec1, vec2))
+            vec1 = np.array([x, y, z])
+            vec1 = vec1[[1, 0, 2]]
+            vec1[0] *= -1
+            length = np.linalg.norm(vec1)
+            vec1 /= length
+            vec2 = np.zeros(vec1.size, dtype=float)
+            if vec1[1] < vec1[2]:
+                if vec1[0] < vec1[1]:
+                    vec2[0] = 1.0
+                else:
+                    vec2[1] = 1.0
+            elif vec1[0] < vec1[2]:
+                vec2[0] = 1.0
+            else:
+                vec2[2] = 1.0
+            vec2 -= np.sum(vec2 * vec1) * vec1
+            length = np.linalg.norm(vec2)
+            vec2 /= length
+            vec3 = np.cross(vec1, vec2)
+            chan_info['loc'] = np.hstack((ch_loc, vec1, vec2, vec3)).ravel()
             chs.append(chan_info)
 
         #    label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['TRIG'] + ch_names['MISC'] +
-                                      ch_names['STIM']):
-            idy = idx + idy + 1
+                                      ch_names['STIM'], KIT.n_sens):
+            chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
             chan_info['scanno'] = idy
@@ -309,6 +319,7 @@ class RawKIT(Raw):
         dev_head_t = fit_matched_pts(tgt_pts=coreg_data.mrk_points,
                                      src_pts=coreg_data.elp_points)
         return dev_head_t, coreg_data.hsp_points
+
 
 def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
                  stim=range(167, 159, -1), stimthresh=3.5):

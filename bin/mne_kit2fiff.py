@@ -23,21 +23,21 @@ if __name__ == '__main__':
                     help='Headshape file name', metavar='FILE')
     parser.add_option('--elp', dest='elp_fname',
                     help='Headshape file name', metavar='FILE')
-    parser.add_option('--mrk', dest='marker_fname',
+    parser.add_option('--mrk', dest='mrk_fname',
                     help='MEG Marker file name', metavar='FILE')
     parser.add_option('--stimthresh', dest='stimthresh', default=3.5,
-                      help='Threshold value for trigger channels')
-    parser.add_option('--stim', dest='stim', 
-    				  default='167:166:165:164:163:162:161:160',
-                      help='Stimulus Trigger Channels')                                             
+                      help='Threshold value for trigger channels',
+                      metavar='INT')
+    parser.add_option('--stim', dest='stim',
+                      default='167:166:165:164:163:162:161:160',
+                      help='Stimulus Trigger Channels', metavar='LIST')
     parser.add_option('-o', '--output', dest='out_fname',
-                      help='Name of the resulting fiff file')
-                     
+                      help='Name of the resulting fiff file', metavar='FILE')
 
     options, args = parser.parse_args()
 
-    sqd_fname = options.sqd_fname
-    if sqd_fname is None:
+    input_fname = options.input_fname
+    if input_fname is None:
         parser.print_help()
         sys.exit(-1)
 
@@ -46,11 +46,11 @@ if __name__ == '__main__':
     elp_fname = options.elp_fname
     mrk_fname = options.mrk_fname
     stim = options.stim
-    stimthresh = options.stimtresh
+    stimthresh = options.stimthresh
     out_fname = options.out_fname
 
-	if isinstance(stim, str):
-		stim = np.array(stim.split(':'))
+    if isinstance(stim, str):
+        stim = stim.split(':')
 
     raw = read_raw_kit(input_fname=input_fname, sns_fname=sns_fname,
                        hsp_fname=hsp_fname, elp_fname=elp_fname,
