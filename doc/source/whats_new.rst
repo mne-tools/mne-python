@@ -35,6 +35,8 @@ Changelog
 
    - Option to detect decreasing events using find_events by `Simon Kornblith`_
 
+   - Option to change default stim_channel used for finding events by `Eric Larson`_
+
 API
 ~~~
 
@@ -43,6 +45,8 @@ API
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
+
+   - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
 
 .. _changes_0_5:
 

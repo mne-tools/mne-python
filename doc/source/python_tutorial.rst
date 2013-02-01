@@ -108,12 +108,12 @@ But it's generally a good idea to leave them on:
 You can set the default level by setting the environment variable
 "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
 
-    >>> mne.utils.set_config('MNE_LOGGING_LEVEL','WARNING') # doctest: +SKIP
+    >>> mne.set_config('MNE_LOGGING_LEVEL','WARNING') # doctest: +SKIP
 
 Note that the location of the mne-python preferences file (for easier manual
 editing) can be found using:
 
-    >>> mne.utils.get_config_path() # doctest: +SKIP
+    >>> mne.get_config_path() # doctest: +SKIP
 
 By default logging messages print to the console, but look at
 mne.set_log_file() to save output to a file.
@@ -181,6 +181,12 @@ First extract events:
      [7192    0    1]
      [7304    0    4]
      [7413    0    2]]
+
+Note that, by default, we use stim_channel='STI 014'. If you have a different
+system (e.g., a newer system that uses channel 'STI101' by default), you can
+use the following to set the default stim channel to use for finding events:
+
+    >>> mne.set_config('MNE_STIM_CHANNEL', 'STI101') # doctest: +SKIP
 
 Events are stored as 2D numpy array where the first column is the time instant
 and the last one is the event number. It is therefore easy to manipulate.

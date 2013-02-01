@@ -40,23 +40,10 @@ Logging and Configuration
    :toctree: generated/
    :template: function.rst
 
-   set_log_level
-   set_log_file
-
-:py:mod:`mne.utils`:
-
-.. automodule:: mne.utils
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.utils
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
    get_config_path
    get_config
+   set_log_level
+   set_log_file
    set_config
 
 :py:mod:`mne.cuda`:

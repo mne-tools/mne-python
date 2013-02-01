@@ -31,7 +31,7 @@ def init_cuda():
     (hardware connectivity) to run CUDA-based filering. This
     function should only need to be run once per session.
 
-    If the config var (set via mne.utils.set_config or in ENV)
+    If the config var (set via mne.set_config or in ENV)
     MNE_USE_CUDA == 'true', this function will be executed when
     importing mne. If this variable is not set, this function can
     be manually executed.

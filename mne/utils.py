@@ -409,6 +409,10 @@ known_config_types = [
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     ]
+# These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
+known_config_wildcards = [
+    'MNE_STIM_CHANNEL',
+    ]
 
 
 def get_config(key, default=None, raise_error=False):
@@ -482,7 +486,8 @@ def set_config(key, value):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, basestring) and value is not None:
         raise ValueError('value must be a string or None')
-    if not key in known_config_types:
+    if not key in known_config_types and not \
+            any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values

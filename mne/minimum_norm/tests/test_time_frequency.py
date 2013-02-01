@@ -31,7 +31,7 @@ def test_tfr_with_inverse_operator():
 
     # Setup for reading the raw data
     raw = fiff.Raw(fname_data)
-    events = find_events(raw)
+    events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
 
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
@@ -116,7 +116,7 @@ def test_source_psd_epochs():
                             exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
-    events = find_events(raw)
+    events = find_events(raw, stim_channel='STI 014')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject)
 
