@@ -16,23 +16,30 @@ if __name__ == '__main__':
 
     parser = OptionParser()
     parser.add_option('-i', '--input', dest='input_fname',
-                    help='Input data file name', metavar='FILE')
+                    help='Input data file name', metavar='filename')
     parser.add_option('--sns', dest='sns_fname',
-                    help='Sensor info file name', metavar='FILE')
+                    help='Sensor info file name', metavar='filename')
     parser.add_option('--hsp', dest='hsp_fname',
-                    help='Headshape file name', metavar='FILE')
+                    help='Headshape file name', metavar='filename')
     parser.add_option('--elp', dest='elp_fname',
-                    help='Headshape file name', metavar='FILE')
+                    help='Headshape file name', metavar='filename')
     parser.add_option('--mrk', dest='mrk_fname',
-                    help='MEG Marker file name', metavar='FILE')
+                    help='MEG Marker file name', metavar='filename')
+    parser.add_option('--lowpass', dest='lowpass', default=200,
+                      help='Lowpass filter setting (default = 200.0 Hz)',
+                      metavar='value (Hz)')
+    parser.add_option('--highpass', dest='highpass', default=0,
+                      help='Highpass filter setting (default = 0.0 Hz)',
+                      metavar='value (Hz)')
     parser.add_option('--stimthresh', dest='stimthresh', default=3.5,
                       help='Threshold value for trigger channels',
-                      metavar='INT')
+                      metavar='value')
     parser.add_option('--stim', dest='stim',
                       default='167:166:165:164:163:162:161:160',
-                      help='Stimulus Trigger Channels', metavar='LIST')
+                      help='Colon Separated Stimulus Trigger Channels',
+                      metavar='chs')
     parser.add_option('-o', '--output', dest='out_fname',
-                      help='Name of the resulting fiff file', metavar='FILE')
+                      help='Name of the resulting fiff file', metavar='filename')
 
     options, args = parser.parse_args()
 
