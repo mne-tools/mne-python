@@ -172,6 +172,7 @@ class RawKIT(Raw):
         self._create_synth_ch()
         self.verbose = verbose
         self._preloaded = True
+        self.fids = list()
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1)
         self._times /= self.info['sfreq']
@@ -280,8 +281,8 @@ class RawKIT(Raw):
 
         #    label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['TRIG'] + ch_names['MISC'] +
-                                      ch_names['STIM']):
-            idy = idx + idy + 1
+                                      ch_names['STIM'], KIT.n_sens):
+            chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
             chan_info['scanno'] = idy
