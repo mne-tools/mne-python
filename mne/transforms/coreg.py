@@ -38,7 +38,6 @@ def fit_matched_pts(src_pts, tgt_pts, params=False):
         The translation parameters in x, y, and z direction.
 
     """
-    print src_pts, tgt_pts
     def error(params):
         trans = dot(translation(*params[:3]), rotation(*params[3:]))
         est = apply_trans(trans, src_pts)

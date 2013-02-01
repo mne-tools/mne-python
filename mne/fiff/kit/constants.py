@@ -1,6 +1,6 @@
 """KIT constants"""
 
-# Author: Teon Brooks <teon.brooks@gmail.com>
+# Author: Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
