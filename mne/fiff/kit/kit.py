@@ -147,8 +147,8 @@ class RawKIT(Raw):
         """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 data=None, lowpass=None, highpass=None, stim=range(167, 159, -1),
-                 stimthresh=3.5, verbose=True):
+                 data=None, lowpass=None, highpass=None,
+                 stim=range(167, 159, -1), stimthresh=3.5, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self.params = sqd_params(input_fname, lowpass=lowpass,
@@ -318,6 +318,7 @@ class RawKIT(Raw):
         dev_head_t = fit_matched_pts(tgt_pts=coreg_data.mrk_points,
                                      src_pts=coreg_data.elp_points)
         return dev_head_t, coreg_data.hsp_points
+
 
 def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
                  stim=range(167, 159, -1), stimthresh=3.5):
