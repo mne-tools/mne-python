@@ -843,14 +843,15 @@ class Epochs(object):
         # The epochs itself
         decal = np.empty(self.info['nchan'])
         for k in range(self.info['nchan']):
-            decal[k] = 1.0 / self.info['chs'][k]['cal']
+            decal[k] = 1.0 / (self.info['chs'][k]['cal']
+                              * self.info['chs'][k].get('scale', 1.0))
 
-        data *= decal[None, :, None]
+        data *= decal[np.newaxis, :, np.newaxis]
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
 
         # undo modifications to data
-        data /= decal[None, :, None]
+        data /= decal[np.newaxis, :, np.newaxis]
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
@@ -1351,8 +1352,9 @@ def read_epochs(fname, proj=True, verbose=None):
                          % (data.shape[2], nsamp))
 
     # Calibrate
-    cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-    data = cals[None, :, None] * data
+    cals = np.array([info['chs'][k]['cal'] * info['chs'][k].get('scale', 1.0)
+                     for k in range(info['nchan'])])
+    data *= cals[np.newaxis, :, np.newaxis]
 
     times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
     tmin = times[0]

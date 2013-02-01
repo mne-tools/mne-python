@@ -31,8 +31,8 @@ tempdir = _TempDir()
 def test_output_formats():
     """Test saving and loading raw data using multiple formats
     """
-    formats = ['short', 'single', 'double']
-    tols = [1e-4, 1e-7, 1e-15]
+    formats = ['short', 'int', 'single', 'double']
+    tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
     # let's fake a raw file with different formats
     raw = Raw(fif_fname, preload=True)
@@ -47,6 +47,7 @@ def test_output_formats():
         raw2 = Raw(temp_file)
         raw2_data = raw2[:, :][0]
         assert_allclose(raw2_data, raw._data, rtol=tol, atol=1e-25)
+        assert_true(raw2.orig_format == format)
 
 
 def test_multiple_files():
