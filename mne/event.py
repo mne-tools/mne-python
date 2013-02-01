@@ -63,7 +63,7 @@ def pick_events(events, include=None, exclude=None):
 
 
 def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
-            new_id=None, fill_na=None):
+                         new_id=None, fill_na=None):
     """ Define new events by co-occurrence of existing events
 
     This function can be used to evaluate events depending on the
@@ -115,7 +115,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
             lower = event[0] + imin
             upper = event[0] + imax
             res = events[(events[:, 0] > lower) &
-                    (events[:, 0] < upper) & (events[:, 2] == target_id)]
+                         (events[:, 0] < upper) & (events[:, 2] == target_id)]
             if res.any():
                 lag += [event[0] - res[0][0]]
                 event[2] = new_id
@@ -285,7 +285,7 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
     detect : 'onset' | 'offset'
         Whether to report when events start or when events end.
     consecutive : bool | 'increasing'
-        If True, consider instances where the value of the events 
+        If True, consider instances where the value of the events
         channel changes without first returning to zero as multiple
         events. If False, report only instances where the value of the
         events channel changes from/to zero. If 'increasing', report
@@ -308,25 +308,26 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
     By default, find_events will return the samples at which the event
     events channel from zero to non-zero (and the initial sample if it
     is non-zero):
-    >>> print(find_events(raw))
+    >>> print(find_events(raw)) # doctest: +SKIP
     [[ 1  0 32]]
 
     If detect is 'offset', find_events returns the samples at which the
     events channel changes from non-zero to zero (and the final sample
     if it is non-zero):
-    >>> print(find_events(raw, detect='offset'))
+    >>> print(find_events(raw, detect='offset')) # doctest: +SKIP
     [[ 3  0 33]]
 
     If consecutive is True, find_events returns samples at which the
     event changes, regardless of whether it first returns to zero:
-    >>> print(find_events(raw, consecutive=True))
+    >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
     [[ 1  0 32]
      [ 3  0 33]]
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
     1000 Hz:
-    >>> print(find_events(raw, consecutive=True, min_duration=0.002))
+    >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
+                          min_duration=0.002))
     [[ 1  0 32]]
     """
     if not isinstance(stim_channel, list):
@@ -350,7 +351,7 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
     else:
         onsets = np.logical_and(changed, data[:, :-1] == 0)
         offsets = np.logical_and(changed, data[:, 1:] == 0)
-    
+
     onset_idx = np.where(np.all(onsets, axis=0))[0] + 1
     offset_idx = np.where(np.all(offsets, axis=0))[0]
 
@@ -360,19 +361,19 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
 
     # Add offset indices for events at the end of the data
     if np.all(data[:, -1] != 0, axis=0):
-        offset_idx = np.append(offset_idx, data.shape[1]-1)
+        offset_idx = np.append(offset_idx, data.shape[1] - 1)
 
     if consecutive == 'increasing':
         ignore = np.where(np.logical_and(onset_idx[1:] == offset_idx[:-1] + 1,
-                                        data[0, onset_idx[1:]] <
-                                        data[0, onset_idx[:-1]]))[0]
+                                         data[0, onset_idx[1:]] <
+                                         data[0, onset_idx[:-1]]))[0]
         onset_idx = np.delete(onset_idx, ignore + 1)
         offset_idx = np.delete(offset_idx, ignore)
 
     # Only keep events longer than min_duration
     keep = offset_idx - onset_idx >= np.round(min_duration *
                                               raw.info['sfreq']) - 1
-        
+
     if detect == 'onset':
         idx = onset_idx[keep]
     elif detect == 'offset':
@@ -381,7 +382,7 @@ def find_events(raw, stim_channel='STI 014', verbose=None, detect='onset',
         raise Exception("Invalid detect parameter %r" % detect)
 
     events_id = data[0, idx].astype(np.int)
-    idx += raw.first_samp 
+    idx += raw.first_samp
 
     events = np.c_[idx, np.zeros_like(idx), events_id]
     logger.info("%s events found" % len(events))
