@@ -11,6 +11,7 @@ from scipy.cluster.hierarchy import linkage, to_tree, leaves_list
 from scipy.spatial import Delaunay
 from scipy.spatial.distance import pdist
 
+from mayavi import mlab
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools import pipeline
 from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -245,18 +246,19 @@ class MriHeadCoreg(traits.HasTraits):
     top = traits.Button()
 
     # parameters
-    nasion = traits.Array(float, (1, 3))
+    nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
     rotation = traits.Array(float, (1, 3))
     scale = traits.Array(float, (1, 3), [[1, 1, 1]])
-    shrink = traits.Float(1)
-    restore_fit = traits.Button()
+    shrink = traits.Float(0.)
+    restore_fit = traits.Button(label='Restore Last Fit')
 
     # fitting
-    fit_scale = traits.Button()
-    fit_no_scale = traits.Button()
+    fit_scale_3 = traits.Button(label='Fit: 3 Scale Parameters')
+    fit_scale_1 = traits.Button(label='Fit: 1 Scale Parameter')
+    fit_no_scale = traits.Button(label='Fit: Rotation Only')
 
     # saving
-    s_to = traits.String()
+    s_to = traits.String('NONE', label='Subject Name')
     save = traits.Button()
 
     scene = traits.Instance(MlabSceneModel, ())
@@ -265,9 +267,12 @@ class MriHeadCoreg(traits.HasTraits):
                      height=500, width=500, show_label=False),
                 HGroup('72', 'top', show_labels=False),
                 HGroup('right', 'front', 'left', show_labels=False),
-                HGroup('fit_scale', 'fit_no_scale', 'restore_fit',
-                       show_labels=False),
                 HGroup('nasion'),
+                VGroup('_',
+                       HGroup('fit_scale_3', 'fit_scale_1', 'fit_no_scale',
+                              show_labels=False),
+                       '_'),
+                HGroup('restore_fit', show_labels=False),
                 HGroup('scale', 'shrink'),
                 HGroup('rotation'),
                 HGroup('s_to', HGroup('save', show_labels=False)),
@@ -291,7 +296,15 @@ class MriHeadCoreg(traits.HasTraits):
             (sys.environ['SUBJECTS_DIR'])
 
         """
-        self.fitter = MriHeadFitter(raw, s_from, s_to, subjects_dir)
+        self.fitter = MriHeadFitter(raw, s_from, subjects_dir=subjects_dir)
+
+        if s_to is None:
+            try:
+                s_to = self.fitter._raw_fname.split('_')[0]
+            except:
+                pass
+
+        self._s_to_arg = s_to
 
         traits.HasTraits.__init__(self)
         self.configure_traits()
@@ -300,42 +313,45 @@ class MriHeadCoreg(traits.HasTraits):
     def on_init(self):
         fig = self.scene.mayavi_scene
         self.scene.disable_render = True
+
         self.fitter.plot(fig=fig)
+        self._text = mlab.text(0.01, 0.01, '_' * 60, figure=fig, width=0.4)
+        if isinstance(self._s_to_arg, str):
+            self.s_to = self._s_to_arg
+        else:
+            self.s_to = ''
 
-        self._text = None
-        s_to = self.fitter.s_to
-        self.s_to = s_to
-
-        self.front = True
+        self.left = True
         self.scene.disable_render = False
         self._last_fit = None
 
-    @traits.on_trait_change('fit_scale,fit_no_scale')
-    def _fit(self, caller, info2):
-        if caller == 'fit_scale':
-            self.fitter.fit(method='sr')
+    @traits.on_trait_change('fit_scale_3,fit_scale_1,fit_no_scale')
+    def on_fit(self, caller, info):
+        if caller == 'fit_scale_3':
+            n_scale = 3
+        elif caller == 'fit_scale_1':
+            n_scale = 1
         elif caller == 'fit_no_scale':
-            self.fitter.fit(method='r')
+            n_scale = 0
         else:
-            error(self, "Unknown caller for _fit(): %r" % caller, "Error")
+            error(None, "Unknown caller for fit: %r" % caller, "Error")
             return
 
-        rotation = self.fitter.get_rot()
-        scale = self.fitter.get_scale()
+        rotation, scale = self.fitter.fit(scale=n_scale)
         self._last_fit = ([scale], [rotation])
         self.on_restore_fit()
 
     @traits.on_trait_change('restore_fit')
     def on_restore_fit(self):
         if self._last_fit is None:
-            error("No fit has been performed", "No Fit")
+            error(None, "No fit has been performed", "No Fit")
             return
 
         self.scale, self.rotation = self._last_fit
-        self.shrink = 1
 
     @traits.on_trait_change('save')
     def on_save(self):
+        s_from = self.fitter._subject
         s_to = self.s_to
 
         trans_fname = self.fitter.get_trans_fname(s_to)
@@ -356,46 +372,39 @@ class MriHeadCoreg(traits.HasTraits):
             if answer != YES:
                 return
 
+        prog = ProgressDialog(title="Saving...", message="Saving scaled %r to "
+                              "%r" % (s_from, s_to))
+        prog.open()
+        prog.update(0)
         try:
-            self.fitter.save(s_to, overwrite=True)
+            self.fitter.save_all(s_to, overwrite=True)
         except Exception as e:
-            error(None, str(e))
-
-    @traits.on_trait_change('nasion')
-    def on_set_nasion(self):
-        args = tuple(self.nasion[0])
-        self.fitter.set_nasion(*args)
+            error(None, str(e), "Error while Saving")
+        prog.close()
 
     @traits.on_trait_change('s_to')
     def on_set_s_to(self, s_to):
-        s_from = self.fitter.s_from
-        fig = self.scene.mayavi_scene
-        if s_to == s_from:
-            text = "%s" % s_from
-            width = .2
-        else:
+        s_from = self.fitter._subject
+        if s_to:
             text = "%s -> %s" % (s_from, s_to)
-            width = .5
-
-        if self._text is None:
-            self._text = self.scene.mlab.text(0.01, 0.01, text, figure=fig,
-                                              width=width)
         else:
-            self._text.text = text
-            self._text.width = width
+            text = "%s" % s_from
 
-    @traits.on_trait_change('scale,rotation,shrink')
+        self._text.text = text
+
+    @traits.on_trait_change('nasion,scale,rotation,shrink')
     def on_set_trans(self):
+        trans = np.array(self.nasion[0])
         scale = np.array(self.scale[0])
-        scale_scale = (1 - self.shrink) * np.array([1, .4, 1])
-        scale *= (1 - scale_scale)
-        args = tuple(self.rotation[0]) + tuple(scale)
-        self.fitter.set(*args)
+        if self.shrink:
+            scale -= scale * self.shrink * np.array([1, .4, 1])
+        rot = np.array(self.rotation[0])
+        self.fitter.set(rot=rot, trans=trans, scale=scale)
 
     @traits.on_trait_change('top,left,right,front')
     def on_set_view(self, view='front', info=None):
         self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 150
+        self.scene.camera.parallel_scale = 0.150
         kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
                       reset_roll=True, figure=self.scene.mayavi_scene)
         if view == 'left':

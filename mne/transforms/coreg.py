@@ -223,11 +223,11 @@ class HeadMriFitter(object):
         else:
             raw_fname = raw.info['filename']
         raw_fname = raw_fname
+        raw_dir, raw_fname = os.path.split(raw_fname)
 
         # resolve subject
         if subject is None:
-            _, tail = os.path.split(raw_fname)
-            subject = tail.split('_')[0]
+            subject = raw_fname.split('_')[0]
 
         # resolve mri subject path
         mri_sdir = os.path.join(subjects_dir, subject)
@@ -257,11 +257,16 @@ class HeadMriFitter(object):
         self._t_origin_mri = translation(*self.mri_fid.nas)
         self._t_dig_origin = translation(*(-self.dig_fid.nas))
 
+        # path patterns
+        self._trans_fname = os.path.join(raw_dir, '{subject}-trans.fif')
+
         # store attributes
+        self._raw_dir = raw_dir
+        self._raw_fname = raw_fname
         self._subject = subject
-        self._raw_dir = os.path.dirname(raw_fname)
         self._subjects_dir = subjects_dir
-        self.set(rot=(0, 0, 0), trans=(0, 0, 0))
+
+        self.reset()
 
     def _error(self, dig_trans, mri_trans=None):
         """
@@ -331,9 +336,21 @@ class HeadMriFitter(object):
         return x_est
 
     def get_head_mri_trans(self):
+        """Returns the head-mri transform
+
+        Returns
+        -------
+        trans : array, shape = (4, 4)
+            The head-MRI transform.
+        """
         trans = reduce(dot, (self._t_origin_mri, self._t_trans, self._t_rot,
                              self._t_dig_origin))
         return trans
+
+    def get_trans_fname(self, subject=None):
+        if subject is None:
+            subject = self._subject
+        return self._trans_fname.format(subject=subject)
 
     def plot(self, size=(512, 512), fig=None):
         if fig is None:
@@ -363,8 +380,7 @@ class HeadMriFitter(object):
 
         """
         if fname is None:
-            name = self._subject + '-trans.fif'
-            fname = os.path.join(self._raw_dir, name)
+            fname = self.get_trans_fname(self._subject)
 
         if os.path.exists(fname):
             if overwrite:
@@ -381,6 +397,9 @@ class HeadMriFitter(object):
         trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
                 'trans': trans, 'dig': dig}
         write_trans(fname, trans)
+
+    def reset(self):
+        self.set(rot=(0, 0, 0), trans=(0, 0, 0))
 
     def set(self, rot=None, trans=None):
         """Set the transformation parameters
@@ -416,168 +435,40 @@ class HeadMriFitter(object):
 
 
 
-class MriHeadFitter(object):
+class MriHeadFitter(HeadMriFitter):
     """
     Fit an MRI to a head shape model.
 
-    Transforms applied to MRI:
-
-    #. move MRI nasion to origin
-    #. move MRI nasion according to the specified parameters
-    #. apply scaling
-    #. apply rotation
-    #. move MRI nasion to headshape nasion
-
-    .. note::
-        Distances are internally represented in mm and converted where needed.
+    See Also
+    --------
+    HeadMriFitter : Create a coregistration -trans file without scaling the mri.
 
     """
-    def __init__(self, raw, s_from=None, s_to=None, subjects_dir=None):
+    def __init__(self, raw, s_from, subjects_dir=None):
         """
         Parameters
         ----------
-
         raw : str(path)
             path to a raw file containing the digitizer data.
         s_from : str
-            name of the source subject (e.g., 'fsaverage').
-            Can be None if the raw file-name starts with "{subject}_".
-        s_to : str | None
-            Name of the the subject for which the MRI is destined (used to
-            save MRI and in the trans file's file name).
-            Can be None if the raw file-name starts with "{subject}_".
+            name of the mri subject providing the mri (e.g., 'fsaverage').
         subjects_dir : None | path
             Override the SUBJECTS_DIR environment variable
             (sys.environ['SUBJECTS_DIR'])
 
         """
-        subjects_dir = get_subjects_dir(subjects_dir, True)
+        super(MriHeadFitter, self).__init__(raw, subject=s_from,
+                                            subjects_dir=subjects_dir)
 
-        # raw
-        if isinstance(raw, basestring):
-            raw_fname = raw
-            raw = Raw(raw_fname)
-        else:
-            raw_fname = raw.info['filename']
-        self._raw_fname = raw_fname
+        self._paths = find_mri_paths(s_from, self._subjects_dir)
 
-        # subject
-        if (s_from is None) or (s_to is None):
-            _, tail = os.path.split(raw_fname)
-            subject = tail.split('_')[0]
-            if s_from is None:
-                s_from = subject
-            if s_to is None:
-                s_to = subject
+    def fit(self, scale=3, **kwargs):
+        """Fit the head to the mri using rotation and optionally translation
 
-        # MRI head shape
-        mri_sdir = os.path.join(subjects_dir, s_from)
-        if not os.path.exists(mri_sdir):
-            err = ("MRI-directory for %r not found (%r)" % (s_from, mri_sdir))
-            raise ValueError(err)
-        fname = os.path.join(mri_sdir, 'bem', 'outer_skin.surf')
-        pts, tri = read_surface(fname)
-        self.mri_hs = geom(pts, tri)
-
-        fname = os.path.join(mri_sdir, 'bem', s_from + '-fiducials.fif')
-        if not os.path.exists(mri_sdir):
-            err = ("Fiducials file for %r not found (%r). Use set_nasion() "
-                   "to create it." % (s_from, mri_sdir))
-            raise ValueError(err)
-        dig, _ = read_fiducials(fname)
-        self.mri_fid = geom_fid(dig, unit='mm')
-
-        # digitizer data from raw
-        self.dig_hs = geom_dig_hs(raw.info['dig'], unit='mm')
-        self.dig_fid = geom_fid(raw.info['dig'], unit='mm')
-
-        # move to the origin
-        self._t_mri_origin = inv(translation(*self.mri_fid.nas))
-        self._t_origin_dig = translation(*self.dig_fid.nas)
-
-        self.subjects_dir = subjects_dir
-        self.s_from = s_from
-        self.s_to = s_to
-        self._paths = find_mri_paths(s_from, subjects_dir)
-        raw_dir = os.path.dirname(self._raw_fname)
-        self._trans_fname = os.path.join(raw_dir, '{sub}-trans.fif')
-
-        self._t_mri_origin_adjust = translation(0, 0, 0)
-        self.set(0, 0, 0, 1, 1, 1)
-
-    def plot(self, size=(512, 512), fig=None):
-        if fig is None:
-            from mayavi import mlab
-            fig = mlab.figure(size=size)
-
-        self.fig = fig
-        self.mri_hs.plot_solid(fig)
-        self.mri_fid.plot_points(fig, scale=5)
-        self.dig_hs.plot_solid(fig, opacity=1., rep='wireframe',
-                               color=(.5, .5, 1))
-        self.dig_fid.plot_points(fig, scale=40, opacity=.25, color=(.5, .5, 1))
-        return fig
-
-    def _error(self, trans):
-        "For each point in pts, the distance to the closest point in pts0"
-        pts = self.dig_hs.get_pts()
-        trans = reduce(dot, (self._t_origin_dig, trans, self._t_mri_origin_adjust,
-                                self._t_mri_origin))
-        pts0 = self.mri_hs.get_pts(trans)
-        Y = cdist(pts, pts0, 'euclidean')
-        dist = Y.min(axis=1)
-        return dist
-
-    def _dist_fixnas_mr(self, param):
-        rx, ry, rz, mx, my, mz = param
-        T = dot(rotation(rx, ry, rz), scaling(mx, my, mz))
-        err = self._error(T)
-        logger.debug("Params = %s -> Error = %s" % (param, np.sum(err ** 2)))
-        return err
-
-    def _dist_fixnas_r(self, param):
-        rx, ry, rz = param
-        T = rotation(rx, ry, rz)
-        m = self._params[3:]
-        if any(p != 1 for p in m):
-            T = dot(T * scaling(*m))
-        err = self._error(T)
-        logger.debug("Params = %s -> Error = %s" % (param, np.sum(err ** 2)))
-        return err
-
-    def _dist_fixnas_1scale(self, param):
-        rx, ry, rz, m = param
-        T = dot(rotation(rx, ry, rz), scaling(m, m, m))
-        err = self._error(T)
-        logger.debug("Params = %s -> Error = %s" % (param, np.sum(err ** 2)))
-        return err
-
-    def _estimate_fixnas_mr(self, **kwargs):
-        params = self._params
-        params = np.asarray(params, dtype=float)
-        est_params, self.info = leastsq(self._dist_fixnas_mr, params, **kwargs)
-        return est_params
-
-    def _estimate_fixnas_r(self, **kwargs):
-        params = self._params[:3]
-        params = np.asarray(params, dtype=float)
-        est_params, self.info = leastsq(self._dist_fixnas_r, params, **kwargs)
-        return est_params
-
-    def _estimate_fixnas_1scale(self, **kwargs):
-        params = self._params[:4]
-        params = np.asarray(params, dtype=float)
-        est_params, self.info = leastsq(self._dist_fixnas_1scale, params, **kwargs)
-        return est_params
-
-    def fit(self, method='sr', **kwargs):
-        """
         Parameters
         ----------
-        method : 'sr' | 'r' | '1sr'
-            'sr': scaling with 3 parameters and rotation;
-            'r': rotation only;
-            '1sr': scaling with  single parameters and rotation.
+        scale : 3 | 1 | 0
+            The number of scaling parameters to use.
         kwargs:
             scipy.optimize.leastsq kwargs
 
@@ -586,84 +477,68 @@ class MriHeadFitter(object):
         if 'epsfcn' not in kwargs:
             kwargs['epsfcn'] = 0.01
 
-        if method == '1sr':
-            est = self._estimate_fixnas_1scale(**kwargs)
-            est = np.hstack((est, np.ones(2) * est[-1:]))
-        elif method == 'sr':
-            est = self._estimate_fixnas_mr(**kwargs)
-        elif method == 'r':
-            est = self._estimate_fixnas_r(**kwargs)
-            est = tuple(est) + (1, 1, 1)
+        t_dig_origin = self._t_dig_origin
+        t_digorigin_adjust = self._t_trans
+        t_mri_origin = self._t_mri_origin
+
+        if scale == 3:
+            x0 = np.hstack((self._rot, self._scale))
+            def error(x):
+                rx, ry, rz, sx, sy, sz = x
+                trans_dig = reduce(dot, (t_digorigin_adjust,
+                                         rotation(rx, ry, rz), t_dig_origin))
+                trans_mri = dot(scaling(sx, sy, sz), t_mri_origin)
+                err = self._error(trans_dig, trans_mri)
+                return err
+        elif scale == 1:
+            x0 = np.hstack((self._rot, [self._scale.mean()]))
+            def error(x):
+                rx, ry, rz, s = x
+                trans_dig = reduce(dot, (t_digorigin_adjust,
+                                         rotation(rx, ry, rz), t_dig_origin))
+                trans_mri = dot(scaling(s, s, s), t_mri_origin)
+                err = self._error(trans_dig, trans_mri)
+                return err
+        elif scale == 0:
+            x0 = np.hstack((self._rot, [self._scale.mean()]))
+            def error(x):
+                rx, ry, rz, s = x
+                trans_dig = reduce(dot, (t_digorigin_adjust,
+                                         rotation(rx, ry, rz), t_dig_origin))
+                trans_mri = dot(scaling(s, s, s), t_mri_origin)
+                err = self._error(trans_dig, trans_mri)
+                return err
         else:
-            raise ValueError("No method %r" % method)
-        self.set(*est)
-        return est
+            raise ValueError("Scale must be 1 or 3, not %r" % scale)
+
+        x_est, self.info = leastsq(error, x0, **kwargs)
+
+        rot = x_est[:3]
+        if scale == 3:
+            scale = x_est[3:]
+        else:
+            s = x_est[3]
+            scale = (s, s, s)
+        self.set(rot=rot, scale=scale)
+        return rot, scale
 
     def get_mri_dir(self, s_to):
         return self._paths['s_dir'].format(sub=s_to)
 
-    def get_rot(self):
-        return self._params[:3]
-
-    def get_scale(self):
-        return self._params[3:]
-
-    def get_t_scale(self, unit='mm'):
-        """
-        Scaling matrix for adjusting the size of the head model
-
-        Parameters
-        ----------
-        unit : 'mm' | 'm'
-            Unit of the coordinates on which the transform should operate.
+    def get_mri_trans(self):
+        """Returns the scaling matrix for adjusting the size of the head model
 
         Returns
         -------
         trans : array, shape = (4, 4)
             Matrix to apply the scaling to the MRI.
         """
-        T0 = dot(self._t_mri_origin_adjust, self._t_mri_origin)
-        if unit == 'mm':
-            pass
-        elif unit == 'm':
-            T0[:3, 3] /= 1000
-        else:
-            raise ValueError("unit: %r" % unit)
+        trans = reduce(dot, (self._t_origin_mri, self._t_scale,
+                             self._t_mri_origin))
+        return trans
 
-        T = reduce(dot, (inv(T0), self.trans_scale, T0))
-        return T
-
-    def get_t_trans(self, unit='mm'):
-        """
-        Head_mri_t for the trans file (rotation + translation)
-
-        Parameters
-        ----------
-        unit : 'mm' | 'm'
-            Unit of the coordinates on which the transform should operate.
-
-        Returns
-        -------
-        trans : array, shape = (4, 4)
-            The head-MRI transform.
-        """
-        T0 = dot(self._t_mri_origin_adjust, self._t_mri_origin)
-        if unit == 'mm':
-            T = reduce(dot, (self._t_origin_dig, self.trans_rot, T0))
-        elif unit == 'm':
-            T0[:3, 3] /= 1000
-            trans1 = self._t_origin_dig.copy()
-            trans1[:3, 3] /= 1000
-            T = reduce(dot, (trans1, self.trans_rot, T0))
-        else:
-            raise ValueError('Unknown unit %r' % unit)
-        return inv(T)
-
-    def get_trans_fname(self, s_to):
-        return self._trans_fname.format(sub=s_to)
-
-    def save(self, s_to=None, surf=True, homog=True,
-             setup_fwd=True, overwrite=False):
+    def save_all(self, s_to=None, surf=True, homog=True,
+                 setup_fwd=True, overwrite=False, trans_fname=None):
         """
         Save the scaled MRI as well as the trans file
 
@@ -686,12 +561,12 @@ class MriHeadFitter(object):
         --------
         MriHeadFitter.save_trans : save only the trans file
         """
-        s_from = self.s_from
+        s_from = self._subject
         if s_to is None:
-            s_to = self.s_to
-        paths = self._paths
+            s_to = self._raw_fname.split('_')[0]
 
         # make sure we have an empty target directory
+        paths = self._paths
         dest = paths['s_dir'].format(sub=s_to)
         if os.path.exists(dest):
             if overwrite:
@@ -702,14 +577,15 @@ class MriHeadFitter(object):
                 raise IOError(err)
 
         # write trans file
-        self.save_trans(s_to=s_to, overwrite=overwrite)
+        self.save_trans(fname=trans_fname, overwrite=overwrite)
 
         for dirname in paths['dirs']:
             os.makedirs(dirname.format(sub=s_to))
 
-        # MRI Scaling [in m]
-        trans_m = self.get_t_scale('m')
-        trans_mm = self.get_t_scale('mm')
+        # MRI Scaling
+        trans_m = self.get_mri_trans()
+        trans_mm = reduce(dot, (scaling(1e3, 1e3, 1e3), trans_m,
+                                scaling(1e-3, 1e-3, 1e-3)))
         trans_normals = inv(trans_m).T
 
         # save MRI scaling transform
@@ -797,6 +673,9 @@ class MriHeadFitter(object):
         else:
             return p
 
+    def reset(self):
+        self._t_mri_origin = translation(*(-self.mri_fid.nas))
+        self.set(rot=(0, 0, 0), trans=(0, 0, 0), scale=(1, 1, 1))
     def save_trans(self, fname=None, s_to=None, overwrite=False):
         """
         Save only the trans file
@@ -839,25 +718,24 @@ class MriHeadFitter(object):
                 'trans': trans, 'dig': dig}
         write_trans(fname, info)
 
-    def set(self, rx, ry, rz, sx, sy, sz):
+    def set(self, rot=None, trans=None, scale=None):
         """Set the rotation and scaling parameters and update any plots"""
-        self._params = (rx, ry, rz, sx, sy, sz)
-        self.trans_rot = rotation(rx, ry, rz)
-        self.trans_scale = scaling(sx, sy, sz)
-        self.update()
-
-    def set_nasion(self, x, y, z):
-        """Set the nasion position correction and update any plots (in mm)"""
-        self._t_mri_origin_adjust = translation(x, y, z)
-        self.update()
+        if scale is not None:
+            if np.isscalar(scale):
+                scale = (scale, scale, scale)
+            scale = np.asarray(scale, dtype=float)
+            if scale.shape != (3,):
+                raise ValueError("scale parameter needs to be scalar or of "
+                                 "shape (3,), not %r" % scale)
+            self._t_scale = scaling(*scale)
+            self._scale = scale
+        super(MriHeadFitter, self).set(rot=rot, trans=trans)
 
     def update(self):
-        """Update the transform and any plots"""
-        T = reduce(dot, (self._t_origin_dig, self.trans_rot, self.trans_scale,
-                         self._t_mri_origin_adjust, self._t_mri_origin))
-        T = inv(T)
-        for g in [self.dig_hs, self.dig_fid]:
-            g.set_trans(T)
+        super(MriHeadFitter, self).update()
+        trans = self.get_mri_trans()
+        for g in (self.mri_hs, self.mri_fid):
+            g.set_trans(trans)
 
 
 
