@@ -24,6 +24,7 @@ from ..fiff import Raw
 
 
 def raw_find_point(raw):
+    "Open FindDigPoint with the dig info from a raw file"
     raw = Raw(raw)
     dig = raw.info['dig']
     pts = filter(lambda d: d['kind'] == 4, dig)
@@ -32,7 +33,7 @@ def raw_find_point(raw):
 
 class FindDigPoint(traits.HasTraits):
     """
-    Mayavi viewer for fitting an MRI to a digitized head shape.
+    Mayavi viewer for visualizing specific points in an object.
 
     """
     right = traits.Button()
@@ -108,6 +109,7 @@ class FindDigPoint(traits.HasTraits):
 
 
 def raw_hs(raw):
+    "Open FixDigHeadShape with the dig info from a raw file"
     raw = Raw(raw)
     dig = raw.info['dig']
     pts = filter(lambda d: d['kind'] == 4, dig)
@@ -116,7 +118,7 @@ def raw_hs(raw):
 
 class FixDigHeadShape(traits.HasTraits):
     """
-    Mayavi viewer for fitting an MRI to a digitized head shape.
+    Mayavi viewer for decomposing an object based on clustering
 
     """
     right = traits.Button()
@@ -233,7 +235,7 @@ class FixDigHeadShape(traits.HasTraits):
 
 class MriHeadCoreg(traits.HasTraits):
     """
-    Mayavi viewer for fitting an MRI to a digitized head shape.
+    Mayavi viewer for adjusting an MRI to a digitized head shape.
 
     """
     # views
