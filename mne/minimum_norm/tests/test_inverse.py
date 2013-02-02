@@ -344,3 +344,20 @@ def test_apply_mne_inverse_epochs():
     n_lh = len(stcs[0].data)
     assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
     assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
+
+
+def test_make_inverse_operator_bads():
+    """Test MNE inverse computation given a mismatch of bad channels.
+    """
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
+
+    # test bads
+    bad = evoked.info['bads'].pop()
+    inv_ = make_inverse_operator(evoked.info, fwd_op, noise_cov, loose=None)
+    union_good = set(noise_cov['names']) & set(evoked.ch_names)
+    union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
+    evoked.info['bads'].append(bad)
+
+    assert_true(not set(inv_['info']['ch_names']) - union_good)
+
+    assert_true(not set(inv_['info']['bads']) - union_bads)
