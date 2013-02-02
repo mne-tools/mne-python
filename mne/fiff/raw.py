@@ -1439,6 +1439,11 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     first_file_used = False
     s_off = 0
     dest = 0
+    if isinstance(idx, slice):
+        cals = raw.cals.ravel()[idx][:, np.newaxis]
+    else:
+        cals = raw.cals.ravel()[:, np.newaxis]
+
     for fi in np.nonzero(files_used)[0]:
         start_loc = raw._first_samps[fi]
         # first iteration (only) could start in the middle somewhere
@@ -1485,51 +1490,48 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 #   Now we are ready to pick
                 picksamp = last_pick - first_pick
                 if picksamp > 0:
-                    if this['ent'] is None:
-                        # We should ever encounter this since we
-                        # never read in during the "skip" period
-                        raise RuntimeError('should never read skip')
-
-                    one = read_tag(raw.fids[fi], this['ent'].pos,
-                                   shape=(this['nsamp'], nchan),
-                                   rlims=(first_pick, last_pick)).data
-                    dtype = np.float if np.isrealobj(one) else np.complex128
-                    one.shape = (picksamp, nchan)
-                    one = one.T.astype(dtype)
-
-                    if mult is not None:  # use proj + cal factors in mult
-                        one = np.dot(mult[fi], one)
-                    else:  # apply just the calibration factors
-                        # this logic is designed to limit memory copies
-                        if isinstance(idx, slice):
-                            # This is a view operation, so it's fast
-                            one[idx] *= raw.cals.ravel()[idx][:, np.newaxis]
+                    # only read data if it exists
+                    if this['ent'] is not None:
+                        one = read_tag(raw.fids[fi], this['ent'].pos,
+                                       shape=(this['nsamp'], nchan),
+                                       rlims=(first_pick, last_pick)).data
+                        if np.isrealobj(one):
+                            dtype = np.float
                         else:
-                            # Extra operations are actually faster here
-                            # than creating a new array (fancy indexing)
-                            one *= raw.cals.ravel()[:, np.newaxis]
+                            dtype = np.complex128
+                        one.shape = (picksamp, nchan)
+                        one = one.T.astype(dtype)
 
-                    if data is None:
+                        if mult is not None:  # use proj + cal factors in mult
+                            one = np.dot(mult[fi], one)
+                        else:  # apply just the calibration factors
+                            # this logic is designed to limit memory copies
+                            if isinstance(idx, slice):
+                                # This is a view operation, so it's fast
+                                one[idx] *= cals
+                            else:
+                                # Extra operations are actually faster here
+                                # than creating a new array (fancy indexing)
+                                one *= cals
+
                         # if not already done, allocate array with right type
-                        if isinstance(data_buffer, basestring):
-                            # use a memmap
-                            data = np.memmap(data_buffer, mode='w+',
-                                             dtype=dtype, shape=data_shape)
+                        data = _allocate_data(data, data_buffer, data_shape,
+                                              dtype)
+                        if isinstance(idx, slice):
+                            # faster to slice in data than doing one = one[idx]
+                            # sooner
+                            data[:, dest:(dest + picksamp)] = one[idx]
                         else:
-                            data = np.empty(data_shape, dtype=dtype)
-                    if isinstance(idx, slice):
-                        # faster to slice in data than doing one = one[idx]
-                        # sooner
-                        data[:, dest:(dest + picksamp)] = one[idx]
-                    else:
-                        # faster than doing one = one[idx]
-                        data_view = data[:, dest:(dest + picksamp)]
-                        for ii, ix in enumerate(idx):
-                            data_view[ii] = one[ix]
+                            # faster than doing one = one[idx]
+                            data_view = data[:, dest:(dest + picksamp)]
+                            for ii, ix in enumerate(idx):
+                                data_view[ii] = one[ix]
                     dest += picksamp
 
             #   Done?
             if this['last'] >= stop_loc:
+                # if not already done, allocate array with float dtype
+                data = _allocate_data(data, data_buffer, data_shape, np.float)
                 break
 
         raw.fids[fi].seek(0, 0)  # Go back to beginning of the file
@@ -1542,6 +1544,18 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times
+
+
+def _allocate_data(data, data_buffer, data_shape, dtype):
+    if data is None:
+        # if not already done, allocate array with right type
+        if isinstance(data_buffer, basestring):
+            # use a memmap
+            data = np.memmap(data_buffer, mode='w+',
+                             dtype=dtype, shape=data_shape)
+        else:
+            data = np.zeros(data_shape, dtype=dtype)
+    return data
 
 
 @verbose
