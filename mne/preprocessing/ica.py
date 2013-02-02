@@ -8,6 +8,7 @@ from copy import deepcopy
 import inspect
 import warnings
 from inspect import getargspec, isfunction
+from collections import namedtuple
 
 import os
 import json
@@ -1242,14 +1243,18 @@ def read_ica(fname):
     return ica
 
 
+ica_node = namedtuple('Node', 'name target score_func criterion')
+
+
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
             algorithm='parallel', fun='logcosh', fun_args=None,
             verbose=None, picks=None, start=None, stop=None, start_find=None,
-            stop_find=None, ecg_channel=None, ecg_score_func='corr',
-            ecg_score_min=0.1, eog_channel=None, eog_score_func='corr',
-            eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
+            stop_find=None, ecg_channel=None, ecg_score_func='pearsonr',
+            ecg_score_min=0.1, eog_channel=None, eog_score_func='pearsonr',
+            eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0,
+            add_nodes=None):
     """ Run ICA decomposition on raw data and identify artifact sources
 
     This function implements an automated artifact removal work flow.
@@ -1352,6 +1357,9 @@ def run_ica(raw, n_components, max_pca_components=100,
     var_idx : int | ndarray | slice | None
         The indices of the sorted variance scores. If None, this step
         will be skipped.
+    add_nodes : list of ica_nodes
+        Additional list named tuples of type (name, target, score_func,
+        criterion).
 
     Returns
     -------
@@ -1367,50 +1375,43 @@ def run_ica(raw, n_components, max_pca_components=100,
     logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 
+    nodes = []
+
     if ecg_channel is not None:
-        ecg_scores = ica.find_sources_raw(raw, start=start_find,
-                        stop=stop_find, target=ecg_channel)
-        found = list(np.where(np.abs(ecg_scores) > ecg_score_min)[0])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s ECG artifact%s' % case)
-        ica.exclude += found
+        nodes += [ica_node('ECG', ecg_channel, ecg_score_func, ecg_score_min)]
 
     if eog_channel not in [None, []]:
-        found = []
         if not isinstance(eog_channel, list):
             eog_channel = [eog_channel]
-        for eog_ch in eog_channel:
-            scores = ica.find_sources_raw(raw, start=start_find,
-                            stop=stop_find, target=eog_ch)
-            found += list(np.where(np.abs(scores) > eog_score_min)[0])
-
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s EOG artifact%s' % case)
-        ica.exclude += found
+        for idx, ch in enumerate(eog_channel):
+            nodes += [ica_node('EOG%02d' % idx, ch, eog_score_func,
+                      eog_score_min)]
 
     if skew_idx is not None:
-        skew_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                           score_func=stats.skew)
-        found = np.atleast_1d(skew_scores.argsort()[skew_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on skewness' % case)
-        ica.exclude += list(found)
+        nodes += [ica_node('skewness', None, stats.skew, skew_idx)]
 
     if kurt_idx is not None:
-        kurt_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                           score_func=stats.kurtosis)
-        found = np.atleast_1d(kurt_scores.argsort()[kurt_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on kurtosis' % case)
-        ica.exclude += list(found)
+        nodes += [ica_node('kurtosis', None, stats.kurtosis, kurt_idx)]
 
     if var_idx is not None:
-        var_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                          score_func=np.var)
-        found = np.atleast_1d(var_scores.argsort()[var_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on variance' % case)
-        ica.exclude += list(found)
+        nodes += [ica_node('variance', None, np.var, var_idx)]
+
+    if add_nodes is not None:
+        nodes.extend(add_nodes)
+
+    for node in nodes:
+        scores = ica.find_sources_raw(raw, start=start_find,
+                                      stop=stop_find, target=node.target,
+                                      score_func=node.score_func)
+
+        if isinstance(node.criterion, float):
+            found = list(np.where(np.abs(scores) > node.criterion)[0])
+        else:
+            found = list(np.atleast_1d(abs(scores).argsort()[node.criterion]))
+
+        case = (len(found), 's' if len(found) > 1 else '', node.name)
+        logger.info('    found %s artifact%s by %s' % case)
+        ica.exclude += found
 
     logger.info('Artifact indices found:\n'
                 '    ' + str(ica.exclude).strip('[]'))
