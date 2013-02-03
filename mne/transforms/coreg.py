@@ -361,7 +361,7 @@ class HeadMriFitter(object):
         self.mri_hs.plot_solid(fig)
         self.mri_fid.plot_points(fig, scale=.005)
         self.dig_hs.plot_solid(fig, opacity=1., rep='wireframe',
-                               color=(.5, .5, 1))
+                               color=(.1, .1, .6))
         self.dig_fid.plot_points(fig, scale=.04, opacity=.25,
                                  color=(.5, .5, 1))
         return fig
@@ -808,7 +808,9 @@ class geom(object):
         x, y, z, _ = self.pts
         mesh = pipeline.triangular_mesh_source(x, y, z, self.tri, figure=fig)
         surf = pipeline.surface(mesh, figure=fig, color=color, opacity=opacity,
-                                representation=rep)
+                                representation=rep, line_width=1)
+        if rep == 'wireframe':
+            surf.actor.property.lighting = False
 
         self._plots_surf.append((mesh, surf))
         if self.trans is not None:
