@@ -342,9 +342,14 @@ class MriHeadCoreg(traits.HasTraits):
             error(None, "Unknown caller for fit: %r" % caller, "Error")
             return
 
+        prog = ProgressDialog(title="Fitting...", message="Fitting %s to "
+                              "%s" % (self.fitter._subject, self.s_to))
+        prog.open()
+        prog.update(0)
         rotation, scale = self.fitter.fit(scale=n_scale)
         self._last_fit = dict(n=n_scale, s=scale, r=rotation)
         self.on_restore_fit()
+        prog.close()
 
     @traits.on_trait_change('restore_fit')
     def on_restore_fit(self):
@@ -387,8 +392,8 @@ class MriHeadCoreg(traits.HasTraits):
             if answer != YES:
                 return
 
-        prog = ProgressDialog(title="Saving...", message="Saving scaled %r to "
-                              "%r" % (s_from, s_to))
+        prog = ProgressDialog(title="Saving...", message="Saving scaled %s to "
+                              "%s" % (s_from, s_to))
         prog.open()
         prog.update(0)
         try:
