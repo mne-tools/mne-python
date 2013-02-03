@@ -358,6 +358,6 @@ def test_make_inverse_operator_bads():
     union_bads = set(noise_cov['bads']) & set(evoked.info['bads'])
     evoked.info['bads'].append(bad)
 
-    assert_true(not set(inv_['info']['ch_names']) - union_good)
+    assert_true(len(set(inv_['info']['ch_names']) - union_good) == 0)
 
-    assert_true(not set(inv_['info']['bads']) - union_bads)
+    assert_true(len(set(inv_['info']['bads']) - union_bads) == 0)
