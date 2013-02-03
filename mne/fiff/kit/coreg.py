@@ -43,8 +43,10 @@ class coreg:
         self.lpa = elp_points[1, :]
         self.rpa = elp_points[2, :]
         self.elp_points = elp_points[3:, :]
+        self.elp_points = self.reset_origin(self.elp_points)
 
         hsp_points = read_hsp(hsp_fname=hsp_fname)
+        hsp_points = self.reset_origin(hsp_points)
         self.hsp_points = transform_pts(hsp_points)
         self.dig = []
 
@@ -85,6 +87,17 @@ class coreg:
             point_dict['r'] = point
             self.dig.append(point_dict)
 
+    def reset_origin(self, pts):
+        """reset origin of head coordinate system
+
+        Resets the origin to mid-distance of peri-auricular points
+        (mne manual, pg. 97)
+
+        """
+        origin = (self.lpa + self.rpa) / 2
+        pts -= origin
+        return pts
+
 
 def read_mrk(mrk_fname):
     """marker point extraction"""
@@ -121,7 +134,7 @@ def read_sns(sns_fname):
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+)')
-    locs = np.array(p.findall(open(sns_fname).read()), dtype='float')
+    locs = np.array(p.findall(open(sns_fname).read()), dtype=float)
     return locs
 
 
