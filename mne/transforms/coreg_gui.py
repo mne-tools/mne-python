@@ -17,7 +17,7 @@ from mayavi.tools import pipeline
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import error, confirm, YES, NO, CANCEL, ProgressDialog
 import traits.api as traits
-from traitsui.api import View, Item, HGroup, VGroup
+from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
 from tvtk.pyface.scene_editor import SceneEditor
 
 from .coreg import MriHeadFitter
@@ -247,15 +247,20 @@ class MriHeadCoreg(traits.HasTraits):
 
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
+    n_scale_params = traits.Enum(1, 3, label='N Scaling Parameters')
+
+    scale3 = traits.Array(float, (1, 3), [[1, 1, 1]], label='Scale',
+                          enabled_when='n_scale_params == 3')
+    shrink = traits.Float(0., enabled_when='n_scale_params == 3')
+
+    scale1 = traits.Float(1, label='Scale')
+
     rotation = traits.Array(float, (1, 3))
-    scale = traits.Array(float, (1, 3), [[1, 1, 1]])
-    shrink = traits.Float(0.)
     restore_fit = traits.Button(label='Restore Last Fit')
 
     # fitting
-    fit_scale_3 = traits.Button(label='Fit: 3 Scale Parameters')
-    fit_scale_1 = traits.Button(label='Fit: 1 Scale Parameter')
-    fit_no_scale = traits.Button(label='Fit: Rotation Only')
+    fit_scale = traits.Button(label='Fit with Scaling')
+    fit_no_scale = traits.Button(label='Fit Rotation Only')
 
     # saving
     s_to = traits.String('NONE', label='Subject Name')
@@ -265,16 +270,18 @@ class MriHeadCoreg(traits.HasTraits):
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                HGroup('72', 'top', show_labels=False),
-                HGroup('right', 'front', 'left', show_labels=False),
-                HGroup('nasion'),
-                VGroup('_',
-                       HGroup('fit_scale_3', 'fit_scale_1', 'fit_no_scale',
-                              show_labels=False),
-                       '_'),
-                HGroup('restore_fit', show_labels=False),
-                HGroup('scale', 'shrink'),
-                HGroup('rotation'),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
+                Group(HGroup('nasion'),
+                      HGroup(Item('n_scale_params', style='custom'),
+                             Item('fit_scale', show_label=False)),
+                      label='Initial Parameters', show_border=True),
+                Group(HGroup('restore_fit', show_labels=False),
+                      HGroup('scale1', enabled_when='n_scale_params == 1'),
+                      HGroup('scale3', 'shrink', enabled_when='n_scale_params == 3'),
+                      HGroup('rotation', Item('fit_no_scale', show_label=False)),
+                      label='Adjust Fit', show_border=True),
                 HGroup('s_to', HGroup('save', show_labels=False)),
                 )
 
@@ -325,12 +332,10 @@ class MriHeadCoreg(traits.HasTraits):
         self.scene.disable_render = False
         self._last_fit = None
 
-    @traits.on_trait_change('fit_scale_3,fit_scale_1,fit_no_scale')
+    @traits.on_trait_change('fit_scale,fit_no_scale')
     def on_fit(self, caller, info):
-        if caller == 'fit_scale_3':
-            n_scale = 3
-        elif caller == 'fit_scale_1':
-            n_scale = 1
+        if caller == 'fit_scale':
+            n_scale = self.n_scale_params
         elif caller == 'fit_no_scale':
             n_scale = 0
         else:
@@ -338,7 +343,7 @@ class MriHeadCoreg(traits.HasTraits):
             return
 
         rotation, scale = self.fitter.fit(scale=n_scale)
-        self._last_fit = ([scale], [rotation])
+        self._last_fit = dict(n=n_scale, s=scale, r=rotation)
         self.on_restore_fit()
 
     @traits.on_trait_change('restore_fit')
@@ -347,7 +352,17 @@ class MriHeadCoreg(traits.HasTraits):
             error(None, "No fit has been performed", "No Fit")
             return
 
-        self.scale, self.rotation = self._last_fit
+        self.scene.disable_render = True
+        lf = self._last_fit
+        self.rotation = [lf['r']]
+        if lf['n'] == 1:
+            self.n_scale_params = 1
+            self.scale1 = lf['s']
+        elif lf['n'] == 3:
+            self.n_scale_params = 3
+            self.scale3 = [lf['s']]
+
+        self.scene.disable_render = False
 
     @traits.on_trait_change('save')
     def on_save(self):
@@ -382,6 +397,19 @@ class MriHeadCoreg(traits.HasTraits):
             error(None, str(e), "Error while Saving")
         prog.close()
 
+    @traits.on_trait_change('n_scale_parameters')
+    def on_set_n_scale(self):
+        if self.n_scale_params == 1:
+            self.scale1 = np.mean(self.scale3)
+        else:
+            s = self.scale1
+            self.scale3 = [[s, s, s]]
+
+    @traits.on_trait_change('rotation')
+    def on_set_rot(self):
+        rot = np.array(self.rotation[0])
+        self.fitter.set(rot=rot)
+
     @traits.on_trait_change('s_to')
     def on_set_s_to(self, s_to):
         s_from = self.fitter._subject
@@ -392,14 +420,21 @@ class MriHeadCoreg(traits.HasTraits):
 
         self._text.text = text
 
-    @traits.on_trait_change('nasion,scale,rotation,shrink')
-    def on_set_trans(self):
-        trans = np.array(self.nasion[0])
-        scale = np.array(self.scale[0])
+    @traits.on_trait_change('scale1')
+    def on_set_scale1(self):
+        self.fitter.set(scale=self.scale1)
+
+    @traits.on_trait_change('scale3,shrink')
+    def on_set_scale3(self):
+        scale = np.array(self.scale3[0])
         if self.shrink:
             scale -= scale * self.shrink * np.array([1, .4, 1])
-        rot = np.array(self.rotation[0])
-        self.fitter.set(rot=rot, trans=trans, scale=scale)
+        self.fitter.set(scale=scale)
+
+    @traits.on_trait_change('nasion')
+    def on_set_trans(self):
+        trans = np.array(self.nasion[0])
+        self.fitter.set(trans=trans)
 
     @traits.on_trait_change('top,left,right,front')
     def on_set_view(self, view='front', info=None):

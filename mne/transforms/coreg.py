@@ -516,9 +516,10 @@ class MriHeadFitter(HeadMriFitter):
         rot = x_est[:3]
         if scale == 3:
             scale = x_est[3:]
+        elif scale == 1:
+            scale = x_est[3]
         else:
-            s = x_est[3]
-            scale = (s, s, s)
+            scale = None
         self.set(rot=rot, scale=scale)
         return rot, scale
 
