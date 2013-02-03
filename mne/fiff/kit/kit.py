@@ -13,13 +13,12 @@ from mne.fiff.raw import Raw
 from mne import verbose
 from mne.transforms.coreg import fit_matched_pts
 from mne.fiff.constants import FIFF
-from . constants import KIT
-from . import coreg
+from .constants import KIT
+from .import coreg
 from struct import unpack
 import numpy as np
 import time
 import logging
-import re
 
 
 class sqd_params(object):
@@ -320,7 +319,7 @@ class RawKIT(Raw):
                                  hsp_fname=self.hsp_fname)
         dev_head_t = fit_matched_pts(tgt_pts=coreg_data.mrk_points,
                                      src_pts=coreg_data.elp_points)
-        return dev_head_t, coreg_data.hsp_points
+        return dev_head_t, coreg_data.dig
 
 
 def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,

@@ -7,6 +7,7 @@
 import re
 import numpy as np
 from mne.fiff.constants import FIFF
+from .constants import KIT
 
 
 class coreg:
@@ -37,19 +38,52 @@ class coreg:
         self.mrk_points = transform_pts(mrk_points)
 
         elp_points = read_elp(elp_fname=elp_fname)
-        self.elp_points = transform_pts(elp_points)
+        elp_points = transform_pts(elp_points)
+        self.nasion = elp_points[0, :]
+        self.lpa = elp_points[1, :]
+        self.rpa = elp_points[2, :]
+        self.elp_points = elp_points[3:, :]
 
         hsp_points = read_hsp(hsp_fname=hsp_fname)
-        self.hsp_points = []
-        for idx, point in enumerate(hsp_points):
+        self.hsp_points = transform_pts(hsp_points)
+        self.dig = []
+
+        point_dict = {}
+        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        point_dict['ident'] = KIT.NASION_IDENT
+        point_dict['kind'] = FIFF.FIFFV_POINT_NASION
+        point_dict['r'] = self.nasion
+        self.dig.append(point_dict)
+
+        point_dict = {}
+        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        point_dict['ident'] = KIT.LPA_IDENT
+        point_dict['kind'] = FIFF.FIFFV_POINT_LPA
+        point_dict['r'] = self.lpa
+        self.dig.append(point_dict)
+
+        point_dict = {}
+        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        point_dict['ident'] = KIT.RPA_IDENT
+        point_dict['kind'] = FIFF.FIFFV_POINT_RPA
+        point_dict['r'] = self.rpa
+        self.dig.append(point_dict)
+
+        for idx, point in enumerate(self.elp_points):
             point_dict = {}
             point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-            point_dict['ident'] = idx + 1
-            point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-            point = np.array(point, ndmin=2)
-            point = transform_pts(point)
+            point_dict['ident'] = idx
+            point_dict['kind'] = FIFF.FIFFV_POINT_HPI
             point_dict['r'] = point
-            self.hsp_points.append(point_dict)
+            self.dig.append(point_dict)
+
+        for idx, point in enumerate(self.hsp_points):
+            point_dict = {}
+            point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+            point_dict['ident'] = idx
+            point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
+            point_dict['r'] = point
+            self.dig.append(point_dict)
 
 
 def read_mrk(mrk_fname):
@@ -66,8 +100,7 @@ def read_mrk(mrk_fname):
 def read_elp(elp_fname):
     """elp point extraction"""
 
-    p = re.compile('%N\t\d-[A-Z]+\s+([\.\-0-9]+)\t' +
-                   '([\.\-0-9]+)\t([\.\-0-9]+)')
+    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = p.findall(open(elp_fname).read())
     elp_points = np.array(elp_points, dtype=float)
     return elp_points
@@ -76,10 +109,9 @@ def read_elp(elp_fname):
 def read_hsp(hsp_fname):
     """hsp point extraction"""
 
-    p = re.compile(r'//No.+\n(\d*)\t(\d)\s*')
-    v = re.split(p, open(hsp_fname).read())[1:]
-    hsp_points = np.fromstring(v[-1], sep='\t')
-    hsp_points = hsp_points.reshape(int(v[0]), int(v[1]))
+    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    hsp_points = p.findall(open(hsp_fname).read())
+    hsp_points = np.array(hsp_points, dtype=float)
     return hsp_points
 
 

@@ -44,3 +44,8 @@ KIT.output_gain_mask = 7  # (0x0007)
 KIT.input_gains = [1, 2, 5, 10]
 # output_gain: 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
 KIT.output_gains = [1, 2, 5, 10, 20, 50, 100, 200]
+
+# coreg constants
+KIT.NASION_IDENT = 1
+KIT.LPA_IDENT = 2
+KIT.RPA_IDENT = 3
