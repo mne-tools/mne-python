@@ -377,8 +377,8 @@ class MriHeadCoreg(traits.HasTraits):
         trans_fname = self.fitter.get_trans_fname(s_to)
         if os.path.exists(trans_fname):
             title = "Replace trans file for %s?" % s_to
-            msg = ("A trans file already exists at %r. Replace "
-                   "it?" % trans_fname)
+            msg = ("A trans file named %r already exists. \nReplace "
+                   "%r?" % (os.path.basename(trans_fname), trans_fname))
             answer = confirm(None, msg, title, cancel=False, default=NO)
             if answer != YES:
                 return
@@ -386,7 +386,7 @@ class MriHeadCoreg(traits.HasTraits):
         s_to_dir = self.fitter.get_mri_dir(s_to)
         if os.path.exists(s_to_dir):
             title = "Replace %r?" % s_to
-            msg = ("The mri subject %r already exists. Replace "
+            msg = ("The mri subject %r already exists. \nReplace "
                    "%r?" % (s_to, s_to_dir))
             answer = confirm(None, msg, title, cancel=False, default=NO)
             if answer != YES:
