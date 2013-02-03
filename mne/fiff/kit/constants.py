@@ -46,6 +46,4 @@ KIT.input_gains = [1, 2, 5, 10]
 KIT.output_gains = [1, 2, 5, 10, 20, 50, 100, 200]
 
 # coreg constants
-KIT.NASION_IDENT = 1
-KIT.LPA_IDENT = 2
-KIT.RPA_IDENT = 3
+KIT.DIG_POINTS = 10000
