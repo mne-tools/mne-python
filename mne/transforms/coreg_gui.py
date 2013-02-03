@@ -307,7 +307,7 @@ class MriHeadCoreg(traits.HasTraits):
 
         if s_to is None:
             try:
-                s_to = self.fitter._raw_fname.split('_')[0]
+                s_to = self.fitter._raw_name.split('_')[0]
             except:
                 pass
 
@@ -397,7 +397,7 @@ class MriHeadCoreg(traits.HasTraits):
             error(None, str(e), "Error while Saving")
         prog.close()
 
-    @traits.on_trait_change('n_scale_parameters')
+    @traits.on_trait_change('n_scale_params')
     def on_set_n_scale(self):
         if self.n_scale_params == 1:
             self.scale1 = np.mean(self.scale3)
