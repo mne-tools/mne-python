@@ -660,7 +660,7 @@ class MriHeadFitter(HeadMriFitter):
                                  block=False):
         "Run mne_setup_forward_model command"
         env = os.environ.copy()
-        env['SUBJECTS_DIR'] = self.subjects_dir
+        env['SUBJECTS_DIR'] = self._subjects_dir
         cmd = ["mne_setup_forward_model", "--subject", s_to, "--ico", str(ico)]
         if surf:
             cmd.append('--surf')
