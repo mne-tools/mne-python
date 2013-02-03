@@ -222,12 +222,11 @@ class HeadMriFitter(object):
             raw = Raw(raw_fname)
         else:
             raw_fname = raw.info['filename']
-        raw_fname = raw_fname
-        raw_dir, raw_fname = os.path.split(raw_fname)
+        raw_dir, raw_name = os.path.split(raw_fname)
 
         # resolve subject
         if subject is None:
-            subject = raw_fname.split('_')[0]
+            subject = raw_name.split('_')[0]
 
         # resolve mri subject path
         mri_sdir = os.path.join(subjects_dir, subject)
@@ -263,6 +262,7 @@ class HeadMriFitter(object):
         # store attributes
         self._raw_dir = raw_dir
         self._raw_fname = raw_fname
+        self._raw_name = raw_name
         self._subject = subject
         self._subjects_dir = subjects_dir
 
@@ -557,6 +557,9 @@ class MriHeadFitter(HeadMriFitter):
             `mne_setup_forward_model` finishes.
         overwrite : bool
             If an MRI already exists for this subject, overwrite it.
+        trans_fname : None
+            Where to save the head-mri transform -trans file. Default (None) is
+            '{raw_dir}/{s_to}-trans.fif'
 
         See Also
         --------
@@ -564,7 +567,9 @@ class MriHeadFitter(HeadMriFitter):
         """
         s_from = self._subject
         if s_to is None:
-            s_to = self._raw_fname.split('_')[0]
+            s_to = self._raw_name.split('_')[0]
+        if trans_fname is None:
+            trans_fname = self.get_trans_fname(s_to)
 
         # make sure we have an empty target directory
         paths = self._paths
