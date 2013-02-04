@@ -125,6 +125,10 @@ def read_hsp(hsp_fname):
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     hsp_points = p.findall(open(hsp_fname).read())
     hsp_points = np.array(hsp_points, dtype=float)
+    # downsample the digitizer points
+    n_pts = len(hsp_points)
+    space = int(n_pts / KIT.DIG_POINTS)
+    hsp_points = hsp_points[range(0, KIT.DIG_POINTS * space, space), :]
     return hsp_points
 
 
