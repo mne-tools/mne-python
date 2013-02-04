@@ -8,7 +8,7 @@ from ..filter import band_pass_filter
 
 
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
-                 l_freq=5, h_freq=35, tstart=0, filter_length=None):
+                 l_freq=5, h_freq=35, tstart=0, filter_length='auto'):
     """Detect QRS component in ECG channels.
 
     QRS is the main wave on the heart beat.
@@ -31,7 +31,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         High pass frequency
     tstart : float
         Start detection after tstart seconds.
-    filter_length : int | None
+    filter_length : 'auto' | int | None
         Number of taps to use for filtering.
 
     Returns
