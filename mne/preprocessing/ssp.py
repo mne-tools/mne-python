@@ -54,7 +54,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    filter_length : int
+    filter_length : int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
@@ -118,7 +118,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
                                        event_id=event_id, l_freq=exg_l_freq,
                                        h_freq=exg_h_freq, tstart=tstart,
-                                       qrs_threshold=qrs_threshold)
+                                       qrs_threshold=qrs_threshold,
+                                       filter_length=filter_length)
     elif mode == 'EOG':
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
