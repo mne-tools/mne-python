@@ -54,7 +54,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    filter_length : int | None
+    filter_length : 'auto' | int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
