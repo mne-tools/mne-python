@@ -52,22 +52,22 @@ class coreg:
 
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = KIT.NASION_IDENT
-        point_dict['kind'] = FIFF.FIFFV_POINT_NASION
+        point_dict['ident'] = FIFF.FIFFV_POINT_NASION
+        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['r'] = self.nasion
         self.dig.append(point_dict)
 
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = KIT.LPA_IDENT
-        point_dict['kind'] = FIFF.FIFFV_POINT_LPA
+        point_dict['ident'] = FIFF.FIFFV_POINT_LPA
+        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['r'] = self.lpa
         self.dig.append(point_dict)
 
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = KIT.RPA_IDENT
-        point_dict['kind'] = FIFF.FIFFV_POINT_RPA
+        point_dict['ident'] = FIFF.FIFFV_POINT_RPA
+        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['r'] = self.rpa
         self.dig.append(point_dict)
 
