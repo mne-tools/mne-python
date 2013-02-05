@@ -68,18 +68,21 @@ def test_filters():
     a = np.random.randn(2, sig_len_secs * Fs)
 
     # let's test our catchers
-    for fl in ['blah', [0, 1], 1000.5]:
+    for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8,
                       filter_length=fl)
     for nj in ['blah', 0.5, 0]:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
+        # Warning for low attenuation
         band_pass_filter(a, Fs, 1, 8, filter_length=1024)
-    assert_true(len(w) == 1)
+        # Warning for too short a filter
+        band_pass_filter(a, Fs, 1, 8, filter_length='0.5s')
+    assert_true(len(w) >= 2)
 
     # try new default and old default
-    for fl in ['auto', None]:
+    for fl in ['auto', '10s', '5000ms', None]:
         bp = band_pass_filter(a, Fs, 4, 8, filter_length=fl)
         bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length=fl)
         lp = low_pass_filter(a, Fs, 8, filter_length=fl, n_jobs=2)
