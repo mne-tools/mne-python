@@ -479,7 +479,7 @@ class Raw(object):
             self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
     @verbose
-    def filter(self, l_freq, h_freq, picks=None, filter_length=None,
+    def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
                method='fft', iir_params=dict(order=4, ftype='butter'),
                verbose=None):
@@ -514,12 +514,13 @@ class Raw(object):
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : int (default: None)
-            Length of the filter to use (e.g. 4096).
-            If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
+        filter_length : str (Default: '10s') | int | None
+            Length of the filter to use. If None or "len(x) < filter_length",
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If str, a human-readable time in
+            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+            to the shortest power-of-two length at least that duration.
         l_trans_bandwidth : float
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
@@ -593,7 +594,7 @@ class Raw(object):
                     copy=False)
 
     @verbose
-    def notch_filter(self, freqs, picks=None, filter_length=None,
+    def notch_filter(self, freqs, picks=None, filter_length='10s',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
                      mt_bandwidth=None, p_value=0.05, verbose=None):
@@ -617,12 +618,13 @@ class Raw(object):
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : int (default: None)
-            Length of the filter to use (e.g. 4096).
-            If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
+        filter_length : str (Default: '10s') | int | None
+            Length of the filter to use. If None or "len(x) < filter_length",
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If str, a human-readable time in
+            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+            to the shortest power-of-two length at least that duration.
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.
