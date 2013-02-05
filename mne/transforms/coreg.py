@@ -393,7 +393,7 @@ class HeadMriFitter(object):
         trans = self.get_head_mri_trans()
         dig = deepcopy(self.dig_fid.source_dig)  # these are in m
         for d in dig:  # [in m]
-            d['r'] = apply(trans, d['r'])
+            d['r'] = apply_trans(trans, d['r'])
         trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
                 'trans': trans, 'dig': dig}
         write_trans(fname, trans)
@@ -682,47 +682,6 @@ class MriHeadFitter(HeadMriFitter):
     def reset(self):
         self._t_mri_origin = translation(*(-self.mri_fid.nas))
         self.set(rot=(0, 0, 0), trans=(0, 0, 0), scale=(1, 1, 1))
-    def save_trans(self, fname=None, s_to=None, overwrite=False):
-        """
-        Save only the trans file
-
-        Parameters
-        ----------
-        fname : str(path) | None
-            Target file name. With None, a filename is constructed out of the
-            directory of the raw file provided on initialization, `s_to`, and
-            the suffix `-trans.fif`.
-        s_to : None | str
-            Subject for which to save MRI. With None (default), use the s_to
-            set on initialization.
-        overwrite : bool
-            If a file already exists at the specified loaction, overwrite it.
-
-        See Also
-        --------
-        MriHeadFitter.save : save the scaled head model and the trans file
-
-        """
-        if fname is None:
-            if s_to is None:
-                s_to = self.s_to
-            fname = self.get_trans_fname(s_to)
-
-        if os.path.exists(fname):
-            if overwrite:
-                os.remove(fname)
-            else:
-                err = ("Trans file exists: %r" % fname)
-                raise IOError(err)
-
-        # in m
-        trans = self.get_t_trans('m')
-        dig = deepcopy(self.dig_fid.source_dig)  # these are in m
-        for d in dig:  # [in m]
-            d['r'] = apply_trans(trans, d['r'])
-        info = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                'trans': trans, 'dig': dig}
-        write_trans(fname, info)
 
     def set(self, rot=None, trans=None, scale=None):
         """Set the rotation and scaling parameters and update any plots"""
