@@ -82,7 +82,7 @@ def test_filters():
     assert_true(len(w) >= 2)
 
     # try new default and old default
-    for fl in ['auto', '10s', '5000ms', None]:
+    for fl in ['10s', '5000ms', None]:
         bp = band_pass_filter(a, Fs, 4, 8, filter_length=fl)
         bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length=fl)
         lp = low_pass_filter(a, Fs, 8, filter_length=fl, n_jobs=2)
@@ -162,7 +162,7 @@ def test_cuda():
     a = np.random.randn(sig_len_secs * Fs)
 
     set_log_file(log_file, overwrite=True)
-    for fl in ['auto', None, 2048]:
+    for fl in ['10s', None, 2048]:
         bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
         bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
                               filter_length=fl)
