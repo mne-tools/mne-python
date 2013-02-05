@@ -991,7 +991,8 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
             not all([b in noise_cov['bads'] for b in info['bads']]):
-        raise ValueError('info["bads"] and noise_cov["bads"] do not match')
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both')
 
     n_chan = len(ch_names)
     logger.info("Computing inverse operator with %d channels." % n_chan)
