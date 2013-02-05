@@ -271,7 +271,7 @@ def write_events(filename, event_list):
 
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, detect='onset',
-                consecutive=False, min_duration=0):
+                consecutive='increasing', min_duration=0):
     """Find events from raw file
 
     Parameters
@@ -294,45 +294,61 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         events. If False, report only instances where the value of the
         events channel changes from/to zero. If 'increasing', report
         adjacent events only when the second event code is greater than
-        the first; this was the default in MNE <= 0.5.
+        the first.
     min_duration : float
         The minimum duration of a change in the events channel required
         to consider it as an event.
 
     Returns
     -------
-    events : array
-        The array of event onsets in time samples.
+    events : array, shape = (n_events, 3)
+        All events that were found. The first column contains the event time
+        in samples and the third column contains the stim channel value of the
+        event.
 
     Examples
     --------
-    Consider data with an events channel that looks like:
-    [0, 32, 32, 33, 0]
+    Consider data with a stim channel that looks like: [0, 32, 32, 33, 32, 0]
 
-    By default, find_events will return the samples at which the event
-    events channel from zero to non-zero (and the initial sample if it
-    is non-zero):
-    >>> print(find_events(raw)) # doctest: +SKIP
-    [[ 1  0 32]]
+    By default, find_events returns all samples at which the value of the
+    stim channel increases:
 
-    If detect is 'offset', find_events returns the samples at which the
-    events channel changes from non-zero to zero (and the final sample
-    if it is non-zero):
-    >>> print(find_events(raw, detect='offset')) # doctest: +SKIP
-    [[ 3  0 33]]
+        >>> print(find_events(raw)) # doctest: +SKIP
+        [[ 1  0 32]
+         [ 3  0 33]]
+
+    If consecutive is False, find_events only returns the samples at which
+    the stim channel changes from zero to a non-zero value:
+
+        >>> print(find_events(raw, consecutive=False)) # doctest: +SKIP
+        [[ 1  0 32]]
 
     If consecutive is True, find_events returns samples at which the
     event changes, regardless of whether it first returns to zero:
-    >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
-    [[ 1  0 32]
-     [ 3  0 33]]
+
+        >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
+        [[ 1  0 32]
+         [ 3  0 33]
+         [ 4  0 32]]
+
+    If detect is 'offset', find_events returns the samples at which a new
+    event starts, or the stim channel changes to zero (and the final sample
+    if it is non-zero):
+
+        >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
+        ...                   detect='offset'))
+        [[ 2  0 32]
+         [ 3  0 33]
+         [ 4  0 32]]
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
     1000 Hz:
-    >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
-                          min_duration=0.002))
-    [[ 1  0 32]]
+
+        >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
+        ...                   min_duration=0.002))
+        [[ 1  0 32]]
+
     """
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel)
@@ -361,7 +377,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
     # Add onset indices for events at the beginning of the data
     if np.all(data[:, 0] != 0, axis=0):
-        onset_idx = np.insert(onset_idx, 0, 0)
+        offset_idx = np.delete(offset_idx, 0)
 
     # Add offset indices for events at the end of the data
     if np.all(data[:, -1] != 0, axis=0):
