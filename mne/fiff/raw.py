@@ -514,11 +514,13 @@ class Raw(object):
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : 'auto' (Default) | int | None
+        filter_length : str (Default: 'auto') | int | None
             Length of the filter to use. If None or "len(x) < filter_length",
-            the filter length used is len(x). Otherwise, overlap-add filtering
-            with a filter of the specified length is used (faster for long
-            signals). If 'auto', a reasonable filter length will be chosen.
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If 'auto', a reasonable filter
+            length will be chosen. If str, a human-readable time in units of
+            "s" or "ms" should be used, e.g., "10s" or "5500ms".
         l_trans_bandwidth : float
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
@@ -616,11 +618,13 @@ class Raw(object):
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
-        filter_length : 'auto' (Default) | int | None
+        filter_length : str (Default: 'auto') | int | None
             Length of the filter to use. If None or "len(x) < filter_length",
-            the filter length used is len(x). Otherwise, overlap-add filtering
-            with a filter of the specified length is used (faster for long
-            signals). If 'auto', a reasonable filter length will be chosen.
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If 'auto', a reasonable filter
+            length will be chosen. If str, a human-readable time in units of
+            "s" or "ms" should be used, e.g., "10s" or "5500ms".
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.

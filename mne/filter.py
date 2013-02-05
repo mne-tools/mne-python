@@ -254,11 +254,13 @@ def _filter(x, Fs, freq, gain, filter_length='auto', picks=None, n_jobs=1,
         Frequency sampling points in Hz.
     gain : 1d array
         Filter gain at frequency sampling points.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -524,11 +526,13 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='auto',
         Low cut-off frequency in Hz.
     Fp2 : float
         High cut-off frequency in Hz.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
@@ -621,11 +625,13 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='auto',
         Low cut-off frequency in Hz.
     Fp2 : float | array of float
         High cut-off frequency in Hz.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
@@ -728,11 +734,13 @@ def low_pass_filter(x, Fs, Fp, filter_length='auto', trans_bandwidth=0.5,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     trans_bandwidth : float
         Width of the transition band in Hz.
     method : str
@@ -808,11 +816,13 @@ def high_pass_filter(x, Fs, Fp, filter_length='auto', trans_bandwidth=0.5,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     trans_bandwidth : float
         Width of the transition band in Hz.
     method : str
@@ -898,11 +908,13 @@ def notch_filter(x, Fs, freqs, filter_length='auto', notch_widths=None,
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
         None can only be used with the mode 'spectrum_fit', where an F
         test is used to find sinusoidal components.
-    filter_length : 'auto' (Default) | int | None
+    filter_length : str (Default: 'auto') | int | None
         Length of the filter to use. If None or "len(x) < filter_length",
-        the filter length used is len(x). Otherwise, overlap-add filtering
-        with a filter of the specified length is used (faster for long
-        signals). If 'auto', a reasonable filter length will be chosen.
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If 'auto', a reasonable filter
+        length will be chosen. If str, a human-readable time in units of
+        "s" or "ms" should be used, e.g., "10s" or "5500ms".
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
@@ -1276,14 +1288,41 @@ def detrend(x, order=1, axis=-1):
     return y
 
 
-def _get_filter_length(filter_length, sfreq):
+def _get_filter_length(filter_length, sfreq, min_length=1024):
     """Helper to determine a reasonable filter length"""
+    if not isinstance(min_length, int):
+        raise ValueError('min_length must be an int')
     if isinstance(filter_length, basestring):
-        if filter_length.lower() != 'auto':
-            raise ValueError('filter_length, if a string, must be "auto", not'
-                             ' "%s"' % filter_length)
-        # automatically determine filter_length, use 10 seconds
-        filter_length = max(2 ** int(np.ceil(np.log2(10 * sfreq))), 1024)
+        if filter_length.lower() == 'auto':
+            # automatically determine filter_length, use 10 seconds
+            filter_length = max(2 ** int(np.ceil(np.log2(10 * sfreq))),
+                                min_length)
+        else:
+            # parse time values
+            if filter_length[-2:].lower() == 'ms':
+                mult_fact = 1e-3
+                filter_length = filter_length[:-2]
+            elif filter_length[-1].lower() == 's':
+                mult_fact = 1
+                filter_length = filter_length[:-1]
+            else:
+                raise ValueError('filter_length, if a string, must be "auto" '
+                                 'or human-readable time (e.g., "10s"), not '
+                                 '"%s"' % filter_length)
+            # now get the number
+            try:
+                filter_length = float(filter_length)
+            except ValueError:
+                raise ValueError('filter_length, if a string, must be "auto" '
+                                 'or human-readable time (e.g., "10s"), not '
+                                 '"%s"' % filter_length)
+            filter_length = int(filter_length * mult_fact * sfreq)
+            if filter_length < min_length:
+                filter_length = min_length
+                warnings.warn('filter_length was too short, using filter of '
+                              'length %d samples (%0.1fs)'
+                              %(filter_length, filter_length / float(sfreq)))
+
     if filter_length is not None:
         if not isinstance(filter_length, int):
             raise ValueError('filter_length must be "auto", an integer, '
