@@ -288,7 +288,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
     non-stationary source activations
-    Neuroimage, in press as of Dec 2012
+    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
+    DOI: 10.1016/j.neuroimage.2012.12.051.
 
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Functional Brain Imaging with M/EEG Using Structured Sparsity in
