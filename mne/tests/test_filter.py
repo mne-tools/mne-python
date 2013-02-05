@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
+import warnings
 from scipy.signal import resample as sp_resample
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
@@ -64,14 +65,30 @@ def test_filters():
     Fs = 500
     sig_len_secs = 30
 
-    # Filtering of short signals (filter length = len(a))
     a = np.random.randn(2, sig_len_secs * Fs)
-    bp = band_pass_filter(a, Fs, 4, 8)
-    bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5)
-    lp = low_pass_filter(a, Fs, 8)
-    hp = high_pass_filter(lp, Fs, 4)
-    assert_array_almost_equal(hp, bp, 2)
-    assert_array_almost_equal(bp + bs, a, 1)
+
+    # let's test our catchers
+    for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
+        assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8,
+                      filter_length=fl)
+    for nj in ['blah', 0.5, 0]:
+        assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
+    # check our short-filter warning:
+    with warnings.catch_warnings(record=True) as w:
+        # Warning for low attenuation
+        band_pass_filter(a, Fs, 1, 8, filter_length=1024)
+        # Warning for too short a filter
+        band_pass_filter(a, Fs, 1, 8, filter_length='0.5s')
+    assert_true(len(w) >= 2)
+
+    # try new default and old default
+    for fl in ['10s', '5000ms', None]:
+        bp = band_pass_filter(a, Fs, 4, 8, filter_length=fl)
+        bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length=fl)
+        lp = low_pass_filter(a, Fs, 8, filter_length=fl, n_jobs=2)
+        hp = high_pass_filter(lp, Fs, 4, filter_length=fl)
+        assert_array_almost_equal(hp, bp, 2)
+        assert_array_almost_equal(bp + bs, a, 1)
 
     # Overlap-add filtering with a fixed filter length
     filter_length = 8192
@@ -145,7 +162,7 @@ def test_cuda():
     a = np.random.randn(sig_len_secs * Fs)
 
     set_log_file(log_file, overwrite=True)
-    for fl in [None, 2048]:
+    for fl in ['10s', None, 2048]:
         bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
         bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
                               filter_length=fl)
@@ -170,4 +187,4 @@ def test_cuda():
     set_log_file()
     out = open(log_file).readlines()
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
-                     for o in out]) == 8)
+                     for o in out]) == 12)

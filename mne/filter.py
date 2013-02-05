@@ -143,8 +143,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
             x[p] = _1d_overlap_filter(x[p], h_fft, n_edge, n_fft, zero_phase,
                                       n_segments, n_seg, cuda_dict)
     else:
-        if not isinstance(n_jobs, int):
-            raise ValueError('n_jobs must be an integer, or "cuda"')
+        _check_njobs(n_jobs, can_be_cuda=True)
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], h_fft, n_edge, n_fft, zero_phase,
                                   n_segments, n_seg, cuda_dict)
@@ -235,7 +234,7 @@ def _prep_for_filtering(x, copy, picks=None):
     return x, orig_shape, picks
 
 
-def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
+def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
             copy=True):
     """Filter signal using gain control points in the frequency domain.
 
@@ -255,10 +254,13 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
         Frequency sampling points in Hz.
     gain : 1d array
         Filter gain at frequency sampling points.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -282,6 +284,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
     # normalize frequencies
     freq = np.array([f / (Fs / 2) for f in freq])
     gain = np.array(gain)
+    filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
 
     if filter_length is None or x.shape[1] <= filter_length:
         # Use direct FFT filtering for short signals
@@ -314,8 +317,7 @@ def _filter(x, Fs, freq, gain, filter_length=None, picks=None, n_jobs=1,
             for p in picks:
                 x[p] = _1d_fftmult_ext(x[p], B, extend_x, cuda_dict)
         else:
-            if not isinstance(n_jobs, int):
-                raise ValueError('n_jobs must be an integer, or "cuda"')
+            _check_njobs(n_jobs, can_be_cuda=True)
             parallel, p_fun, _ = parallel_func(_1d_fftmult_ext, n_jobs)
             data_new = parallel(p_fun(x[p], B, extend_x, cuda_dict)
                                 for p in picks)
@@ -355,8 +357,7 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
         for p in picks:
             x[p] = filtfilt(b, a, x[p], padlen=padlen)
     else:
-        if not isinstance(n_jobs, int):
-            raise ValueError('n_jobs must be an integer for IIR filtering')
+        _check_njobs(n_jobs)
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
         data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
                             for p in picks)
@@ -506,7 +507,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
 
 @verbose
-def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
+def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
                      picks=None, n_jobs=1, copy=True, verbose=None):
@@ -525,10 +526,13 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Low cut-off frequency in Hz.
     Fp2 : float
         High cut-off frequency in Hz.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
@@ -602,7 +606,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 
 @verbose
-def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
+def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
                      picks=None, n_jobs=1, copy=True, verbose=None):
@@ -621,10 +625,13 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
         Low cut-off frequency in Hz.
     Fp2 : float | array of float
         High cut-off frequency in Hz.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
     h_trans_bandwidth : float
@@ -711,7 +718,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length=None,
 
 
 @verbose
-def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
+def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
                     method='fft', iir_params=dict(order=4, ftype='butter'),
                     picks=None, n_jobs=1, copy=True, verbose=None):
     """Lowpass filter for the signal x.
@@ -727,10 +734,13 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     trans_bandwidth : float
         Width of the transition band in Hz.
     method : str
@@ -790,7 +800,7 @@ def low_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 @verbose
-def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
+def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
                      picks=None, n_jobs=1, copy=True, verbose=None):
     """Highpass filter for the signal x.
@@ -806,10 +816,13 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
         Sampling rate in Hz.
     Fp : float
         Cut-off frequency in Hz.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     trans_bandwidth : float
         Width of the transition band in Hz.
     method : str
@@ -876,7 +889,7 @@ def high_pass_filter(x, Fs, Fp, filter_length=None, trans_bandwidth=0.5,
 
 
 @verbose
-def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
+def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
                  trans_bandwidth=1, method='fft',
                  iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
                  p_value=0.05, picks=None, n_jobs=1, copy=True, verbose=None):
@@ -895,10 +908,13 @@ def notch_filter(x, Fs, freqs, filter_length=None, notch_widths=None,
         Frequencies to notch filter in Hz, e.g. np.arange(60, 241, 60).
         None can only be used with the mode 'spectrum_fit', where an F
         test is used to find sinusoidal components.
-    filter_length : int (default: None)
-        Length of the filter to use. If None or "len(x) < filter_length", the
-        filter length used is len(x). Otherwise, overlap-add filtering with a
-        filter of the specified length is used (faster for long signals).
+    filter_length : str (Default: '10s') | int | None
+        Length of the filter to use. If None or "len(x) < filter_length",
+        the filter length used is len(x). Otherwise, if int, overlap-add
+        filtering with a filter of the specified length in samples) is
+        used (faster for long signals). If str, a human-readable time in
+        units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+        to the shortest power-of-two length at least that duration.
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
@@ -1016,8 +1032,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                                                p_value)
                 freq_list.append(f)
     else:
-        if not isinstance(n_jobs, int):
-            raise ValueError('n_jobs must be an integer')
+        _check_njobs(n_jobs)
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   mt_bandwidth, p_value)
@@ -1215,8 +1230,7 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
                 y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
                                      cuda_dict)
         else:
-            if not isinstance(n_jobs, int):
-                raise ValueError('n_jobs must be an integer, or "cuda"')
+            _check_njobs(n_jobs, can_be_cuda=True)
             parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
             y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
                          for x_ in x)
@@ -1272,3 +1286,54 @@ def detrend(x, order=1, axis=-1):
     y = signal.detrend(x, axis=axis, type=fit)
 
     return y
+
+
+def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
+    """Helper to determine a reasonable filter length"""
+    if not isinstance(min_length, int):
+        raise ValueError('min_length must be an int')
+    if isinstance(filter_length, basestring):
+        # parse time values
+        if filter_length[-2:].lower() == 'ms':
+            mult_fact = 1e-3
+            filter_length = filter_length[:-2]
+        elif filter_length[-1].lower() == 's':
+            mult_fact = 1
+            filter_length = filter_length[:-1]
+        else:
+            raise ValueError('filter_length, if a string, must be a '
+                             'human-readable time (e.g., "10s"), not '
+                             '"%s"' % filter_length)
+        # now get the number
+        try:
+            filter_length = float(filter_length)
+        except ValueError:
+            raise ValueError('filter_length, if a string, must be a '
+                             'human-readable time (e.g., "10s"), not '
+                             '"%s"' % filter_length)
+        filter_length = 2 ** int(np.ceil(np.log2(filter_length
+                                                 * mult_fact * sfreq)))
+        # shouldn't make filter longer than length of x
+        if filter_length >= len_x:
+            filter_length = len_x
+        # only need to check min_length if the filter is shorter than len_x
+        elif filter_length < min_length:
+            filter_length = min_length
+            warnings.warn('filter_length was too short, using filter of '
+                          'length %d samples ("%0.1fs")'
+                          % (filter_length, filter_length / float(sfreq)))
+
+    if filter_length is not None:
+        if not isinstance(filter_length, int):
+            raise ValueError('filter_length must be str, int, or None')
+    return filter_length
+
+
+def _check_njobs(n_jobs, can_be_cuda=False):
+    if not isinstance(n_jobs, int):
+        if can_be_cuda is True:
+            raise ValueError('n_jobs must be an integer, or "cuda"')
+        else:
+            raise ValueError('n_jobs must be an integer')
+    if n_jobs < 1:
+        raise ValueError('n_jobs must be >= 1')
