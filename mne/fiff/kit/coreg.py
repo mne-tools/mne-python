@@ -142,7 +142,7 @@ def read_sns(sns_fname):
     return locs
 
 
-def transform_pts(pts):
+def transform_pts(pts, scale=True):
     """KIT-Neuromag transformer
 
     This is used to orient points in Neuromag coordinates.
@@ -150,7 +150,8 @@ def transform_pts(pts):
     The transformation to Neuromag-like space is -y,x,z in [m].
 
     """
-    pts /= 1e3
+    if scale:
+        pts /= 1e3
     pts = np.array(pts, ndmin=2)
     pts = pts[:, [1, 0, 2]]
     pts[:, 0] *= -1
