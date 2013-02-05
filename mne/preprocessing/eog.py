@@ -10,7 +10,7 @@ from ..filter import band_pass_filter
 
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
-                    filter_length='auto', verbose=None):
+                    filter_length='10s', verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -23,7 +23,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Low pass frequency.
     high_pass : float
         High pass frequency.
-    filter_length : 'auto' | int | None
+    filter_length : str | int | None
         Number of taps to use for filtering.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -61,7 +61,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
-                     filter_length='auto'):
+                     filter_length='10s'):
     """Helper function"""
 
     logger.info('Filtering the data to remove DC offset to help '
