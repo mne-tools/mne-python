@@ -861,26 +861,42 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     return raw
 
 
-def restrict_foward_to_stc(fwd, stc):
+def restrict_forward_to_stc(fwd, stc):
+    """Restricts forward operator to active sources in a source estimate
+
+    Parameters
+    ----------
+    fwd : dict
+        Forward operator.
+    stc : SourceEstimate
+        Source estimate.
+
+    Returns
+    -------
+    fwd_out : dict
+        Restricted forward operator.
+    """
+
     fwd_out = deepcopy(fwd)
     src_sel = _stc_src_sel(fwd['src'], stc)
 
     fwd_out['source_rr'] = fwd['source_rr'][src_sel]
     fwd_out['nsource'] = len(src_sel)
-    if fwd['source_ori'] == 1:
-        fwd_out['source_nn'] = fwd['source_nn'][src_sel]
-        fwd_out['sol']['data'] = fwd['sol']['data'][:, src_sel]
-        fwd_out['sol']['ncol'] = len(src_sel)
+
+    if is_fixed_orient(fwd):
+        idx = src_sel
     else:
-        idx_3D = (3 * src_sel[:, None] + np.arange(3)).ravel()
-        fwd_out['source_nn'] = fwd['source_nn'][idx_3D]
-        fwd_out['sol']['data'] = fwd['sol']['data'][:, idx_3D]
-        fwd_out['sol']['ncol'] = len(idx_3D)
+        idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+
+    fwd_out['source_nn'] = fwd['source_nn'][idx]
+    fwd_out['sol']['data'] = fwd['sol']['data'][:, idx]
+    fwd_out['sol']['ncol'] = len(idx)
 
     for i in range(2):
         fwd_out['src'][i]['vertno'] = stc.vertno[i]
         fwd_out['src'][i]['nuse'] = len(stc.vertno[i])
-        fwd_out['src'][i]['inuse'] = np.zeros_like(fwd['src'][i]['inuse'])
+        fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
+        fwd_out['src'][i]['inuse'].fill(0)
         fwd_out['src'][i]['inuse'][stc.vertno[i]] = 1
         fwd_out['src'][i]['use_tris'] = np.array([])
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
@@ -888,12 +904,24 @@ def restrict_foward_to_stc(fwd, stc):
     return fwd_out
 
 
-def restrict_foward_to_label(fwd, label_names, label_path):
-    import os.path as op
-    from mne import read_label
+def restrict_forward_to_label(fwd, labels):
+    """Restricts forward operator to labels
 
-    if not isinstance(label_names, list):
-        label_names = [label_names]
+    Parameters
+    ----------
+    fwd : dict
+        Forward operator.
+    labels : label object | list
+        Label object or list of label objects.
+
+    Returns
+    -------
+    fwd_out : dict
+        Restricted forward operator.
+    """
+
+    if not isinstance(labels, list):
+        labels = [labels]
 
     fwd_out = deepcopy(fwd)
     fwd_out['source_rr'] = np.zeros((0, 3))
@@ -901,16 +929,16 @@ def restrict_foward_to_label(fwd, label_names, label_path):
     fwd_out['source_nn'] = np.zeros((0, 3))
     fwd_out['sol']['data'] = np.zeros((fwd['sol']['data'].shape[0], 0))
     fwd_out['sol']['ncol'] = 0
+
     for i in range(2):
         fwd_out['src'][i]['vertno'] = np.array([])
         fwd_out['src'][i]['nuse'] = 0
-        fwd_out['src'][i]['inuse'] = np.zeros_like(fwd['src'][i]['inuse'])
+        fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
+        fwd_out['src'][i]['inuse'].fill(0)
         fwd_out['src'][i]['use_tris'] = np.array([])
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
-    for ln in label_names:
-        label = read_label(op.join(label_path, '%s.label' % ln))
-
+    for label in labels:
         if label.hemi == 'lh':
             i = 0
             src_sel = np.intersect1d(fwd['src'][0]['vertno'], label.vertices)
@@ -924,23 +952,21 @@ def restrict_foward_to_label(fwd, label_names, label_path):
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])
         fwd_out['nsource'] += len(src_sel)
-        if fwd['source_ori'] == 1:
-            fwd_out['source_nn'] = np.vstack([fwd_out['source_nn'],
-                                          fwd['source_nn'][src_sel]])
-            fwd_out['sol']['data'] = np.hstack([fwd_out['sol']['data'],
-                                            fwd['sol']['data'][:, src_sel]])
-            fwd_out['sol']['ncol'] += len(src_sel)
-        else:
-            idx_3D = (3 * src_sel[:, None] + np.arange(3)).ravel()
-            fwd_out['source_nn'] = np.vstack([fwd_out['source_nn'],
-                                              fwd['source_nn'][idx_3D]])
-            fwd_out['sol']['data'] = np.hstack([fwd_out['sol']['data'],
-                                                fwd['sol']['data'][:, idx_3D]])
-            fwd_out['sol']['ncol'] += len(idx_3D)
 
         fwd_out['src'][i]['vertno'] = np.r_[fwd_out['src'][i]['vertno'],
                                             src_sel]
         fwd_out['src'][i]['nuse'] += len(src_sel)
         fwd_out['src'][i]['inuse'][src_sel] = 1
+
+        if is_fixed_orient(fwd):
+            idx = src_sel
+        else:
+            idx = (3 * src_sel[:, None] + np.arange(3)).ravel()
+
+        fwd_out['source_nn'] = np.vstack([fwd_out['source_nn'],
+                                          fwd['source_nn'][idx]])
+        fwd_out['sol']['data'] = np.hstack([fwd_out['sol']['data'],
+                                            fwd['sol']['data'][:, idx]])
+        fwd_out['sol']['ncol'] += len(idx)
 
     return fwd_out
