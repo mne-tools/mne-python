@@ -3,6 +3,7 @@ from numpy.testing import assert_array_almost_equal, assert_almost_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
 from scipy.signal import resample as sp_resample
+from scipy.fftpack import fft, fftshift
 
 from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        band_stop_filter, resample, construct_iir_filter, \
@@ -171,3 +172,12 @@ def test_cuda():
     out = open(log_file).readlines()
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
                      for o in out]) == 8)
+
+    # check resampling
+    a1 = resample(a, 1, 2, n_jobs=2)
+    a2 = resample(a, 1, 2, n_jobs='cuda')
+    a3 = resample(a1, 2, 1, n_jobs=2)
+    a4 = resample(a2, 2, 1, n_jobs='cuda')
+    # DC component can be a little off a little bit for such a long array
+    assert_array_almost_equal(a1, a2, 1)
+    assert_array_almost_equal(a3, a4, 1)

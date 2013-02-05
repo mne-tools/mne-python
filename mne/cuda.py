@@ -283,10 +283,14 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
                 cuda_fft_len_y = int((n_fft_y + (n_fft_y % 2)) / 2 + 1)
                 fft_plan = cudafft.Plan(n_fft_x, np.float64, np.complex128)
                 ifft_plan = cudafft.Plan(n_fft_y, np.complex128, np.float64)
-                x_fft = gpuarray.empty(cuda_fft_len_x, np.complex128)
-                y_fft = gpuarray.empty(cuda_fft_len_y, np.complex128)
-                x = gpuarray.empty(int(n_fft_x), np.float64)
-                y = gpuarray.empty(int(n_fft_y), np.float64)
+                xy_fft = gpuarray.zeros(max(cuda_fft_len_x,
+                                            cuda_fft_len_y), np.complex128)
+                x_fft = xy_fft[:cuda_fft_len_x]
+                y_fft = xy_fft[:cuda_fft_len_y]
+                xy = gpuarray.empty(max(int(n_fft_x),
+                                        int(n_fft_y)), np.float64)
+                x = xy[:int(n_fft_x)]
+                y = xy[:int(n_fft_y)]
                 cuda_W = W[:cuda_fft_len_x].astype('complex128')
                 # do the IFFT normalization now so we don't have to later
                 cuda_W /= n_fft_y
@@ -345,8 +349,8 @@ def fft_resample(x, W, new_len, npad, to_remove,
     x = _smart_pad(x, npad)
     N = int(np.minimum(new_len, len(x)))
     sl_1 = slice((N + 1) / 2)
-    y_fft = np.zeros(new_len, np.complex128)
     if not cuda_dict['use_cuda']:
+        y_fft = np.zeros(new_len, np.complex128)
         x_fft = fft(x).ravel()
         x_fft *= W
         y_fft[sl_1] = x_fft[sl_1]
@@ -358,9 +362,10 @@ def fft_resample(x, W, new_len, npad, to_remove,
         cuda_dict['x'].set(x.astype(cuda_dict['dtype']))
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
         cuda_dict['multiply_inplace'](W, cuda_dict['x_fft'])
-        x_fft = cuda_dict['x_fft'].get()
-        y_fft[sl_1] = x_fft[sl_1]
-        cuda_dict['y_fft'].set(y_fft[:cuda_dict['y_fft'].size])
+        # By using slices of the same array, this effectively happens:
+        # x_fft = cuda_dict['x_fft'].get()
+        # y_fft[sl_1] = x_fft[sl_1]
+        # cuda_dict['y_fft'].set(y_fft[:cuda_dict['y_fft'].size])
         cudafft.ifft(cuda_dict['y_fft'], cuda_dict['y'],
                      cuda_dict['ifft_plan'], False)
         y = np.array(cuda_dict['y'].get(), dtype=x.dtype, subok=True,
