@@ -127,12 +127,12 @@ class RawKIT(Raw):
     data : bool | array-like
         if array-like custom data matching the header info to be used
         instead of the data from data_fname
+    stim : list
+        list of trigger channels.
     lowpass : int
         low-pass filter setting of the sqd file.
     highpass : int
         high-pass filter setting of the sqd file.
-    stim : list
-        list of trigger channels.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -145,8 +145,8 @@ class RawKIT(Raw):
         """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 data=None, lowpass=None, highpass=None,
-                 stim=range(167, 159, -1), stimthresh=3.5, verbose=True):
+                 stim, data=None, lowpass=None, highpass=None, stimthresh=3.5,
+                 verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self.params = sqd_params(input_fname, lowpass=lowpass,
@@ -241,43 +241,44 @@ class RawKIT(Raw):
             chan_info['unit_mul'] = KIT.UNIT_MUL
             chan_info['ch_name'] = ch_name
             chan_info['unit'] = FIFF.FIFF_UNIT_T
+            chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
             if ch_name.startswith('MEG'):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
-                chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
             if ch_name.startswith('REF'):
-                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
 
-            #    create three orthogonal vector
-            #    0: theta, 1: phi
+            # create three orthogonal vector
+            # ch_angles[0]: theta, ch_angles[1]: phi
             ch_angles = np.radians(ch_angles)
             x = np.sin(ch_angles[0]) * np.cos(ch_angles[1])
             y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
             z = np.cos(ch_angles[0])
-            vec1 = np.array([x, y, z])
-            vec1 = vec1[[1, 0, 2]]
-            vec1[0] *= -1
-            length = np.linalg.norm(vec1)
-            vec1 /= length
-            vec2 = np.zeros(vec1.size, dtype=float)
-            if vec1[1] < vec1[2]:
-                if vec1[0] < vec1[1]:
-                    vec2[0] = 1.0
+            vec_z = np.array([x, y, z])
+            length = np.linalg.norm(vec_z)
+            vec_z /= length
+            vec_x = np.zeros(vec_z.size, dtype=float)
+            if vec_z[1] < vec_z[2]:
+                if vec_z[0] < vec_z[1]:
+                    vec_x[0] = 1.0
                 else:
-                    vec2[1] = 1.0
-            elif vec1[0] < vec1[2]:
-                vec2[0] = 1.0
+                    vec_x[1] = 1.0
+            elif vec_z[0] < vec_z[2]:
+                vec_x[0] = 1.0
             else:
-                vec2[2] = 1.0
-            vec2 -= np.sum(vec2 * vec1) * vec1
-            length = np.linalg.norm(vec2)
-            vec2 /= length
-            vec3 = np.cross(vec1, vec2)
-            chan_info['loc'] = np.hstack((ch_loc, vec1, vec2, vec3)).ravel()
+                vec_x[2] = 1.0
+            vec_x -= np.sum(vec_x * vec_z) * vec_z
+            length = np.linalg.norm(vec_x)
+            vec_x /= length
+            vec_y = np.cross(vec_z, vec_x)
+            # transform to Neuromag like coordinate space
+            vecs = np.vstack((vec_x, vec_y, vec_z))
+            vecs = coreg.transform_pts(vecs, scale=False)
+            chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             chs.append(chan_info)
 
-        #    label trigger and misc channels
+        # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['TRIG'] + ch_names['MISC'] +
                                       ch_names['STIM'], KIT.n_sens):
             chan_info = {}
@@ -322,8 +323,9 @@ class RawKIT(Raw):
         return dev_head_t, coreg_data.dig
 
 
-def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
-                 stim=range(167, 159, -1), stimthresh=3.5):
+def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+                 data=None, stim=range(167, 159, -1), lowpass=200, highpass=0,
+                 stimthresh=3.5):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -341,16 +343,19 @@ def read_raw_kit(input_fname, sns_fname, hsp_fname, elp_fname, mrk_fname,
     data : bool | array-like
         if array-like custom data matching the header info to be used
         instead of the data from data_fname
+    stim : list
+        list of trigger channels.
     lowpass : int
         low-pass filter setting of the sqd file.
     highpass : int
         high-pass filter setting of the sqd file.
-    stim : list
-        list of trigger channels.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
 
     """
-    return RawKIT(input_fname=input_fname, sns_fname=sns_fname,
-                  hsp_fname=hsp_fname, elp_fname=elp_fname,
-                  mrk_fname=mrk_fname, stim=stim, stimthresh=stimthresh)
+    return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
+                  elp_fname=elp_fname, hsp_fname=hsp_fname,
+                  sns_fname=sns_fname, data=data, stim=stim, lowpass=lowpass,
+                  highpass=highpass, stimthresh=stimthresh)
+
+
