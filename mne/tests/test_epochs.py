@@ -164,6 +164,15 @@ def test_evoked_io_from_epochs():
     evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
 
+    # now let's do one with negative time
+    with warnings.catch_warnings(True) as w:
+        epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
+                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    evoked = epochs.average()
+    evoked.save(op.join(tempdir, 'evoked.fif'))
+    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+
 
 def test_evoked_standard_error():
     """Test calculation and read/write of standard error
