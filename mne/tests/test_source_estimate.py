@@ -211,19 +211,11 @@ def test_morph_data():
     subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc_from = read_source_estimate(fname)
-    stc_from.crop(0.09, 0.1)  # for faster computation
-    # After running this:
-    #    stc_from.save('%s_audvis-meg-cropped' % subject_from)
-    # this was run from a command line:
-    #    mne_make_movie --stcin sample_audvis-meg-cropped-lh.stc
-    #        --subject sample --morph fsaverage --smooth 12 --morphgrade 3
-    #        --stc fsaverage_audvis-meg-cropped
-    # XXX These files should eventually be moved to the sample dataset and
-    # removed from mne/fiff/tests/data/
-    fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                    'fsaverage_audvis-meg-cropped')
+    fname = op.join(data_path, 'MEG', 'sample', 'fsaverage_audvis-meg')
     stc_to = read_source_estimate(fname)
     # make sure we can specify grade
+    stc_from.crop(0.09, 0.1)  # for faster computation
+    stc_to.crop(0.09, 0.1)  # for faster computation
     stc_to1 = morph_data(subject_from, subject_to, stc_from,
                          grade=3, smooth=12, buffer_size=1000)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
@@ -235,7 +227,7 @@ def test_morph_data():
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
                          grade=vertices_to, smooth=12, buffer_size=3)
     # indexing silliness here due to mne_make_movie's indexing oddities
-    assert_array_almost_equal(stc_to.data, stc_to1.data[:, 0][:, None], 5)
+    assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
     # make sure precomputed morph matrices work
