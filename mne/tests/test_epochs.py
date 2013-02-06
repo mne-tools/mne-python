@@ -156,13 +156,15 @@ def test_evoked_io_from_epochs():
     """
     # offset our tmin so we don't get exactly a zero value when decimating
     with warnings.catch_warnings(True) as w:
-        epochs = Epochs(raw, events[:4], event_id, tmin + 0.0011, tmax,
+        epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
                         picks=picks, baseline=(None, 0), decim=5)
     assert_true(len(w) == 1)
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'evoked.fif'))
     evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
+                    atol=1 / evoked.info['sfreq'])
 
     # now let's do one with negative time
     with warnings.catch_warnings(True) as w:
@@ -172,6 +174,7 @@ def test_evoked_io_from_epochs():
     evoked.save(op.join(tempdir, 'evoked.fif'))
     evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
 
 def test_evoked_standard_error():
