@@ -287,13 +287,9 @@ def _add_patch_info(s):
         pinfo.append(np.sort(indn[start:stop]))
     s['pinfo'] = pinfo
 
-    # Is there a faster way to figure out which patch each vertex belongs to?
-    inds = np.repeat(np.arange(len(pinfo), dtype=int), [len(p) for p in pinfo])
-    verts = np.concatenate(pinfo)
-    order = np.argsort(verts)
-    # we shouldn't need this check, but just in case...
-    assert np.all(verts[order] == np.arange(len(verts), dtype=int))
-    s['patch_inds'] = inds[order][s['vertno']]
+    # compute patch indices of the in-use source space vertices
+    patch_verts = nearest_sorted[steps - 1]
+    s['patch_inds'] = np.searchsorted(patch_verts, s['vertno'])
 
     # MNE C code uses 'patches' differently, but current implementation
     # is too slow, and not quite equivalent:
