@@ -335,6 +335,44 @@ class HeadMriFitter(object):
             self.set(rot=x_est)
         return x_est
 
+    def fit_fiducials(self, fixed_nas=True, **kwargs):
+        """Fit the head to the mri using only the fiducials.
+
+        Parameters
+        ----------
+        fixed_nas : bool
+            Keep the nasion position fixed.
+        kwargs:
+            scipy.optimize.leastsq kwargs
+
+        """
+        if 'epsfcn' not in kwargs:
+            kwargs['epsfcn'] = 0.01
+
+        t_dig_origin = self._t_dig_origin
+        t_origin_mri = self._t_origin_mri
+
+        src_pts = self.dig_fid.get_pts(t_dig_origin)
+        t_mri_origin = inv(t_origin_mri)
+        tgt_pts = self.mri_fid.get_pts(t_mri_origin)
+
+        if fixed_nas:
+            tgt_pts = apply_trans(inv(self._t_trans), tgt_pts)
+            def error(params):
+                trans = rotation(*params)
+                est = apply_trans(trans, src_pts)
+                return (tgt_pts - est).ravel()
+
+            x0 = (0, 0, 0)
+            rot, _ = leastsq(error, x0)
+
+            self.set(rot=rot)
+            return rot
+        else:
+            _, rot, transl = fit_matched_pts(src_pts, tgt_pts, params=True)
+            self.set(rot=rot, trans=transl)
+            return rot, transl
+
     def get_head_mri_trans(self):
         """Returns the head-mri transform
 

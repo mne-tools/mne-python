@@ -410,6 +410,7 @@ class HeadMriCoreg(traits.HasTraits):
 
     # fitting
     fit = traits.Button(label='Fit')
+    fit_fid = traits.Button(label='Fit Fiducials')
     restore_fit = traits.Button(label='Restore Last Fit')
 
     # saving
@@ -423,7 +424,7 @@ class HeadMriCoreg(traits.HasTraits):
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
                 VGroup('nasion',
-                       HGroup('fit', 'restore_fit', show_labels=False),
+                       HGroup('fit', 'fit_fid', 'restore_fit', show_labels=False),
                        'rotation', label='Transform', show_border=True),
                 HGroup('save', show_labels=False),
                 )
@@ -469,6 +470,11 @@ class HeadMriCoreg(traits.HasTraits):
         self._last_fit = self.fitter.fit()
         self.on_restore_fit()
         prog.close()
+
+    @traits.on_trait_change('fit_fid')
+    def on_fit_fid(self):
+        self._last_fit = self.fitter.fit_fiducials(fixed_nas=True)
+        self.on_restore_fit()
 
     @traits.on_trait_change('restore_fit')
     def on_restore_fit(self):
