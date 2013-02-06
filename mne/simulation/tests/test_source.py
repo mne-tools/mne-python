@@ -43,10 +43,9 @@ def test_generate_stc():
         else:
             hemi_idx = 1
 
-        idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
-        idx = idx_tmp.copy()
-        for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
@@ -65,10 +64,13 @@ def test_generate_stc():
         else:
             hemi_idx = 1
 
-        idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
-        idx = idx_tmp.copy()
-        for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
+        # idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        # idx = idx_tmp.copy()
+        # for k in range(len(idx_tmp)):
+        #     idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
@@ -93,10 +95,8 @@ def test_generate_sparse_stc():
         else:
             hemi_idx = 1
 
-        idx_tmp = np.intersect1d(stc_1.vertno[hemi_idx], label.vertices)
-        idx = idx_tmp.copy()
-        for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc_1.vertno[hemi_idx] == idx_tmp[k])[0]
+        idx = np.intersect1d(stc_1.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc_1.vertno[hemi_idx], idx)
 
         if hemi_idx == 1:
             idx += len(stc_1.vertno[0])
