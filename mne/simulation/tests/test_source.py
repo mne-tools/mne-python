@@ -46,7 +46,7 @@ def test_generate_stc():
         idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
         idx = idx_tmp.copy()
         for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc.vertno[hemi_idx]==idx_tmp[k])[0]
+            idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
@@ -58,7 +58,7 @@ def test_generate_stc():
     stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
-    
+
     for i, label in enumerate(labels):
         if label.hemi == 'lh':
             hemi_idx = 0
@@ -68,10 +68,10 @@ def test_generate_stc():
         idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
         idx = idx_tmp.copy()
         for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc.vertno[hemi_idx]==idx_tmp[k])[0]
+            idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
- 
+
         assert_array_almost_equal(stc.data[idx],
                         ((2. * i) ** 2.) * np.ones((len(idx), n_times)))
 
@@ -86,7 +86,7 @@ def test_generate_sparse_stc():
     stc_data = np.ones((len(labels), n_times))\
                      * np.arange(len(labels))[:, None]
     stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
-    
+
     for i, label in enumerate(labels):
         if label.hemi == 'lh':
             hemi_idx = 0
@@ -96,13 +96,13 @@ def test_generate_sparse_stc():
         idx_tmp = np.intersect1d(stc_1.vertno[hemi_idx], label.vertices)
         idx = idx_tmp.copy()
         for k in range(len(idx_tmp)):
-            idx[k] = np.where(stc_1.vertno[hemi_idx]==idx_tmp[k])[0]
-        
+            idx[k] = np.where(stc_1.vertno[hemi_idx] == idx_tmp[k])[0]
+
         if hemi_idx == 1:
             idx += len(stc_1.vertno[0])
 
         assert_true(np.all(stc_1.data[idx] == float(i)))
-    
+
     assert_true(stc_1.data.shape[0] == len(labels))
     assert_true(stc_1.data.shape[1] == n_times)
 
