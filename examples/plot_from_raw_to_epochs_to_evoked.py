@@ -56,3 +56,8 @@ pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')
 pl.title('EEG evoked potential')
 pl.show()
+
+# Look at channels that caused dropped events, showing that the subject's
+# blinks were likely to blame for most epochs being dropped
+epochs.drop_bad_epochs()
+mne.viz.plot_drop_log(epochs.drop_log, subject='sample')
