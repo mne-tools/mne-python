@@ -176,6 +176,15 @@ def test_evoked_io_from_epochs():
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
+    # should be equivalent to a cropped original
+    with warnings.catch_warnings(True) as w:
+        epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
+                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    evoked = epochs.average()
+    evoked.crop(0.099, None)
+    assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+
 
 def test_evoked_standard_error():
     """Test calculation and read/write of standard error
