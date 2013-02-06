@@ -37,12 +37,16 @@ Changelog
 
    - Option to change default stim_channel used for finding events by `Eric Larson`_
 
+   - Use average patch normal from surface-oriented forward solution in inverse calculation when possible by `Eric Larson`_
+
 API
 ~~~
 
    - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
 
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
+
+   - Fixed-orientation inverse solutions need to be made using 'fixed=True' option, using non-surface-oriented forward solutions to maintain compatibility with MNE C code.
 
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 
