@@ -39,6 +39,8 @@ Changelog
 
    - Use average patch normal from surface-oriented forward solution in inverse calculation when possible by `Eric Larson`_
 
+   - Function to plot drop_log from Epochs instance by `Eric Larson`_
+
 API
 ~~~
 
