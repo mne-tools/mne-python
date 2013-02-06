@@ -7,6 +7,7 @@
 from numpy.testing import assert_array_almost_equal
 import mne
 import mne.fiff.kit as kit
+from mne.fiff.kit.constants import KIT
 import scipy.io
 import inspect
 import os
@@ -33,8 +34,8 @@ def test_data():
     # Binary file only stores the sensor channels
     raw_bin = os.path.join(data_dir, 'test_bin.fif')
     raw_bin = mne.fiff.Raw(raw_bin, preload=True)
-    data_bin = raw_bin._data[:157, :]
-    data_py = data_py[:157, :]
+    data_bin = raw_bin._data[:KIT.n_sens, :]
+    data_py = data_py[:KIT.n_sens, :]
 
     assert_array_almost_equal(data_py, data_bin)
 
