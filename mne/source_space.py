@@ -56,7 +56,8 @@ class SourceSpaces(list):
         for ss in self:
             ss_type = ss['type']
             if ss_type == 'vol':
-                r = "'vol', shape=%s, n_used=%i" % (repr(ss['shape']), ss['nuse'])
+                r = ("'vol', shape=%s, n_used=%i"
+                     % (repr(ss['shape']), ss['nuse']))
             elif ss_type == 'surf':
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
             else:
@@ -76,7 +77,7 @@ class SourceSpaces(list):
         write_source_spaces(fname, self)
 
 
-def patch_info(nearest):
+def _add_patch_info(s):
     """Patch information in a source space
 
     Generate the patch information from the 'nearest' vector in
@@ -86,17 +87,16 @@ def patch_info(nearest):
 
     Parameters
     ----------
-    nearest : array
-        For each vertex gives the index of its closest neighbor.
-
-    Returns
-    -------
-    pinfo : list
-        List of neighboring vertices
+    s : dict
+        The source space.
     """
+    nearest = s['nearest']
     if nearest is None:
-        pinfo = None
-        return pinfo
+        s['pinfo'] = None
+        s['patch_inds'] = None
+        return
+
+    logger.info('    Computing patch statistics...')
 
     indn = np.argsort(nearest)
     nearest_sorted = nearest[indn]
@@ -108,8 +108,13 @@ def patch_info(nearest):
     pinfo = list()
     for start, stop in zip(starti, stopi):
         pinfo.append(np.sort(indn[start:stop]))
+    s['pinfo'] = pinfo
 
-    return pinfo
+    # compute patch indices of the in-use source space vertices
+    patch_verts = nearest_sorted[steps - 1]
+    s['patch_inds'] = np.searchsorted(patch_verts, s['vertno'])
+
+    logger.info('    Patch information added...')
 
 
 @verbose
@@ -359,9 +364,7 @@ def _read_one_source_space(fid, this, verbose=None):
         res['nearest'] = tag1.data
         res['nearest_dist'] = tag2.data.T
 
-    res['pinfo'] = patch_info(res['nearest'])
-    if (res['pinfo'] is not None):
-        logger.info('Patch information added...')
+    _add_patch_info(res)
 
     #   Distances
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
@@ -375,7 +378,7 @@ def _read_one_source_space(fid, this, verbose=None):
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None):
-        logger.info('Distance information added...')
+        logger.info('    Distance information added...')
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
     if tag is not None:

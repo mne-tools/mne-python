@@ -107,7 +107,7 @@ def test_stc_methods():
     vertex, hemi, t = stc.center_of_mass('sample')
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the results:
-    assert_true(vertex == 92717)
+    assert_true(vertex == 90186)
     assert_true(np.round(t, 3) == 0.123)
 
     stc = read_source_estimate(fname)

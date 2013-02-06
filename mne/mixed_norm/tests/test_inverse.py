@@ -92,4 +92,4 @@ def test_tf_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][1] in label.vertices)
+    assert_true(stc.vertno[1][0] in label.vertices)
