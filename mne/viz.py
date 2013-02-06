@@ -11,6 +11,7 @@ import warnings
 from itertools import cycle
 from functools import partial
 from operator import add
+from collections import Counter
 
 import copy
 import inspect
@@ -1735,13 +1736,13 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown'):
     if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
         raise ValueError('drop_log must be a list of lists')
     import pylab as pl
-    ch_names = np.array(list(set([ch for d in drop_log for ch in d])))
-    scores = np.r_[[in1d(ch_names, d) for d in drop_log]]
-    counts = 100 * np.mean(scores, axis=0)
-    perc = 100 * np.mean(np.any(scores, axis=1))
-    n_plot = min(n_max_plot, len(ch_names))
+    scores = Counter([ch for d in drop_log for ch in d])
+    ch_names = np.array(scores.keys())
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log])
     if perc < threshold or len(ch_names) == 0:
         return perc
+    counts = 100 * np.array(scores.values(), dtype=float) / len(drop_log)
+    n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
     pl.figure()
     pl.title('%s: %0.1f%%' % (subject, perc))
