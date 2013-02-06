@@ -442,7 +442,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                 if use_ave_nn is True:
                     nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
                     nn = np.sum(nn, axis=0)[:, np.newaxis]
-                    nn /= np.linalg.norm(nn)
+                    nn /= linalg.norm(nn)
                 else:
                     nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
                 U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
