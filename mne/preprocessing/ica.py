@@ -920,10 +920,11 @@ class ICA(object):
         """
 
         logger.info('    Searching for artifacts...')
-        return _detect_artifacts(self, raw, start_find, stop_find, ecg_channel,
+        self = _detect_artifacts(self, raw, start_find, stop_find, ecg_channel,
                         ecg_score_func, ecg_criterion, eog_channel, eog_score_func,
                         eog_criterion,  skew_criterion, kurt_criterion,
                         var_criterion, add_nodes)
+        return self
 
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
