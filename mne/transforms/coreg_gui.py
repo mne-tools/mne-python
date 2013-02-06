@@ -20,8 +20,10 @@ import traits.api as traits
 from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import MriHeadFitter
-from ..fiff import Raw
+from .coreg import MriHeadFitter, geom_bem
+from ..fiff import Raw, FIFF, write_fiducials
+from ..utils import get_subjects_dir
+
 
 
 def raw_find_point(raw):
@@ -231,6 +233,163 @@ class FixDigHeadShape(traits.HasTraits):
         surf.actor.property.lighting = False
 
         return mesh, surf
+
+
+
+class Fiducials(traits.HasTraits):
+    """
+    Mayavi viewer for creating a fiducials file.
+
+    """
+    # views
+    right = traits.Button()
+    front = traits.Button()
+    left = traits.Button()
+    top = traits.Button()
+
+    set = traits.Enum('Nasion', 'LAP', 'RAP')
+    nasion = traits.Array(float, (1, 3))
+    LAP = traits.Array(float, (1, 3))
+    RAP = traits.Array(float, (1, 3))
+
+    _save = traits.Button()
+    scene = traits.Instance(MlabSceneModel, ())
+
+    # the layout of the dialog created
+    view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+                     height=500, width=500, show_label=False),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
+                VGroup(Item('set', style='custom'), 'nasion', 'LAP', 'RAP',
+                       label='Fiducials', show_border=True),
+                HGroup(HGroup('_save', show_labels=False)),
+                )
+
+
+    def __init__(self, subject, fid=None, subjects_dir=None):
+        """
+        Parameters
+        ----------
+        subject : str
+            The mri subject.
+        fid : None | str
+            Fiducials file for initial positions.
+        subjects_dir : None | str
+            Overrule the subjects_dir environment variable.
+
+        """
+        self.subjects_dir = get_subjects_dir(subjects_dir)
+        self.subject = subject
+
+        if fid is not None:
+            raise NotImplementedError()
+
+        traits.HasTraits.__init__(self)
+        self.configure_traits()
+
+    @traits.on_trait_change('scene.activated')
+    def on_init(self):
+        fig = self.scene.mayavi_scene
+        self.scene.disable_render = True
+
+        fname = os.path.join(self.subjects_dir, self.subject, 'bem',
+                             self.subject + '-head.fif')
+        self.head = geom_bem(fname)
+        self._pts = self.head.get_pts()
+        self.head_mesh, _ = self.head.plot_solid(self.scene.mayavi_scene,
+                                                 color=(.7, .7, .6))
+
+        nasion = pipeline.scalar_scatter(0, 0, 0)
+        pipeline.glyph(nasion.data, figure=fig, color=(0, 1, 0), opacity=0.8,
+                       scale_factor=0.01)
+        self._nasion = nasion
+
+        LAP = pipeline.scalar_scatter(0, 0, 0)
+        pipeline.glyph(LAP, figure=fig, color=(0, 0, 1), opacity=0.8,
+                       scale_factor=0.01)
+        self._LAP = LAP
+
+        RAP = pipeline.scalar_scatter(0, 0, 0)
+        pipeline.glyph(RAP, figure=fig, color=(1, 0, 0), opacity=0.8,
+                       scale_factor=0.01)
+        self._RAP = RAP
+
+        self.scene.mayavi_scene.on_mouse_pick(self._on_mouse_click)
+
+        self.front = True
+        self.scene.disable_render = False
+
+    def _on_mouse_click(self, picker):
+        pid = picker.point_id
+        pts = [self._pts[pid]]
+        if self.set == 'Nasion':
+            self.nasion = pts
+        elif self.set == 'LAP':
+            self.LAP = pts
+        elif self.set == 'RAP':
+            self.RAP = pts
+
+    @traits.on_trait_change('nasion')
+    def on_nasion_change(self):
+        self._nasion.data.points = self.nasion
+
+    @traits.on_trait_change('LAP')
+    def on_LAP_change(self):
+        self._LAP.data.points = self.LAP
+
+    @traits.on_trait_change('RAP')
+    def on_RAP_change(self):
+        self._RAP.data.points = self.RAP
+
+    @traits.on_trait_change('set')
+    def on_set_change(self):
+        if self.set == 'Nasion':
+            self.front = True
+        elif self.set == 'LAP':
+            self.left = True
+        elif self.set == 'RAP':
+            self.right = True
+
+    @traits.on_trait_change('_save')
+    def on_save(self):
+        self.save()
+
+    def save(self, fname=None, overwrite=False):
+        if fname is None:
+            fname = os.path.join(self.subjects_dir, self.subject, 'bem',
+                                 self.subject + '-fiducials.fif')
+
+        if os.path.exists(fname) and not overwrite:
+            title = "Replace %s Fiducials?" % self.subject
+            msg = ("The mri subject %s already has a fiducials file. \nReplace "
+                   "%r?" % (self.subject, fname))
+            answer = confirm(None, msg, title, cancel=False, default=NO)
+            if answer != YES:
+                return
+
+
+
+        dig = [
+               {'kind': 1, 'ident': 1, 'r': np.array(self.LAP[0])},
+               {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
+               {'kind': 1, 'ident': 3, 'r': np.array(self.RAP[0])},
+               ]
+        write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
+
+    @traits.on_trait_change('top,left,right,front')
+    def on_set_view(self, view='front', info=None):
+        self.scene.parallel_projection = True
+        self.scene.camera.parallel_scale = 0.150
+        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
+                      reset_roll=True, figure=self.scene.mayavi_scene)
+        if view == 'left':
+            kwargs.update(azimuth=180, roll=90)
+        elif view == 'right':
+            kwargs.update(azimuth=0, roll=270)
+        elif view == 'top':
+            kwargs.update(elevation=0)
+        self.scene.mlab.view(**kwargs)
 
 
 
