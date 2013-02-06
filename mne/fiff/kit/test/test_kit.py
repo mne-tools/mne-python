@@ -5,8 +5,9 @@
 # License: BSD (3-clause)
 
 from numpy.testing import assert_array_almost_equal
+from ....fiff import Raw, pick_types
 import mne
-import mne.fiff.kit as kit
+from ...kit import kit
 import scipy.io
 import inspect
 import os
@@ -22,20 +23,22 @@ def test_data():
                            elp_fname=os.path.join(data_dir, 'test_elp.txt'),
                            hsp_fname=os.path.join(data_dir, 'test_hsp.txt'),
                            sns_fname=os.path.join(data_dir, 'sns.txt'))
-    #last row is the synthetic trigger channel that is created within module
-    data_py = raw_py._data[:-1, :]
+    # Binary file only stores the sensor channels
+    py_picks = pick_types(raw_py.info)
+    raw_bin = os.path.join(data_dir, 'test_bin.fif')
+    raw_bin = Raw(raw_bin, preload=True)
+    bin_picks = pick_types(raw_bin.info)
+    data_bin, _ = raw_bin[bin_picks]
+    data_py, _ = raw_py[py_picks]
+
     #this .mat was generated using the Yokogawa MEG Reader
     data_Ykgw = os.path.join(data_dir, 'test_Ykgw.mat')
     data_Ykgw = scipy.io.loadmat(data_Ykgw)['data']
+    data_Ykgw = data_Ykgw[py_picks]
 
     assert_array_almost_equal(data_py, data_Ykgw)
 
-    # Binary file only stores the sensor channels
-    raw_bin = os.path.join(data_dir, 'test_bin.fif')
-    raw_bin = mne.fiff.Raw(raw_bin, preload=True)
-    data_bin = raw_bin._data[:157, :]
-    data_py = data_py[:157, :]
-
+    data_py = data_py[bin_picks]
     assert_array_almost_equal(data_py, data_bin)
 
 
