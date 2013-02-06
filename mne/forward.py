@@ -435,12 +435,23 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         nuse_total = sum([s['nuse'] for s in src])
         fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
+        if s['patches'] is not None:
+            use_ave_nn = True
+            logger.info('    Average patch normals will be employed in the '
+                        'rotation to the local surface coordinates....')
+        else:
+            use_ave_nn = False
         for s in src:
             rr = s['rr'][s['vertno'], :]
             fwd['source_rr'][nuse:nuse + s['nuse'], :] = rr
             for p in range(s['nuse']):
                 #  Project out the surface normal and compute SVD
-                nn = s['nn'][s['vertno'][p], :][:, None]
+                if use_ave_nn is True:
+                    nn = s['nn'][s['patches']['p' + str(s['vertno'][p])]]
+                    nn = np.sum(nn, axis=0)[:, np.newaxis]
+                    nn /= np.linalg.norm(nn)
+                else:
+                    nn = s['nn'][s['vertno'][p], :][:, np.newaxis]
                 U, S, _ = linalg.svd(np.eye(3, 3) - nn * nn.T)
                 #  Make sure that ez is in the direction of nn
                 if np.sum(nn.ravel() * U[:, 2].ravel()) < 0:

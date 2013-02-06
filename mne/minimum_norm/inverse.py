@@ -1234,7 +1234,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         methods = FIFF.FIFFV_MNE_EEG
 
     # We set this for consistency with mne C code written inverses
-    if fixed or (depth is None):
+    if depth is None:
         depth_prior = None
     inv_op = dict(eigen_fields=eigen_fields, eigen_leads=eigen_leads,
                   sing=sing, nave=nave, depth_prior=depth_prior,

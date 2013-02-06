@@ -56,7 +56,8 @@ class SourceSpaces(list):
         for ss in self:
             ss_type = ss['type']
             if ss_type == 'vol':
-                r = "'vol', shape=%s, n_used=%i" % (repr(ss['shape']), ss['nuse'])
+                r = ("'vol', shape=%s, n_used=%i"
+                     % (repr(ss['shape']), ss['nuse']))
             elif ss_type == 'surf':
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
             else:
@@ -76,7 +77,184 @@ class SourceSpaces(list):
         write_source_spaces(fname, self)
 
 
-def patch_info(nearest):
+def _add_source_space_geometry_info(s):
+    """Helper for geometry info"""
+    #
+    # Add vertex normals and neighbourhood information
+    #
+    if s['type'] == 'vol':
+        _calculate_vertex_distances(s)
+
+    if s['type'] != 'surf':
+        return
+
+    #
+    # Reallocate the stuff and initialize
+    #
+    s['neighbor_tri'] = [[]] * s['np']
+    s['nneighbor_tri'] = np.zeros(s['np'], dtype=int)
+
+    #
+    # One pass through the triangles will do it
+    #
+
+    s['tri_area'] = np.zeros(s['ntri'])
+    r1 = s['rr'][s['tris'][:, 0], :]
+    r2 = s['rr'][s['tris'][:, 1], :]
+    r3 = s['rr'][s['tris'][:, 2], :]
+    s['tri_cent'] = (r1 + r2 + r3) / 3.0
+    s['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
+    size = np.sqrt(np.sum(s['tri_nn'] ** 2, axis=1))
+    s['tri_area'] = size / 2.0
+    s['tri_nn'] /= size[:, None]
+
+    logger.info('        Triangle normals and neighboring triangles...')
+    for p in xrange(s['ntri']):
+        ii = s['tris'][p]
+        for k in xrange(3):
+            #
+            # Add to the list of neighbors
+            #
+            s['neighbor_tri'][ii[k]] = np.r_[s['neighbor_tri'][ii[k]], p]
+            s['nneighbor_tri'][ii[k]] += 1
+
+    nfix_no_neighbors = 0
+    nfix_defect = 0
+    for k in xrange(s['np']):
+        if s['nneighbor_tri'][k] <= 0:
+            nfix_no_neighbors += 1
+        elif s['nneighbor_tri'][k] < 3:
+            nfix_defect += 1
+            s['nneighbor_tri'][k] = 0
+            s['neighbor_tri'][k] = []
+
+    #
+    # Scale the vertex normals to unit length
+    #
+    for k in xrange(s['np']):
+        if s['nneighbor_tri'][k] > 0:
+            size = np.linalg.norm(s['nn'][k])
+            if size > 0.0:
+                s['nn'][k] /= size
+
+    #
+    # Determine the neighboring vertices
+    #
+    logger.info('        Vertex neighbors...')
+
+    s['neighbor_vert'] = [None] * s['np']
+    s['nneighbor_vert'] = np.zeros(s['np'], int)
+
+    #
+    # We know the number of neighbors beforehand
+    #
+    for k in xrange(s['np']):
+        if s['nneighbor_tri'][k] > 0:
+            s['neighbor_vert'][k] = np.zeros(s['nneighbor_tri'][k], int)
+            s['nneighbor_vert'][k] = s['nneighbor_tri'][k]
+
+    nfix_distinct = 0
+    for k in xrange(s['np']):
+        neighbors = s['neighbor_vert'][k]
+        nneighbors = 0
+        for p in xrange(s['nneighbor_tri'][k]):
+            #
+            # Fit in the other vertices of the neighboring triangle
+            #
+            for c in xrange(3):
+                vert = s['tris'][s['neighbor_tri'][k][p]][c]
+                if vert != k and not np.any(neighbors == vert):
+                    if nneighbors < s['nneighbor_vert'][k]:
+                        neighbors[nneighbors] = vert
+                        nneighbors += 1
+                    else:
+                        raise ValueError('Too many neighbors for vertex '
+                                         '%d.' % k)
+        if nneighbors != s['nneighbor_vert'][k]:
+            nfix_distinct += 1
+            s['nneighbor_vert'][k] = nneighbors
+
+    #
+    # Distance calculation follows
+    #
+    s['vert_dist'] = [None] * s['np']
+    logger.info('        Distances between neighboring vertices...')
+    ndist = 0
+    for k in xrange(s['np']):
+        s['vert_dist'][k] = np.zeros(s['nneighbor_vert'][k])
+        neigh = s['neighbor_vert'][k]
+        nneigh = s['nneighbor_vert'][k]
+        for p in xrange(nneigh):
+            if neigh[p] >= 0:
+                diff = s['rr'][k] - s['rr'][neigh[p]]
+                s['vert_dist'][k][p] = np.linalg.norm(diff)
+            else:
+                s['vert_dist'][k][p] = -1.0
+            ndist += 1
+    logger.info('        [%d distances done]' % ndist)
+
+    s['cm'] = np.mean(s['rr'], axis=0)
+
+    #
+    # Summarize the defects
+    #
+    if nfix_defect > 0:
+        logger.warn('        Warning: %d topological defects were fixed.'
+                    % nfix_defect)
+    if nfix_distinct > 0:
+        logger.warn('        Warning: %d vertices had incorrect number of '
+                    'distinct neighbors (fixed).' % nfix_distinct)
+    if nfix_no_neighbors > 0:
+        logger.warn('      Warning: %d vertices did not have any neighboring '
+                    'triangles (fixed)' % nfix_no_neighbors)
+
+
+def _calculate_vertex_distances(s):
+    """Helper for volumetric source spaces"""
+    s['vert_dist'] = [None] * s['np']
+    logger.info('    Distances between neighboring vertices...')
+    ndist = 0
+    for k in xrange(s['np']):
+        s['vert_dist'][k] = np.zeros(s['nneighbor_vert'][k])
+        neigh = s['neighbor_vert'][k]
+        nneigh = s['nneighbor_vert'][k]
+        for p in xrange(nneigh):
+            if neigh[p] >= 0:
+                s['vert_dist'][k][p] = \
+                        np.linalg.norm(s['rr'][k] - s['rr'][neigh[p]])
+            else:
+                s['vert_dist'][k][p] = -1.0
+        ndist += nneigh
+    logger.info('[%d distances done]' % ndist)
+
+
+def _calculate_patch_area(s, pinfo):
+    """Calculate a patch area"""
+    area = np.zeros(len(pinfo))
+    for ii, p in enumerate(pinfo):
+        for k in xrange(len(p)):
+            nneigh = s['nneighbor_tri'][p[k]]
+            neigh = s['neighbor_tri'][p[k]]
+            for q in xrange(nneigh):
+                area[ii] += s['tri_area'][neigh[q]] / 3.0
+    return area
+
+
+def _calculate_normal_stats(s, pinfo):
+    """Calculate normal stats"""
+    ave_nn = np.zeros((len(pinfo), 3))
+    dev_nn = np.zeros((len(pinfo), 3))
+    for ii, p in enumerate(pinfo):
+        ave_nn[ii] = np.sum(s['nn'][p], axis=0)
+        ave_nn[ii] /= np.linalg.norm(ave_nn[ii])
+        cos_theta = np.dot(np.atleast_2d(s['nn'][p]),
+                           ave_nn[ii][:, np.newaxis])
+        x = np.arccos(np.minimum(np.maximum(cos_theta, -1.0), 1.0))
+        dev_nn[ii] = np.mean(x)
+    return ave_nn, dev_nn
+
+
+def _add_patch_info(s):
     """Patch information in a source space
 
     Generate the patch information from the 'nearest' vector in
@@ -86,17 +264,16 @@ def patch_info(nearest):
 
     Parameters
     ----------
-    nearest : array
-        For each vertex gives the index of its closest neighbor.
-
-    Returns
-    -------
-    pinfo : list
-        List of neighboring vertices
+    s : dict
+        The source space.
     """
+    nearest = s['nearest']
     if nearest is None:
-        pinfo = None
-        return pinfo
+        s['pinfo'] = None
+        s['patches'] = None
+        return
+
+    logger.info('    Computing patch statistics...')
 
     indn = np.argsort(nearest)
     nearest_sorted = nearest[indn]
@@ -108,8 +285,30 @@ def patch_info(nearest):
     pinfo = list()
     for start, stop in zip(starti, stopi):
         pinfo.append(np.sort(indn[start:stop]))
+    s['pinfo'] = pinfo
 
-    return pinfo
+    # There must be a faster way to do figure out which patch each vertex
+    # belongs to...
+    patches = dict()
+    for p in pinfo:
+        inds = np.where(np.in1d(s['vertno'], p))[0]
+        for ii in inds:
+            patches['p' + str(s['vertno'][ii])] = p
+    s['patches'] = patches
+
+    # MNE C code uses 'patches' differently, but current implementation
+    # is too slow, and not quite equivalent:
+
+    #_add_source_space_geometry_info(s)
+    #logger.info('        areas, average normals, and mean deviations...')
+    #area = _calculate_patch_area(s, pinfo)
+    #ave_nn, dev_nn = _calculate_normal_stats(s, pinfo)
+
+    #for ii, (p, ann, dnn) in enumerate(zip(pinfo, ave_nn, dev_nn)):
+    #    patches.append(dict(vert=ii, memb_vert=p, nmemb=len(p), area=None,
+    #                        ave_nn=ann, dev_nn=dnn))
+    #s['patches'] = patches
+    logger.info('        Patch information added...')
 
 
 @verbose
@@ -359,9 +558,7 @@ def _read_one_source_space(fid, this, verbose=None):
         res['nearest'] = tag1.data
         res['nearest_dist'] = tag2.data.T
 
-    res['pinfo'] = patch_info(res['nearest'])
-    if (res['pinfo'] is not None):
-        logger.info('Patch information added...')
+    _add_patch_info(res)
 
     #   Distances
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
@@ -375,7 +572,7 @@ def _read_one_source_space(fid, this, verbose=None):
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None):
-        logger.info('Distance information added...')
+        logger.info('    Distance information added...')
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
     if tag is not None:
@@ -389,17 +586,18 @@ def complete_source_space_info(this, verbose=None):
     """Add more info on surface
     """
     #   Main triangulation
-    logger.info('    Completing triangulation info...')
-    this['tri_area'] = np.zeros(this['ntri'])
-    r1 = this['rr'][this['tris'][:, 0], :]
-    r2 = this['rr'][this['tris'][:, 1], :]
-    r3 = this['rr'][this['tris'][:, 2], :]
-    this['tri_cent'] = (r1 + r2 + r3) / 3.0
-    this['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
-    size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
-    this['tri_area'] = size / 2.0
-    this['tri_nn'] /= size[:, None]
-    logger.info('[done]')
+    if 'tri_area' not in this:
+        logger.info('    Completing triangulation info...')
+        this['tri_area'] = np.zeros(this['ntri'])
+        r1 = this['rr'][this['tris'][:, 0], :]
+        r2 = this['rr'][this['tris'][:, 1], :]
+        r3 = this['rr'][this['tris'][:, 2], :]
+        this['tri_cent'] = (r1 + r2 + r3) / 3.0
+        this['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
+        size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
+        this['tri_area'] = size / 2.0
+        this['tri_nn'] /= size[:, None]
+        logger.info('[done]')
 
     #   Selected triangles
     logger.info('    Completing selection triangulation info...')
