@@ -73,17 +73,20 @@ def _compare(a, b):
 
 def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals,
                              check_depth=True):
+    # depth prior
     if check_depth:
         if inv_1['depth_prior'] is not None:
             assert_array_almost_equal(inv_1['depth_prior']['data'],
                                       inv_2['depth_prior']['data'])
         else:
             assert_true(inv_2['depth_prior'] is None)
+    # orient prior
     if inv_1['orient_prior'] is not None:
         assert_array_almost_equal(inv_1['orient_prior']['data'],
                                   inv_2['orient_prior']['data'])
     else:
         assert_true(inv_2['orient_prior'] is None)
+    # source cov
     assert_array_almost_equal(inv_1['source_cov']['data'],
                               inv_2['source_cov']['data'])
 
@@ -145,7 +148,7 @@ def test_apply_inverse_operator():
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
     assert_true(stc.data.min() > 0)
-    assert_true(stc.data.max() < 9.0)
+    assert_true(stc.data.max() < 10.0)
     assert_true(stc.data.mean() > 0.1)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
@@ -163,18 +166,24 @@ def test_apply_inverse_operator():
 
 
 def test_make_inverse_operator_fixed():
-    """Test MNE inverse computation w/ fixed orientation (& no depth weighting)
+    """Test MNE inverse computation (fixed orientation)
     """
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     fwd_1 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=False)
     fwd_2 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=True)
 
-    # can't make fixed inv without surf ori fwd
+    # can't make depth-weighted fixed inv without surf ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_1,
                   noise_cov, depth=0.8, loose=None, fixed=True)
     # can't make fixed inv with depth weighting without free ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
                   noise_cov, depth=0.8, loose=None, fixed=True)
+    # can't make non-depth-weighted fixed inv with surf_ori fwd
+    # (otherwise the average normal could be employed)
+    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_op,
+                  noise_cov, depth=None, loose=None, fixed=True)
+
+    # compare to C solution w/fixed
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,
                                    loose=None, fixed=True)
     _compare_io(inv_op)
@@ -183,14 +192,11 @@ def test_make_inverse_operator_fixed():
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_fixed) == 302)
 
-    # Now without depth weighting, these should be equivalent
+    # now compare to C solution
+    # note that the forward solution must not be surface-oriented
+    # to get equivalency (surf_ori=True changes the normals)
     inv_op = make_inverse_operator(evoked.info, fwd_2, noise_cov, depth=None,
                                    loose=None, fixed=True)
-    inv_2 = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=None,
-                                  loose=None, fixed=True)
-    _compare_inverses_approx(inv_op, inv_2, evoked, 2)
-    _compare_io(inv_op)
-    # now compare to C solution
     inverse_operator_nodepth = read_inverse_operator(fname_inv_nodepth)
     _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 2)
     # Inverse has 306 channels - 4 proj = 302
@@ -198,7 +204,7 @@ def test_make_inverse_operator_fixed():
 
 
 def test_make_inverse_operator_free():
-    """Test MNE inverse computation with free orientation
+    """Test MNE inverse computation (free orientation)
     """
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     fwd_1 = read_forward_solution(fname_fwd, surf_ori=False, force_fixed=False)
@@ -347,7 +353,7 @@ def test_apply_mne_inverse_epochs():
 
 
 def test_make_inverse_operator_bads():
-    """Test MNE inverse computation given a mismatch of bad channels.
+    """Test MNE inverse computation given a mismatch of bad channels
     """
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
 
