@@ -20,7 +20,7 @@ import traits.api as traits
 from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import MriHeadFitter, geom_bem
+from .coreg import MriHeadFitter, HeadMriFitter, geom_bem
 from ..fiff import Raw, FIFF, write_fiducials
 from ..utils import get_subjects_dir
 
@@ -376,6 +376,133 @@ class Fiducials(traits.HasTraits):
                {'kind': 1, 'ident': 3, 'r': np.array(self.RAP[0])},
                ]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
+
+    @traits.on_trait_change('top,left,right,front')
+    def on_set_view(self, view='front', info=None):
+        self.scene.parallel_projection = True
+        self.scene.camera.parallel_scale = 0.150
+        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
+                      reset_roll=True, figure=self.scene.mayavi_scene)
+        if view == 'left':
+            kwargs.update(azimuth=180, roll=90)
+        elif view == 'right':
+            kwargs.update(azimuth=0, roll=270)
+        elif view == 'top':
+            kwargs.update(elevation=0)
+        self.scene.mlab.view(**kwargs)
+
+
+
+class HeadMriCoreg(traits.HasTraits):
+    """
+    Mayavi viewer for estimating the head mri transform.
+
+    """
+    # views
+    right = traits.Button()
+    front = traits.Button()
+    left = traits.Button()
+    top = traits.Button()
+
+    # parameters
+    nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
+    rotation = traits.Array(float, (1, 3))
+
+    # fitting
+    fit = traits.Button(label='Fit')
+    restore_fit = traits.Button(label='Restore Last Fit')
+
+    # saving
+    save = traits.Button(label='Save Trans')
+
+    scene = traits.Instance(MlabSceneModel, ())
+
+    view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+                     height=500, width=500, show_label=False),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
+                VGroup('nasion',
+                       HGroup('fit', 'restore_fit', show_labels=False),
+                       'rotation', label='Transform', show_border=True),
+                HGroup('save', show_labels=False),
+                )
+
+    def __init__(self, raw, subject=None, subjects_dir=None):
+        """
+        Parameters
+        ----------
+        raw : str(path)
+            path to a raw file containing the digitizer data.
+        subject : str
+            name of the mri subject.
+            Can be None if the raw file-name starts with "{subject}_".
+        subjects_dir : None | path
+            Override the SUBJECTS_DIR environment variable
+            (sys.environ['SUBJECTS_DIR'])
+
+        """
+        self.fitter = HeadMriFitter(raw, subject, subjects_dir=subjects_dir)
+        self._last_fit = None
+
+        traits.HasTraits.__init__(self)
+        self.configure_traits()
+
+    @traits.on_trait_change('scene.activated')
+    def on_init(self):
+        fig = self.scene.mayavi_scene
+        self.scene.disable_render = True
+
+        self.fitter.plot(fig=fig)
+        mlab.text(0.01, 0.01, self.fitter.subject, figure=fig, width=0.1)
+
+        self.left = True
+        self.scene.disable_render = False
+        self._last_fit = None
+
+    @traits.on_trait_change('fit')
+    def on_fit(self):
+        prog = ProgressDialog(title="Fitting...", message="Fitting head to "
+                              "mri...")
+        prog.open()
+        prog.update(0)
+        self._last_fit = self.fitter.fit()
+        self.on_restore_fit()
+        prog.close()
+
+    @traits.on_trait_change('restore_fit')
+    def on_restore_fit(self):
+        if self._last_fit is None:
+            error(None, "No fit has been performed", "No Fit")
+            return
+
+        self.rotation = [self._last_fit]
+
+    @traits.on_trait_change('save')
+    def on_save(self):
+        trans_fname = self.fitter.get_trans_fname()
+        if os.path.exists(trans_fname):
+            title = "Replace trans file for %s?" % self.fitter.subject
+            msg = ("A trans file named %r already exists. \nReplace "
+                   "%r?" % (os.path.basename(trans_fname), trans_fname))
+            answer = confirm(None, msg, title, cancel=False, default=NO)
+            if answer != YES:
+                return
+
+        try:
+            self.fitter.save_trans(trans_fname, overwrite=True)
+        except Exception as e:
+            error(None, str(e), "Error while Saving")
+
+    @traits.on_trait_change('rotation')
+    def on_set_rot(self):
+        rot = np.array(self.rotation[0])
+        self.fitter.set(rot=rot)
+
+    @traits.on_trait_change('nasion')
+    def on_set_trans(self):
+        trans = np.array(self.nasion[0])
+        self.fitter.set(trans=trans)
 
     @traits.on_trait_change('top,left,right,front')
     def on_set_view(self, view='front', info=None):
