@@ -145,7 +145,7 @@ def test_apply_inverse_operator():
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
     assert_true(stc.data.min() > 0)
-    assert_true(stc.data.max() < 9.0)
+    assert_true(stc.data.max() < 10.0)
     assert_true(stc.data.mean() > 0.1)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
