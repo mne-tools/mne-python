@@ -9,7 +9,7 @@ from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
                     plot_evoked, plot_sparse_source_estimates, \
                     plot_source_estimates, plot_cov, mne_analyze_colormap, \
                     plot_image_epochs, plot_connectivity_circle, \
-                    circular_layout
+                    circular_layout, plot_drop_log
 from mne.datasets.sample import data_path
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -178,3 +178,12 @@ def test_plot_connectivity_circle():
     con = np.random.randn(68, 68)
     plot_connectivity_circle(con, label_names, n_lines=300,
                              node_angles=node_angles, title='test')
+
+
+def test_plot_drop_log():
+    """Test plotting a drop log
+    """
+    plot_drop_log(epochs.drop_log)
+    plot_drop_log([['One'], [], []])
+    plot_drop_log([['One'], ['Two'], []])
+    plot_drop_log([['One'], ['One', 'Two'], []])

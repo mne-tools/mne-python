@@ -25,7 +25,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices
+from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
@@ -1712,3 +1712,42 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         pl.setp(cb_yticks, color=textcolor)
 
     return fig
+
+
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown'):
+    """Show the channel stats based on a drop_log from Epochs
+
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    threshold : float
+        The percentage threshold to use to decide whether or not to
+        plot. Default is zero (always plot).
+    n_max_plot : int
+        Maximum number of channels to show stats for.
+    subject : str
+        The subject name to use in the title of the plot.
+
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
+    import pylab as pl
+    ch_names = np.array(list(set([ch for d in drop_log for ch in d])))
+    scores = np.r_[[in1d(ch_names, d) for d in drop_log]]
+    counts = 100 * np.mean(scores, axis=0)
+    perc = 100 * np.mean(np.any(scores, axis=1))
+    n_plot = min(n_max_plot, len(ch_names))
+    if perc < threshold or len(ch_names) == 0:
+        return perc
+    order = np.flipud(np.argsort(counts))
+    pl.figure()
+    pl.title('%s: %0.1f%%' % (subject, perc))
+    pl.bar(np.arange(n_plot), counts[order[:n_plot]])
+    pl.xticks(np.arange(n_plot), ch_names[order[:n_plot]], rotation=45)
+    pl.tick_params(axis='x', which='major', labelsize=10)
+    pl.ylabel('% of epochs rejected')
+    pl.show()
+    return perc
