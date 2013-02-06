@@ -303,7 +303,7 @@ def test_ica_additional():
 def test_run_ica():
     """Test run_ica function"""
     params = []
-    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx params
+    params += [(None, -1, slice(2), [0, 1, 700])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
         run_ica(raw, n_components=.9, start=0, stop=100, start_find=0,
