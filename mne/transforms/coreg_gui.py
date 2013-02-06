@@ -21,7 +21,7 @@ from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
 from tvtk.pyface.scene_editor import SceneEditor
 
 from .coreg import MriHeadFitter, HeadMriFitter, geom_bem
-from ..fiff import Raw, FIFF, write_fiducials
+from ..fiff import Raw, FIFF, read_fiducials, write_fiducials
 from ..utils import get_subjects_dir
 
 
@@ -282,8 +282,7 @@ class Fiducials(traits.HasTraits):
         self.subjects_dir = get_subjects_dir(subjects_dir)
         self.subject = subject
 
-        if fid is not None:
-            raise NotImplementedError()
+        self._fid_file = fid
 
         traits.HasTraits.__init__(self)
         self.configure_traits()
@@ -316,6 +315,18 @@ class Fiducials(traits.HasTraits):
         self._RAP = RAP
 
         self.scene.mayavi_scene.on_mouse_pick(self._on_mouse_click)
+
+        if self._fid_file is not None:
+            fids, _ = read_fiducials(self._fid_file)
+            for fid in fids:
+                ident = fid['ident']
+                r = [ fid['r']]
+                if ident == 1:
+                    self.LAP = r
+                elif ident == 2:
+                    self.nasion = r
+                elif ident == 3:
+                    self.RAP = r
 
         self.front = True
         self.scene.disable_render = False
