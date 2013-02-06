@@ -270,7 +270,7 @@ def _add_patch_info(s):
     nearest = s['nearest']
     if nearest is None:
         s['pinfo'] = None
-        s['patches'] = None
+        s['patch_inds'] = None
         return
 
     logger.info('    Computing patch statistics...')
@@ -287,14 +287,13 @@ def _add_patch_info(s):
         pinfo.append(np.sort(indn[start:stop]))
     s['pinfo'] = pinfo
 
-    # There must be a faster way to do figure out which patch each vertex
-    # belongs to...
-    patches = dict()
-    for p in pinfo:
-        inds = np.where(np.in1d(s['vertno'], p))[0]
-        for ii in inds:
-            patches['p' + str(s['vertno'][ii])] = p
-    s['patches'] = patches
+    # Is there a faster way to figure out which patch each vertex belongs to?
+    inds = np.repeat(np.arange(len(pinfo), dtype=int), [len(p) for p in pinfo])
+    verts = np.concatenate(pinfo)
+    order = np.argsort(verts)
+    # we shouldn't need this check, but just in case...
+    assert np.all(verts[order] == np.arange(len(verts), dtype=int))
+    s['patch_inds'] = inds[order][s['vertno']]
 
     # MNE C code uses 'patches' differently, but current implementation
     # is too slow, and not quite equivalent:
@@ -308,7 +307,7 @@ def _add_patch_info(s):
     #    patches.append(dict(vert=ii, memb_vert=p, nmemb=len(p), area=None,
     #                        ave_nn=ann, dev_nn=dnn))
     #s['patches'] = patches
-    logger.info('        Patch information added...')
+    logger.info('    Patch information added...')
 
 
 @verbose

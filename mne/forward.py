@@ -399,16 +399,12 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd['src'] = src
 
     #   Handle the source locations and orientations
+    fwd['source_rr'] = np.concatenate([s['rr'][s['vertno'], :] for s in src],
+                                      axis=0)
     if is_fixed_orient(fwd) or force_fixed:
         nuse = 0
-        fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
-        fwd['source_nn'] = np.zeros((fwd['nsource'], 3))
-        for s in src:
-            fwd['source_rr'][nuse:nuse + s['nuse'], :] = \
-                                                    s['rr'][s['vertno'], :]
-            fwd['source_nn'][nuse:nuse + s['nuse'], :] = \
-                                                    s['nn'][s['vertno'], :]
-            nuse += s['nuse']
+        fwd['source_nn'] = np.concatenate([s['nn'][s['vertno'], :]
+                                           for s in src], axis=0)
 
         #   Modify the forward solution for fixed source orientations
         if not is_fixed_orient(fwd):
@@ -430,24 +426,21 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     elif surf_ori:
         #   Rotate the local source coordinate systems
         logger.info('    Converting to surface-based source orientations...')
-        nuse = 0
-        pp = 0
         nuse_total = sum([s['nuse'] for s in src])
-        fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
         fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
-        if s['patches'] is not None:
+        if s['patch_inds'] is not None:
             use_ave_nn = True
             logger.info('    Average patch normals will be employed in the '
                         'rotation to the local surface coordinates....')
         else:
             use_ave_nn = False
+        nuse = 0
+        pp = 0
         for s in src:
-            rr = s['rr'][s['vertno'], :]
-            fwd['source_rr'][nuse:nuse + s['nuse'], :] = rr
             for p in range(s['nuse']):
                 #  Project out the surface normal and compute SVD
                 if use_ave_nn is True:
-                    nn = s['nn'][s['patches']['p' + str(s['vertno'][p])]]
+                    nn = s['nn'][s['pinfo'][s['patch_inds'][p]], :]
                     nn = np.sum(nn, axis=0)[:, np.newaxis]
                     nn /= np.linalg.norm(nn)
                 else:
@@ -458,7 +451,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                     U *= -1.0
                 fwd['source_nn'][pp:pp + 3, :] = U.T
                 pp += 3
-
             nuse += s['nuse']
 
         surf_rot = _block_diag(fwd['source_nn'].T, 3)
@@ -469,13 +461,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         logger.info('[done]')
     else:
         logger.info('    Cartesian source orientations...')
-        nuse = 0
-        fwd['source_rr'] = np.zeros((fwd['nsource'], 3))
-        for s in src:
-            rr = s['rr'][s['vertno'], :]
-            fwd['source_rr'][nuse:nuse + s['nuse'], :] = rr
-            nuse += s['nuse']
-
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
         logger.info('[done]')
 
