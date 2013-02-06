@@ -263,8 +263,8 @@ class HeadMriFitter(object):
         self._raw_dir = raw_dir
         self._raw_fname = raw_fname
         self._raw_name = raw_name
-        self._subject = subject
-        self._subjects_dir = subjects_dir
+        self.subject = subject
+        self.subjects_dir = subjects_dir
 
         self.reset()
 
@@ -349,7 +349,7 @@ class HeadMriFitter(object):
 
     def get_trans_fname(self, subject=None):
         if subject is None:
-            subject = self._subject
+            subject = self.subject
         return self._trans_fname.format(subject=subject)
 
     def plot(self, size=(512, 512), fig=None):
@@ -380,7 +380,7 @@ class HeadMriFitter(object):
 
         """
         if fname is None:
-            fname = self.get_trans_fname(self._subject)
+            fname = self.get_trans_fname(self.subject)
 
         if os.path.exists(fname):
             if overwrite:
@@ -460,7 +460,7 @@ class MriHeadFitter(HeadMriFitter):
         super(MriHeadFitter, self).__init__(raw, subject=s_from,
                                             subjects_dir=subjects_dir)
 
-        self._paths = find_mri_paths(s_from, self._subjects_dir)
+        self._paths = find_mri_paths(s_from, self.subjects_dir)
 
     def fit(self, scale=3, **kwargs):
         """Fit the head to the mri using rotation and optionally translation
@@ -565,7 +565,7 @@ class MriHeadFitter(HeadMriFitter):
         --------
         MriHeadFitter.save_trans : save only the trans file
         """
-        s_from = self._subject
+        s_from = self.subject
         if s_to is None:
             s_to = self._raw_name.split('_')[0]
         if trans_fname is None:
@@ -666,7 +666,7 @@ class MriHeadFitter(HeadMriFitter):
                                  block=False):
         "Run mne_setup_forward_model command"
         env = os.environ.copy()
-        env['SUBJECTS_DIR'] = self._subjects_dir
+        env['SUBJECTS_DIR'] = self.subjects_dir
         cmd = ["mne_setup_forward_model", "--subject", s_to, "--ico", str(ico)]
         if surf:
             cmd.append('--surf')
