@@ -14,7 +14,7 @@ data_path = sample.data_path()
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 fwd = read_forward_solution(fname_fwd, force_fixed=True)
-label_names = ['Aud-lh', 'Aud-rh']
+label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                     '%s.label' % label)) for label in label_names]
 
@@ -37,17 +37,45 @@ def test_generate_stc():
     stc_data = np.ones((len(labels), n_times))
     stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
 
-    assert_true(np.all(stc.data == 1.0))
-    assert_true(stc.data.shape[1] == n_times)
+    for label in labels:
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
+        if hemi_idx == 1:
+            idx += len(stc.vertno[0])
+
+        assert_true(np.all(stc.data[idx] == 1.0))
+        assert_true(stc.data[idx].shape[1] == n_times)
 
     # test with function
     fun = lambda x: x ** 2
     stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
-    print stc.data
-    # the first label has value 0, the second value 2
-    assert_array_almost_equal(stc.data[0], np.zeros(n_times))
-    assert_array_almost_equal(stc.data[-1], 4 * np.ones(n_times))
+    # the first label has value 0, the second value 2, the third value 6
+
+    for i, label in enumerate(labels):
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
+        # idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        # idx = idx_tmp.copy()
+        # for k in range(len(idx_tmp)):
+        #     idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
+        if hemi_idx == 1:
+            idx += len(stc.vertno[0])
+
+        assert_array_almost_equal(stc.data[idx],
+                        ((2. * i) ** 2.) * np.ones((len(idx), n_times)))
 
 
 def test_generate_sparse_stc():
@@ -57,10 +85,24 @@ def test_generate_sparse_stc():
     tmin = 0
     tstep = 1e-3
 
-    stc_data = np.ones((len(labels), n_times))
+    stc_data = np.ones((len(labels), n_times))\
+                     * np.arange(len(labels))[:, None]
     stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
 
-    assert_true(np.all(stc_1.data == 1.0))
+    for i, label in enumerate(labels):
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc_1.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc_1.vertno[hemi_idx], idx)
+
+        if hemi_idx == 1:
+            idx += len(stc_1.vertno[0])
+
+        assert_true(np.all(stc_1.data[idx] == float(i)))
+
     assert_true(stc_1.data.shape[0] == len(labels))
     assert_true(stc_1.data.shape[1] == n_times)
 
