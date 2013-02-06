@@ -1538,10 +1538,17 @@ def run_ica(raw, n_components, max_pca_components=100,
     logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 
-    return _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
+    try:
+        ica = _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
                 stop_find=stop_find, ecg_channel=ecg_channel,
                 ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
                 eog_channel=eog_channel, eog_score_func=eog_score_func,
                 eog_criterion=ecg_criterion, skew_criterion=skew_criterion,
                 kurt_criterion=kurt_criterion, var_criterion=var_criterion,
                 add_nodes=add_nodes)
+    except:
+        logger.info('Detection failed. Returning ica without indices marked'
+                    ' for exclusion. Please continue using the '
+                    'ica.detect_artifacts method')
+    finally:
+        return ica
