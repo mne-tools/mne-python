@@ -269,6 +269,53 @@ def write_events(filename, event_list):
         f.close()
 
 
+def find_steps(data, first_samp=0, pad_start=None, pad_stop=None):
+    """Find all steps in data from a stim channel
+
+    Parameters
+    ----------
+    data : array, shape = (1, n_samples)
+        The stim channel data
+    first_samp : int
+        The index of the first sample (if not 0)
+    edges : None | int
+        Value to assume outside of data.
+    pad_start, pad_stop : None | int
+        Values to assume outside of the stim channel (e.g., if pad_start=0 and
+        the stim channel starts with value 5, an event of [0, 0, 5] will be
+        inserted at the beginning). With None, no steps will be inserted.
+
+    Returns
+    -------
+    events : array, shape = (n_samples, 3)
+        For each step in the stim channel the values [sample, v_from, v_to].
+        The first column contains the event time in samples (the first sample
+        with the new value). The second column contains the stim channel value
+        before the step, and the third column contains value after the step.
+
+    """
+    changed = np.diff(data, axis=1) != 0
+    idx = np.where(np.all(changed, axis=0))[0]
+    pre_step = data[0, idx]
+    idx += 1
+    post_step = data[0, idx]
+    idx += int(first_samp)
+    events = np.c_[idx, pre_step, post_step]
+
+    if pad_start is not None:
+        v = events[0, 1]
+        if v != pad_start:
+            events = np.insert(events, 0, [[0, pad_start, v]], axis=0)
+
+    if pad_stop is not None:
+        v = events[-1, 2]
+        if v != pad_stop:
+            last_idx = len(data[0]) + int(first_samp)
+            events = np.append(events, [[last_idx, v, pad_stop]], axis=0)
+
+    return events
+
+
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, detect='onset',
                 consecutive='increasing', min_duration=0):
@@ -356,55 +403,66 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     pick = pick_channels(raw.info['ch_names'], include=stim_channel)
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
-    data, times = raw[pick, :]
+    data, _ = raw[pick, :]
     if np.any(data < 0):
         logger.warn('Trigger channel contains negative values. '
                     'Taking absolute value.')
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
 
+    events = find_steps(data, first_samp=raw.first_samp, pad_stop=0)
+
     # Determine event onsets and offsets
-    changed = np.diff(data, axis=1) != 0
-    if consecutive:
-        onsets = np.logical_and(changed, data[:, 1:] > 0)
-        offsets = np.logical_and(changed, data[:, :-1] > 0)
+    if consecutive == 'increasing':
+        onsets = (events[:, 2] > events[:, 1])
+        offsets = np.logical_and(np.logical_or(onsets, (events[:, 2] == 0)),
+                                 (events[:, 1] > 0))
+    elif consecutive:
+        onsets = (events[:, 2] > 0)
+        offsets = (events[:, 1] > 0)
     else:
-        onsets = np.logical_and(changed, data[:, :-1] == 0)
-        offsets = np.logical_and(changed, data[:, 1:] == 0)
+        onsets = (events[:, 1] == 0)
+        offsets = (events[:, 2] == 0)
 
-    onset_idx = np.where(np.all(onsets, axis=0))[0] + 1
-    offset_idx = np.where(np.all(offsets, axis=0))[0]
+    onset_idx = np.where(onsets)[0]
+    offset_idx = np.where(offsets)[0]
 
-    # Add onset indices for events at the beginning of the data
-    if np.all(data[:, 0] != 0, axis=0):
+    # delete orphaned onsets/offsets
+    if onset_idx[0] > offset_idx[0]:
+        logger.info("Removing orphaned offset at the beginning of the file.")
         offset_idx = np.delete(offset_idx, 0)
 
-    # Add offset indices for events at the end of the data
-    if np.all(data[:, -1] != 0, axis=0):
-        offset_idx = np.append(offset_idx, data.shape[1] - 1)
-
-    if consecutive == 'increasing':
-        ignore = np.where(np.logical_and(onset_idx[1:] == offset_idx[:-1] + 1,
-                                         data[0, onset_idx[1:]] <
-                                         data[0, onset_idx[:-1]]))[0]
-        onset_idx = np.delete(onset_idx, ignore + 1)
-        offset_idx = np.delete(offset_idx, ignore)
+    if onset_idx[-1] > offset_idx[-1]:
+        logger.info("Removing orphaned onset at the end of the file.")
+        onset_idx = np.delete(onset_idx, -1)
 
     # Only keep events longer than min_duration
-    keep = offset_idx - onset_idx >= np.round(min_duration *
-                                              raw.info['sfreq']) - 1
+    if min_duration > 0:
+        duration = events[offset_idx][:, 0] - events[onset_idx][:, 0]
+        keep = (duration >= min_duration * raw.info['sfreq'])
+    else:
+        keep = None
 
     if detect == 'onset':
-        idx = onset_idx[keep]
+        idx = onset_idx
     elif detect == 'offset':
-        idx = offset_idx[keep]
+        idx = offset_idx
     else:
         raise Exception("Invalid detect parameter %r" % detect)
 
-    events_id = data[0, idx].astype(np.int)
-    idx += raw.first_samp
+    if keep is not None:
+        n_reject = keep.sum()
+        if n_reject > 0:
+            logger.info("Removing %s events with duration < "
+                        "%s" % (n_reject, min_duration))
+            idx = idx[keep]
 
-    events = np.c_[idx, np.zeros_like(idx), events_id]
+    events = events[idx]
+
+    if detect == 'offset':
+        events[:, 1:] = events[:, 2:0:-1]
+        events[:, 0] -= 1
+
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))
     return events
