@@ -1715,7 +1715,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     return fig
 
 
-def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown'):
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
+                  color=(0.9, 0.9, 0.9), width=0.8):
     """Show the channel stats based on a drop_log from Epochs
 
     drop_log : list of lists
@@ -1727,6 +1728,10 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown'):
         Maximum number of channels to show stats for.
     subject : str
         The subject name to use in the title of the plot.
+    color : tuple | str
+        Color to use for the bars.
+    width : float
+        Width of the bars.
 
     Returns
     -------
@@ -1746,9 +1751,13 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown'):
     order = np.flipud(np.argsort(counts))
     pl.figure()
     pl.title('%s: %0.1f%%' % (subject, perc))
-    pl.bar(np.arange(n_plot), counts[order[:n_plot]])
-    pl.xticks(np.arange(n_plot), ch_names[order[:n_plot]], rotation=45)
+    x = np.arange(n_plot)
+    pl.bar(x, counts[order[:n_plot]], color=color, width=width)
+    pl.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
+              horizontalalignment='right')
     pl.tick_params(axis='x', which='major', labelsize=10)
     pl.ylabel('% of epochs rejected')
+    pl.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
+    pl.grid(True, axis='y')
     pl.show()
     return perc
