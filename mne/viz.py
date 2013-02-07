@@ -11,6 +11,7 @@ import warnings
 from itertools import cycle
 from functools import partial
 from operator import add
+from collections import Counter
 
 import copy
 import inspect
@@ -25,7 +26,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices
+from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
@@ -1712,3 +1713,51 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         pl.setp(cb_yticks, color=textcolor)
 
     return fig
+
+
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
+                  color=(0.9, 0.9, 0.9), width=0.8):
+    """Show the channel stats based on a drop_log from Epochs
+
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    threshold : float
+        The percentage threshold to use to decide whether or not to
+        plot. Default is zero (always plot).
+    n_max_plot : int
+        Maximum number of channels to show stats for.
+    subject : str
+        The subject name to use in the title of the plot.
+    color : tuple | str
+        Color to use for the bars.
+    width : float
+        Width of the bars.
+
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
+    import pylab as pl
+    scores = Counter([ch for d in drop_log for ch in d])
+    ch_names = np.array(scores.keys())
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log])
+    if perc < threshold or len(ch_names) == 0:
+        return perc
+    counts = 100 * np.array(scores.values(), dtype=float) / len(drop_log)
+    n_plot = min(n_max_plot, len(ch_names))
+    order = np.flipud(np.argsort(counts))
+    pl.figure()
+    pl.title('%s: %0.1f%%' % (subject, perc))
+    x = np.arange(n_plot)
+    pl.bar(x, counts[order[:n_plot]], color=color, width=width)
+    pl.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
+              horizontalalignment='right')
+    pl.tick_params(axis='x', which='major', labelsize=10)
+    pl.ylabel('% of epochs rejected')
+    pl.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
+    pl.grid(True, axis='y')
+    pl.show()
+    return perc
