@@ -1055,7 +1055,9 @@ class Raw(object):
             If None, the end time of the raw file is used.
         tol : float
             Tolerance for singular values to consider non-zero in
-            calculating the rank.
+            calculating the rank. The singular values are calculated
+            in this method such that independent data are expected to
+            have singular values around one.
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
