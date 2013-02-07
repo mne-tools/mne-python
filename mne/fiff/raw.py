@@ -1037,7 +1037,8 @@ class Raw(object):
         return _index_as_time(index, self.info['sfreq'], self.first_samp,
                               use_first_samp)
 
-    def estimate_rank(self, tmin=0.0, tmax=30.0, scales=[1e11, 1e5], tol=1e-2):
+    def estimate_rank(self, tstart=0.0, tstop=30.0, scales=[1e11, 1e5],
+                      tol=1e-2):
         """Estimate rank of the raw data
 
         This function is meant to provide a reasonable estimate of the rank.
@@ -1046,17 +1047,18 @@ class Raw(object):
 
         Parameters
         ----------
-        tmin : float
-            Start time to use for rank estimation.
-        tmax : float | None
-            End time to use for rank estimation. Default is 30 sec.
+        tstart : float
+            Start time to use for rank estimation. Defaul is 0.0.
+        tstop : float | None
+            End time to use for rank estimation. Default is 30.0.
+            If None, the end time of the raw file is used.
         scales : list
             List of scales for meg and eeg channels. Should only be
             needed if your channels have abnormal amplitudes.
         tol : float
             Tolerance for singular values to consider non-zero in
-            calculating the rank (after scaling singular values by
-            scales).
+            calculating the rank (after scaling the meg and eeg
+            singular values by scales to ideally be close to 1).
 
         Returns
         -------
@@ -1066,26 +1068,26 @@ class Raw(object):
         Notes
         -----
         If data are not pre-loaded, the appropriate data will be loaded
-        by this function.
+        by this function (can be memory intensive).
 
         Projectors are not taken into account unless they have been applied
         to the data using apply_projector(), since it is not always possible
         to tell whether or not projectors have been applied previously.
 
-        Bad channels will be excluded.
+        Bad channels will be excluded from calculations.
 
         MEG and EEG channels are usually independent, so a reasonable total
-        rank estimate can be obtained by adding their ranks.
+        rank estimate can be obtained by adding their ranks as sum(ranks).
 
         Estimation for SSS data with SSP projectors applied to MEG channels
-        is known to over-estimate the total rank.
+        will likely over-estimate the resulting MEG rank.
         """
-        smin = max(0.0, self.time_as_index(tmin))
-        if tmax is None:
-            smax = self.n_times - 1
+        start = max(0.0, self.time_as_index(tstart))
+        if tstop is None:
+            stop = self.n_times - 1
         else:
-            smax = min(self.n_times - 1, self.time_as_index(tmax))
-        tslice = slice(smin, smax + 1)
+            stop = min(self.n_times - 1, self.time_as_index(tstop))
+        tslice = slice(start, stop + 1)
         if not self._preloaded:
             data = self[:, tslice][0]
         else:
@@ -1099,9 +1101,6 @@ class Raw(object):
             if isinstance(p, slice) or len(p) > 0:
                 s = linalg.svd(data[p, :], compute_uv=False)
                 ranks[ri] = np.sum(s * scale >= tol)
-        if len(ranks) == 0:
-            raise RuntimeError('ranks could not be computed -- neither meg '
-                               'nor eeg data found')
         return ranks
 
     @property
