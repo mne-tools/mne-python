@@ -5,7 +5,8 @@
 
 import os.path as op
 from nose.tools import assert_true, assert_equal, assert_raises
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, \
+                          assert_allclose
 import numpy as np
 import copy as cp
 import warnings
@@ -148,6 +149,41 @@ def test_evoked_arithmetic():
     assert_true(evoked_sum.nave == (evoked1.nave + evoked2.nave))
     evoked_diff = evoked1 - evoked1
     assert_array_equal(np.zeros_like(evoked.data), evoked_diff.data)
+
+
+def test_evoked_io_from_epochs():
+    """Test IO of evoked data made from epochs
+    """
+    # offset our tmin so we don't get exactly a zero value when decimating
+    with warnings.catch_warnings(True) as w:
+        epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
+                        picks=picks, baseline=(None, 0), decim=5)
+    assert_true(len(w) == 1)
+    evoked = epochs.average()
+    evoked.save(op.join(tempdir, 'evoked.fif'))
+    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
+                    atol=1 / evoked.info['sfreq'])
+
+    # now let's do one with negative time
+    with warnings.catch_warnings(True) as w:
+        epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
+                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    evoked = epochs.average()
+    evoked.save(op.join(tempdir, 'evoked.fif'))
+    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
+
+    # should be equivalent to a cropped original
+    with warnings.catch_warnings(True) as w:
+        epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
+                        picks=picks, baseline=(0.1, 0.2), decim=5)
+    evoked = epochs.average()
+    evoked.crop(0.099, None)
+    assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
+    assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
 
 def test_evoked_standard_error():
