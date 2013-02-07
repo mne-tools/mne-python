@@ -13,6 +13,7 @@ import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
+from scipy import linalg
 from copy import deepcopy
 
 import logging
@@ -1035,6 +1036,73 @@ class Raw(object):
         """
         return _index_as_time(index, self.info['sfreq'], self.first_samp,
                               use_first_samp)
+
+    def estimate_rank(self, tmin=0.0, tmax=30.0, scales=[1e11, 1e5], tol=1e-2):
+        """Estimate rank of the raw data
+
+        This function is meant to provide a reasonable estimate of the rank.
+        The true rank of the data depends on many factors, so use at your
+        own risk.
+
+        Parameters
+        ----------
+        tmin : float
+            Start time to use for rank estimation.
+        tmax : float | None
+            End time to use for rank estimation. Default is 30 sec.
+        scales : list
+            List of scales for meg and eeg channels. Should only be
+            needed if your channels have abnormal amplitudes.
+        tol : float
+            Tolerance for singular values to consider non-zero in
+            calculating the rank (after scaling singular values by
+            scales).
+
+        Returns
+        -------
+        ranks : list
+            Estimated ranks of the meg and eeg channels.
+
+        Notes
+        -----
+        If data are not pre-loaded, the appropriate data will be loaded
+        by this function.
+
+        Projectors are not taken into account unless they have been applied
+        to the data using apply_projector(), since it is not always possible
+        to tell whether or not projectors have been applied previously.
+
+        Bad channels will be excluded.
+
+        MEG and EEG channels are usually independent, so a reasonable total
+        rank estimate can be obtained by adding their ranks.
+
+        Estimation for SSS data with SSP projectors applied to MEG channels
+        is known to over-estimate the total rank.
+        """
+        smin = max(0.0, self.time_as_index(tmin))
+        if tmax is None:
+            smax = self.n_times - 1
+        else:
+            smax = min(self.n_times - 1, self.time_as_index(tmax))
+        tslice = slice(smin, smax + 1)
+        if not self._preloaded:
+            data = self[:, tslice][0]
+        else:
+            data = self._data[:, tslice]
+
+        picks = [pick_types(self.info, meg=m, eeg=e, return_slice=True,
+                            exclude='bads')
+                 for m, e in zip([True, False], [False, True])]
+        ranks = [0, 0]
+        for ri, (p, scale) in enumerate(zip(picks, scales)):
+            if isinstance(p, slice) or len(p) > 0:
+                s = linalg.svd(data[p, :], compute_uv=False)
+                ranks[ri] = np.sum(s * scale >= tol)
+        if len(ranks) == 0:
+            raise RuntimeError('ranks could not be computed -- neither meg '
+                               'nor eeg data found')
+        return ranks
 
     @property
     def ch_names(self):

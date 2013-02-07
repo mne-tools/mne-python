@@ -59,7 +59,7 @@ def channel_type(info, idx):
     raise Exception('Unknown channel type')
 
 
-def pick_channels(ch_names, include, exclude=[]):
+def pick_channels(ch_names, include, exclude=[], return_slice=False):
     """Pick channels by names
 
     Returns the indices of the good channels in ch_names.
@@ -72,11 +72,14 @@ def pick_channels(ch_names, include, exclude=[]):
         List of channels to include (if empty include all available).
     exclude : list of string
         List of channels to exclude (if empty do not exclude any channel).
+    return_slice : bool
+        Try to return a slice if possible. (Can save memory.) If not
+        possible, an array of int will be returned.
 
     Returns
     -------
-    sel : array of int
-        Indices of good channels.
+    sel : array of int | slice
+        Indices of good channels. Will be a slice if picks are adjacent.
     """
     sel = []
     for k, name in enumerate(ch_names):
@@ -84,6 +87,8 @@ def pick_channels(ch_names, include, exclude=[]):
             sel.append(k)
     sel = np.unique(sel)
     np.sort(sel)
+    if return_slice is True and len(sel) >= 2 and np.all(np.diff(sel) == 1):
+        sel = slice(sel[0], sel[-1])
     return sel
 
 
@@ -119,7 +124,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, misc=False, include=[], exclude=None,
-               selection=None):
+               selection=None, return_slice=False):
     """Pick channels by type and names
 
     Parameters
@@ -150,6 +155,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If 'bads', exclude channels in info['bads'].
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
+    return_slice : bool
+        Try to return a slice if possible. (Can save memory.) If not
+        possible, an array of int will be returned.
 
     Returns
     -------
@@ -215,7 +223,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if len(myinclude) == 0:
         sel = []
     else:
-        sel = pick_channels(info['ch_names'], myinclude, exclude)
+        sel = pick_channels(info['ch_names'], myinclude, exclude,
+                            return_slice=return_slice)
 
     return sel
 
