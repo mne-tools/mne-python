@@ -585,6 +585,11 @@ def merge_evoked(all_evoked):
                 ValueError("%s and %s do not "
                            "contain the same time instants" % (evoked, e))
 
+    # use union of bad channels
+    bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
+                                                 for ev in all_evoked[1:])))
+    evoked.info['bads'] = bads
+
     all_nave = sum(e.nave for e in all_evoked)
     evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
     evoked.nave = all_nave

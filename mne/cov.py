@@ -31,9 +31,6 @@ def _check_covs_algebra(cov1, cov2):
     if map(str, cov1['projs']) != map(str, cov2['projs']):
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
-    if cov1['bads'] != cov2['bads']:
-        raise ValueError('Both Covariance do not have the same list of '
-                         'bad channels.')
 
 
 class Covariance(dict):
@@ -133,6 +130,9 @@ class Covariance(dict):
                             (self['data'] * self['nfree'])) / \
                                 (self['nfree'] + this_cov['nfree'])
         this_cov['nfree'] += self['nfree']
+
+        this_cov['bads'] = list(set(this_cov['bads']).union(self['bads']))
+
         return this_cov
 
     def __iadd__(self, cov):
@@ -142,6 +142,9 @@ class Covariance(dict):
                             (cov['data'] * cov['nfree'])) / \
                                 (self['nfree'] + cov['nfree'])
         self['nfree'] += cov['nfree']
+
+        self['bads'] = list(set(self['bads']).union(cov['bads']))
+
         return self
 
 
