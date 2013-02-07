@@ -109,13 +109,13 @@ def test_find_events():
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw, consecutive=True),
                        [[10, 0, 5],
-                        [20, 0, 6],
-                        [30, 0, 5],
+                        [20, 5, 6],
+                        [30, 6, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw),
                        [[10, 0, 5],
-                        [20, 0, 6],
+                        [20, 5, 6],
                         [40, 0, 6],
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw, detect='offset', consecutive=False),
@@ -123,34 +123,33 @@ def test_find_events():
                         [40, 0, 6],
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw, detect='offset', consecutive=True),
-                       [[19, 0, 5],
-                        [29, 0, 6],
+                       [[19, 6, 5],
+                        [29, 5, 6],
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(
-        find_events(raw, detect='offset'),
-        [[19, 0, 5],
-         [31, 0, 5],
-         [40, 0, 6],
-         [14399, 0, 9]])
+    assert_array_equal(find_events(raw, detect='offset'),
+                       [[19, 6, 5],
+                        [31, 0, 5],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
     assert_array_equal(find_events(raw, consecutive=False, min_duration=0.002),
                        [[10, 0, 5]])
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.002),
                        [[10, 0, 5],
-                        [20, 0, 6],
-                        [30, 0, 5]])
+                        [20, 5, 6],
+                        [30, 6, 5]])
     assert_array_equal(find_events(raw, detect='offset', consecutive=False,
                                    min_duration=0.002),
                        [[31, 0, 5]])
     assert_array_equal(find_events(raw, detect='offset', consecutive=True,
                                    min_duration=0.002),
-                       [[19, 0, 5],
-                        [29, 0, 6],
+                       [[19, 6, 5],
+                        [29, 5, 6],
                         [31, 0, 5]])
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
                        [[10, 0, 5],
-                        [20, 0, 6]])
+                        [20, 5, 6]])
     # put back the env vars we trampled on
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
