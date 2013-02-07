@@ -677,8 +677,8 @@ class Epochs(object):
         evoked.times = self.times.copy()
         evoked.comment = self.name
         evoked.nave = n_events
-        evoked.first = -int(np.sum(self.times < 0))
-        evoked.last = int(np.sum(self.times > 0))
+        evoked.first = int(self.times[0] * self.info['sfreq'])
+        evoked.last = evoked.first + len(self.times) - 1
         if not _do_std:
             evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
         else:
