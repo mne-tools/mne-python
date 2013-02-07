@@ -154,6 +154,7 @@ Visualization
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov
+   plot_drop_log
    plot_evoked
    plot_ica_panel
    plot_image_epochs
