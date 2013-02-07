@@ -17,6 +17,7 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
+from mne.viz import plot_drop_log
 data_path = sample.data_path()
 
 ###############################################################################
@@ -60,4 +61,4 @@ pl.show()
 # Look at channels that caused dropped events, showing that the subject's
 # blinks were likely to blame for most epochs being dropped
 epochs.drop_bad_epochs()
-mne.viz.plot_drop_log(epochs.drop_log, subject='sample')
+plot_drop_log(epochs.drop_log, subject='sample')
