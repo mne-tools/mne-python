@@ -35,12 +35,12 @@ def test_rank_estimation():
     n_meg = len(pick_types(raw.info, meg=True, eeg=False, exclude='bads'))
     n_eeg = len(pick_types(raw.info, meg=False, eeg=True, exclude='bads'))
     raw = Raw(fif_fname, preload=True)
-    assert_array_equal(raw.estimate_rank(), [n_meg, n_eeg])
+    assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
     raw = Raw(fif_fname, preload=False)
     raw.apply_projector()
     n_proj = len(raw.info['projs'])
     assert_array_equal(raw.estimate_rank(tstart=10, tstop=20),
-                       [n_meg - (n_proj - 1), n_eeg - 1])
+                       n_meg + n_eeg - n_proj)
 
 
 def test_output_formats():
