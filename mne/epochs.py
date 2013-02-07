@@ -1056,7 +1056,8 @@ class Epochs(object):
             epochs = self.copy()
         else:
             epochs = self
-        event_ids = event_ids
+        if len(event_ids) == 0:
+            raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
             epochs.drop_bad_epochs()
         # figure out how to equalize
