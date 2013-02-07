@@ -1057,7 +1057,7 @@ class Raw(object):
             Tolerance for singular values to consider non-zero in
             calculating the rank. The singular values are calculated
             in this method such that independent data are expected to
-            have singular values around one.
+            have singular value around one.
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
@@ -1090,12 +1090,15 @@ class Raw(object):
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop))
         tslice = slice(start, stop + 1)
-        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads',
-                           return_slice=True)
+        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        # ensure we don't get a view of data
+        if len(picks) == 1:
+            return 1.0, 1.0
         data = self[picks, tslice][0]
         norms = np.sqrt(np.sum(data ** 2, axis=1))
         norms[norms == 0] = 1.0
-        s = linalg.svd(data / norms[:, np.newaxis], compute_uv=False)
+        data /= norms[:, np.newaxis]
+        s = linalg.svd(data, compute_uv=False)
         rank = np.sum(s >= tol)
         if return_singular is True:
             return rank, s
@@ -1479,6 +1482,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     nchan = raw.info['nchan']
 
     n_sel_channels = nchan if sel is None else len(sel)
+    # convert sel to a slice if possible for efficiency
+    if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+        sel = slice(sel[0], sel[-1] + 1)
     idx = slice(None, None, None) if sel is None else sel
     data_shape = (n_sel_channels, stop - start)
     if isinstance(data_buffer, np.ndarray):
