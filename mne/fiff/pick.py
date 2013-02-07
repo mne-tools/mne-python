@@ -88,7 +88,7 @@ def pick_channels(ch_names, include, exclude=[], return_slice=False):
     sel = np.unique(sel)
     np.sort(sel)
     if return_slice is True and len(sel) >= 2 and np.all(np.diff(sel) == 1):
-        sel = slice(sel[0], sel[-1])
+        sel = slice(sel[0], sel[-1] + 1)
     return sel
 
 
