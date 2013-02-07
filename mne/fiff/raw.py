@@ -13,6 +13,7 @@ import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
+from scipy import linalg
 from copy import deepcopy
 
 import logging
@@ -1036,6 +1037,74 @@ class Raw(object):
         return _index_as_time(index, self.info['sfreq'], self.first_samp,
                               use_first_samp)
 
+    def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
+                      return_singular=False):
+        """Estimate rank of the raw data
+
+        This function is meant to provide a reasonable estimate of the rank.
+        The true rank of the data depends on many factors, so use at your
+        own risk. This function is more likely to provide an upper bound
+        on the rank than a lower bound.
+
+        Parameters
+        ----------
+        tstart : float
+            Start time to use for rank estimation. Defaul is 0.0.
+        tstop : float | None
+            End time to use for rank estimation. Default is 30.0.
+            If None, the end time of the raw file is used.
+        tol : float
+            Tolerance for singular values to consider non-zero in
+            calculating the rank. The singular values are calculated
+            in this method such that independent data are expected to
+            have singular value around one.
+        return_singular : bool
+            If True, also return the singular values that were used
+            to determine the rank.
+
+        Returns
+        -------
+        rank : int
+            Estimated rank of the data.
+        s : array
+            If return_singular is True, the singular values that were
+            thresholded to determine the rank are also returned.
+
+        Notes
+        -----
+        If data are not pre-loaded, the appropriate data will be loaded
+        by this function (can be memory intensive).
+
+        Projectors are not taken into account unless they have been applied
+        to the data using apply_projector(), since it is not always possible
+        to tell whether or not projectors have been applied previously.
+
+        Bad channels will be excluded from calculations.
+
+        Estimation for SSS data with SSP projectors applied to MEG channels
+        will likely over-estimate the resulting MEG rank.
+        """
+        start = max(0.0, self.time_as_index(tstart))
+        if tstop is None:
+            stop = self.n_times - 1
+        else:
+            stop = min(self.n_times - 1, self.time_as_index(tstop))
+        tslice = slice(start, stop + 1)
+        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        # ensure we don't get a view of data
+        if len(picks) == 1:
+            return 1.0, 1.0
+        data = self[picks, tslice][0]
+        norms = np.sqrt(np.sum(data ** 2, axis=1))
+        norms[norms == 0] = 1.0
+        data /= norms[:, np.newaxis]
+        s = linalg.svd(data, compute_uv=False)
+        rank = np.sum(s >= tol)
+        if return_singular is True:
+            return rank, s
+        else:
+            return rank
+
     @property
     def ch_names(self):
         return self.info['ch_names']
@@ -1413,6 +1482,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     nchan = raw.info['nchan']
 
     n_sel_channels = nchan if sel is None else len(sel)
+    # convert sel to a slice if possible for efficiency
+    if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+        sel = slice(sel[0], sel[-1] + 1)
     idx = slice(None, None, None) if sel is None else sel
     data_shape = (n_sel_channels, stop - start)
     if isinstance(data_buffer, np.ndarray):
