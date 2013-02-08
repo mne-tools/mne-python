@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from .parametric import f_oneway
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..utils import split_list
 from ..fixes import in1d, unravel_index
 from .. import verbose
@@ -767,6 +767,7 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    n_jobs = check_n_jobs(n_jobs)
 
     if not out_type in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
