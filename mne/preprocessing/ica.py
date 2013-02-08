@@ -854,18 +854,18 @@ class ICA(object):
         ----------
         start_find : int | None
             First sample to include (first is 0) for sources detection.
-            If omitted, defaults to the first sample in data. If None, the entire
-            data will be used.
+            If omitted, defaults to the first sample in data. If None, the
+            entire data will be used.
         stop_find : int | None
             First sample to not include for sources detection. If omitted, data
             is included to the end. If None, the entire data will be used.
         ecg_channel : str | ndarray | None
-            The `target` argument passed to ica.find_sources_raw. Either the name
-            of the ECG channel or the ECG time series. If None, this step will
-            be skipped.
+            The `target` argument passed to ica.find_sources_raw. Either the
+            name of the ECG channel or the ECG time series. If None, this step
+            will be skipped.
         ecg_score_func : str | callable
-            The `score_func` argument passed to ica.find_sources_raw. Either the
-            name of function supported by ICA or a custom function.
+            The `score_func` argument passed to ica.find_sources_raw. Either
+            the name of function supported by ICA or a custom function.
         ecg_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
             scores smaller than the criterion will be dropped. Else, the scores
@@ -875,11 +875,11 @@ class ICA(object):
         eog_channel : list | str | ndarray | None
             The `target` argument or the list of target arguments subsequently
             passed to ica.find_sources_raw. Either the name of the vertical EOG
-            channel or the corresponding EOG time series. If None, this step will
-            be skipped.
+            channel or the corresponding EOG time series. If None, this step
+            will be skipped.
         eog_score_func : str | callable
-            The `score_func` argument passed to ica.find_sources_raw. Either the
-            name of function supported by ICA or a custom function.
+            The `score_func` argument passed to ica.find_sources_raw. Either
+            the name of function supported by ICA or a custom function.
         eog_criterion : float | int | list-like | slice
             The indices of the sorted skewness scores. If float, sources with
             scores smaller than the criterion will be dropped. Else, the scores
@@ -916,14 +916,16 @@ class ICA(object):
         Returns
         -------
         self : instance of ICA
-            The ica object with the detected artifact indices marked for exclusion
+            The ica object with the detected artifact indices marked for
+            exclusion
         """
 
         logger.info('    Searching for artifacts...')
-        self = _detect_artifacts(self, raw, start_find, stop_find, ecg_channel,
-                        ecg_score_func, ecg_criterion, eog_channel, eog_score_func,
-                        eog_criterion,  skew_criterion, kurt_criterion,
-                        var_criterion, add_nodes)
+        _detect_artifacts(self, raw, start_find, stop_find, ecg_channel,
+                    ecg_score_func, ecg_criterion, eog_channel, eog_score_func,
+                    eog_criterion,  skew_criterion, kurt_criterion,
+                    var_criterion, add_nodes)
+
         return self
 
     def _pre_whiten(self, data, info, picks):
@@ -1463,20 +1465,23 @@ def run_ica(raw, n_components, max_pca_components=100,
         First sample to not include for decomposition. If omitted, data is
         included to the end. If None, the entire data will
         be used.
+        This function implements an automated artifact removal work flow.
+        Note. Consider using shorter times for start_find and stop_find than
+        for start and stop. It can save you much time.
     start_find : int | None
         First sample to include (first is 0) for sources detection.
-        If omitted, defaults to the first sample in data. If None, the entire
-        data will be used.
+        If omitted, defaults to the first sample in data. If None, the
+        entire data will be used.
     stop_find : int | None
         First sample to not include for sources detection. If omitted, data
         is included to the end. If None, the entire data will be used.
     ecg_channel : str | ndarray | None
-        The `target` argument passed to ica.find_sources_raw. Either the name
-        of the ECG channel or the ECG time series. If None, this step will
-        be skipped.
+        The `target` argument passed to ica.find_sources_raw. Either the
+        name of the ECG channel or the ECG time series. If None, this step
+        will be skipped.
     ecg_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either the
-        name of function supported by ICA or a custom function.
+        The `score_func` argument passed to ica.find_sources_raw. Either
+        the name of function supported by ICA or a custom function.
     ecg_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
         scores smaller than the criterion will be dropped. Else, the scores
@@ -1486,11 +1491,11 @@ def run_ica(raw, n_components, max_pca_components=100,
     eog_channel : list | str | ndarray | None
         The `target` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
-        channel or the corresponding EOG time series. If None, this step will
-        be skipped.
+        channel or the corresponding EOG time series. If None, this step
+        will be skipped.
     eog_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either the
-        name of function supported by ICA or a custom function.
+        The `score_func` argument passed to ica.find_sources_raw. Either
+        the name of function supported by ICA or a custom function.
     eog_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
         scores smaller than the criterion will be dropped. Else, the scores
@@ -1523,7 +1528,6 @@ def run_ica(raw, n_components, max_pca_components=100,
         the same structure. Example:
         add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
 
-
     Returns
     -------
     ica : instance of ICA
@@ -1539,7 +1543,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     logger.info('    Now searching for artifacts...')
 
     try:
-        ica = _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
+        _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
                 stop_find=stop_find, ecg_channel=ecg_channel,
                 ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
                 eog_channel=eog_channel, eog_score_func=eog_score_func,
