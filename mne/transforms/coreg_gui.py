@@ -247,7 +247,7 @@ class Fiducials(traits.HasTraits):
     left = traits.Button()
     top = traits.Button()
 
-    set = traits.Enum('Nasion', 'LAP', 'RAP')
+    set = traits.Enum('RAP', 'Nasion', 'LAP')
     nasion = traits.Array(float, (1, 3))
     LAP = traits.Array(float, (1, 3))
     RAP = traits.Array(float, (1, 3))
@@ -378,8 +378,6 @@ class Fiducials(traits.HasTraits):
             answer = confirm(None, msg, title, cancel=False, default=NO)
             if answer != YES:
                 return
-
-
 
         dig = [
                {'kind': 1, 'ident': 1, 'r': np.array(self.LAP[0])},
@@ -646,7 +644,7 @@ class MriHeadCoreg(traits.HasTraits):
             return
 
         prog = ProgressDialog(title="Fitting...", message="Fitting %s to "
-                              "%s" % (self.fitter._subject, self.s_to))
+                              "%s" % (self.fitter.subject, self.s_to))
         prog.open()
         prog.update(0)
         rotation, scale = self.fitter.fit(scale=n_scale)
@@ -674,7 +672,7 @@ class MriHeadCoreg(traits.HasTraits):
 
     @traits.on_trait_change('save')
     def on_save(self):
-        s_from = self.fitter._subject
+        s_from = self.fitter.subject
         s_to = self.s_to
 
         trans_fname = self.fitter.get_trans_fname(s_to)
@@ -720,7 +718,7 @@ class MriHeadCoreg(traits.HasTraits):
 
     @traits.on_trait_change('s_to')
     def on_set_s_to(self, s_to):
-        s_from = self.fitter._subject
+        s_from = self.fitter.subject
         if s_to:
             text = "%s -> %s" % (s_from, s_to)
         else:
