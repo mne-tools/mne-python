@@ -20,7 +20,7 @@ import traits.api as traits
 from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import MriHeadFitter, HeadMriFitter, geom_bem
+from .coreg import MriHeadFitter, HeadMriFitter, BemGeom
 from ..fiff import Raw, FIFF, read_fiducials, write_fiducials
 from ..utils import get_subjects_dir
 
@@ -229,6 +229,15 @@ class Fiducials(HeadViewer):
     """
     Mayavi viewer for creating a fiducials file.
 
+    Parameters
+    ----------
+    subject : str
+        The mri subject.
+    fid : None | str
+        Fiducials file for initial positions.
+    subjects_dir : None | str
+        Overrule the subjects_dir environment variable.
+
     """
     set = traits.Enum('RAP', 'Nasion', 'LAP')
     nasion = traits.Array(float, (1, 3))
@@ -251,17 +260,6 @@ class Fiducials(HeadViewer):
 
 
     def __init__(self, subject, fid=None, subjects_dir=None):
-        """
-        Parameters
-        ----------
-        subject : str
-            The mri subject.
-        fid : None | str
-            Fiducials file for initial positions.
-        subjects_dir : None | str
-            Overrule the subjects_dir environment variable.
-
-        """
         self.subjects_dir = get_subjects_dir(subjects_dir)
         self.subject = subject
 
@@ -277,7 +275,7 @@ class Fiducials(HeadViewer):
 
         fname = os.path.join(self.subjects_dir, self.subject, 'bem',
                              self.subject + '-head.fif')
-        self.head = geom_bem(fname)
+        self.head = BemGeom(fname)
         self._pts = self.head.get_pts()
         self.head_mesh, _ = self.head.plot_solid(self.scene.mayavi_scene,
                                                  color=(.7, .7, .6))
@@ -375,6 +373,17 @@ class HeadMriCoreg(HeadViewer):
     """
     Mayavi viewer for estimating the head mri transform.
 
+    Parameters
+    ----------
+    raw : str(path)
+        path to a raw file containing the digitizer data.
+    subject : str
+        name of the mri subject.
+        Can be None if the raw file-name starts with "{subject}_".
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
     """
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
@@ -400,19 +409,6 @@ class HeadMriCoreg(HeadViewer):
                 )
 
     def __init__(self, raw, subject=None, subjects_dir=None):
-        """
-        Parameters
-        ----------
-        raw : str(path)
-            path to a raw file containing the digitizer data.
-        subject : str
-            name of the mri subject.
-            Can be None if the raw file-name starts with "{subject}_".
-        subjects_dir : None | path
-            Override the SUBJECTS_DIR environment variable
-            (sys.environ['SUBJECTS_DIR'])
-
-        """
         self.fitter = HeadMriFitter(raw, subject, subjects_dir=subjects_dir)
         self._last_fit = None
 
@@ -486,6 +482,21 @@ class MriHeadCoreg(HeadViewer):
     """
     Mayavi viewer for adjusting an MRI to a digitized head shape.
 
+    Parameters
+    ----------
+    raw : str(path)
+        path to a raw file containing the digitizer data.
+    s_from : str
+        name of the source subject (e.g., 'fsaverage').
+        Can be None if the raw file-name starts with "{subject}_".
+    s_to : str | None
+        Name of the the subject for which the MRI is destined (used to
+        save MRI and in the trans file's file name).
+        Can be None if the raw file-name starts with "{subject}_".
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
     """
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
@@ -526,23 +537,6 @@ class MriHeadCoreg(HeadViewer):
                 )
 
     def __init__(self, raw, s_from=None, s_to=None, subjects_dir=None):
-        """
-        Parameters
-        ----------
-        raw : str(path)
-            path to a raw file containing the digitizer data.
-        s_from : str
-            name of the source subject (e.g., 'fsaverage').
-            Can be None if the raw file-name starts with "{subject}_".
-        s_to : str | None
-            Name of the the subject for which the MRI is destined (used to
-            save MRI and in the trans file's file name).
-            Can be None if the raw file-name starts with "{subject}_".
-        subjects_dir : None | path
-            Override the SUBJECTS_DIR environment variable
-            (sys.environ['SUBJECTS_DIR'])
-
-        """
         self.fitter = MriHeadFitter(raw, s_from, subjects_dir=subjects_dir)
 
         if s_to is None:

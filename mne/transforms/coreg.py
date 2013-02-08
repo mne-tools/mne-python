@@ -16,7 +16,7 @@ logger = logging.getLogger('mne')
 
 import numpy as np
 from numpy import dot
-from numpy.linalg import inv
+from scipy.linalg import inv
 from scipy.optimize import leastsq
 from scipy.spatial import Delaunay
 from scipy.spatial.distance import cdist
@@ -198,22 +198,21 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
 
 class HeadMriFitter(object):
     """Fit the head shape to an mri (create a head mri trans file)
+
+    Parameters
+    ----------
+    raw : Raw | str(path)
+        The Raw object or the path to the raw file containing the digitizer
+        data.
+    subject : None | str
+        name of the mri subject (e.g., 'fsaverage').
+        Can be None if the raw file-name starts with "{subject}_".
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
     """
     def __init__(self, raw, subject=None, subjects_dir=None):
-        """
-        Parameters
-        ----------
-        raw : Raw | str(path)
-            The Raw object or the path to the raw file containing the digitizer
-            data.
-        subject : None | str
-            name of the mri subject (e.g., 'fsaverage').
-            Can be None if the raw file-name starts with "{subject}_".
-        subjects_dir : None | path
-            Override the SUBJECTS_DIR environment variable
-            (sys.environ['SUBJECTS_DIR'])
-
-        """
         subjects_dir = get_subjects_dir(subjects_dir, True)
 
         # resolve raw
@@ -237,7 +236,7 @@ class HeadMriFitter(object):
 
         # mri head shape
         fname = os.path.join(mri_sdir, 'bem', '%s-%s.fif' % (subject, 'head'))
-        self.mri_hs = geom_bem(fname, unit='m')
+        self.mri_hs = BemGeom(fname, unit='m')
 
         # mri fiducials
         fname = os.path.join(mri_sdir, 'bem', subject + '-fiducials.fif')
@@ -246,11 +245,11 @@ class HeadMriFitter(object):
                    "to create one." % (subject, fname))
             raise ValueError(err)
         dig, _ = read_fiducials(fname)
-        self.mri_fid = geom_fid(dig, unit='m')
+        self.mri_fid = FidGeom(dig, unit='m')
 
         # digitizer data from raw
-        self.dig_hs = geom_dig_hs(raw.info['dig'], unit='m')
-        self.dig_fid = geom_fid(raw.info['dig'], unit='m')
+        self.dig_hs = HeadshapeGeom(raw.info['dig'], unit='m')
+        self.dig_fid = FidGeom(raw.info['dig'], unit='m')
 
         # move to head to the mri's nasion
         self._t_origin_mri = translation(*self.mri_fid.nas)
@@ -477,24 +476,22 @@ class MriHeadFitter(HeadMriFitter):
     """
     Fit an MRI to a head shape model.
 
+    Parameters
+    ----------
+    raw : str(path)
+        path to a raw file containing the digitizer data.
+    s_from : str
+        name of the mri subject providing the mri (e.g., 'fsaverage').
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
     See Also
     --------
     HeadMriFitter : Create a coregistration -trans file without scaling the mri.
 
     """
     def __init__(self, raw, s_from, subjects_dir=None):
-        """
-        Parameters
-        ----------
-        raw : str(path)
-            path to a raw file containing the digitizer data.
-        s_from : str
-            name of the mri subject providing the mri (e.g., 'fsaverage').
-        subjects_dir : None | path
-            Override the SUBJECTS_DIR environment variable
-            (sys.environ['SUBJECTS_DIR'])
-
-        """
         super(MriHeadFitter, self).__init__(raw, subject=s_from,
                                             subjects_dir=subjects_dir)
 
@@ -742,11 +739,11 @@ class MriHeadFitter(HeadMriFitter):
 
 
 
-class geom(object):
+class Geom(object):
     """
     Represents a set of points and transformations.
 
-    A geom object maintains a set of points (optionally with a
+    A Geom object maintains a set of points (optionally with a
     triangularization) and a list of transforms, and can plot itself to a
     mayavi figure. The plot is dynamically updated when the transform changes.
 
@@ -787,7 +784,7 @@ class geom(object):
 
         """
         if trans is True:
-            trans = self.get_trans()
+            trans = self.trans
 
         if trans is None:
             pts = self.pts
@@ -795,10 +792,6 @@ class geom(object):
             pts = dot(trans, self.pts)
 
         return pts[:3].T
-
-    def get_trans(self):
-        "Returns the matrix for the complete transformation"
-        return self.trans
 
     def plot_solid(self, fig, opacity=1., rep='surface', color=(1, 1, 1)):
         "Returns: mesh, surf"
@@ -876,7 +869,7 @@ class geom(object):
 
 
 
-class geom_fid(geom):
+class FidGeom(Geom):
     def __init__(self, dig, unit='mm'):
         if unit == 'mm':
             x = 1000
@@ -888,7 +881,7 @@ class geom_fid(geom):
         dig = filter(lambda d: d['kind'] == 1, dig)
         pts = np.array([d['r'] for d in dig]) * x
 
-        super(geom_fid, self).__init__(pts)
+        super(FidGeom, self).__init__(pts)
         self.unit = unit
 
         self.source_dig = dig
@@ -899,7 +892,7 @@ class geom_fid(geom):
 
 
 
-class geom_dig_hs(geom):
+class HeadshapeGeom(Geom):
     def __init__(self, dig, unit='mm'):
         if unit == 'mm':
             x = 1000
@@ -911,11 +904,11 @@ class geom_dig_hs(geom):
         pts = filter(lambda d: d['kind'] == 4, dig)
         pts = np.array([d['r'] for d in pts]) * x
 
-        super(geom_dig_hs, self).__init__(pts)
+        super(HeadshapeGeom, self).__init__(pts)
 
 
 
-class geom_bem(geom):
+class BemGeom(Geom):
     def __init__(self, bem, unit='m'):
         if isinstance(bem, basestring):
             bem = read_bem_surfaces(bem)[0]
@@ -930,4 +923,4 @@ class geom_bem(geom):
         else:
             raise ValueError('Unit: %r' % unit)
 
-        super(geom_bem, self).__init__(pts, tri)
+        super(BemGeom, self).__init__(pts, tri)
