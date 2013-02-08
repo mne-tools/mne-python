@@ -9,6 +9,7 @@
 # License: Simplified BSD
 
 import numpy as np
+from multiprocessing import cpu_count
 from scipy import stats, sparse, ndimage
 
 import logging
@@ -767,6 +768,16 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+
+    # infer number of jobs and replace if user passes negative integer
+    if n_jobs <= 0:
+        n_cores = cpu_count()
+        if n_cores + n_jobs <= 0:
+            raise ValueError('If n_jobs has a negative value it must not be less '
+                             'than the number of CPUs present. You\'ve got '
+                             '%s CPUs' % n_cores)
+        else:
+            n_jobs = n_cores + n_jobs
 
     if not out_type in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
