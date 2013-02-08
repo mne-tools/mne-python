@@ -68,16 +68,18 @@ def check_n_jobs(n_jobs):
     n_jobs : int
         The checked number of jobs. Always positive.
     """
-    try:
-        import multiprocessing
-        n_cores = multiprocessing.cpu_count()
-        if n_cores + n_jobs <= 0:
-            raise ValueError('If n_jobs has a negative value it must not be less '
-                             'than the number of CPUs present. You\'ve got '
-                             '%s CPUs' % n_cores)
-        n_jobs = n_cores + n_jobs
-    except ImportError:
-        logger.warn('multiprocessing not installed. Cannot run in '
-                     'parallel.')
-        n_jobs = 1
+    if n_jobs < 0:
+        try:
+            import multiprocessing
+            n_cores = multiprocessing.cpu_count()
+            if n_cores + n_jobs <= 0:
+                raise ValueError('If n_jobs has a negative value it must not be less '
+                                 'than the number of CPUs present. You\'ve got '
+                                 '%s CPUs' % n_cores)
+            n_jobs = n_cores + n_jobs
+        except ImportError:
+            logger.warn('multiprocessing not installed. Cannot run in '
+                         'parallel.')
+            n_jobs = 1
+
     return n_jobs
