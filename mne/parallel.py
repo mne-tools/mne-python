@@ -87,7 +87,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
                                  'be less than the number of CPUs present. '
                                  'You\'ve got %s CPUs' % n_cores)
         except ImportError:
-            # only warn if they tried to use more than 1 job
+            # only warn if they tried to use something other than 1 job
             if n_jobs != 1:
                 logger.warn('multiprocessing not installed. Cannot run in '
                              'parallel.')
