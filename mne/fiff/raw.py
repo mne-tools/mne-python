@@ -13,7 +13,6 @@ import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
-from scipy import linalg
 from copy import deepcopy
 
 import logging
@@ -30,7 +29,7 @@ from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
-from ..utils import deprecated, _check_fname
+from ..utils import deprecated, _check_fname, estimate_rank
 from .. import verbose
 
 
@@ -1043,8 +1042,7 @@ class Raw(object):
 
         This function is meant to provide a reasonable estimate of the rank.
         The true rank of the data depends on many factors, so use at your
-        own risk. This function is more likely to provide an upper bound
-        on the rank than a lower bound.
+        own risk.
 
         Parameters
         ----------
@@ -1080,9 +1078,6 @@ class Raw(object):
         to tell whether or not projectors have been applied previously.
 
         Bad channels will be excluded from calculations.
-
-        Estimation for SSS data with SSP projectors applied to MEG channels
-        will likely over-estimate the resulting MEG rank.
         """
         start = max(0.0, self.time_as_index(tstart))
         if tstop is None:
@@ -1094,16 +1089,9 @@ class Raw(object):
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
+        # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        norms = np.sqrt(np.sum(data ** 2, axis=1))
-        norms[norms == 0] = 1.0
-        data /= norms[:, np.newaxis]
-        s = linalg.svd(data, compute_uv=False)
-        rank = np.sum(s >= tol)
-        if return_singular is True:
-            return rank, s
-        else:
-            return rank
+        return estimate_rank(data, tol, return_singular, overwrite_data=True)
 
     @property
     def ch_names(self):
