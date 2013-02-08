@@ -26,6 +26,38 @@ from ..utils import get_subjects_dir
 
 
 
+class HeadViewer(traits.HasTraits):
+    "Baseclass for GUIs working on head models"
+    right = traits.Button()
+    front = traits.Button()
+    left = traits.Button()
+    top = traits.Button()
+
+    scene = traits.Instance(MlabSceneModel, ())
+
+    view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+                     height=600, width=600, show_label=False),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
+                )
+
+    @traits.on_trait_change('top,left,right,front')
+    def on_set_view(self, view='front', info=None):
+        self.scene.parallel_projection = True
+        self.scene.camera.parallel_scale = .12
+        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
+                      reset_roll=True, figure=self.scene.mayavi_scene)
+        if view == 'left':
+            kwargs.update(azimuth=180, roll=90)
+        elif view == 'right':
+            kwargs.update(azimuth=0, roll=270)
+        elif view == 'top':
+            kwargs.update(elevation=0)
+        self.scene.mlab.view(**kwargs)
+
+
+
 def raw_find_point(raw):
     "Open FindDigPoint with the dig info from a raw file"
     raw = Raw(raw)
@@ -34,32 +66,23 @@ def raw_find_point(raw):
     pts = np.array([d['r'] for d in pts])
     return FindDigPoint(pts)
 
-class FindDigPoint(traits.HasTraits):
+class FindDigPoint(HeadViewer):
     """
     Mayavi viewer for visualizing specific points in an object.
 
     """
-    right = traits.Button()
-    front = traits.Button()
-    left = traits.Button()
-    top = traits.Button()
-
-    # parameters
     point = traits.Range(low=0, high=10000, is_float=True, mode='spinner')
-
-    scene = traits.Instance(MlabSceneModel, ())
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                HGroup('72', 'top', show_labels=False),
-                HGroup('right', 'front', 'left', show_labels=False),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
                 '_',
                 VGroup('point'),
                 )
 
     def __init__(self, pts):
-        self._orig_pts = pts
-        pts = pts * 1000
         self.pts = pts
 
         traits.HasTraits.__init__(self)
@@ -79,7 +102,7 @@ class FindDigPoint(traits.HasTraits):
 
         self.src = pipeline.scalar_scatter(0, 0, 0)
         self.glyph = pipeline.glyph(self.src, color=(1, 0, 0), figure=fig,
-                                    scale_factor=10)
+                                    scale_factor=.01)
 
         self.point = 0
 
@@ -91,23 +114,9 @@ class FindDigPoint(traits.HasTraits):
         self.glyph.remove()
         fig = self.scene.mayavi_scene
         self.glyph = pipeline.glyph(self.src, color=(1, 0, 0), figure=fig,
-                                    scale_factor=10)
+                                    scale_factor=.01)
 
         self.scene.disable_render = False
-
-    @traits.on_trait_change('top,left,right,front')
-    def on_set_view(self, view='front', info=None):
-        self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 150
-        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
-                      reset_roll=True, figure=self.scene.mayavi_scene)
-        if view == 'left':
-            kwargs.update(azimuth=180, roll=90)
-        elif view == 'right':
-            kwargs.update(azimuth=0, roll=270)
-        elif view == 'top':
-            kwargs.update(elevation=0)
-        self.scene.mlab.view(**kwargs)
 
 
 
@@ -119,16 +128,11 @@ def raw_hs(raw):
     pts = np.array([d['r'] for d in pts])
     return FixDigHeadShape(pts)
 
-class FixDigHeadShape(traits.HasTraits):
+class FixDigHeadShape(HeadViewer):
     """
     Mayavi viewer for decomposing an object based on clustering
 
     """
-    right = traits.Button()
-    front = traits.Button()
-    left = traits.Button()
-    top = traits.Button()
-
     # parameters
     clusters = traits.Range(low=0, high=20, is_float=False, mode='spinner')
 
@@ -136,12 +140,11 @@ class FixDigHeadShape(traits.HasTraits):
     cancel = traits.Button()
     ok = traits.Button()
 
-    scene = traits.Instance(MlabSceneModel, ())
-
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                HGroup('72', 'top', show_labels=False),
-                HGroup('right', 'front', 'left', show_labels=False),
+                Group(HGroup('72', 'top', show_labels=False),
+                      HGroup('right', 'front', 'left', show_labels=False),
+                      label='View', show_border=True),
                 '_',
                 VGroup('clusters'),
                 '_',
@@ -207,20 +210,6 @@ class FixDigHeadShape(traits.HasTraits):
 
         self.scene.disable_render = False
 
-    @traits.on_trait_change('top,left,right,front')
-    def on_set_view(self, view='front', info=None):
-        self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 150
-        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
-                      reset_roll=True, figure=self.scene.mayavi_scene)
-        if view == 'left':
-            kwargs.update(azimuth=180, roll=90)
-        elif view == 'right':
-            kwargs.update(azimuth=0, roll=270)
-        elif view == 'top':
-            kwargs.update(elevation=0)
-        self.scene.mlab.view(**kwargs)
-
     def _plot_pts(self, pts, color=(1, 1, 1)):
         d = Delaunay(pts)
         tri = d.convex_hull
@@ -236,17 +225,11 @@ class FixDigHeadShape(traits.HasTraits):
 
 
 
-class Fiducials(traits.HasTraits):
+class Fiducials(HeadViewer):
     """
     Mayavi viewer for creating a fiducials file.
 
     """
-    # views
-    right = traits.Button()
-    front = traits.Button()
-    left = traits.Button()
-    top = traits.Button()
-
     set = traits.Enum('RAP', 'Nasion', 'LAP')
     nasion = traits.Array(float, (1, 3))
     LAP = traits.Array(float, (1, 3))
@@ -386,33 +369,13 @@ class Fiducials(traits.HasTraits):
                ]
         write_fiducials(fname, dig, FIFF.FIFFV_COORD_MRI)
 
-    @traits.on_trait_change('top,left,right,front')
-    def on_set_view(self, view='front', info=None):
-        self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 0.150
-        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
-                      reset_roll=True, figure=self.scene.mayavi_scene)
-        if view == 'left':
-            kwargs.update(azimuth=180, roll=90)
-        elif view == 'right':
-            kwargs.update(azimuth=0, roll=270)
-        elif view == 'top':
-            kwargs.update(elevation=0)
-        self.scene.mlab.view(**kwargs)
 
 
-
-class HeadMriCoreg(traits.HasTraits):
+class HeadMriCoreg(HeadViewer):
     """
     Mayavi viewer for estimating the head mri transform.
 
     """
-    # views
-    right = traits.Button()
-    front = traits.Button()
-    left = traits.Button()
-    top = traits.Button()
-
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
     rotation = traits.Array(float, (1, 3))
@@ -424,8 +387,6 @@ class HeadMriCoreg(traits.HasTraits):
 
     # saving
     save = traits.Button(label='Save Trans')
-
-    scene = traits.Instance(MlabSceneModel, ())
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
@@ -519,33 +480,13 @@ class HeadMriCoreg(traits.HasTraits):
         trans = np.array(self.nasion[0])
         self.fitter.set(trans=trans)
 
-    @traits.on_trait_change('top,left,right,front')
-    def on_set_view(self, view='front', info=None):
-        self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 0.150
-        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
-                      reset_roll=True, figure=self.scene.mayavi_scene)
-        if view == 'left':
-            kwargs.update(azimuth=180, roll=90)
-        elif view == 'right':
-            kwargs.update(azimuth=0, roll=270)
-        elif view == 'top':
-            kwargs.update(elevation=0)
-        self.scene.mlab.view(**kwargs)
 
 
-
-class MriHeadCoreg(traits.HasTraits):
+class MriHeadCoreg(HeadViewer):
     """
     Mayavi viewer for adjusting an MRI to a digitized head shape.
 
     """
-    # views
-    right = traits.Button()
-    front = traits.Button()
-    left = traits.Button()
-    top = traits.Button()
-
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
     n_scale_params = traits.Enum(1, 3, label='N Scaling Parameters')
@@ -566,8 +507,6 @@ class MriHeadCoreg(traits.HasTraits):
     # saving
     s_to = traits.String('NONE', label='Subject Name')
     save = traits.Button()
-
-    scene = traits.Instance(MlabSceneModel, ())
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
@@ -741,17 +680,3 @@ class MriHeadCoreg(traits.HasTraits):
     def on_set_trans(self):
         trans = np.array(self.nasion[0])
         self.fitter.set(trans=trans)
-
-    @traits.on_trait_change('top,left,right,front')
-    def on_set_view(self, view='front', info=None):
-        self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = 0.150
-        kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
-                      reset_roll=True, figure=self.scene.mayavi_scene)
-        if view == 'left':
-            kwargs.update(azimuth=180, roll=90)
-        elif view == 'right':
-            kwargs.update(azimuth=0, roll=270)
-        elif view == 'top':
-            kwargs.update(elevation=0)
-        self.scene.mlab.view(**kwargs)
