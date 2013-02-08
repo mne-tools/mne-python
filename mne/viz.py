@@ -16,6 +16,7 @@ from collections import Counter
 import copy
 import inspect
 
+from matplotlib import delaunay
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -29,6 +30,7 @@ from warnings import warn
 from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
+from .fiff import FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj
 from . import verbose
@@ -533,6 +535,58 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                      x_label='Time (s)', y_label='Epoch')
 
     return fig
+
+
+def plot_proj_topomap(proj, layout):
+    data = proj['data']['data'][0]
+    idx = [layout.names.index(name) for name in proj['data']['col_names']]
+    pos = layout.pos[idx, :2]
+    plot_topomap(data, pos)
+
+
+def plot_topomap(data, pos, vmax=None, cmap=None, res=100, axes=None):
+    """Plot a topographic map as image
+
+    Parameters
+    ----------
+    data : array, length = n_points
+        The data values to plot.
+    pos : array, shape = (n_points, 2)
+        For each data point, the x and y coordinates.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    axes : matplotlib axes | None
+        The axes on which to plot. If None, use :func:`pylab.gca`.
+
+    """
+    import pylab as pl
+    if axes is None:
+        axes = pl.gca()
+
+    if vmax is None:
+        vmax = np.abs(data).max()
+
+    pl.xticks(())
+    pl.yticks(())
+
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    triang = delaunay.Triangulation(pos_x, pos_y)
+    interp = triang.linear_interpolator(data)
+    x = np.linspace(xmin, xmax, res)
+    y = np.linspace(ymin, ymax, res)
+    xi, yi = np.meshgrid(x, y)
+
+    im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
+                xi.min():xi.max():complex(0, xi.shape[1])]
+    im = np.ma.masked_array(im, im == np.nan)
+
+    pl.imshow(im, cmap=cmap, vmin= -vmax, vmax=vmax, origin='lower',
+              aspect='equal', extent=(xmin, xmax, ymin, ymax), axes=axes)
+
+    return axes
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
@@ -1761,3 +1815,98 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     pl.grid(True, axis='y')
     pl.show()
     return perc
+
+
+class _GuiBase(object):
+    def __init__(self, **fig_kwargs):
+        from matplotlib import pyplot as plt
+        self.figure = plt.figure(**fig_kwargs)
+        self.canvas = self.figure.canvas
+
+    def close(self):
+        "Close the figure"
+        from matplotlib import pyplot as plt
+        plt.close(self.figure)
+
+    def _draw(self):
+        import matplotlib as mpl
+        from matplotlib import pyplot as plt
+        self.canvas.draw()
+#        self._store_canvas()
+        if mpl.get_backend() == 'WXAgg':
+            plt.show(block=False)
+
+    def _redraw(self, axes=[]):
+        "Redraw parts of the figure"
+#        self.canvas.restore_region(self._background)
+        for ax in axes:
+            ax.draw_artist(ax)
+            extent = ax.get_window_extent()
+            self.canvas.blit(extent)
+
+#    def _store_canvas(self):
+#        self._background = self.canvas.copy_from_bbox(self.figure.bbox)
+
+
+class GuiSelectProj(_GuiBase):
+    """
+
+    LMB on any projection:
+        Toggle projections
+
+    """
+    def __init__(self, evoked, layout, size=1):
+        projs = evoked.info['projs']
+        projs = [p for p in projs if p['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD]
+
+        nrows = len(projs)
+        ncols = 4
+        figsize = (size * ncols, size * nrows)
+        super(GuiSelectProj, self).__init__(figsize=figsize)
+
+        self.figure.subplots_adjust(left=.01, right=.99, bottom=.05, top=.95,
+                                    hspace=.05, wspace=.05)
+
+#        projs = evoked.info['projs']
+
+        self._axes = []
+        for i, proj in enumerate(projs):
+            ax = self.figure.add_subplot(nrows, ncols, i * ncols + 1)
+            ax._ID = i
+            ax._state = True
+            ax.set_axis_bgcolor('white')
+            plot_proj_topomap(proj, layout)
+#            ax.set_axis_off()
+            self._axes.append(ax)
+
+        self._draw()
+
+        # connect canvas
+        self.canvas.mpl_connect('button_press_event', self._on_click)
+
+    def set(self, i, state):
+        "Set the state of the ith projection (True/False)"
+        ax = self._axes[i]
+        state = bool(state)
+        if state == ax._state:
+            return
+
+        ax._state = state
+        if state:
+            ax.set_axis_bgcolor('white')
+        else:
+            ax.set_axis_bgcolor('r')
+
+        self._redraw(axes=[ax])
+
+    def toggle(self, i):
+        "Toggle the ith projection"
+        ax = self._axes[i]
+        self.set(i, not ax._state)
+
+    def _on_click(self, event):
+        "called by mouse clicks"
+        logging.debug('click: ')
+        ax = event.inaxes
+        if ax and ax._ID >= 0:
+            self.toggle(ax._ID)
