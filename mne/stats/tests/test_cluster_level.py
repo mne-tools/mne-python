@@ -8,8 +8,6 @@ from mne.stats.cluster_level import permutation_cluster_test, \
                                     permutation_cluster_1samp_test, \
                                     spatio_temporal_cluster_1samp_test
 
-from multiprocessing import cpu_count
-
 noiselevel = 20
 
 normfactor = np.hanning(20).sum()
@@ -169,21 +167,6 @@ def test_cluster_permutation_t_test_with_connectivity():
                              condition1_3, n_permutations=1,
                              connectivity=connectivity, max_step=1,
                              threshold=1.67, n_jobs=-1000)
-
-    # test negative n_jobs arg
-    n_jobs = -(cpu_count() - 1)
-    n_jobs2 = 1
-    out_1 = spatio_temporal_cluster_1samp_test(
-                             condition1_3, n_permutations=1,
-                             connectivity=connectivity, max_step=1,
-                             n_jobs=n_jobs,
-                             threshold=1.67)
-    out_2 = spatio_temporal_cluster_1samp_test(
-                             condition1_3, n_permutations=1,
-                             connectivity=connectivity, max_step=1,
-                             n_jobs=n_jobs2,
-                             threshold=1.67)
-    assert_array_almost_equal(out_1[2], out_2[2])
 
 
 def ttest_1samp(X):

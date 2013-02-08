@@ -51,14 +51,33 @@ def parallel_func(func, n_jobs, verbose=None):
     parallel_verbose = 5 if logger.level <= logging.INFO else 0
     parallel = Parallel(n_jobs, verbose=parallel_verbose)
     my_func = delayed(func)
-
-    if n_jobs == -1:
-        try:
-            import multiprocessing
-            n_jobs = multiprocessing.cpu_count()
-        except ImportError:
-            logger.warn('multiprocessing not installed. Cannot run in '
-                         'parallel.')
-            n_jobs = 1
-
+    n_jobs = check_n_jobs(n_jobs)
     return parallel, my_func, n_jobs
+
+
+def check_n_jobs(n_jobs):
+    """Check n_jobs in particular for negative values
+
+    Parameters
+    ----------
+    n_jobs : int
+        The number of jobs
+
+    Returns
+    -------
+    n_jobs : int
+        The checked number of jobs. Always positive.
+    """
+    try:
+        import multiprocessing
+        n_cores = multiprocessing.cpu_count()
+        if n_cores + n_jobs <= 0:
+            raise ValueError('If n_jobs has a negative value it must not be less '
+                             'than the number of CPUs present. You\'ve got '
+                             '%s CPUs' % n_cores)
+        n_jobs = n_cores + n_jobs
+    except ImportError:
+        logger.warn('multiprocessing not installed. Cannot run in '
+                     'parallel.')
+        n_jobs = 1
+    return n_jobs
