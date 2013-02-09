@@ -41,6 +41,8 @@ Changelog
 
    - Function to plot drop_log from Epochs instance by `Eric Larson`_
 
+   - Estimate rank of Raw data by `Eric Larson`_
+
 API
 ~~~
 
