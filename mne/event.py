@@ -463,8 +463,16 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     find_steps : Find all the steps in the stim channel.
 
     """
+    if min_duration > 0:
+        min_samples = min_duration * raw.info['sfreq']
+        merge = int(min_samples // 1)
+        if merge == min_samples:
+            merge -= 1
+    else:
+        merge = 0
+
     events = find_steps(raw, first_samp=raw.first_samp, pad_stop=0,
-                        stim_channel=stim_channel)
+                        stim_channel=stim_channel, merge=merge)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -489,17 +497,6 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     if onset_idx[-1] > offset_idx[-1]:
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
-
-    # Only keep events longer than min_duration
-    if min_duration > 0:
-        duration = events[offset_idx][:, 0] - events[onset_idx][:, 0]
-        keep = (duration >= min_duration * raw.info['sfreq'])
-        n_reject = keep.sum()
-        if n_reject > 0:
-            logger.info("Removing %s events with duration < "
-                        "%s" % (n_reject, min_duration))
-            onset_idx = onset_idx[keep]
-            offset_idx = offset_idx[keep]
 
     if detect == 'onset':
         events = events[onset_idx]
