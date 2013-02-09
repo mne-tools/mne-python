@@ -836,10 +836,10 @@ class ICA(object):
         return epochs
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
-            ecg_channel=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
-            eog_channel=None, eog_score_func='pearsonr', eog_criterion=0.1,
-            skew_criterion=-1, kurt_criterion=-1, var_criterion=0,
-            add_nodes=None):
+                ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
+                eog_ch=None, eog_score_func='pearsonr', eog_criterion=0.1,
+                skew_criterion=-1, kurt_criterion=-1, var_criterion=0,
+                add_nodes=None):
         """ Run ICA artifacts detection workflow.
 
         This function implements an automated artifact removal work flow.
@@ -859,7 +859,7 @@ class ICA(object):
         stop_find : int | None
             First sample to not include for sources detection. If omitted, data
             is included to the end. If None, the entire data will be used.
-        ecg_channel : str | ndarray | None
+        ecg_ch : str | ndarray | None
             The `target` argument passed to ica.find_sources_raw. Either the
             name of the ECG channel or the ECG time series. If None, this step
             will be skipped.
@@ -872,7 +872,7 @@ class ICA(object):
             sorted in descending order will be indexed accordingly.
             E.g. range(2) would return the two sources with the highest score.
             If None, this step will be skipped.
-        eog_channel : list | str | ndarray | None
+        eog_ch : list | str | ndarray | None
             The `target` argument or the list of target arguments subsequently
             passed to ica.find_sources_raw. Either the name of the vertical EOG
             channel or the corresponding EOG time series. If None, this step
@@ -921,10 +921,13 @@ class ICA(object):
         """
 
         logger.info('    Searching for artifacts...')
-        _detect_artifacts(self, raw, start_find, stop_find, ecg_channel,
-                    ecg_score_func, ecg_criterion, eog_channel, eog_score_func,
-                    eog_criterion,  skew_criterion, kurt_criterion,
-                    var_criterion, add_nodes)
+        _detect_artifacts(self, raw=raw, start_find=start_find,
+                    stop_find=stop_find, ecg_ch=ecg_ch,
+                    ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
+                    eog_ch=eog_ch, eog_score_func=eog_score_func,
+                    eog_criterion=eog_criterion, skew_criterion=skew_criterion,
+                    kurt_criterion=kurt_criterion, var_criterion=var_criterion,
+                    add_nodes=add_nodes)
 
         return self
 
@@ -1341,20 +1344,20 @@ def read_ica(fname):
 _ica_node = namedtuple('Node', 'name target score_func criterion')
 
 
-def _detect_artifacts(ica, raw, start_find, stop_find, ecg_channel, ecg_score_func,
-            ecg_criterion, eog_channel, eog_score_func, eog_criterion,
-            skew_criterion, kurt_criterion, var_criterion, add_nodes):
+def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
+                    ecg_criterion, eog_ch, eog_score_func, eog_criterion,
+                    skew_criterion, kurt_criterion, var_criterion, add_nodes):
     """ Aux Function """
 
     nodes = []
-    if ecg_channel is not None:
-        nodes += [_ica_node('ECG', ecg_channel, ecg_score_func, ecg_criterion)]
+    if ecg_ch is not None:
+        nodes += [_ica_node('ECG', ecg_ch, ecg_score_func, ecg_criterion)]
 
-    if eog_channel not in [None, []]:
-        if not isinstance(eog_channel, list):
-            eog_channel = [eog_channel]
-        for idx, ch in enumerate(eog_channel):
-            nodes += [_ica_node('EOG%02d' % idx, ch, eog_score_func,
+    if eog_ch not in [None, []]:
+        if not isinstance(eog_ch, list):
+            eog_ch = [eog_ch]
+        for idx, ch in enumerate(eog_ch):
+            nodes += [_ica_node('EOG %02d' % idx, ch, eog_score_func,
                       eog_criterion)]
 
     if skew_criterion is not None:
@@ -1382,8 +1385,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_channel, ecg_score_fu
         logger.info('    found %s artifact%s by %s' % case)
         ica.exclude += found
 
-    logger.info('Artifact indices found:\n'
-                '    ' + str(ica.exclude).strip('[]'))
+    logger.info('Artifact indices found:\n    ' + str(ica.exclude).strip('[]'))
     if len(set(ica.exclude)) != len(ica.exclude):
         logger.info('    Removing duplicate indices...')
         ica.exclude = list(set(ica.exclude))
@@ -1396,8 +1398,8 @@ def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
             algorithm='parallel', fun='logcosh', fun_args=None,
             verbose=None, picks=None, start=None, stop=None, start_find=None,
-            stop_find=None, ecg_channel=None, ecg_score_func='pearsonr',
-            ecg_criterion=0.1, eog_channel=None, eog_score_func='pearsonr',
+            stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
+            ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
             eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
             var_criterion=0, add_nodes=None):
     """ Run ICA decomposition on raw data and identify artifact sources
@@ -1475,7 +1477,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     stop_find : int | None
         First sample to not include for sources detection. If omitted, data
         is included to the end. If None, the entire data will be used.
-    ecg_channel : str | ndarray | None
+    ecg_ch : str | ndarray | None
         The `target` argument passed to ica.find_sources_raw. Either the
         name of the ECG channel or the ECG time series. If None, this step
         will be skipped.
@@ -1488,7 +1490,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         sorted in descending order will be indexed accordingly.
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
-    eog_channel : list | str | ndarray | None
+    eog_ch : list | str | ndarray | None
         The `target` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
         channel or the corresponding EOG time series. If None, this step
@@ -1542,17 +1544,15 @@ def run_ica(raw, n_components, max_pca_components=100,
     logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 
-    try:
-        _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
-                stop_find=stop_find, ecg_channel=ecg_channel,
-                ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
-                eog_channel=eog_channel, eog_score_func=eog_score_func,
-                eog_criterion=ecg_criterion, skew_criterion=skew_criterion,
-                kurt_criterion=kurt_criterion, var_criterion=var_criterion,
-                add_nodes=add_nodes)
-    except:
-        logger.info('Detection failed. Returning ica without indices marked'
-                    ' for exclusion. Please continue using the '
-                    'ica.detect_artifacts method')
-    finally:
-        return ica
+    _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
+                      stop_find=stop_find, ecg_ch=ecg_ch,
+                      ecg_score_func=ecg_score_func,
+                      ecg_criterion=ecg_criterion, eog_ch=eog_ch,
+                      eog_score_func=eog_score_func,
+                      eog_criterion=ecg_criterion,
+                      skew_criterion=skew_criterion,
+                      kurt_criterion=kurt_criterion,
+                      var_criterion=var_criterion,
+                      add_nodes=add_nodes)
+
+    return ica
