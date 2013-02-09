@@ -346,8 +346,9 @@ def fft_resample(x, W, new_len, npad, to_remove,
     """
     # add some padding at beginning and end to make this work a little cleaner
     x = _smart_pad(x, npad)
+    old_len = len(x)
     if not cuda_dict['use_cuda']:
-        N = int(np.minimum(new_len, len(x)))
+        N = int(min(new_len, old_len))
         sl_1 = slice((N + 1) / 2)
         y_fft = np.zeros(new_len, np.complex128)
         x_fft = fft(x).ravel()
@@ -357,13 +358,10 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y_fft[sl_2] = x_fft[sl_2]
         y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
     else:
-        fftw_len_x = int((len(x) - (len(x) % 2)) / 2 + 1)
-        fftw_len_y = int((new_len - (new_len % 2)) / 2 + 1)
-        old_len = len(x)
-        x_in = np.zeros(max(new_len, old_len), cuda_dict['dtype'])
-        x_in[:old_len] = x[:old_len]
-        cuda_dict['x'].set(x_in)
-        # do the fourier-domain operations, results in second param
+        if old_len < new_len:
+            x = np.concatenate((x, np.zeros(new_len - old_len, x.dtype)))
+        cuda_dict['x'].set(x)
+        # do the fourier-domain operations, results put in second param
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
         cuda_dict['multiply_inplace'](W, cuda_dict['x_fft'])
         # This is not straightforward, but because x_fft and y_fft share
@@ -373,18 +371,19 @@ def fft_resample(x, W, new_len, npad, to_remove,
         # or taking just the real component...
         if new_len > old_len:
             if old_len % 2 == 0:
+                nyq = int((old_len - (old_len % 2)) / 2)
                 cuda_dict['halve_value'](cuda_dict['x_fft'],
-                                        slice=slice(fftw_len_x - 1,
-                                                    fftw_len_x))
+                                        slice=slice(nyq, nyq + 1))
         else:
             if new_len % 2 == 0:
+                nyq = int((new_len - (new_len % 2)) / 2)
                 cuda_dict['real_value'](cuda_dict['x_fft'],
-                                        slice=slice(fftw_len_y - 1,
-                                                    fftw_len_y))
+                                        slice=slice(nyq, nyq + 1))
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
                      cuda_dict['ifft_plan'], scale=False)
-        y = np.array(cuda_dict['x'].get()[:new_len], dtype=x.dtype,
-                     subok=True, copy=False)
+        y = cuda_dict['x'].get()
+        if new_len < old_len:
+            y = y[:new_len].copy()
 
     # now let's trim it back to the correct size (if there was padding)
     if to_remove > 0:

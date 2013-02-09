@@ -152,7 +152,7 @@ def test_cuda():
     # some warnings about clean-up failing
     Fs = 500
     sig_len_secs = 20
-    a = np.random.RandomState(0).randn(sig_len_secs * Fs)
+    a = np.random.randn(sig_len_secs * Fs)
 
     set_log_file(log_file, overwrite=True)
     for fl in ['10s', None, 2048]:
