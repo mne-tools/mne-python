@@ -357,8 +357,9 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         'STI 014'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    detect : 'onset' | 'offset'
-        Whether to report when events start or when events end.
+    detect : 'onset' | 'offset' | 'step'
+        Whether to report when events start, when events end, or both. Note
+        that for 'offset'
     consecutive : bool | 'increasing'
         If True, consider instances where the value of the events
         channel changes without first returning to zero as multiple
@@ -374,8 +375,11 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     -------
     events : array, shape = (n_events, 3)
         All events that were found. The first column contains the event time
-        in samples and the third column contains the stim channel value of the
-        event.
+        in samples and the third column contains the event id. For detect =
+        'onset' or 'step', the second column contains the value of the stim
+        channel immediately before the the event/step. For detect = 'offset',
+        the second column contains the value of the stim channel after the
+        event offset.
 
     Examples
     --------
@@ -386,7 +390,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
         >>> print(find_events(raw)) # doctest: +SKIP
         [[ 1  0 32]
-         [ 3  0 33]]
+         [ 3 32 33]]
 
     If consecutive is False, find_events only returns the samples at which
     the stim channel changes from zero to a non-zero value:
@@ -399,18 +403,27 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
         >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
         [[ 1  0 32]
-         [ 3  0 33]
-         [ 4  0 32]]
+         [ 3 32 33]
+         [ 4 33 32]]
 
-    If detect is 'offset', find_events returns the samples at which a new
-    event starts, or the stim channel changes to zero (and the final sample
-    if it is non-zero):
+    If detect is 'offset', find_events returns the last sample of each event
+    instead of the first one:
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   detect='offset'))
-        [[ 2  0 32]
-         [ 3  0 33]
+        [[ 2 33 32]
+         [ 3 32 33]
          [ 4  0 32]]
+
+    If detect is 'step', find_events returns the samples at which an event
+    starts or ends:
+
+        >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
+        ...                   detect='step'))
+        [[ 1  0 32]
+         [ 3 32 33]
+         [ 4 33 32]
+         [ 5 32  0]]
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
@@ -457,28 +470,26 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     if min_duration > 0:
         duration = events[offset_idx][:, 0] - events[onset_idx][:, 0]
         keep = (duration >= min_duration * raw.info['sfreq'])
-    else:
-        keep = None
-
-    if detect == 'onset':
-        idx = onset_idx
-    elif detect == 'offset':
-        idx = offset_idx
-    else:
-        raise Exception("Invalid detect parameter %r" % detect)
-
-    if keep is not None:
         n_reject = keep.sum()
         if n_reject > 0:
             logger.info("Removing %s events with duration < "
                         "%s" % (n_reject, min_duration))
-            idx = idx[keep]
+            onset_idx = onset_idx[keep]
+            offset_idx = offset_idx[keep]
 
-    events = events[idx]
-
-    if detect == 'offset':
-        events[:, 1:] = events[:, 2:0:-1]
+    if detect == 'onset':
+        events = events[onset_idx]
+    elif detect == 'step':
+        idx = np.union1d(onset_idx, offset_idx)
+        events = events[idx]
+    elif detect == 'offset':
+        event_id = events[onset_idx, 2]
+        events = events[offset_idx]
+        events[:, 1] = events[:, 2]
+        events[:, 2] = event_id
         events[:, 0] -= 1
+    else:
+        raise Exception("Invalid detect parameter %r" % detect)
 
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))

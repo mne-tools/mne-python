@@ -128,9 +128,18 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
+    assert_array_equal(find_events(raw, detect='step', consecutive=True),
+                       [[10, 0, 5],
+                        [20, 5, 6],
+                        [30, 6, 5],
+                        [32, 5, 0],
+                        [40, 0, 6],
+                        [41, 6, 0],
+                        [14399, 0, 9],
+                        [14400, 9, 0]])
     assert_array_equal(find_events(raw, detect='offset'),
                        [[19, 6, 5],
-                        [31, 0, 5],
+                        [31, 0, 6],
                         [40, 0, 6],
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw, consecutive=False, min_duration=0.002),
