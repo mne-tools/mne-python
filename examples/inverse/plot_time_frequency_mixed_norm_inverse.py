@@ -110,8 +110,7 @@ residual.plot(picks=picks, ylim=ylim, proj=True,
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
-                             fig_number=setno, modes=['sphere'],
-                             scale_factors=[1.])
+                             modes=['sphere'], scale_factors=[1.])
 
 time_label = 'TF-MxNE time=%0.2f ms'
 brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,
