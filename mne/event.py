@@ -269,7 +269,7 @@ def write_events(filename, event_list):
         f.close()
 
 
-def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None,
+def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
                stim_channel=None):
     """Find all steps in data from a stim channel
 
@@ -285,6 +285,11 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None,
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
+    merge : int
+        Merge steps occurring in neighboring samples. The integer value
+        indicates over how many samples events should be merged, and the sign
+        indicates in which direction they should be merged (negative means
+        towards the earlier event, positive towards the later event).
     stim_channel : None | string | list of string
         Name of the stim channel or all the stim channels
         affected by the trigger. If None, the config variables
@@ -294,7 +299,7 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None,
 
     Returns
     -------
-    events : array, shape = (n_samples, 3)
+    steps : array, shape = (n_samples, 3)
         For each step in the stim channel the values [sample, v_from, v_to].
         The first column contains the event time in samples (the first sample
         with the new value). The second column contains the stim channel value
@@ -324,20 +329,39 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None,
     idx += 1
     post_step = data[0, idx]
     idx += int(first_samp)
-    events = np.c_[idx, pre_step, post_step]
+    steps = np.c_[idx, pre_step, post_step]
 
     if pad_start is not None:
-        v = events[0, 1]
+        v = steps[0, 1]
         if v != pad_start:
-            events = np.insert(events, 0, [[0, pad_start, v]], axis=0)
+            steps = np.insert(steps, 0, [[0, pad_start, v]], axis=0)
 
     if pad_stop is not None:
-        v = events[-1, 2]
+        v = steps[-1, 2]
         if v != pad_stop:
             last_idx = len(data[0]) + int(first_samp)
-            events = np.append(events, [[last_idx, v, pad_stop]], axis=0)
+            steps = np.append(steps, [[last_idx, v, pad_stop]], axis=0)
 
-    return events
+    if merge != 0:
+        diff = np.diff(steps[:, 0])
+        idx = (diff <= abs(merge))
+        if np.any(idx):
+            where = np.where(idx)[0]
+            keep = (idx == False)
+            if merge > 0:
+                # drop the earlier event
+                steps[where + 1, 1] = steps[where, 1]
+                keep = np.append(keep, True)
+            else:
+                # drop the later event
+                steps[where, 2] = steps[where + 1, 2]
+                keep = np.insert(keep, 0, True)
+
+            is_step = (steps[:, 1] != steps[:, 2])
+            keep = np.logical_and(keep, is_step)
+            steps = steps[keep]
+
+    return steps
 
 
 @verbose
