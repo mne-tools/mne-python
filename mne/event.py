@@ -538,9 +538,11 @@ def merge_events(events, ids, new_id):
         The new events
     """
     events = events.copy()
-    events_numbers = events[:, 2]
     for i in ids:
-        events_numbers[events_numbers == i] = new_id
+        where = (events[:, 2] == i)
+        events[where, 2] = new_id
+        where = (events[:, 1] == i)
+        events[where, 1] = new_id
     return events
 
 
