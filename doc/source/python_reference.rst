@@ -316,6 +316,8 @@ Forward Modeling
 
    apply_forward
    apply_forward_raw
+   average_forward_solutions
+   do_forward_solution
    read_bem_surfaces
    read_forward_solution
    read_trans
