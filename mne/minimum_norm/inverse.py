@@ -1008,8 +1008,6 @@ def _prepare_forward(forward, info, noise_cov, pca=False, verbose=None):
     n_nzero = sum(nzero)
 
     if pca:
-        whitener = np.zeros((n_nzero, n_chan), dtype=np.float)
-        whitener = 1.0 / np.sqrt(eig[nzero])
         #   Rows of eigvec are the eigenvectors
         whitener = noise_cov['eigvec'][nzero] / np.sqrt(eig[nzero])[:, None]
         logger.info('Reducing data rank to %d' % n_nzero)
