@@ -19,8 +19,9 @@ from .utils import sizeof_fmt
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
-cuda_multiply_inplace_complex64 = None
-cuda_multiply_inplace_complex32 = None
+cuda_multiply_inplace_complex128 = None
+cuda_halve_value_complex128 = None
+cuda_real_value_complex128 = None
 requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
@@ -37,8 +38,9 @@ def init_cuda():
     be manually executed.
     """
     global cuda_capable
-    global cuda_multiply_inplace_complex64
-    global cuda_multiply_inplace_complex32
+    global cuda_multiply_inplace_complex128
+    global cuda_halve_value_complex128
+    global cuda_real_value_complex128
     global requires_cuda
     if cuda_capable is True:
         logger.info('CUDA previously enabled, currently %s available memory'
@@ -64,9 +66,15 @@ def init_cuda():
                 from pycuda.elementwise import ElementwiseKernel
                 # let's construct our own CUDA multiply in-place function
                 dtype = 'pycuda::complex<double>'
-                cuda_multiply_inplace_complex64 = \
+                cuda_multiply_inplace_complex128 = \
                     ElementwiseKernel(dtype + ' *a, ' + dtype + ' *b',
-                                      'b[i] = a[i] * b[i]', 'multiply_inplace')
+                                      'b[i] *= a[i]', 'multiply_inplace')
+                cuda_halve_value_complex128 = \
+                    ElementwiseKernel(dtype + ' *a', 'a[i] /= 2.0',
+                                      'halve_value')
+                cuda_real_value_complex128 = \
+                    ElementwiseKernel(dtype + ' *a', 'a[i] = real(a[i])',
+                                      'real_value')
             except:
                 # This should never happen
                 raise RuntimeError('pycuda ElementwiseKernel could not be '
@@ -148,7 +156,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
         n_jobs = 1
         if cuda_capable:
             # set up all arrays necessary for CUDA
-            cuda_fft_len = int((n_fft + (n_fft % 2)) / 2 + 1)
+            cuda_fft_len = int((n_fft - (n_fft % 2)) / 2 + 1)
             use_cuda = False
             # try setting up for float64
             try:
@@ -161,7 +169,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                 cuda_h_fft /= len(h_fft)
                 h_fft = gpuarray.to_gpu(cuda_h_fft)
                 dtype = np.float64
-                multiply_inplace = cuda_multiply_inplace_complex64
+                multiply_inplace = cuda_multiply_inplace_complex128
             except:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
@@ -253,13 +261,8 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
             x_fft : instance of gpuarray
                 Empty allocated GPU space for storing the result of the
                 frequency-domain multiplication.
-            y_fft : instance of gpuarray
-                Empty allocated GPU space for storing the result of the
-                resampling.
             x : instance of gpuarray
                 Empty allocated GPU space for the data to resample.
-            y : instance of gpuarray
-                Empty allocated GPU space for the resampled data.
     W : array | instance of gpuarray
         This will either be a gpuarray (if CUDA enabled) or np.ndarray.
         If CUDA is enabled, W will be modified appropriately for use
@@ -278,21 +281,21 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
             # try setting up for float64
             try:
                 n_fft_x = len(W)
-                cuda_fft_len_x = int((n_fft_x + (n_fft_x % 2)) / 2 + 1)
+                cuda_fft_len_x = int((n_fft_x - (n_fft_x % 2)) / 2 + 1)
                 n_fft_y = new_len
-                cuda_fft_len_y = int((n_fft_y + (n_fft_y % 2)) / 2 + 1)
+                cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) / 2 + 1)
                 fft_plan = cudafft.Plan(n_fft_x, np.float64, np.complex128)
                 ifft_plan = cudafft.Plan(n_fft_y, np.complex128, np.float64)
-                x_fft = gpuarray.empty(cuda_fft_len_x, np.complex128)
-                y_fft = gpuarray.empty(cuda_fft_len_y, np.complex128)
-                x = gpuarray.empty(int(n_fft_x), np.float64)
-                y = gpuarray.empty(int(n_fft_y), np.float64)
+                x_fft = gpuarray.zeros(max(cuda_fft_len_x,
+                                           cuda_fft_len_y), np.complex128)
+                x = gpuarray.empty(max(int(n_fft_x),
+                                       int(n_fft_y)), np.float64)
                 cuda_W = W[:cuda_fft_len_x].astype('complex128')
                 # do the IFFT normalization now so we don't have to later
                 cuda_W /= n_fft_y
                 W = gpuarray.to_gpu(cuda_W)
                 dtype = np.float64
-                multiply_inplace = cuda_multiply_inplace_complex64
+                multiply_inplace = cuda_multiply_inplace_complex128
             except:
                 logger.info('CUDA not used, could not instantiate memory '
                             '(arrays may be too large), falling back to '
@@ -306,11 +309,11 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
                 cuda_dict['fft_plan'] = fft_plan
                 cuda_dict['ifft_plan'] = ifft_plan
                 cuda_dict['x_fft'] = x_fft
-                cuda_dict['y_fft'] = y_fft
                 cuda_dict['x'] = x
-                cuda_dict['y'] = y
                 cuda_dict['dtype'] = dtype
                 cuda_dict['multiply_inplace'] = multiply_inplace
+                cuda_dict['halve_value'] = cuda_halve_value_complex128
+                cuda_dict['real_value'] = cuda_real_value_complex128
         else:
             logger.info('CUDA not used, CUDA has not been initialized, '
                         'falling back to n_jobs=1')
@@ -343,10 +346,11 @@ def fft_resample(x, W, new_len, npad, to_remove,
     """
     # add some padding at beginning and end to make this work a little cleaner
     x = _smart_pad(x, npad)
-    N = int(np.minimum(new_len, len(x)))
-    sl_1 = slice((N + 1) / 2)
-    y_fft = np.zeros(new_len, np.complex128)
+    old_len = len(x)
     if not cuda_dict['use_cuda']:
+        N = int(min(new_len, old_len))
+        sl_1 = slice((N + 1) / 2)
+        y_fft = np.zeros(new_len, np.complex128)
         x_fft = fft(x).ravel()
         x_fft *= W
         y_fft[sl_1] = x_fft[sl_1]
@@ -354,17 +358,32 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y_fft[sl_2] = x_fft[sl_2]
         y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
     else:
-        # do the fourier-domain operations, results in second param
-        cuda_dict['x'].set(x.astype(cuda_dict['dtype']))
+        if old_len < new_len:
+            x = np.concatenate((x, np.zeros(new_len - old_len, x.dtype)))
+        cuda_dict['x'].set(x)
+        # do the fourier-domain operations, results put in second param
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
         cuda_dict['multiply_inplace'](W, cuda_dict['x_fft'])
-        x_fft = cuda_dict['x_fft'].get()
-        y_fft[sl_1] = x_fft[sl_1]
-        cuda_dict['y_fft'].set(y_fft[:cuda_dict['y_fft'].size])
-        cudafft.ifft(cuda_dict['y_fft'], cuda_dict['y'],
-                     cuda_dict['ifft_plan'], False)
-        y = np.array(cuda_dict['y'].get(), dtype=x.dtype, subok=True,
-                     copy=False)
+        # This is not straightforward, but because x_fft and y_fft share
+        # the same data (and only one half of the full DFT is stored), we
+        # don't have to transfer the slice like we do in scipy. All we
+        # need to worry about is the Nyquist component, either halving it
+        # or taking just the real component...
+        if new_len > old_len:
+            if old_len % 2 == 0:
+                nyq = int((old_len - (old_len % 2)) / 2)
+                cuda_dict['halve_value'](cuda_dict['x_fft'],
+                                        slice=slice(nyq, nyq + 1))
+        else:
+            if new_len % 2 == 0:
+                nyq = int((new_len - (new_len % 2)) / 2)
+                cuda_dict['real_value'](cuda_dict['x_fft'],
+                                        slice=slice(nyq, nyq + 1))
+        cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
+                     cuda_dict['ifft_plan'], scale=False)
+        y = cuda_dict['x'].get()
+        if new_len < old_len:
+            y = y[:new_len].copy()
 
     # now let's trim it back to the correct size (if there was padding)
     if to_remove > 0:

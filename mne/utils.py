@@ -20,6 +20,7 @@ from math import log
 import json
 import urllib2
 import urlparse
+from scipy import linalg
 
 logger = logging.getLogger('mne')
 
@@ -88,6 +89,54 @@ class _TempDir(str):
                 print 'Deleting %s ...' % self._path
             rmtree(self._path, ignore_errors=True)
 
+
+def estimate_rank(data, tol=1e-4, return_singular=False,
+                  copy=True):
+    """Helper to estimate the rank of data
+
+    This function will normalize the rows of the data (typically
+    channels or vertices) such that non-zero singular values
+    should be close to one.
+
+    Parameters
+    ----------
+    tstart : float
+        Start time to use for rank estimation. Defaul is 0.0.
+    tstop : float | None
+        End time to use for rank estimation. Default is 30.0.
+        If None, the end time of the raw file is used.
+    tol : float
+        Tolerance for singular values to consider non-zero in
+        calculating the rank. The singular values are calculated
+        in this method such that independent data are expected to
+        have singular value around one.
+    return_singular : bool
+        If True, also return the singular values that were used
+        to determine the rank.
+    copy : bool
+        If False, values in data will be modified in-place during
+        rank estimation (saves memory).
+
+    Returns
+    -------
+    rank : int
+        Estimated rank of the data.
+    s : array
+        If return_singular is True, the singular values that were
+        thresholded to determine the rank are also returned.
+
+    """
+    if copy is True:
+        data = data.copy()
+    norms = np.sqrt(np.sum(data ** 2, axis=1))
+    norms[norms == 0] = 1.0
+    data /= norms[:, np.newaxis]
+    s = linalg.svd(data, compute_uv=False, overwrite_a=True)
+    rank = np.sum(s >= tol)
+    if return_singular is True:
+        return rank, s
+    else:
+        return rank
 
 ###############################################################################
 # DECORATORS
