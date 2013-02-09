@@ -91,7 +91,7 @@ class _TempDir(str):
 
 
 def estimate_rank(data, tol=1e-4, return_singular=False,
-                  overwrite_data=False):
+                  copy=True):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -113,8 +113,9 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
-    overwrite_data : bool
-        If True, values in data will be modified in-place (saves memory).
+    copy : bool
+        If False, values in data will be modified in-place during
+        rank estimation (saves memory).
 
     Returns
     -------
@@ -125,7 +126,7 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         thresholded to determine the rank are also returned.
 
     """
-    if not overwrite_data:
+    if copy is True:
         data = data.copy()
     norms = np.sqrt(np.sum(data ** 2, axis=1))
     norms[norms == 0] = 1.0
