@@ -43,7 +43,7 @@ def test_notch_filters():
     tols = [2, 1, 1, 1]
     for meth, lf, fl, tol in zip(methods, line_freqs, filter_lengths, tols):
         if lf is None:
-            set_log_file(log_file)
+            set_log_file(log_file, overwrite=True)
 
         b = notch_filter(a, Fs, lf, filter_length=fl, method=meth,
                          verbose='INFO')
@@ -144,19 +144,12 @@ def test_filters():
     assert_true(iir_params['b'].size - 1 == 4)
 
 
-def test_detrend():
-    """Test zeroth and first order detrending
-    """
-    x = np.arange(10)
-    assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
-    x = np.ones(10)
-    assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
-
-
 @requires_cuda
 def test_cuda():
     """Test CUDA-based filtering
     """
+    # NOTE: don't make test_cuda() the last test, or pycuda might spew
+    # some warnings about clean-up failing
     Fs = 500
     sig_len_secs = 20
     a = np.random.randn(sig_len_secs * Fs)
@@ -188,3 +181,21 @@ def test_cuda():
     out = open(log_file).readlines()
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
                      for o in out]) == 12)
+
+    # check resampling
+    a = np.random.RandomState(0).randn(3, sig_len_secs * Fs)
+    a1 = resample(a, 1, 2, n_jobs=2, npad=0)
+    a2 = resample(a, 1, 2, n_jobs='cuda', npad=0)
+    a3 = resample(a, 2, 1, n_jobs=2, npad=0)
+    a4 = resample(a, 2, 1, n_jobs='cuda', npad=0)
+    assert_array_almost_equal(a3, a4, 14)
+    assert_array_almost_equal(a1, a2, 14)
+
+
+def test_detrend():
+    """Test zeroth and first order detrending
+    """
+    x = np.arange(10)
+    assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
+    x = np.ones(10)
+    assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
