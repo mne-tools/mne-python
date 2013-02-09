@@ -1091,7 +1091,7 @@ class Raw(object):
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        return estimate_rank(data, tol, return_singular, overwrite_data=True)
+        return estimate_rank(data, tol, return_singular, copy=False)
 
     @property
     def ch_names(self):
