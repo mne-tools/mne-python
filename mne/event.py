@@ -334,7 +334,7 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
     if pad_start is not None:
         v = steps[0, 1]
         if v != pad_start:
-            steps = np.insert(steps, 0, [[0, pad_start, v]], axis=0)
+            steps = np.insert(steps, 0, [0, pad_start, v], axis=0)
 
     if pad_stop is not None:
         v = steps[-1, 2]

@@ -165,8 +165,9 @@ def test_find_events():
     raw._data[stim_channel, 0] = 1
     raw._data[stim_channel, 10] = 4
     raw._data[stim_channel, 11:20] = 5
-    assert_array_equal(find_steps(raw, merge=0),
-                       [[ 1, 1, 0],
+    assert_array_equal(find_steps(raw, pad_start=0, merge=0),
+                       [[ 0, 0, 1],
+                        [ 1, 1, 0],
                         [10, 0, 4],
                         [11, 4, 5],
                         [20, 5, 0]])
