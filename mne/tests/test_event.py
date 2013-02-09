@@ -5,7 +5,7 @@ from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, fiff)
+                 find_events, find_steps, fiff)
 from mne.utils import _TempDir
 from mne.event import define_target_events
 
@@ -159,6 +159,26 @@ def test_find_events():
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
                        [[10, 0, 5],
                         [20, 5, 6]])
+
+    # test find_steps merge parameter
+    raw._data[stim_channel, :] = 0
+    raw._data[stim_channel, 0] = 1
+    raw._data[stim_channel, 10] = 4
+    raw._data[stim_channel, 11:20] = 5
+    assert_array_equal(find_steps(raw, merge=0),
+                       [[ 1, 1, 0],
+                        [10, 0, 4],
+                        [11, 4, 5],
+                        [20, 5, 0]])
+    assert_array_equal(find_steps(raw, merge= -1),
+                       [[ 1, 1, 0],
+                        [10, 0, 5],
+                        [20, 5, 0]])
+    assert_array_equal(find_steps(raw, merge=1),
+                       [[ 1, 1, 0],
+                        [11, 0, 5],
+                        [20, 5, 0]])
+
     # put back the env vars we trampled on
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
