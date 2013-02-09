@@ -11,6 +11,12 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg
 
+import os
+import shutil
+from os import path as op
+import tempfile
+import commands
+
 import logging
 logger = logging.getLogger('mne')
 
@@ -24,10 +30,16 @@ from .fiff.pick import pick_channels_forward, pick_info, pick_channels, \
                        pick_types
 from .fiff.write import write_int, start_block, end_block, \
                          write_coord_trans, write_ch_info, write_name_list
+from .fiff.raw import Raw
+from .event import make_fixed_length_events
+from .epochs import Epochs
+from .fiff.evoked import Evoked, write_evoked
 
 from .source_space import read_source_spaces_from_tree, find_source_space_hemi
-from .transforms import transform_source_space_to, invert_transform
+from .transforms import transform_source_space_to, invert_transform, \
+                        write_trans
 from . import verbose
+from .utils import _check_fname, has_command_line_tools
 
 
 def _block_diag(A, n):
@@ -966,3 +978,229 @@ def restrict_forward_to_label(fwd, labels):
         fwd_out['sol']['ncol'] += len(idx)
 
     return fwd_out
+
+
+@verbose
+def do_forward_solution(fname, subject, meas, src=None, spacing=None,
+                        mindist=None, bem=None, mri=None, trans=None,
+                        eeg=True, meg=True, fixed=False, grad=False,
+                        mricoord=False, overwrite=False, verbose=None):
+    """Calculate a forward solution for a subject
+
+    This function wraps to mne_do_forward_solution, so the mne
+    command-line tools must be installed.
+
+    Parameters
+    ----------
+    fname : str
+        Destination forward solution name.
+    subject : str
+        Name of the subject.
+    meas : Raw | Epochs | Evoked | str
+        If Raw or Epochs, a temporary evoked file will be created and
+        saved to a temporary directory. If str, then it should be a
+        filename to a file with measurement information the mne
+        command-line tools can understand (i.e., raw or evoked).
+    src : str | None
+        Source space name. If None, the MNE default is used.
+    spacing : str | None
+        Source space spacing to use. If None, the MNE default is used.
+    mindist : float | str | None
+        Minimum distance of sources from inner skull surface (in mm).
+        If None, the MNE default value is used. If string, 'all'
+        indicates to include all points.
+    bem : str | None
+        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
+        (Default), the MNE default will be used.
+    trans : str | None
+        File name of the trans file. If None, mri must not be None.
+    mri : dict | str | None
+        Either a transformation (usually made using mne_analyze) or an
+        info dict (usually opened using read_trans()), or a filename.
+        If dict, the trans will be saved in a temporary directory. If
+        None, trans must not be None.
+    eeg : bool
+        If True (Default), include EEG computations.
+    meg : bool
+        If True (Default), include MEG computations.
+    fixed : bool
+        If True, make a fixed-orientation forward solution (Default:
+        False). Note that fixed-orientation inverses can still be
+        created from free-orientation forward solutions.
+    grad : bool
+        If True, compute the gradient of the field with respect to the
+        dipole coordinates as well (Default: False).
+    mricoord : bool
+        If True, calculate in MRI coordinates (Default: False).
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    if not has_command_line_tools():
+        raise RuntimeError('mne command line tools could not be found')
+
+    # check for file existence
+    _check_fname(fname, overwrite)
+
+    if not isinstance(subject, basestring):
+        raise ValueError('subject must be a string')
+
+    # check for meas to exist as string, or try to make evoked
+    temp_dir = tempfile.mkdtemp()
+    if not isinstance(meas, basestring):
+        # See if we need to make a meas file
+        if isinstance(meas, Raw):
+            events = make_fixed_length_events(meas, 1)[0][np.newaxis, :]
+            meas = Epochs(meas, events, 1, 0, 1, proj=False)
+        if isinstance(meas, Epochs):
+            meas = meas.average()
+        if isinstance(meas, Evoked):
+            meas_data = meas
+            meas = op.join(temp_dir, 'evoked.fif')
+            write_evoked(meas, meas_data)
+        if not isinstance(meas, basestring):
+            raise ValueError('meas must be string, Raw, Epochs, or Evoked')
+    if not op.isfile(meas):
+        raise IOError('measurement file "%s" could not be found' % meas)
+
+    # deal with trans/mri
+    if mri is not None and trans is not None:
+        raise ValueError('trans and mri cannot both be specified')
+    if mri is None and trans is None:
+        # MNE allows this to default to a trans/mri in the subject's dir,
+        # but let's be safe here and force the user to pass us a trans/mri
+        raise ValueError('Either trans or mri must be specified')
+
+    if trans is not None:
+        if not isinstance(trans, basestring):
+            raise ValueError('trans must be a string')
+        if not op.isfile(trans):
+            raise IOError('trans file "%s" not found' % trans)
+    if mri is not None:
+        # deal with trans
+        if not isinstance(mri, basestring):
+            if isinstance(mri, dict):
+                mri_data = deepcopy(mri)
+                mri = op.join(temp_dir, 'mri-trans.fif')
+                try:
+                    write_trans(mri, mri_data)
+                except Exception:
+                    raise IOError('mri was a dict, but could not be '
+                                  'written to disk as a transform file')
+            else:
+                raise ValueError('trans must be a string or dict (trans)')
+        if not op.isfile(mri):
+            raise IOError('trans file "%s" could not be found' % trans)
+
+    # deal with meg/eeg
+    if not meg and not eeg:
+        raise ValueError('meg or eeg (or both) must be True')
+
+    path, fname = op.split(fname)
+    if not op.splitext(fname)[1] == '.fif':
+        raise ValueError('Forward name does not end with .fif')
+    path = op.abspath(path)
+
+    # deal with mindist
+    if mindist is not None:
+        if isinstance(mindist, basestring):
+            if not mindist.lower() == 'all':
+                raise ValueError('mindist, if string, must be "all"')
+            mindist = '--all'
+        else:
+            mindist = '--mindist %g' % mindist
+    else:
+        mindist = ''
+
+    # src, spacing, bem
+    if src is not None:
+        if not isinstance(src, basestring):
+            raise ValueError('src must be a string or None')
+    if spacing is not None:
+        if not isinstance(spacing, basestring):
+            raise ValueError('spacing must be a string or None')
+    if bem is not None:
+        if not isinstance(bem, basestring):
+            raise ValueError('bem must be a string or None')
+
+    # put together the actual call
+    cmd = ['mne_do_forward_solution']
+    cmd += ['--subject ' + subject]
+    cmd += ['--src ' + src if src is not None else '']
+    cmd += ['--spacing ' + spacing if spacing is not None else '']
+    cmd += ['--meas ' + meas]
+    cmd += [mindist]
+    cmd += ['--bem ' + bem if bem is not None else '']
+    cmd += ['--mri %s' % mri if mri is not None else '']
+    cmd += ['--trans %s' % trans if trans is not None else '']
+    cmd += ['--fwd ' + fname]
+    cmd += ['--destdir ' + path]
+    cmd += ['' if meg else '--eegonly']
+    cmd += ['' if eeg else '--megonly']
+    cmd += ['--fixed' if fixed else '']
+    cmd += ['--grad' if grad else '']
+    cmd += ['--mricoord' if mricoord else '']
+    cmd += ['--overwrite' if overwrite else '']
+    cmd = ' '.join(cmd)
+    try:
+        logger.info('Running forward solution generation command:\n%s' % cmd)
+        st, output = commands.getstatusoutput(cmd)
+        if st != 0:
+            raise RuntimeError('mne_do_forward_solution non-zero exit status '
+                               '(%d) with output:\n%s' % (st, output))
+    except Exception as exception:
+        raise exception
+    else:
+        logger.info('Output:\n%s' % output)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@verbose
+def average_forward_solutions(fname, fwds, overwrite=False, verbose=None):
+    """Average forward solutions
+
+    This function wraps to mne_average_forward_solutions, so the mne
+    command-line tools must be installed.
+
+    Parameters
+    ----------
+    fname : str
+        If Raw or Epochs, a temporary evoked file will be created and
+        saved to a temporary directory. If str, then it should be a
+        filename to a file with measurement information the mne
+        command-line tools can understand (i.e., raw or evoked).
+    fwds : list of str
+        Forward solution files to average. Note that the files can be
+        specified as "name:weight" instead of just "name" to weight
+        forward solutions differently.
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    if not has_command_line_tools():
+        raise RuntimeError('mne command line tools could not be found')
+    # check for file existence
+    _check_fname(fname, overwrite)
+    if not isinstance(fwds, list):
+        raise TypeError('fwds must be a list')
+    if not all([isinstance(f, basestring) for f in fwds]):
+        raise TypeError('All entries in fwds must be strings')
+
+    # put together the actual call
+    cmd = ' --fwd '.join(['mne_average_forward_solutions'] + fwds)
+    cmd += ' --out ' + fname
+    try:
+        logger.info('Running forward solution averaging command:\n%s' % cmd)
+        st, output = commands.getstatusoutput(cmd)
+        if st != 0:
+            raise RuntimeError('mne_average_forward_solutions non-zero exit '
+                               'status (%d) with output:\n%s' % (st, output))
+    except Exception as exception:
+        raise exception
+    else:
+        logger.info('Output:\n%s' % output)
