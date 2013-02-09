@@ -11,7 +11,8 @@ from .cov import read_cov, write_cov, Covariance, \
                  compute_covariance, compute_raw_data_covariance, \
                  whiten_evoked
 from .event import read_events, write_events, find_events, merge_events, \
-                   pick_events, make_fixed_length_events, concatenate_events
+                   pick_events, make_fixed_length_events, concatenate_events, \
+                   find_steps
 from .forward import read_forward_solution, apply_forward, apply_forward_raw, \
                      do_forward_solution, average_forward_solutions, \
                      write_forward_solution
