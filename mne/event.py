@@ -269,13 +269,14 @@ def write_events(filename, event_list):
         f.close()
 
 
-def find_steps(data, first_samp=0, pad_start=None, pad_stop=None):
+def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None,
+               stim_channel=None):
     """Find all steps in data from a stim channel
 
     Parameters
     ----------
-    data : array, shape = (1, n_samples)
-        The stim channel data
+    raw : Raw object
+        The raw data.
     first_samp : int
         The index of the first sample (if not 0)
     edges : None | int
@@ -284,6 +285,12 @@ def find_steps(data, first_samp=0, pad_start=None, pad_stop=None):
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
+    stim_channel : None | string | list of string
+        Name of the stim channel or all the stim channels
+        affected by the trigger. If None, the config variables
+        'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+        etc. are read. If these are not found, it will default to
+        'STI 014'.
 
     Returns
     -------
@@ -293,7 +300,24 @@ def find_steps(data, first_samp=0, pad_start=None, pad_stop=None):
         with the new value). The second column contains the stim channel value
         before the step, and the third column contains value after the step.
 
+    See Also
+    --------
+    find_events : More sophisticated options for finding events in a Raw file.
+
     """
+    # pull stim channel from config if necessary
+    stim_channel = _get_stim_channel(stim_channel)
+
+    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
+    if len(pick) == 0:
+        raise ValueError('No stim channel found to extract event triggers.')
+    data, _ = raw[pick, :]
+    if np.any(data < 0):
+        logger.warn('Trigger channel contains negative values. '
+                    'Taking absolute value.')
+        data = np.abs(data)  # make sure trig channel is positive
+    data = data.astype(np.int)
+
     changed = np.diff(data, axis=1) != 0
     idx = np.where(np.all(changed, axis=0))[0]
     pre_step = data[0, idx]
@@ -396,21 +420,14 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
+
+    See Also
+    --------
+    find_steps : Find all the steps in the stim channel.
+
     """
-    # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel)
-
-    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
-    if len(pick) == 0:
-        raise ValueError('No stim channel found to extract event triggers.')
-    data, _ = raw[pick, :]
-    if np.any(data < 0):
-        logger.warn('Trigger channel contains negative values. '
-                    'Taking absolute value.')
-        data = np.abs(data)  # make sure trig channel is positive
-    data = data.astype(np.int)
-
-    events = find_steps(data, first_samp=raw.first_samp, pad_stop=0)
+    events = find_steps(raw, first_samp=raw.first_samp, pad_stop=0,
+                        stim_channel=stim_channel)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
