@@ -283,20 +283,15 @@ def verbose(function):
     return dec
 
 
-def requires_mne(function):
-    """Decorator to skip test if MNE command line tools are not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if 'MNE_ROOT' not in os.environ:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires MNE command line tools'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
+def has_command_line_tools():
+    if 'MNE_ROOT' not in os.environ:
+        return False
+    else:
+        return True
 
-        return ret
 
-    return dec
-
+requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
+                                     'Requires MNE command line tools')
 
 def requires_pandas(function):
     """Decorator to skip test if pandas is not available"""
@@ -626,6 +621,8 @@ def _url_to_local_path(url, path):
 
 def _check_fname(fname, overwrite):
     """Helper to check for file existence"""
+    if not isinstance(fname, basestring):
+        raise TypeError('file name is not a string')
     if op.isfile(fname):
         if not overwrite:
             raise IOError('Destination file exists. Please use option '

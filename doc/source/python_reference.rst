@@ -99,6 +99,7 @@ Functions:
    write_bem_surface
    write_cov
    write_events
+   write_forward_solution
    write_label
    write_proj
    write_source_spaces
@@ -316,6 +317,8 @@ Forward Modeling
 
    apply_forward
    apply_forward_raw
+   average_forward_solutions
+   do_forward_solution
    read_bem_surfaces
    read_forward_solution
    read_trans

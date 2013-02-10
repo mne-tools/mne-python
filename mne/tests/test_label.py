@@ -1,7 +1,6 @@
 import os
 import commands
 import os.path as op
-import shutil
 import glob
 
 import numpy as np

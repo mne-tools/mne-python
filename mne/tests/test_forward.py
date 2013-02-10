@@ -1,25 +1,38 @@
 import os.path as op
 import warnings
+import commands
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal
+from numpy.testing import assert_array_almost_equal, assert_equal, \
+                          assert_array_equal, assert_allclose
 
 from mne.datasets import sample
 from mne.fiff import Raw, Evoked, pick_types_forward
-from mne import read_forward_solution, apply_forward, apply_forward_raw
-from mne import SourceEstimate
+from mne import read_forward_solution, apply_forward, apply_forward_raw, \
+                do_forward_solution, average_forward_solutions, \
+                write_forward_solution
+from mne import SourceEstimate, read_trans
 from mne.label import read_label
+from mne.utils import requires_mne, _TempDir
 from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
+fname_mri = op.join(data_path, 'MEG', 'sample',
+                    'all-trans.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
 
 fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                        'test-ave.fif')
+fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+temp_dir = _TempDir()
+# make a file that exists with some data in it
+existing_file = op.join(temp_dir, 'test.fif')
+with open(existing_file, 'wb') as fid:
+    fid.write('aoeu')
 
 
 def test_io_forward():
@@ -30,6 +43,18 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
+    fname_temp = op.join(temp_dir, 'fwd.fif')
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+
+    fwd = read_forward_solution(fname, surf_ori=True)
+    fwd_read = read_forward_solution(fname_temp, surf_ori=True)
+    leadfield = fwd_read['sol']['data']
+    assert_equal(leadfield.shape, (306, 22494))
+    assert_equal(len(fwd_read['sol']['row_names']), 306)
+    assert_equal(len(fwd_read['info']['chs']), 306)
+    assert_true('dev_head_t' in fwd_read['info'])
+    assert_true('mri_head_t' in fwd_read)
+    assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
     fwd = read_forward_solution(fname, force_fixed=True)
     leadfield = fwd['sol']['data']
@@ -125,7 +150,7 @@ def test_restrict_forward_to_stc():
 
 
 def test_restrict_forward_to_label():
-    """Test restriction of source space to source SourceEstimate
+    """Test restriction of source space to label
     """
     fwd = read_forward_solution(fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
@@ -173,3 +198,113 @@ def test_restrict_forward_to_label():
     assert_equal(fwd_out['src'][1]['nuse'], len(src_sel_rh))
     assert_equal(fwd_out['src'][0]['vertno'], src_sel_lh)
     assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
+
+
+@requires_mne
+def test_average_forward_solution():
+    """Test averaging forward solutions
+    """
+    fwd = read_forward_solution(fname)
+    # input not a list
+    assert_raises(TypeError, average_forward_solutions, 1)
+    # list is too short
+    assert_raises(ValueError, average_forward_solutions, [])
+    # negative weights
+    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [-1, 0])
+    # all zero weights
+    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0])
+    # weights not same length
+    assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0, 0])
+    # list does not only have all dict()
+    assert_raises(TypeError, average_forward_solutions, [1, fwd])
+
+    # try an easy case
+    fwd_copy = average_forward_solutions([fwd])
+    assert_array_equal(fwd['sol']['data'], fwd_copy['sol']['data'])
+
+    # modify a fwd solution, save it, use MNE to average with old one
+    fwd_copy['sol']['data'] *= 0.5
+    fname_copy = op.join(temp_dir, 'fwd.fif')
+    write_forward_solution(fname_copy, fwd_copy, overwrite=True)
+    cmd = ('mne_average_forward_solutions --fwd %s --fwd %s --out %s'
+           % (fname, fname_copy, fname_copy))
+    st, output = commands.getstatusoutput(cmd)
+    if st != 0:
+        raise RuntimeError('could not average forward solutions:\n%s'
+                           % output)
+
+    # now let's actually do it, with one filename and one fwd
+    fwd_ave = average_forward_solutions([fwd, fwd_copy])
+    assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
+    #fwd_ave_mne = read_forward_solution(fname_copy)
+    #assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
+
+
+@requires_mne
+def test_do_forward_solution():
+    """Test making forward solution from python
+    """
+    raw = Raw(fname_raw)
+    mri = read_trans(fname_mri)
+    fname_fake = op.join(temp_dir, 'no_have.fif')
+
+    ### Error checks
+    # bad subject
+    assert_raises(ValueError, do_forward_solution, 1, fname_raw)
+    # bad meas
+    assert_raises(ValueError, do_forward_solution, 'sample', 1)
+    # meas doesn't exist
+    assert_raises(IOError, do_forward_solution, 'sample', fname_fake)
+    # don't specify trans and meas
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw)
+    # specify both trans and meas
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  trans='me', mri='you')
+    # specify non-existent trans
+    assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
+                  trans=fname_fake)
+    # specify non-existent mri
+    assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_fake)
+    # specify non-string mri
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=1)
+    # specify non-string trans
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  trans=1)
+    # test specifying an actual trans in python space -- this should work but
+    # the transform I/O reduces our accuracy -- so we'll just hack a test here
+    # by making it bomb with eeg=False and meg=False
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=mri, eeg=False, meg=False)
+    # mindist as non-integer
+    assert_raises(TypeError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_mri, mindist=dict())
+    # mindist as string but not 'all'
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_mri, eeg=False, mindist='yall')
+    # src, spacing, and bem as non-str
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_mri, src=1)
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_mri, spacing=1)
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  mri=fname_mri, bem=1)
+    # no overwrite flag
+    assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
+                  existing_file, mri=fname_mri)
+    # let's catch an MNE error, this time about trans being wrong
+    assert_raises(RuntimeError, do_forward_solution, 'sample', fname_raw,
+                  existing_file, trans=fname_mri, overwrite=True)
+
+    ### Actually calculate one and check
+    # make a meas from raw (tests all steps in creating evoked),
+    # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
+    fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
+                                 bem='sample-5120', mri=fname_mri, eeg=False)
+    fwd = read_forward_solution(fname)
+    assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
+                    rtol=1e-6, atol=1e-9)
+    assert_equal(fwd_py['sol']['data'].shape, (306, 22494))
+    assert_equal(len(fwd['sol']['row_names']), 306)
+

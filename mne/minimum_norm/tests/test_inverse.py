@@ -42,33 +42,43 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 tempdir = _TempDir()
+last_keys = [None] * 10
 
 
 def _compare(a, b):
-    skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan']
-    if isinstance(a, dict):
-        assert_true(isinstance(b, dict))
-        for k, v in a.iteritems():
-            if not k in b and k not in skip_types:
-                raise ValueError('First one had one setond one didnt:\n'
-                                 '%s not in %s' % (k, b.keys()))
-            _compare(v, b[k])
-        for k, v in b.iteritems():
-            if not k in a and k not in skip_types:
-                raise ValueError('Second one had one first one didnt:\n'
-                                 '%s not in %s' % (k, a.keys()))
-    elif isinstance(a, list):
-        assert_true(len(a) == len(b))
-        for i, j in zip(a, b):
-            _compare(i, j)
-    elif isinstance(a, sparse.csr.csr_matrix):
-        assert_array_almost_equal(a.data, b.data)
-        assert_equal(a.indices, b.indices)
-        assert_equal(a.indptr, b.indptr)
-    elif isinstance(a, np.ndarray):
-        assert_array_almost_equal(a, b)
-    else:
-        assert_true(a == b)
+    global last_keys
+    skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
+                  'command_line', 'working_dir', 'mri_file', 'mri_id']
+    try:
+        if isinstance(a, dict):
+            assert_true(isinstance(b, dict))
+            for k, v in a.iteritems():
+                if not k in b and k not in skip_types:
+                    raise ValueError('First one had one second one didnt:\n'
+                                     '%s not in %s' % (k, b.keys()))
+                if k not in skip_types:
+                    last_keys.pop()
+                    last_keys = [k] + last_keys
+                    _compare(v, b[k])
+            for k, v in b.iteritems():
+                if not k in a and k not in skip_types:
+                    raise ValueError('Second one had one first one didnt:\n'
+                                     '%s not in %s' % (k, a.keys()))
+        elif isinstance(a, list):
+            assert_true(len(a) == len(b))
+            for i, j in zip(a, b):
+                _compare(i, j)
+        elif isinstance(a, sparse.csr.csr_matrix):
+            assert_array_almost_equal(a.data, b.data)
+            assert_equal(a.indices, b.indices)
+            assert_equal(a.indptr, b.indptr)
+        elif isinstance(a, np.ndarray):
+            assert_array_almost_equal(a, b)
+        else:
+            assert_true(a == b)
+    except Exception as exptn:
+        print last_keys
+        raise exptn
 
 
 def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals,
