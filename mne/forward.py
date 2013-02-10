@@ -11,7 +11,6 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg, sparse
 
-import os
 import shutil
 from os import path as op
 import tempfile
@@ -25,23 +24,23 @@ from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
 from .fiff.channels import read_bad_channels
 from .fiff.tag import find_tag, read_tag
-from .fiff.matrix import _read_named_matrix, _transpose_named_matrix
+from .fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
+                         write_named_matrix
 from .fiff.pick import pick_channels_forward, pick_info, pick_channels, \
                        pick_types
 from .fiff.write import write_int, start_block, end_block, \
-                         write_coord_trans, write_ch_info, write_name_list
+                        write_coord_trans, write_ch_info, write_name_list, \
+                        write_string, start_file, end_file, write_id
 from .fiff.raw import Raw
+from .fiff.evoked import Evoked, write_evoked
 from .event import make_fixed_length_events
 from .epochs import Epochs
-from .fiff.evoked import Evoked, write_evoked
-
 from .source_space import read_source_spaces_from_tree, \
                           find_source_space_hemi, write_source_spaces_to_fid
-
 from .transforms import transform_source_space_to, invert_transform, \
                         write_trans
-from . import verbose
 from .utils import _check_fname, has_command_line_tools
+from . import verbose
 
 
 def _block_diag(A, n):
@@ -220,17 +219,6 @@ def read_forward_meas_info(tree, fid):
     """
     info = dict()
 
-    # MNE environment
-    parent_env = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
-    if len(parent_env) > 0:
-        parent_env = parent_env[0]
-        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
-        if tag is not None:
-            info['working_dir'] = tag.data
-        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
-        if tag is not None:
-            info['command_line'] = tag.data
-
     # Information from the MRI file
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
     if len(parent_mri) == 0:
@@ -346,7 +334,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     if len(parent_mri) == 0:
         fid.close()
         raise ValueError('No parent MRI information in %s' % fname)
-
     parent_mri = parent_mri[0]
 
     try:
@@ -450,6 +437,17 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #
     fwd['info'] = read_forward_meas_info(tree, fid)
 
+    # MNE environment
+    parent_env = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+    if len(parent_env) > 0:
+        parent_env = parent_env[0]
+        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
+        if tag is not None:
+            fwd['info']['working_dir'] = tag.data
+        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
+        if tag is not None:
+            fwd['info']['command_line'] = tag.data
+
     fid.close()
 
     #   Transform the source spaces to the correct coordinate frame
@@ -549,75 +547,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     return fwd
 
 
-from .fiff.write import write_string, start_file, end_file, write_id
-from .fiff.matrix import write_named_matrix
-
-
-def write_forward_meas_info(fid, info):
-    """Read light measurement info from forward operator
-
-    Parameters
-    ----------
-    fid : file id
-        The file id
-    info : dict
-        Forward measurement info dict.
-    """
-    #
-    # MNE env
-    #
-    start_block(fid, FIFF.FIFFB_MNE_ENV)
-    write_id(fid, FIFF.FIFF_BLOCK_ID)
-    data = info.get('working_dir', None)
-    if data:
-        write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
-    data = info.get('command_line', None)
-    if data:
-        write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
-    end_block(fid, FIFF.FIFFB_MNE_ENV)
-
-    #
-    # Information from the MRI file
-    #
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['mri_file'])
-    if info['mri_id'] is not None:
-        write_id(fid, FIFF.FIFF_PARENT_FILE_ID, info['mri_id'])
-    write_coord_trans(fid, info['mri_head_t'])
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-
-    #
-    # Information from the MEG file
-    #
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
-    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['meas_file'])
-    if info['meas_id'] is not None:
-        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
-    meg_head_t = info.get('dev_head_t', info.get('ctf_head_t'))
-    if meg_head_t is None:
-        fid.close()
-        raise ValueError('Head<-->sensor transform not found')
-    write_coord_trans(fid, meg_head_t)
-    write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-
-    # write the channel information
-    for k, c in enumerate(info['chs']):
-        #   Scan numbers may have been messed up
-        c = deepcopy(c)
-        c['scanno'] = k + 1
-        write_ch_info(fid, c)
-
-    #
-    # Copy the bad channel list from the measurement file
-    #
-    if len(info['bads']) > 0:
-        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
-        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
-
-
 @verbose
 def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     """Write forward solution to a file
@@ -637,6 +566,29 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     _check_fname(fname, overwrite)
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
+
+    #
+    # MNE env
+    #
+    start_block(fid, FIFF.FIFFB_MNE_ENV)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    data = fwd['info'].get('working_dir', None)
+    if data:
+        write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
+    data = fwd['info'].get('command_line', None)
+    if data:
+        write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
+    end_block(fid, FIFF.FIFFB_MNE_ENV)
+
+    #
+    # Information from the MRI file
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, fwd['info']['mri_file'])
+    if fwd['info']['mri_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_FILE_ID, fwd['info']['mri_id'])
+    write_coord_trans(fid, fwd['info']['mri_head_t'])
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
     # write measurement info
     write_forward_meas_info(fid, fwd['info'])
@@ -752,6 +704,46 @@ def is_fixed_orient(forward):
     """
     is_fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     return is_fixed_ori
+
+
+def write_forward_meas_info(fid, info):
+    """Write measurement info stored in forward solution
+
+    Parameters
+    ----------
+    fid : file id
+        The file id
+    info : dict
+        The measurement info.
+    """
+    #
+    # Information from the MEG file
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['meas_file'])
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+    meg_head_t = info.get('dev_head_t', info.get('ctf_head_t'))
+    if meg_head_t is None:
+        fid.close()
+        raise ValueError('Head<-->sensor transform not found')
+    write_coord_trans(fid, meg_head_t)
+
+    if 'chs' in info:
+        #  Channel information
+        write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
+        for k, c in enumerate(info['chs']):
+            #   Scan numbers may have been messed up
+            c = deepcopy(c)
+            c['scanno'] = k + 1
+            write_ch_info(fid, c)
+    if 'bads' in info and len(info['bads']) > 0:
+        #   Bad channels
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
 @verbose
@@ -903,6 +895,7 @@ def _fill_measurement_info(info, fwd, sfreq):
     info['bads'] = []
 
     info['filename'] = None
+    # this is probably correct based on what's done in meas_info.py...
     info['meas_id'] = fwd['info']['meas_id']
     info['file_id'] = info['meas_id']
 

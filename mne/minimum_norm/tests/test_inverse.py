@@ -48,7 +48,7 @@ last_keys = [None] * 10
 def _compare(a, b):
     global last_keys
     skip_types = ['whitener', 'proj', 'reginv', 'noisenorm', 'nchan',
-                  'mri_file', 'mri_id']
+                  'command_line', 'working_dir', 'mri_file', 'mri_id']
     try:
         if isinstance(a, dict):
             assert_true(isinstance(b, dict))

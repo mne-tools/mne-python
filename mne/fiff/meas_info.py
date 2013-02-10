@@ -326,6 +326,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         #   Scan numbers may have been messed up
         c = deepcopy(c)
         c['scanno'] = k + 1
+        # for float/double, the "range" param is unnecessary
         if reset_range is True:
             c['range'] = 1.0
         write_ch_info(fid, c)
