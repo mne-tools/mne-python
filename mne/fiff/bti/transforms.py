@@ -1,11 +1,10 @@
 # Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
 #
-#          simplified bsd-3 license
+#          simplified BSD-3 license
 
-
-from . constants import BTI
 
 import numpy as np
+from .constants import BTI
 
 
 def bti_identity_trans(dtype='>f8'):
@@ -40,7 +39,6 @@ def bti_to_vv_trans(adjust=None, translation=(0.0, 0.02, 0.11), dtype='>f8'):
     -------
     m_nm_t : ndarray
         4 x 4 rotation, translation, scaling matrix.
-
     """
     flip_t = np.array(BTI.T_ROT_VV, dtype=dtype)
     adjust_t = bti_identity_trans(dtype=dtype)
