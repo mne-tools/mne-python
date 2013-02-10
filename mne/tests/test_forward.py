@@ -5,7 +5,7 @@ import commands
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal, \
-                          assert_array_equal
+                          assert_array_equal, assert_allclose
 
 from mne.datasets import sample
 from mne.fiff import Raw, Evoked, pick_types_forward
@@ -215,7 +215,7 @@ def test_average_forward_solution():
     assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0])
     # weights not same length
     assert_raises(ValueError, average_forward_solutions, [fwd, fwd], [0, 0, 0])
-    # list does not only have str or dict()
+    # list does not only have all dict()
     assert_raises(TypeError, average_forward_solutions, [1, fwd])
 
     # try an easy case
@@ -234,7 +234,7 @@ def test_average_forward_solution():
                            % output)
 
     # now let's actually do it, with one filename and one fwd
-    fwd_ave = average_forward_solutions([fname, fwd_copy])
+    fwd_ave = average_forward_solutions([fwd, fwd_copy])
     assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
     #fwd_ave_mne = read_forward_solution(fname_copy)
     #assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
@@ -303,7 +303,8 @@ def test_do_forward_solution():
     fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
                                  bem='sample-5120', mri=fname_mri, eeg=False)
     fwd = read_forward_solution(fname)
-    assert_array_equal(fwd['sol']['data'], fwd_py['sol']['data'])
+    assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
+                    rtol=1e-6, atol=1e-9)
     assert_equal(fwd_py['sol']['data'].shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
 

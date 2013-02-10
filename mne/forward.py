@@ -573,10 +573,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     start_block(fid, FIFF.FIFFB_MNE_ENV)
     write_id(fid, FIFF.FIFF_BLOCK_ID)
     data = fwd['info'].get('working_dir', None)
-    if data:
+    if data is not None:
         write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
     data = fwd['info'].get('command_line', None)
-    if data:
+    if data is not None:
         write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
     end_block(fid, FIFF.FIFFB_MNE_ENV)
 
@@ -1382,14 +1382,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 def average_forward_solutions(fwds, weights=None):
     """Average forward solutions
 
-    This function wraps to mne_average_forward_solutions, so the mne
-    command-line tools must be installed.
-
     Parameters
     ----------
-    fwds : list of (str | dict)
-        Forward solution (files) to average. Each entry, if str, should
-        be a path to a forward solution; if dict(), should be a
+    fwds : list of dict
+        Forward solutions to average. Each entry (dict should be a
         forward solution.
     weights : array | None
         Weights to apply to each forward solution in averaging. If None,
@@ -1409,7 +1405,7 @@ def average_forward_solutions(fwds, weights=None):
 
     # check weights
     if weights is None:
-        weights = np.ones(len(fwds)) / float(len(fwds))
+        weights = np.ones(len(fwds))
     if not np.all(weights >= 0):
         raise ValueError('weights must be non-negative')
     if not len(weights) == len(fwds):
@@ -1420,17 +1416,10 @@ def average_forward_solutions(fwds, weights=None):
     weights /= w_sum
 
     # check our forward solutions
-    for fi, fwd in enumerate(fwds):
-        # convert each entry to dict() if necessary
-        if isinstance(fwd, basestring):
-            if not op.isfile(fwd):
-                raise IOError('Forward file "#s" not found')
-            fwd = read_forward_solution(fwd)
-            fwds[fi] = fwd
+    for fwd in fwds:
         # check to make sure it's a forward solution
         if not isinstance(fwd, dict):
-            raise TypeError('Each entry in fwds must be either string or '
-                            'dict')
+            raise TypeError('Each entry in fwds must be a dict')
         # check to make sure the dict is actually a fwd
         if not all([key in fwd for key in ['info', 'sol_grad', 'nchan',
                 'src', 'source_nn', 'sol', 'source_rr', 'source_ori',
