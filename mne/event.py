@@ -382,8 +382,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     detect : 'onset' | 'offset' | 'step'
-        Whether to report when events start, when events end, or both. Note
-        that for 'offset'
+        Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
         If True, consider instances where the value of the events
         channel changes without first returning to zero as multiple
