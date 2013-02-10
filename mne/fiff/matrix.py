@@ -15,10 +15,11 @@ from .write import write_int, start_block, end_block, write_float_matrix, \
 from .. import verbose
 
 
-def _transpose_named_matrix(mat):
+def _transpose_named_matrix(mat, copy=True):
     """Transpose mat inplace (no copy)
     """
-    mat = copy.deepcopy(mat)
+    if copy is True:
+        mat = mat.copy()
     mat['nrow'], mat['ncol'] = mat['ncol'], mat['nrow']
     mat['row_names'], mat['col_names'] = mat['col_names'], mat['row_names']
     mat['data'] = mat['data'].T

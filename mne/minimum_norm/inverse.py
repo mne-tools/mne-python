@@ -164,7 +164,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     #   Having the eigenleads as columns is better for the inverse calculations
     #
-    inv['eigen_leads'] = _transpose_named_matrix(eigen_leads)
+    inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
     inv['eigen_fields'] = _read_named_matrix(fid, invs,
                                              FIFF.FIFF_MNE_INVERSE_FIELDS)
     logger.info('    [done]')

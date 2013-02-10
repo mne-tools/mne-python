@@ -9,7 +9,7 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from scipy import linalg
+from scipy import linalg, sparse
 
 import os
 import shutil
@@ -35,7 +35,9 @@ from .event import make_fixed_length_events
 from .epochs import Epochs
 from .fiff.evoked import Evoked, write_evoked
 
-from .source_space import read_source_spaces_from_tree, find_source_space_hemi
+from .source_space import read_source_spaces_from_tree, \
+                          find_source_space_hemi, write_source_spaces_to_fid
+
 from .transforms import transform_source_space_to, invert_transform, \
                         write_trans
 from . import verbose
@@ -70,49 +72,68 @@ def _block_diag(A, n):
     bd : sparse matrix
         The block diagonal matrix
     """
-    from scipy import sparse
+    if sparse.issparse(A):  # then make block sparse
+        raise NotImplemented('sparse reversal not implemented yet')
+    ma, na = A.shape
+    bdn = na / int(n)  # number of submatrices
 
-    if not sparse.issparse(A):  # then make block sparse
-        ma, na = A.shape
-        bdn = na / int(n)  # number of submatrices
+    if na % n > 0:
+        raise ValueError('Width of matrix must be a multiple of n')
 
-        if na % n > 0:
-            raise ValueError('Width of matrix must be a multiple of n')
+    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.tile(tmp, (1, n))
+    ii = tmp.ravel()
 
-        tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
-        tmp = np.tile(tmp, (1, n))
-        ii = tmp.ravel()
+    jj = np.arange(na, dtype=np.int)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = jj.T.ravel()  # column indices foreach sparse bd
 
-        jj = np.arange(na, dtype=np.int)[None, :]
-        jj = jj * np.ones(ma, dtype=np.int)[:, None]
-        jj = jj.T.ravel()  # column indices foreach sparse bd
+    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
 
-        bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
-    else:  # already is sparse, unblock it
-        import pdb; pdb.set_trace()
-        # [mA,na] = size(A);        % matrix always has na columns
-        # % how many entries in the first column?
-        # bdn = na/n;           % number of blocks
-        # ma = mA/bdn;          % rows in first block
-        #
-        # % blocks may themselves contain zero entries. Build indexing as above
-        # tmp = reshape([1:(ma*bdn)]',ma,bdn);
-        # i = zeros(ma*n,bdn);
-        # for iblock = 1:n,
-        # i((iblock-1)*ma+[1:ma],:) = tmp;
-        # end
-        #
-        # i = i(:);             % row indices foreach sparse bd
-        #
-        #
-        # j = [0:mA:(mA*(na-1))];
-        # j = j(ones(ma,1),:);
-        # j = j.ravel()
-        #
-        # i += j
-        #
-        # bd = full(A(i));  % column vector
-        # bd = reshape(bd,ma,na);   % full matrix
+    return bd
+
+
+def _inv_block_diag(A, n):
+    """Constructs an inverse block diagonal from a packed structure
+
+    You have to try it on a matrix to see what it's doing.
+
+    "A" is ma x na, comprising bdn=(na/"n") blocks of submatrices.
+    Each submatrix is ma x "n", and the inverses of these submatrices
+    are placed down the diagonal of the matrix.
+
+    Parameters
+    ----------
+    A : array
+        The matrix.
+    n : int
+        The block size.
+    Returns
+    -------
+    bd : sparse matrix
+        The block diagonal matrix.
+    """
+    ma, na = A.shape
+    bdn = na / int(n)  # number of submatrices
+
+    if na % n > 0:
+        raise ValueError('Width of matrix must be a multiple of n')
+
+    # modify A in-place to invert each sub-block
+    A = A.copy()
+    for start in xrange(0, na, 3):
+        # this is a view
+        A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
+
+    tmp = np.arange(ma * bdn, dtype=np.int).reshape(bdn, ma)
+    tmp = np.tile(tmp, (1, n))
+    ii = tmp.ravel()
+
+    jj = np.arange(na, dtype=np.int)[None, :]
+    jj = jj * np.ones(ma, dtype=np.int)[:, None]
+    jj = jj.T.ravel()  # column indices foreach sparse bd
+
+    bd = sparse.coo_matrix((A.T.ravel(), np.c_[ii, jj].T)).tocsc()
 
     return bd
 
@@ -152,7 +173,7 @@ def _read_one(fid, node):
     try:
         one['sol'] = _read_named_matrix(fid, node,
                                         FIFF.FIFF_MNE_FORWARD_SOLUTION)
-        one['sol'] = _transpose_named_matrix(one['sol'])
+        one['sol'] = _transpose_named_matrix(one['sol'], copy=False)
     except:
         fid.close()
         logger.error('Forward solution data not found')
@@ -161,7 +182,7 @@ def _read_one(fid, node):
     try:
         one['sol_grad'] = _read_named_matrix(fid, node,
                                         FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD)
-        one['sol_grad'] = _transpose_named_matrix(one['sol_grad'])
+        one['sol_grad'] = _transpose_named_matrix(one['sol_grad'], copy=False)
     except:
         one['sol_grad'] = None
 
@@ -188,23 +209,53 @@ def read_forward_meas_info(tree, fid):
     Parameters
     ----------
     tree : tree
-        FIF tree structure
+        FIF tree structure.
     fid : file id
-        The file id
+        The file id.
 
     Returns
     -------
     info : dict
-        The measurement info
+        The measurement info.
     """
+    info = dict()
+
+    # MNE environment
+    parent_env = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+    if len(parent_env) > 0:
+        parent_env = parent_env[0]
+        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_WORKING_DIR)
+        if tag is not None:
+            info['working_dir'] = tag.data
+        tag = find_tag(fid, parent_env, FIFF.FIFF_MNE_ENV_COMMAND_LINE)
+        if tag is not None:
+            info['command_line'] = tag.data
+
+    # Information from the MRI file
+    parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    if len(parent_mri) == 0:
+        fid.close()
+        raise ValueError('No parent MEG information found in operator')
+    parent_mri = parent_mri[0]
+
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_MNE_FILE_NAME)
+    info['mri_file'] = tag.data if tag is not None else None
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_PARENT_FILE_ID)
+    info['mri_id'] = tag.data if tag is not None else None
+
+    # Information from the MEG file
     parent_meg = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
     if len(parent_meg) == 0:
         fid.close()
         raise ValueError('No parent MEG information found in operator')
     parent_meg = parent_meg[0]
 
+    tag = find_tag(fid, parent_meg, FIFF.FIFF_MNE_FILE_NAME)
+    info['meas_file'] = tag.data
+    tag = find_tag(fid, parent_meg, FIFF.FIFF_PARENT_FILE_ID)
+    info['meas_id'] = tag.data if tag is not None else None
+
     # Add channel information
-    info = dict()
     chs = list()
     for k in range(parent_meg['nent']):
         kind = parent_meg['directory'][k].kind
@@ -216,6 +267,20 @@ def read_forward_meas_info(tree, fid):
 
     info['ch_names'] = [c['ch_name'] for c in chs]
     info['nchan'] = len(chs)
+
+    #   Get the MRI <-> head coordinate transformation
+    tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
+    if tag is None:
+        fid.close()
+        raise ValueError('MRI/head coordinate transformation not found')
+    else:
+        cand = tag.data
+        if cand['from'] == FIFF.FIFFV_COORD_MRI and \
+                            cand['to'] == FIFF.FIFFV_COORD_HEAD:
+            info['mri_head_t'] = cand
+        else:
+            raise ValueError('MEG device/head coordinate transformation not '
+                                 'found')
 
     #   Get the MEG device <-> head coordinate transformation
     tag = find_tag(fid, parent_meg, FIFF.FIFF_COORD_TRANS)
@@ -281,6 +346,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     if len(parent_mri) == 0:
         fid.close()
         raise ValueError('No parent MRI information in %s' % fname)
+
     parent_mri = parent_mri[0]
 
     try:
@@ -483,6 +549,191 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     return fwd
 
 
+from .fiff.write import write_string, start_file, end_file, write_id
+from .fiff.matrix import write_named_matrix
+
+
+def write_forward_meas_info(fid, info):
+    """Read light measurement info from forward operator
+
+    Parameters
+    ----------
+    fid : file id
+        The file id
+    info : dict
+        Forward measurement info dict.
+    """
+    #
+    # MNE env
+    #
+    start_block(fid, FIFF.FIFFB_MNE_ENV)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    data = info.get('working_dir', None)
+    if data:
+        write_string(fid, FIFF.FIFF_MNE_ENV_WORKING_DIR, data)
+    data = info.get('command_line', None)
+    if data:
+        write_string(fid, FIFF.FIFF_MNE_ENV_COMMAND_LINE, data)
+    end_block(fid, FIFF.FIFFB_MNE_ENV)
+
+    #
+    # Information from the MRI file
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['mri_file'])
+    if info['mri_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_FILE_ID, info['mri_id'])
+    write_coord_trans(fid, info['mri_head_t'])
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    #
+    # Information from the MEG file
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['meas_file'])
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+    meg_head_t = info.get('dev_head_t', info.get('ctf_head_t'))
+    if meg_head_t is None:
+        fid.close()
+        raise ValueError('Head<-->sensor transform not found')
+    write_coord_trans(fid, meg_head_t)
+    write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
+
+    # write the channel information
+    for k, c in enumerate(info['chs']):
+        #   Scan numbers may have been messed up
+        c = deepcopy(c)
+        c['scanno'] = k + 1
+        write_ch_info(fid, c)
+
+    #
+    # Copy the bad channel list from the measurement file
+    #
+    if len(info['bads']) > 0:
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
+
+
+@verbose
+def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
+    """Write forward solution to a file
+
+    Parameters
+    ----------
+    fname : str
+        File name to save the forward solution to.
+    fwd : dict
+        Forward solution.
+    overwrite : bool
+        If True, overwrite destination file (if it exists).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    # check for file existence
+    _check_fname(fname, overwrite)
+    fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MNE)
+
+    # write measurement info
+    write_forward_meas_info(fid, fwd['info'])
+
+    # invert our original source space transform
+    src = list()
+    for s in fwd['src']:
+        s = deepcopy(s)
+        try:
+            s = transform_source_space_to(s, fwd['mri_head_t']['from'],
+                                          fwd['mri_head_t'])
+        except Exception as inst:
+            raise ValueError('Could not transform source space (%s)' % inst)
+        src.append(s)
+
+    #
+    # Write the source spaces (again)
+    #
+    write_source_spaces_to_fid(fid, src)
+    n_vert = sum([s['nuse'] for s in src])
+    n_col = fwd['sol']['data'].shape[1]
+    if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+        assert n_col == n_vert
+    else:
+        assert n_col == 3 * n_vert
+
+    # Undo surf_ori rotation
+    sol = fwd['sol']['data']
+    if fwd['sol_grad'] is not None:
+        sol_grad = fwd['sol_grad']['data']
+    else:
+        sol_grad = None
+
+    if fwd['surf_ori'] is True:
+        inv_rot = _inv_block_diag(fwd['source_nn'].T, 3)
+        sol = sol * inv_rot
+        if sol_grad is not None:
+            sol_grad = np.dot(sol_grad * np.kron(inv_rot, np.eye(3)))
+
+    #
+    # MEG forward solution
+    #
+    picks_meg = pick_types(fwd['info'], meg=True, eeg=False, exclude=[])
+    picks_eeg = pick_types(fwd['info'], meg=False, eeg=True, exclude=[])
+    n_meg = len(picks_meg)
+    n_eeg = len(picks_eeg)
+    row_names = fwd['sol']['row_names']
+
+    if n_meg > 0:
+        meg_solution = dict(data=sol[picks_meg], nrow=n_meg, ncol=n_col,
+                            row_names=row_names, col_names=[])
+        meg_solution = _transpose_named_matrix(meg_solution, copy=False)
+        start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
+        write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_MEG)
+        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, fwd['source_ori'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, n_vert)
+        write_int(fid, FIFF.FIFF_NCHAN, n_meg)
+        write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION, meg_solution)
+        if sol_grad is not None:
+            meg_solution_grad = dict(data=sol_grad[picks_meg],
+                                     nrow=n_meg, ncol=n_col,
+                                     row_names=row_names, col_names=[])
+            meg_solution_grad = _transpose_named_matrix(meg_solution_grad,
+                                                        copy=False)
+            write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
+                               meg_solution_grad)
+        end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
+
+    #
+    #  EEG forward solution
+    #
+    if n_eeg > 0:
+        eeg_solution = dict(data=sol[picks_eeg], nrow=n_eeg, ncol=n_vert,
+                            row_names=row_names, col_names=[])
+        eeg_solution = _transpose_named_matrix(eeg_solution, copy=False)
+        start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
+        write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_EEG)
+        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, fwd['coord_frame'])
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, fwd['source_ori'])
+        write_int(fid, FIFF.FIFF_NCHAN, n_eeg)
+        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, n_vert)
+        write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION, eeg_solution)
+        if sol_grad is not None:
+            eeg_solution_grad = dict(data=sol_grad[picks_eeg],
+                                     nrow=n_eeg, ncol=n_vert,
+                                     row_names=row_names, col_names=[])
+            meg_solution_grad = _transpose_named_matrix(eeg_solution_grad,
+                                                        copy=False)
+            write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
+                               eeg_solution_grad)
+        end_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
+
+    end_block(fid, FIFF.FIFFB_MNE)
+    end_file(fid)
+
+
 def _to_fixed_ori(forward):
     """Helper to convert the forward solution to fixed ori from free"""
     if not forward['surf_ori'] or is_fixed_orient(forward):
@@ -501,40 +752,6 @@ def is_fixed_orient(forward):
     """
     is_fixed_ori = (forward['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI)
     return is_fixed_ori
-
-
-def write_forward_meas_info(fid, info):
-    """Write measurement info stored in forward solution
-
-    Parameters
-    ----------
-    fid : file id
-        The file id
-    info : dict
-        The measurement info
-    """
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
-    #   write the MRI <-> head coordinate transformation
-    if 'dev_head_t' in info:
-        write_coord_trans(fid, info['dev_head_t'])
-    if 'ctf_head_t' in info:
-        write_coord_trans(fid, info['ctf_head_t'])
-    if 'chs' in info:
-        #  Channel information
-        write_int(fid, FIFF.FIFF_NCHAN, len(info['chs']))
-        for k, c in enumerate(info['chs']):
-            #   Scan numbers may have been messed up
-            c = deepcopy(c)
-            c['scanno'] = k + 1
-            # c['range'] = 1.0
-            write_ch_info(fid, c)
-    if 'bads' in info:
-        #   Bad channels
-        if len(info['bads']) > 0:
-            start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-            write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, info['bads'])
-            end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MEAS_FILE)
 
 
 @verbose
@@ -686,8 +903,8 @@ def _fill_measurement_info(info, fwd, sfreq):
     info['bads'] = []
 
     info['filename'] = None
-    info['meas_id'] = None  # XXX is this the right thing to do?
-    info['file_id'] = None  # XXX is this the right thing to do?
+    info['meas_id'] = fwd['info']['meas_id']
+    info['file_id'] = info['meas_id']
 
     now = time()
     sec = np.floor(now)
@@ -981,7 +1198,7 @@ def restrict_forward_to_label(fwd, labels):
 
 
 @verbose
-def do_forward_solution(fname, subject, meas, src=None, spacing=None,
+def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                         mindist=None, bem=None, mri=None, trans=None,
                         eeg=True, meg=True, fixed=False, grad=False,
                         mricoord=False, overwrite=False, verbose=None):
@@ -992,8 +1209,6 @@ def do_forward_solution(fname, subject, meas, src=None, spacing=None,
 
     Parameters
     ----------
-    fname : str
-        Destination forward solution name.
     subject : str
         Name of the subject.
     meas : Raw | Epochs | Evoked | str
@@ -1001,6 +1216,9 @@ def do_forward_solution(fname, subject, meas, src=None, spacing=None,
         saved to a temporary directory. If str, then it should be a
         filename to a file with measurement information the mne
         command-line tools can understand (i.e., raw or evoked).
+    fname : str | None
+        Destination forward solution filename. If None, the solution
+        will be created in a temporary directory, loaded, and deleted.
     src : str | None
         Source space name. If None, the MNE default is used.
     spacing : str | None
@@ -1037,18 +1255,25 @@ def do_forward_solution(fname, subject, meas, src=None, spacing=None,
         If False (default), an error will be raised if the file exists.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fwd : dict
+        The generated forward solution.
     """
     if not has_command_line_tools():
         raise RuntimeError('mne command line tools could not be found')
 
     # check for file existence
+    temp_dir = tempfile.mkdtemp()
+    if fname is None:
+        fname = op.join(temp_dir, 'temp-fwd.fif')
     _check_fname(fname, overwrite)
 
     if not isinstance(subject, basestring):
         raise ValueError('subject must be a string')
 
     # check for meas to exist as string, or try to make evoked
-    temp_dir = tempfile.mkdtemp()
     if not isinstance(meas, basestring):
         # See if we need to make a meas file
         if isinstance(meas, Raw):
@@ -1154,12 +1379,14 @@ def do_forward_solution(fname, subject, meas, src=None, spacing=None,
         raise exception
     else:
         logger.info('Output:\n%s' % output)
+        fwd = read_forward_solution(op.join(path, fname))
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
+    return fwd
 
 
 @verbose
-def average_forward_solutions(fname, fwds, overwrite=False, verbose=None):
+def average_forward_solutions(fwds, weights=None):
     """Average forward solutions
 
     This function wraps to mne_average_forward_solutions, so the mne
@@ -1167,40 +1394,68 @@ def average_forward_solutions(fname, fwds, overwrite=False, verbose=None):
 
     Parameters
     ----------
-    fname : str
-        If Raw or Epochs, a temporary evoked file will be created and
-        saved to a temporary directory. If str, then it should be a
-        filename to a file with measurement information the mne
-        command-line tools can understand (i.e., raw or evoked).
-    fwds : list of str
-        Forward solution files to average. Note that the files can be
-        specified as "name:weight" instead of just "name" to weight
-        forward solutions differently.
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    fwds : list of (str | dict)
+        Forward solution (files) to average. Each entry, if str, should
+        be a path to a forward solution; if dict(), should be a
+        forward solution.
+    weights : array | None
+        Weights to apply to each forward solution in averaging. If None,
+        forward solutions will be equally weighted. Weights must be
+        non-negative, and will be adjusted to sum to one.
+
+    Returns
+    -------
+    fwd : dict
+        The averaged forward solution.
     """
-    if not has_command_line_tools():
-        raise RuntimeError('mne command line tools could not be found')
-    # check for file existence
-    _check_fname(fname, overwrite)
+    # check for fwds being a list
     if not isinstance(fwds, list):
         raise TypeError('fwds must be a list')
-    if not all([isinstance(f, basestring) for f in fwds]):
-        raise TypeError('All entries in fwds must be strings')
+    if not len(fwds) > 0:
+        raise ValueError('fwds must not be empty')
 
-    # put together the actual call
-    cmd = ' --fwd '.join(['mne_average_forward_solutions'] + fwds)
-    cmd += ' --out ' + fname
-    try:
-        logger.info('Running forward solution averaging command:\n%s' % cmd)
-        st, output = commands.getstatusoutput(cmd)
-        if st != 0:
-            raise RuntimeError('mne_average_forward_solutions non-zero exit '
-                               'status (%d) with output:\n%s' % (st, output))
-    except Exception as exception:
-        raise exception
-    else:
-        logger.info('Output:\n%s' % output)
+    # check weights
+    if weights is None:
+        weights = np.ones(len(fwds)) / float(len(fwds))
+    if not np.all(weights >= 0):
+        raise ValueError('weights must be non-negative')
+    if not len(weights) == len(fwds):
+        raise ValueError('weights must be None or the same length as fwds')
+    w_sum = np.sum(weights)
+    if not w_sum > 0:
+        raise ValueError('weights cannot all be zero')
+    weights /= w_sum
+
+    # check our forward solutions
+    for fi, fwd in enumerate(fwds):
+        # convert each entry to dict() if necessary
+        if isinstance(fwd, basestring):
+            if not op.isfile(fwd):
+                raise IOError('Forward file "#s" not found')
+            fwd = read_forward_solution(fwd)
+            fwds[fi] = fwd
+        # check to make sure it's a forward solution
+        if not isinstance(fwd, dict):
+            raise TypeError('Each entry in fwds must be either string or '
+                            'dict')
+        # check to make sure the dict is actually a fwd
+        if not all([key in fwd for key in ['info', 'sol_grad', 'nchan',
+                'src', 'source_nn', 'sol', 'source_rr', 'source_ori',
+                'surf_ori', 'coord_frame', 'mri_head_t', 'nsource']]):
+            raise KeyError('forward solution dict does not have all standard '
+                           'entries, cannot compute average.')
+
+    # check forward solution compatibility
+    if any([fwd['sol'][k] != fwds[0]['sol'][k]
+            for fwd in fwds[1:] for k in ['nrow', 'ncol']]):
+        raise ValueError('Forward solutions have incompatible dimensions')
+    if any([fwd[k] != fwds[0][k] for fwd in fwds[1:]
+            for k in ['source_ori', 'surf_ori', 'coord_frame']]):
+        raise ValueError('Forward solutions have incompatible orientations')
+
+    # actually average them
+    fwd_ave = deepcopy(fwds[0])
+    fwd_ave['sol']['data'] *= weights[0]
+    for fwd, w in zip(fwds[1:], weights[1:]):
+        fwd_ave['sol']['data'] += w * fwd['sol']['data']
+    return fwd_ave
