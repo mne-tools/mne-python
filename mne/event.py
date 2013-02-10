@@ -223,7 +223,7 @@ def read_events(filename, include=None, exclude=None):
             lines = lines[np.newaxis, :]
 
         if len(lines[0]) == 4:  # Old format eve/lst
-            goods = [0, 2, 3]   # Omit "time" variable
+            goods = [0, 2, 3]  # Omit "time" variable
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
@@ -269,18 +269,13 @@ def write_events(filename, event_list):
         f.close()
 
 
-def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
-               stim_channel=None):
+def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=None):
     """Find all steps in data from a stim channel
 
     Parameters
     ----------
     raw : Raw object
         The raw data.
-    first_samp : int
-        The index of the first sample (if not 0)
-    edges : None | int
-        Value to assume outside of data.
     pad_start, pad_stop : None | int
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
@@ -308,7 +303,6 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
     See Also
     --------
     find_events : More sophisticated options for finding events in a Raw file.
-
     """
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel)
@@ -325,10 +319,13 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
 
     changed = np.diff(data, axis=1) != 0
     idx = np.where(np.all(changed, axis=0))[0]
+    if len(idx) == 0:
+        return np.empty((0, 3), dtype='int32')
+
     pre_step = data[0, idx]
     idx += 1
     post_step = data[0, idx]
-    idx += int(first_samp)
+    idx += raw.first_samp
     steps = np.c_[idx, pre_step, post_step]
 
     if pad_start is not None:
@@ -339,7 +336,7 @@ def find_steps(raw, first_samp=0, pad_start=None, pad_stop=None, merge=0,
     if pad_stop is not None:
         v = steps[-1, 2]
         if v != pad_stop:
-            last_idx = len(data[0]) + int(first_samp)
+            last_idx = len(data[0]) + raw.first_samp
             steps = np.append(steps, [[last_idx, v, pad_stop]], axis=0)
 
     if merge != 0:
@@ -459,8 +456,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
     See Also
     --------
-    find_steps : Find all the steps in the stim channel.
-
+    find_stim_steps : Find all the steps in the stim channel.
     """
     if min_duration > 0:
         min_samples = min_duration * raw.info['sfreq']
@@ -470,8 +466,8 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     else:
         merge = 0
 
-    events = find_steps(raw, first_samp=raw.first_samp, pad_stop=0,
-                        stim_channel=stim_channel, merge=merge)
+    events = find_stim_steps(raw, pad_stop=0, merge=merge,
+                             stim_channel=stim_channel)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -487,6 +483,9 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
     onset_idx = np.where(onsets)[0]
     offset_idx = np.where(offsets)[0]
+
+    if len(onset_idx) == 0 or len(offset_idx) == 0:
+        return np.empty((0, 3), dtype='int32')
 
     # delete orphaned onsets/offsets
     if onset_idx[0] > offset_idx[0]:
