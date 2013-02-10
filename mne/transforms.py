@@ -105,16 +105,16 @@ def transform_source_space_to(src, dest, trans):
     Parameters
     ----------
     src : dict
-        Source space
+        Source space.
     dest : dict
-        destination coordinate system
+        destination coordinate system.
     trans : dict
-        Transformation
+        Transformation.
 
     Returns
     -------
     res : dict
-        Transformed source space
+        Transformed source space. Data are modified in-place.
     """
 
     if src['coord_frame'] == dest:

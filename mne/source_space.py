@@ -554,17 +554,18 @@ def write_source_spaces(fname, src, verbose=None):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space"""
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
     if this['type'] == 'surf':
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 1)
     elif this['type'] == 'vol':
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 2)
     else:
         raise ValueError('Unknown source space type (%d)' % this['type'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
 
     data = this.get('subject_his_id', None)
     if data:
         write_string(fid, FIFF.FIFF_SUBJ_HIS_ID, data)
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, this['coord_frame'])
 
     if this['type'] == 'vol':
 
@@ -590,18 +591,17 @@ def _write_one_source_space(fid, this, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, this['np'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, this['coord_frame'])
     write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS, this['rr'])
     write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, this['nn'])
 
+    #   Which vertices are active
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
+
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
     if this['ntri'] > 0:
         write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES,
                          this['tris'] + 1)
-
-    #   Which vertices are active
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
 
     if this['type'] != 'vol' and this['use_tris'] is not None:
         #   Use triangulation

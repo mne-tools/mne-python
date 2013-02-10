@@ -99,6 +99,7 @@ Functions:
    write_bem_surface
    write_cov
    write_events
+   write_forward_solution
    write_label
    write_proj
    write_source_spaces
