@@ -150,7 +150,7 @@ def test_restrict_forward_to_stc():
 
 
 def test_restrict_forward_to_label():
-    """Test restriction of source space to source SourceEstimate
+    """Test restriction of source space to label
     """
     fwd = read_forward_solution(fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
