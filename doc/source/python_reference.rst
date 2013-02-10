@@ -21,14 +21,14 @@ Classes
    :toctree: generated/
    :template: class.rst
 
-   BiHemiLabel
-   Covariance
+   fiff.Raw
    Epochs
    fiff.Evoked
-   fiff.Raw
-   Label
-   preprocessing.ICA
    SourceEstimate
+   Covariance
+   Label
+   BiHemiLabel
+   preprocessing.ICA
 
 
 Logging and Configuration
@@ -104,6 +104,18 @@ Functions:
    write_source_spaces
    write_surface
    write_trans
+
+.. currentmodule:: mne.fiff.bti
+
+:py:mod:`mne.fiff.bti`:
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_bti
 
 :py:mod:`mne.datasets.sample`:
 
