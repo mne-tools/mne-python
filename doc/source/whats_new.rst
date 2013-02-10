@@ -43,6 +43,9 @@ Changelog
 
    - Estimate rank of Raw data by `Eric Larson`_
 
+   - Support reading of BTi/4D data by `Denis Engemann`_
+
+
 API
 ~~~
 
