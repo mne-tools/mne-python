@@ -38,6 +38,7 @@ with open(existing_file, 'wb') as fid:
 def test_io_forward():
     """Test IO for forward solutions
     """
+    fwd = read_forward_solution(fname)
     fwd = read_forward_solution(fname, surf_ori=True)
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (306, 22494))
