@@ -116,6 +116,7 @@ Functions:
 .. autosummary::
    :toctree: generated/
    :template: function.rst
+
    data_path
 
 :py:mod:`mne.datasets.megsim`:
@@ -129,10 +130,9 @@ Functions:
 .. autosummary::
    :toctree: generated/
    :template: function.rst
+
    data_path
    load_data
-
-
 
 
 Visualization
@@ -311,6 +311,15 @@ Forward Modeling
    read_surface
    write_bem_surface
    write_trans
+
+.. currentmodule:: mne.forward
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   restrict_forward_to_label
+   restrict_forward_to_stc
 
 
 Inverse Solutions
