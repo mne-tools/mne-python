@@ -236,6 +236,8 @@ def test_average_forward_solution():
     # now let's actually do it, with one filename and one fwd
     fwd_ave = average_forward_solutions([fname, fwd_copy])
     assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
+    #fwd_ave_mne = read_forward_solution(fname_copy)
+    #assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
 
 
 @requires_mne
