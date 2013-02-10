@@ -17,7 +17,7 @@ from mayavi.tools import pipeline
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import error, confirm, YES, NO, CANCEL, ProgressDialog
 import traits.api as traits
-from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
+from traitsui.api import View, Item, Group, HGroup, VGroup
 from tvtk.pyface.scene_editor import SceneEditor
 
 from .coreg import MriHeadFitter, HeadMriFitter, BemGeom
@@ -32,20 +32,33 @@ class HeadViewer(traits.HasTraits):
     front = traits.Button()
     left = traits.Button()
     top = traits.Button()
+    view_scale = traits.Float(0.13)
 
     scene = traits.Instance(MlabSceneModel, ())
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=600, width=600, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 )
+
+    @traits.on_trait_change('scene.activated')
+    def _init_view(self):
+        self.sync_trait('view_scale', self.scene.camera, 'parallel_scale')
+        self.view_scale = 0.16
+
+    @traits.on_trait_change('view_scale')
+    def _on_view_scale_update(self):
+        self.scene.camera.parallel_scale = self.view_scale
+        self.scene.render()
 
     @traits.on_trait_change('top,left,right,front')
     def on_set_view(self, view='front', info=None):
         self.scene.parallel_projection = True
-        self.scene.camera.parallel_scale = .12
         kwargs = dict(azimuth=90, elevation=90, distance=None, roll=180,
                       reset_roll=True, figure=self.scene.mayavi_scene)
         if view == 'left':
@@ -75,9 +88,12 @@ class FindDigPoint(HeadViewer):
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 '_',
                 VGroup('point'),
                 )
@@ -142,9 +158,12 @@ class FixDigHeadShape(HeadViewer):
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 '_',
                 VGroup('clusters'),
                 '_',
@@ -250,9 +269,12 @@ class Fiducials(HeadViewer):
     # the layout of the dialog created
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 VGroup(Item('set', style='custom'), 'nasion', 'LAP', 'RAP',
                        label='Fiducials', show_border=True),
                 HGroup(HGroup('_save', show_labels=False)),
@@ -399,9 +421,12 @@ class HeadMriCoreg(HeadViewer):
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 VGroup('nasion',
                        HGroup('fit', 'fit_fid', 'restore_fit', show_labels=False),
                        'rotation', label='Transform', show_border=True),
@@ -521,9 +546,12 @@ class MriHeadCoreg(HeadViewer):
 
     view = View(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                      height=500, width=500, show_label=False),
-                Group(HGroup('72', 'top', show_labels=False),
+                # # HeadViewer Traits
+                Group(HGroup('72', Item('top', show_label=False), '100',
+                             Item('view_scale', label='Scale')),
                       HGroup('right', 'front', 'left', show_labels=False),
                       label='View', show_border=True),
+                # # end HeadViewer traits
                 Group(HGroup('nasion'),
                       HGroup(Item('n_scale_params', style='custom'),
                              Item('fit_scale', show_label=False)),
