@@ -5,22 +5,23 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #
-#          simplified bsd-3 license
+#          simplified BSD-3 license
 
-from .. import Raw
-from .. import FIFF
-from .  constants import BTI
-from . read import read_int32, read_int16, read_str, read_float, read_double,\
-                   read_transform, read_char, read_int64, read_uint16,\
-                   read_uint32, read_double_matrix, read_float_matrix,\
-                   read_int16_matrix
-from .transforms import bti_identity_trans, bti_to_vv_trans,\
-                        bti_to_vv_coil_trans, inverse_trans, merge_trans
-from ...utils import verbose
 import logging
 import os.path as op
 from itertools import count
 import numpy as np
+
+from ...utils import verbose
+from .. import Raw
+from .. import FIFF
+from .constants import BTI
+from .read import (read_int32, read_int16, read_str, read_float, read_double,
+                  read_transform, read_char, read_int64, read_uint16,
+                  read_uint32, read_double_matrix, read_float_matrix,
+                  read_int16_matrix)
+from .transforms import (bti_identity_trans, bti_to_vv_trans,
+                        bti_to_vv_coil_trans, inverse_trans, merge_trans)
 
 logger = logging.getLogger('mne')
 
@@ -1103,7 +1104,7 @@ class RawBTi(Raw):
         info['ctf_head_t']['trans'] = ctf_head_t
         logger.info('Done.')
 
-        if False:  # reminds us to support this as we go
+        if False:  # XXX : reminds us to support this as we go
             # include digital weights from reference channel
             comps = info['comps'] = list()
             weights = bti_info['weights']
@@ -1111,7 +1112,8 @@ class RawBTi(Raw):
             chn = dict(ch_mapping)
             columns = [chn[k] for k in weights['dsp_ch_names']]
             rows = [chn[k] for k in weights['ch_names']]
-            col_order, col_names = zip(*sorted(enumerate(columns), key=by_name))
+            col_order, col_names = zip(*sorted(enumerate(columns),
+                                               key=by_name))
             row_order, row_names = zip(*sorted(enumerate(rows), key=by_name))
             # for some reason the C code would invert the signs, so we follow.
             mat = -weights['dsp_wts'][row_order, :][:, col_order]
@@ -1176,7 +1178,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
 
     Note.
     1) Currently direct inclusion of reference channel weights
-    is not supported. Please use \'mne_create_comp_data\' to include
+    is not supported. Please use 'mne_create_comp_data' to include
     the weights or use the low level functions from this module to
     include them by yourself.
     2) The informed guess for the 4D name is E31 for the ECG channel and
@@ -1208,7 +1210,6 @@ def read_raw_bti(pdf_fname, config_fname='config',
       as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
     """
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
