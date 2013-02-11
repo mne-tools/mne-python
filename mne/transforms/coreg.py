@@ -9,7 +9,7 @@ import fnmatch
 import os
 import re
 import shutil
-import subprocess
+from subprocess import check_output, CalledProcessError
 
 import logging
 logger = logging.getLogger('mne')
@@ -585,11 +585,8 @@ class MriHeadFitter(HeadMriFitter):
             set on initialization.
         surf, homog : bool
             Arguments for the `mne_setup_forward_model` call.
-        setup_fwd : bool | 'block'
-            Call `mne_setup_forward_model` at the end. With True, the command
-            is called and the corresponding Popen object returned. With
-            'block', the Python interpreter is blocked until
-            `mne_setup_forward_model` finishes.
+        setup_fwd : bool
+            Execute `mne_setup_forward_model` after creating the mri files.
         overwrite : bool
             If an MRI already exists for this subject, overwrite it.
         trans_fname : None
@@ -692,13 +689,11 @@ class MriHeadFitter(HeadMriFitter):
 
         # run mne_setup_forward_model
         if setup_fwd:
-            block = setup_fwd == 'block'
             for ico in paths['ico']:
                 self._mne_setup_forward_model(s_to, ico, surf=surf,
-                                              homog=homog, block=block)
+                                              homog=homog)
 
-    def _mne_setup_forward_model(self, s_to, ico, surf=True, homog=True,
-                                 block=False):
+    def _mne_setup_forward_model(self, s_to, ico, surf=True, homog=True):
         "Run mne_setup_forward_model command"
         env = os.environ.copy()
         env['SUBJECTS_DIR'] = self.subjects_dir
@@ -708,11 +703,15 @@ class MriHeadFitter(HeadMriFitter):
         if homog:
             cmd.append('--homog')
 
-        p = subprocess.Popen(cmd, env=env)
-        if block:
-            p.communicate()
+        try:
+            out = check_output(cmd)
+        except CalledProcessError as err:
+            title = 'Error executing mne_setup_forward_model'
+            print os.linesep.join((title, '=' * len(title), err.output))
+            raise
         else:
-            return p
+            title = 'mne_setup_forward_model'
+            print os.linesep.join((title, '=' * len(title), out))
 
     def reset(self):
         self._t_mri_origin = translation(*(-self.mri_fid.nas))
