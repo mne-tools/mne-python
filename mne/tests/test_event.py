@@ -126,17 +126,17 @@ def test_find_events():
                         [20, 5, 6],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=False),
+    assert_array_equal(find_events(raw, output='offset', consecutive=False),
                        [[31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=True),
+    assert_array_equal(find_events(raw, output='offset', consecutive=True),
                        [[19, 6, 5],
                         [29, 5, 6],
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, detect='step', consecutive=True),
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
                        [[10, 0, 5],
                         [20, 5, 6],
                         [30, 6, 5],
@@ -145,7 +145,7 @@ def test_find_events():
                         [41, 6, 0],
                         [14399, 0, 9],
                         [14400, 9, 0]])
-    assert_array_equal(find_events(raw, detect='offset'),
+    assert_array_equal(find_events(raw, output='offset'),
                        [[19, 6, 5],
                         [31, 0, 6],
                         [40, 0, 6],
@@ -156,10 +156,10 @@ def test_find_events():
                        [[10, 0, 5],
                         [20, 5, 6],
                         [30, 6, 5]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=False,
+    assert_array_equal(find_events(raw, output='offset', consecutive=False,
                                    min_duration=0.002),
                        [[31, 0, 5]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=True,
+    assert_array_equal(find_events(raw, output='offset', consecutive=True,
                                    min_duration=0.002),
                        [[19, 6, 5],
                         [29, 5, 6],

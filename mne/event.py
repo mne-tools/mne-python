@@ -362,7 +362,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=No
 
 
 @verbose
-def find_events(raw, stim_channel=None, verbose=None, detect='onset',
+def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0):
     """Find events from raw file
 
@@ -378,7 +378,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         'STI 014'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    detect : 'onset' | 'offset' | 'step'
+    output : 'onset' | 'offset' | 'step'
         Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
         If True, consider instances where the value of the events
@@ -395,9 +395,9 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     -------
     events : array, shape = (n_events, 3)
         All events that were found. The first column contains the event time
-        in samples and the third column contains the event id. For detect =
+        in samples and the third column contains the event id. For output =
         'onset' or 'step', the second column contains the value of the stim
-        channel immediately before the the event/step. For detect = 'offset',
+        channel immediately before the the event/step. For output = 'offset',
         the second column contains the value of the stim channel after the
         event offset.
 
@@ -426,20 +426,20 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
          [ 3 32 33]
          [ 4 33 32]]
 
-    If detect is 'offset', find_events returns the last sample of each event
+    If output is 'offset', find_events returns the last sample of each event
     instead of the first one:
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
-        ...                   detect='offset'))
+        ...                   output='offset'))
         [[ 2 33 32]
          [ 3 32 33]
          [ 4  0 32]]
 
-    If detect is 'step', find_events returns the samples at which an event
+    If output is 'step', find_events returns the samples at which an event
     starts or ends:
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
-        ...                   detect='step'))
+        ...                   output='step'))
         [[ 1  0 32]
          [ 3 32 33]
          [ 4 33 32]
@@ -496,19 +496,19 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         logger.info("Removing orphaned onset at the end of the file.")
         onset_idx = np.delete(onset_idx, -1)
 
-    if detect == 'onset':
+    if output == 'onset':
         events = events[onset_idx]
-    elif detect == 'step':
+    elif output == 'step':
         idx = np.union1d(onset_idx, offset_idx)
         events = events[idx]
-    elif detect == 'offset':
+    elif output == 'offset':
         event_id = events[onset_idx, 2]
         events = events[offset_idx]
         events[:, 1] = events[:, 2]
         events[:, 2] = event_id
         events[:, 0] -= 1
     else:
-        raise Exception("Invalid detect parameter %r" % detect)
+        raise Exception("Invalid output parameter %r" % output)
 
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))
