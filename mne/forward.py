@@ -1385,7 +1385,7 @@ def average_forward_solutions(fwds, weights=None):
     Parameters
     ----------
     fwds : list of dict
-        Forward solutions to average. Each entry (dict should be a
+        Forward solutions to average. Each entry (dict) should be a
         forward solution.
     weights : array | None
         Weights to apply to each forward solution in averaging. If None,
