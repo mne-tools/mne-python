@@ -45,6 +45,10 @@ Changelog
 
    - Support reading of BTi/4D data by `Denis Engemann`_
 
+   - Wrapper for generating forward solutions by `Eric Larson`_
+
+   - Averaging forward solutions by `Eric Larson`_
+
 
 API
 ~~~
