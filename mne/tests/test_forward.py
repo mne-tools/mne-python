@@ -304,7 +304,7 @@ def test_do_forward_solution():
                                  bem='sample-5120', mri=fname_mri, eeg=False)
     fwd = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
-                    rtol=1e-6, atol=1e-9)
+                    rtol=1e-5, atol=1e-8)
     assert_equal(fwd_py['sol']['data'].shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
 
