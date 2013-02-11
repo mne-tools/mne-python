@@ -143,7 +143,7 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
     # bem files
     paths['bem'] = bem = []
     path = os.path.join(subjects_dir, '{sub}', 'bem', '{sub}-{name}.fif')
-    for name in ['head']:
+    for name in ['head', 'inner_skull-bem']:
         fname = path.format(sub='{sub}', name=name)
         bem.append(fname)
 
@@ -154,7 +154,7 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
     # check presence of required files
     for ftype in ['surf', 'bem', 'fid']:
         for fname in paths[ftype]:
-            src = fname.format(sub=subject)
+            src = os.path.realpath(fname.format(sub=subject))
             if not os.path.exists(src):
                 raise IOError("Required file not found: %r" % src)
 
@@ -241,8 +241,8 @@ class HeadMriFitter(object):
         # mri fiducials
         fname = os.path.join(mri_sdir, 'bem', subject + '-fiducials.fif')
         if not os.path.exists(fname):
-            err = ("Now fiducials file found for %r (%r). Use XXX() "
-                   "to create one." % (subject, fname))
+            err = ("Now fiducials file found for %r (%r). Use mne.gui."
+                   "set_fiducials() to create one." % (subject, fname))
             raise ValueError(err)
         dig, _ = read_fiducials(fname)
         self.mri_fid = FidGeom(dig, unit='m')
@@ -637,7 +637,7 @@ class MriHeadFitter(HeadMriFitter):
 
         # surf files [in mm]
         for fname in paths['surf']:
-            src = fname.format(sub=s_from)
+            src = os.path.realpath(fname.format(sub=s_from))
             dest = fname.format(sub=s_to)
             pts, tri = read_surface(src)
             pts = apply_trans(trans_mm, pts)
@@ -645,7 +645,7 @@ class MriHeadFitter(HeadMriFitter):
 
         # bem files [in m]
         for fname in paths['bem']:
-            src = fname.format(sub=s_from)
+            src = os.path.realpath(fname.format(sub=s_from))
             surfs = read_bem_surfaces(src)
             if len(surfs) != 1:
                 err = ("Bem file with more than one surface: %r" % src)
@@ -657,7 +657,7 @@ class MriHeadFitter(HeadMriFitter):
 
         # fiducials [in m]
         for fname in paths['fid']:
-            src = fname.format(sub=s_from)
+            src = os.path.realpath(fname.format(sub=s_from))
             pts, cframe = read_fiducials(src)
             for pt in pts:
                 pt['r'] = apply_trans(trans_m, pt['r'])
