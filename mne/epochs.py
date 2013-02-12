@@ -566,7 +566,7 @@ class Epochs(object):
         else:
             s = 'n_events : %s (all good)' % len(self.events)
         if len(self.event_id) > 1:
-            counts = ['%s: %i' % (k, sum(self.events[:, 2] == v))
+            counts = ['\'%s\': %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in self.event_id.items()]
             s += textwrap.fill(', %s' % ', '.join(counts), 30,
                                subsequent_indent=' ...')
