@@ -303,10 +303,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
-    with different IDs), the following to options cand be used and combined.
-    a) either an Epochs object for each event typeh is created and
-    a list of Epochs is passed passed to this function.
-    b) an Epochs object for is created for multiple events.
+    with different IDs), the following two options can be used and combined.
+    A) either an Epochs object for each event type is created and
+    a list of Epochs is passed to this function.
+    B) an Epochs object for is created for multiple events and passed
+    to this function.
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed covariance matrix will be inaccurate.
