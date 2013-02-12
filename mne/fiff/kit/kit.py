@@ -31,13 +31,9 @@ class sqd_params(object):
     ----------
     rawfile: str
         raw sqd file to be read
-    lowpass: None | int
-        value of lowpass filter set in MEG160
-    highpass: None | int
-        value of highpass filter set in MEG160
 
     """
-    def __init__(self, rawfile, lowpass=None, highpass=None):
+    def __init__(self, rawfile):
         self.rawfile = rawfile
         self.KIT = KIT
         fid = open(rawfile, 'r')
@@ -55,8 +51,6 @@ class sqd_params(object):
         self.modelname = self.modelname[0].split('\n')[0]
         self.nchan = unpack('i', fid.read(self.KIT.INT))[0]
         self.chan_no = range(self.nchan)
-        self.lowpass = lowpass
-        self.highpass = highpass
 
         if self.sysname == 'New York University Abu Dhabi':
             self.KIT = KIT_AD
@@ -81,6 +75,14 @@ class sqd_params(object):
             self.amp_gain = self.gain1 * self.gain2 * self.gain3
         else:
             self.amp_gain = self.gain1 * self.gain2
+
+        # filter settings
+        self.lowpass = self.KIT.LPFS[(self.KIT.LPF_MASK & amp_data)
+                                    >> self.KIT.LPF_BIT]
+        self.highpass = self.KIT.HPFS[(self.KIT.HPF_MASK & amp_data)
+                                    >> self.KIT.HPF_BIT]
+        self.notch = self.KIT.BEFS[(self.KIT.BEF_MASK & amp_data)
+                                    >> self.KIT.BEF_BIT]
 
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed
@@ -144,10 +146,6 @@ class RawKIT(Raw):
         List of trigger channels.
     data : bool | array-like
         Array-like data to use in lieu of data from sqd file.
-    lowpass : int
-        Low-pass filter setting from the recording session the sqd file.
-    highpass : int
-        High-pass filter setting from the recording session the sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -160,11 +158,10 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim, data=None, lowpass=None, highpass=None, stimthresh=3.5,
-                 verbose=True):
+                 stim, data=None, stimthresh=3.5, verbose=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
-        params = sqd_params(input_fname, lowpass=lowpass, highpass=highpass)
+        params = sqd_params(input_fname)
         mrk_fname = mrk_fname
         elp_fname = elp_fname
         hsp_fname = hsp_fname
@@ -315,8 +312,7 @@ class RawKIT(Raw):
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 data=None, stim=range(167, 159, -1), lowpass=200, highpass=0,
-                 stimthresh=3.5):
+                 data=None, stim=range(167, 159, -1), stimthresh=3.5):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -336,15 +332,11 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
         instead of the data from data_fname
     stim : list
         list of trigger channels.
-    lowpass : int
-        low-pass filter setting of the sqd file.
-    highpass : int
-        high-pass filter setting of the sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
 
     """
     return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
                   elp_fname=elp_fname, hsp_fname=hsp_fname,
-                  sns_fname=sns_fname, data=data, stim=stim, lowpass=lowpass,
-                  highpass=highpass, stimthresh=stimthresh)
+                  sns_fname=sns_fname, data=data, stim=stim,
+                  stimthresh=stimthresh)
