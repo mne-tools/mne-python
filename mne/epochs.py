@@ -559,7 +559,8 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
-
+        """ Build string representation
+        """
         if not self._bad_dropped:
             s = 'n_events : %s (good & bad)' % len(self.events)
         else:
@@ -572,6 +573,7 @@ class Epochs(object):
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
+
         return '<Epochs  |  %s>' % s
 
     def _key_match(self, key):
