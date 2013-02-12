@@ -130,10 +130,11 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     return out
 
 
-def _find_type(value, fmts=['FIFF_']):
+def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
     vals = [k for k, v in FIFF.iteritems()
-            if v == value and any([fmt in k for fmt in fmts])]
+            if v == value and any([fmt in k for fmt in fmts])
+            and not any(exc in k for exc in exclude)]
     return vals
 
 
