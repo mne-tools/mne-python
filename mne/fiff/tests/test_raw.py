@@ -9,7 +9,8 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal, \
+                          assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
@@ -25,6 +26,43 @@ bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 
 tempdir = _TempDir()
+
+
+def test_rank_estimation():
+    """Test raw rank estimation
+    """
+    raw = Raw(fif_fname)
+    n_meg = len(pick_types(raw.info, meg=True, eeg=False, exclude='bads'))
+    n_eeg = len(pick_types(raw.info, meg=False, eeg=True, exclude='bads'))
+    raw = Raw(fif_fname, preload=True)
+    assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
+    raw = Raw(fif_fname, preload=False)
+    raw.apply_projector()
+    n_proj = len(raw.info['projs'])
+    assert_array_equal(raw.estimate_rank(tstart=10, tstop=20),
+                       n_meg + n_eeg - n_proj)
+
+
+def test_output_formats():
+    """Test saving and loading raw data using multiple formats
+    """
+    formats = ['short', 'int', 'single', 'double']
+    tols = [1e-4, 1e-7, 1e-7, 1e-15]
+
+    # let's fake a raw file with different formats
+    raw = Raw(fif_fname, preload=True)
+    raw.crop(0, 1, copy=False)
+
+    temp_file = op.join(tempdir, 'raw.fif')
+    for ii, (format, tol) in enumerate(zip(formats, tols)):
+        # Let's test the overwriting error throwing while we're at it
+        if ii > 0:
+            assert_raises(IOError, raw.save, temp_file, format=format)
+        raw.save(temp_file, format=format, overwrite=True)
+        raw2 = Raw(temp_file)
+        raw2_data = raw2[:, :][0]
+        assert_allclose(raw2_data, raw._data, rtol=tol, atol=1e-25)
+        assert_true(raw2.orig_format == format)
 
 
 def test_multiple_files():
@@ -46,7 +84,7 @@ def test_multiple_files():
         fname = op.join(tempdir, 'test_raw_split-%d_raw.fif' % ri)
         raw.save(fname, tmin=tmins[ri], tmax=tmaxs[ri])
         raws[ri] = Raw(fname)
-    events = [find_events(r) for r in raws]
+    events = [find_events(r, stim_channel='STI 014') for r in raws]
     last_samps = [r.last_samp for r in raws]
     first_samps = [r.first_samp for r in raws]
 
@@ -54,14 +92,14 @@ def test_multiple_files():
     all_raw_1 = concatenate_raws(raws, preload=False)
     assert_true(raw.first_samp == all_raw_1.first_samp)
     assert_true(raw.last_samp == all_raw_1.last_samp)
-    assert_array_almost_equal(raw[:, :][0], all_raw_1[:, :][0])
+    assert_allclose(raw[:, :][0], all_raw_1[:, :][0])
     raws[0] = Raw(fname)
     all_raw_2 = concatenate_raws(raws, preload=True)
-    assert_array_almost_equal(raw[:, :][0], all_raw_2[:, :][0])
+    assert_allclose(raw[:, :][0], all_raw_2[:, :][0])
 
     # test proper event treatment for split files
     events = concatenate_events(events, first_samps, last_samps)
-    events2 = find_events(all_raw_2)
+    events2 = find_events(all_raw_2, stim_channel='STI 014')
     assert_array_equal(events, events2)
 
     # test various methods of combining files
@@ -87,7 +125,8 @@ def test_multiple_files():
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
                                       Raw(fif_fname, preload=False)])
     assert_true(raw_combos[1]._preloaded == False)
-    assert_array_equal(find_events(raw_combos[4]), find_events(raw_combos[0]))
+    assert_array_equal(find_events(raw_combos[4], stim_channel='STI 014'),
+                       find_events(raw_combos[0], stim_channel='STI 014'))
 
     # user should be able to force data to be preloaded upon concat
     raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
@@ -115,18 +154,19 @@ def test_multiple_files():
         orig = raw[:, ti % n_times][0]
         for raw_combo in raw_combos:
             # these are almost_equals because of possible dtype differences
-            assert_array_almost_equal(orig, raw_combo[:, ti][0])
+            assert_allclose(orig, raw_combo[:, ti][0])
 
     # verify that combining raws with different projectors throws an exception
     raw.add_proj([], remove_existing=True)
     assert_raises(ValueError, raw.append, Raw(fif_fname, preload=True))
 
     # now test event treatment for concatenated raw files
-    events = [find_events(raw), find_events(raw)]
+    events = [find_events(raw, stim_channel='STI 014'),
+              find_events(raw, stim_channel='STI 014')]
     last_samps = [raw.last_samp, raw.last_samp]
     first_samps = [raw.first_samp, raw.first_samp]
     events = concatenate_events(events, first_samps, last_samps)
-    events2 = find_events(raw_combos[0])
+    events2 = find_events(raw_combos[0], stim_channel='STI 014')
     assert_array_equal(events, events2)
 
     # check out the len method
@@ -137,7 +177,6 @@ def test_multiple_files():
 def test_load_bad_channels():
     """Test reading/writing of bad channels
     """
-
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
     correct_bads = raw_marked.info['bads']
@@ -162,13 +201,13 @@ def test_load_bad_channels():
         raw.load_bad_channels(bad_file_wrong, force=True)
         assert_equal(len(w), 1)
         # write it out, read it in, and check
-        raw.save(op.join(tempdir, 'foo_raw.fif'))
+        raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
         raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
         assert_equal(correct_bads, raw_new.info['bads'])
 
     # Check that bad channels are cleared
     raw.load_bad_channels(None)
-    raw.save(op.join(tempdir, 'foo_raw.fif'))
+    raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
     raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
     assert_equal([], raw_new.info['bads'])
 
@@ -176,6 +215,24 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
+    # Let's construct a simple test for IO first
+    raw = Raw(fif_fname, preload=True)
+    raw.crop(0, 3.5)
+    # put in some data that we know the values of
+    data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
+    raw._data[:, :] = data
+    # save it somewhere
+    fname = op.join(tempdir, 'test_copy_raw.fif')
+    raw.save(fname, buffer_size_sec=1.0)
+    # read it in, make sure the whole thing matches
+    raw = Raw(fname)
+    assert_true(np.allclose(data, raw[:, :][0], 1e-6, 1e-20))
+    # let's read portions across the 1-sec tag boundary, too
+    inds = raw.time_as_index([1.75, 2.25])
+    sl = slice(inds[0], inds[1])
+    assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
+
+    # now let's do some real I/O
     fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
     fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
     for fname_in, fname_out in zip(fnames_in, fnames_out):
@@ -200,7 +257,7 @@ def test_io_raw():
 
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
-                 drop_small_buffer=True)
+                 drop_small_buffer=True, overwrite=True)
         raw2 = Raw(fname_out, preload=True)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
@@ -208,7 +265,7 @@ def test_io_raw():
         assert_true(times2.max() <= 3)
 
         # Writing
-        raw.save(fname_out, picks, tmin=0, tmax=5)
+        raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_true(len(raw.info['dig']) == 146)
@@ -218,9 +275,9 @@ def test_io_raw():
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
 
-        assert_array_almost_equal(data, data2)
-        assert_array_almost_equal(times, times2)
-        assert_array_almost_equal(raw.info['sfreq'], raw2.info['sfreq'])
+        assert_true(np.allclose(data, data2, 1e-6, 1e-20))
+        assert_allclose(times, times2)
+        assert_allclose(raw.info['sfreq'], raw2.info['sfreq'], rtol=1e-5)
 
         # check transformations
         for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
@@ -244,8 +301,7 @@ def test_io_raw():
                     assert_true(raw_.info[trans]['to'] == to_id)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
-            assert_array_almost_equal(raw.info['dig'][0]['r'],
-                                      raw2.info['dig'][0]['r'])
+            assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
 
 def test_io_complex():
@@ -268,21 +324,20 @@ def test_io_complex():
         raw_cp._data[picks, start:stop] += imag_rand
         # this should throw an error because it's complex
         with warnings.catch_warnings(record=True) as w:
-            raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5)
+            raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
+                        overwrite=True)
             # warning only gets thrown on first instance
             assert_equal(len(w), 1 if di == 0 else 0)
 
         raw2 = Raw(op.join(tempdir, 'raw.fif'))
         raw2_data, _ = raw2[picks, :]
         n_samp = raw2_data.shape[1]
-        assert_array_almost_equal(raw2_data[:, :n_samp],
-                                  raw_cp._data[picks, :n_samp])
+        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
         # with preloading
         raw2 = Raw(op.join(tempdir, 'raw.fif'), preload=True)
         raw2_data, _ = raw2[picks, :]
         n_samp = raw2_data.shape[1]
-        assert_array_almost_equal(raw2_data[:, :n_samp],
-                                  raw_cp._data[picks, :n_samp])
+        assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
 
 
 def test_getitem():
@@ -341,24 +396,23 @@ def test_proj():
         raw = Raw(fif_fname, preload=preload, proj_active=False)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save(op.join(tempdir, 'raw.fif'), proj_active=True)
+        raw.save(op.join(tempdir, 'raw.fif'), proj_active=True, overwrite=True)
         raw2 = Raw(op.join(tempdir, 'raw.fif'), proj_active=False)
         data_proj_2, _ = raw2[:, 0:2]
-        assert_array_almost_equal(data_proj_1, data_proj_2)
+        assert_allclose(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
 
         # read orig file with proj. active
         raw2 = Raw(fif_fname, preload=preload, proj_active=True)
         data_proj_2, _ = raw2[:, 0:2]
-        assert_array_almost_equal(data_proj_1, data_proj_2)
+        assert_allclose(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
 
         # test that apply_projector works
         raw.apply_projector()
         data_proj_2, _ = raw[:, 0:2]
-        assert_array_almost_equal(data_proj_1, data_proj_2)
-        assert_array_almost_equal(data_proj_2,
-                                  np.dot(raw._projector, data_proj_2))
+        assert_allclose(data_proj_1, data_proj_2)
+        assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
 
 def test_preload_modify():
@@ -381,12 +435,12 @@ def test_preload_modify():
                 raise err
 
         tmp_fname = op.join(tempdir, 'raw.fif')
-        raw.save(tmp_fname)
+        raw.save(tmp_fname, overwrite=True)
 
         raw_new = Raw(tmp_fname)
         data_new, _ = raw_new[picks, :nsamp / 2]
 
-        assert_array_almost_equal(data, data_new)
+        assert_allclose(data, data_new)
 
 
 def test_filter():
@@ -523,7 +577,13 @@ def test_resample():
     # upsampling then downsampling doubles resampling error, but this still
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
-    assert_array_almost_equal(raw._data, raw_resamp._data)
+    # note we have to treat MEG and EEG+STIM channels differently (tols)
+    assert_allclose(raw._data[:306, 200:-200],
+                    raw_resamp._data[:306, 200:-200],
+                    rtol=1e-2, atol=1e-12)
+    assert_allclose(raw._data[306:, 200:-200],
+                    raw_resamp._data[306:, 200:-200],
+                    rtol=1e-2, atol=1e-7)
 
     # now check multiple file support w/resampling, as order of operations
     # (concat, resample) should not affect our data
@@ -556,7 +616,7 @@ def test_hilbert():
     raw2.apply_hilbert(picks, envelope=True, n_jobs=2)
 
     env = np.abs(raw._data[picks, :])
-    assert_array_almost_equal(env, raw2._data[picks, :])
+    assert_allclose(env, raw2._data[picks, :], rtol=1e-2, atol=1e-13)
 
 
 def test_raw_copy():
@@ -658,3 +718,10 @@ def test_save():
     assert_raises(ValueError, new_raw.save, new_fname)
     new_raw.close()
     os.remove(new_fname)
+
+
+def test_with_statement():
+    """ Test with statement """
+    for preload in [True, False]:
+        with Raw(fif_fname, preload=preload) as raw_:
+            print raw_

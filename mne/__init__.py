@@ -4,14 +4,18 @@
 __version__ = '0.6.git'
 
 # have to import verbose first since it's needed by many things
-from .utils import set_log_level, set_log_file, verbose
+from .utils import set_log_level, set_log_file, verbose, set_config, \
+                   get_config, get_config_path
 
 from .cov import read_cov, write_cov, Covariance, \
                  compute_covariance, compute_raw_data_covariance, \
                  whiten_evoked
 from .event import read_events, write_events, find_events, merge_events, \
-                   pick_events, make_fixed_length_events, concatenate_events
-from .forward import read_forward_solution, apply_forward, apply_forward_raw
+                   pick_events, make_fixed_length_events, concatenate_events, \
+                   find_stim_steps
+from .forward import read_forward_solution, apply_forward, apply_forward_raw, \
+                     do_forward_solution, average_forward_solutions, \
+                     write_forward_solution
 from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              read_source_estimate, \
                              SourceEstimate, morph_data, \
@@ -40,6 +44,7 @@ from .selection import read_selection
 from .dipole import read_dip
 from . import beamformer
 from . import connectivity
+from . import cuda
 from . import datasets
 from . import epochs
 from . import fiff
@@ -54,6 +59,10 @@ from . import tests
 from . import time_frequency
 from . import viz
 
-# deal with logging
+# initialize logging
 set_log_level(None, False)
 set_log_file()
+
+# initialize CUDA
+if get_config('MNE_USE_CUDA', 'false').lower() == 'true':
+    cuda.init_cuda()

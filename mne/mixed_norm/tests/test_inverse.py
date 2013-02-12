@@ -41,12 +41,13 @@ evoked_l21 = copy.deepcopy(evoked)
 evoked_l21.crop(tmin=0.08, tmax=0.1)
 
 # Handling forward solution
-forward = read_forward_solution(fname_fwd, force_fixed=True)
+forward = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
 label = read_label(fname_label)
 
 # Reduce source space to make test computation faster
 inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=loose, depth=depth)
+                                         loose=loose, depth=depth,
+                                         fixed=True)
 stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
                          method='dSPM')
 del inverse_operator
@@ -91,4 +92,4 @@ def test_tf_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][1] in label.vertices)
+    assert_true(stc.vertno[1][0] in label.vertices)

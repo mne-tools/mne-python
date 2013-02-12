@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
-
 import logging
 logger = logging.getLogger('mne')
 
@@ -15,10 +13,11 @@ from .write import write_int, start_block, end_block, write_float_matrix, \
 from .. import verbose
 
 
-def _transpose_named_matrix(mat):
+def _transpose_named_matrix(mat, copy=True):
     """Transpose mat inplace (no copy)
     """
-    mat = copy.deepcopy(mat)
+    if copy is True:
+        mat = mat.copy()
     mat['nrow'], mat['ncol'] = mat['ncol'], mat['nrow']
     mat['row_names'], mat['col_names'] = mat['col_names'], mat['row_names']
     mat['data'] = mat['data'].T
@@ -26,17 +25,17 @@ def _transpose_named_matrix(mat):
 
 
 @verbose
-def _read_named_matrix(fid, node, matkind, verbose=None):
+def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
     """Read named matrix from the given node
 
     Parameters
     ----------
     fid : file
-        The opened file descriptor
+        The opened file descriptor.
     node : dict
-        The node in the tree
+        The node in the tree.
     matkind : int
-        The type of matrix
+        The type of matrix.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -53,13 +52,13 @@ def _read_named_matrix(fid, node, matkind, verbose=None):
                     node = node['children'][k]
                     break
         else:
-            logger.info('Desired named matrix (kind = %d) not available'
-                        % matkind)
+            logger.info(indent + 'Desired named matrix (kind = %d) not '
+                        'available' % matkind)
             return None
     else:
         if not has_tag(node, matkind):
-            logger.info('Desired named matrix (kind = %d) not available'
-                        % matkind)
+            logger.info(indent + 'Desired named matrix (kind = %d) not '
+                        'available' % matkind)
             return None
 
     #   Read everything we need
@@ -97,12 +96,23 @@ def write_named_matrix(fid, kind, mat):
     Parameters
     ----------
     fid : file
-        The opened file descriptor
+        The opened file descriptor.
     kind : int
-        The kind of the matrix
+        The kind of the matrix.
     matkind : int
-        The type of matrix
+        The type of matrix.
     """
+    # let's save ourselves from disaster
+    n_tot = mat['nrow'] * mat['ncol']
+    if mat['data'].size != n_tot:
+        ratio = n_tot / float(mat['data'].size)
+        if n_tot < mat['data'].size and ratio > 0:
+            ratio = 1 / ratio
+        raise ValueError('Cannot write matrix: row (%i) and column (%i) '
+                         'total element (%i) mismatch with data size (%i), '
+                         'appears to be off by a factor of %gx'
+                         % (mat['nrow'], mat['ncol'], n_tot,
+                            mat['data'].size, ratio))
     start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
     write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
     write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])

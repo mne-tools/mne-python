@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_array_equal,\
                           assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 from scipy import sparse, linalg, stats
 
 from mne.stats.cluster_level import permutation_cluster_test, \
@@ -155,12 +155,18 @@ def test_cluster_permutation_t_test_with_connectivity():
                              condition1_3, n_permutations=50,
                              connectivity=connectivity, max_step=1,
                              threshold=1.67)
+
     # clutsers could be in a different order
     sums_4 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_4[1]]
     sums_5 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_5[1]]
     sums_4 = np.sort(sums_4)
     sums_5 = np.sort(sums_5)
     assert_array_almost_equal(sums_4, sums_5)
+
+    assert_raises(ValueError, spatio_temporal_cluster_1samp_test,
+                             condition1_3, n_permutations=1,
+                             connectivity=connectivity, max_step=1,
+                             threshold=1.67, n_jobs=-1000)
 
 
 def ttest_1samp(X):

@@ -19,10 +19,55 @@ Changelog
 
    - Bad channels no longer included in epochs by default by `Eric Larson`_
 
+   - Support for diagonal noise covariances in inverse methods and rank computation by `Eric Larson`_
+
+   - Support for using CUDA in FFT-based FIR filtering (method='fft') and resampling by `Eric Larson`_
+
+   - Optmimized FFT length selection for faster overlap-add filtering by `Martin Luessi`_
+
+   - Ability to exclude bad channels from evoked plots or shown them in red by `Martin Luessi`_
+
+   - Option to show both hemispheres when plotting SourceEstimate with PySurfer by `Martin Luessi`_
+
+   - Optimized Raw reading and epoching routines to limit memory copies by `Eric Larson`_
+
+   - Advanced options to save raw files in short or double precision by `Eric Larson`_
+
+   - Option to detect decreasing events using find_events by `Simon Kornblith`_
+
+   - Option to change default stim_channel used for finding events by `Eric Larson`_
+
+   - Use average patch normal from surface-oriented forward solution in inverse calculation when possible by `Eric Larson`_
+
+   - Function to plot drop_log from Epochs instance by `Eric Larson`_
+
+   - Estimate rank of Raw data by `Eric Larson`_
+
+   - Support reading of BTi/4D data by `Denis Engemann`_
+
+   - Wrapper for generating forward solutions by `Eric Larson`_
+
+   - Averaging forward solutions by `Eric Larson`_
+
+   - Events now contain the pre-event stim channel value in the middle column, by `Christian Brodbeck`_
+
+   - New function `mne.find_stim_steps` for finding all steps in a stim channel by `Christian Brodbeck`_
+
+   - Get information about FIFF files using mne.fiff.show_fiff() by `Eric Larson`_
+
 
 API
 ~~~
+
    - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
+
+   - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
+
+   - Fixed-orientation inverse solutions need to be made using 'fixed=True' option (using non-surface-oriented forward solutions if no depth weighting is used) to maintain compatibility with MNE C code.
+
+   - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
+
+   - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
 
 .. _changes_0_5:
 
@@ -298,3 +343,5 @@ of commits):
 .. _Denis Engemann: https://github.com/dengemann
 
 .. _Christian Brodbeck: https://github.com/christianmbrodbeck
+
+.. _Simon Kornblith: http://simonster.com

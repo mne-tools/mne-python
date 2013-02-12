@@ -94,9 +94,16 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
 
     vertno = map(np.array, vertno)
 
+    idx = np.argsort(vertno[0])
+    vertno[0] = vertno[0][idx]
+    lh_data = np.concatenate(lh_data)[idx]
+
+    idx = np.argsort(vertno[1])
+    vertno[1] = vertno[1][idx]
+    rh_data = np.concatenate(rh_data)[idx]
+
     # the data is in the order left, right
-    lh_data.extend(rh_data)
-    data = np.concatenate(lh_data)
+    data = np.concatenate([lh_data, rh_data])
 
     stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
 
@@ -173,11 +180,16 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             vertno[idx] = vertno[idx][0]
     vertno = map(np.array, vertno)
 
-    # the data is in the order left, right
-    lh_data = stc_data_extended[0]
-    rh_data = stc_data_extended[1]
-    lh_data.extend(rh_data)
-    stc_data = np.concatenate(lh_data)
+    idx = np.argsort(vertno[0])
+    vertno[0] = vertno[0][idx]
+    lh_data = np.concatenate(stc_data_extended[0])[idx]
 
-    stc = SourceEstimate(stc_data, vertices=vertno, tmin=tmin, tstep=tstep)
+    idx = np.argsort(vertno[1])
+    vertno[1] = vertno[1][idx]
+    rh_data = np.concatenate(stc_data_extended[1])[idx]
+
+    # the data is in the order left, right
+    data = np.concatenate([lh_data, rh_data])
+
+    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
     return stc

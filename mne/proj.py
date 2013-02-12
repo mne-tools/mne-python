@@ -71,14 +71,14 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
     projs = []
     for n, ind, names, desc in zip([n_grad, n_mag, n_eeg],
-                      [grad_ind, mag_ind, eeg_ind],
-                      [grad_names, mag_names, eeg_names],
-                      ['planar', 'axial', 'eeg']):
+                                   [grad_ind, mag_ind, eeg_ind],
+                                   [grad_names, mag_names, eeg_names],
+                                   ['planar', 'axial', 'eeg']):
         if n == 0:
             continue
         data_ind = data[ind][:, ind]
         U = linalg.svd(data_ind, full_matrices=False,
-                                         overwrite_a=True)[0][:, :n]
+                       overwrite_a=True)[0][:, :n]
         for k, u in enumerate(U.T):
             proj_data = dict(col_names=names, row_names=None,
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
@@ -214,6 +214,7 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
                                          exclude='bads'),
                         reject=reject, flat=flat)
         data = _compute_cov_epochs(epochs, n_jobs)
+        info = epochs.info
         if not stop:
             stop = raw.n_times / raw.info['sfreq']
     else:
@@ -224,10 +225,11 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
         data, times = raw[:, start:stop]
         _check_n_samples(stop - start, data.shape[0])
         data = np.dot(data, data.T)  # compute data covariance
+        info = raw.info
         # convert back to times
         start = start / raw.info['sfreq']
         stop = stop / raw.info['sfreq']
 
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
-    projs = _compute_proj(data, raw.info, n_grad, n_mag, n_eeg, desc_prefix)
+    projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
     return projs

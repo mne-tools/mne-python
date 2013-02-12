@@ -9,7 +9,8 @@ from ..filter import band_pass_filter
 
 
 @verbose
-def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
+def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
+                    filter_length='10s', verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -22,6 +23,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
         Low pass frequency.
     high_pass : float
         High pass frequency.
+    filter_length : str | int | None
+        Number of taps to use for filtering.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -51,26 +54,30 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10, verbose=None):
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
                                   sampling_rate=raw.info['sfreq'],
-                                  first_samp=raw.first_samp)
+                                  first_samp=raw.first_samp,
+                                  filter_length=filter_length)
 
     return eog_events
 
 
-def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp):
+def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
+                     filter_length='10s'):
     """Helper function"""
 
     logger.info('Filtering the data to remove DC offset to help '
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
-    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45)
+    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45,
+                                         filter_length=filter_length)
                         for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))
 
     indexmax = np.argmax(temp)
 
     # easier to detect peaks with filtering.
-    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq)
+    filteog = band_pass_filter(eog[indexmax], sampling_rate, l_freq, h_freq,
+                               filter_length=filter_length)
 
     # detecting eog blinks and generating event file
 

@@ -11,7 +11,7 @@ logger = logging.getLogger('mne')
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
-from ..forward import compute_orient_prior, is_fixed_orient
+from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
 from ..fiff.pick import pick_channels_evoked
 from .optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
 from .. import verbose
@@ -161,15 +161,21 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                                             for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
+    # put the forward solution in fixed orientation if it's not already
+    if loose is None and not is_fixed_orient(forward):
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
+
     info = evoked[0].info
-    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
-                                                      info, noise_cov, pca)
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
+                                                       noise_cov, pca)
 
     # Whiten lead field.
     gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                            depth, loose, weights, weights_min)
+                                                 depth, loose, weights,
+                                                 weights_min)
 
-    sel = [all_ch_names.index(name) for name in ch_names]
+    sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
 
     # Whiten data
@@ -225,9 +231,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         cnt += len(e.times)
 
         if return_residual:
-            sel = [forward['sol']['row_names'].index(c) for c in ch_names]
+            sel = [forward['sol']['row_names'].index(c)
+                                                for c in gain_info['ch_names']]
             r = deepcopy(e)
-            r = pick_channels_evoked(r, include=ch_names)
+            r = pick_channels_evoked(r, include=gain_info['ch_names'])
             r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], Xe)
             residual.append(r)
 
@@ -281,7 +288,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
     non-stationary source activations
-    Neuroimage, in press as of Dec 2012
+    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
+    DOI: 10.1016/j.neuroimage.2012.12.051.
 
     A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
     Functional Brain Imaging with M/EEG Using Structured Sparsity in
@@ -352,7 +360,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     """
     all_ch_names = evoked.ch_names
     info = evoked.info
-    ch_names, gain, _, whitener, _ = _prepare_forward(forward,
+
+    # put the forward solution in fixed orientation if it's not already
+    if loose is None and not is_fixed_orient(forward):
+        forward = deepcopy(forward)
+        _to_fixed_ori(forward)
+
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward,
                                                       info, noise_cov, pca)
 
     # Whiten lead field.
@@ -362,7 +376,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if window is not None:
         evoked = _window_evoked(evoked, window)
 
-    sel = [all_ch_names.index(name) for name in ch_names]
+    sel = [all_ch_names.index(name) for name in gain_info["ch_names"]]
     M = evoked.data[sel]
 
     # Whiten data
@@ -397,9 +411,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X /= source_weighting[active_set][:, None]
 
     if return_residual:
-        sel = [forward['sol']['row_names'].index(c) for c in ch_names]
+        sel = [forward['sol']['row_names'].index(c)
+                                            for c in gain_info['ch_names']]
         residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual, include=ch_names)
+        residual = pick_channels_evoked(residual, include=gain_info['ch_names'])
         residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
                                 X)
 

@@ -29,8 +29,8 @@ def fdr_correction(pvals, alpha=0.05, method='indep'):
         set of p-values of the individual tests.
     alpha : float
         error rate
-    method : {'indep', 'negcorr')
-        If 'interp' it implements Benjamini/Hochberg for independent or if
+    method : 'indep' | 'negcorr'
+        If 'indep' it implements Benjamini/Hochberg for independent or if
         'negcorr' it corresponds to Benjamini/Yekutieli.
 
     Returns

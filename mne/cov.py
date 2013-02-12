@@ -18,7 +18,8 @@ from . import fiff, verbose
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov
+from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
+                       pick_channels
 from .fiff.constants import FIFF
 from .epochs import _is_good
 
@@ -30,9 +31,6 @@ def _check_covs_algebra(cov1, cov2):
     if map(str, cov1['projs']) != map(str, cov2['projs']):
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
-    if cov1['bads'] != cov2['bads']:
-        raise ValueError('Both Covariance do not have the same list of '
-                         'bad channels.')
 
 
 class Covariance(dict):
@@ -88,6 +86,37 @@ class Covariance(dict):
 
         end_file(fid)
 
+    def as_diag(self, copy=True):
+        """Set covariance to be processed as being diagonal
+
+        Parameters
+        ----------
+        copy : bool
+            If True, return a modified copy of the covarince. If False,
+            the covariance is modified in place.
+
+        Returns
+        -------
+        cov : dict
+            The covariance.
+
+        Notes
+        -----
+        This function allows creation of inverse operators
+        equivalent to using the old "--diagnoise" mne option.
+        """
+        if self['diag'] is True:
+            return self.copy() if copy is True else self
+        if copy is True:
+            cov = cp.deepcopy(self)
+        else:
+            cov = self
+        cov['diag'] = True
+        cov['data'] = np.diag(cov['data'])
+        cov['eig'] = None
+        cov['eigvec'] = None
+        return cov
+
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape
         s += ", data : %s" % self.data
@@ -101,6 +130,9 @@ class Covariance(dict):
                             (self['data'] * self['nfree'])) / \
                                 (self['nfree'] + this_cov['nfree'])
         this_cov['nfree'] += self['nfree']
+
+        this_cov['bads'] = list(set(this_cov['bads']).union(self['bads']))
+
         return this_cov
 
     def __iadd__(self, cov):
@@ -110,6 +142,9 @@ class Covariance(dict):
                             (cov['data'] * cov['nfree'])) / \
                                 (self['nfree'] + cov['nfree'])
         self['nfree'] += cov['nfree']
+
+        self['bads'] = list(set(self['bads']).union(cov['bads']))
+
         return self
 
 
@@ -205,9 +240,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
 
+    # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           exclude='bads')
+                           exclude=[])
 
     data = 0
     n_samples = 0
@@ -225,7 +261,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         if last >= stop:
             last = stop
         raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat):
+        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
+                    ignore_chs=info['bads']):
             mu += raw_segment.sum(axis=1)
             data += np.dot(raw_segment, raw_segment.T)
             n_samples += raw_segment.shape[1]
@@ -265,8 +302,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
-    with different IDs), an Epochs object for each event type has to
-    be created and a list of Epochs has to be passed to this function.
+    with different IDs), the following two options can be used and combined.
+    A) either an Epochs object for each event type is created and
+    a list of Epochs is passed to this function.
+    B) an Epochs object is created for multiple events and passed
+    to this function.
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed covariance matrix will be inaccurate.
@@ -301,8 +341,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     cov : instance of Covariance
         The computed covariance.
     """
+
     if not isinstance(epochs, list):
-        epochs = [epochs]
+        epochs = _unpack_epochs(epochs)
+    else:
+        epochs = [ep for li in [_unpack_epochs(epoch) for epoch in epochs]
+                  for ep in li]
 
     # check for baseline correction
     for epochs_t in epochs:
@@ -412,6 +456,16 @@ def rank(A, tol=1e-8):
     return np.sum(np.where(s > s[0] * tol, 1, 0))
 
 
+def _unpack_epochs(epochs):
+    """ Aux Function """
+    if len(epochs.event_id) > 1:
+        epochs = [epochs[k] for k in epochs.event_id]
+    else:
+        epochs = [epochs]
+
+    return epochs
+
+
 @verbose
 def _get_whitener(A, pca, ch_type, verbose=None):
     # whitening operator
@@ -446,7 +500,10 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
         If not None, override default verbose level (see mne.verbose).
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
-    C = noise_cov.data[C_ch_idx][:, C_ch_idx]
+    if noise_cov['diag'] is False:
+        C = noise_cov.data[C_ch_idx][:, C_ch_idx]
+    else:
+        C = np.diag(noise_cov.data[C_ch_idx])
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -526,6 +583,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     reg_cov : Covariance
         The regularized covariance matrix.
     """
+    cov = cp.deepcopy(cov)
     if exclude is None:
         exclude = info['bads'] + cov['bads']
 
@@ -538,8 +596,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     ch_names_mag = [info_ch_names[i] for i in sel_mag]
     ch_names_grad = [info_ch_names[i] for i in sel_grad]
 
-    cov = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
-    ch_names = cov.ch_names
+    # This actually removes bad channels from the cov, which is not backward
+    # compatible, so let's leave all channels in
+    cov_good = pick_channels_cov(cov, include=info_ch_names, exclude=exclude)
+    ch_names = cov_good.ch_names
 
     idx_eeg, idx_mag, idx_grad = [], [], []
     for i, ch in enumerate(ch_names):
@@ -552,12 +612,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         else:
             raise Exception('channel is unknown type')
 
-    C = cov['data']
+    C = cov_good['data']
 
     assert len(C) == (len(idx_eeg) + len(idx_mag) + len(idx_grad))
 
     if proj:
-        projs = info['projs'] + cov['projs']
+        projs = info['projs'] + cov_good['projs']
         projs = activate_proj(projs)
 
     for desc, idx, reg in [('EEG', idx_eeg, eeg), ('MAG', idx_mag, mag),
@@ -585,7 +645,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
 
         C[np.ix_(idx, idx)] = this_C
 
-    cov['data'] = C
+    # Put data back in correct locations
+    idx = pick_channels(cov.ch_names, info_ch_names, exclude=exclude)
+    cov['data'][np.ix_(idx, idx)] = C
 
     return cov
 

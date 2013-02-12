@@ -28,8 +28,9 @@ memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
-MNE-sample-data
+MNE-sample-data*
 build
+coverage
 
 dist/
 doc/_build/

@@ -21,7 +21,8 @@ References:
 A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
 Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
 non-stationary source activations
-Neuroimage, in press as of Dec 2012
+Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
+DOI: 10.1016/j.neuroimage.2012.12.051.
 
 A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
 Functional Brain Imaging with M/EEG Using Structured Sparsity in
@@ -42,7 +43,7 @@ from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.mixed_norm import tf_mixed_norm
-from mne.viz import plot_sparse_source_estimates, plot_evoked
+from mne.viz import plot_sparse_source_estimates
 
 data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -70,7 +71,7 @@ cov = mne.cov.regularize(cov, evoked.info)
 # Run solver
 
 # alpha_space regularization parameter is between 0 and 100 (100 is high)
-alpha_space = 30.  # spatial regularization parameter
+alpha_space = 50.  # spatial regularization parameter
 # alpha_time parameter promotes temporal smoothness
 # (0 means no temporal regularization)
 alpha_time = 1.  # temporal regularization parameter
@@ -89,9 +90,6 @@ stc, residual = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                     weights=stc_dspm, weights_min=8., debias=True,
                     wsize=16, tstep=4, window=0.05, return_residual=True)
 
-evoked = mne.fiff.pick_types_evoked(evoked, meg='grad')
-residual = mne.fiff.pick_types_evoked(residual, meg='grad')
-
 # Crop to remove edges
 stc.crop(tmin=-0.05, tmax=0.3)
 evoked.crop(tmin=-0.05, tmax=0.3)
@@ -100,19 +98,20 @@ residual.crop(tmin=-0.05, tmax=0.3)
 import pylab as pl
 pl.figure()
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-plot_evoked(evoked, ylim=ylim, proj=True,
+picks = fiff.pick_types(evoked.info, meg='grad', exclude='bads')
+evoked.plot(picks=picks, ylim=ylim, proj=True,
             titles=dict(grad='Evoked Response (grad)'))
 
 pl.figure()
-plot_evoked(residual, ylim=ylim, proj=True,
-            titles=dict(grad='Residual (grad)'))
+picks = fiff.pick_types(residual.info, meg='grad', exclude='bads')
+residual.plot(picks=picks, ylim=ylim, proj=True,
+              titles=dict(grad='Residual (grad)'))
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
-                             fig_number=setno, modes=['sphere'],
-                             scale_factors=[1.])
+                             modes=['sphere'], scale_factors=[1.])
 
 time_label = 'TF-MxNE time=%0.2f ms'
 brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,

@@ -20,6 +20,7 @@ from math import log
 import json
 import urllib2
 import urlparse
+from scipy import linalg
 
 logger = logging.getLogger('mne')
 
@@ -88,6 +89,54 @@ class _TempDir(str):
                 print 'Deleting %s ...' % self._path
             rmtree(self._path, ignore_errors=True)
 
+
+def estimate_rank(data, tol=1e-4, return_singular=False,
+                  copy=True):
+    """Helper to estimate the rank of data
+
+    This function will normalize the rows of the data (typically
+    channels or vertices) such that non-zero singular values
+    should be close to one.
+
+    Parameters
+    ----------
+    tstart : float
+        Start time to use for rank estimation. Defaul is 0.0.
+    tstop : float | None
+        End time to use for rank estimation. Default is 30.0.
+        If None, the end time of the raw file is used.
+    tol : float
+        Tolerance for singular values to consider non-zero in
+        calculating the rank. The singular values are calculated
+        in this method such that independent data are expected to
+        have singular value around one.
+    return_singular : bool
+        If True, also return the singular values that were used
+        to determine the rank.
+    copy : bool
+        If False, values in data will be modified in-place during
+        rank estimation (saves memory).
+
+    Returns
+    -------
+    rank : int
+        Estimated rank of the data.
+    s : array
+        If return_singular is True, the singular values that were
+        thresholded to determine the rank are also returned.
+
+    """
+    if copy is True:
+        data = data.copy()
+    norms = np.sqrt(np.sum(data ** 2, axis=1))
+    norms[norms == 0] = 1.0
+    data /= norms[:, np.newaxis]
+    s = linalg.svd(data, compute_uv=False, overwrite_a=True)
+    rank = np.sum(s >= tol)
+    if return_singular is True:
+        return rank, s
+    else:
+        return rank
 
 ###############################################################################
 # DECORATORS
@@ -234,20 +283,15 @@ def verbose(function):
     return dec
 
 
-def requires_mne(function):
-    """Decorator to skip test if MNE command line tools are not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if 'MNE_ROOT' not in os.environ:
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires MNE command line tools'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
+def has_command_line_tools():
+    if 'MNE_ROOT' not in os.environ:
+        return False
+    else:
+        return True
 
-        return ret
 
-    return dec
-
+requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
+                                     'Requires MNE command line tools')
 
 def requires_pandas(function):
     """Decorator to skip test if pandas is not available"""
@@ -400,6 +444,21 @@ def get_config_path():
     return val
 
 
+# List the known configuration values
+known_config_types = [
+    'MNE_CUDA_IGNORE_PRECISION',
+    'MNE_DATASETS_MEGSIM_PATH',
+    'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_LOGGING_LEVEL',
+    'MNE_USE_CUDA',
+    'SUBJECTS_DIR',
+    ]
+# These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
+known_config_wildcards = [
+    'MNE_STIM_CHANNEL',
+    ]
+
+
 def get_config(key, default=None, raise_error=False):
     """Read mne(-python) preference from env, then mne-python config
 
@@ -471,6 +530,9 @@ def set_config(key, value):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, basestring) and value is not None:
         raise ValueError('value must be a string or None')
+    if not key in known_config_types and not \
+            any(k in key for k in known_config_wildcards):
+        warnings.warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
     config_path = get_config_path()
@@ -555,3 +617,15 @@ def _url_to_local_path(url, path):
         raise ValueError('Invalid URL')
     destination = os.path.join(path, urllib2.url2pathname(destination)[1:])
     return destination
+
+
+def _check_fname(fname, overwrite):
+    """Helper to check for file existence"""
+    if not isinstance(fname, basestring):
+        raise TypeError('file name is not a string')
+    if op.isfile(fname):
+        if not overwrite:
+            raise IOError('Destination file exists. Please use option '
+                          '"overwrite=True" to force overwriting.')
+        else:
+            logger.info('Overwriting existing file.')
