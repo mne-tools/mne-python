@@ -662,7 +662,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     #  EEG forward solution
     #
     if n_eeg > 0:
-        eeg_solution = dict(data=sol[picks_eeg], nrow=n_eeg, ncol=n_vert,
+        eeg_solution = dict(data=sol[picks_eeg], nrow=n_eeg, ncol=n_col,
                             row_names=row_names, col_names=[])
         eeg_solution = _transpose_named_matrix(eeg_solution, copy=False)
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
@@ -674,7 +674,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION, eeg_solution)
         if sol_grad is not None:
             eeg_solution_grad = dict(data=sol_grad[picks_eeg],
-                                     nrow=n_eeg, ncol=n_vert,
+                                     nrow=n_eeg, ncol=n_col,
                                      row_names=row_names, col_names=[])
             meg_solution_grad = _transpose_named_matrix(eeg_solution_grad,
                                                         copy=False)
