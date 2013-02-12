@@ -9,6 +9,7 @@
 
 import copy as cp
 import warnings
+import textwrap
 
 import numpy as np
 from copy import deepcopy
@@ -558,14 +559,19 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
+
         if not self._bad_dropped:
-            s = "n_events : %s (good & bad)" % len(self.events)
+            s = 'n_events : %s (good & bad)' % len(self.events)
         else:
-            s = "n_events : %s (all good)" % len(self.events)
-        s += ", tmin : %s (s)" % self.tmin
-        s += ", tmax : %s (s)" % self.tmax
-        s += ", baseline : %s" % str(self.baseline)
-        return "<Epochs  |  %s>" % s
+            s = 'n_events : %s (all good)' % len(self.events)
+        if len(self.event_id) > 1:
+            counts = ['%s: %i' % (k, len(self.events[self.events[:, 2] == v]))
+                  for k, v in self.event_id.items()]
+            s += ', %s' % ', '.join(counts)
+        s += ', tmin : %s (s)' % self.tmin
+        s += ', tmax : %s (s)' % self.tmax
+        s += ', baseline : %s' % str(self.baseline)
+        return textwrap.fill('<Epochs  |  %s>' % s, 80)
 
     def _key_match(self, key):
         """Helper function for event dict use"""
