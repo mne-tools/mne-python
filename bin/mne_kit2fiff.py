@@ -3,7 +3,7 @@
 
 """ Import KIT / NYU data to fif file.
 
-example usage: mne_kit2fiff.py -i input.sqd -o output.fif
+example usage: mne_kit2fiff.py --input input.sqd --output output.fif
 
 """
 
@@ -15,31 +15,25 @@ if __name__ == '__main__':
     from optparse import OptionParser
 
     parser = OptionParser()
-    parser.add_option('-i', '--input', dest='input_fname',
+    parser.add_option('--input', dest='input_fname',
                     help='Input data file name', metavar='filename')
-    parser.add_option('--sns', dest='sns_fname',
-                    help='Sensor info file name', metavar='filename')
-    parser.add_option('--hsp', dest='hsp_fname',
-                    help='Headshape file name', metavar='filename')
-    parser.add_option('--elp', dest='elp_fname',
-                    help='Headshape file name', metavar='filename')
     parser.add_option('--mrk', dest='mrk_fname',
                     help='MEG Marker file name', metavar='filename')
-    parser.add_option('--lowpass', dest='lowpass', default=200,
-                      help='Lowpass filter setting (default = 200.0 Hz)',
-                      metavar='value (Hz)')
-    parser.add_option('--highpass', dest='highpass', default=0,
-                      help='Highpass filter setting (default = 0.0 Hz)',
-                      metavar='value (Hz)')
+    parser.add_option('--elp', dest='elp_fname',
+                    help='Headshape file name', metavar='filename')
+    parser.add_option('--hsp', dest='hsp_fname',
+                    help='Headshape file name', metavar='filename')
+    parser.add_option('--sns', dest='sns_fname',
+                    help='Sensor info file name', metavar='filename')
+    parser.add_option('--stim', dest='stim',
+                      help='Colon Separated Stimulus Trigger Channels',
+                      metavar='chs')
     parser.add_option('--stimthresh', dest='stimthresh', default=3.5,
                       help='Threshold value for trigger channels',
                       metavar='value')
-    parser.add_option('--stim', dest='stim',
-                      default='167:166:165:164:163:162:161:160',
-                      help='Colon Separated Stimulus Trigger Channels',
-                      metavar='chs')
-    parser.add_option('-o', '--output', dest='out_fname',
-                      help='Name of the resulting fiff file', metavar='filename')
+    parser.add_option('--output', dest='out_fname',
+                      help='Name of the resulting fiff file',
+                      metavar='filename')
 
     options, args = parser.parse_args()
 
@@ -59,9 +53,9 @@ if __name__ == '__main__':
     if isinstance(stim, str):
         stim = stim.split(':')
 
-    raw = read_raw_kit(input_fname=input_fname, sns_fname=sns_fname,
-                       hsp_fname=hsp_fname, elp_fname=elp_fname,
-                       mrk_fname=mrk_fname, stim=stim, stimthresh=stimthresh)
+    raw = read_raw_kit(input_fname=input_fname, mrk_fname=mrk_fname,
+                       elp_fname=elp_fname, hsp_fname=hsp_fname,
+                       sns_fname=sns_fname, stim=stim, stimthresh=stimthresh)
 
     raw.save(out_fname)
     raw.close()

@@ -4,13 +4,12 @@
 #
 # License: BSD (3-clause)
 
-from numpy.testing import assert_array_almost_equal
-from ....fiff import Raw, pick_types
-import mne
-from ...kit import kit
-import scipy.io
-import inspect
 import os
+import inspect
+from numpy.testing import assert_array_almost_equal
+import scipy.io
+from ....fiff import Raw, pick_types
+from ...kit import kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = os.path.dirname(os.path.abspath(FILE))
@@ -19,10 +18,11 @@ data_dir = os.path.join(parent_dir, 'data')
 
 def test_data():
     raw_py = kit.read_raw_kit(input_fname=os.path.join(data_dir, 'test.sqd'),
-                           mrk_fname=os.path.join(data_dir, 'test_marker.txt'),
+                           mrk_fname=os.path.join(data_dir, 'test_mrk.sqd'),
                            elp_fname=os.path.join(data_dir, 'test_elp.txt'),
                            hsp_fname=os.path.join(data_dir, 'test_hsp.txt'),
-                           sns_fname=os.path.join(data_dir, 'sns.txt'))
+                           sns_fname=os.path.join(data_dir, 'sns.txt'),
+                           stim=range(167, 159, -1))
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info)
     raw_bin = os.path.join(data_dir, 'test_bin.fif')
@@ -31,7 +31,7 @@ def test_data():
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
-    #this .mat was generated using the Yokogawa MEG Reader
+    # this .mat was generated using the Yokogawa MEG Reader
     data_Ykgw = os.path.join(data_dir, 'test_Ykgw.mat')
     data_Ykgw = scipy.io.loadmat(data_Ykgw)['data']
     data_Ykgw = data_Ykgw[py_picks]
@@ -44,13 +44,14 @@ def test_data():
 
 def test_ch_loc():
     raw_py = kit.read_raw_kit(input_fname=os.path.join(data_dir, 'test.sqd'),
-                       mrk_fname=os.path.join(data_dir, 'test_marker.txt'),
+                       mrk_fname=os.path.join(data_dir, 'test_mrk.sqd'),
                        elp_fname=os.path.join(data_dir, 'test_elp.txt'),
                        hsp_fname=os.path.join(data_dir, 'test_hsp.txt'),
-                       sns_fname=os.path.join(data_dir, 'sns.txt'))
-    raw_bin = mne.fiff.Raw(os.path.join(data_dir, 'test_bin.fif'))
+                       sns_fname=os.path.join(data_dir, 'sns.txt'),
+                       stim=range(167, 159, -1))
+    raw_bin = Raw(os.path.join(data_dir, 'test_bin.fif'))
 
     for py_ch, bin_ch in zip(raw_py.info['chs'], raw_bin.info['chs']):
-        if py_ch['ch_name'].startswith('MEG'):
+        if bin_ch['ch_name'].startswith('MEG'):
             # the mne_kit2fiff_bin has a different representation of pi.
             assert_array_almost_equal(py_ch['loc'], bin_ch['loc'], decimal=5)

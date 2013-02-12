@@ -4,13 +4,14 @@
 #
 # License: BSD (3-clause)
 
+from struct import unpack
 import re
 import numpy as np
-from mne.fiff.constants import FIFF
+from ..constants import FIFF
 from .constants import KIT
 
 
-def coreg(mrk_fname, elp_fname, hsp_fname):
+def get_points(mrk_fname, elp_fname, hsp_fname):
     """Extracts dig points, elp, and mrk points from files needed for coreg.
 
     Parameters
@@ -23,15 +24,14 @@ def coreg(mrk_fname, elp_fname, hsp_fname):
         Path to hsp headshape file.
 
     Output
-    ----------
+    ------
     mrk_points : np.array
         Array of 5 points by coordinate (x,y,z) from marker measurement.
     elp_points : np.array
         Array of 5 points by coordinate (x,y,z) from digitizer laser point.
     dig : dict
         A dictionary containing the mrk_points, elp_points, and hsp_points in
-        a format used for raw.info.dig.
-
+        a format used for raw.info['dig'].
     """
 
     mrk_points = read_mrk(mrk_fname=mrk_fname)
@@ -103,19 +103,38 @@ def reset_origin(lpa, rpa, pts):
 
 
 def read_mrk(mrk_fname):
-    """marker point extraction"""
+    """Marker Point Extraction in MEG space directly from sqd
 
-    # pattern by Tal Linzen:
-    p = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), ' +
-                   r'y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
-    mrk_points = p.findall(open(mrk_fname).read())
-    mrk_points = np.array(mrk_points, dtype=float)
+    Parameters
+    ----------
+    mrk_fname : str
+        Absolute path to Marker sqd file.
+    """
+    with open(mrk_fname, 'r') as fid:
+        fid.seek(KIT.MRK_INFO)
+        mrk_offset = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(mrk_offset)
+        _ = fid.read(KIT.INT)  # match_done
+        _ = fid.read(2 * KIT.DOUBLE * 4 ** 2)  # meg_to_mri and mri_to_meg
+        mrk_count = unpack('i', fid.read(KIT.INT))[0]
+        pts = []
+        for _ in range(mrk_count):
+            _ = fid.read(KIT.INT * 4)  # mri_mrk_type, meg_mrk_type,
+                                        # mri_mrk_done, meg_mrk_done
+            _ = fid.read(KIT.DOUBLE * 3)  # mri_marker
+            pts.append(np.fromfile(fid, dtype='d', count=3))
+        mrk_points = np.array(pts)
     return mrk_points
 
 
 def read_elp(elp_fname):
-    """elp point extraction"""
+    """ELP point extraction in Polhemus head space.
 
+    Parameters
+    ----------
+    elp_fname : str
+        Absolute path to laser point file acquired from Polhemus system.
+    """
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = p.findall(open(elp_fname).read())
     elp_points = np.array(elp_points, dtype=float)
@@ -123,20 +142,33 @@ def read_elp(elp_fname):
 
 
 def read_hsp(hsp_fname):
-    """hsp point extraction"""
+    """HSP point extraction in Polhemus head space.
+
+    Parameters
+    ----------
+    hsp_fname : str
+        Absolute path to headshape file acquired from Polhemus system.
+    """
 
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     hsp_points = p.findall(open(hsp_fname).read())
     hsp_points = np.array(hsp_points, dtype=float)
     # downsample the digitizer points
     n_pts = len(hsp_points)
-    space = int(n_pts / KIT.DIG_POINTS)
-    hsp_points = hsp_points[::space]
+    if n_pts > KIT.DIG_POINTS:
+        space = int(n_pts / KIT.DIG_POINTS)
+        hsp_points = np.copy(hsp_points[::space])
     return hsp_points
 
 
 def read_sns(sns_fname):
-    """sns coordinate extraction"""
+    """SNS coordinate extraction in MEG space.
+
+    Parameters
+    ----------
+    sns_fname : str
+        Absolute path to sensor definition file.
+    """
 
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+),' +
@@ -151,7 +183,6 @@ def transform_pts(pts, scale=True):
     This is used to orient points in Neuromag coordinates.
     The KIT system is x,y,z in [mm].
     The transformation to Neuromag-like space is -y,x,z in [m].
-
     """
     if scale:
         pts /= 1e3
