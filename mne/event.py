@@ -223,7 +223,7 @@ def read_events(filename, include=None, exclude=None):
             lines = lines[np.newaxis, :]
 
         if len(lines[0]) == 4:  # Old format eve/lst
-            goods = [0, 2, 3]   # Omit "time" variable
+            goods = [0, 2, 3]  # Omit "time" variable
         elif len(lines[0]) == 3:
             goods = [0, 1, 2]
         else:
@@ -269,8 +269,100 @@ def write_events(filename, event_list):
         f.close()
 
 
+def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0, stim_channel=None):
+    """Find all steps in data from a stim channel
+
+    Parameters
+    ----------
+    raw : Raw object
+        The raw data.
+    pad_start, pad_stop : None | int
+        Values to assume outside of the stim channel (e.g., if pad_start=0 and
+        the stim channel starts with value 5, an event of [0, 0, 5] will be
+        inserted at the beginning). With None, no steps will be inserted.
+    merge : int
+        Merge steps occurring in neighboring samples. The integer value
+        indicates over how many samples events should be merged, and the sign
+        indicates in which direction they should be merged (negative means
+        towards the earlier event, positive towards the later event).
+    stim_channel : None | string | list of string
+        Name of the stim channel or all the stim channels
+        affected by the trigger. If None, the config variables
+        'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+        etc. are read. If these are not found, it will default to
+        'STI 014'.
+
+    Returns
+    -------
+    steps : array, shape = (n_samples, 3)
+        For each step in the stim channel the values [sample, v_from, v_to].
+        The first column contains the event time in samples (the first sample
+        with the new value). The second column contains the stim channel value
+        before the step, and the third column contains value after the step.
+
+    See Also
+    --------
+    find_events : More sophisticated options for finding events in a Raw file.
+    """
+    # pull stim channel from config if necessary
+    stim_channel = _get_stim_channel(stim_channel)
+
+    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
+    if len(pick) == 0:
+        raise ValueError('No stim channel found to extract event triggers.')
+    data, _ = raw[pick, :]
+    if np.any(data < 0):
+        logger.warn('Trigger channel contains negative values. '
+                    'Taking absolute value.')
+        data = np.abs(data)  # make sure trig channel is positive
+    data = data.astype(np.int)
+
+    changed = np.diff(data, axis=1) != 0
+    idx = np.where(np.all(changed, axis=0))[0]
+    if len(idx) == 0:
+        return np.empty((0, 3), dtype='int32')
+
+    pre_step = data[0, idx]
+    idx += 1
+    post_step = data[0, idx]
+    idx += raw.first_samp
+    steps = np.c_[idx, pre_step, post_step]
+
+    if pad_start is not None:
+        v = steps[0, 1]
+        if v != pad_start:
+            steps = np.insert(steps, 0, [0, pad_start, v], axis=0)
+
+    if pad_stop is not None:
+        v = steps[-1, 2]
+        if v != pad_stop:
+            last_idx = len(data[0]) + raw.first_samp
+            steps = np.append(steps, [[last_idx, v, pad_stop]], axis=0)
+
+    if merge != 0:
+        diff = np.diff(steps[:, 0])
+        idx = (diff <= abs(merge))
+        if np.any(idx):
+            where = np.where(idx)[0]
+            keep = (idx == False)
+            if merge > 0:
+                # drop the earlier event
+                steps[where + 1, 1] = steps[where, 1]
+                keep = np.append(keep, True)
+            else:
+                # drop the later event
+                steps[where, 2] = steps[where + 1, 2]
+                keep = np.insert(keep, 0, True)
+
+            is_step = (steps[:, 1] != steps[:, 2])
+            keep = np.logical_and(keep, is_step)
+            steps = steps[keep]
+
+    return steps
+
+
 @verbose
-def find_events(raw, stim_channel=None, verbose=None, detect='onset',
+def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0):
     """Find events from raw file
 
@@ -286,8 +378,8 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         'STI 014'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    detect : 'onset' | 'offset'
-        Whether to report when events start or when events end.
+    output : 'onset' | 'offset' | 'step'
+        Whether to report when events start, when events end, or both.
     consecutive : bool | 'increasing'
         If True, consider instances where the value of the events
         channel changes without first returning to zero as multiple
@@ -303,8 +395,11 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
     -------
     events : array, shape = (n_events, 3)
         All events that were found. The first column contains the event time
-        in samples and the third column contains the stim channel value of the
-        event.
+        in samples and the third column contains the event id. For output =
+        'onset' or 'step', the second column contains the value of the stim
+        channel immediately before the the event/step. For output = 'offset',
+        the second column contains the value of the stim channel after the
+        event offset.
 
     Examples
     --------
@@ -315,7 +410,7 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
         >>> print(find_events(raw)) # doctest: +SKIP
         [[ 1  0 32]
-         [ 3  0 33]]
+         [ 3 32 33]]
 
     If consecutive is False, find_events only returns the samples at which
     the stim channel changes from zero to a non-zero value:
@@ -328,18 +423,27 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
 
         >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
         [[ 1  0 32]
-         [ 3  0 33]
-         [ 4  0 32]]
+         [ 3 32 33]
+         [ 4 33 32]]
 
-    If detect is 'offset', find_events returns the samples at which a new
-    event starts, or the stim channel changes to zero (and the final sample
-    if it is non-zero):
+    If output is 'offset', find_events returns the last sample of each event
+    instead of the first one:
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
-        ...                   detect='offset'))
-        [[ 2  0 32]
-         [ 3  0 33]
+        ...                   output='offset'))
+        [[ 2 33 32]
+         [ 3 32 33]
          [ 4  0 32]]
+
+    If output is 'step', find_events returns the samples at which an event
+    starts or ends:
+
+        >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
+        ...                   output='step'))
+        [[ 1  0 32]
+         [ 3 32 33]
+         [ 4 33 32]
+         [ 5 32  0]]
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
@@ -349,62 +453,63 @@ def find_events(raw, stim_channel=None, verbose=None, detect='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
-    """
-    # pull stim channel from config if necessary
-    stim_channel = _get_stim_channel(stim_channel)
 
-    pick = pick_channels(raw.info['ch_names'], include=stim_channel)
-    if len(pick) == 0:
-        raise ValueError('No stim channel found to extract event triggers.')
-    data, times = raw[pick, :]
-    if np.any(data < 0):
-        logger.warn('Trigger channel contains negative values. '
-                    'Taking absolute value.')
-        data = np.abs(data)  # make sure trig channel is positive
-    data = data.astype(np.int)
+    See Also
+    --------
+    find_stim_steps : Find all the steps in the stim channel.
+    """
+    if min_duration > 0:
+        min_samples = min_duration * raw.info['sfreq']
+        merge = int(min_samples // 1)
+        if merge == min_samples:
+            merge -= 1
+    else:
+        merge = 0
+
+    events = find_stim_steps(raw, pad_stop=0, merge=merge,
+                             stim_channel=stim_channel)
 
     # Determine event onsets and offsets
-    changed = np.diff(data, axis=1) != 0
-    if consecutive:
-        onsets = np.logical_and(changed, data[:, 1:] > 0)
-        offsets = np.logical_and(changed, data[:, :-1] > 0)
+    if consecutive == 'increasing':
+        onsets = (events[:, 2] > events[:, 1])
+        offsets = np.logical_and(np.logical_or(onsets, (events[:, 2] == 0)),
+                                 (events[:, 1] > 0))
+    elif consecutive:
+        onsets = (events[:, 2] > 0)
+        offsets = (events[:, 1] > 0)
     else:
-        onsets = np.logical_and(changed, data[:, :-1] == 0)
-        offsets = np.logical_and(changed, data[:, 1:] == 0)
+        onsets = (events[:, 1] == 0)
+        offsets = (events[:, 2] == 0)
 
-    onset_idx = np.where(np.all(onsets, axis=0))[0] + 1
-    offset_idx = np.where(np.all(offsets, axis=0))[0]
+    onset_idx = np.where(onsets)[0]
+    offset_idx = np.where(offsets)[0]
 
-    # Add onset indices for events at the beginning of the data
-    if np.all(data[:, 0] != 0, axis=0):
+    if len(onset_idx) == 0 or len(offset_idx) == 0:
+        return np.empty((0, 3), dtype='int32')
+
+    # delete orphaned onsets/offsets
+    if onset_idx[0] > offset_idx[0]:
+        logger.info("Removing orphaned offset at the beginning of the file.")
         offset_idx = np.delete(offset_idx, 0)
 
-    # Add offset indices for events at the end of the data
-    if np.all(data[:, -1] != 0, axis=0):
-        offset_idx = np.append(offset_idx, data.shape[1] - 1)
+    if onset_idx[-1] > offset_idx[-1]:
+        logger.info("Removing orphaned onset at the end of the file.")
+        onset_idx = np.delete(onset_idx, -1)
 
-    if consecutive == 'increasing':
-        ignore = np.where(np.logical_and(onset_idx[1:] == offset_idx[:-1] + 1,
-                                         data[0, onset_idx[1:]] <
-                                         data[0, onset_idx[:-1]]))[0]
-        onset_idx = np.delete(onset_idx, ignore + 1)
-        offset_idx = np.delete(offset_idx, ignore)
-
-    # Only keep events longer than min_duration
-    keep = offset_idx - onset_idx >= np.round(min_duration *
-                                              raw.info['sfreq']) - 1
-
-    if detect == 'onset':
-        idx = onset_idx[keep]
-    elif detect == 'offset':
-        idx = offset_idx[keep]
+    if output == 'onset':
+        events = events[onset_idx]
+    elif output == 'step':
+        idx = np.union1d(onset_idx, offset_idx)
+        events = events[idx]
+    elif output == 'offset':
+        event_id = events[onset_idx, 2]
+        events = events[offset_idx]
+        events[:, 1] = events[:, 2]
+        events[:, 2] = event_id
+        events[:, 0] -= 1
     else:
-        raise Exception("Invalid detect parameter %r" % detect)
+        raise Exception("Invalid output parameter %r" % output)
 
-    events_id = data[0, idx].astype(np.int)
-    idx += raw.first_samp
-
-    events = np.c_[idx, np.zeros_like(idx), events_id]
     logger.info("%s events found" % len(events))
     logger.info("Events id: %s" % np.unique(events[:, 2]))
     return events
@@ -428,9 +533,11 @@ def merge_events(events, ids, new_id):
         The new events
     """
     events = events.copy()
-    events_numbers = events[:, 2]
     for i in ids:
-        events_numbers[events_numbers == i] = new_id
+        where = (events[:, 2] == i)
+        events[where, 2] = new_id
+        where = (events[:, 1] == i)
+        events[where, 1] = new_id
     return events
 
 

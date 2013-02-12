@@ -49,6 +49,10 @@ Changelog
 
    - Averaging forward solutions by `Eric Larson`_
 
+   - Events now contain the pre-event stim channel value in the middle column, by `Christian Brodbeck`_
+
+   - New function `mne.find_stim_steps` for finding all steps in a stim channel by `Christian Brodbeck`_
+
 
 API
 ~~~

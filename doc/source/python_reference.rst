@@ -246,6 +246,7 @@ Events
    define_target_events
    concatenate_events
    find_events
+   find_stim_steps
    make_fixed_length_events
    merge_events
    parse_config

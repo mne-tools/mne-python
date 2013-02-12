@@ -2,10 +2,11 @@ import os.path as op
 import os
 
 from nose.tools import assert_true
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, fiff)
+                 find_events, find_stim_steps, fiff)
 from mne.utils import _TempDir
 from mne.event import define_target_events
 
@@ -89,19 +90,26 @@ def test_find_events():
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
 
-    # Test that we can handle consecutive events with no gap
+    # Reset some data for ease of comparison
+    raw.first_samp = 0
+    raw.info['sfreq'] = 1000
     stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
+
+    # test empty events channel
     raw._data[stim_channel, :] = 0
-    raw._data[stim_channel, 0] = 1
+    assert_array_equal(find_events(raw), np.empty((0, 3), dtype='int32'))
+
+    raw._data[stim_channel, :4] = 1
+    assert_array_equal(find_events(raw), np.empty((0, 3), dtype='int32'))
+
+    raw._data[stim_channel, -1:] = 9
+    assert_array_equal(find_events(raw), [[14399, 0, 9]])
+
+    # Test that we can handle consecutive events with no gap
     raw._data[stim_channel, 10:20] = 5
     raw._data[stim_channel, 20:30] = 6
     raw._data[stim_channel, 30:32] = 5
     raw._data[stim_channel, 40] = 6
-    raw._data[stim_channel, -1] = 9
-
-    # Reset some data for ease of comparison
-    raw.first_samp = 0
-    raw.info['sfreq'] = 1000
 
     assert_array_equal(find_events(raw, consecutive=False),
                        [[10, 0, 5],
@@ -109,48 +117,77 @@ def test_find_events():
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw, consecutive=True),
                        [[10, 0, 5],
-                        [20, 0, 6],
-                        [30, 0, 5],
+                        [20, 5, 6],
+                        [30, 6, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
     assert_array_equal(find_events(raw),
                        [[10, 0, 5],
-                        [20, 0, 6],
+                        [20, 5, 6],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=False),
+    assert_array_equal(find_events(raw, output='offset', consecutive=False),
                        [[31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=True),
-                       [[19, 0, 5],
-                        [29, 0, 6],
+    assert_array_equal(find_events(raw, output='offset', consecutive=True),
+                       [[19, 6, 5],
+                        [29, 5, 6],
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(
-        find_events(raw, detect='offset'),
-        [[19, 0, 5],
-         [31, 0, 5],
-         [40, 0, 6],
-         [14399, 0, 9]])
+    assert_array_equal(find_events(raw, output='step', consecutive=True),
+                       [[10, 0, 5],
+                        [20, 5, 6],
+                        [30, 6, 5],
+                        [32, 5, 0],
+                        [40, 0, 6],
+                        [41, 6, 0],
+                        [14399, 0, 9],
+                        [14400, 9, 0]])
+    assert_array_equal(find_events(raw, output='offset'),
+                       [[19, 6, 5],
+                        [31, 0, 6],
+                        [40, 0, 6],
+                        [14399, 0, 9]])
     assert_array_equal(find_events(raw, consecutive=False, min_duration=0.002),
                        [[10, 0, 5]])
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.002),
                        [[10, 0, 5],
-                        [20, 0, 6],
-                        [30, 0, 5]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=False,
+                        [20, 5, 6],
+                        [30, 6, 5]])
+    assert_array_equal(find_events(raw, output='offset', consecutive=False,
                                    min_duration=0.002),
                        [[31, 0, 5]])
-    assert_array_equal(find_events(raw, detect='offset', consecutive=True,
+    assert_array_equal(find_events(raw, output='offset', consecutive=True,
                                    min_duration=0.002),
-                       [[19, 0, 5],
-                        [29, 0, 6],
+                       [[19, 6, 5],
+                        [29, 5, 6],
                         [31, 0, 5]])
     assert_array_equal(find_events(raw, consecutive=True, min_duration=0.003),
                        [[10, 0, 5],
-                        [20, 0, 6]])
+                        [20, 5, 6]])
+
+    # test find_stim_steps merge parameter
+    raw._data[stim_channel, :] = 0
+    raw._data[stim_channel, 0] = 1
+    raw._data[stim_channel, 10] = 4
+    raw._data[stim_channel, 11:20] = 5
+    assert_array_equal(find_stim_steps(raw, pad_start=0, merge=0),
+                       [[ 0, 0, 1],
+                        [ 1, 1, 0],
+                        [10, 0, 4],
+                        [11, 4, 5],
+                        [20, 5, 0]])
+    assert_array_equal(find_stim_steps(raw, merge= -1),
+                       [[ 1, 1, 0],
+                        [10, 0, 5],
+                        [20, 5, 0]])
+    assert_array_equal(find_stim_steps(raw, merge=1),
+                       [[ 1, 1, 0],
+                        [11, 0, 5],
+                        [20, 5, 0]])
+
     # put back the env vars we trampled on
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
