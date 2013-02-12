@@ -6,6 +6,7 @@
 import copy as cp
 import os
 from math import floor, ceil
+from operator import add
 import warnings
 
 import numpy as np
@@ -302,8 +303,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     when the stim onset is defined from events.
 
     If the covariance is computed for multiple event types (events
-    with different IDs), an Epochs object for each event type has to
-    be created and a list of Epochs has to be passed to this function.
+    with different IDs), the following two options can be used and combined.
+    A) either an Epochs object for each event type is created and
+    a list of Epochs is passed to this function.
+    B) an Epochs object is created for multiple events and passed
+    to this function.
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed covariance matrix will be inaccurate.
@@ -338,8 +342,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     cov : instance of Covariance
         The computed covariance.
     """
+
     if not isinstance(epochs, list):
-        epochs = [epochs]
+        epochs = _unpack_epochs(epochs)
+    else:
+        epochs = reduce(add, [_unpack_epochs(epoch) for epoch in epochs])
 
     # check for baseline correction
     for epochs_t in epochs:
@@ -447,6 +454,16 @@ def write_cov(fname, cov):
 def rank(A, tol=1e-8):
     s = linalg.svd(A, compute_uv=0)
     return np.sum(np.where(s > s[0] * tol, 1, 0))
+
+
+def _unpack_epochs(epochs):
+    """ Aux Function """
+    if len(epochs.event_id) > 1:
+        epochs = [epochs[k] for k in epochs.event_id]
+    else:
+        epochs = [epochs]
+
+    return epochs
 
 
 @verbose
