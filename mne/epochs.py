@@ -263,8 +263,7 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
-        overlap = in1d(events[:, 2], self.event_id.values())
-        selected = np.logical_and(events[:, 1] == 0, overlap)
+        selected = in1d(events[:, 2], self.event_id.values())
         self.events = events[selected]
 
         n_events = len(self.events)
