@@ -8,6 +8,7 @@ import re
 import numpy as np
 from mne.fiff.constants import FIFF
 from .constants import KIT
+from struct import unpack
 
 
 def coreg(mrk_fname, elp_fname, hsp_fname):
@@ -90,31 +91,27 @@ def coreg(mrk_fname, elp_fname, hsp_fname):
     return mrk_points, elp_points, dig
 
 
-def reset_origin(lpa, rpa, pts):
-    """reset origin of head coordinate system
-
-    Resets the origin to mid-distance of peri-auricular points
-    (mne manual, pg. 97)
-
-    """
-    origin = (lpa + rpa) / 2
-    pts -= origin
-    return pts
-
-
 def read_mrk(mrk_fname):
-    """marker point extraction"""
-
-    # pattern by Tal Linzen:
-    p = re.compile(r'Marker \d:   MEG:x= *([\.\-0-9]+), ' +
-                   r'y= *([\.\-0-9]+), z= *([\.\-0-9]+)')
-    mrk_points = p.findall(open(mrk_fname).read())
-    mrk_points = np.array(mrk_points, dtype=float)
+    """Marker Point Extraction in MEG space directly from sqd"""
+    fid = open(mrk_fname, 'r')
+    fid.seek(KIT.MRK_INFO)
+    mrk_offset = unpack('i', fid.read(KIT.INT))[0]
+    fid.seek(mrk_offset)
+    _ = fid.read(KIT.INT)  # match_done
+    _ = fid.read(2 * KIT.DOUBLE * 4 ** 2)  # meg_to_mri and mri_to_meg
+    mrk_count = unpack('i', fid.read(KIT.INT))[0]
+    pts = []
+    for _ in range(mrk_count):
+        _ = fid.read(KIT.INT * 4)  # mri_mrk_type, meg_mrk_type,
+                                    # mri_mrk_done, meg_mrk_done
+        _ = fid.read(KIT.DOUBLE * 3)  # mri_marker
+        pts.append(np.fromfile(fid, dtype='d', count=3))
+    mrk_points = np.array(pts)
     return mrk_points
 
 
 def read_elp(elp_fname):
-    """elp point extraction"""
+    """ELP point extraction in Polhemus head space."""
 
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = p.findall(open(elp_fname).read())
@@ -123,7 +120,7 @@ def read_elp(elp_fname):
 
 
 def read_hsp(hsp_fname):
-    """hsp point extraction"""
+    """HSP point extraction in Polhemus head space."""
 
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     hsp_points = p.findall(open(hsp_fname).read())
@@ -136,7 +133,7 @@ def read_hsp(hsp_fname):
 
 
 def read_sns(sns_fname):
-    """sns coordinate extraction"""
+    """SNS coordinate extraction in MEG space."""
 
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+),' +
@@ -145,8 +142,20 @@ def read_sns(sns_fname):
     return locs
 
 
+def reset_origin(lpa, rpa, pts):
+    """Reset origin of head coordinate system.
+
+    Resets the origin to mid-distance of peri-auricular points
+    (mne manual, pg. 97)
+
+    """
+    origin = (lpa + rpa) / 2
+    pts -= origin
+    return pts
+
+
 def transform_pts(pts, scale=True):
-    """KIT-Neuromag transformer
+    """KIT-Neuromag transformer.
 
     This is used to orient points in Neuromag coordinates.
     The KIT system is x,y,z in [mm].

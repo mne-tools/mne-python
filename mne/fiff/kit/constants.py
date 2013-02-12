@@ -20,6 +20,7 @@ KIT.BASIC_INFO = 16
 KIT.CHAN_SENS = 80
 KIT.DATA_OFFSET = 144
 KIT.SAMPLE_INFO = 128
+KIT.MRK_INFO = 192
 
 # parameters
 KIT.VOLTAGE_RANGE = 5.
@@ -34,7 +35,7 @@ KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 KIT.DIG_POINTS = 10000
 
 # create system specific dicts
-KIT_NY = Bunch(KIT)
+KIT_NY = Bunch()
 KIT_NY.update(KIT)
 KIT_AD = Bunch()
 KIT_AD.update(KIT)
