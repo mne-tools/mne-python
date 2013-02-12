@@ -345,8 +345,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if not isinstance(epochs, list):
         epochs = _unpack_epochs(epochs)
     else:
-        epochs = [i for l in [_unpack_epochs(epoch) for epoch in epochs]
-                  for i in l]
+        epochs = [ep for li in [_unpack_epochs(epoch) for epoch in epochs]
+                  for ep in li]
 
     # check for baseline correction
     for epochs_t in epochs:
