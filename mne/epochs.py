@@ -565,13 +565,14 @@ class Epochs(object):
         else:
             s = 'n_events : %s (all good)' % len(self.events)
         if len(self.event_id) > 1:
-            counts = ['%s: %i' % (k, len(self.events[self.events[:, 2] == v]))
-                  for k, v in self.event_id.items()]
-            s += ', %s' % ', '.join(counts)
+            counts = ['%s: %i' % (k, sum(self.events[:, 2] == v))
+                      for k, v in self.event_id.items()]
+            s += textwrap.fill(', %s' % ', '.join(counts), 30,
+                               subsequent_indent=' ...')
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
-        return textwrap.fill('<Epochs  |  %s>' % s, 80)
+        return '<Epochs  |  %s>' % s
 
     def _key_match(self, key):
         """Helper function for event dict use"""
