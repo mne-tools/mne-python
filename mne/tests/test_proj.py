@@ -7,6 +7,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import copy as cp
 
+import mne
+from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
@@ -20,6 +22,14 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
+
+data_path = sample.data_path()
+fwd_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis-meg-oct-6-fwd.fif')
+sensitivity_map_fname_lh = op.join(data_path, 'MEG', 'sample',
+                                'sample_audvis-meg-oct-6-fwd-sensmap-lh.w')
+sensitivity_map_fname_rh = op.join(data_path, 'MEG', 'sample',
+                                'sample_audvis-meg-oct-6-fwd-sensmap-rh.w')
 
 tempdir = _TempDir()
 
@@ -137,3 +147,14 @@ def test_compute_proj_raw():
     # test with bads
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
+
+
+def test_sensitivity_maps():
+    """Test sensitivity map computation"""
+    fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
+    w_lh = mne.read_w(sensitivity_map_fname_lh)
+    w_rh = mne.read_w(sensitivity_map_fname_rh)
+    w = np.r_[w_lh['data'], w_rh['data']]
+    projs = read_proj(proj_fname)
+    stc = mne.proj.sensitivity_map(fwd, projs=projs)
+    assert_array_almost_equal(stc.data.ravel(), w, decimal=1)

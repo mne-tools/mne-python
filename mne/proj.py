@@ -9,10 +9,13 @@ import logging
 logger = logging.getLogger('mne')
 
 from . import fiff, Epochs, verbose
-from .fiff.pick import pick_types
+from .fiff.pick import pick_types, pick_types_forward
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
+from .forward import is_fixed_orient
+from .source_estimate import SourceEstimate
+from .fiff.proj import make_projector
 
 
 def read_proj(fname):
@@ -233,3 +236,58 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
     return projs
+
+
+def sensitivity_map(fwd, projs=None, ch_type='grad'):
+    """Compute sensitivity map
+
+    Such maps are used to know how much projections
+    shadow some sources.
+
+    Parameters
+    ----------
+    fwd : dict
+        The forward operator.
+    projs : list
+        List of projection vectors.
+    ch_type : 'grad' | 'mag' | 'eeg'
+        The type of sensors to use.
+
+    Return
+    ------
+    stc : SourceEstimate
+        The sensitivity map as a SourceEstimate instance for
+        visualization.
+    """
+    if not ch_type in ['eeg', 'grad', 'mag']:
+        raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
+                          % ch_type)
+    if not fwd['surf_ori']:
+        raise ValueError('fwd should be surface oriented')
+    if is_fixed_orient(fwd):
+        raise ValueError('fwd should not have fixed orientation')
+
+    if ch_type == 'eeg':
+        fwd = pick_types_forward(fwd, meg=False, eeg=True)
+    else:
+        fwd = pick_types_forward(fwd, meg=ch_type, eeg=False)
+
+    gain = fwd['sol']['data']
+
+    if projs is not None:
+        proj, ncomp, _ = make_projector(projs, fwd['sol']['row_names'])
+        if ncomp > 0:
+            gain = np.dot(proj, gain)
+
+    n_sensors, n_dipoles = gain.shape
+    n_locations = n_dipoles // 3
+    sensitivity_map = np.empty(n_locations)
+    for k in xrange(n_locations):
+        gg = gain[:, 3*k:3*(k+1)]
+        _, s, _ = linalg.svd(gg, full_matrices=False)
+        sensitivity_map[k] = s[0]
+    vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
+    sensitivity_map /= np.max(sensitivity_map)
+    stc = SourceEstimate(sensitivity_map[:, np.newaxis],
+                         vertices=vertices, tmin=0, tstep=1)
+    return stc
