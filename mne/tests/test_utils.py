@@ -6,7 +6,7 @@ import warnings
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
                     get_config, set_config
-from ..fiff import Evoked
+from ..fiff import Evoked, show_fiff
 
 fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                        'test-ave.fif')
@@ -111,3 +111,14 @@ def test_config():
     set_config(key, None)
     if old_val is not None:
         os.environ[key] = old_val
+
+
+def test_show_fiff():
+    """Test show_fiff
+    """
+    # this is not exhaustive, but hopefully bugs will be found in use
+    info = show_fiff(fname_evoked)
+    keys = ['FIFF_EPOCH', 'FIFFB_HPI_COIL', 'FIFFB_PROJ_ITEM',
+            'FIFFB_PROCESSED_DATA', 'FIFFB_EVOKED', 'FIFF_NAVE',
+            'FIFF_EPOCH']
+    assert_true(all([key in info for key in keys]))

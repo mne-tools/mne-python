@@ -102,20 +102,24 @@ def fiff_open(fname, preload=False, verbose=None):
     return fid, tree, directory
 
 
-def show_fiff(fname, indent='    ', read_limit=1024, max_str=30, verbose=None):
-    """Show FIFF information similar to mne_show_fiff
+def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
+              verbose=None):
+    """Show FIFF information
+
+    This function is similar to mne_show_fiff.
 
     Parameters
     ----------
     fname : str
-        Filename.
+        Filename to evaluate.
     indent : str
         How to indent the lines.
-    read_limit : int | None
-        Max number of bytes of data to read from a tag. If None, no limit
-        is used.
+    read_limit : int
+        Max number of bytes of data to read from a tag. Can be np.inf
+        to always read all data (helps test read completion).
     max_str : int
-        Max number of characters to print as an example.
+        Max number of characters of string representation to print for
+        each tag's data.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -126,17 +130,20 @@ def show_fiff(fname, indent='    ', read_limit=1024, max_str=30, verbose=None):
     return out
 
 
-def _find_type(value, fmt='FIFF_'):
-    vals = [k for k, v in FIFF.iteritems() if v == value and fmt in k]
-    return vals[:3]
+def _find_type(value, fmts=['FIFF_']):
+    """Helper to find matching values"""
+    vals = [k for k, v in FIFF.iteritems()
+            if v == value and any([fmt in k for fmt in fmts])]
+    return vals
 
 
 def _show_tree(fid, tree, indent, level, read_limit, max_str):
     """Helper for showing FIFF"""
     this_idt = indent * level
     next_idt = indent * (level + 1)
+    # print block-level information
     out = (this_idt + str(tree['block'][0]) + ' = '
-           + '/'.join(_find_type(tree['block'], fmt='FIFFB_')) + '\n')
+           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_'])) + '\n')
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
         sizes = [ent.size for ent in tree['directory']]
@@ -152,20 +159,27 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                     good = False
 
             if kn == k:
+                # don't print if the next item is the same type (count 'em)
                 counter += 1
             else:
-                this_type = _find_type(k, fmt='FIFF_')
+                # find the tag type
+                this_type = _find_type(k, fmts=['FIFF_'])
+                # prepend a count if necessary
                 prepend = 'x' + str(counter) + ': ' if counter > 0 else ''
                 postpend = ''
+                # print tag data nicely
                 if tag.data is not None:
-                    if not isinstance(tag.data, dict):
-                        if isinstance(tag.data, basestring):
-                            postpend = ' = ' + str(tag.data)[:max_str]
-                        if isinstance(tag.data, np.ndarray):
-                            postpend = ' = ' + str(tag.data.ravel())[:max_str]
-                            if tag.data.size > 1:
-                                postpend += ' ... size=' + str(tag.data.size)
-                postpend = '>' * 20 + 'BAD' if good is False else postpend
+                    postpend = ' = ' + str(tag.data)[:max_str]
+                    if isinstance(tag.data, np.ndarray):
+                        if tag.data.size > 1:
+                            postpend += ' ... array size=' + str(tag.data.size)
+                    elif isinstance(tag.data, dict):
+                        postpend += ' ... dict len=' + str(len(tag.data))
+                    elif isinstance(tag.data, basestring):
+                        postpend += ' ... str len=' + str(len(tag.data))
+                    else:
+                        postpend += ' ... (unknown type)'
+                postpend = '>' * 20 + 'BAD' if not good else postpend
                 out += (next_idt + prepend + str(k) + ' = '
                         + '/'.join(this_type) + ' (' + str(size) + ')'
                         + postpend + '\n')
