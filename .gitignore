@@ -43,7 +43,3 @@ pip-log.txt
 tags
 doc/coverages
 doc/samples
-
-mne/bin/test/test-export.txt
-
-mne/bin/test/test_coord_t.txt
