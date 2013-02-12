@@ -384,14 +384,15 @@ class SourceEstimate(object):
                     not all([isinstance(v, np.ndarray) for v in vertices]):
                 raise ValueError('Vertices, if a list, must contain one or '
                                  'two numpy arrays')
-
-        self.data = data
+        if data is not False:
+            # XXX do something nicer!
+            self.data = data
         self.tmin = tmin
         self.tstep = tstep
-        self.times = None
-        self._update_times()
         self.vertno = vertices
         self.verbose = verbose
+        self.times = None
+        self._update_times()
 
     @verbose
     def save(self, fname, ftype='stc', verbose=None):
@@ -521,6 +522,10 @@ class SourceEstimate(object):
     def rh_vertno(self):
         return self.vertno[1]
 
+    @property
+    def data_shape(self):
+        return self.data.shape
+
     def is_surface(self):
         """Returns True if source estimate is defined over surfaces
         """
@@ -531,7 +536,7 @@ class SourceEstimate(object):
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep"""
-        self.times = self.tmin + (self.tstep * np.arange(self.data.shape[1]))
+        self.times = self.tmin + (self.tstep * np.arange(self.data_shape[1]))
 
     def __add__(self, a):
         stc = copy.deepcopy(self)
@@ -808,6 +813,32 @@ class SourceEstimate(object):
 
         return label_tc
 
+    def transformed_data(self, transform_fun, *args, **kwargs):
+        """Get data after a linear transform has been applied
+
+        The transorm is applied to each source time series.
+
+        Parameters
+        ----------
+        transform_fun : callable
+            The transform to be applied. The first parameter of the function
+            is the input data. The function must return a single array where
+            the first dimension is the same as the first dimension of the
+            input data.
+        *args : tuple
+            Additional parameters to be passed to transform_fun.
+        **kwargs : dict
+            Keyword arguments to be passed to transform_fun.
+        """
+
+        data_trans = transform_fun(self.data, *args, **kwargs)
+
+        if isinstance(data_trans, tuple):
+            # use only first return value
+            data_trans = data_trans[0]
+
+        return data_trans
+
     def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
                        subjects_dir=None):
         """Return the vertex on a given surface that is at the center of mass
@@ -962,6 +993,59 @@ class SourceEstimate(object):
                         fmax=fmax, transparent=transparent,
                         time_viewer=time_viewer, subjects_dir=subjects_dir)
         return brain
+
+
+class SourceEstimateDelayed(SourceEstimate):
+    def __init__(self, sensor_data, inverse_fun, inverse_args, vertices=None,
+                 tmin=None, tstep=None, verbose=None):
+
+        self.sensor_data = sensor_data
+        self.inverse_fun = inverse_fun
+        self.inverse_args = inverse_args
+
+        super(SourceEstimateDelayed, self).__init__(False,
+            vertices=vertices, tmin=tmin, tstep=tstep, verbose=verbose)
+
+    @property
+    def data(self):
+        return self.inverse_fun(self.sensor_data, *self.inverse_args)
+
+    @property
+    def data_shape(self):
+        return (len(self.vertno[0]) + len(self.vertno[1]),
+                self.sensor_data.shape[1])
+
+    def transformed_data(self, transform_fun, *args, **kwargs):
+        """Get data after a linear transform has been applied
+
+        The transorm is applied to each source time series.
+
+        Parameters
+        ----------
+        transform_fun : callable
+            The transform to be applied. The first parameter of the function
+            is the input data. The function must return a single array where
+            the first dimension is the same as the first dimension of the
+            input data.
+        *args : tuple
+            Additional parameters to be passed to transform_fun.
+        **kwargs : dict
+            Keyword arguments to be passed to transform_fun.
+        """
+
+        sensor_data_trans = transform_fun(self.sensor_data, *args, **kwargs)
+
+        if isinstance(sensor_data_trans, tuple):
+            # use only first return value
+            sensor_data_trans = sensor_data_trans[0]
+
+        if sensor_data_trans.shape[0] != self.sensor_data.shape[0]:
+            raise ValueError('data returned by transform_fun has wrong shape')
+
+        data_trans = self.inverse_fun(sensor_data_trans, *self.inverse_args)
+
+        return data_trans
+
 
 ###############################################################################
 # Morphing

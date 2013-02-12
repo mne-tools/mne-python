@@ -33,7 +33,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
-from ..source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate, SourceEstimateDelayed
 from .. import verbose
 
 
@@ -837,9 +837,34 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
+def _apply_kernel_combine_norm(sens_data, kernel, is_free_ori, noise_norm):
+    """Helper function to apply kernel, combine xyz, apply noise normalization
+    """
+    data_shape = sens_data.shape
+    if len(data_shape) > 2:
+        # flatten the last dimensions
+        sens_data = sens_data.reshape(data_shape[0], np.prod(data_shape[1:]))
+
+    sol = np.dot(kernel, sens_data)
+
+    if is_free_ori:
+        logger.info('combining the current components...')
+        sol = combine_xyz(sol)
+
+    if noise_norm is not None:
+        logger.info('applying noise normalization...')
+        sol *= noise_norm
+
+    if len(data_shape) > 2:
+        # reshape result to correct size
+        sol = sol.reshape(sol.shape[0], *data_shape[1:])
+
+    return sol
+
+
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
                               label=None, nave=1, pick_normal=False, dSPM=None,
-                              verbose=None):
+                              delayed=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
 
@@ -865,16 +890,17 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
     for k, e in enumerate(epochs):
         logger.info("Processing epoch : %d" % (k + 1))
-        sol = np.dot(K, e[sel])  # apply imaging kernel
 
-        if is_free_ori:
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
-
-        if noise_norm is not None:
-            sol *= noise_norm
-
-        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+        if not delayed:
+            sol = _apply_kernel_combine_norm(e[sel], K, is_free_ori,
+                                             noise_norm)
+            stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+        else:
+            stc = SourceEstimateDelayed(e[sel], _apply_kernel_combine_norm,
+                                        (K, is_free_ori, noise_norm),
+                                        vertices=vertno, tmin=tmin,
+                                        tstep=tstep)
+        yield stc
 
     logger.info('[done]')
 
@@ -882,7 +908,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_normal=False, dSPM=None,
-                         return_generator=False, verbose=None):
+                         return_generator=False, delayed=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -922,7 +948,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_normal=pick_normal, dSPM=dSPM,
-                                     verbose=verbose)
+                                     delayed=delayed, verbose=verbose)
 
     if not return_generator:
         # return a list
