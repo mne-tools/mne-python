@@ -567,7 +567,7 @@ class Epochs(object):
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
         if len(self.event_id) > 1:
-            counts = ['\'%s\': %i' % (k, sum(self.events[:, 2] == v))
+            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in self.event_id.items()]
             s += ',\n %s' % ', '.join(counts)
 
