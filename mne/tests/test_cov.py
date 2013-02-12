@@ -150,6 +150,11 @@ def test_cov_estimation_with_triggers():
         cov = compute_covariance(epochs, projs=[])
         assert_true(len(w) == 1)
 
+    # test new dict support
+    epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,
+                    baseline=(-0.2, -0.1), proj=True, reject=reject)
+    compute_covariance(epochs)
+
 
 def test_arithmetic_cov():
     """Test arithmetic with noise covariance matrices

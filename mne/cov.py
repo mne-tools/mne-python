@@ -306,7 +306,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     with different IDs), the following two options can be used and combined.
     A) either an Epochs object for each event type is created and
     a list of Epochs is passed to this function.
-    B) an Epochs object for is created for multiple events and passed
+    B) an Epochs object is created for multiple events and passed
     to this function.
 
     Note: Baseline correction should be used when creating the Epochs.
