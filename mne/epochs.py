@@ -9,7 +9,6 @@
 
 import copy as cp
 import warnings
-import textwrap
 
 import numpy as np
 from copy import deepcopy
@@ -33,7 +32,6 @@ from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample, detrend
-from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
 from .fixes import in1d
@@ -565,14 +563,13 @@ class Epochs(object):
             s = 'n_events : %s (good & bad)' % len(self.events)
         else:
             s = 'n_events : %s (all good)' % len(self.events)
-        if len(self.event_id) > 1:
-            counts = ['\'%s\': %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in self.event_id.items()]
-            s += textwrap.fill(', %s' % ', '.join(counts), 30,
-                               subsequent_indent=' ...')
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
+        if len(self.event_id) > 1:
+            counts = ['\'%s\': %i' % (k, sum(self.events[:, 2] == v))
+                      for k, v in self.event_id.items()]
+            s += ',\n %s' % ', '.join(counts)
 
         return '<Epochs  |  %s>' % s
 
