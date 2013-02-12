@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from mne.fiff.constants import Bunch
+from copy import deepcopy
 
 KIT = Bunch()
 
@@ -27,22 +28,17 @@ KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
 KIT.RANGE = 1.  # mne_manual p.272
 KIT.UNIT_MUL = 0  # default is 0 mne_manual p.273
 
-# amplifier information
-KIT.input_gain_bit = 11  # stored in Bit-11 to 12
-KIT.input_gain_mask = 6144  # (0x1800)
-KIT.output_gain_bit = 0  # stored in Bit-0 to 2
-KIT.output_gain_mask = 7  # (0x0007)
-# input_gain: 0:x1, 1:x2, 2:x5, 3:x10
-KIT.input_gains = [1, 2, 5, 10]
-# output_gain: 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
-KIT.output_gains = [1, 2, 5, 10, 20, 50, 100, 200]
+# gain: 0:x1, 1:x2, 2:x5, 3:x10, 4:x20, 5:x50, 6:x100, 7:x200
+KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 
 # coreg constants
 KIT.DIG_POINTS = 10000
 
 # create system specific dicts
-KIT_NY = KIT
-KIT_AD = KIT
+KIT_NY = deepcopy(KIT)
+KIT_NY.__dict__ = KIT_NY
+KIT_AD = deepcopy(KIT)
+KIT_AD.__dict__ = KIT_AD
 
 # NYU-system channel information
 KIT_NY.nchan = 192
@@ -51,6 +47,13 @@ KIT_NY.nrefchan = 3
 KIT_NY.ntrigchan = 8
 KIT_NY.nmiscchan = 24
 KIT_NY.n_sens = KIT_NY.nmegchan + KIT_NY.nrefchan
+# amplifier information
+KIT_NY.GAIN1_BIT = 11  # stored in Bit 11-12
+KIT_NY.GAIN1_MASK = 2 ** 11 + 2 ** 12
+KIT_NY.GAIN2_BIT = 0   # stored in Bit 0-2
+KIT_NY.GAIN2_MASK = 2 ** 0 + 2 ** 1 + 2 ** 2  # (0x0007)
+KIT_NY.GAIN3_BIT = None
+KIT_NY.GAIN3_MASK = None
 
 # AD-system channel information
 KIT_AD.nchan = 256
@@ -59,3 +62,10 @@ KIT_AD.nrefchan = 16
 KIT_AD.ntrigchan = 8
 KIT_AD.nmiscchan = 24
 KIT_AD.n_sens = KIT_AD.nmegchan + KIT_AD.nrefchan
+# amplifier information
+KIT_AD.GAIN1_BIT = 12   # stored in Bit 12-14
+KIT_AD.GAIN1_MASK = 2 ** 12 + 2 ** 13 + 2 ** 14
+KIT_AD.GAIN2_BIT = 28   # stored in Bit 28-30
+KIT_AD.GAIN2_MASK = 2 ** 28 + 2 ** 29 + 2 ** 30
+KIT_AD.GAIN3_BIT = 24   # stored in Bit 24-26
+KIT_AD.GAIN3_MASK = 2 ** 24 + 2 ** 25 + 2 ** 26
