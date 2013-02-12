@@ -6,7 +6,6 @@
 import copy as cp
 import os
 from math import floor, ceil
-from operator import add
 import warnings
 
 import numpy as np
@@ -346,7 +345,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if not isinstance(epochs, list):
         epochs = _unpack_epochs(epochs)
     else:
-        epochs = reduce(add, [_unpack_epochs(epoch) for epoch in epochs])
+        epochs = [ep for li in [_unpack_epochs(epoch) for epoch in epochs]
+                  for ep in li]
 
     # check for baseline correction
     for epochs_t in epochs:
