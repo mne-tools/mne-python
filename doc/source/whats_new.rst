@@ -53,6 +53,8 @@ Changelog
 
    - New function `mne.find_stim_steps` for finding all steps in a stim channel by `Christian Brodbeck`_
 
+   - Get information about FIFF files using mne.fiff.show_fiff() by `Eric Larson`_
+
 
 API
 ~~~
