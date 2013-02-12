@@ -3,13 +3,14 @@
 #
 # License: BSD (3-clause)
 
+import numpy as np
 import os.path as op
 import gzip
 import cStringIO
 import logging
 logger = logging.getLogger('mne')
 
-from .tag import read_tag_info, read_tag, read_big
+from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
 from .constants import FIFF
 from .. import verbose
@@ -70,7 +71,7 @@ def fiff_open(fname, preload=False, verbose=None):
     tag = read_tag(fid)
 
     if tag.kind != FIFF.FIFF_DIR_POINTER:
-        raise ValueError('file does have a directory pointer')
+        raise ValueError('file does not have a directory pointer')
 
     #   Read or create the directory tree
     logger.debug('    Creating tag directory for %s...' % fname)
@@ -99,3 +100,94 @@ def fiff_open(fname, preload=False, verbose=None):
     fid.seek(0)
 
     return fid, tree, directory
+
+
+def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
+              verbose=None):
+    """Show FIFF information
+
+    This function is similar to mne_show_fiff.
+
+    Parameters
+    ----------
+    fname : str
+        Filename to evaluate.
+    indent : str
+        How to indent the lines.
+    read_limit : int
+        Max number of bytes of data to read from a tag. Can be np.inf
+        to always read all data (helps test read completion).
+    max_str : int
+        Max number of characters of string representation to print for
+        each tag's data.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    f, tree, directory = fiff_open(fname)
+    with f as fid:
+        out = _show_tree(fid, tree['children'][0], indent=indent, level=0,
+                         read_limit=read_limit, max_str=max_str)
+    return out
+
+
+def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
+    """Helper to find matching values"""
+    vals = [k for k, v in FIFF.iteritems()
+            if v == value and any([fmt in k for fmt in fmts])
+            and not any(exc in k for exc in exclude)]
+    return vals
+
+
+def _show_tree(fid, tree, indent, level, read_limit, max_str):
+    """Helper for showing FIFF"""
+    this_idt = indent * level
+    next_idt = indent * (level + 1)
+    # print block-level information
+    out = (this_idt + str(tree['block'][0]) + ' = '
+           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_'])) + '\n')
+    if tree['directory'] is not None:
+        kinds = [ent.kind for ent in tree['directory']] + [-1]
+        sizes = [ent.size for ent in tree['directory']]
+        poss = [ent.pos for ent in tree['directory']]
+        counter = 0
+        good = True
+        for k, kn, size, pos in zip(kinds[:-1], kinds[1:], sizes, poss):
+            tag = Tag(k, size, 0, pos)
+            if read_limit is None or size <= read_limit:
+                try:
+                    tag = read_tag(fid, pos)
+                except Exception:
+                    good = False
+
+            if kn == k:
+                # don't print if the next item is the same type (count 'em)
+                counter += 1
+            else:
+                # find the tag type
+                this_type = _find_type(k, fmts=['FIFF_'])
+                # prepend a count if necessary
+                prepend = 'x' + str(counter) + ': ' if counter > 0 else ''
+                postpend = ''
+                # print tag data nicely
+                if tag.data is not None:
+                    postpend = ' = ' + str(tag.data)[:max_str]
+                    if isinstance(tag.data, np.ndarray):
+                        if tag.data.size > 1:
+                            postpend += ' ... array size=' + str(tag.data.size)
+                    elif isinstance(tag.data, dict):
+                        postpend += ' ... dict len=' + str(len(tag.data))
+                    elif isinstance(tag.data, basestring):
+                        postpend += ' ... str len=' + str(len(tag.data))
+                    else:
+                        postpend += ' ... (unknown type)'
+                postpend = '>' * 20 + 'BAD' if not good else postpend
+                out += (next_idt + prepend + str(k) + ' = '
+                        + '/'.join(this_type) + ' (' + str(size) + ')'
+                        + postpend + '\n')
+                counter = 0
+                good = True
+
+    # deal with children
+    for branch in tree['children']:
+        out += _show_tree(fid, branch, indent, level + 1, read_limit, max_str)
+    return out

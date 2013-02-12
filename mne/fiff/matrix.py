@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import copy
-
 import logging
 logger = logging.getLogger('mne')
 
@@ -33,11 +31,11 @@ def _read_named_matrix(fid, node, matkind, indent='    ', verbose=None):
     Parameters
     ----------
     fid : file
-        The opened file descriptor
+        The opened file descriptor.
     node : dict
-        The node in the tree
+        The node in the tree.
     matkind : int
-        The type of matrix
+        The type of matrix.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -98,12 +96,23 @@ def write_named_matrix(fid, kind, mat):
     Parameters
     ----------
     fid : file
-        The opened file descriptor
+        The opened file descriptor.
     kind : int
-        The kind of the matrix
+        The kind of the matrix.
     matkind : int
-        The type of matrix
+        The type of matrix.
     """
+    # let's save ourselves from disaster
+    n_tot = mat['nrow'] * mat['ncol']
+    if mat['data'].size != n_tot:
+        ratio = n_tot / float(mat['data'].size)
+        if n_tot < mat['data'].size and ratio > 0:
+            ratio = 1 / ratio
+        raise ValueError('Cannot write matrix: row (%i) and column (%i) '
+                         'total element (%i) mismatch with data size (%i), '
+                         'appears to be off by a factor of %gx'
+                         % (mat['nrow'], mat['ncol'], n_tot,
+                            mat['data'].size, ratio))
     start_block(fid, FIFF.FIFFB_MNE_NAMED_MATRIX)
     write_int(fid, FIFF.FIFF_MNE_NROW, mat['nrow'])
     write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
