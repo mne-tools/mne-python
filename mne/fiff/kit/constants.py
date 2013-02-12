@@ -4,8 +4,8 @@
 #
 # License: BSD (3-clause)
 
-from mne.fiff.constants import Bunch
-from copy import deepcopy
+from ..constants import Bunch
+
 
 KIT = Bunch()
 
@@ -22,7 +22,6 @@ KIT.DATA_OFFSET = 144
 KIT.SAMPLE_INFO = 128
 
 # parameters
-KIT.DYNAMIC_RANGE = 2 ** 12 / 2  # signed integer. range +/- 2048
 KIT.VOLTAGE_RANGE = 5.
 KIT.CALIB_FACTOR = 1.0  # mne_manual p.272
 KIT.RANGE = 1.  # mne_manual p.272
@@ -35,10 +34,10 @@ KIT.GAINS = [1, 2, 5, 10, 20, 50, 100, 200]
 KIT.DIG_POINTS = 10000
 
 # create system specific dicts
-KIT_NY = deepcopy(KIT)
-KIT_NY.__dict__ = KIT_NY
-KIT_AD = deepcopy(KIT)
-KIT_AD.__dict__ = KIT_AD
+KIT_NY = Bunch(KIT)
+KIT_NY.update(KIT)
+KIT_AD = Bunch()
+KIT_AD.update(KIT)
 
 # NYU-system channel information
 KIT_NY.nchan = 192
@@ -50,10 +49,12 @@ KIT_NY.n_sens = KIT_NY.nmegchan + KIT_NY.nrefchan
 # amplifier information
 KIT_NY.GAIN1_BIT = 11  # stored in Bit 11-12
 KIT_NY.GAIN1_MASK = 2 ** 11 + 2 ** 12
-KIT_NY.GAIN2_BIT = 0   # stored in Bit 0-2
+KIT_NY.GAIN2_BIT = 0  # stored in Bit 0-2
 KIT_NY.GAIN2_MASK = 2 ** 0 + 2 ** 1 + 2 ** 2  # (0x0007)
 KIT_NY.GAIN3_BIT = None
 KIT_NY.GAIN3_MASK = None
+# 12-bit A-to-D converter, one bit for signed integer. range +/- 2048
+KIT_NY.DYNAMIC_RANGE = 2 ** 12 / 2
 
 # AD-system channel information
 KIT_AD.nchan = 256
@@ -63,9 +64,11 @@ KIT_AD.ntrigchan = 8
 KIT_AD.nmiscchan = 24
 KIT_AD.n_sens = KIT_AD.nmegchan + KIT_AD.nrefchan
 # amplifier information
-KIT_AD.GAIN1_BIT = 12   # stored in Bit 12-14
+KIT_AD.GAIN1_BIT = 12  # stored in Bit 12-14
 KIT_AD.GAIN1_MASK = 2 ** 12 + 2 ** 13 + 2 ** 14
-KIT_AD.GAIN2_BIT = 28   # stored in Bit 28-30
+KIT_AD.GAIN2_BIT = 28  # stored in Bit 28-30
 KIT_AD.GAIN2_MASK = 2 ** 28 + 2 ** 29 + 2 ** 30
-KIT_AD.GAIN3_BIT = 24   # stored in Bit 24-26
+KIT_AD.GAIN3_BIT = 24  # stored in Bit 24-26
 KIT_AD.GAIN3_MASK = 2 ** 24 + 2 ** 25 + 2 ** 26
+# 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
+KIT_AD.DYNAMIC_RANGE = 2 ** 16 / 2

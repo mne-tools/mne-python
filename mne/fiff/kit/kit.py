@@ -17,6 +17,7 @@ from .constants import KIT, KIT_NY, KIT_AD
 from .import coreg
 from struct import unpack
 import numpy as np
+from scipy.linalg import norm
 import time
 import logging
 
@@ -254,7 +255,7 @@ class RawKIT(Raw):
             y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
             z = np.cos(ch_angles[0])
             vec_z = np.array([x, y, z])
-            length = np.linalg.norm(vec_z)
+            length = norm(vec_z)
             vec_z /= length
             vec_x = np.zeros(vec_z.size, dtype=float)
             if vec_z[1] < vec_z[2]:
@@ -267,7 +268,7 @@ class RawKIT(Raw):
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            length = np.linalg.norm(vec_x)
+            length = norm(vec_x)
             vec_x /= length
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
