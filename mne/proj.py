@@ -238,11 +238,11 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     return projs
 
 
-def sensitivity_map(fwd, projs=None, ch_type='grad'):
+def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
     """Compute sensitivity map
 
-    Such maps are used to know how much projections
-    shadow some sources.
+    Such maps are used to know how much sources are visible by a type
+    of sensor, and how much projections shadow some sources.
 
     Parameters
     ----------
@@ -252,6 +252,13 @@ def sensitivity_map(fwd, projs=None, ch_type='grad'):
         List of projection vectors.
     ch_type : 'grad' | 'mag' | 'eeg'
         The type of sensors to use.
+    mode : 'free' | 'fixed' | 'ratio' | 'radiality'
+        The type of sensitivity map computed. See manual. It corresponds
+        respectively to the argument --map 1, 2, 3 or 4 of the command
+        mne_sensitivity_map.
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in fwd['info']['bads'].
 
     Return
     ------
@@ -268,9 +275,9 @@ def sensitivity_map(fwd, projs=None, ch_type='grad'):
         raise ValueError('fwd should not have fixed orientation')
 
     if ch_type == 'eeg':
-        fwd = pick_types_forward(fwd, meg=False, eeg=True)
+        fwd = pick_types_forward(fwd, meg=False, eeg=True, exclude=exclude)
     else:
-        fwd = pick_types_forward(fwd, meg=ch_type, eeg=False)
+        fwd = pick_types_forward(fwd, meg=ch_type, eeg=False, exclude=exclude)
 
     gain = fwd['sol']['data']
 
@@ -284,8 +291,19 @@ def sensitivity_map(fwd, projs=None, ch_type='grad'):
     sensitivity_map = np.empty(n_locations)
     for k in xrange(n_locations):
         gg = gain[:, 3*k:3*(k+1)]
-        s = linalg.svd(gg, full_matrices=False, compute_uv=False)
-        sensitivity_map[k] = s[0]
+        if mode != 'fixed':
+            s = linalg.svd(gg, full_matrices=False, compute_uv=False)
+        gz = linalg.norm(gg[:, 2])  # the normal component
+        if mode == 'free':
+            sensitivity_map[k] = s[0]
+        elif mode == 'fixed':
+            sensitivity_map[k] = gz
+        elif mode == 'ratio':
+            sensitivity_map[k] = gz / s[0]
+        elif mode == 'radiality':
+            sensitivity_map[k] = 1. - gz / s[0]
+        else:
+            raise ValueError('Unknown mode type (got %s)' % mode)
     vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
     sensitivity_map /= np.max(sensitivity_map)
     stc = SourceEstimate(sensitivity_map[:, np.newaxis],
