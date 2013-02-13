@@ -20,9 +20,9 @@ leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape
 
-grad_map = mne.proj.sensitivity_map(fwd, ch_type='grad')
-mag_map = mne.proj.sensitivity_map(fwd, ch_type='mag')
-eeg_map = mne.proj.sensitivity_map(fwd, ch_type='eeg')
+grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
+mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
+eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
 ###############################################################################
 # Show gain matrix a.k.a. leadfield matrix with sensitivy map
@@ -31,9 +31,14 @@ import pylab as pl
 pl.matshow(leadfield[:, :500])
 pl.xlabel('sources')
 pl.ylabel('sensors')
-pl.title('Lead field matrix')
+pl.title('Lead field matrix (500 dipoles only)')
+
+pl.figure()
+pl.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],
+        bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'])
+pl.legend()
+pl.title('Normal orientation sensitivity')
 pl.show()
 
-grad_map.plot(subject='sample', surface='white', fmin=0.2, fmid=0.6, fmax=1)
-mag_map.plot(subject='sample', fmin=0.2, fmid=0.6, fmax=1)
-eeg_map.plot(subject='sample', surface='white', fmin=0.2, fmid=0.6, fmax=1)
+args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)
+grad_map.plot(subject='sample', time_label='Gradiometers sensitivity', **args)

@@ -150,10 +150,18 @@ def test_compute_proj_raw():
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    ecg_projs = read_proj(ecg_proj_fname)
+    # ecg_projs = read_proj(ecg_proj_fname)
+    ecg_projs = None
     for ch_type in ['grad', 'mag', 'eeg']:
         w_lh = mne.read_w(sensmap_fname % (ch_type, 'lh'))
         w_rh = mne.read_w(sensmap_fname % (ch_type, 'rh'))
         w = np.r_[w_lh['data'], w_rh['data']]
-        stc = mne.proj.sensitivity_map(fwd, projs=ecg_projs)
+        # stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
+        stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
         assert_array_almost_equal(stc.data.ravel(), w, decimal=1)
+        if ch_type == 'grad':
+            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
+        if ch_type == 'mag':
+            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='ratio', exclude='bads')
+        if ch_type == 'eeg':
+            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='radiality', exclude='bads')

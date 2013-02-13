@@ -406,8 +406,9 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
         If True include EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
-    exclude : list of string
-        List of channels to exclude. If empty do not exclude any.
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in orig['info']['bads'].
 
     Returns
     -------
