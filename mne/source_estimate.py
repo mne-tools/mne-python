@@ -1014,19 +1014,19 @@ def mesh_edges(tris):
     Parameters
     ----------
     tris : array of shape [n_triangles x 3]
-        The triangles
+        The triangles.
 
     Returns
     -------
     edges : sparse matrix
-        The adjacency matrix
+        The adjacency matrix.
     """
     npoints = np.max(tris) + 1
-    ones_ntris = np.ones(len(tris))
+    ones_ntris = np.ones(3 * len(tris))
     a, b, c = tris.T
-    edges = coo_matrix((ones_ntris, (a, b)), shape=(npoints, npoints))
-    edges = edges + coo_matrix((ones_ntris, (b, c)), shape=(npoints, npoints))
-    edges = edges + coo_matrix((ones_ntris, (c, a)), shape=(npoints, npoints))
+    x = np.concatenate((a, b, c))
+    y = np.concatenate((b, c, a))
+    edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
     edges = edges.tocsr()
     edges = edges + edges.T
     return edges
@@ -1069,16 +1069,16 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     Parameters
     ----------
     data : array, or csr sparse matrix
-        A n_vertices x n_times (or other dimension) dataset to morph
+        A n_vertices x n_times (or other dimension) dataset to morph.
     idx_use : array of int
-        Vertices from the original subject's data
+        Vertices from the original subject's data.
     e : sparse matrix
-        The mesh edges of the "from" subject
+        The mesh edges of the "from" subject.
     smooth : int
         Number of smoothing iterations to perform. A hard limit of 100 is
         also imposed.
     n_vertices : int
-        Number of vertices
+        Number of vertices.
     nearest : array of int
         Vertices on the destination surface to use.
     maps : sparse matrix
@@ -1089,42 +1089,93 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     Returns
     -------
     data_morphed : array, or csr sparse matrix
-        The morphed data (same type as input)
+        The morphed data (same type as input).
     """
 
-    n_iter = 100  # max nb of smoothing iterations
+    n_iter = 99  # max nb of smoothing iterations (minus one)
+    smooth -= 1
+    # make sure we're in CSR format
+    e = e.tocsr()
     if sparse.issparse(data):
         use_sparse = True
         if not isinstance(data, sparse.csr_matrix):
             data = data.tocsr()
     else:
         use_sparse = False
-    for k in range(n_iter):
-        e_use = e[:, idx_use]
-        data1 = e_use * np.ones(len(idx_use))
-        data = e_use * data
-        idx_use = np.where(data1)[0]
-        if smooth is None:
-            if ((k == (n_iter - 1)) or (len(idx_use) >= n_vertices)):
-                # stop when source space in filled with non-zeros
-                break
-        elif k == (smooth - 1):
-            break
-        if use_sparse:
-            data = data[idx_use, :]
-            data.data /= data1[idx_use].repeat(np.diff(data.indptr))
-        else:
-            data = data[idx_use, :] / data1[idx_use][:, None]
+    done = False
+    # do the smoothing
+    for k in range(n_iter + 1):
+        # get the row sum
+        mult = np.zeros(e.shape[1])
+        mult[idx_use] = 1
+        idx_use_data = idx_use
+        data_sum = e * mult
 
+        # new indices are non-zero sums
+        idx_use = np.where(data_sum)[0]
+
+        # typically want to make the next iteration have these indices
+        idx_out = idx_use
+
+        # figure out if this is the last iteration
+        if smooth is None:
+            if k == n_iter or len(idx_use) >= n_vertices:
+                # stop when vertices filled
+                idx_out = None
+                done = True
+        elif k == smooth:
+            idx_out = None
+            done = True
+
+        # do standard smoothing multiplication
+        data = _morph_mult(data, e, use_sparse, idx_use_data, idx_out)
+
+        if done is True:
+            break
+
+        # do standard normalization
+        if use_sparse:
+            data.data /= data_sum[idx_use].repeat(np.diff(data.indptr))
+        else:
+            data /= data_sum[idx_use][:, None]
+
+    # do special normalization for last iteration
     if use_sparse:
-        data1[data1 == 0] = 1
-        data.data /= data1.repeat(np.diff(data.indptr))
+        data_sum[data_sum == 0] = 1
+        data.data /= data_sum.repeat(np.diff(data.indptr))
     else:
-        data[idx_use, :] /= data1[idx_use][:, None]
+        data[idx_use, :] /= data_sum[idx_use][:, None]
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
     return data_morphed
+
+
+def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
+    """Helper for morphing
+
+    Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
+    but faster.
+    """
+    if len(idx_use_data) < e.shape[1]:
+        if use_sparse:
+            data = e[:, idx_use_data] * data
+        else:
+            # constructing a new sparse matrix is faster than sub-indexing
+            # e[:, idx_use_data]!
+            col, row = np.meshgrid(np.arange(data.shape[1]), idx_use_data)
+            d_sparse = sparse.csr_matrix((data.ravel(),
+                                          (row.ravel(), col.ravel())),
+                                         shape=(e.shape[1], data.shape[1]))
+            data = e * d_sparse
+            data = np.asarray(data.todense())
+    else:
+        data = e * data
+
+    # trim data
+    if idx_use_out is not None:
+        data = data[idx_use_out]
+    return data
 
 
 def _compute_nearest(xhs, rr):
@@ -1672,11 +1723,7 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
     """Get triangles for ico surface."""
     ico_file_name = os.path.join(os.path.dirname(__file__), 'data',
                                  'icos.fif.gz')
-    surfaces = read_bem_surfaces(ico_file_name)
-    for s in surfaces:
-        if s['id'] == (9000 + grade):
-            ico = s
-            break
+    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade)
 
     if not return_surf:
         return ico['tris']

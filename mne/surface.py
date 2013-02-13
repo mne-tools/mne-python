@@ -35,7 +35,7 @@ FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
 
 
 @verbose
-def read_bem_surfaces(fname, add_geom=False, verbose=None):
+def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     """Read the BEM surfaces from a FIF file
 
     Parameters
@@ -44,13 +44,18 @@ def read_bem_surfaces(fname, add_geom=False, verbose=None):
         The name of the file containing the surfaces.
     add_geom : bool, optional (default False)
         If True add geometry information to the surfaces.
+    s_id : int | None
+        If int, only read and return the surface with the given s_id.
+        An error will be raised if it doesn't exist. If None, all
+        surfaces are read and returned.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    surf: list
-        A list of dictionaries that each contain a surface.
+    surf: list | dict
+        A list of dictionaries that each contain a surface. If s_id
+        is not None, only the requested surface will be returned.
     """
     #
     #   Default coordinate frame
@@ -87,6 +92,15 @@ def read_bem_surfaces(fname, add_geom=False, verbose=None):
     #
     #   Read all surfaces
     #
+    if s_id is not None:
+        surfs = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
+                 for bsurf in bemsurf]
+        surfs = [s for s in surfs if s is not None]
+        if not len(surfs) == 1:
+            raise ValueError('surface with id %d not found' % s_id)
+        fid.close()
+        return surfs[0]
+
     surf = []
     for bsurf in bemsurf:
         logger.info('    Reading a surface...')
@@ -103,7 +117,7 @@ def read_bem_surfaces(fname, add_geom=False, verbose=None):
     return surf
 
 
-def _read_bem_surface(fid, this, def_coord_frame):
+def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     """Read one bem surface
     """
     res = dict()
@@ -116,6 +130,10 @@ def _read_bem_surface(fid, this, def_coord_frame):
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
     else:
         res['id'] = int(tag.data)
+
+    if s_id is not None:
+        if res['id'] != s_id:
+            return None
 
     tag = find_tag(fid, this, FIFF_BEM_SIGMA)
     if tag is None:
