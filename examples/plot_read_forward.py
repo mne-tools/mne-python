@@ -1,7 +1,7 @@
 """
-=======================================================
-Reading a forward operator and display sensitivity maps
-=======================================================
+====================================================
+Read a forward operator and display sensitivity maps
+====================================================
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
