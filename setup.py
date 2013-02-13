@@ -10,14 +10,14 @@ from numpy.distutils.core import setup
 
 descr = """MNE python project for MEG and EEG data analysis."""
 
-DISTNAME            = 'mne'
-DESCRIPTION         = descr
-MAINTAINER          = 'Alexandre Gramfort'
-MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
-URL                 = 'http://martinos.org/mne'
-LICENSE             = 'BSD (3-clause)'
-DOWNLOAD_URL        = 'http://github.com/mne-tools/mne-python'
-VERSION             = mne.__version__
+DISTNAME = 'mne'
+DESCRIPTION = descr
+MAINTAINER = 'Alexandre Gramfort'
+MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
+URL = 'http://martinos.org/mne'
+LICENSE = 'BSD (3-clause)'
+DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
+VERSION = mne.__version__
 
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
           version=VERSION,
           download_url=DOWNLOAD_URL,
           long_description=open('README.rst').read(),
-          zip_safe=False,  # the package can run out of an .egg file
+          zip_safe=False, # the package can run out of an .egg file
           classifiers=['Intended Audience :: Science/Research',
                        'Intended Audience :: Developers',
                        'License :: OSI Approved',
@@ -68,4 +68,4 @@ if __name__ == "__main__":
           scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
                    'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
                    'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py',
-                   'bin/mne_bti2fiff.py'])
+                   'bin/mne_bti2fiff.py', 'bin/mne_kit2fiff.py'])
