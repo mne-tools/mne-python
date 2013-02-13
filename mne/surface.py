@@ -34,7 +34,7 @@ FIFF_BEM_COORD_FRAME = 3112  # The coordinate frame of the mode
 FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
 
 
-#@verbose
+@verbose
 def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     """Read the BEM surfaces from a FIF file
 
