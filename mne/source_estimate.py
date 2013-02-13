@@ -1157,7 +1157,7 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
     Equivalent to "data = (e[:, idx_use_data] * data)[idx_use_out]"
     but faster.
     """
-    if len(idx_use_data < e.shape[1]):
+    if len(idx_use_data) < e.shape[1]:
         if use_sparse:
             data = e[:, idx_use_data] * data
         else:
