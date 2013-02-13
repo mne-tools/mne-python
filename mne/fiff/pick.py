@@ -377,6 +377,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     fwd['nchan'] = nuse
     fwd['sol']['row_names'] = ch_names
 
+    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel]
     fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel]
     fwd['info']['nchan'] = nuse
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
@@ -417,6 +418,8 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
     """
     info = orig['info']
     sel = pick_types(info, meg, eeg, include=include, exclude=exclude)
+    if len(sel) == 0:
+        raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]
     return pick_channels_forward(orig, include_ch_names)
 
