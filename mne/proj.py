@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy import linalg
+from copy import deepcopy
 
 import logging
 logger = logging.getLogger('mne')
@@ -15,7 +16,7 @@ from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import is_fixed_orient
 from .source_estimate import SourceEstimate
-from .fiff.proj import make_projector
+from .fiff.proj import make_projector, make_eeg_average_ref_proj
 
 
 def read_proj(fname):
@@ -238,7 +239,8 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     return projs
 
 
-def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
+def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
+                    verbose=None):
     """Compute sensitivity map
 
     Such maps are used to know how much sources are visible by a type
@@ -247,7 +249,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
     Parameters
     ----------
     fwd : dict
-        The forward operator.
+        The forward operator. Must be free- and surface-oriented.
     projs : list
         List of projection vectors.
     ch_type : 'grad' | 'mag' | 'eeg'
@@ -259,6 +261,8 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in fwd['info']['bads'].
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Return
     ------
@@ -281,8 +285,16 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
 
     gain = fwd['sol']['data']
 
+    # Make sure EEG has average (can re-add without issue)
+    if ch_type == 'eeg':
+        if projs is None:
+            projs = []
+        projs += [make_eeg_average_ref_proj(fwd['info'])]
+
+    # Construct the projector
     if projs is not None:
-        proj, ncomp, _ = make_projector(projs, fwd['sol']['row_names'])
+        proj, ncomp, _ = make_projector(projs, fwd['sol']['row_names'],
+                                        include_active=True)
         if ncomp > 0:
             gain = np.dot(proj, gain)
 
@@ -290,22 +302,26 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[]):
     n_locations = n_dipoles // 3
     sensitivity_map = np.empty(n_locations)
     for k in xrange(n_locations):
-        gg = gain[:, 3*k:3*(k+1)]
+        gg = gain[:, 3 * k:3 * (k + 1)]
         if mode != 'fixed':
             s = linalg.svd(gg, full_matrices=False, compute_uv=False)
-        gz = linalg.norm(gg[:, 2])  # the normal component
         if mode == 'free':
             sensitivity_map[k] = s[0]
-        elif mode == 'fixed':
-            sensitivity_map[k] = gz
-        elif mode == 'ratio':
-            sensitivity_map[k] = gz / s[0]
-        elif mode == 'radiality':
-            sensitivity_map[k] = 1. - gz / s[0]
         else:
-            raise ValueError('Unknown mode type (got %s)' % mode)
+            gz = linalg.norm(gg[:, 2])  # the normal component
+            if mode == 'fixed':
+                sensitivity_map[k] = gz
+            elif mode == 'ratio':
+                sensitivity_map[k] = gz / s[0]
+            elif mode == 'radiality':
+                sensitivity_map[k] = 1. - (gz / s[0])
+            else:
+                raise ValueError('Unknown mode type (got %s)' % mode)
+    # don't need to normalize ratio or radiality
+    if mode in ['fixed', 'free']:
+        sensitivity_map /= np.max(np.abs(sensitivity_map))
+
     vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
-    sensitivity_map /= np.max(sensitivity_map)
     stc = SourceEstimate(sensitivity_map[:, np.newaxis],
                          vertices=vertices, tmin=0, tstep=1)
     return stc
