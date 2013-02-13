@@ -13,7 +13,7 @@ from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj
-from mne import read_events, Epochs
+from mne import read_events, Epochs, sensitivity_map
 from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
@@ -25,9 +25,8 @@ bads_fname = op.join(base_dir, 'test_bads.txt')
 
 data_path = sample.data_path()
 sample_path = op.join(data_path, 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis-meg-oct-6-fwd.fif')
+fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
-ecg_proj_fname = op.join(sample_path, 'sample_audvis_ecg_proj.fif')
 
 tempdir = _TempDir()
 
@@ -150,18 +149,34 @@ def test_compute_proj_raw():
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    # ecg_projs = read_proj(ecg_proj_fname)
-    ecg_projs = None
-    for ch_type in ['grad', 'mag', 'eeg']:
+    projs = None
+    decim = 6
+    for ch_type in ['eeg', 'grad', 'mag']:
         w_lh = mne.read_w(sensmap_fname % (ch_type, 'lh'))
         w_rh = mne.read_w(sensmap_fname % (ch_type, 'rh'))
         w = np.r_[w_lh['data'], w_rh['data']]
-        # stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
-        stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
-        assert_array_almost_equal(stc.data.ravel(), w, decimal=1)
+        stc = sensitivity_map(fwd, projs=projs, ch_type=ch_type,
+                              mode='free', exclude='bads')
+        assert_array_almost_equal(stc.data.ravel(), w, decim)
+        # let's just make sure the others run
         if ch_type == 'grad':
-            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='free', exclude='bads')
+            w_lh = mne.read_w(sensmap_fname % (ch_type, '2-lh'))
+            w_rh = mne.read_w(sensmap_fname % (ch_type, '2-rh'))
+            w = np.r_[w_lh['data'], w_rh['data']]
+            stc = sensitivity_map(fwd, projs=projs, mode='fixed',
+                                  ch_type=ch_type, exclude='bads')
+            assert_array_almost_equal(stc.data.ravel(), w, decim)
         if ch_type == 'mag':
-            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='ratio', exclude='bads')
+            w_lh = mne.read_w(sensmap_fname % (ch_type, '3-lh'))
+            w_rh = mne.read_w(sensmap_fname % (ch_type, '3-rh'))
+            w = np.r_[w_lh['data'], w_rh['data']]
+            stc = sensitivity_map(fwd, projs=projs, mode='ratio',
+                                  ch_type=ch_type, exclude='bads')
+            assert_array_almost_equal(stc.data.ravel(), w, decim)
         if ch_type == 'eeg':
-            stc = mne.sensitivity_map(fwd, projs=ecg_projs, mode='radiality', exclude='bads')
+            w_lh = mne.read_w(sensmap_fname % (ch_type, '4-lh'))
+            w_rh = mne.read_w(sensmap_fname % (ch_type, '4-rh'))
+            w = np.r_[w_lh['data'], w_rh['data']]
+            stc = sensitivity_map(fwd, projs=projs, mode='radiality',
+                                  ch_type=ch_type, exclude='bads')
+            assert_array_almost_equal(stc.data.ravel(), w, decim)
