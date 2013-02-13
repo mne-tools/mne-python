@@ -596,6 +596,45 @@ def merge_evoked(all_evoked):
     return evoked
 
 
+def combine_evoked(all_evoked, weights, use_nave=False):
+    """Merge/concat evoked data
+
+    Data should have the same channels and the same time instants.
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked
+        The evoked datasets
+    weights : list of float
+        The weights to apply to each evoked instance
+
+    Returns
+    -------
+    evoked : Evoked
+        The new evoked data
+    """
+    evoked = deepcopy(all_evoked[0])
+    assert len(weights) == len(all_evoked)
+
+    ch_names = evoked.ch_names
+    for e in all_evoked[1:]:
+        assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
+                        "the same channels" % (evoked, e))
+        assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
+                ValueError("%s and %s do not "
+                           "contain the same time instants" % (evoked, e))
+
+    if use_nave:
+        all_nave = float(sum(e.nave for e in zip(all_evoked)))
+        weights = [(w * e.nave) / all_nave for w, e in zip(weights, all_evoked)]
+
+    all_nave = 1 / sum(w ** 2 / e.nave for w, e in zip(weights, all_evoked))
+    # evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
+    evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
+    evoked.nave = all_nave
+    return evoked
+
+
 def read_evoked(fname, setno=None, baseline=None, kind='average'):
     """Read an evoked dataset
 
