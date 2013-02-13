@@ -284,7 +284,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad'):
     sensitivity_map = np.empty(n_locations)
     for k in xrange(n_locations):
         gg = gain[:, 3*k:3*(k+1)]
-        _, s, _ = linalg.svd(gg, full_matrices=False)
+        s = linalg.svd(gg, full_matrices=False, compute_uv=False)
         sensitivity_map[k] = s[0]
     vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
     sensitivity_map /= np.max(sensitivity_map)
