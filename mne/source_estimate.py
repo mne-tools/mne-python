@@ -1069,16 +1069,16 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     Parameters
     ----------
     data : array, or csr sparse matrix
-        A n_vertices x n_times (or other dimension) dataset to morph
+        A n_vertices x n_times (or other dimension) dataset to morph.
     idx_use : array of int
-        Vertices from the original subject's data
+        Vertices from the original subject's data.
     e : sparse matrix
-        The mesh edges of the "from" subject
+        The mesh edges of the "from" subject.
     smooth : int
         Number of smoothing iterations to perform. A hard limit of 100 is
         also imposed.
     n_vertices : int
-        Number of vertices
+        Number of vertices.
     nearest : array of int
         Vertices on the destination surface to use.
     maps : sparse matrix
@@ -1089,11 +1089,13 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     Returns
     -------
     data_morphed : array, or csr sparse matrix
-        The morphed data (same type as input)
+        The morphed data (same type as input).
     """
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
     smooth -= 1
+    # make sure we're in CSR format
+    e = e.tocsr()
     if sparse.issparse(data):
         use_sparse = True
         if not isinstance(data, sparse.csr_matrix):
@@ -1159,6 +1161,8 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
         if use_sparse:
             data = e[:, idx_use_data] * data
         else:
+            # constructing a new sparse matrix is faster than sub-indexing
+            # e[:, idx_use_data]!
             col, row = np.meshgrid(np.arange(data.shape[1]), idx_use_data)
             d_sparse = sparse.csr_matrix((data.ravel(),
                                           (row.ravel(), col.ravel())),
