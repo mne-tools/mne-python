@@ -4,13 +4,12 @@
 #
 # License: BSD (3-clause)
 
-from numpy.testing import assert_array_almost_equal
-from ....fiff import Raw, pick_types
-import mne
-from ...kit import kit
-import scipy.io
-import inspect
 import os
+import inspect
+from numpy.testing import assert_array_almost_equal
+import scipy.io
+from ....fiff import Raw, pick_types
+from ...kit import kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = os.path.dirname(os.path.abspath(FILE))
@@ -32,7 +31,7 @@ def test_data():
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
-    #this .mat was generated using the Yokogawa MEG Reader
+    # this .mat was generated using the Yokogawa MEG Reader
     data_Ykgw = os.path.join(data_dir, 'test_Ykgw.mat')
     data_Ykgw = scipy.io.loadmat(data_Ykgw)['data']
     data_Ykgw = data_Ykgw[py_picks]
@@ -50,7 +49,7 @@ def test_ch_loc():
                        hsp_fname=os.path.join(data_dir, 'test_hsp.txt'),
                        sns_fname=os.path.join(data_dir, 'sns.txt'),
                        stim=range(167, 159, -1))
-    raw_bin = mne.fiff.Raw(os.path.join(data_dir, 'test_bin.fif'))
+    raw_bin = Raw(os.path.join(data_dir, 'test_bin.fif'))
 
     for py_ch, bin_ch in zip(raw_py.info['chs'], raw_bin.info['chs']):
         if bin_ch['ch_name'].startswith('MEG'):
