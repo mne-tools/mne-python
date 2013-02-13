@@ -14,15 +14,15 @@ def read_bad_channels(fid, node):
     Parameters
     ----------
     fid : file
-        The file descriptor
+        The file descriptor.
 
     node : dict
-        The node of the FIF tree that contains info on the bad channels
+        The node of the FIF tree that contains info on the bad channels.
 
     Returns
     -------
     bads : list
-        A list of bad channel's names
+        A list of bad channel's names.
     """
     nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
@@ -30,6 +30,6 @@ def read_bad_channels(fid, node):
     if len(nodes) > 0:
         for node in nodes:
             tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
-            if tag.data is not None:
+            if tag is not None and tag.data is not None:
                 bads = tag.data.split(':')
     return bads

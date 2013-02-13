@@ -8,6 +8,7 @@ from copy import deepcopy
 import inspect
 import warnings
 from inspect import getargspec, isfunction
+from collections import namedtuple
 
 import os
 import json
@@ -426,6 +427,8 @@ class ICA(object):
             raise inst
         end_file(fid)
 
+        return self
+
     def sources_as_raw(self, raw, picks=None, start=None, stop=None):
         """Export sources as raw object
 
@@ -831,6 +834,102 @@ class ICA(object):
         epochs.preload = True
 
         return epochs
+
+    def detect_artifacts(self, raw, start_find=None, stop_find=None,
+                ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
+                eog_ch=None, eog_score_func='pearsonr', eog_criterion=0.1,
+                skew_criterion=-1, kurt_criterion=-1, var_criterion=0,
+                add_nodes=None):
+        """ Run ICA artifacts detection workflow.
+
+        This function implements an automated artifact removal work flow.
+        Note. Consider using shorter times for start_find and stop_find than
+        for start and stop. It can save you much time.
+
+        Example invocation (taking advantage of the defaults):
+
+        ica.detect_artifacts(ecg_channel='MEG 1531', eog_channel='EOG 061')
+
+        Parameters
+        ----------
+        start_find : int | None
+            First sample to include (first is 0) for sources detection.
+            If omitted, defaults to the first sample in data. If None, the
+            entire data will be used.
+        stop_find : int | None
+            First sample to not include for sources detection. If omitted, data
+            is included to the end. If None, the entire data will be used.
+        ecg_ch : str | ndarray | None
+            The `target` argument passed to ica.find_sources_raw. Either the
+            name of the ECG channel or the ECG time series. If None, this step
+            will be skipped.
+        ecg_score_func : str | callable
+            The `score_func` argument passed to ica.find_sources_raw. Either
+            the name of function supported by ICA or a custom function.
+        ecg_criterion : float | int | list-like | slice
+            The indices of the sorted skewness scores. If float, sources with
+            scores smaller than the criterion will be dropped. Else, the scores
+            sorted in descending order will be indexed accordingly.
+            E.g. range(2) would return the two sources with the highest score.
+            If None, this step will be skipped.
+        eog_ch : list | str | ndarray | None
+            The `target` argument or the list of target arguments subsequently
+            passed to ica.find_sources_raw. Either the name of the vertical EOG
+            channel or the corresponding EOG time series. If None, this step
+            will be skipped.
+        eog_score_func : str | callable
+            The `score_func` argument passed to ica.find_sources_raw. Either
+            the name of function supported by ICA or a custom function.
+        eog_criterion : float | int | list-like | slice
+            The indices of the sorted skewness scores. If float, sources with
+            scores smaller than the criterion will be dropped. Else, the scores
+            sorted in descending order will be indexed accordingly.
+            E.g. range(2) would return the two sources with the highest score.
+            If None, this step will be skipped.
+        skew_criterion : float | int | list-like | slice
+            The indices of the sorted skewness scores. If float, sources with
+            scores smaller than the criterion will be dropped. Else, the scores
+            sorted in descending order will be indexed accordingly.
+            E.g. range(2) would return the two sources with the highest score.
+            If None, this step will be skipped.
+        kurt_criterion : float | int | list-like | slice
+            The indices of the sorted skewness scores. If float, sources with
+            scores smaller than the criterion will be dropped. Else, the scores
+            sorted in descending order will be indexed accordingly.
+            E.g. range(2) would return the two sources with the highest score.
+            If None, this step will be skipped.
+        var_criterion : float | int | list-like | slice
+            The indices of the sorted skewness scores. If float, sources with
+            scores smaller than the criterion will be dropped. Else, the scores
+            sorted in descending order will be indexed accordingly.
+            E.g. range(2) would return the two sources with the highest score.
+            If None, this step will be skipped.
+        add_nodes : list of ica_nodes
+            Additional list if tuples carrying the following parameters:
+            (name : str, target : str | array, score_func : callable,
+            criterion : float | int | list-like | slice). This parameter is a
+            generalization of the artifact specific parameters above and has
+            the same structure. Example:
+            add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+
+
+        Returns
+        -------
+        self : instance of ICA
+            The ica object with the detected artifact indices marked for
+            exclusion
+        """
+
+        logger.info('    Searching for artifacts...')
+        _detect_artifacts(self, raw=raw, start_find=start_find,
+                    stop_find=stop_find, ecg_ch=ecg_ch,
+                    ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
+                    eog_ch=eog_ch, eog_score_func=eog_score_func,
+                    eog_criterion=eog_criterion, skew_criterion=skew_criterion,
+                    kurt_criterion=kurt_criterion, var_criterion=var_criterion,
+                    add_nodes=add_nodes)
+
+        return self
 
     def _pre_whiten(self, data, info, picks):
         """Helper function"""
@@ -1242,14 +1341,67 @@ def read_ica(fname):
     return ica
 
 
+_ica_node = namedtuple('Node', 'name target score_func criterion')
+
+
+def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
+                    ecg_criterion, eog_ch, eog_score_func, eog_criterion,
+                    skew_criterion, kurt_criterion, var_criterion, add_nodes):
+    """ Aux Function """
+
+    nodes = []
+    if ecg_ch is not None:
+        nodes += [_ica_node('ECG', ecg_ch, ecg_score_func, ecg_criterion)]
+
+    if eog_ch not in [None, []]:
+        if not isinstance(eog_ch, list):
+            eog_ch = [eog_ch]
+        for idx, ch in enumerate(eog_ch):
+            nodes += [_ica_node('EOG %02d' % idx, ch, eog_score_func,
+                      eog_criterion)]
+
+    if skew_criterion is not None:
+        nodes += [_ica_node('skewness', None, stats.skew, skew_criterion)]
+
+    if kurt_criterion is not None:
+        nodes += [_ica_node('kurtosis', None, stats.kurtosis, kurt_criterion)]
+
+    if var_criterion is not None:
+        nodes += [_ica_node('variance', None, np.var, var_criterion)]
+
+    if add_nodes is not None:
+        nodes.extend(add_nodes)
+
+    for node in nodes:
+        scores = ica.find_sources_raw(raw, start=start_find, stop=stop_find,
+                                      target=node.target,
+                                      score_func=node.score_func)
+        if isinstance(node.criterion, float):
+            found = list(np.where(np.abs(scores) > node.criterion)[0])
+        else:
+            found = list(np.atleast_1d(abs(scores).argsort()[node.criterion]))
+
+        case = (len(found), 's' if len(found) > 1 else '', node.name)
+        logger.info('    found %s artifact%s by %s' % case)
+        ica.exclude += found
+
+    logger.info('Artifact indices found:\n    ' + str(ica.exclude).strip('[]'))
+    if len(set(ica.exclude)) != len(ica.exclude):
+        logger.info('    Removing duplicate indices...')
+        ica.exclude = list(set(ica.exclude))
+
+    logger.info('Ready.')
+
+
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
             algorithm='parallel', fun='logcosh', fun_args=None,
             verbose=None, picks=None, start=None, stop=None, start_find=None,
-            stop_find=None, ecg_channel=None, ecg_score_func='corr',
-            ecg_score_min=0.1, eog_channel=None, eog_score_func='corr',
-            eog_score_min=0.1, skew_idx=-1, kurt_idx=-1, var_idx=0):
+            stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
+            ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
+            eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
+            var_criterion=0, add_nodes=None):
     """ Run ICA decomposition on raw data and identify artifact sources
 
     This function implements an automated artifact removal work flow.
@@ -1315,108 +1467,92 @@ def run_ica(raw, n_components, max_pca_components=100,
         First sample to not include for decomposition. If omitted, data is
         included to the end. If None, the entire data will
         be used.
+        This function implements an automated artifact removal work flow.
+        Note. Consider using shorter times for start_find and stop_find than
+        for start and stop. It can save you much time.
     start_find : int | None
         First sample to include (first is 0) for sources detection.
-        If omitted, defaults to the first sample in data. If None, the entire
-        data will be used.
+        If omitted, defaults to the first sample in data. If None, the
+        entire data will be used.
     stop_find : int | None
         First sample to not include for sources detection. If omitted, data
         is included to the end. If None, the entire data will be used.
-    ecg_channel : str | ndarray | None
-        The `target` argument passed to ica.find_sources_raw. Either the name
-        of the ECG channel or the ECG time series. If None, this step will
-        be skipped.
+    ecg_ch : str | ndarray | None
+        The `target` argument passed to ica.find_sources_raw. Either the
+        name of the ECG channel or the ECG time series. If None, this step
+        will be skipped.
     ecg_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either the
-        name of function supported by ICA or a custom function.
-    ecg_score_min : float
-        The lower bound for the score used to include ECG sources found.
-        Sources scoring higher that ecg_score_min will be included.
-    eog_channel : list | str | ndarray | None
+        The `score_func` argument passed to ica.find_sources_raw. Either
+        the name of function supported by ICA or a custom function.
+    ecg_criterion : float | int | list-like | slice
+        The indices of the sorted skewness scores. If float, sources with
+        scores smaller than the criterion will be dropped. Else, the scores
+        sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest score.
+        If None, this step will be skipped.
+    eog_ch : list | str | ndarray | None
         The `target` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
-        channel or the corresponding EOG time series. If None, this step will
-        be skipped.
+        channel or the corresponding EOG time series. If None, this step
+        will be skipped.
     eog_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either the
-        name of function supported by ICA or a custom function.
-    eog_score_min : float
-        The lower bound for the score used to include EOG sources found.
-        Sources scoring higher that eog_score_min will be included.
-    skew_idx : int | ndarray | slice | None
-        The indices of the sorted skewness scores. If None, this step
-        will be skipped.
-    kurt_idx : int | ndarray | slice | None
-        The indices of the sorted kurtosis scores. If None, this step
-        will be skipped.
-    var_idx : int | ndarray | slice | None
-        The indices of the sorted variance scores. If None, this step
-        will be skipped.
+        The `score_func` argument passed to ica.find_sources_raw. Either
+        the name of function supported by ICA or a custom function.
+    eog_criterion : float | int | list-like | slice
+        The indices of the sorted skewness scores. If float, sources with
+        scores smaller than the criterion will be dropped. Else, the scores
+        sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest score.
+        If None, this step will be skipped.
+    skew_criterion : float | int | list-like | slice
+        The indices of the sorted skewness scores. If float, sources with
+        scores smaller than the criterion will be dropped. Else, the scores
+        sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest score.
+        If None, this step will be skipped.
+    kurt_criterion : float | int | list-like | slice
+        The indices of the sorted skewness scores. If float, sources with
+        scores smaller than the criterion will be dropped. Else, the scores
+        sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest score.
+        If None, this step will be skipped.
+    var_criterion : float | int | list-like | slice
+        The indices of the sorted skewness scores. If float, sources with
+        scores smaller than the criterion will be dropped. Else, the scores
+        sorted in descending order will be indexed accordingly.
+        E.g. range(2) would return the two sources with the highest score.
+        If None, this step will be skipped.
+    add_nodes : list of ica_nodes
+        Additional list if tuples carrying the following parameters:
+        (name : str, target : str | array, score_func : callable,
+        criterion : float | int | list-like | slice). This parameter is a
+        generalization of the artifact specific parameters above and has
+        the same structure. Example:
+        add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
 
     Returns
     -------
     ica : instance of ICA
         The ica object with the detected artifact indices marked for exclusion
     """
-    ica = ICA(n_components, max_pca_components,
-            n_pca_components, noise_cov, random_state,
-            algorithm, fun, fun_args, verbose)
+    ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
+              n_pca_components=n_pca_components, noise_cov=noise_cov,
+              random_state=random_state, algorithm=algorithm, fun=fun,
+              fun_args=fun_args, verbose=verbose)
 
-    ica.decompose_raw(raw, start=start, stop=stop)
-
+    ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+    logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 
-    if ecg_channel is not None:
-        ecg_scores = ica.find_sources_raw(raw, start=start_find,
-                        stop=stop_find, target=ecg_channel)
-        found = list(np.where(np.abs(ecg_scores) > ecg_score_min)[0])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s ECG artifact%s' % case)
-        ica.exclude += found
-
-    if eog_channel not in [None, []]:
-        found = []
-        if not isinstance(eog_channel, list):
-            eog_channel = [eog_channel]
-        for eog_ch in eog_channel:
-            scores = ica.find_sources_raw(raw, start=start_find,
-                            stop=stop_find, target=eog_ch)
-            found += list(np.where(np.abs(scores) > eog_score_min)[0])
-
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s EOG artifact%s' % case)
-        ica.exclude += found
-
-    if skew_idx is not None:
-        skew_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                           score_func=stats.skew)
-        found = np.atleast_1d(skew_scores.argsort()[skew_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on skewness' % case)
-        ica.exclude += list(found)
-
-    if kurt_idx is not None:
-        kurt_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                           score_func=stats.kurtosis)
-        found = np.atleast_1d(kurt_scores.argsort()[kurt_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on kurtosis' % case)
-        ica.exclude += list(found)
-
-    if var_idx is not None:
-        var_scores = ica.find_sources_raw(raw, start=start, stop=stop,
-                                          score_func=np.var)
-        found = np.atleast_1d(var_scores.argsort()[var_idx])
-        case = (len(found), 's' if len(found) > 1 else '')
-        logger.info('    found %s artifact%s based on variance' % case)
-        ica.exclude += list(found)
-
-    logger.info('Artifact indices found:\n'
-                '    ' + str(ica.exclude).strip('[]'))
-    if len(set(ica.exclude)) != len(ica.exclude):
-        logger.info('    Removing duplicate indices...')
-        ica.exclude = list(set(ica.exclude))
-
-    logger.info('Ready.')
+    _detect_artifacts(ica=ica, raw=raw, start_find=start_find,
+                      stop_find=stop_find, ecg_ch=ecg_ch,
+                      ecg_score_func=ecg_score_func,
+                      ecg_criterion=ecg_criterion, eog_ch=eog_ch,
+                      eog_score_func=eog_score_func,
+                      eog_criterion=ecg_criterion,
+                      skew_criterion=skew_criterion,
+                      kurt_criterion=kurt_criterion,
+                      var_criterion=var_criterion,
+                      add_nodes=add_nodes)
 
     return ica

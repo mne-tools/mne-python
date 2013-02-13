@@ -90,7 +90,7 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers
     """
-    events = find_events(raw)
+    events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
 
@@ -149,6 +149,11 @@ def test_cov_estimation_with_triggers():
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
         assert_true(len(w) == 1)
+
+    # test new dict support
+    epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,
+                    baseline=(-0.2, -0.1), proj=True, reject=reject)
+    compute_covariance(epochs)
 
 
 def test_arithmetic_cov():

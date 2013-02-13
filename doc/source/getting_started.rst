@@ -87,6 +87,33 @@ To check that everything went fine, in ipython, type::
 
 If you get a new prompt with no error messages, you should be good to go.
 
+If you want to use NVIDIA CUDA for filtering (can yield 3-4x speedups), you'll
+need to install the NVIDIA toolkit on your system, and then both pycuda and
+scikits.cuda, see:
+
+https://developer.nvidia.com/cuda-downloads
+http://mathema.tician.de/software/pycuda
+http://wiki.tiker.net/PyCuda/Installation/
+https://github.com/lebedov/scikits.cuda
+
+To initialize mne-python cuda support, after installing these dependencies
+and running their associated unit tests (to ensure your installation is correct)
+you can run:
+
+    >>> mne.cuda.init_cuda() # doctest: +SKIP
+
+If you have everything installed correctly, you should see an INFO-level log
+message telling you your CUDA hardware's available memory. To have CUDA
+initialized on startup, you can do:
+
+    >>> mne.utils.set_config('MNE_USE_CUDA', 'true') # doctest: +SKIP
+
+You can test if MNE CUDA support is working by running the associated test:
+
+    nosetests mne/tests/test_filter.py
+
+If all tests pass with none skipped, then mne-python CUDA support works.
+
 Learning Python
 ---------------
 

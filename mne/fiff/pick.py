@@ -226,14 +226,14 @@ def pick_info(info, sel=[]):
     Parameters
     ----------
     info : dict
-        Info structure from evoked or raw data
+        Info structure from evoked or raw data.
     sel : list of int
-        Indices of channels to include
+        Indices of channels to include.
 
     Returns
     -------
     res : dict
-        Info structure restricted to a selection of channels
+        Info structure restricted to a selection of channels.
     """
 
     res = deepcopy(info)
@@ -447,8 +447,7 @@ def pick_channels_cov(orig, include=[], exclude=[]):
     Returns
     -------
     res : dict
-        Covariance solution restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
+        Covariance solution restricted to selected channels.
     """
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)

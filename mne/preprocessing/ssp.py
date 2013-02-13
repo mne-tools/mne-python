@@ -54,7 +54,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    filter_length : int
+    filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
@@ -118,11 +118,13 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         events, _, _ = find_ecg_events(raw_event, ch_name=ch_name,
                                        event_id=event_id, l_freq=exg_l_freq,
                                        h_freq=exg_h_freq, tstart=tstart,
-                                       qrs_threshold=qrs_threshold)
+                                       qrs_threshold=qrs_threshold,
+                                       filter_length=filter_length)
     elif mode == 'EOG':
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
-                           l_freq=exg_l_freq, h_freq=exg_h_freq)
+                           l_freq=exg_l_freq, h_freq=exg_h_freq,
+                           filter_length=filter_length)
     else:
         raise ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -163,6 +165,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                           exclude='bads')) == 0:
             del flat['eog']
 
+    # exclude bad channels from projection
     picks = pick_types(my_info, meg=True, eeg=True, eog=True, exclude='bads')
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params)
@@ -196,7 +199,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 @verbose
 def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length=4096, n_jobs=1, ch_name=None,
+                     average=False, filter_length='10s', n_jobs=1, ch_name=None,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
                      eog=250e-6), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
@@ -229,7 +232,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    filter_length : int
+    filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
@@ -284,7 +287,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 @verbose
 def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length=4096, n_jobs=1,
+                     average=False, filter_length='10s', n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
                      eog=np.inf), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
@@ -319,7 +322,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Compute SSP after averaging.
     preload : string (or True)
         Temporary file used during computaion.
-    filter_length : int
+    filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.

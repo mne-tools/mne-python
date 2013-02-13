@@ -207,12 +207,12 @@ def transform_source_space_to(src, dest, trans):
     dest : int
         Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
     trans : dict
-        Transformation
+        Transformation.
 
     Returns
     -------
     res : dict
-        Transformed source space.
+        Transformed source space. Data are modified in-place.
     """
 
     if src['coord_frame'] == dest:

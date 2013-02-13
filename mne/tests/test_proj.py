@@ -19,6 +19,7 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
+bads_fname = op.join(base_dir, 'test_bads.txt')
 
 tempdir = _TempDir()
 
@@ -104,7 +105,7 @@ def test_compute_proj_raw():
 
         # test that you can save them
         raw.info['projs'] += projs
-        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii))
+        raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
     with warnings.catch_warnings(True) as w:
@@ -132,3 +133,7 @@ def test_compute_proj_raw():
     projs = activate_proj(projs)
     proj_new, _, _ = make_projector(projs, raw.ch_names, bads=[])
     assert_array_almost_equal(proj_new, proj, 4)
+
+    # test with bads
+    raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
+    projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)

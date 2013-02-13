@@ -27,10 +27,9 @@ from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     notch_filter, band_stop_filter, resample, \
-                     construct_iir_filter
+                     notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
-from ..utils import deprecated
+from ..utils import deprecated, _check_fname, estimate_rank
 from .. import verbose
 
 
@@ -101,6 +100,7 @@ class Raw(object):
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.info['filenames'] = fnames
+        self.orig_format = raws[0].orig_format
 
         if preload:
             self._preload_data(preload)
@@ -120,6 +120,17 @@ class Raw(object):
             del self._data
             # Now file can be removed
             os.remove(filename)
+
+    def __enter__(self):
+        """ Entering with block """
+        return self
+
+    def __exit__(self, exception_type, exception_val, trace):
+        """ Exiting with block """
+        try:
+            self.close()
+        except:
+            return exception_type, exception_val, trace
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -197,6 +208,7 @@ class Raw(object):
         #   Go through the remaining tags in the directory
         rawdir = list()
         nskip = 0
+        orig_format = None
         for k in range(first, nent):
             ent = directory[k]
             if ent.kind == FIFF.FIFF_DATA_SKIP:
@@ -210,14 +222,33 @@ class Raw(object):
                     nsamp = ent.size / (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
                     nsamp = ent.size / (4 * nchan)
+                elif ent.type == FIFF.FIFFT_DOUBLE:
+                    nsamp = ent.size / (8 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
                     nsamp = ent.size / (4 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
                     nsamp = ent.size / (8 * nchan)
+                elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+                    nsamp = ent.size / (16 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
                                                                       ent.type)
+                if orig_format is None:
+                    if ent.type == FIFF.FIFFT_DAU_PACK16:
+                        orig_format = 'short'
+                    elif ent.type == FIFF.FIFFT_SHORT:
+                        orig_format = 'short'
+                    elif ent.type == FIFF.FIFFT_FLOAT:
+                        orig_format = 'single'
+                    elif ent.type == FIFF.FIFFT_DOUBLE:
+                        orig_format = 'double'
+                    elif ent.type == FIFF.FIFFT_INT:
+                        orig_format = 'int'
+                    elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
+                        orig_format = 'single'
+                    elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+                        orig_format = 'double'
 
                 #  Do we have an initial skip pending?
                 if first_skip > 0:
@@ -240,6 +271,7 @@ class Raw(object):
                 first_samp += nsamp
 
         raw.last_samp = first_samp - 1
+        raw.orig_format = orig_format
 
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])
@@ -385,12 +417,10 @@ class Raw(object):
         else:
             # use parallel function
             parallel, p_fun, _ = parallel_func(fun, n_jobs)
-
-            data_picks = data_in[picks, :]
-            data_picks_new = np.array(parallel(p_fun(x, *args, **kwargs)
-                                      for x in data_picks))
-
-            self._data[picks, :] = data_picks_new
+            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+                                      for p in picks)
+            for pp, p in enumerate(picks):
+                self._data[p, :] = data_picks_new[pp]
 
     @verbose
     def apply_hilbert(self, picks, envelope=False, n_jobs=1, verbose=None):
@@ -449,7 +479,7 @@ class Raw(object):
             self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
     @verbose
-    def filter(self, l_freq, h_freq, picks=None, filter_length=None,
+    def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
                method='fft', iir_params=dict(order=4, ftype='butter'),
                verbose=None):
@@ -483,19 +513,21 @@ class Raw(object):
             high-passed.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered (except bad channels).
-        filter_length : int (default: None)
-            Length of the filter to use (e.g. 4096).
-            If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
+            channels will be filtered.
+        filter_length : str (Default: '10s') | int | None
+            Length of the filter to use. If None or "len(x) < filter_length",
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If str, a human-readable time in
+            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+            to the shortest power-of-two length at least that duration.
         l_trans_bandwidth : float
             Width of the transition band at the low cut-off frequency in Hz.
         h_trans_bandwidth : float
             Width of the transition band at the high cut-off frequency in Hz.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
@@ -513,8 +545,11 @@ class Raw(object):
             l_freq = None
         if h_freq > (fs / 2.):
             h_freq = None
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -524,57 +559,42 @@ class Raw(object):
             if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
                     l_freq > self.info['highpass']:
                 self.info['highpass'] = l_freq
-
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, h_freq,
-                                                  h_freq + h_trans_bandwidth,
-                                                  fs, 'lowpass')
-            self.apply_function(low_pass_filter, picks, None, n_jobs, verbose,
-                                fs, h_freq, filter_length=filter_length,
-                                trans_bandwidth=l_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            low_pass_filter(self._data, fs, h_freq,
+                            filter_length=filter_length,
+                            trans_bandwidth=l_trans_bandwidth, method=method,
+                            iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                            copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
-            if method.lower() == 'iir':
-                iir_params = construct_iir_filter(iir_params, l_freq,
-                                                  l_freq - l_trans_bandwidth,
-                                                  fs, 'highpass')
-            self.apply_function(high_pass_filter, picks, None, n_jobs, verbose,
-                                fs, l_freq, filter_length=filter_length,
-                                trans_bandwidth=h_trans_bandwidth,
-                                method=method, iir_params=iir_params)
+            high_pass_filter(self._data, fs, l_freq,
+                             filter_length=filter_length,
+                             trans_bandwidth=h_trans_bandwidth, method=method,
+                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                             copy=False)
         if l_freq is not None and h_freq is not None:
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [l_freq, h_freq], [l_freq - l_trans_bandwidth,
-                         h_freq + h_trans_bandwidth], fs, 'bandpass')
-                self.apply_function(band_pass_filter, picks, None, n_jobs,
-                                    verbose, fs, l_freq, h_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=l_trans_bandwidth,
-                                    h_trans_bandwidth=h_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_pass_filter(self._data, fs, l_freq, h_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=l_trans_bandwidth,
+                    h_trans_bandwidth=h_trans_bandwidth,
+                    method=method, iir_params=iir_params, picks=picks,
+                    n_jobs=n_jobs, copy=False)
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                if method.lower() == 'iir':
-                    iir_params = construct_iir_filter(iir_params,
-                         [h_freq, l_freq], [h_freq + h_trans_bandwidth,
-                         l_freq - l_trans_bandwidth], fs, 'bandstop')
-                self.apply_function(band_stop_filter, picks, None, n_jobs,
-                                    verbose, fs, h_freq, l_freq,
-                                    filter_length=filter_length,
-                                    l_trans_bandwidth=h_trans_bandwidth,
-                                    h_trans_bandwidth=l_trans_bandwidth,
-                                    method=method, iir_params=iir_params)
+                self._data = band_stop_filter(self._data, fs, h_freq, l_freq,
+                    filter_length=filter_length,
+                    l_trans_bandwidth=h_trans_bandwidth,
+                    h_trans_bandwidth=l_trans_bandwidth, method=method,
+                    iir_params=iir_params, picks=picks, n_jobs=n_jobs,
+                    copy=False)
 
     @verbose
-    def notch_filter(self, freqs, picks=None, filter_length=None,
+    def notch_filter(self, freqs, picks=None, filter_length='10s',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
                      method='fft', iir_params=dict(order=4, ftype='butter'),
                      mt_bandwidth=None, p_value=0.05, verbose=None):
@@ -597,20 +617,22 @@ class Raw(object):
             where an F test is used to find sinusoidal components.
         picks : list of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
-            channels will be filtered (excep bad channels).
-        filter_length : int (default: None)
-            Length of the filter to use (e.g. 4096).
-            If None or "n_times < filter_length",
-            (n_times: number of timepoints in Raw object) the filter length
-            used is n_times. Otherwise, overlap-add filtering with a
-            filter of the specified length is used (faster for long signals).
+            channels will be filtered.
+        filter_length : str (Default: '10s') | int | None
+            Length of the filter to use. If None or "len(x) < filter_length",
+            the filter length used is len(x). Otherwise, if int, overlap-add
+            filtering with a filter of the specified length in samples) is
+            used (faster for long signals). If str, a human-readable time in
+            units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
+            to the shortest power-of-two length at least that duration.
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.
         trans_bandwidth : float
             Width of the transition band in Hz.
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly, CUDA is initialized, and method='fft'.
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
@@ -638,14 +660,18 @@ class Raw(object):
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+        if not self._preloaded:
+            raise RuntimeError('Raw data needs to be preloaded to filter. Use '
+                               'preload=True (or string) in the constructor.')
 
-        self.apply_function(notch_filter, picks, None, n_jobs, verbose,
-                            fs, freqs, filter_length=filter_length,
-                            notch_widths=notch_widths,
-                            trans_bandwidth=trans_bandwidth,
-                            method=method, iir_params=iir_params,
-                            mt_bandwidth=mt_bandwidth, p_value=p_value)
+        self._data = notch_filter(self._data, fs, freqs,
+                                  filter_length=filter_length,
+                                  notch_widths=notch_widths,
+                                  trans_bandwidth=trans_bandwidth,
+                                  method=method, iir_params=iir_params,
+                                  mt_bandwidth=mt_bandwidth, p_value=p_value,
+                                  picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar',
@@ -677,8 +703,9 @@ class Raw(object):
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
             mne.fiff.pick_types(raw.info, meg=False, stim=True, exclude=[]).
-        n_jobs : int
-            Number of jobs to run in parallel.
+        n_jobs : int | str
+            Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+            is installed properly and CUDA is initialized.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -702,11 +729,8 @@ class Raw(object):
         ratio = sfreq / float(o_sfreq)
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
-            # use parallel function to resample each channel separately
-            # for speed and to save memory (faster not to use array_split, too)
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data.append(np.array(parallel(my_resample(d, sfreq, o_sfreq,
-                                              npad, 0) for d in data_chunk)))
+            new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
+                                     n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
             # Now deal with the stim channels. In empirical testing, it was
@@ -844,7 +868,8 @@ class Raw(object):
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=False, verbose=None):
+             drop_small_buffer=False, proj_active=False, format='single',
+             overwrite=False, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -859,7 +884,7 @@ class Raw(object):
         tmax : float
             Time in seconds of last sample to save.
         buffer_size_sec : float
-            Size of data chuncks in seconds.
+            Size of data chunks in seconds.
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
@@ -867,6 +892,19 @@ class Raw(object):
             If True the data is saved with the projections applied (active).
             Note: If apply_projector() was used to apply the projectons,
             the projectons will be active even if proj_active is False.
+        format : str
+            Format to use to save raw data. Valid options are 'double',
+            'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
+            16-bit integers, respectively. It is STRONGLY recommended to use
+            'single', as this is backward-compatible, and is standard for
+            maintaining precision. Note that using 'short' or 'int' may result
+            in loss of precision, complex data cannot be saved as 'short',
+            and neither complex data types nor real data stored as 'double'
+            can be loaded with the MNE command-line tools. See raw.orig_format
+            to determine the format the original data were stored in.
+        overwrite : bool
+            If True, the destination file (if it exists) will be overwritten.
+            If False (default), an error will be raised if the file exists.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -881,6 +919,23 @@ class Raw(object):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
 
+        type_dict = dict(short=FIFF.FIFFT_DAU_PACK16,
+                         int=FIFF.FIFFT_INT,
+                         single=FIFF.FIFFT_FLOAT,
+                         double=FIFF.FIFFT_DOUBLE)
+        if not format in type_dict.keys():
+            raise ValueError('format must be "short", "int", "single", '
+                             'or "double"')
+        reset_dict = dict(short=False, int=False, single=True, double=True)
+
+        data_test = self[0, 0][0]
+        if format == 'short' and np.iscomplexobj(data_test):
+            raise ValueError('Complex data must be saved as "single" or '
+                             '"double", not "short"')
+
+        # check for file existence
+        _check_fname(fname, overwrite)
+
         if proj_active:
             info = copy.deepcopy(self.info)
             proj, info = setup_proj(info)
@@ -889,7 +944,8 @@ class Raw(object):
             info = self.info
             proj = None
 
-        outfid, cals = start_writing_raw(fname, info, picks)
+        outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
+                                         reset_range=reset_dict[format])
         #
         #   Set up the reading parameters
         #
@@ -927,7 +983,7 @@ class Raw(object):
                             '[done]')
                 break
             logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals)
+            write_raw_buffer(outfid, data, cals, format)
             logger.info('[done]')
 
         finish_writing_raw(outfid)
@@ -979,6 +1035,63 @@ class Raw(object):
         """
         return _index_as_time(index, self.info['sfreq'], self.first_samp,
                               use_first_samp)
+
+    def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
+                      return_singular=False):
+        """Estimate rank of the raw data
+
+        This function is meant to provide a reasonable estimate of the rank.
+        The true rank of the data depends on many factors, so use at your
+        own risk.
+
+        Parameters
+        ----------
+        tstart : float
+            Start time to use for rank estimation. Defaul is 0.0.
+        tstop : float | None
+            End time to use for rank estimation. Default is 30.0.
+            If None, the end time of the raw file is used.
+        tol : float
+            Tolerance for singular values to consider non-zero in
+            calculating the rank. The singular values are calculated
+            in this method such that independent data are expected to
+            have singular value around one.
+        return_singular : bool
+            If True, also return the singular values that were used
+            to determine the rank.
+
+        Returns
+        -------
+        rank : int
+            Estimated rank of the data.
+        s : array
+            If return_singular is True, the singular values that were
+            thresholded to determine the rank are also returned.
+
+        Notes
+        -----
+        If data are not pre-loaded, the appropriate data will be loaded
+        by this function (can be memory intensive).
+
+        Projectors are not taken into account unless they have been applied
+        to the data using apply_projector(), since it is not always possible
+        to tell whether or not projectors have been applied previously.
+
+        Bad channels will be excluded from calculations.
+        """
+        start = max(0.0, self.time_as_index(tstart))
+        if tstop is None:
+            stop = self.n_times - 1
+        else:
+            stop = min(self.n_times - 1, self.time_as_index(tstop))
+        tslice = slice(start, stop + 1)
+        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        # ensure we don't get a view of data
+        if len(picks) == 1:
+            return 1.0, 1.0
+        # this should already be a copy, so we can overwrite it
+        data = self[picks, tslice][0]
+        return estimate_rank(data, tol, return_singular, copy=False)
 
     @property
     def ch_names(self):
@@ -1357,6 +1470,9 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     nchan = raw.info['nchan']
 
     n_sel_channels = nchan if sel is None else len(sel)
+    # convert sel to a slice if possible for efficiency
+    if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+        sel = slice(sel[0], sel[-1] + 1)
     idx = slice(None, None, None) if sel is None else sel
     data_shape = (n_sel_channels, stop - start)
     if isinstance(data_buffer, np.ndarray):
@@ -1385,6 +1501,11 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     first_file_used = False
     s_off = 0
     dest = 0
+    if isinstance(idx, slice):
+        cals = raw.cals.ravel()[idx][:, np.newaxis]
+    else:
+        cals = raw.cals.ravel()[:, np.newaxis]
+
     for fi in np.nonzero(files_used)[0]:
         start_loc = raw._first_samps[fi]
         # first iteration (only) could start in the middle somewhere
@@ -1405,27 +1526,6 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
 
             #  Do we need this buffer
             if this['last'] >= start_loc:
-                if this['ent'] is None:
-                    #  Take the easy route: skip is translated to zeros
-                    logger.debug('S')
-                    one = np.zeros((n_sel_channels, this['nsamp']))
-                else:
-                    tag = read_tag(raw.fids[fi], this['ent'].pos)
-
-                    # decide what datatype to use
-                    if np.isrealobj(tag.data):
-                        dtype = np.float
-                    else:
-                        dtype = np.complex64
-
-                    one = tag.data.reshape(this['nsamp'],
-                                           nchan).astype(dtype).T
-                    if mult is not None:  # use proj + cal factors in mult
-                        one = np.dot(mult[fi], one)
-                        one = one[idx]
-                    else:  # apply just the calibration factors
-                        one = raw.cals.ravel()[idx][:, np.newaxis] * one[idx]
-
                 #  The picking logic is a bit complicated
                 if stop_loc > this['last'] and start_loc < this['first']:
                     #    We need the whole buffer
@@ -1452,20 +1552,48 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
                 #   Now we are ready to pick
                 picksamp = last_pick - first_pick
                 if picksamp > 0:
-                    if data is None:
-                        # if not already done, allocate array with right type
-                        if isinstance(data_buffer, basestring):
-                            # use a memmap
-                            data = np.memmap(data_buffer, mode='w+',
-                                             dtype=dtype, shape=data_shape)
+                    # only read data if it exists
+                    if this['ent'] is not None:
+                        one = read_tag(raw.fids[fi], this['ent'].pos,
+                                       shape=(this['nsamp'], nchan),
+                                       rlims=(first_pick, last_pick)).data
+                        if np.isrealobj(one):
+                            dtype = np.float
                         else:
-                            data = np.empty(data_shape, dtype=dtype)
-                    data[:, dest:(dest + picksamp)] = \
-                        one[:, first_pick:last_pick]
+                            dtype = np.complex128
+                        one.shape = (picksamp, nchan)
+                        one = one.T.astype(dtype)
+
+                        if mult is not None:  # use proj + cal factors in mult
+                            one = np.dot(mult[fi], one)
+                        else:  # apply just the calibration factors
+                            # this logic is designed to limit memory copies
+                            if isinstance(idx, slice):
+                                # This is a view operation, so it's fast
+                                one[idx] *= cals
+                            else:
+                                # Extra operations are actually faster here
+                                # than creating a new array (fancy indexing)
+                                one *= cals
+
+                        # if not already done, allocate array with right type
+                        data = _allocate_data(data, data_buffer, data_shape,
+                                              dtype)
+                        if isinstance(idx, slice):
+                            # faster to slice in data than doing one = one[idx]
+                            # sooner
+                            data[:, dest:(dest + picksamp)] = one[idx]
+                        else:
+                            # faster than doing one = one[idx]
+                            data_view = data[:, dest:(dest + picksamp)]
+                            for ii, ix in enumerate(idx):
+                                data_view[ii] = one[ix]
                     dest += picksamp
 
             #   Done?
             if this['last'] >= stop_loc:
+                # if not already done, allocate array with float dtype
+                data = _allocate_data(data, data_buffer, data_shape, np.float)
                 break
 
         raw.fids[fi].seek(0, 0)  # Go back to beginning of the file
@@ -1478,6 +1606,18 @@ def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
     times = np.arange(start, stop) / raw.info['sfreq']
 
     return data, times
+
+
+def _allocate_data(data, data_buffer, data_shape, dtype):
+    if data is None:
+        # if not already done, allocate array with right type
+        if isinstance(data_buffer, basestring):
+            # use a memmap
+            data = np.memmap(data_buffer, mode='w+',
+                             dtype=dtype, shape=data_shape)
+        else:
+            data = np.zeros(data_shape, dtype=dtype)
+    return data
 
 
 @verbose
@@ -1517,10 +1657,12 @@ def read_raw_segment_times(raw, start, stop, sel=None, verbose=None):
 # Writing
 
 from .write import start_file, end_file, start_block, end_block, \
-                   write_float, write_complex64, write_int, write_id
+                   write_dau_pack16, write_float, write_double, \
+                   write_complex64, write_complex128, write_int, write_id
 
 
-def start_writing_raw(name, info, sel=None):
+def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
+                      reset_range=True):
     """Start write raw data in file
 
     Data will be written in float
@@ -1529,18 +1671,20 @@ def start_writing_raw(name, info, sel=None):
     ----------
     name : string
         Name of the file to create.
-
     info : dict
         Measurement info.
-
     sel : array of int, optional
         Indices of channels to include. By default all channels are included.
+    data_type : int
+        The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
+        5 (FIFFT_DOUBLE), 16 (FIFFT_DAU_PACK16), or 3 (FIFFT_INT) for raw data.
+    reset_range : bool
+        If True, the info['chs'][k]['range'] parameter will be set to unity.
 
     Returns
     -------
     fid : file
         The file descriptor.
-
     cals : list
         calibration factors.
     """
@@ -1555,8 +1699,8 @@ def start_writing_raw(name, info, sel=None):
     #
     #    Measurement info
     #
+    info = copy.deepcopy(info)
     if sel is not None:
-        info = copy.deepcopy(info)
         info['chs'] = [info['chs'][k] for k in sel]
         info['nchan'] = len(sel)
 
@@ -1579,10 +1723,11 @@ def start_writing_raw(name, info, sel=None):
         #   Scan numbers may have been messed up
         #
         info['chs'][k]['scanno'] = k + 1  # scanno starts at 1 in FIF format
-        info['chs'][k]['range'] = 1.0
-        cals.append(info['chs'][k]['cal'])
+        if reset_range is True:
+            info['chs'][k]['range'] = 1.0
+        cals.append(info['chs'][k]['cal'] * info['chs'][k]['range'])
 
-    write_meas_info(fid, info, data_type=4)
+    write_meas_info(fid, info, data_type=data_type, reset_range=reset_range)
 
     #
     # Start the raw data
@@ -1592,28 +1737,46 @@ def start_writing_raw(name, info, sel=None):
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals):
+def write_raw_buffer(fid, buf, cals, format):
     """Write raw buffer
 
     Parameters
     ----------
     fid : file descriptor
         an open raw data file.
-
     buf : array
         The buffer to write.
-
     cals : array
         Calibration factors.
+    format : str
+        'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
+        float for each item. This will be doubled for complex datatypes. Note
+        that short and int formats cannot be used for complex data.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
+    if not format in ['short', 'int', 'single', 'double']:
+        raise ValueError('format must be "short", "single", or "double"')
+
     if np.isrealobj(buf):
-        write_float(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+        if format == 'short':
+            write_function = write_dau_pack16
+        elif format == 'int':
+            write_function = write_int
+        elif format == 'single':
+            write_function = write_float
+        else:
+            write_function = write_double
     else:
-        write_complex64(fid, FIFF.FIFF_DATA_BUFFER,
-                        buf / np.ravel(cals)[:, None])
+        if format == 'single':
+            write_function = write_complex64
+        elif format == 'double':
+            write_function = write_complex128
+        else:
+            raise ValueError('only "single" and "double" supported for '
+                             'writing complex data')
+    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
 
 
 def finish_writing_raw(fid):
@@ -1654,6 +1817,11 @@ def _check_raw_compatibility(raw):
         if not all(proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
+    if not all([r.orig_format == raw[0].orig_format for r in raw]):
+        warnings.warn('raw files do not all have the same data format, '
+                      'could result in precision mismatch. Setting '
+                      'raw.orig_format="unknown"')
+        raw[0].orig_format = 'unknown'
 
 
 def concatenate_raws(raws, preload=None):

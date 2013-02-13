@@ -500,11 +500,7 @@ class SourceEstimate(object):
         Note that the sample rate of the original data is inferred from tstep.
         """
         o_sfreq = 1.0 / self.tstep
-        # use parallel function to resample each source separately
-        # for speed and to save memory
-        parallel, my_resample, _ = parallel_func(resample, n_jobs)
-        self.data = np.concatenate(parallel(my_resample(d, sfreq, o_sfreq,
-                          npad, 1) for d in np.array_split(self.data, n_jobs)))
+        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
@@ -892,8 +888,9 @@ class SourceEstimate(object):
             variable SUBJECT. If None the environment will be used.
         surface : str
             The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh'
-            The hemisphere to display.
+        hemi : str, 'lh' | 'rh' | 'both'
+            The hemisphere to display. Using 'both' opens two seperate figures,
+            one for each hemisphere.
         colormap : str
             The type of colormap to use.
         time_label : str
@@ -916,8 +913,10 @@ class SourceEstimate(object):
 
         Returns
         -------
-        brain : Brain
-            A instance of surfer.viz.Brain from PySurfer.
+        brain : Brain | list of Brain
+            A instance of surfer.viz.Brain from PySurfer For hemi='both',
+            a list with Brain instances for the left and right hemisphere is
+            returned.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
                         hemi=hemi, colormap=colormap, time_label=time_label,

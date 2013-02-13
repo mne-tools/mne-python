@@ -239,6 +239,13 @@ def test_ica_additional():
     assert_raises(ValueError, ica.find_sources_raw, raw,
                   target=np.arange(1))
 
+    params = []
+    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx params
+    params += [(None, 'MEG 1531')]  # ECG / EOG channel params
+    for idx, ch_name in product(*params):
+        ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
+                             eog_ch=ch_name, skew_criterion=idx,
+                             var_criterion=idx, kurt_criterion=idx)
     ## score funcs epochs ##
 
     # check lenght of scores
@@ -296,9 +303,9 @@ def test_ica_additional():
 def test_run_ica():
     """Test run_ica function"""
     params = []
-    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx params
+    params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
         run_ica(raw, n_components=.9, start=0, stop=100, start_find=0,
-                stop_find=50, ecg_channel=ch_name, eog_channel=ch_name,
-                skew_idx=idx, var_idx=idx, kurt_idx=idx)
+                stop_find=50, ecg_ch=ch_name, eog_ch=ch_name,
+                skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)

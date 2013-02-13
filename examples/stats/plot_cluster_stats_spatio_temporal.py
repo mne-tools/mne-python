@@ -181,11 +181,12 @@ stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
 colormap = mne_analyze_colormap(limits=[0, 10, 50])
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
-brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'rh', colormap,
-                                 subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)')
-brain.set_data_time_index(0)
-# The colormap requires brain data to be scaled -fmax -> fmax
-brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
-brain.show_view('lateral')
-brain.save_image('clusters.png')
+brains = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both', colormap,
+                                  subjects_dir=subjects_dir,
+                                  time_label='Duration significant (ms)')
+for idx, brain in enumerate(brains):
+    brain.set_data_time_index(0)
+    # The colormap requires brain data to be scaled -fmax -> fmax
+    brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
+    brain.show_view('lateral')
+    brain.save_image('clusters-%s.png' % ('lh' if idx == 0 else 'rh'))

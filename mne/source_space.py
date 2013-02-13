@@ -56,7 +56,8 @@ class SourceSpaces(list):
         for ss in self:
             ss_type = ss['type']
             if ss_type == 'vol':
-                r = "'vol', shape=%s, n_used=%i" % (repr(ss['shape']), ss['nuse'])
+                r = ("'vol', shape=%s, n_used=%i"
+                     % (repr(ss['shape']), ss['nuse']))
             elif ss_type == 'surf':
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
             else:
@@ -76,7 +77,7 @@ class SourceSpaces(list):
         write_source_spaces(fname, self)
 
 
-def patch_info(nearest):
+def _add_patch_info(s):
     """Patch information in a source space
 
     Generate the patch information from the 'nearest' vector in
@@ -86,17 +87,16 @@ def patch_info(nearest):
 
     Parameters
     ----------
-    nearest : array
-        For each vertex gives the index of its closest neighbor.
-
-    Returns
-    -------
-    pinfo : list
-        List of neighboring vertices
+    s : dict
+        The source space.
     """
+    nearest = s['nearest']
     if nearest is None:
-        pinfo = None
-        return pinfo
+        s['pinfo'] = None
+        s['patch_inds'] = None
+        return
+
+    logger.info('    Computing patch statistics...')
 
     indn = np.argsort(nearest)
     nearest_sorted = nearest[indn]
@@ -108,8 +108,13 @@ def patch_info(nearest):
     pinfo = list()
     for start, stop in zip(starti, stopi):
         pinfo.append(np.sort(indn[start:stop]))
+    s['pinfo'] = pinfo
 
-    return pinfo
+    # compute patch indices of the in-use source space vertices
+    patch_verts = nearest_sorted[steps - 1]
+    s['patch_inds'] = np.searchsorted(patch_verts, s['vertno'])
+
+    logger.info('    Patch information added...')
 
 
 @verbose
@@ -141,7 +146,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     for s in spaces:
         logger.info('    Reading a source space...')
         this = _read_one_source_space(fid, s)
-        logger.info('[done]')
+        logger.info('    [done]')
         if add_geom:
             complete_source_space_info(this)
 
@@ -359,9 +364,7 @@ def _read_one_source_space(fid, this, verbose=None):
         res['nearest'] = tag1.data
         res['nearest_dist'] = tag2.data.T
 
-    res['pinfo'] = patch_info(res['nearest'])
-    if (res['pinfo'] is not None):
-        logger.info('Patch information added...')
+    _add_patch_info(res)
 
     #   Distances
     tag1 = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_DIST)
@@ -375,7 +378,7 @@ def _read_one_source_space(fid, this, verbose=None):
         #   Add the upper triangle
         res['dist'] = res['dist'] + res['dist'].T
     if (res['dist'] is not None):
-        logger.info('Distance information added...')
+        logger.info('    Distance information added...')
 
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
     if tag is not None:
@@ -509,7 +512,7 @@ def write_source_spaces_to_fid(fid, src, verbose=None):
         start_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
         _write_one_source_space(fid, s, verbose)
         end_block(fid, FIFF.FIFFB_MNE_SOURCE_SPACE)
-        logger.info('[done]')
+        logger.info('    [done]')
     logger.info('    %d source spaces written' % len(src))
 
 
@@ -551,17 +554,18 @@ def write_source_spaces(fname, src, verbose=None):
 
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space"""
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
     if this['type'] == 'surf':
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 1)
     elif this['type'] == 'vol':
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 2)
     else:
         raise ValueError('Unknown source space type (%d)' % this['type'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
 
     data = this.get('subject_his_id', None)
     if data:
         write_string(fid, FIFF.FIFF_SUBJ_HIS_ID, data)
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, this['coord_frame'])
 
     if this['type'] == 'vol':
 
@@ -587,18 +591,17 @@ def _write_one_source_space(fid, this, verbose=None):
         end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, this['np'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, this['coord_frame'])
     write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_POINTS, this['rr'])
     write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, this['nn'])
 
+    #   Which vertices are active
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
+
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NTRI, this['ntri'])
     if this['ntri'] > 0:
         write_int_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TRIANGLES,
                          this['tris'] + 1)
-
-    #   Which vertices are active
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NUSE, this['nuse'])
-    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_SELECTION, this['inuse'])
 
     if this['type'] != 'vol' and this['use_tris'] is not None:
         #   Use triangulation

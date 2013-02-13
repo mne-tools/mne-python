@@ -11,6 +11,7 @@ import warnings
 from itertools import cycle
 from functools import partial
 from operator import add
+from collections import Counter
 
 import copy
 import inspect
@@ -25,7 +26,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices
+from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
@@ -534,12 +535,15 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
-                proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
-                grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
-                mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
+def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
+                ylim=None, proj=False, xlim='tight', hline=None,
+                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
+                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
+                titles=dict(eeg='EEG', grad='Gradiometers',
                 mag='Magnetometers'), axes=None):
     """Plot evoked data
+
+    Note: If bad channels are not excluded they are shown in red.
 
     Parameters
     ----------
@@ -547,13 +551,17 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         The evoked data
     picks : None | array-like of int
         The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
         Call pylab.show() as the end or not.
-    ylim : dict
+    ylim : dict | None
         ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
-        Valid keys are eeg, mag, grad
+        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+        for each channel equals the pylab default.
     xlim : 'tight' | tuple | None
         xlim for plots.
     proj : bool
@@ -571,12 +579,28 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
-    dict_args = dict(scalings=scalings, units=units, titles=titles, ylim=ylim)
-    channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
-
     import pylab as pl
+
+    dict_args = dict(scalings=scalings, units=units, titles=titles)
+
+    channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
     if picks is None:
         picks = range(evoked.info['nchan'])
+
+    bad_ch_idx = [evoked.ch_names.index(ch) for ch in evoked.info['bads']
+                  if ch in evoked.ch_names]
+    if len(exclude) > 0:
+        if isinstance(exclude, basestring) and exclude == 'bads':
+            exclude = bad_ch_idx
+        elif (isinstance(exclude, list)
+              and all([isinstance(ch, basestring) for ch in exclude])):
+            exclude = [evoked.ch_names.index(ch) for ch in exclude]
+        else:
+            raise ValueError('exclude has to be a list of channel names or '
+                             '"bads"')
+
+        picks = list(set(picks).difference(exclude))
+
     types = [channel_type(evoked.info, idx) for idx in picks]
     n_channel_types = 0
     ch_types_used = []
@@ -616,6 +640,16 @@ def plot_evoked(evoked, picks=None, unit=True, show=True, ylim=None,
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
+            if any([i in bad_ch_idx for i in idx]):
+                colors = ['k'] * len(idx)
+                for i in bad_ch_idx:
+                    if i in idx:
+                        colors[idx.index(i)] = 'r'
+
+                ax._get_lines.color_cycle = iter(colors)
+            else:
+                ax._get_lines.color_cycle = cycle(['k'])
+
             D = this_scaling * evoked.data[idx, :]
             if proj:
                 projs = activate_proj(evoked.info['projs'])
@@ -738,7 +772,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     f = mlab.figure(figure=fig_name, bgcolor=bgcolor, size=(600, 600))
     mlab.clf()
-    f.scene.disable_render = True
+    if mlab.options.backend != 'test':
+        f.scene.disable_render = True
     surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                                    use_faces, color=brain_color,
                                    opacity=opacity, **kwargs)
@@ -798,7 +833,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
 
 @verbose
-def plot_cov(cov, info, exclude=None, colorbar=True, proj=False, show_svd=True,
+def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
              show=True, verbose=None):
     """Plot Covariance data
 
@@ -911,8 +946,9 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         variable SUBJECT. If None the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh'
-        The hemisphere to display.
+    hemi : str, 'lh' | 'rh' | 'both'
+        The hemisphere to display. Using 'both' opens two seperate figures,
+        one for each hemisphere.
     colormap : str
         The type of colormap to use.
     time_label : str
@@ -935,16 +971,17 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
 
     Returns
     -------
-    brain : Brain
-        A instance of surfer.viz.Brain from PySurfer.
+    brain : Brain | list of Brain
+        A instance of surfer.viz.Brain from PySurfer. For hemi='both',
+        a list with Brain instances for the left and right hemisphere is
+        returned.
     """
     from surfer import Brain, TimeViewer
 
-    assert hemi in ['lh', 'rh']
+    if hemi not in ['lh', 'rh', 'both']:
+        raise ValueError('hemi has to be either "lh", "rh", or "both"')
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-
-    hemi_idx = 0 if hemi == 'lh' else 1
 
     if subject is None:
         if 'SUBJECT' in os.environ:
@@ -952,36 +989,51 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    args = inspect.getargspec(Brain.__init__)[0]
-    if 'subjects_dir' in args:
-        brain = Brain(subject, hemi, surface, subjects_dir=subjects_dir)
+    if hemi == 'both':
+        hemis = ['lh', 'rh']
     else:
-        # Current PySurfer versions need the SUBJECTS_DIR env. var.
-        # so we set it here. This is a hack as it can break other things
-        # XXX reminder to remove this once upstream pysurfer is changed
-        os.environ['SUBJECTS_DIR'] = subjects_dir
-        brain = Brain(subject, hemi, surface)
+        hemis = [hemi]
 
-    if hemi_idx == 0:
-        data = stc.data[:len(stc.vertno[0])]
-    else:
-        data = stc.data[len(stc.vertno[0]):]
+    brains = list()
+    for hemi in hemis:
+        hemi_idx = 0 if hemi == 'lh' else 1
 
-    vertices = stc.vertno[hemi_idx]
+        title = '%s-%s' % (subject, hemi)
+        args = inspect.getargspec(Brain.__init__)[0]
+        if 'subjects_dir' in args:
+            brain = Brain(subject, hemi, surface, title=title,
+                          subjects_dir=subjects_dir)
+        else:
+            # Current PySurfer versions need the SUBJECTS_DIR env. var.
+            # so we set it here. This is a hack as it can break other things
+            # XXX reminder to remove this once upstream pysurfer is changed
+            os.environ['SUBJECTS_DIR'] = subjects_dir
+            brain = Brain(subject, hemi, surface, title=title)
 
-    time = 1e3 * stc.times
-    brain.add_data(data, colormap=colormap, vertices=vertices,
-                   smoothing_steps=smoothing_steps, time=time,
-                   time_label=time_label)
+        if hemi_idx == 0:
+            data = stc.data[:len(stc.vertno[0])]
+        else:
+            data = stc.data[len(stc.vertno[0]):]
 
-    # scale colormap and set time (index) to display
-    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                              transparent=transparent)
+        vertices = stc.vertno[hemi_idx]
+
+        time = 1e3 * stc.times
+        brain.add_data(data, colormap=colormap, vertices=vertices,
+                       smoothing_steps=smoothing_steps, time=time,
+                       time_label=time_label)
+
+        # scale colormap and set time (index) to display
+        brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
+                                  transparent=transparent)
+        brains.append(brain)
 
     if time_viewer:
-        viewer = TimeViewer(brain)
+        viewer = TimeViewer(brains)
 
-    return brain
+    if len(brains) == 1:
+        return brains[0]
+    else:
+        return brains
 
 
 @deprecated('Use plot_source_estimates. Will be removed in v0.7.')
@@ -1146,7 +1198,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         sources = sources[source_idx]
     if source_idx is None:
         source_idx = np.arange(n_components)
-    elif source_idx.shape > 30:
+    elif source_idx.shape > nrow * ncol:
         logger.info('More sources selected than rows and cols specified.'
                     'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
@@ -1201,7 +1253,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
-def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
+def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=dict(eeg='uV', grad='fT/cm', mag='fT'),
                       scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
@@ -1211,8 +1263,9 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs
-    picks : int | array of int
-        The indices of the channels to consider
+    picks : int | array of int | None
+        The indices of the channels to consider. If None, all good
+        data channels are plotted.
     sigma : float
         The standard deviation of the Gaussian smoothing to apply along
         the epoch axis to apply in the image.
@@ -1243,6 +1296,8 @@ def plot_image_epochs(epochs, picks, sigma=0.3, vmin=None,
         One figure per channel displayed
     """
     import pylab as pl
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
 
     if units.keys() != scalings.keys():
         raise ValueError('Scalings and units must have the same keys.')
@@ -1658,3 +1713,51 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         pl.setp(cb_yticks, color=textcolor)
 
     return fig
+
+
+def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
+                  color=(0.9, 0.9, 0.9), width=0.8):
+    """Show the channel stats based on a drop_log from Epochs
+
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    threshold : float
+        The percentage threshold to use to decide whether or not to
+        plot. Default is zero (always plot).
+    n_max_plot : int
+        Maximum number of channels to show stats for.
+    subject : str
+        The subject name to use in the title of the plot.
+    color : tuple | str
+        Color to use for the bars.
+    width : float
+        Width of the bars.
+
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
+    import pylab as pl
+    scores = Counter([ch for d in drop_log for ch in d])
+    ch_names = np.array(scores.keys())
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log])
+    if perc < threshold or len(ch_names) == 0:
+        return perc
+    counts = 100 * np.array(scores.values(), dtype=float) / len(drop_log)
+    n_plot = min(n_max_plot, len(ch_names))
+    order = np.flipud(np.argsort(counts))
+    pl.figure()
+    pl.title('%s: %0.1f%%' % (subject, perc))
+    x = np.arange(n_plot)
+    pl.bar(x, counts[order[:n_plot]], color=color, width=width)
+    pl.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
+              horizontalalignment='right')
+    pl.tick_params(axis='x', which='major', labelsize=10)
+    pl.ylabel('% of epochs rejected')
+    pl.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
+    pl.grid(True, axis='y')
+    pl.show()
+    return perc

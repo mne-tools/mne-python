@@ -72,7 +72,7 @@ class Epochs(object):
         interval is used.
     picks : None (default) or array of int
         Indices of channels to include (if None, all channels
-        are used except for channels in raw.info['bads']).
+        are used).
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -235,7 +235,7 @@ class Epochs(object):
         self.info = cp.deepcopy(raw.info)
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                               ecg=True, eog=True, misc=True, exclude='bads')
+                               ecg=True, eog=True, misc=True, exclude=[])
         self.info['chs'] = [self.info['chs'][k] for k in picks]
         self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
         self.ch_names = self.info['ch_names']
@@ -263,8 +263,7 @@ class Epochs(object):
 
         #    Select the desired events
         self.events = events
-        overlap = in1d(events[:, 2], self.event_id.values())
-        selected = np.logical_and(events[:, 1] == 0, overlap)
+        selected = in1d(events[:, 2], self.event_id.values())
         self.events = events[selected]
 
         n_events = len(self.events)
@@ -419,23 +418,35 @@ class Epochs(object):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        n_events = len(self.events)
+        data = np.array([])
         if self._bad_dropped:
             if not out:
                 return
-            epochs = map(self._get_epoch_from_disk, xrange(len(self.events)))
+            for ii in xrange(n_events):
+                # faster to pre-allocate memory here
+                epoch = self._get_epoch_from_disk(ii)
+                if ii == 0:
+                    data = np.empty((n_events, epoch.shape[0],
+                                     epoch.shape[1]), dtype=epoch.dtype)
+                data[ii] = epoch
         else:
             good_events = []
-            epochs = []
-            n_events = len(self.events)
             drop_log = [[] for _ in range(n_events)]
-
+            n_out = 0
             for idx in xrange(n_events):
                 epoch = self._get_epoch_from_disk(idx)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
                     if out:
-                        epochs.append(epoch)
+                        # faster to pre-allocate, then trim as necessary
+                        if n_out == 0:
+                            data = np.empty((n_events, epoch.shape[0],
+                                             epoch.shape[1]),
+                                            dtype=epoch.dtype, order='C')
+                        data[n_out] = epoch
+                        n_out += 1
                 else:
                     drop_log[idx] = offenders
 
@@ -446,8 +457,13 @@ class Epochs(object):
                         % (n_events - len(good_events)))
             if not out:
                 return
-
-        data = np.array(epochs)
+            # just take the good events
+            assert len(good_events) == n_out
+            if n_out > 0:
+                # slicing won't free the space, so we resize
+                # we have ensured the C-contiguity of the array in allocation
+                # so this operation will be safe unless np is very broken
+                data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
     @verbose
@@ -466,7 +482,8 @@ class Epochs(object):
                 data = data[:, self._reject_time]
 
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True)
+                            self.reject, self.flat, full_report=True,
+                            ignore_chs=self.info['bads'])
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -536,7 +553,7 @@ class Epochs(object):
                     raise StopIteration
                 epoch = self._get_epoch_from_disk(self._current)
                 self._current += 1
-                is_good, _ = self._is_good_epoch(epoch)
+                is_good = self._is_good_epoch(epoch)[0]
 
         return epoch
 
@@ -659,8 +676,8 @@ class Epochs(object):
         evoked.times = self.times.copy()
         evoked.comment = self.name
         evoked.nave = n_events
-        evoked.first = -int(np.sum(self.times < 0))
-        evoked.last = int(np.sum(self.times > 0))
+        evoked.first = int(self.times[0] * self.info['sfreq'])
+        evoked.last = evoked.first + len(self.times) - 1
         if not _do_std:
             evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
         else:
@@ -756,15 +773,8 @@ class Epochs(object):
         """
         if self.preload:
             o_sfreq = self.info['sfreq']
-            orig_dims = self._data.shape[:2]
-            new_data = self._data
-            new_data.shape = (np.prod(orig_dims), self._data.shape[2])
-            parallel, my_resample, _ = parallel_func(resample, n_jobs)
-            new_data = parallel(my_resample(d, sfreq, o_sfreq, npad, 1)
-                                for d in np.array_split(new_data, n_jobs))
-            new_data = np.concatenate(new_data)
-            new_data.shape = orig_dims + (new_data.shape[1],)
-            self._data = new_data
+            self._data = resample(self._data, sfreq, o_sfreq, npad,
+                                  n_jobs=n_jobs)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
             self.times = (np.arange(self._data.shape[2], dtype=np.float)
@@ -832,14 +842,15 @@ class Epochs(object):
         # The epochs itself
         decal = np.empty(self.info['nchan'])
         for k in range(self.info['nchan']):
-            decal[k] = 1.0 / self.info['chs'][k]['cal']
+            decal[k] = 1.0 / (self.info['chs'][k]['cal']
+                              * self.info['chs'][k].get('scale', 1.0))
 
-        data *= decal[None, :, None]
+        data *= decal[np.newaxis, :, np.newaxis]
 
         write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
 
         # undo modifications to data
-        data /= decal[None, :, None]
+        data /= decal[np.newaxis, :, np.newaxis]
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
@@ -1044,7 +1055,8 @@ class Epochs(object):
             epochs = self.copy()
         else:
             epochs = self
-        event_ids = event_ids
+        if len(event_ids) == 0:
+            raise ValueError('event_ids must have at least one element')
         if not epochs._bad_dropped:
             epochs.drop_bad_epochs()
         # figure out how to equalize
@@ -1206,13 +1218,16 @@ def _area_between_times(t1, t2):
 
 @verbose
 def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
-             verbose=None):
+             ignore_chs=[], verbose=None):
     """Test if data segment e is good according to the criteria
     defined in reject and flat. If full_report=True, it will give
     True/False as well as a list of all offending channels.
     """
     bad_list = list()
     has_printed = False
+    checkable = np.ones(len(ch_names), dtype=bool)
+    checkable[np.array([c in ignore_chs
+                        for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
             for key, thresh in refl.iteritems():
@@ -1221,7 +1236,9 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                 if len(idx) > 0:
                     e_idx = e[idx]
                     deltas = np.max(e_idx, axis=1) - np.min(e_idx, axis=1)
-                    idx_deltas = np.where(f(deltas, thresh))[0]
+                    checkable_idx = checkable[idx]
+                    idx_deltas = np.where(np.logical_and(f(deltas, thresh),
+                                                         checkable_idx))[0]
 
                     if len(idx_deltas) > 0:
                         ch_name = [ch_names[idx[i]] for i in idx_deltas]
@@ -1335,8 +1352,9 @@ def read_epochs(fname, proj=True, verbose=None):
                          % (data.shape[2], nsamp))
 
     # Calibrate
-    cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-    data = cals[None, :, None] * data
+    cals = np.array([info['chs'][k]['cal'] * info['chs'][k].get('scale', 1.0)
+                     for k in range(info['nchan'])])
+    data *= cals[np.newaxis, :, np.newaxis]
 
     times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
     tmin = times[0]

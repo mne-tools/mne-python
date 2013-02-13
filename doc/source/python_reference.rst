@@ -21,14 +21,14 @@ Classes
    :toctree: generated/
    :template: class.rst
 
-   BiHemiLabel
-   Covariance
+   fiff.Raw
    Epochs
    fiff.Evoked
-   fiff.Raw
-   Label
-   preprocessing.ICA
    SourceEstimate
+   Covariance
+   Label
+   BiHemiLabel
+   preprocessing.ICA
 
 
 Logging and Configuration
@@ -40,25 +40,25 @@ Logging and Configuration
    :toctree: generated/
    :template: function.rst
 
+   get_config_path
+   get_config
    set_log_level
    set_log_file
+   set_config
 
-:py:mod:`mne.utils`:
+:py:mod:`mne.cuda`:
 
-.. automodule:: mne.utils
+.. automodule:: mne.cuda
  :no-members:
  :no-inherited-members:
 
-.. currentmodule:: mne.utils
+.. currentmodule:: mne.cuda
 
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   get_config_path
-   get_config
-   set_config
-
+   init_cuda
 
 File I/O
 ========
@@ -99,11 +99,36 @@ Functions:
    write_bem_surface
    write_cov
    write_events
+   write_forward_solution
    write_label
    write_proj
    write_source_spaces
    write_surface
    write_trans
+
+.. currentmodule:: mne.fiff.bti
+
+:py:mod:`mne.fiff.bti`:
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_bti
+  
+.. currentmodule:: mne.fiff.kit
+
+:py:mod:`mne.fiff.kit`:
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_kit  
 
 :py:mod:`mne.datasets.sample`:
 
@@ -116,6 +141,7 @@ Functions:
 .. autosummary::
    :toctree: generated/
    :template: function.rst
+
    data_path
 
 :py:mod:`mne.datasets.megsim`:
@@ -129,10 +155,9 @@ Functions:
 .. autosummary::
    :toctree: generated/
    :template: function.rst
+
    data_path
    load_data
-
-
 
 
 Visualization
@@ -154,6 +179,7 @@ Visualization
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov
+   plot_drop_log
    plot_evoked
    plot_ica_panel
    plot_image_epochs
@@ -232,6 +258,7 @@ Events
    define_target_events
    concatenate_events
    find_events
+   find_stim_steps
    make_fixed_length_events
    merge_events
    parse_config
@@ -303,6 +330,8 @@ Forward Modeling
 
    apply_forward
    apply_forward_raw
+   average_forward_solutions
+   do_forward_solution
    read_bem_surfaces
    read_forward_solution
    read_trans
@@ -310,6 +339,15 @@ Forward Modeling
    read_surface
    write_bem_surface
    write_trans
+
+.. currentmodule:: mne.forward
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   restrict_forward_to_label
+   restrict_forward_to_stc
 
 
 Inverse Solutions
@@ -330,6 +368,7 @@ Inverse Solutions
    apply_inverse
    apply_inverse_epochs
    apply_inverse_raw
+   compute_rank_inverse
    make_inverse_operator
    read_inverse_operator
    source_band_induced_power

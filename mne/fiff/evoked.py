@@ -256,8 +256,10 @@ class Evoked(object):
                               % (all_data.shape[1], nsamp))
 
         # Calibrate
-        cals = np.array([info['chs'][k]['cal'] for k in range(info['nchan'])])
-        all_data = cals[:, None] * all_data
+        cals = np.array([info['chs'][k]['cal']
+                         * info['chs'][k].get('scale', 1.0)
+                         for k in range(info['nchan'])])
+        all_data *= cals[:, np.newaxis]
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
@@ -335,17 +337,22 @@ class Evoked(object):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def plot(self, picks=None, unit=True, show=True, ylim=None,
+    def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
              mag=1e15), titles=dict(eeg='EEG', grad='Gradiometers',
              mag='Magnetometers'), axes=None):
         """Plot evoked data
 
+        Note: If bad channels are not excluded they are shown in red.
+
         Parameters
         ----------
         picks : None | array-like of int
             The indices of channels to plot. If None show all.
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded.
         unit : bool
             Scale plot with channel (SI) unit.
         show : bool
@@ -370,8 +377,8 @@ class Evoked(object):
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
         """
-        plot_evoked(self, picks=picks, unit=unit, show=show, ylim=ylim,
-                    proj=proj, xlim=xlim, hline=hline, units=units,
+        plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
+                    ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
                     scalings=scalings, titles=titles, axes=axes)
 
     def to_nitime(self, picks=None):
@@ -482,7 +489,7 @@ class Evoked(object):
             Window to use in resampling. See scipy.signal.resample.
         """
         o_sfreq = self.info['sfreq']
-        self.data = resample(self.data, sfreq, o_sfreq, npad, 1, window)
+        self.data = resample(self.data, sfreq, o_sfreq, npad, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
         self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
@@ -578,6 +585,11 @@ def merge_evoked(all_evoked):
                 ValueError("%s and %s do not "
                            "contain the same time instants" % (evoked, e))
 
+    # use union of bad channels
+    bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
+                                                 for ev in all_evoked[1:])))
+    evoked.info['bads'] = bads
+
     all_nave = sum(e.nave for e in all_evoked)
     evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
     evoked.nave = all_nave
@@ -664,11 +676,12 @@ def write_evoked(fname, evoked):
         write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
         write_int(fid, FIFF.FIFF_NAVE, e.nave)
 
-        decal = np.zeros((e.info['nchan'], e.info['nchan']))
+        decal = np.zeros((e.info['nchan'], 1))
         for k in range(e.info['nchan']):
-            decal[k, k] = 1.0 / e.info['chs'][k]['cal']
+            decal[k] = 1.0 / (e.info['chs'][k]['cal']
+                              * e.info['chs'][k].get('scale', 1.0))
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, np.dot(decal, e.data))
+        write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
         end_block(fid, FIFF.FIFFB_ASPECT)
         end_block(fid, FIFF.FIFFB_EVOKED)
 
