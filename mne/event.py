@@ -389,7 +389,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         the first.
     min_duration : float
         The minimum duration of a change in the events channel required
-        to consider it as an event.
+        to consider it as an event (in seconds).
 
     Returns
     -------
