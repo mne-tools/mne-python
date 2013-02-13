@@ -32,7 +32,6 @@ from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample, detrend
-from .parallel import parallel_func
 from .event import _read_events_fif
 from . import verbose
 from .fixes import in1d
@@ -558,14 +557,21 @@ class Epochs(object):
         return epoch
 
     def __repr__(self):
+        """ Build string representation
+        """
         if not self._bad_dropped:
-            s = "n_events : %s (good & bad)" % len(self.events)
+            s = 'n_events : %s (good & bad)' % len(self.events)
         else:
-            s = "n_events : %s (all good)" % len(self.events)
-        s += ", tmin : %s (s)" % self.tmin
-        s += ", tmax : %s (s)" % self.tmax
-        s += ", baseline : %s" % str(self.baseline)
-        return "<Epochs  |  %s>" % s
+            s = 'n_events : %s (all good)' % len(self.events)
+        s += ', tmin : %s (s)' % self.tmin
+        s += ', tmax : %s (s)' % self.tmax
+        s += ', baseline : %s' % str(self.baseline)
+        if len(self.event_id) > 1:
+            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
+                      for k, v in self.event_id.items()]
+            s += ',\n %s' % ', '.join(counts)
+
+        return '<Epochs  |  %s>' % s
 
     def _key_match(self, key):
         """Helper function for event dict use"""
