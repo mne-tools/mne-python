@@ -1061,7 +1061,7 @@ def mesh_dist(tris, vert):
     return dist_matrix
 
 
-#@verbose
+@verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
                   verbose=None):
     """Morph data from one subject's source space to another
@@ -1194,7 +1194,7 @@ def _get_subject_sphere_tris(subject, subjects_dir):
     return tris
 
 
-#@verbose
+@verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None):
     """Morph a source estimate from one subject to another
@@ -1343,7 +1343,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     return morpher
 
 
-#@verbose
+@verbose
 def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                       verbose=None):
     """Convert a grade to source space vertices for a given subject

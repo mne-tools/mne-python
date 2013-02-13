@@ -101,7 +101,6 @@ def init_cuda():
                         # Figure out limit for CUDA FFT calculations
                         logger.info('Enabling CUDA with %s available memory'
                                     % sizeof_fmt(mem_get_info()[0]))
-
     requires_cuda = np.testing.dec.skipif(not cuda_capable,
                                           'CUDA not initialized')
 
