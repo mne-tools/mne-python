@@ -37,17 +37,14 @@ KIT.BEFS = [0, 50, 60]
 KIT.DIG_POINTS = 10000
 
 # create system specific dicts
-KIT_NY = Bunch()
-KIT_NY.update(KIT)
-KIT_AD = Bunch()
-KIT_AD.update(KIT)
+KIT_NY = Bunch(**KIT)
+KIT_AD = Bunch(**KIT)
 
 # NYU-system channel information
 KIT_NY.nchan = 192
 KIT_NY.nmegchan = 157
 KIT_NY.nrefchan = 3
-KIT_NY.ntrigchan = 8
-KIT_NY.nmiscchan = 24
+KIT_NY.nmiscchan = 32
 KIT_NY.n_sens = KIT_NY.nmegchan + KIT_NY.nrefchan
 # 12-bit A-to-D converter, one bit for signed integer. range +/- 2048
 KIT_NY.DYNAMIC_RANGE = 2 ** 12 / 2

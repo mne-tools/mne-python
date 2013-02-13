@@ -153,7 +153,7 @@ class RawKIT(Raw):
 
     See Also
     --------
-    See documentation for mne.fiff.Raw
+    mne.fiff.Raw : Documentation of attribute and methods.
 
     """
     @verbose
@@ -214,11 +214,7 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         ch_names = {}
         ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, params.KIT.nmegchan + 1)]
-        ch_names['REF'] = ['REF %03d' % ch for ch
-                                in range(1, params.KIT.nrefchan + 1)]
-        ch_names['TRIG'] = ['TRIG %03d' % ch for ch
-                                 in range(1, params.KIT.ntrigchan + 1)]
+                                in range(1, params.KIT.n_sens + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                                  in range(1, params.KIT.nmiscchan + 1)]
         ch_names['STIM'] = ['STI 014']
@@ -226,8 +222,8 @@ class RawKIT(Raw):
         chan_locs = coreg.transform_pts(locs[:, :3])
         chan_angles = locs[:, 3:]
         self.info['chs'] = []
-        for idx, ch_info in enumerate(zip(ch_names['MEG'] + ch_names['REF'],
-                                          chan_locs, chan_angles), 1):
+        for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
+                                          chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
@@ -238,10 +234,10 @@ class RawKIT(Raw):
             chan_info['ch_name'] = ch_name
             chan_info['unit'] = FIFF.FIFF_UNIT_T
             chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-            if ch_name.startswith('MEG'):
+            if idx <= params.KIT.nmegchan:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
-            if ch_name.startswith('REF'):
+            else:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
 
@@ -275,8 +271,8 @@ class RawKIT(Raw):
             self.info['chs'].append(chan_info)
 
         # label trigger and misc channels
-        for idy, ch_name in enumerate(ch_names['TRIG'] + ch_names['MISC'] +
-                                      ch_names['STIM'], params.KIT.n_sens):
+        for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
+                                      params.KIT.n_sens):
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
@@ -294,8 +290,7 @@ class RawKIT(Raw):
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
             self.info['chs'].append(chan_info)
 
-        self.info['ch_names'] = (ch_names['MEG'] + ch_names['REF'] +
-                                 ch_names['TRIG'] + ch_names['MISC'] +
+        self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
                                  ch_names['STIM'])
 
         self.verbose = verbose
@@ -312,31 +307,30 @@ class RawKIT(Raw):
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 data=None, stim=range(167, 159, -1), stimthresh=3.5):
+                 stim, data=None, stimthresh=3.5):
     """Reader function for KIT conversion to FIF
 
     Parameters
     ----------
     input_fname : str
-        absolute path to the sqd file.
+        Absolute path to the sqd file.
     mrk_fname : str
-        absolute path to marker coils file.
+        Absolute path to marker coils file.
     elp_fname : str
-        absolute path to elp digitizer laser points file.
+        Absolute path to elp digitizer laser points file.
     hsp_fname : str
-        absolute path to elp digitizer head shape points file.
+        Absolute path to elp digitizer head shape points file.
     sns_fname : str
-        absolute path to sensor information file.
-    data : bool | array-like
-        if array-like custom data matching the header info to be used
-        instead of the data from data_fname
+        Absolute path to sensor information file.
     stim : list
-        list of trigger channels.
+        List of trigger channels.
+    data : bool | array-like
+        Array-like data to use in lieu of data from sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
 
     """
     return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
                   elp_fname=elp_fname, hsp_fname=hsp_fname,
-                  sns_fname=sns_fname, data=data, stim=stim,
+                  sns_fname=sns_fname, stim=stim, data=data,
                   stimthresh=stimthresh)
