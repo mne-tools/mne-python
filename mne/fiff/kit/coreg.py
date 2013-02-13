@@ -23,8 +23,8 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
     hsp_fname : str
         Path to hsp headshape file.
 
-    Output
-    ------
+    Returns
+    -------
     mrk_points : np.array
         Array of 5 points by coordinate (x,y,z) from marker measurement.
     elp_points : np.array
@@ -90,18 +90,6 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
     return mrk_points, elp_points, dig
 
 
-def reset_origin(lpa, rpa, pts):
-    """reset origin of head coordinate system
-
-    Resets the origin to mid-distance of peri-auricular points
-    (mne manual, pg. 97)
-
-    """
-    origin = (lpa + rpa) / 2
-    pts -= origin
-    return pts
-
-
 def read_mrk(mrk_fname):
     """Marker Point Extraction in MEG space directly from sqd
 
@@ -109,6 +97,11 @@ def read_mrk(mrk_fname):
     ----------
     mrk_fname : str
         Absolute path to Marker sqd file.
+
+    Returns
+    -------
+    mrk_points : numpy.array
+        Marker points in MEG space.
     """
     with open(mrk_fname, 'r') as fid:
         fid.seek(KIT.MRK_INFO)
@@ -134,6 +127,11 @@ def read_elp(elp_fname):
     ----------
     elp_fname : str
         Absolute path to laser point file acquired from Polhemus system.
+
+    Returns
+    -------
+    elp_points : numpy.array
+        Fiducial and marker points in Polhemus head space.
     """
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = p.findall(open(elp_fname).read())
@@ -148,6 +146,11 @@ def read_hsp(hsp_fname):
     ----------
     hsp_fname : str
         Absolute path to headshape file acquired from Polhemus system.
+
+    Returns
+    -------
+    hsp_points : numpy.array
+        Headshape points in Polhemus head space.
     """
 
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
@@ -168,6 +171,11 @@ def read_sns(sns_fname):
     ----------
     sns_fname : str
         Absolute path to sensor definition file.
+
+    Returns
+    -------
+    locs : numpy.array
+        Sensor coil location.
     """
 
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
@@ -177,12 +185,48 @@ def read_sns(sns_fname):
     return locs
 
 
+def reset_origin(lpa, rpa, pts):
+    """Reset origin of head coordinate system.
+
+    Resets the origin to mid-distance of peri-auricular points
+    (mne manual, pg. 97)
+
+    Parameters
+    ----------
+    lpa : numpy.array
+        Left peri-auricular point coordinate.
+    rpa : numpy.array
+        Right peri-auricular point coordinate.
+    pts : numpy.array
+        Points to be recentered.
+
+    Returns
+    -------
+    pts : numpy.array
+        Points recentered based on the peri-auricular points.
+    """
+    origin = (lpa + rpa) / 2
+    pts -= origin
+    return pts
+
+
 def transform_pts(pts, scale=True):
     """KIT-Neuromag transformer
 
     This is used to orient points in Neuromag coordinates.
     The KIT system is x,y,z in [mm].
     The transformation to Neuromag-like space is -y,x,z in [m].
+
+    Parameters
+    ----------
+
+    pts : numpy.array
+        Points to be transformed.
+
+    Returns
+    -------
+    pts : numpy.array
+        Points transformed to Neuromag-like head space (RAS).
     """
     if scale:
         pts /= 1e3

@@ -1,4 +1,4 @@
-"""Data Equivalence Test"""
+"""Data and Channel Location Equivalence Tests"""
 
 # Author: Teon Brooks <teon@nyu.edu>
 #
@@ -8,8 +8,8 @@ import os
 import inspect
 from numpy.testing import assert_array_almost_equal
 import scipy.io
-from ....fiff import Raw, pick_types
-from ...kit import kit
+from mne.fiff import Raw, pick_types
+import mne.fiff.kit.kit as kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = os.path.dirname(os.path.abspath(FILE))
