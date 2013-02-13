@@ -22,6 +22,7 @@ cuda_capable = False
 cuda_multiply_inplace_complex128 = None
 cuda_halve_value_complex128 = None
 cuda_real_value_complex128 = None
+cuda_has_cula = False
 requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
@@ -101,6 +102,17 @@ def init_cuda():
                         # Figure out limit for CUDA FFT calculations
                         logger.info('Enabling CUDA with %s available memory'
                                     % sizeof_fmt(mem_get_info()[0]))
+    if cuda_capable is True:
+        # now let's see if CULA is installed
+        global cuda_has_cula
+        try:
+            from scikits.cuda import linalg
+            linalg.svd(gpuarray.to_gpu(np.eye(10)))
+        except Exception:
+            cuda_has_cula = False
+        else:
+            cuda_has_cula = True
+
     requires_cuda = np.testing.dec.skipif(not cuda_capable,
                                           'CUDA not initialized')
 
