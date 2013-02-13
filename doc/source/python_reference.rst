@@ -327,6 +327,7 @@ Forward Modeling
    read_surface
    write_bem_surface
    write_trans
+   sensitivity_map
 
 .. currentmodule:: mne.forward
 
