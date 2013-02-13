@@ -24,12 +24,10 @@ proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
 data_path = sample.data_path()
-fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
-sensitivity_map_fname_lh = op.join(data_path, 'MEG', 'sample',
-                                'sample_audvis-meg-oct-6-fwd-sensmap-lh.w')
-sensitivity_map_fname_rh = op.join(data_path, 'MEG', 'sample',
-                                'sample_audvis-meg-oct-6-fwd-sensmap-rh.w')
+sample_path = op.join(data_path, 'MEG', 'sample')
+fwd_fname = op.join(sample_path, 'sample_audvis-meg-oct-6-fwd.fif')
+sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
+ecg_proj_fname = op.join(sample_path, 'sample_audvis_ecg_proj.fif')
 
 tempdir = _TempDir()
 
@@ -152,9 +150,10 @@ def test_compute_proj_raw():
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    w_lh = mne.read_w(sensitivity_map_fname_lh)
-    w_rh = mne.read_w(sensitivity_map_fname_rh)
-    w = np.r_[w_lh['data'], w_rh['data']]
-    projs = read_proj(proj_fname)
-    stc = mne.proj.sensitivity_map(fwd, projs=projs)
-    assert_array_almost_equal(stc.data.ravel(), w, decimal=1)
+    ecg_projs = read_proj(ecg_proj_fname)
+    for ch_type in ['grad', 'mag', 'eeg']:
+        w_lh = mne.read_w(sensmap_fname % (ch_type, 'lh'))
+        w_rh = mne.read_w(sensmap_fname % (ch_type, 'rh'))
+        w = np.r_[w_lh['data'], w_rh['data']]
+        stc = mne.proj.sensitivity_map(fwd, projs=ecg_projs)
+        assert_array_almost_equal(stc.data.ravel(), w, decimal=1)

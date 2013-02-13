@@ -1,7 +1,7 @@
 """
-===================================================
-Reading a forward operator a.k.a. lead field matrix
-===================================================
+=======================================================
+Reading a forward operator and display sensitivity maps
+=======================================================
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
@@ -13,15 +13,19 @@ import mne
 from mne.datasets import sample
 data_path = sample.data_path()
 
-fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
+fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 
 fwd = mne.read_forward_solution(fname, surf_ori=True)
 leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape
 
+grad_map = mne.proj.sensitivity_map(fwd, ch_type='grad')
+mag_map = mne.proj.sensitivity_map(fwd, ch_type='mag')
+eeg_map = mne.proj.sensitivity_map(fwd, ch_type='eeg')
+
 ###############################################################################
-# Show result
+# Show gain matrix a.k.a. leadfield matrix with sensitivy map
 
 import pylab as pl
 pl.matshow(leadfield[:, :500])
@@ -30,18 +34,6 @@ pl.ylabel('sensors')
 pl.title('Lead field matrix')
 pl.show()
 
-# 3D source space
-lh_points = fwd['src'][0]['rr']
-lh_faces = fwd['src'][0]['use_tris']
-rh_points = fwd['src'][1]['rr']
-rh_faces = fwd['src'][1]['use_tris']
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
-
-mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                     lh_faces)
-mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                     rh_faces)
+grad_map.plot(subject='sample', surface='white', fmin=0.2, fmid=0.6, fmax=1)
+mag_map.plot(subject='sample', fmin=0.2, fmid=0.6, fmax=1)
+eeg_map.plot(subject='sample', surface='white', fmin=0.2, fmid=0.6, fmax=1)
