@@ -17,6 +17,7 @@ from .cov import _check_n_samples
 from .forward import is_fixed_orient
 from .source_estimate import SourceEstimate
 from .fiff.proj import make_projector, make_eeg_average_ref_proj
+from .fiff import FIFF
 
 
 def read_proj(fname):
@@ -254,9 +255,10 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         List of projection vectors.
     ch_type : 'grad' | 'mag' | 'eeg'
         The type of sensors to use.
-    mode : 'free' | 'fixed' | 'ratio' | 'radiality'
-        The type of sensitivity map computed. See manual. It corresponds
-        respectively to the argument --map 1, 2, 3 or 4 of the command
+    mode : str
+        The type of sensitivity map computed. See manual. Should be 'free',
+        'fixed', 'ratio', 'radiality', 'angle', 'remaining', or 'dampening'
+        corresponding to the argument --map 1, 2, 3, 4, or 5 of the command
         mne_sensitivity_map.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any (default).
@@ -270,14 +272,21 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         The sensitivity map as a SourceEstimate instance for
         visualization.
     """
+    # check strings
     if not ch_type in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
                           % ch_type)
+    if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
+                    'remaining', 'dampening']:
+        raise ValueError('Unknown mode type (got %s)' % mode)
+
+    # check forward
     if not fwd['surf_ori']:
         raise ValueError('fwd should be surface oriented')
     if is_fixed_orient(fwd):
         raise ValueError('fwd should not have fixed orientation')
 
+    # limit forward
     if ch_type == 'eeg':
         fwd = pick_types_forward(fwd, meg=False, eeg=True, exclude=exclude)
     else:
@@ -285,22 +294,30 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     gain = fwd['sol']['data']
 
-    # Make sure EEG has average (can re-add without issue)
+    # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None:
-            projs = []
-        projs += [make_eeg_average_ref_proj(fwd['info'])]
+        if projs is None or \
+                not any([p['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF
+                         for p in projs]):
+            eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
+        projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
     if projs is not None:
-        proj, ncomp, _ = make_projector(projs, fwd['sol']['row_names'],
-                                        include_active=True)
-        if ncomp > 0:
+        proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
+                                              include_active=True)
+        # do projection for most types
+        if mode not in ['angle', 'remaining', 'dampening']:
             gain = np.dot(proj, gain)
+
+    # can only run the last couple methods if there are projectors
+    elif mode in ['angle', 'remaining', 'dampening']:
+        raise ValueError('No projectors used, cannot compute %s' % mode)
 
     n_sensors, n_dipoles = gain.shape
     n_locations = n_dipoles // 3
     sensitivity_map = np.empty(n_locations)
+
     for k in xrange(n_locations):
         gg = gain[:, 3 * k:3 * (k + 1)]
         if mode != 'fixed':
@@ -316,8 +333,19 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
             elif mode == 'radiality':
                 sensitivity_map[k] = 1. - (gz / s[0])
             else:
-                raise ValueError('Unknown mode type (got %s)' % mode)
-    # don't need to normalize ratio or radiality
+                if mode == 'angle':
+                    co = linalg.norm(np.dot(gg[:, 2], U))
+                    sensitivity_map[k] = co / gz
+                else:
+                    p = linalg.norm(np.dot(proj, gg[:, 2]))
+                    if mode == 'remaining':
+                        sensitivity_map[k] = p / gz
+                    elif mode == 'dampening':
+                        sensitivity_map[k] = 1. - p / gz
+                    else:
+                        raise ValueError('Unknown mode type (got %s)' % mode)
+
+    # only normalize fixed and free methods
     if mode in ['fixed', 'free']:
         sensitivity_map /= np.max(np.abs(sensitivity_map))
 
