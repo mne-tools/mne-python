@@ -347,7 +347,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # only normalize fixed and free methods
     if mode in ['fixed', 'free']:
-        sensitivity_map /= np.max(np.abs(sensitivity_map))
+        sensitivity_map /= np.max(sensitivity_map)
 
     vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
     stc = SourceEstimate(sensitivity_map[:, np.newaxis],
