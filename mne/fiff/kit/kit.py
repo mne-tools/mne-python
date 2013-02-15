@@ -322,6 +322,7 @@ def _get_sqd_params(rawfile):
             raise NotImplementedError
     return sqd
 
+
 def _get_sqd_data(rawfile, sqd):
     """Extracts the data from the sqd file.
 

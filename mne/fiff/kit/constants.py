@@ -59,7 +59,7 @@ KIT_NY.HPF_BIT = 4  # stored in Bit 4-5
 KIT_NY.HPF_MASK = 2 ** 4 + 2 ** 5
 KIT_NY.LPF_BIT = 8  # stored in Bit 8-10
 KIT_NY.LPF_MASK = 2 ** 8 + 2 ** 9 + 2 ** 10
-KIT_NY.BEF_BIT = 14 # stored in Bit 14-15
+KIT_NY.BEF_BIT = 14  # stored in Bit 14-15
 KIT_NY.BEF_MASK = 2 ** 14 + 2 ** 15
 # HPF options: 0:0, 1:1, 2:3
 KIT_NY.HPFS = [0, 1, 3]
