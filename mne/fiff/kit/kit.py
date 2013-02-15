@@ -61,13 +61,12 @@ class RawKIT(Raw):
         elp_fname = elp_fname
         hsp_fname = hsp_fname
         sns_fname = sns_fname
-        logger.info('Reading raw data from %s...' % input_fname)
-        if not data:
-            self._data = sqd['data']
-        else:
-            self._data = data
         logger.info('Creating Raw.info structure...')
-        assert len(self._data) == sqd['nchan']
+
+        # Raw attributes
+        self.verbose = verbose
+        self._preloaded = True
+        self.fids = list()
 
         # Create raw.info dict for raw fif object with SQD data
         self.info = {}
@@ -95,14 +94,6 @@ class RawKIT(Raw):
                                                       hsp_fname=hsp_fname)
         self.info['dev_head_t']['trans'] = fit_matched_pts(tgt_pts=mrk,
                                                            src_pts=elp)
-
-        # Create a synthetic channel
-        trig_chs = self._data[stim, :]
-        trig_chs = trig_chs > stimthresh
-        trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
-        trig_chs = trig_chs * trig_vals
-        stim_ch = trig_chs.sum(axis=0)
-        self._data = np.vstack((self._data, stim_ch))
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -183,13 +174,25 @@ class RawKIT(Raw):
             else:
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
             self.info['chs'].append(chan_info)
-
         self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
                                  ch_names['STIM'])
 
-        self.verbose = verbose
-        self._preloaded = True
-        self.fids = list()
+        logger.info('Reading raw data from %s...' % input_fname)
+        if not data:
+            self._data = _get_sqd_data(rawfile=input_fname, sqd=sqd)
+        else:
+            self._data = data
+        assert len(self._data) == sqd['nchan']
+
+        # Create a synthetic channel
+        trig_chs = self._data[stim, :]
+        trig_chs = trig_chs > stimthresh
+        trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
+        trig_chs = trig_chs * trig_vals
+        stim_ch = trig_chs.sum(axis=0)
+        self._data = np.vstack((self._data, stim_ch))
+
+        # Add time info
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1)
         self._times /= self.info['sfreq']
@@ -201,7 +204,7 @@ class RawKIT(Raw):
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim, data=None, stimthresh=3.5):
+                 stim, data=None, stimthresh=3.5, verbose=None):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -222,12 +225,13 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
         Array-like data to use in lieu of data from sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
-
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
                   elp_fname=elp_fname, hsp_fname=hsp_fname,
                   sns_fname=sns_fname, stim=stim, data=data,
-                  stimthresh=stimthresh)
+                  stimthresh=stimthresh, verbose=verbose)
 
 
 def _get_sqd_params(rawfile):
@@ -235,8 +239,13 @@ def _get_sqd_params(rawfile):
 
     Parameters
     ----------
-    rawfile: str
-        raw sqd file to be read
+    rawfile : str
+        Raw sqd file to be read.
+
+    Returns
+    -------
+    sqd : dict
+        A dict containing all the sqd parameter settings.
     """
     sqd = {}
     sqd['rawfile'] = rawfile
@@ -311,7 +320,25 @@ def _get_sqd_params(rawfile):
             sqd['nsamples'] = unpack('i', fid.read(sqd['KIT'].INT))[0]
         else:
             raise NotImplementedError
+    return sqd
 
+
+def _get_sqd_data(rawfile, sqd):
+    """Extracts the data from the sqd file.
+
+    Parameters
+    ----------
+    rawfile : str
+        Raw sqd file to be read.
+    sqd : dict
+        A dict of parameters for the rawfile.
+
+    Returns
+    -------
+    sqd : dict
+        A dict containing all the sqd parameter settings.
+    """
+    with open(rawfile, 'r') as fid:
         # extract data
         fid.seek(sqd['KIT'].DATA_OFFSET)
         # data offset info
@@ -326,5 +353,5 @@ def _get_sqd_params(rawfile):
         conv_factor = np.array((sqd['KIT'].VOLTAGE_RANGE /
                                 sqd['KIT'].DYNAMIC_RANGE) *
                                sqd['sensor_gain'], ndmin=2)
-        sqd['data'] = (conv_factor * data).T
-    return sqd
+        data = (conv_factor * data).T
+    return data

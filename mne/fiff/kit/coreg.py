@@ -196,7 +196,7 @@ def reset_origin(lpa, rpa, pts):
         Left peri-auricular point coordinate.
     rpa : numpy.array, shape = (1, 3)
         Right peri-auricular point coordinate.
-    pts : numpy.array
+    pts : numpy.array, shape = (1, 3)
         Points to be recentered.
 
     Returns
@@ -218,7 +218,6 @@ def transform_pts(pts, scale=True):
 
     Parameters
     ----------
-
     pts : numpy.array, shape = (n_points, 3)
         Points to be transformed.
 
