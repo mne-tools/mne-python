@@ -1,6 +1,5 @@
 """Conversion tool from SQD to FIF
 
-sqd_sqd class is adapted from Yoshiaki Adachi's Meginfo2.cpp
 RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 """
