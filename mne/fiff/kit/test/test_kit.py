@@ -8,8 +8,7 @@ import os
 import inspect
 from numpy.testing import assert_array_almost_equal
 import scipy.io
-from mne.fiff import Raw, pick_types
-import mne.fiff.kit.kit as kit
+from mne.fiff import Raw, pick_types, kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = os.path.dirname(os.path.abspath(FILE))

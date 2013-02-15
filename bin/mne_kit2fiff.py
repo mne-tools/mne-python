@@ -7,8 +7,8 @@ example usage: mne_kit2fiff.py --input input.sqd --output output.fif
 
 """
 
-from mne.fiff.kit import read_raw_kit
 import sys
+from mne.fiff.kit import read_raw_kit
 
 if __name__ == '__main__':
 

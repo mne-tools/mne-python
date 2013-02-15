@@ -25,9 +25,9 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
 
     Returns
     -------
-    mrk_points : np.array
+    mrk_points : numpy.array, shape = (n_points, 3)
         Array of 5 points by coordinate (x,y,z) from marker measurement.
-    elp_points : np.array
+    elp_points : numpy.array, shape = (n_points, 3)
         Array of 5 points by coordinate (x,y,z) from digitizer laser point.
     dig : dict
         A dictionary containing the mrk_points, elp_points, and hsp_points in
@@ -86,7 +86,6 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
         point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = point
         dig.append(point_dict)
-
     return mrk_points, elp_points, dig
 
 
@@ -100,7 +99,7 @@ def read_mrk(mrk_fname):
 
     Returns
     -------
-    mrk_points : numpy.array
+    mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space.
     """
     with open(mrk_fname, 'r') as fid:
@@ -130,7 +129,7 @@ def read_elp(elp_fname):
 
     Returns
     -------
-    elp_points : numpy.array
+    elp_points : numpy.array, shape = (n_points, 3)
         Fiducial and marker points in Polhemus head space.
     """
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
@@ -149,7 +148,7 @@ def read_hsp(hsp_fname):
 
     Returns
     -------
-    hsp_points : numpy.array
+    hsp_points : numpy.array, shape = (n_points, 3)
         Headshape points in Polhemus head space.
     """
 
@@ -165,7 +164,7 @@ def read_hsp(hsp_fname):
 
 
 def read_sns(sns_fname):
-    """SNS coordinate extraction in MEG space.
+    """Sensor coordinate extraction in MEG space.
 
     Parameters
     ----------
@@ -174,7 +173,7 @@ def read_sns(sns_fname):
 
     Returns
     -------
-    locs : numpy.array
+    locs : numpy.array, shape = (n_points, 3)
         Sensor coil location.
     """
 
@@ -193,20 +192,20 @@ def reset_origin(lpa, rpa, pts):
 
     Parameters
     ----------
-    lpa : numpy.array
+    lpa : numpy.array, shape = (1, 3)
         Left peri-auricular point coordinate.
-    rpa : numpy.array
+    rpa : numpy.array, shape = (1, 3)
         Right peri-auricular point coordinate.
     pts : numpy.array
         Points to be recentered.
 
     Returns
     -------
-    pts : numpy.array
+    pts : numpy.array, shape = (n_points, 3)
         Points recentered based on the peri-auricular points.
     """
     origin = (lpa + rpa) / 2
-    pts -= origin
+    pts = pts - origin
     return pts
 
 
@@ -220,17 +219,17 @@ def transform_pts(pts, scale=True):
     Parameters
     ----------
 
-    pts : numpy.array
+    pts : numpy.array, shape = (n_points, 3)
         Points to be transformed.
 
     Returns
     -------
-    pts : numpy.array
+    pts : numpy.array, shape = (n_points, 3)
         Points transformed to Neuromag-like head space (RAS).
     """
     if scale:
-        pts /= 1e3
+        pts = pts / 1e3
     pts = np.array(pts, ndmin=2)
     pts = pts[:, [1, 0, 2]]
-    pts[:, 0] *= -1
+    pts[:, 0] = pts[:, 0] * -1
     return pts
