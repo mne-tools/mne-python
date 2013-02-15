@@ -768,7 +768,7 @@ def _read_bti_header(pdf_fname, config_fname):
     if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
         header_position = check_value
 
-    # Check for alignment issues
+    # Check header position for alignment issues
     if ((header_position % 8) != 0):
         header_position += (8 - (header_position % 8))
 
