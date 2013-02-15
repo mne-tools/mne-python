@@ -159,17 +159,15 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
                 raise IOError("Required file not found: %r" % src)
 
     # src
-    paths['ico'] = icos = []
     paths['src'] = src = []
-    basename = '{sub}-ico-{ico}-src.fif'
+    basename = '{sub}-{kind}-src.fif'
     path = os.path.join(bem_dir, basename)
-    p = re.compile('\A' + basename.format(sub=subject, ico='(\d+)'))
+    p = re.compile('\A' + basename.format(sub=subject, kind='(.+)'))
     for name in os.listdir(bem_dir.format(sub=subject)):
         match = p.match(name)
         if match:
-            ico = int(match.group(1))
-            icos.append(ico)
-            fname = path.format(sub='{sub}', ico=ico)
+            kind = match.group(1)
+            fname = path.format(sub='{sub}', kind=kind)
             src.append(fname)
     if len(src) == 0:
         raise IOError("No source space found.")
@@ -574,7 +572,7 @@ class MriHeadFitter(HeadMriFitter):
         return trans
 
     def save_all(self, s_to=None, surf=True, homog=True,
-                 setup_fwd=True, overwrite=False, trans_fname=None):
+                 overwrite=False, trans_fname=None):
         """
         Save the scaled MRI as well as the trans file
 
@@ -686,32 +684,6 @@ class MriHeadFitter(HeadMriFitter):
             src = fname.format(sub=s_from)
             dest = fname.format(sub=s_to)
             shutil.copyfile(src, dest)
-
-        # run mne_setup_forward_model
-        if setup_fwd:
-            for ico in paths['ico']:
-                self._mne_setup_forward_model(s_to, ico, surf=surf,
-                                              homog=homog)
-
-    def _mne_setup_forward_model(self, s_to, ico, surf=True, homog=True):
-        "Run mne_setup_forward_model command"
-        env = os.environ.copy()
-        env['SUBJECTS_DIR'] = self.subjects_dir
-        cmd = ["mne_setup_forward_model", "--subject", s_to, "--ico", str(ico)]
-        if surf:
-            cmd.append('--surf')
-        if homog:
-            cmd.append('--homog')
-
-        try:
-            out = check_output(cmd)
-        except CalledProcessError as err:
-            title = 'Error executing mne_setup_forward_model'
-            print os.linesep.join((title, '=' * len(title), err.output))
-            raise
-        else:
-            title = 'mne_setup_forward_model'
-            print os.linesep.join((title, '=' * len(title), out))
 
     def reset(self):
         self._t_mri_origin = translation(*(-self.mri_fid.nas))
