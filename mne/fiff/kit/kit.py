@@ -57,10 +57,6 @@ class RawKIT(Raw):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         sqd = _get_sqd_params(input_fname)
-        mrk_fname = mrk_fname
-        elp_fname = elp_fname
-        hsp_fname = hsp_fname
-        sns_fname = sns_fname
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -178,11 +174,8 @@ class RawKIT(Raw):
                                  ch_names['STIM'])
 
         logger.info('Reading raw data from %s...' % input_fname)
-        if not data:
-            self._data = _get_sqd_data(rawfile=input_fname, sqd=sqd)
-        else:
-            self._data = data
-        assert len(self._data) == sqd['nchan']
+        self._data = _get_sqd_data(rawfile=input_fname, sqd=sqd)
+        assert len(self._data) == self.info['nchan']
 
         # Create a synthetic channel
         trig_chs = self._data[stim, :]
@@ -190,7 +183,7 @@ class RawKIT(Raw):
         trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
         trig_chs = trig_chs * trig_vals
         stim_ch = trig_chs.sum(axis=0)
-        self._data = np.vstack((self._data, stim_ch))
+        self._data[-1, :] = stim_ch
 
         # Add time info
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
@@ -307,7 +300,7 @@ def _get_sqd_params(rawfile):
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
         sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
                          [:sqd['KIT'].n_sens, 1])
-        sqd['sensor_gain'] = np.ones(sqd['nchan'])
+        sqd['sensor_gain'] = np.ones(sqd['nchan'] + 1)  # extra ch for STI 014
         sqd['sensor_gain'][:sqd['KIT'].n_sens] = sensitivities
 
         fid.seek(sqd['KIT'].SAMPLE_INFO)
@@ -345,13 +338,15 @@ def _get_sqd_data(rawfile, sqd):
         data_offset = unpack('i', fid.read(sqd['KIT'].INT))[0]
 
         fid.seek(data_offset)
-        data = np.fromfile(fid, dtype='h', count=sqd['nsamples'] *
-                           sqd['nchan'])
-        data = np.reshape(data, (sqd['nsamples'], sqd['nchan']))
+        data = np.empty((sqd['nsamples'], sqd['nchan'] + 1))
+        count = sqd['nsamples'] * sqd['nchan']
+        data[:, :sqd['nchan']] = np.fromfile(fid, dtype='h', count=count
+                                             ).reshape((sqd['nsamples'],
+                                                        sqd['nchan']))
         # amplifier applies only to the sensor channels
         sqd['sensor_gain'][:sqd['KIT'].n_sens] /= sqd['amp_gain']
         conv_factor = np.array((sqd['KIT'].VOLTAGE_RANGE /
                                 sqd['KIT'].DYNAMIC_RANGE) *
                                sqd['sensor_gain'], ndmin=2)
-        data = (conv_factor * data).T
-    return data
+        data *= conv_factor
+    return data.T
