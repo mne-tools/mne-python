@@ -11,6 +11,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 import time
 import logging
 from struct import unpack
+from os import SEEK_CUR
 import numpy as np
 from scipy.linalg import norm
 from ...transforms.coreg import fit_matched_pts
@@ -247,15 +248,12 @@ def _get_sqd_params(rawfile):
         fid.seek(sqd['KIT'].BASIC_INFO)
         basic_offset = unpack('i', fid.read(sqd['KIT'].INT))[0]
         fid.seek(basic_offset)
-
+        # skips version, revision, sysid
+        fid.seek(sqd['KIT'].INT * 3, SEEK_CUR)
         # basic info
-        _ = unpack('i', fid.read(sqd['KIT'].INT))[0]  # version
-        _ = unpack('i', fid.read(sqd['KIT'].INT))[0]  # revision
-        _ = unpack('i', fid.read(sqd['KIT'].INT))[0]  # sysid
         sysname = unpack('128s', fid.read(sqd['KIT'].STRING))
         sysname = sysname[0].split('\n')[0]
-        modelname = unpack('128s', fid.read(sqd['KIT'].STRING))
-        modelname = modelname[0].split('\n')[0]
+        fid.seek(sqd['KIT'].STRING, SEEK_CUR)  # skips modelname
         sqd['nchan'] = unpack('i', fid.read(sqd['KIT'].INT))[0]
 
         if sysname == 'New York University Abu Dhabi':
