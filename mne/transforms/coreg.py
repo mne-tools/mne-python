@@ -6,12 +6,14 @@
 
 from copy import deepcopy
 import fnmatch
+from glob import iglob
 import os
 import re
 import shutil
 from subprocess import check_output, CalledProcessError
 
 import logging
+from mne.utils import get_config
 logger = logging.getLogger('mne')
 
 import numpy as np
@@ -30,6 +32,52 @@ from ..surface import read_surface, write_surface, read_bem_surfaces, \
 from ..utils import get_subjects_dir
 from .transforms import apply_trans, rotation, scaling, translation, write_trans
 
+
+
+def create_default_subject(subject='fsaverage', mne_root=None, fs_home=None,
+                           subjects_dir=None):
+    """Create a default subject in subjects_dir
+
+    Create a copy of fsaverage from the freesurfer directory in subjects_dir
+    and add auxiliary files provided by the mne package.
+
+    Parameters
+    ----------
+    subject : str
+        The name for the subject to create.
+    mne_root : None | str
+        The mne root directory (only needed if mne_root is not specified as
+        environment variable)
+    fs_home : None | str
+        The freesurfer home directory (only needed if fs_home is not specified as
+        environment variable)
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    fs_home = get_config('FREESURFER_HOME', fs_home, True)
+    mne_root = get_config('MNE_ROOT', mne_root, True)
+
+    dest = os.path.join(subjects_dir, subject)
+    if os.path.exists(dest):
+        err = ("%r already exists in subjects_dir "
+               "%r" % (subject, subjects_dir))
+        raise IOError(err)
+
+    # copy fsaverage from freesurfer
+    fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
+    shutil.copytree(fs_src, dest)
+
+    # add files from mne
+    dest_bem = os.path.join(dest, 'bem')
+    src_pattern = os.path.join(mne_root, 'share', 'mne', 'mne_analyze', 'fsaverage', '*')
+    for src in iglob(src_pattern):
+        shutil.copy(src, dest_bem)
+
+    # run mne setup commands
+    setup_mri(subject, subjects_dir=subjects_dir)
+    watershed_bem(subject, subjects_dir=subjects_dir)
 
 
 def fit_matched_pts(src_pts, tgt_pts, tol=None, params=False):
