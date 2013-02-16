@@ -258,8 +258,8 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     mode : str
         The type of sensitivity map computed. See manual. Should be 'free',
         'fixed', 'ratio', 'radiality', 'angle', 'remaining', or 'dampening'
-        corresponding to the argument --map 1, 2, 3, 4, or 5 of the command
-        mne_sensitivity_map.
+        corresponding to the argument --map 1, 2, 3, 4, 5, 6 and 7 of the
+        command mne_sensitivity_map.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any (default).
         If 'bads', exclude channels in fwd['info']['bads'].
