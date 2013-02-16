@@ -169,8 +169,6 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
             kind = match.group(1)
             fname = path.format(sub='{sub}', kind=kind)
             src.append(fname)
-    if len(src) == 0:
-        raise IOError("No source space found.")
 
     # labels
     paths['lbl'] = lbls = []
