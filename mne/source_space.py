@@ -3,12 +3,13 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
+import os
 import os.path as op
-from scipy import sparse, linalg
-
 import logging
 logger = logging.getLogger('mne')
+
+import numpy as np
+from scipy import sparse, linalg
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -495,6 +496,49 @@ def label_src_vertno_sel(label, src):
 
 def _get_vertno(src):
     return [s['vertno'] for s in src]
+
+
+def setup_mri(subject, subjects_dir=None):
+    """Wrapper for the mne_setup_mri command line utility
+
+    Parameters
+    ----------
+    subject : str
+        The mri subject.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    cmd = ["mne_setup_mri", "--subject", subject]
+    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = subjects_dir
+    run_subprocess(cmd, env=env)
+
+
+def watershed_bem(subject, atlas=False, subjects_dir=None):
+    """Wrapper for the mne_watershed_bem command line utility
+
+    Parameters
+    ----------
+    subject : str
+        The mri subject.
+    atlas : bool
+        Employ atlas information to correct the segmentation.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    cmd = ["mne_watershed_bem", "--subject", subject]
+    if atlas:
+        cmd.append('--atlas')
+    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = subjects_dir
+    run_subprocess(cmd, env=env)
+
+    # create symlinks
+    bemdir = os.path.join(subjects_dir, subject, 'bem')
+    src = os.path.join('watershed', '%s_%%s_surface') % subject
+    dest = os.path.join(bemdir, '%s.surf')
+    for name in ['inner_skull', 'outer_skull', 'outer_skin']:
+        os.symlink(src % name, dest % name)
 
 
 ###############################################################################
