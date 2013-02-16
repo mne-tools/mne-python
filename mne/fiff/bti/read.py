@@ -13,7 +13,7 @@ def _unpack_matrix(fid, format, rows, cols, dtype):
     """ Aux Function """
     out = np.zeros((rows, cols), dtype=dtype)
     bsize = struct.calcsize(format)
-    string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
+    string = fid.read(bsize)
     data = struct.unpack(format, string)
     iter_mat = [(r, c) for r in xrange(rows) for c in xrange(cols)]
     for idx, (row, col) in enumerate(iter_mat):
@@ -25,7 +25,7 @@ def _unpack_matrix(fid, format, rows, cols, dtype):
 def _unpack_simple(fid, format, count):
     """ Aux Function """
     bsize = struct.calcsize(format)
-    string = os.read(fid, bsize) if isinstance(fid, int) else fid.read(bsize)
+    string = fid.read(bsize)
     data = list(struct.unpack(format, string))
 
     out = data if count < 2 else list(data)
