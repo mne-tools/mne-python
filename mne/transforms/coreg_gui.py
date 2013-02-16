@@ -20,9 +20,9 @@ import traits.api as traits
 from traitsui.api import View, Item, Group, HGroup, VGroup
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import MriHeadFitter, HeadMriFitter, BemGeom
+from .coreg import MriHeadFitter, HeadMriFitter, BemGeom, trans_fname
 from ..fiff import Raw, FIFF, read_fiducials, write_fiducials
-from ..utils import get_subjects_dir
+from ..utils import get_config, get_subjects_dir
 
 
 
@@ -404,10 +404,13 @@ class HeadMriCoreg(HeadViewer):
     subject : str
         name of the mri subject.
         Can be None if the raw file-name starts with "{subject}_".
+    trans_fname : str
+        Filename pattern for the trans file. "{raw_dir}" will be formatted to
+        the directory containing the raw file, and "{subject}" will be
+        formatted to the subject name.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
-
     """
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
@@ -435,8 +438,8 @@ class HeadMriCoreg(HeadViewer):
                 HGroup('save', show_labels=False),
                 )
 
-    def __init__(self, raw, subject=None, subjects_dir=None):
-        self.fitter = HeadMriFitter(raw, subject, subjects_dir=subjects_dir)
+    def __init__(self, raw, subject=None, trans_fname=trans_fname, subjects_dir=None):
+        self.fitter = HeadMriFitter(raw, subject, trans_fname, subjects_dir)
         self._last_fit = None
 
         traits.HasTraits.__init__(self)
@@ -519,10 +522,13 @@ class MriHeadCoreg(HeadViewer):
         Name of the the subject for which the MRI is destined (used to
         save MRI and in the trans file's file name).
         Can be None if the raw file-name starts with "{subject}_".
+    trans_fname : str
+        Filename pattern for the trans file. "{raw_dir}" will be formatted to
+        the directory containing the raw file, and "{subject}" will be
+        formatted to s_to.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
-
     """
     # parameters
     nasion = traits.Array(float, (1, 3), label='Digitizer Position Adjustment')
@@ -565,8 +571,9 @@ class MriHeadCoreg(HeadViewer):
                 HGroup('s_to', HGroup('save', show_labels=False)),
                 )
 
-    def __init__(self, raw, s_from=None, s_to=None, subjects_dir=None):
-        self.fitter = MriHeadFitter(raw, s_from, subjects_dir=subjects_dir)
+    def __init__(self, raw, s_from=None, s_to=None, trans_fname=trans_fname,
+                 subjects_dir=None):
+        self.fitter = MriHeadFitter(raw, s_from, trans_fname, subjects_dir)
 
         if s_to is None:
             try:

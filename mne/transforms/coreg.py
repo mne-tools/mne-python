@@ -26,12 +26,16 @@ from scipy.spatial.distance import cdist
 from ..fiff import Raw, FIFF
 from ..fiff.meas_info import read_fiducials, write_fiducials
 from ..label import read_label, Label
-from ..source_space import read_source_spaces, write_source_spaces
+from ..source_space import read_source_spaces, write_source_spaces, \
+                           setup_mri, watershed_bem
 from ..surface import read_surface, write_surface, read_bem_surfaces, \
                       write_bem_surface
 from ..utils import get_subjects_dir
 from .transforms import apply_trans, rotation, scaling, translation, write_trans
 
+
+
+trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 
 
 def create_default_subject(subject='fsaverage', mne_root=None, fs_home=None,
@@ -251,12 +255,15 @@ class HeadMriFitter(object):
     subject : None | str
         name of the mri subject (e.g., 'fsaverage').
         Can be None if the raw file-name starts with "{subject}_".
+    trans_fname : str
+        Filename pattern for the trans file. "{raw_dir}" will be formatted to
+        the directory containing the raw file, and "{subject}" will be
+        formatted to the subject name.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
-
     """
-    def __init__(self, raw, subject=None, subjects_dir=None):
+    def __init__(self, raw, subject=None, trans_fname=trans_fname, subjects_dir=None):
         subjects_dir = get_subjects_dir(subjects_dir, True)
 
         # resolve raw
@@ -300,7 +307,7 @@ class HeadMriFitter(object):
         self._t_dig_origin = translation(*(-self.dig_fid.nas))
 
         # path patterns
-        self._trans_fname = os.path.join(raw_dir, '{subject}-trans.fif')
+        self._trans_fname = trans_fname
 
         # store attributes
         self._raw_dir = raw_dir
@@ -431,7 +438,7 @@ class HeadMriFitter(object):
     def get_trans_fname(self, subject=None):
         if subject is None:
             subject = self.subject
-        return self._trans_fname.format(subject=subject)
+        return self._trans_fname.format(raw_dir=self._raw_dir, subject=subject)
 
     def plot(self, size=(512, 512), fig=None):
         if fig is None:
@@ -526,6 +533,10 @@ class MriHeadFitter(HeadMriFitter):
         path to a raw file containing the digitizer data.
     s_from : str
         name of the mri subject providing the mri (e.g., 'fsaverage').
+    trans_fname : str
+        Filename pattern for the trans file. "{raw_dir}" will be formatted to
+        the directory containing the raw file, and "{subject}" will be
+        formatted to s_to.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -533,10 +544,10 @@ class MriHeadFitter(HeadMriFitter):
     See Also
     --------
     HeadMriFitter : Create a coregistration -trans file without scaling the mri.
-
     """
-    def __init__(self, raw, s_from, subjects_dir=None):
+    def __init__(self, raw, s_from, trans_fname=trans_fname, subjects_dir=None):
         super(MriHeadFitter, self).__init__(raw, subject=s_from,
+                                            trans_fname=trans_fname,
                                             subjects_dir=subjects_dir)
 
         self._paths = find_mri_paths(s_from, self.subjects_dir)
