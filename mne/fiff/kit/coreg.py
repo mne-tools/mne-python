@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from struct import unpack
+from os import SEEK_CUR
 import re
 import numpy as np
 from ..constants import FIFF
@@ -12,7 +13,7 @@ from .constants import KIT
 
 
 def get_points(mrk_fname, elp_fname, hsp_fname):
-    """Extracts dig points, elp, and mrk points from files needed for coreg.
+    """Extracts dig points, elp, and mrk points from files needed for coreg
 
     Parameters
     ----------
@@ -106,21 +107,20 @@ def read_mrk(mrk_fname):
         fid.seek(KIT.MRK_INFO)
         mrk_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(mrk_offset)
-        _ = fid.read(KIT.INT)  # match_done
-        _ = fid.read(2 * KIT.DOUBLE * 4 ** 2)  # meg_to_mri and mri_to_meg
+        # skips match_done, meg_to_mri and mri_to_meg
+        fid.seek(KIT.INT + (2 * KIT.DOUBLE * 4 ** 2), SEEK_CUR)
         mrk_count = unpack('i', fid.read(KIT.INT))[0]
         pts = []
         for _ in range(mrk_count):
-            _ = fid.read(KIT.INT * 4)  # mri_mrk_type, meg_mrk_type,
-                                        # mri_mrk_done, meg_mrk_done
-            _ = fid.read(KIT.DOUBLE * 3)  # mri_marker
+            # skips mri/meg mrk_type and done, mri_marker
+            fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
             pts.append(np.fromfile(fid, dtype='d', count=3))
         mrk_points = np.array(pts)
     return mrk_points
 
 
 def read_elp(elp_fname):
-    """ELP point extraction in Polhemus head space.
+    """ELP point extraction in Polhemus head space
 
     Parameters
     ----------
@@ -139,7 +139,7 @@ def read_elp(elp_fname):
 
 
 def read_hsp(hsp_fname):
-    """HSP point extraction in Polhemus head space.
+    """HSP point extraction in Polhemus head space
 
     Parameters
     ----------
@@ -164,7 +164,7 @@ def read_hsp(hsp_fname):
 
 
 def read_sns(sns_fname):
-    """Sensor coordinate extraction in MEG space.
+    """Sensor coordinate extraction in MEG space
 
     Parameters
     ----------
@@ -185,7 +185,7 @@ def read_sns(sns_fname):
 
 
 def reset_origin(lpa, rpa, pts):
-    """Reset origin of head coordinate system.
+    """Reset origin of head coordinate system
 
     Resets the origin to mid-distance of peri-auricular points
     (mne manual, pg. 97)
