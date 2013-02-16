@@ -3,7 +3,7 @@ from nose.tools import assert_true
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 
 import copy as cp
 
@@ -69,7 +69,6 @@ def test_sensitivity_maps():
             w = np.r_[w_lh['data'], w_rh['data']]
             stc = sensitivity_map(fwd, projs=projs, mode='radiality',
                                   ch_type=ch_type, exclude='bads')
-            #assert_array_almost_equal(stc.data.ravel(), w, decim)
             # angle (5)
             w_lh = mne.read_w(sensmap_fname % (ch_type, '5-lh'))
             w_rh = mne.read_w(sensmap_fname % (ch_type, '5-rh'))
@@ -84,7 +83,7 @@ def test_sensitivity_maps():
             stc = sensitivity_map(fwd, projs=proj_eog, mode='remaining',
                                   ch_type=ch_type, exclude='bads')
             assert_array_almost_equal(stc.data.ravel(), w, decim)
-            # dampening (5)
+            # dampening (7)
             w_lh = mne.read_w(sensmap_fname % (ch_type, '7-lh'))
             w_rh = mne.read_w(sensmap_fname % (ch_type, '7-rh'))
             w = np.r_[w_lh['data'], w_rh['data']]
