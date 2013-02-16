@@ -23,7 +23,7 @@ Changelog
 
    - Support for using CUDA in FFT-based FIR filtering (method='fft') and resampling by `Eric Larson`_
 
-   - Optmimized FFT length selection for faster overlap-add filtering by `Martin Luessi`_
+   - Optimized FFT length selection for faster overlap-add filtering by `Martin Luessi`_
 
    - Ability to exclude bad channels from evoked plots or shown them in red by `Martin Luessi`_
 
@@ -54,6 +54,8 @@ Changelog
    - New function `mne.find_stim_steps` for finding all steps in a stim channel by `Christian Brodbeck`_
 
    - Get information about FIFF files using mne.fiff.show_fiff() by `Eric Larson`_
+
+   - Compute forward fields sensitivity maps by `Alex Gramfort`_ and `Eric Larson`_
 
 
 API
