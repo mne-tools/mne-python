@@ -80,6 +80,10 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
             name = 'EEG %3.3d' % eeg.next()
         elif name == 'UACurrent':
             name = 'UTL 001'
+        elif name.startswith('M'):
+            name = 'RFM %3.3d' % ref_mag.next()
+        elif name.startswith('G'):
+            name = 'RFG %3.3d' % ref_grad.next()
         elif name.startswith('X'):
             name = 'EXT %3.3d' % ext.next()
 
@@ -1031,7 +1035,7 @@ class RawBTi(Raw):
             chan_info['scanno'] = idx + 1
             chan_info['cal'] = bti_info['chs'][idx]['scale']
 
-            if any([chan_vv.startswith(k) for k in 'MEG', 'G', 'M']):
+            if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
                     t, loc = _convert_coil_trans(t.astype('>f8'), dev_ctf_t,
