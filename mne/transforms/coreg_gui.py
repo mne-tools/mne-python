@@ -77,7 +77,9 @@ def raw_find_point(raw):
     dig = raw.info['dig']
     pts = filter(lambda d: d['kind'] == 4, dig)
     pts = np.array([d['r'] for d in pts])
-    return FindDigPoint(pts)
+    gui = FindDigPoint(pts)
+    gui.configure_traits()
+    return gui
 
 class FindDigPoint(HeadViewer):
     """
@@ -102,7 +104,6 @@ class FindDigPoint(HeadViewer):
         self.pts = pts
 
         traits.HasTraits.__init__(self)
-        self.configure_traits()
 
     @traits.on_trait_change('scene.activated')
     def on_init(self):
@@ -142,7 +143,10 @@ def raw_hs(raw):
     dig = raw.info['dig']
     pts = filter(lambda d: d['kind'] == 4, dig)
     pts = np.array([d['r'] for d in pts])
-    return FixDigHeadShape(pts)
+    gui = FixDigHeadShape(pts)
+    gui.configure_traits()
+    return gui
+
 
 class FixDigHeadShape(HeadViewer):
     """
@@ -184,7 +188,6 @@ class FixDigHeadShape(HeadViewer):
         self._plots = []
         self._all_idx = np.arange(len(pts))
         traits.HasTraits.__init__(self)
-        self.configure_traits()
 
     @traits.on_trait_change('scene.activated')
     def on_init(self):
@@ -288,7 +291,6 @@ class Fiducials(HeadViewer):
         self._fid_file = fid
 
         traits.HasTraits.__init__(self)
-        self.configure_traits()
 
     @traits.on_trait_change('scene.activated')
     def on_init(self):
@@ -438,7 +440,6 @@ class HeadMriCoreg(HeadViewer):
         self._last_fit = None
 
         traits.HasTraits.__init__(self)
-        self.configure_traits()
 
     @traits.on_trait_change('scene.activated')
     def on_init(self):
@@ -576,7 +577,6 @@ class MriHeadCoreg(HeadViewer):
         self._s_to_arg = s_to
 
         traits.HasTraits.__init__(self)
-        self.configure_traits()
 
     @traits.on_trait_change('scene.activated')
     def on_init(self):

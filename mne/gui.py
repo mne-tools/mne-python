@@ -19,6 +19,7 @@ def coregistration(raw, subject=None, subjects_dir=None):
     """
     from .transforms.coreg_gui import HeadMriCoreg
     gui = HeadMriCoreg(raw, subject, subjects_dir)
+    gui.configure_traits()
     return gui
 
 
@@ -43,6 +44,7 @@ def fit_mri_to_head(raw, s_from=None, s_to=None, subjects_dir=None):
     """
     from .transforms.coreg_gui import MriHeadCoreg
     gui = MriHeadCoreg(raw, s_from, s_to, subjects_dir)
+    gui.configure_traits()
     return gui
 
 
@@ -61,4 +63,5 @@ def set_fiducials(subject, fid=None, subjects_dir=None):
     """
     from .transforms.coreg_gui import Fiducials
     gui = Fiducials(subject, fid, subjects_dir)
+    gui.configure_traits()
     return gui
