@@ -1,7 +1,6 @@
 # Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
 #          simplified BSD-3 license
 
-import os
 import struct
 import logging
 import numpy as np
