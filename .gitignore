@@ -43,3 +43,5 @@ pip-log.txt
 tags
 doc/coverages
 doc/samples
+
+*.orig

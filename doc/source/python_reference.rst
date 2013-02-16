@@ -117,6 +117,18 @@ Functions:
   :template: function.rst
 
   read_raw_bti
+  
+.. currentmodule:: mne.fiff.kit
+
+:py:mod:`mne.fiff.kit`:
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_kit  
 
 :py:mod:`mne.datasets.sample`:
 
