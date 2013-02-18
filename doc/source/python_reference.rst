@@ -325,6 +325,7 @@ Forward Modeling
    read_trans
    read_source_spaces
    read_surface
+   sensitivity_map
    write_bem_surface
    write_trans
 

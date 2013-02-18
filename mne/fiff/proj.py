@@ -169,11 +169,9 @@ def write_proj(fid, projs):
     Parameters
     ----------
     fid : file
-        The file descriptor of the open file
-
+        The file descriptor of the open file.
     projs : dict
-        The projection operator
-
+        The projection operator.
     """
     start_block(fid, FIFF.FIFFB_PROJ)
 
@@ -205,11 +203,11 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     Parameters
     ----------
     projs : list
-        List of projection vectors
+        List of projection vectors.
     ch_names : list of strings
-        List of channels to include in the projection matrix
+        List of channels to include in the projection matrix.
     bads : list of strings
-        Some bad channels to exclude
+        Some bad channels to exclude.
     include_active : bool
         Also include projectors that are already active.
 
@@ -226,22 +224,21 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     if nchan == 0:
         raise ValueError('No channel names specified')
 
-    proj = np.eye(nchan, nchan)
-    nproj = 0
-    U = []
+    default_return = (np.eye(nchan, nchan), 0, [])
 
     #   Check trivial cases first
     if projs is None:
-        return proj, nproj, U
+        return default_return
 
     nvec = 0
+    nproj = 0
     for p in projs:
         if not p['active'] or include_active:
             nproj += 1
             nvec += p['data']['nrow']
 
     if nproj == 0:
-        return proj, nproj, U
+        return default_return
 
     #   Pick the appropriate entries
     vecs = np.zeros((nchan, nvec))
@@ -279,7 +276,7 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
 
     #   Check whether all of the vectors are exactly zero
     if nonzero == 0:
-        return proj, 0, U
+        return default_return
 
     # Reorthogonalize the vectors
     U, S, V = linalg.svd(vecs[:, :nvec], full_matrices=False)
@@ -289,7 +286,7 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     U = U[:, :nproj]
 
     # Here is the celebrated result
-    proj -= np.dot(U, U.T)
+    proj = np.eye(nchan, nchan) - np.dot(U, U.T)
 
     return proj, nproj, U
 
@@ -410,7 +407,8 @@ def make_eeg_average_ref_proj(info, verbose=None):
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=True, data=eeg_proj_data,
-                    desc='Average EEG reference', kind=1)
+                    desc='Average EEG reference',
+                    kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
     return eeg_proj
 
 
@@ -434,8 +432,10 @@ def setup_proj(info, verbose=None):
     """
     # Add EEG ref reference proj if necessary
     proj_desc = [p['desc'] for p in info['projs']]
+    proj_kind = [p['kind'] for p in info['projs']]
     eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
-    if len(eeg_sel) > 0 and 'Average EEG reference' not in proj_desc:
+    if len(eeg_sel) > 0 and ('Average EEG reference' not in proj_desc
+            and FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF not in proj_kind):
         eeg_proj = make_eeg_average_ref_proj(info)
         info['projs'].append(eeg_proj)
 

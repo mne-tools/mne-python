@@ -39,7 +39,7 @@ from .label import label_time_courses, read_label, label_sign_flip, \
 from .misc import parse_config, read_reject_parameters
 from .transforms import transform_coordinates, read_trans, write_trans
 from .proj import read_proj, write_proj, compute_proj_epochs, \
-                  compute_proj_evoked, compute_proj_raw
+                  compute_proj_evoked, compute_proj_raw, sensitivity_map
 from .selection import read_selection
 from .dipole import read_dip
 from . import beamformer

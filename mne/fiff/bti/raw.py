@@ -768,7 +768,10 @@ def _read_bti_header(pdf_fname, config_fname):
     if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
         header_position = check_value
 
-    _correct_offset(fid)
+    # Check header position for alignment issues
+    if ((header_position % 8) != 0):
+        header_position += (8 - (header_position % 8))
+
     fid.seek(header_position, 0)
 
     # actual header starts here
@@ -962,13 +965,24 @@ class RawBTi(Raw):
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
                  eog_ch=('E63', 'E64'), verbose=None):
 
+        if not op.isabs(pdf_fname):
+            pdf_fname = op.abspath(pdf_fname)
+
         if not op.isabs(config_fname):
-            config_fname = op.join(op.abspath(op.curdir),
-                                   op.basename(config_fname))
+            config_fname = op.join(op.dirname(pdf_fname), config_fname)
+
         if not op.exists(config_fname):
             raise ValueError('Could not find the config file %s. Please check'
                              ' whether you are in the right directory '
                              'or pass the full name' % config_fname)
+
+        if not op.isabs(head_shape_fname):
+            head_shape_fname = op.join(op.dirname(pdf_fname), head_shape_fname)
+
+        if not op.exists(head_shape_fname):
+            raise ValueError('Could not find the head_shape file %s. You shoul'
+                             'd check whether you are in the right directory o'
+                             'r pass the full file name.' % head_shape_fname)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
@@ -1070,16 +1084,6 @@ class RawBTi(Raw):
             chs.append(chan_info)
 
         info['chs'] = chs
-
-        if not op.isabs(head_shape_fname):
-            op.isabs(head_shape_fname)
-            head_shape_fname = op.join(op.abspath(op.curdir),
-                                       op.basename(head_shape_fname))
-
-        if not op.exists(head_shape_fname):
-            raise ValueError('Could not find the head_shape file %s. You shoul'
-                             'd check whether you are in the right directory o'
-                             'r pass the full file name.' % head_shape_fname)
 
         logger.info('... Reading digitization points from %s' %
                     head_shape_fname)

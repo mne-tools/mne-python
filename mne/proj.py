@@ -4,15 +4,20 @@
 
 import numpy as np
 from scipy import linalg
+from copy import deepcopy
 
 import logging
 logger = logging.getLogger('mne')
 
 from . import fiff, Epochs, verbose
-from .fiff.pick import pick_types
+from .fiff.pick import pick_types, pick_types_forward
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
+from .forward import is_fixed_orient
+from .source_estimate import SourceEstimate
+from .fiff.proj import make_projector, make_eeg_average_ref_proj
+from .fiff import FIFF
 
 
 def read_proj(fname):
@@ -233,3 +238,118 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     desc_prefix = "Raw-%-.3f-%-.3f" % (start, stop)
     projs = _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix)
     return projs
+
+
+def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
+                    verbose=None):
+    """Compute sensitivity map
+
+    Such maps are used to know how much sources are visible by a type
+    of sensor, and how much projections shadow some sources.
+
+    Parameters
+    ----------
+    fwd : dict
+        The forward operator. Must be free- and surface-oriented.
+    projs : list
+        List of projection vectors.
+    ch_type : 'grad' | 'mag' | 'eeg'
+        The type of sensors to use.
+    mode : str
+        The type of sensitivity map computed. See manual. Should be 'free',
+        'fixed', 'ratio', 'radiality', 'angle', 'remaining', or 'dampening'
+        corresponding to the argument --map 1, 2, 3, 4, 5, 6 and 7 of the
+        command mne_sensitivity_map.
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in fwd['info']['bads'].
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Return
+    ------
+    stc : SourceEstimate
+        The sensitivity map as a SourceEstimate instance for
+        visualization.
+    """
+    # check strings
+    if not ch_type in ['eeg', 'grad', 'mag']:
+        raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
+                          % ch_type)
+    if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
+                    'remaining', 'dampening']:
+        raise ValueError('Unknown mode type (got %s)' % mode)
+
+    # check forward
+    if not fwd['surf_ori']:
+        raise ValueError('fwd should be surface oriented')
+    if is_fixed_orient(fwd):
+        raise ValueError('fwd should not have fixed orientation')
+
+    # limit forward
+    if ch_type == 'eeg':
+        fwd = pick_types_forward(fwd, meg=False, eeg=True, exclude=exclude)
+    else:
+        fwd = pick_types_forward(fwd, meg=ch_type, eeg=False, exclude=exclude)
+
+    gain = fwd['sol']['data']
+
+    # Make sure EEG has average
+    if ch_type == 'eeg':
+        if projs is None or \
+                not any([p['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF
+                         for p in projs]):
+            eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
+        projs = eeg_ave if projs is None else projs + eeg_ave
+
+    # Construct the projector
+    if projs is not None:
+        proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
+                                              include_active=True)
+        # do projection for most types
+        if mode not in ['angle', 'remaining', 'dampening']:
+            gain = np.dot(proj, gain)
+
+    # can only run the last couple methods if there are projectors
+    elif mode in ['angle', 'remaining', 'dampening']:
+        raise ValueError('No projectors used, cannot compute %s' % mode)
+
+    n_sensors, n_dipoles = gain.shape
+    n_locations = n_dipoles // 3
+    sensitivity_map = np.empty(n_locations)
+
+    for k in xrange(n_locations):
+        gg = gain[:, 3 * k:3 * (k + 1)]
+        if mode != 'fixed':
+            s = linalg.svd(gg, full_matrices=False, compute_uv=False)
+        if mode == 'free':
+            sensitivity_map[k] = s[0]
+        else:
+            gz = linalg.norm(gg[:, 2])  # the normal component
+            if mode == 'fixed':
+                sensitivity_map[k] = gz
+            elif mode == 'ratio':
+                sensitivity_map[k] = gz / s[0]
+            elif mode == 'radiality':
+                sensitivity_map[k] = 1. - (gz / s[0])
+            else:
+                if mode == 'angle':
+                    co = linalg.norm(np.dot(gg[:, 2], U))
+                    sensitivity_map[k] = co / gz
+                else:
+                    p = linalg.norm(np.dot(proj, gg[:, 2]))
+                    if mode == 'remaining':
+                        sensitivity_map[k] = p / gz
+                    elif mode == 'dampening':
+                        sensitivity_map[k] = 1. - p / gz
+                    else:
+                        raise ValueError('Unknown mode type (got %s)' % mode)
+
+    # only normalize fixed and free methods
+    if mode in ['fixed', 'free']:
+        sensitivity_map /= np.max(sensitivity_map)
+
+    vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
+    stc = SourceEstimate(sensitivity_map[:, np.newaxis],
+                         vertices=vertices, tmin=0, tstep=1)
+    return stc
