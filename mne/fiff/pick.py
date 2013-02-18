@@ -118,7 +118,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, misc=False, include=[], exclude=None,
+               emg=False, ref_meg=False, misc=False, include=[], exclude=None,
                selection=None):
     """Pick channels by type and names
 
@@ -143,6 +143,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include stimulus channels.
     misc : bool
         If True include miscellaneous analog channels.
+    ref_meg: bool
+        If True include MEG reference channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -175,7 +177,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
-        if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+        if kind == FIFF.FIFFV_MEG_CH:
             if meg is True:
                 pick[k] = True
             elif (meg == 'grad'
@@ -183,8 +185,6 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                 pick[k] = True
             elif (meg == 'mag'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
-                pick[k] = True
-            elif meg == 'ref_meg':
                 pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
@@ -197,6 +197,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_EMG_CH and emg:
             pick[k] = True
         elif kind == FIFF.FIFFV_MISC_CH and misc:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -299,7 +301,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers. It can also be 'ref_meg' to get CTF
+        or magnetometers. It can also be 'ref_meg' to get CTF / 4D
         reference channels.
     eeg : bool
         If True include EEG channels
