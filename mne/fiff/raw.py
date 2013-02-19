@@ -499,7 +499,7 @@ class Raw(object):
             l_freq is None, h_freq is not None: high-pass filter
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
+              additional time points need to be temporarily stored in memory.
 
         Note: self.info['lowpass'] and self.info['highpass'] are only updated
               with picks=None.
@@ -508,7 +508,7 @@ class Raw(object):
         ----------
         l_freq : float | None
             Low cut-off frequency in Hz. If None the data are only low-passed.
-        h_freq : float
+        h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
         picks : list of int | None
