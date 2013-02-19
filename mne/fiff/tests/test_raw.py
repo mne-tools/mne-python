@@ -253,7 +253,8 @@ def test_io_raw():
         include = ['STI 014']
         include += meg_ch_names
         picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
-                           misc=True, include=include, exclude='bads')
+                           misc=True, ref_meg=True, include=include,
+                           exclude='bads')
 
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
