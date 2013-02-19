@@ -57,6 +57,8 @@ Changelog
 
    - Compute forward fields sensitivity maps by `Alex Gramfort`_ and `Eric Larson`_
 
+   - Support reading of KIT data by `Teon Brooks`_ and `Christian Brodbeck`_
+
 
 API
 ~~~
@@ -347,3 +349,5 @@ of commits):
 .. _Christian Brodbeck: https://github.com/christianmbrodbeck
 
 .. _Simon Kornblith: http://simonster.com
+
+.. _Teon Brooks: https://files.nyu.edu/tlb331/public/
