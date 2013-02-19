@@ -11,3 +11,4 @@ recursive-include mne/data *.sel
 recursive-include mne/data *.fif.gz
 recursive-include mne/layouts *.lout
 recursive-exclude examples/MNE-sample-data *
+recursive-exclude mne/fiff/kit/test/data *
