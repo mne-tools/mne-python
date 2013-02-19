@@ -1067,15 +1067,14 @@ class RawBTi(Raw):
                     chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
                 elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
                     chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
-
-            elif chan_vv == 'STI 014':
+            elif chan_vv == 'STI 013':
+                chan_info['kind'] = FIFF.FIFFV_RESP_CH
+            elif chan_vv in 'STI 014':
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             elif chan_vv.startswith('EOG'):
                 chan_info['kind'] = FIFF.FIFFV_EOG_CH
             elif chan_vv == 'ECG 001':
                 chan_info['kind'] = FIFF.FIFFV_ECG_CH
-            elif chan_vv == 'RSP 001':
-                chan_info['kind'] = FIFF.FIFFV_RESP_CH
             elif chan_vv.startswith('EXT'):
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
             elif chan_vv.startswith('UTL'):
