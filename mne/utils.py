@@ -11,6 +11,7 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
+import subprocess
 import sys
 from sys import stdout
 import tempfile
@@ -620,6 +621,23 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def run_subprocess(*args, **kwargs):
+    """Calls subprocess.Popen
+
+    Returns
+    -------
+    returncode : int
+        The return code.
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
+    """
+    p = subprocess.Popen(*args, **kwargs)
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout, stderr
 
 
 def _url_to_local_path(url, path):
