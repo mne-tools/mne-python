@@ -17,6 +17,16 @@ from .ecg import find_ecg_events
 from .eog import find_eog_events
 
 
+def _safe_del_key(dict_, key):
+    """ Aux function
+
+    Use this function when preparing rejection parameters
+    instead of directly deleting keys.
+    """
+    if key in dict_:
+        del dict_[key]
+
+
 @verbose
 def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       n_grad, n_mag, n_eeg, l_freq, h_freq,
@@ -141,29 +151,29 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     if reject is not None:  # make sure they didn't pass None
         if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
                           exclude='bads')) == 0:
-            del reject['grad']
+            _safe_del_key(reject, 'grad')
         if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
                           exclude='bads')) == 0:
-            del reject['mag']
+            _safe_del_key(reject, 'mag')
         if len(pick_types(my_info, meg=False, eeg=True, eog=False,
                           exclude='bads')) == 0:
-            del reject['eeg']
+            _safe_del_key(reject, 'eeg')
         if len(pick_types(my_info, meg=False, eeg=False, eog=True,
                           exclude='bads')) == 0:
-            del reject['eog']
+            _safe_del_key(reject, 'eog')
     if flat is not None:  # make sure they didn't pass None
         if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
                           exclude='bads')) == 0:
-            del flat['grad']
+            _safe_del_key(flat, 'grad')
         if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
                           exclude='bads')) == 0:
-            del flat['mag']
+            _safe_del_key(flat, 'mag')
         if len(pick_types(my_info, meg=False, eeg=True, eog=False,
                           exclude='bads')) == 0:
-            del flat['eeg']
+            _safe_del_key(flat, 'eeg')
         if len(pick_types(my_info, meg=False, eeg=False, eog=True,
                           exclude='bads')) == 0:
-            del flat['eog']
+            _safe_del_key(flat, 'eog')
 
     # exclude bad channels from projection
     picks = pick_types(my_info, meg=True, eeg=True, eog=True, exclude='bads')
