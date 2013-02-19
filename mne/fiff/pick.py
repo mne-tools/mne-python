@@ -118,7 +118,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, misc=False, include=[], exclude=None,
+               emg=False, ref_meg=False, misc=False, include=[], exclude=None,
                selection=None):
     """Pick channels by type and names
 
@@ -129,8 +129,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers. It can also be 'ref_meg' to get CTF
-        reference channels.
+        or magnetometers.
     eeg : bool
         If True include EEG channels.
     eog : bool
@@ -141,6 +140,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include EMG channels.
     stim : bool
         If True include stimulus channels.
+    ref_meg: bool
+        If True include CTF / 4D reference channels.
     misc : bool
         If True include miscellaneous analog channels.
     include : list of string
@@ -175,7 +176,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
-        if (kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH):
+        if kind == FIFF.FIFFV_MEG_CH:
             if meg is True:
                 pick[k] = True
             elif (meg == 'grad'
@@ -183,8 +184,6 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                 pick[k] = True
             elif (meg == 'mag'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
-                pick[k] = True
-            elif meg == 'ref_meg':
                 pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
@@ -197,6 +196,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_EMG_CH and emg:
             pick[k] = True
         elif kind == FIFF.FIFFV_MISC_CH and misc:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -288,8 +289,8 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
-                      ecg=False, emg=False, misc=False, include=[],
-                      exclude=None):
+                      ecg=False, emg=False, ref_meg=False, misc=False,
+                      include=[], exclude=None):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -299,8 +300,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers. It can also be 'ref_meg' to get CTF
-        reference channels.
+        or magnetometers.
     eeg : bool
         If True include EEG channels
     eog : bool
@@ -311,6 +311,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         If True include EMG channels
     stim : bool
         If True include stimulus channels
+    ref_meg : bool
+        If True include CTF / 4D reference channels
     misc : bool
         If True include miscellaneous analog channels
     include : list of string
@@ -325,8 +327,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         Evoked data restricted to selected channels. If include and
         exclude are None it returns orig without copy.
     """
-    sel = pick_types(orig.info, meg, eeg, stim, eog, ecg, emg, misc, include,
-                     exclude)
+    sel = pick_types(orig.info, meg, eeg, stim, eog, ecg, emg, ref_meg, misc,
+                     include, exclude)
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
@@ -391,7 +393,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     return fwd
 
 
-def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
+def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
+                       exclude=[]):
     """Pick by channel type and names from a forward operator
 
     Parameters
@@ -401,10 +404,11 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers. It can also be 'ref_meg' to get CTF
-        reference channels.
+        or magnetometers.
     eeg : bool
         If True include EEG channels
+    ref_meg : bool
+        If True include CTF / 4D reference channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -417,7 +421,8 @@ def pick_types_forward(orig, meg=True, eeg=False, include=[], exclude=[]):
         Forward solution restricted to selected channel types.
     """
     info = orig['info']
-    sel = pick_types(info, meg, eeg, include=include, exclude=exclude)
+    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, include=include,
+                     exclude=exclude)
     if len(sel) == 0:
         raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]
