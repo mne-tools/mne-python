@@ -15,6 +15,8 @@ MNE-dSPM inverse soltions.
 
 print __doc__
 
+import time
+
 import numpy as np
 import mne
 from mne.datasets import sample
@@ -80,7 +82,8 @@ indices = seed_target_indices([seed_idx], np.arange(n_sources))
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_normal=True, return_generator=True)
+                            pick_normal=True, return_generator=True,
+                            delayed=True)
 
 # Now we are ready to compute the coherence in the alpha and beta band.
 # fmin and fmax specify the lower and upper freq. for each band, resp.
@@ -94,10 +97,13 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # lower variance but is slower). By using faverage=True, we directly
 # average the coherence in the alpha and beta band, i.e., we will only
 # get 2 frequency bins
+t0 = time.time()
 coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
-    method='coh', mode='fourier', indices=indices,
+    method='coh', mode='multitaper', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, mt_adaptive=False,
-    n_jobs=2)
+    n_jobs=1)
+t_run = time.time() - t0
+print 'time needed: %0.1f' % t_run
 
 print 'Frequencies in Hz over which coherence was averaged for alpha: '
 print freqs[0]

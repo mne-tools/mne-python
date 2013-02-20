@@ -33,7 +33,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
-from ..source_estimate import SourceEstimate, SourceEstimateDelayed
+from ..source_estimate import SourceEstimate
 from .. import verbose
 
 
@@ -888,18 +888,31 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
                    and not pick_normal)
 
-    for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d" % (k + 1))
+    if is_free_ori and delayed:
+        logger.warn('Delayed computation is not supported for '
+                    'free-orientation source estimates, disabling it.')
+        delayed = False
 
+    if not is_free_ori and noise_norm is not None:
+        # premultiply kernel with noise normalization
+        K *= noise_norm
+
+    for k, e in enumerate(epochs):
+        logger.info('Processing epoch : %d' % (k + 1))
         if not delayed:
-            sol = _apply_kernel_combine_norm(e[sel], K, is_free_ori,
-                                             noise_norm)
+            sol = np.dot(K, e[sel])  # apply imaging kernel
+
+            if is_free_ori:
+                logger.info('combining the current components...')
+                sol = combine_xyz(sol)
+
+                if noise_norm is not None:
+                    sol *= noise_norm
+
             stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
         else:
-            stc = SourceEstimateDelayed(e[sel], _apply_kernel_combine_norm,
-                                        (K, is_free_ori, noise_norm),
-                                        vertices=vertno, tmin=tmin,
-                                        tstep=tstep)
+            stc = SourceEstimate(None, vertices=vertno, tmin=tmin,
+                                 tstep=tstep, kernel=K, sens_data=e[sel])
         yield stc
 
     logger.info('[done]')

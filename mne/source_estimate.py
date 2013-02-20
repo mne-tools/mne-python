@@ -320,6 +320,47 @@ def read_source_estimate(fname):
     return SourceEstimate(**kwargs)
 
 
+class _NotifyArray(np.ndarray):
+    """Array class that executes a callback when it is modified
+    """
+    def __new__(cls, input_array, modify_callback=None):
+        obj = np.asarray(input_array).view(cls)
+        obj.modify_callback = modify_callback
+        return obj
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            # an empty constructor was used
+            return
+
+        # try to copy the callback
+        self.modify_callback = getattr(obj, 'modify_callback', None)
+
+    def _modified_(self):
+        """Execute the callback if it is set"""
+        if self.modify_callback is not None:
+            self.modify_callback()
+
+    def __getattribute__(self, name):
+        # catch ndarray methods that modify the array inplace
+        if name in ['fill', 'itemset', 'resize', 'sort']:
+            self._modified_()
+
+        return object.__getattribute__(self, name)
+
+    def __setitem__(self, item, value):
+        self._modified_()
+        np.ndarray.__setitem__(self, item, value)
+
+    def __array_wrap__(self, out_arr, context=None):
+        # this method is called whenever a numpy ufunc (+, +=..) is called
+        # the last entry in context is the array that receives the result
+        if context[1][-1] is self:
+            self._modified_()
+
+        return np.ndarray.__array_wrap__(self, out_arr, context)
+
+
 class SourceEstimate(object):
     """SourceEstimate container
 
@@ -327,7 +368,7 @@ class SourceEstimate(object):
 
     Parameters
     ----------
-    data : array of shape [n_dipoles x n_times]
+    data : array of shape (n_dipoles, n_times)
         The data in source space.
 
     vertices : array | list of two arrays
@@ -342,6 +383,20 @@ class SourceEstimate(object):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    kernel : array of shape (n_dipoles, n_sensors)
+        Kernel which together with sens_data can be used to represent
+        the data.
+
+    sens_data : array of shape (n_sensors, n_times)
+        Sensor data which together with kernel can be used to represent
+        the data.
+
+    .. note::
+        If the data can be represented as "numpy.dot(kernel, sens_data)", it
+        is possible to pass None for data and instead pass kernel and
+        sens_data. This will save memory and can enable faster time-frequency
+        transforms in source space.
+
     .. note::
         For backwards compatibility, the SourceEstimate can also be
         initialized with a single argument, which can be ``None`` (an
@@ -351,10 +406,13 @@ class SourceEstimate(object):
 
     Attributes
     ----------
-    data : array of shape [n_dipoles x n_times]
+    data : array of shape (n_dipoles, n_times)
         The data in source space.
 
-    times : array of shape [n_times]
+    shape : 2-tuple of int (n_dipoles, n_times)
+        The shape of the data.
+
+    times : array of shape (n_times,)
         The time vector.
 
     vertno : list of array of shape [n_dipoles in each source space]
@@ -363,8 +421,8 @@ class SourceEstimate(object):
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 verbose=None):
-        if data is None:
+                 verbose=None, kernel=None, sens_data=None):
+        if data is None and kernel is None and sens_data is None:
             warnings.warn('Constructing a SourceEstimate object with no '
                           'attributes is deprecated and will stop working in '
                           'v0.6. Use the proper constructor.')
@@ -384,13 +442,21 @@ class SourceEstimate(object):
                     not all([isinstance(v, np.ndarray) for v in vertices]):
                 raise ValueError('Vertices, if a list, must contain one or '
                                  'two numpy arrays')
-        if data is not False:
-            # XXX do something nicer!
-            self.data = data
+
+        if kernel is not None or sens_data is not None:
+            if kernel.shape[1] != sens_data.shape[0]:
+                raise ValueError('kernel and sens_data have invalid dimensions')
+            if data is not None:
+                raise ValueError('data has to be None if kernel and sens_data '
+                                 'are provided')
+
+        self._data = data
         self.tmin = tmin
         self.tstep = tstep
         self.vertno = vertices
         self.verbose = verbose
+        self._kernel = kernel
+        self._sens_data = sens_data
         self.times = None
         self._update_times()
 
@@ -426,7 +492,7 @@ class SourceEstimate(object):
                 write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
                           vertices=self.rh_vertno, data=rh_data)
             elif ftype == 'w':
-                if self.data.shape[1] != 1:
+                if self.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
                 logger.info('Writing STC to disk (w format)...')
@@ -447,12 +513,21 @@ class SourceEstimate(object):
                       vertices=self.vertno[0], data=self.data)
         logger.info('[done]')
 
+    def _modified_(self):
+        """Gets called when self.data is modified by the user
+        """
+        if self._kernel is not None or self._sens_data is not None:
+            # we can no longer use the kernel and sens_data
+            logger.info('STC data modified: removing kernel and sensor data')
+            self._kernel = None
+            self._sens_data = None
+
     def __repr__(self):
         s = "%d vertices" % sum([len(v) for v in self.vertno])
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)
         s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
-        s += ", data size : %s x %s" % self.data.shape
+        s += ", data size : %s x %s" % self.shape
         return "<SourceEstimate  |  %s>" % s
 
     def crop(self, tmin=None, tmax=None):
@@ -472,6 +547,7 @@ class SourceEstimate(object):
             mask = mask & (self.times >= tmin)
             self.tmin = tmin
         self.data = self.data[:, mask]
+
         self._update_times()
 
     @verbose
@@ -507,6 +583,16 @@ class SourceEstimate(object):
         self._update_times()
 
     @property
+    def data(self):
+        if self._data is None:
+            # compute the solution the first time the data is accessed
+            # return a "notify array", so we can later remove the kernel
+            # and sensor data if the user modifies self._data
+            self._data = _NotifyArray(np.dot(self._kernel, self._sens_data),
+                                      modify_callback=self._modified_)
+        return self._data
+
+    @property
     def lh_data(self):
         return self.data[:len(self.lh_vertno)]
 
@@ -523,8 +609,10 @@ class SourceEstimate(object):
         return self.vertno[1]
 
     @property
-    def data_shape(self):
-        return self.data.shape
+    def shape(self):
+        if self._data is not None:
+            return self._data.shape
+        return (self._kernel.shape[0], self._sens_data.shape[1])
 
     def is_surface(self):
         """Returns True if source estimate is defined over surfaces
@@ -536,7 +624,7 @@ class SourceEstimate(object):
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep"""
-        self.times = self.tmin + (self.tstep * np.arange(self.data_shape[1]))
+        self.times = self.tmin + (self.tstep * np.arange(self.shape[1]))
 
     def __add__(self, a):
         stc = copy.deepcopy(self)
@@ -658,7 +746,7 @@ class SourceEstimate(object):
             tstop = self.times[-1]
 
         times = np.arange(tstart, tstop + self.tstep, width)
-        nv, _ = self.data.shape
+        nv, _ = self.shape
         nt = len(times) - 1
         data = np.empty((nv, nt), dtype=self.data.dtype)
         for i in xrange(nt):
@@ -813,7 +901,8 @@ class SourceEstimate(object):
 
         return label_tc
 
-    def transformed_data(self, transform_fun, *args, **kwargs):
+    def transformed_data(self, transform_fun, fun_args=None,
+                         idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
         """Get data after a linear transform has been applied
 
         The transorm is applied to each source time series.
@@ -822,22 +911,70 @@ class SourceEstimate(object):
         ----------
         transform_fun : callable
             The transform to be applied. The first parameter of the function
-            is the input data. The function must return a single array where
-            the first dimension is the same as the first dimension of the
+            is the input data. The first return value is the transformed
+            data, remaining outputs are ignored. The first dimension of the
+            transformed data has to be the same as the first dimension of the
             input data.
-        *args : tuple
+        fun_args : tuple | None
             Additional parameters to be passed to transform_fun.
+        idx : array | None
+            Indicices of source time courses for which to compute transform.
+            If None, all time courses are used.
+        tmin_idx : int | None
+            Index of first time point to include. If None, the index of the
+            first time point is used.
+        tmax_idx : int | None
+            Index of last time point to include. If None, the index of the
+            last time point is used.
         **kwargs : dict
             Keyword arguments to be passed to transform_fun.
+
+        Returns
+        -------
+        data_t : ndarray
+            The transformed data.
         """
 
-        data_trans = transform_fun(self.data, *args, **kwargs)
+        if idx is None:
+            # use all time courses by default
+            idx = slice(None, None)
 
-        if isinstance(data_trans, tuple):
-            # use only first return value
-            data_trans = data_trans[0]
+        if fun_args is None:
+            fun_args = tuple()
 
-        return data_trans
+        if self._kernel is None and self._sens_data is None:
+            # transform source space data directly
+
+            data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
+                                   *fun_args, **kwargs)
+
+            if isinstance(data_t, tuple):
+                # use only first return value
+                data_t = data_t[0]
+        else:
+            # apply transform in sensor space
+
+            sens_data_t = transform_fun(self._sens_data[:, tmin_idx:tmax_idx],
+                                        *fun_args, **kwargs)
+
+            if isinstance(sens_data_t, tuple):
+                # use only first return value
+                sens_data_t = sens_data_t[0]
+
+            # apply inverse
+            data_shape = sens_data_t.shape
+            if len(data_shape) > 2:
+                # flatten the last dimensions
+                sens_data_t = sens_data_t.reshape(data_shape[0],
+                                                  np.prod(data_shape[1:]))
+
+            data_t = np.dot(self._kernel[idx, :], sens_data_t)
+
+            # restore original shape if necessary
+            if len(data_shape) > 2:
+                data_t = data_t.reshape(data_t.shape[0], *data_shape[1:])
+
+        return data_t
 
     def center_of_mass(self, subject, hemi=None, restrict_vertices=False,
                        subjects_dir=None):
@@ -930,7 +1067,7 @@ class SourceEstimate(object):
 
         # do time center of mass by using the values across space
         masses = np.sum(self.data, axis=0).astype(float)
-        t_ind = np.sum(masses * np.arange(self.data.shape[1])) / np.sum(masses)
+        t_ind = np.sum(masses * np.arange(self.shape[1])) / np.sum(masses)
         t = self.tmin + self.tstep * t_ind
         return vertex, hemi, t
 
@@ -993,58 +1130,6 @@ class SourceEstimate(object):
                         fmax=fmax, transparent=transparent,
                         time_viewer=time_viewer, subjects_dir=subjects_dir)
         return brain
-
-
-class SourceEstimateDelayed(SourceEstimate):
-    def __init__(self, sensor_data, inverse_fun, inverse_args, vertices=None,
-                 tmin=None, tstep=None, verbose=None):
-
-        self.sensor_data = sensor_data
-        self.inverse_fun = inverse_fun
-        self.inverse_args = inverse_args
-
-        super(SourceEstimateDelayed, self).__init__(False,
-            vertices=vertices, tmin=tmin, tstep=tstep, verbose=verbose)
-
-    @property
-    def data(self):
-        return self.inverse_fun(self.sensor_data, *self.inverse_args)
-
-    @property
-    def data_shape(self):
-        return (len(self.vertno[0]) + len(self.vertno[1]),
-                self.sensor_data.shape[1])
-
-    def transformed_data(self, transform_fun, *args, **kwargs):
-        """Get data after a linear transform has been applied
-
-        The transorm is applied to each source time series.
-
-        Parameters
-        ----------
-        transform_fun : callable
-            The transform to be applied. The first parameter of the function
-            is the input data. The function must return a single array where
-            the first dimension is the same as the first dimension of the
-            input data.
-        *args : tuple
-            Additional parameters to be passed to transform_fun.
-        **kwargs : dict
-            Keyword arguments to be passed to transform_fun.
-        """
-
-        sensor_data_trans = transform_fun(self.sensor_data, *args, **kwargs)
-
-        if isinstance(sensor_data_trans, tuple):
-            # use only first return value
-            sensor_data_trans = sensor_data_trans[0]
-
-        if sensor_data_trans.shape[0] != self.sensor_data.shape[0]:
-            raise ValueError('data returned by transform_fun has wrong shape')
-
-        data_trans = self.inverse_fun(sensor_data_trans, *self.inverse_args)
-
-        return data_trans
 
 
 ###############################################################################
