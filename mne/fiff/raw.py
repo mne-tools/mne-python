@@ -612,7 +612,7 @@ class Raw(object):
         ----------
         freqs : float | array of float | None
             Specific frequencies to filter out from data, e.g.,
-            np.arange(60, 60, 241) in the US or np.arange(50, 50, 251) in
+            np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
         picks : list of int | None
