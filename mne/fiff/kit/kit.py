@@ -148,7 +148,7 @@ class RawKIT(Raw):
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((vec_x, vec_y, vec_z))
-            vecs = coreg.transform_pts(vecs, scale=False)
+            vecs = coreg.transform_pts(vecs, unit='m')
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             self.info['chs'].append(chan_info)
 
