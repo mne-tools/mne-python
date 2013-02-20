@@ -837,31 +837,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
-def _apply_kernel_combine_norm(sens_data, kernel, is_free_ori, noise_norm):
-    """Helper function to apply kernel, combine xyz, apply noise normalization
-    """
-    data_shape = sens_data.shape
-    if len(data_shape) > 2:
-        # flatten the last dimensions
-        sens_data = sens_data.reshape(data_shape[0], np.prod(data_shape[1:]))
-
-    sol = np.dot(kernel, sens_data)
-
-    if is_free_ori:
-        logger.info('combining the current components...')
-        sol = combine_xyz(sol)
-
-    if noise_norm is not None:
-        logger.info('applying noise normalization...')
-        sol *= noise_norm
-
-    if len(data_shape) > 2:
-        # reshape result to correct size
-        sol = sol.reshape(sol.shape[0], *data_shape[1:])
-
-    return sol
-
-
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
                               label=None, nave=1, pick_normal=False, dSPM=None,
                               delayed=False, verbose=None):
