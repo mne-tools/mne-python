@@ -9,6 +9,7 @@ from os import SEEK_CUR
 import re
 import numpy as np
 from ..constants import FIFF
+from ...transforms.transforms import apply_trans, rotation, translation
 from .constants import KIT
 
 
@@ -36,19 +37,24 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
     """
 
     mrk_points = read_mrk(mrk_fname=mrk_fname)
-    mrk_points = transform_pts(mrk_points)
+    mrk_points = transform_pts(mrk_points, unit='m')
 
     elp_points = read_elp(elp_fname=elp_fname)
     elp_points = transform_pts(elp_points)
     nasion = elp_points[0, :]
     lpa = elp_points[1, :]
     rpa = elp_points[2, :]
-    elp_points = elp_points[3:, :]
-    elp_points = reset_origin(lpa, rpa, elp_points)
+
+    trans = get_neuromag_transform(lpa, rpa, nasion)
+    elp_points = apply_trans(trans, elp_points)
+    nasion = elp_points[0]
+    lpa = elp_points[1]
+    rpa = elp_points[2]
+    elp_points = elp_points[3:]
 
     hsp_points = read_hsp(hsp_fname=hsp_fname)
-    hsp_points = reset_origin(lpa, rpa, hsp_points)
     hsp_points = transform_pts(hsp_points)
+    hsp_points = apply_trans(trans, hsp_points)
     dig = []
 
     point_dict = {}
@@ -101,7 +107,7 @@ def read_mrk(mrk_fname):
     Returns
     -------
     mrk_points : numpy.array, shape = (n_points, 3)
-        Marker points in MEG space.
+        Marker points in MEG space [m].
     """
     with open(mrk_fname, 'r') as fid:
         fid.seek(KIT.MRK_INFO)
@@ -184,10 +190,11 @@ def read_sns(sns_fname):
     return locs
 
 
-def reset_origin(lpa, rpa, pts):
-    """Reset origin of head coordinate system
+def get_neuromag_transform(lpa, rpa, nasion):
+    """Creates a transformation matrix from RAS to Neuromag-like space
 
-    Resets the origin to mid-distance of peri-auricular points
+    Resets the origin to mid-distance of peri-auricular points with nasion
+    passing through y-axis.
     (mne manual, pg. 97)
 
     Parameters
@@ -196,38 +203,65 @@ def reset_origin(lpa, rpa, pts):
         Left peri-auricular point coordinate.
     rpa : numpy.array, shape = (1, 3)
         Right peri-auricular point coordinate.
-    pts : numpy.array, shape = (1, 3)
-        Points to be recentered.
+    nasion : numpy.array, shape = (1, 3)
+        Nasion point coordinate.
 
     Returns
     -------
-    pts : numpy.array, shape = (n_points, 3)
-        Points recentered based on the peri-auricular points.
+    trans : numpy.array, shape = (4, 4)
+        Transformation matrix to Neuromag-like space.
     """
-    origin = (lpa + rpa) / 2
-    pts = pts - origin
-    return pts
+    x, y, z = -(lpa + rpa) / 2
+    origin = translation(x, y, z)
+    nasion = apply_trans(origin, nasion)
+
+    rot1 = np.arctan(nasion[0] / nasion[1])
+    if nasion[1] < 0:
+        rot1 += np.pi
+    rot1 = rotation(z=rot1)
+    trans = np.dot(rot1, origin)
+
+    nasion = apply_trans(rot1, nasion)
+    rot2 = np.arctan(nasion[2] / nasion[1])
+    if nasion[1] < 0:
+        rot2 += np.pi
+    rot2 = rotation(x=rot2)
+    trans = np.dot(rot2, trans)
+
+    rpa = apply_trans(trans, rpa)
+    rot3 = np.arctan(rpa[2] / rpa[0])
+    if rpa[0] < 0:
+        rot3 += np.pi
+    rot3 = rotation(y=rot3)
+    trans = np.dot(rot3, trans)
+    return trans
 
 
-def transform_pts(pts, scale=True):
-    """KIT-Neuromag transformer
+def transform_pts(pts, unit='mm'):
+    """Transform KIT and Polhemus points to RAS coordinate system
 
     This is used to orient points in Neuromag coordinates.
-    The KIT system is x,y,z in [mm].
-    The transformation to Neuromag-like space is -y,x,z in [m].
+    KIT sensors are (x,y,z) in [mm].
+    KIT markers are (x,y,z) in [m].
+    Polhemus points are (x,y,z) in [mm].
+    The transformation to RAS space is -y,x,z in [m].
 
     Parameters
     ----------
     pts : numpy.array, shape = (n_points, 3)
         Points to be transformed.
+    unit : 'mm' | 'm'
+        Unit of source points to be converted.
 
     Returns
     -------
     pts : numpy.array, shape = (n_points, 3)
         Points transformed to Neuromag-like head space (RAS).
     """
-    if scale:
+    if unit == 'mm':
         pts = pts / 1e3
+    elif unit != 'm':
+        raise ValueError('The unit must be either "m" or "mm".')
     pts = np.array(pts, ndmin=2)
     pts = pts[:, [1, 0, 2]]
     pts[:, 0] = pts[:, 0] * -1
