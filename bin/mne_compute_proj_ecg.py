@@ -93,6 +93,8 @@ if __name__ == '__main__':
                     help="raw file to use for event detection", default=None)
     parser.add_option("--tstart", dest="tstart", type="float",
                     help="Start artifact detection after tstart seconds", default=0.)
+    parser.add_option("--qrsthr", dest="qrs_threshold", type="float",
+                    help="QRS detection threshold. Between 0 and 1.", default=0.6)
 
     options, args = parser.parse_args()
 
@@ -127,6 +129,7 @@ if __name__ == '__main__':
     proj_fname = options.proj
     raw_event_fname = options.raw_event_fname
     tstart = options.tstart
+    qrs_threshold = options.qrs_threshold
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
@@ -159,7 +162,7 @@ if __name__ == '__main__':
                             l_freq, h_freq, average, filter_length,
                             n_jobs, ch_name, reject, flat,
                             bads, avg_ref, no_proj, event_id,
-                            ecg_l_freq, ecg_h_freq, tstart)
+                            ecg_l_freq, ecg_h_freq, tstart, qrs_threshold)
 
     raw.close()
 
