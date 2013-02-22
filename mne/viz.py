@@ -26,7 +26,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices, in1d
+from .fixes import tril_indices
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
@@ -671,7 +671,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
             if hline is not None:
                 for h in hline:
-                    pl.axhline(h, color='k', linestyle='--', linewidth=2)
+                    pl.axhline(h, color='r', linestyle='--', linewidth=2)
 
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     tight_layout()
