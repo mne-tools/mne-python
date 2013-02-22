@@ -1,3 +1,4 @@
+import os
 import os.path as op
 import warnings
 import commands
@@ -244,6 +245,8 @@ def test_average_forward_solution():
 def test_do_forward_solution():
     """Test making forward solution from python
     """
+    subjects_dir = os.path.join(data_path, 'subjects')
+
     raw = Raw(fname_raw)
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
@@ -301,10 +304,10 @@ def test_do_forward_solution():
     # make a meas from raw (tests all steps in creating evoked),
     # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
     fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
-                                 bem='sample-5120', mri=fname_mri, eeg=False)
+                                 bem='sample-5120', mri=fname_mri, eeg=False,
+                                 subjects_dir=subjects_dir)
     fwd = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
                     rtol=1e-5, atol=1e-8)
     assert_equal(fwd_py['sol']['data'].shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
-
