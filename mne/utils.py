@@ -11,6 +11,7 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
+import subprocess
 import sys
 from sys import stdout
 import tempfile
@@ -415,10 +416,25 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
 ###############################################################################
 # CONFIG / PREFS
 
-def get_subjects_dir(subjects_dir=None):
-    """Safely use subjects_dir input to return SUBJECTS_DIR"""
+def get_subjects_dir(subjects_dir=None, raise_error=False):
+    """Safely use subjects_dir input to return SUBJECTS_DIR
+
+    Parameters
+    ----------
+    subjects_dir : str | None
+        If a value is provided, return subjects_dir. Otherwise, look for
+        SUBJECTS_DIR config and return the result.
+    raise_error : bool
+        If True, raise a KeyError if no value for SUBJECTS_DIR can be found
+        (instead of returning None).
+
+    Returns
+    -------
+    value : str | None
+        The SUBJECTS_DIR value.
+    """
     if subjects_dir is None:
-        subjects_dir = get_config('SUBJECTS_DIR')
+        subjects_dir = get_config('SUBJECTS_DIR', raise_error=raise_error)
     return subjects_dir
 
 
@@ -467,10 +483,8 @@ def get_config(key, default=None, raise_error=False):
     key : str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-
     default : str | None
         Value to return if the key is not found.
-
     raise_error : bool
         If True, raise an error if the key is not found (instead of returning
         default).
@@ -607,6 +621,23 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
+
+
+def run_subprocess(*args, **kwargs):
+    """Calls subprocess.Popen
+
+    Returns
+    -------
+    returncode : int
+        The return code.
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
+    """
+    p = subprocess.Popen(*args, **kwargs)
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout, stderr
 
 
 def _url_to_local_path(url, path):

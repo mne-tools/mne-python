@@ -12,9 +12,9 @@ import numpy as np
 from scipy import linalg, sparse
 
 import shutil
+import os
 from os import path as op
 import tempfile
-import commands
 
 import logging
 logger = logging.getLogger('mne')
@@ -39,7 +39,8 @@ from .source_space import read_source_spaces_from_tree, \
                           find_source_space_hemi, write_source_spaces_to_fid
 from .transforms import transform_source_space_to, invert_transform, \
                         write_trans
-from .utils import _check_fname, has_command_line_tools
+from .utils import _check_fname, get_subjects_dir, has_command_line_tools, \
+                   run_subprocess
 from . import verbose
 
 
@@ -1194,7 +1195,8 @@ def restrict_forward_to_label(fwd, labels):
 def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
                         mindist=None, bem=None, mri=None, trans=None,
                         eeg=True, meg=True, fixed=False, grad=False,
-                        mricoord=False, overwrite=False, verbose=None):
+                        mricoord=False, overwrite=False, subjects_dir=None,
+                        verbose=None):
     """Calculate a forward solution for a subject
 
     This function wraps to mne_do_forward_solution, so the mne
@@ -1246,6 +1248,8 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1326,11 +1330,9 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         if isinstance(mindist, basestring):
             if not mindist.lower() == 'all':
                 raise ValueError('mindist, if string, must be "all"')
-            mindist = '--all'
+            mindist = ['--all']
         else:
-            mindist = '--mindist %g' % mindist
-    else:
-        mindist = ''
+            mindist = ['--mindist', '%g' % mindist]
 
     # src, spacing, bem
     if src is not None:
@@ -1344,34 +1346,52 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             raise ValueError('bem must be a string or None')
 
     # put together the actual call
-    cmd = ['mne_do_forward_solution']
-    cmd += ['--subject ' + subject]
-    cmd += ['--src ' + src if src is not None else '']
-    cmd += ['--spacing ' + spacing if spacing is not None else '']
-    cmd += ['--meas ' + meas]
-    cmd += [mindist]
-    cmd += ['--bem ' + bem if bem is not None else '']
-    cmd += ['--mri %s' % mri if mri is not None else '']
-    cmd += ['--trans %s' % trans if trans is not None else '']
-    cmd += ['--fwd ' + fname]
-    cmd += ['--destdir ' + path]
-    cmd += ['' if meg else '--eegonly']
-    cmd += ['' if eeg else '--megonly']
-    cmd += ['--fixed' if fixed else '']
-    cmd += ['--grad' if grad else '']
-    cmd += ['--mricoord' if mricoord else '']
-    cmd += ['--overwrite' if overwrite else '']
-    cmd = ' '.join(cmd)
+    cmd = ['mne_do_forward_solution',
+           '--subject', subject,
+           '--meas', meas,
+           '--fwd', fname,
+           '--destdir', path]
+    if src is not None:
+        cmd += ['--src', src]
+    if spacing is not None:
+        cmd += ['--spacing', spacing]
+    if mindist is not None:
+        cmd += mindist
+    if bem is not None:
+        cmd += ['--bem', bem]
+    if mri is not None:
+        cmd += ['--mri', '%s' % mri  ]
+    if trans is not None:
+        cmd += ['--trans', '%s' % trans]
+    if not meg:
+        cmd.append('--eegonly')
+    if not eeg:
+        cmd.append('--megonly')
+    if fixed:
+        cmd.append('--fixed')
+    if grad:
+        cmd.append('--grad')
+    if mricoord:
+        cmd.append('--mricoord')
+    if overwrite:
+        cmd.append('--overwrite')
+
+    env = os.environ.copy()
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    env['SUBJECTS_DIR'] = subjects_dir
+
     try:
-        logger.info('Running forward solution generation command:\n%s' % cmd)
-        st, output = commands.getstatusoutput(cmd)
+        logger.info('Running forward solution generation command:\n%s and '
+                    'subjects_dir %s' % (cmd, subjects_dir))
+        st, out, err = run_subprocess(cmd, env=env)
         if st != 0:
             raise RuntimeError('mne_do_forward_solution non-zero exit status '
-                               '(%d) with output:\n%s' % (st, output))
+                               '(%d) with output:\n%s\n%s' % (st, out, err))
     except Exception as exception:
         raise exception
     else:
-        logger.info('Output:\n%s' % output)
+        logger.info('Stdout:\n%s' % out)
+        logger.info('Stderr:\n%s' % err)
         fwd = read_forward_solution(op.join(path, fname))
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
