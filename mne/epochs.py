@@ -1022,9 +1022,6 @@ class Epochs(object):
         it would remove events at times [1, 2] in the first epochs and not
         [20, 21].
 
-        Note that this operates in-place, and will call drop_bad_epochs() if
-        bad epochs have not yet been dropped.
-
         Parameters
         ----------
         event_ids : list
@@ -1052,7 +1049,7 @@ class Epochs(object):
         For example (if epochs.event_id was {'Left': 1, 'Right': 2,
         'Nonspatial':3}:
 
-            epochs.equalize_event_counts(['Left', 'Right'], 'Nonspatial')
+            epochs.equalize_event_counts([['Left', 'Right'], 'Nonspatial'])
 
         would equalize the number of trials in the 'Nonspatial' condition with
         the total number of trials in the 'Left' and 'Right' conditions.
