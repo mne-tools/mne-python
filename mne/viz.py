@@ -30,7 +30,7 @@ from .fixes import tril_indices, in1d
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, activate_proj
+from .fiff.proj import make_projector, activate_proj, setup_proj
 from . import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -1761,3 +1761,281 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     pl.grid(True, axis='y')
     pl.show()
     return perc
+
+
+def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
+             color=dict(mag=(0, 0, 0.4), grad=(0, 0, 0.8), eeg='k', eog='k',
+                        ecg='r', emg='k', misc='k', stim='k'),
+             bad_color=(0.8, 0.8, 0.8),
+             scales=dict(mag=1e-12, grad=4000e-14, eeg=20e-6, eog=150e-6,
+                         ecg=5e-4, emg=1e-3, misc=1e-3, stim=1),
+             remove_dc=True, order='type'):
+    """Plot raw data
+
+    Parameters
+    ----------
+    XXX
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        Raw traces.
+    """
+    import pylab as pl
+
+    # make a copy of info, remove projection (for now)
+    info = copy.deepcopy(raw.info)
+    proj = info['projs']
+    info['projs'] = []
+    n_times = raw.n_times
+    title = raw.info['filenames'][0]
+    if len(title) > 60:
+        title = '...' + title[-60:]
+    if len(raw.info['filenames']) > 1:
+        title += ' ... (+ %d more) ' % (len(raw.info['filenames']) - 1)
+
+    # reorganize the data in plotting order
+    inds = list()
+    types = list()
+    for t in ['grad', 'mag']:
+        inds += [pick_types(info, meg=t, exclude=[])]
+        types += [t] * len(inds[-1])
+    pick_args = dict(meg=False, exclude=[])
+    for t in ['eeg', 'eog', 'ecg', 'emg', 'stim', 'misc']:
+        pick_args[t] = True
+        inds += [pick_types(raw.info, **pick_args)]
+        types += [t] * len(inds[-1])
+        pick_args[t] = False
+    inds = np.concatenate(inds)
+    if not len(inds) == len(info['ch_names']):
+        raise RuntimeError('Some channels not classified, please report '
+                           'this problem')
+
+    # put them back to original or modified order for natral plotting
+    reord = np.argsort(inds)
+    types = [types[ri] for ri in reord]
+    if isinstance(order, str):
+        if order == 'natural':
+            inds = inds[reord]
+        elif order != 'type':
+            raise ValueError('Unknown order type %s' % order)
+    elif isinstance(order, np.ndarray):
+        if not np.array_equal(np.sort(order),
+                              np.arange(len(info['ch_names']))):
+            raise ValueError('order, if array, must have integers from '
+                             '0 to n_channels - 1')
+        # put back to original order first, then use new order
+        inds = inds[reord][order]
+
+    # set up projection and data parameters
+    params = dict(raw=raw, ch_start=0, t_start=0, duration=duration,
+                  info=info, proj=proj, remove_dc=remove_dc, n_row=n_row,
+                  scales=scales, types=types, n_times=n_times)
+    _update_raw_proj(params)
+    _update_raw_data(params)
+
+    # set up plotting
+    fig = pl.figure(facecolor=bgcolor)
+    ax = pl.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
+    ax.set_title(title, fontsize=12)
+    params['fig'] = fig
+    params['ax'] = ax
+    ax_opt = pl.subplot2grid((10, 10), (9, 9))
+    ax_hscroll = pl.subplot2grid((10, 10), (9, 0), colspan=9)
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel('Time (s)')
+    ax_vscroll = pl.subplot2grid((10, 10), (0, 9), rowspan=9)
+    ax_vscroll.set_axis_off()
+    # populate vscroll
+    for ci in xrange(len(info['ch_names'])):
+        this_color = bad_color if info['ch_names'][inds[ci]] in info['bads'] \
+                else color
+        if isinstance(this_color, dict):
+            this_color = this_color[types[inds[ci]]]
+        ax_vscroll.add_patch(pl.mpl.patches.Rectangle((0, ci), 1, 1,
+                                                      facecolor=this_color,
+                                                      edgecolor=this_color))
+    vsel_patch = pl.mpl.patches.Rectangle((0, 0), 1, n_row, facecolor='w',
+                                          edgecolor='w', alpha=0.5)
+    ax_vscroll.add_patch(vsel_patch)
+    params['vsel_patch'] = vsel_patch
+    hsel_patch = pl.mpl.patches.Rectangle((0, 0), duration, 1, color='k',
+                                          edgecolor=None, alpha=0.5)
+    ax_hscroll.add_patch(hsel_patch)
+    params['hsel_patch'] = hsel_patch
+    ax_hscroll.set_xlim(0, n_times / float(info['sfreq']))
+    n_ch = len(info['ch_names'])
+    ax_vscroll.set_ylim(n_ch, 0)
+    ax_vscroll.set_title('Channels')
+
+    offsets = np.arange(n_row) * 2 + 1
+    ax.set_yticks(offsets)
+    ax.set_ylim([n_row * 2 + 1, 0])
+    lines = [ax.plot([np.nan])[0] for _ in xrange(n_ch)]
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+
+    plot_fun = partial(_plot_traces, params=params, inds=inds, color=color,
+                       bad_color=bad_color, lines=lines, offsets=offsets)
+
+    # controls
+    opt_button = pl.mpl.widgets.Button(ax_opt, '...')
+
+    # set up callbacks
+    callback_key = partial(_plot_raw_onkey, params=params, plot_fun=plot_fun)
+    fig.canvas.mpl_connect('key_press_event', callback_key)
+    callback_pick = partial(_mouse_click, params=params, plot_fun=plot_fun)
+    fig.canvas.mpl_connect('button_press_event', callback_pick)
+    callback_resize = partial(_helper_resize, params=params)
+    fig.canvas.mpl_connect('resize_event', callback_resize)
+    params['opt_button'] = opt_button
+    params['ax_hscroll'] = ax_hscroll
+    params['ax_vscroll'] = ax_vscroll
+
+    # do initial plot
+    callback_key(None)
+    tight_layout()
+
+    return fig
+
+
+def _update_raw_proj(params):
+    """Helper only needs to be called when proj is changed"""
+    projector = setup_proj(params['info'], verbose=False)[0]
+    params['projector'] = projector
+
+
+def _update_raw_data(params):
+    """Helper only needs to be called when time or proj is changed"""
+    start = params['t_start']
+    stop = params['raw'].time_as_index(start + params['duration'])
+    start = params['raw'].time_as_index(start)
+    data, times = params['raw'][:, start:stop]
+    data = np.dot(params['projector'], data)
+    # remove DC
+    if params['remove_dc'] is True:
+        data -= np.mean(data, axis=1)[:, np.newaxis]
+    # scale
+    for di in xrange(data.shape[0]):
+        data[di] /= params['scales'][params['types'][di]]
+        # stim channels should be hard limited
+        if params['types'][di] == 'stim':
+            data[di] = np.minimum(data[di], 1.0)
+    params['data'] = data
+    params['times'] = times
+
+
+def _helper_resize(event, params):
+    """Helper for resizing"""
+    tight_layout()
+
+
+def _mouse_click(event, params, plot_fun):
+    """Vertical select callback"""
+    if event.inaxes is None or event.button != 1:
+        return
+
+    # vertical scrollbar changed
+    if event.inaxes == params['ax_vscroll']:
+        ch_start = max(int(event.ydata) - params['n_row'] // 2, 0)
+        if params['ch_start'] != ch_start:
+            params['ch_start'] = ch_start
+            plot_fun()
+    # horizontal scrollbar changed
+    elif event.inaxes == params['ax_hscroll']:
+        _plot_raw_time(event.xdata - params['duration'] / 2, params, plot_fun)
+
+
+def _plot_raw_time(value, params, plot_fun):
+    """Deal with changed time value"""
+    info = params['info']
+    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
+    if value > max_times:
+        value = params['n_times'] / info['sfreq'] - params['duration']
+    if value < 0:
+        value = 0
+    if params['t_start'] != value:
+        params['t_start'] = value
+        params['hsel_patch'].set_x(value)
+        _update_raw_data(params)
+        plot_fun()
+
+
+def _plot_raw_onkey(event, params, plot_fun):
+    """Interpret key presses"""
+    import pylab as pl
+    # check for initial plot
+    if event is None:
+        plot_fun()
+        return
+
+    # quit event
+    if event.key == 'escape':
+        pl.close(params['fig'])
+        return
+
+    # change plotting params
+    ch_changed = False
+    if event.key == 'down':
+        params['ch_start'] += params['n_row']
+        ch_changed = True
+    elif event.key == 'up':
+        params['ch_start'] -= params['n_row']
+        ch_changed = True
+    elif event.key == 'right':
+        _plot_raw_time(params['t_start'] + params['duration'], params,
+                       plot_fun)
+        return
+    elif event.key == 'left':
+        _plot_raw_time(params['t_start'] - params['duration'], params,
+                       plot_fun)
+        return
+
+    # deal with plotting changes
+    if ch_changed is True:
+        if params['ch_start'] >= len(params['info']['ch_names']):
+            params['ch_start'] = 0
+        elif params['ch_start'] < 0:
+            # wrap to end
+            rem = len(params['info']['ch_names']) % params['n_row']
+            params['ch_start'] = len(params['info']['ch_names'])
+            params['ch_start'] -= rem if rem != 0 else params['n_row']
+
+    if ch_changed:
+        plot_fun()
+
+
+def _plot_traces(params, inds, color, bad_color, lines, offsets):
+    """Helper for plotting raw"""
+
+    info = params['info']
+    n_row = params['n_row']
+
+    # do the plotting
+    tick_list = []
+    for ii in xrange(n_row):
+        ch_ind = ii + params['ch_start']
+        if ch_ind < len(info['ch_names']):
+            # scale to fit
+            ch_name = info['ch_names'][inds[ch_ind]]
+            tick_list += [ch_name]
+            offset = offsets[ii]
+
+            # do NOT operate in-place lest this get screwed up
+            this_data = params['data'][inds[ch_ind]]
+            this_color = bad_color if ch_name in info['bads'] else color
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][inds[ch_ind]]]
+
+            # subtraction here gets corect orientation for flipped ylim
+            lines[ii].set_ydata(offset - this_data)
+            lines[ii].set_xdata(params['times'])
+            lines[ii].set_color(this_color)
+        else:
+            # "remove" lines
+            lines[ii].set_xdata([])
+            lines[ii].set_ydata([])
+    params['ax'].set_xlim(params['times'][0],
+                params['times'][0] + params['duration'], False)
+    params['ax'].set_yticklabels(tick_list)
+    params['vsel_patch'].set_y(params['ch_start'])
+    params['fig'].canvas.draw()
