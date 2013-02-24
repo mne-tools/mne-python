@@ -3,6 +3,21 @@
 from .transforms.coreg import trans_fname as _trans
 
 
+def combine_markers(mrk1='', mrk2=''):
+    """Create a new KIT marker file by interpolating two marker files
+
+    Parameters
+    ----------
+    mrk1, mrk2 : str
+        Path to source marker files (*.sqd; can be empty str, in which case the
+        files can be loaded in GUI)
+    """
+    from .transforms.marker_gui import MainWindow
+    gui = MainWindow(mrk1=mrk1, mrk2=mrk2)
+    gui.configure_traits()
+    return gui
+
+
 def coregistration(raw, subject=None, trans_fname=_trans, subjects_dir=None):
     """Open a gui for scaling an mri to fit a subject's head shape
 
