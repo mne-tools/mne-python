@@ -1763,23 +1763,56 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     return perc
 
 
-def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
-             color=dict(mag=(0, 0, 0.4), grad=(0, 0, 0.8), eeg='k', eog='k',
-                        ecg='r', emg='k', misc='k', stim='k'),
-             bad_color=(0.8, 0.8, 0.8),
-             scales=dict(mag=1e-12, grad=4000e-14, eeg=20e-6, eog=150e-6,
+def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
+             color=dict(mag='darkblue', grad='b', eeg='k',
+                        eog='k', ecg='r', emg='k', misc='k', stim='k'),
+             bad_color=(0.8, 0.8, 0.8), event_color='cyan',
+             scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                          ecg=5e-4, emg=1e-3, misc=1e-3, stim=1),
              remove_dc=True, order='type'):
     """Plot raw data
 
     Parameters
     ----------
-    XXX
+    raw : instance of Raw
+        The raw data to plot.
+    events : array | None
+        Events to show with vertical bars.
+    duration : float
+        Time window (sec) to plot in a given time.
+    start : float
+        Initial time to show (can be changed dynamically once plotted).
+    n_row : int
+        Number of data rows to plot at once.
+    bgcolor : color object
+        Color of the background.
+    color : dict | color object
+        Color for the data traces. If dict(), should have entries for
+        each type of data.
+    bad_color : color object
+        Color to make bad channels.
+    event_color : color object
+        Color to use for events.
+    scales : dict
+        Scale factors for the traces. Must have entries for each type
+        of data.
+    remove_dc : bool
+        If True remove DC component when plotting data.
+    order : 'type' | 'original' | array
+        Order in which to plot data. 'type' groups by channel type,
+        'original' plots in the order of ch_names, array gives the
+        indices to us in plotting.
 
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
         Raw traces.
+
+    Notes
+    -----
+    The arrow keys (up/down/left/right) can typically be used to navigate
+    between channels and time ranges, but this depends on the backend
+    matplotlib is configured to use.
     """
     import pylab as pl
 
@@ -1793,6 +1826,9 @@ def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
         title = '...' + title[-60:]
     if len(raw.info['filenames']) > 1:
         title += ' ... (+ %d more) ' % (len(raw.info['filenames']) - 1)
+    if events is not None:
+        events = events[:, 0].astype(float) - raw.first_samp
+        events /= info['sfreq']
 
     # reorganize the data in plotting order
     inds = list()
@@ -1815,7 +1851,7 @@ def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
     reord = np.argsort(inds)
     types = [types[ri] for ri in reord]
     if isinstance(order, str):
-        if order == 'natural':
+        if order == 'original':
             inds = inds[reord]
         elif order != 'type':
             raise ValueError('Unknown order type %s' % order)
@@ -1830,7 +1866,7 @@ def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=0, duration=duration,
                   info=info, proj=proj, remove_dc=remove_dc, n_row=n_row,
-                  scales=scales, types=types, n_times=n_times)
+                  scales=scales, types=types, n_times=n_times, events=events)
     _update_raw_proj(params)
     _update_raw_data(params)
 
@@ -1871,11 +1907,14 @@ def plot_raw(raw, duration=10.0, start=0.0, n_row=20, bgcolor='w',
     offsets = np.arange(n_row) * 2 + 1
     ax.set_yticks(offsets)
     ax.set_ylim([n_row * 2 + 1, 0])
+    # plot event_line first so it's in the back
+    event_line = ax.plot([np.nan], color=event_color)[0]
     lines = [ax.plot([np.nan])[0] for _ in xrange(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
 
     plot_fun = partial(_plot_traces, params=params, inds=inds, color=color,
-                       bad_color=bad_color, lines=lines, offsets=offsets)
+                       bad_color=bad_color, lines=lines,
+                       event_line=event_line, offsets=offsets)
 
     # controls
     opt_button = pl.mpl.widgets.Button(ax_opt, '...')
@@ -2004,7 +2043,7 @@ def _plot_raw_onkey(event, params, plot_fun):
         plot_fun()
 
 
-def _plot_traces(params, inds, color, bad_color, lines, offsets):
+def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
     """Helper for plotting raw"""
 
     info = params['info']
@@ -2034,6 +2073,23 @@ def _plot_traces(params, inds, color, bad_color, lines, offsets):
             # "remove" lines
             lines[ii].set_xdata([])
             lines[ii].set_ydata([])
+    # deal with event lines
+    if params['events'] is not None:
+        t = params['events']
+        t = t[np.where(np.logical_and(t >= params['times'][0],
+                       t <= params['times'][-1]))[0]]
+        if len(t) > 0:
+            xs = list()
+            ys = list()
+            for tt in t:
+                xs += [tt, tt, np.nan]
+                ys += [0, 2 * n_row + 1, np.nan]
+            event_line.set_xdata(xs)
+            event_line.set_ydata(ys)
+        else:
+            event_line.set_xdata([])
+            event_line.set_ydata([])
+    # finalize plot
     params['ax'].set_xlim(params['times'][0],
                 params['times'][0] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
