@@ -509,7 +509,7 @@ class Evoked(object):
         self | evoked : instance of Evoked
         """
         evoked = self.copy() if copy else self
-        evoked.data = self._apply_projector(evoked.data, None, self.info)
+        evoked.data = self._apply_projector(evoked.data, True, self.info)
 
         return evoked
 
