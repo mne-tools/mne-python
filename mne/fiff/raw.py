@@ -989,7 +989,8 @@ class Raw(object):
 
         finish_writing_raw(outfid)
 
-    def plot(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
+    def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
+             bgcolor='w',
              color=dict(mag='darkblue', grad='b', eeg='k',
                         eog='k', ecg='r', emg='k', misc='k', stim='k'),
              bad_color=(0.8, 0.8, 0.8), event_color='cyan',
@@ -1008,8 +1009,8 @@ class Raw(object):
             Time window (sec) to plot in a given time.
         start : float
             Initial time to show (can be changed dynamically once plotted).
-        n_row : int
-            Number of data rows to plot at once.
+        n_channels : int
+            Number of channels to plot at once.
         bgcolor : color object
             Color of the background.
         color : dict | color object
@@ -1040,11 +1041,11 @@ class Raw(object):
         -----
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
-        matplotlib is configured to use.
+        matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
         """
-        return plot_raw(raw, events, duration, start, n_row, bgcolor, color,
-                        bad_color, event_color, scales, remove_dc, order,
-                        show_options)
+        return plot_raw(raw, events, duration, start, n_channels, bgcolor,
+                        color, bad_color, event_color, scales, remove_dc,
+                        order, show_options)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')

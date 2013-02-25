@@ -446,6 +446,7 @@ def get_config_path():
 
 # List the known configuration values
 known_config_types = [
+    'MNE_BROWSE_RAW_SIZE',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
