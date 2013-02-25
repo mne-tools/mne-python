@@ -15,11 +15,11 @@ What you're not supposed to do with MNE Python
 ----------------------------------------------
 
     - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
-    - **Raw data visualization** done with *mne_browse_raw* (see :ref:`ch_browse`)
 
 What you can do with MNE Python
 -------------------------------
 
+    - **Raw data visualization** to visualize recordings, can also use *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
     - **Epoching**: Define epochs, baseline correction, handle conditions etc.
     - **Averaging** to get Evoked data
     - **Compute SSP pojectors** to remove ECG and EOG artifacts

@@ -171,6 +171,7 @@ Visualization
    plot_evoked
    plot_ica_panel
    plot_image_epochs
+   plot_raw
    plot_sparse_source_estimates
    plot_topo
    plot_topo_image_epochs
