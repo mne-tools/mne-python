@@ -495,13 +495,20 @@ class Evoked(object):
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
-    def apply_projector(self, proj=None, copy=False):
+    def apply_projector(self, copy=False):
+        """ Apply projector
+
+        Parameters
+        ----------
+        copy : bool
+            If True, the projections will be applied to copy. Else the
+            evoked instance is modified in-place.
+        """
         if self.proj == True:
             raise RuntimeError('Projection already applied.')
-        if copy:
-            evoked = self.copy()
 
-        evoked.data = self._apply_projector(evoked.data, proj, self.info)
+        evoked = self.copy() if copy else self
+        evoked.data = self._apply_projector(evoked.data, None, self.info)
 
         return evoked
 
