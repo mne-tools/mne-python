@@ -264,29 +264,7 @@ class Evoked(object):
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
-        # Set up projection
-        if info['projs'] is None or not proj:
-            logger.info('No projector specified for these data')
-            self.proj = None
-        else:
-            #   Create the projector
-            proj, nproj = make_projector_info(info)
-            if nproj == 0:
-                logger.info('The projection vectors do not apply to these'
-                            ' channels')
-                self.proj = None
-            else:
-                logger.info('Created an SSP operator (subspace dimension '
-                            '= %d)' % nproj)
-                self.proj = proj
-
-            #   The projection items have been activated
-            info['projs'] = activate_proj(info['projs'], copy=False)
-
-        if self.proj is not None:
-            logger.info("SSP projectors applied...")
-            all_data = np.dot(self.proj, all_data)
-
+        all_data = self._apply_projector(data=all_data, proj=proj, info=info)
         # Run baseline correction
         all_data = rescale(all_data, times, baseline, 'mean', copy=False)
 
@@ -516,6 +494,42 @@ class Evoked(object):
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
+
+    def apply_projector(self, proj=None, copy=False):
+        if self.proj == True:
+            raise RuntimeError('Projection already applied.')
+        if copy:
+            evoked = self.copy()
+
+        evoked.data = self._apply_projector(evoked.data, proj, self.info)
+
+        return evoked
+
+    def _apply_projector(self, data, proj, info):
+        """ Aux function """
+        if info['projs'] is None or not proj:
+            logger.info('No projector specified for these data')
+            self.proj = None
+        else:
+            #   Create the projector
+            proj, nproj = make_projector_info(info)
+            if nproj == 0:
+                logger.info('The projection vectors do not apply to these'
+                            ' channels')
+                self.proj = None
+            else:
+                logger.info('Created an SSP operator (subspace dimension '
+                            '= %d)' % nproj)
+                self.proj = proj
+
+            #   The projection items have been activated
+            info['projs'] = activate_proj(info['projs'], copy=False)
+
+        if self.proj is not None:
+            logger.info("SSP projectors applied...")
+            data = np.dot(self.proj, data)
+
+        return data
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
