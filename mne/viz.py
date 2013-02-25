@@ -26,7 +26,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices, in1d
+from .fixes import tril_indices
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir
 from .fiff.pick import channel_type, pick_types
@@ -74,7 +74,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
     """
     try:
         import pylab as pl
-        pl.tight_layout(pad=1.2, h_pad=None, w_pad=None)
+        pl.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
     except:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
@@ -1769,7 +1769,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
              bad_color=(0.8, 0.8, 0.8), event_color='cyan',
              scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                          ecg=5e-4, emg=1e-3, misc=1e-3, stim=1),
-             remove_dc=True, order='type'):
+             remove_dc=True, order='type', show_options=False):
     """Plot raw data
 
     Parameters
@@ -1801,7 +1801,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
     order : 'type' | 'original' | array
         Order in which to plot data. 'type' groups by channel type,
         'original' plots in the order of ch_names, array gives the
-        indices to us in plotting.
+        indices to use in plotting.
+    show_options : bool
+        If True, a dialog for options related to projecion is shown.
 
     Returns
     -------
@@ -1818,7 +1820,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
 
     # make a copy of info, remove projection (for now)
     info = copy.deepcopy(raw.info)
-    proj = info['projs']
+    projs = info['projs']
     info['projs'] = []
     n_times = raw.n_times
     title = raw.info['filenames'][0]
@@ -1864,25 +1866,24 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
         inds = inds[reord][order]
 
     # set up projection and data parameters
-    params = dict(raw=raw, ch_start=0, t_start=0, duration=duration,
-                  info=info, proj=proj, remove_dc=remove_dc, n_row=n_row,
+    params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
+                  info=info, projs=projs, remove_dc=remove_dc, n_row=n_row,
                   scales=scales, types=types, n_times=n_times, events=events)
-    _update_raw_proj(params)
-    _update_raw_data(params)
 
     # set up plotting
-    fig = pl.figure(facecolor=bgcolor)
+    fig = figure_nobar(facecolor=bgcolor)
     ax = pl.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title, fontsize=12)
     params['fig'] = fig
     params['ax'] = ax
-    ax_opt = pl.subplot2grid((10, 10), (9, 9))
     ax_hscroll = pl.subplot2grid((10, 10), (9, 0), colspan=9)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Time (s)')
     ax_vscroll = pl.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
-    # populate vscroll
+    ax_button = pl.subplot2grid((10, 10), (9, 9))
+
+    # populate vertical and horizontal scrollbars
     for ci in xrange(len(info['ch_names'])):
         this_color = bad_color if info['ch_names'][inds[ci]] in info['bads'] \
                 else color
@@ -1895,7 +1896,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
                                           edgecolor='w', alpha=0.5)
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
-    hsel_patch = pl.mpl.patches.Rectangle((0, 0), duration, 1, color='k',
+    hsel_patch = pl.mpl.patches.Rectangle((start, 0), duration, 1, color='k',
                                           edgecolor=None, alpha=0.5)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
@@ -1904,6 +1905,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
     ax_vscroll.set_ylim(n_ch, 0)
     ax_vscroll.set_title('Channels')
 
+    # make shells for plotting traces
     offsets = np.arange(n_row) * 2 + 1
     ax.set_yticks(offsets)
     ax.set_ylim([n_row * 2 + 1, 0])
@@ -1916,30 +1918,107 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
                        bad_color=bad_color, lines=lines,
                        event_line=event_line, offsets=offsets)
 
-    # controls
-    opt_button = pl.mpl.widgets.Button(ax_opt, '...')
-
     # set up callbacks
+    opt_button = pl.mpl.widgets.Button(ax_button, '...')
+    callback_option = partial(_toggle_options, params=params)
+    opt_button.on_clicked(callback_option)
     callback_key = partial(_plot_raw_onkey, params=params, plot_fun=plot_fun)
     fig.canvas.mpl_connect('key_press_event', callback_key)
     callback_pick = partial(_mouse_click, params=params, plot_fun=plot_fun)
     fig.canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_resize, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
-    params['opt_button'] = opt_button
+    callback_proj = partial(_toggle_proj, params=params, plot_fun=plot_fun)
+    params['callback_proj'] = callback_proj
+    params['callback_key'] = callback_key
+    # initialize projectors
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
+    params['opt_button'] = opt_button
 
-    # do initial plot
-    callback_key(None)
+    # do initial plots
+    callback_proj('none')
     tight_layout()
 
+    # deal with projectors
+    params['fig_opts'] = None
+    if show_options is True:
+        _toggle_options(None, params)
     return fig
+
+
+def _toggle_options(event, params):
+    """Toggle options (projectors) dialog"""
+    import pylab as pl
+    if len(params['projs']) > 0:
+        if params['fig_opts'] is None:
+            # turn on options dialog
+            fig_opts = pl.figure()
+            ax_temp = pl.axes()
+            ax_temp.get_yaxis().set_visible(False)
+            ax_temp.get_xaxis().set_visible(False)
+            tight_layout()
+            fig_opts.add_axes(ax_temp)
+            labels = [p['desc'] for p in params['projs']]
+            if 'proj_bools' not in params:
+                actives = [True] * len(params['projs'])
+            else:
+                actives = params['proj_bools']
+            proj_checks = pl.mpl.widgets.CheckButtons(ax_temp, labels=labels,
+                                                      actives=actives)
+            # change already-applied projectors to red
+            for ii, p in enumerate(params['projs']):
+                if p['active'] is True:
+                    for x in proj_checks.lines[ii]:
+                        x.set_color('r')
+            # make minimal size
+            fig_opts.set_size_inches((1, 1), forward=True)
+            params['fig_opts'] = fig_opts
+            params['proj_checks'] = proj_checks
+            # pass key presses from option dialog over
+            params['fig_opts'].canvas.mpl_connect('key_press_event',
+                                                  params['callback_key'])
+            params['proj_checks'].on_clicked(params['callback_proj'])
+            fig_opts.show()
+        else:
+            # turn off options dialog
+            pl.close(params['fig_opts'])
+            del params['proj_checks']
+            params['fig_opts'] = None
+
+
+def _toggle_proj(event, params, plot_fun):
+    """Operation to perform when proj boxes clicked"""
+    # read options if possible
+    if 'proj_checks' in params:
+        bools = [x[0].get_visible() for x in params['proj_checks'].lines]
+        for bi, (b, p) in enumerate(zip(bools, params['projs'])):
+            # see if they tried to deactivate an active one
+            if not b and p['active']:
+                bools[bi] = True
+    else:
+        bools = [True] * len(params['projs'])
+
+    compute_proj = False
+    if not 'proj_bools' in params:
+        compute_proj = True
+    elif not np.array_equal(bools, params['proj_bools']):
+        compute_proj = True
+
+    # if projectors changed, update plots
+    if compute_proj is True:
+        inds = np.where(bools)[0]
+        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
+                                   for ii in inds]
+        params['proj_bools'] = bools
+        _update_raw_proj(params)
+        _update_raw_data(params)
+        plot_fun()
 
 
 def _update_raw_proj(params):
     """Helper only needs to be called when proj is changed"""
-    projector = setup_proj(params['info'], verbose=False)[0]
+    projector = setup_proj(params['info'], add_eeg_ref=False, verbose=False)[0]
     params['projector'] = projector
 
 
@@ -1949,7 +2028,8 @@ def _update_raw_data(params):
     stop = params['raw'].time_as_index(start + params['duration'])
     start = params['raw'].time_as_index(start)
     data, times = params['raw'][:, start:stop]
-    data = np.dot(params['projector'], data)
+    if params['projector'] is not None:
+        data = np.dot(params['projector'], data)
     # remove DC
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
@@ -2095,3 +2175,20 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
+
+
+def figure_nobar(*args, **kwargs):
+    """Make matplotlib figure with no toolbar"""
+    import pylab as pl
+    old_val = pl.mpl.rcParams['toolbar']
+    try:
+        pl.mpl.rcParams['toolbar'] = 'none'
+        fig = pl.figure(*args, **kwargs)
+        # remove button press catchers (for toolbar)
+        for key in fig.canvas.callbacks.callbacks['key_press_event'].keys():
+            fig.canvas.callbacks.disconnect(key)
+    except Exception as ex:
+        raise ex
+    finally:
+        pl.mpl.rcParams['toolbar'] = old_val
+    return fig

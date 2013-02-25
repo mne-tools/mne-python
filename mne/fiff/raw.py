@@ -995,7 +995,7 @@ class Raw(object):
              bad_color=(0.8, 0.8, 0.8), event_color='cyan',
              scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                          ecg=5e-4, emg=1e-3, misc=1e-3, stim=1),
-             remove_dc=True, order='type'):
+             remove_dc=True, order='type', show_options=False):
         """Plot raw data
 
         Parameters
@@ -1027,7 +1027,9 @@ class Raw(object):
         order : 'type' | 'original' | array
             Order in which to plot data. 'type' groups by channel type,
             'original' plots in the order of ch_names, array gives the
-            indices to us in plotting.
+            indices to use in plotting.
+        show_options : bool
+            If True, a dialog for options related to projecion is shown.
 
         Returns
         -------
@@ -1041,7 +1043,8 @@ class Raw(object):
         matplotlib is configured to use.
         """
         return plot_raw(raw, events, duration, start, n_row, bgcolor, color,
-                        bad_color, event_color, scales, remove_dc, order)
+                        bad_color, event_color, scales, remove_dc, order,
+                        show_options)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')

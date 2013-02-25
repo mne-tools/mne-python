@@ -32,6 +32,9 @@ tmax = 0.5
 raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
+#   Plot raw data
+fig = raw.plot(events=events)
+
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
@@ -50,7 +53,7 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 # View evoked response
 times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
-pl.clf()
+pl.figure()
 evoked.plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
