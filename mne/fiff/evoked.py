@@ -510,7 +510,7 @@ class Evoked(object):
         """
         evoked = self.copy() if copy else self
         if getattr(self, 'proj', None) is None:
-            evoked.data = self._apply_projector(evoked.data, True, self.info)
+            evoked.data = evoked._apply_projector(evoked.data, True, evoked.info)
         else:
             logger.info('Projection has already been applied. Doing nothing.')
 
