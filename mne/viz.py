@@ -2177,7 +2177,7 @@ def _plot_raw_onkey(event, params, plot_fun):
         _plot_raw_time(params['t_start'] - params['duration'], params,
                        plot_fun)
         return
-    elif event.key == 'o':
+    elif event.key in ['o', 'p']:
         _toggle_options(None, params)
         return
 
