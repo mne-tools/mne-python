@@ -508,11 +508,20 @@ class Evoked(object):
         -------
         self | evoked : instance of Evoked
         """
-        if self.proj == True:
-            raise RuntimeError('Projection already applied.')
-
         evoked = self.copy() if copy else self
         evoked.data = self._apply_projector(evoked.data, None, self.info)
+
+        return evoked
+
+    def copy(self):
+        """ Copy the instance of evoked
+
+        Returns
+        -------
+        evoked : instance of Evoked
+
+        """
+        evoked = deepcopy(self)
 
         return evoked
 
