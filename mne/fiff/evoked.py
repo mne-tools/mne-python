@@ -503,6 +503,10 @@ class Evoked(object):
         copy : bool
             If True, the projections will be applied to copy. Else the
             evoked instance is modified in-place.
+
+        Returns
+        -------
+        self | evoked : instance of Evoked
         """
         if self.proj == True:
             raise RuntimeError('Projection already applied.')
