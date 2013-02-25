@@ -30,6 +30,7 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated, _check_fname, estimate_rank
+from ..viz import plot_raw
 from .. import verbose
 
 
@@ -987,6 +988,63 @@ class Raw(object):
             logger.info('[done]')
 
         finish_writing_raw(outfid)
+
+    def plot(raw, events=None, duration=10.0, start=0.0, n_row=20, bgcolor='w',
+             color=dict(mag='darkblue', grad='b', eeg='k',
+                        eog='k', ecg='r', emg='k', misc='k', stim='k'),
+             bad_color=(0.8, 0.8, 0.8), event_color='cyan',
+             scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
+                         ecg=5e-4, emg=1e-3, misc=1e-3, stim=1),
+             remove_dc=True, order='type', show_options=False):
+        """Plot raw data
+
+        Parameters
+        ----------
+        raw : instance of Raw
+            The raw data to plot.
+        events : array | None
+            Events to show with vertical bars.
+        duration : float
+            Time window (sec) to plot in a given time.
+        start : float
+            Initial time to show (can be changed dynamically once plotted).
+        n_row : int
+            Number of data rows to plot at once.
+        bgcolor : color object
+            Color of the background.
+        color : dict | color object
+            Color for the data traces. If dict(), should have entries for
+            each type of data.
+        bad_color : color object
+            Color to make bad channels.
+        event_color : color object
+            Color to use for events.
+        scales : dict
+            Scale factors for the traces. Must have entries for each type
+            of data.
+        remove_dc : bool
+            If True remove DC component when plotting data.
+        order : 'type' | 'original' | array
+            Order in which to plot data. 'type' groups by channel type,
+            'original' plots in the order of ch_names, array gives the
+            indices to use in plotting.
+        show_options : bool
+            If True, a dialog for options related to projecion is shown.
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            Raw traces.
+
+        Notes
+        -----
+        The arrow keys (up/down/left/right) can typically be used to navigate
+        between channels and time ranges, but this depends on the backend
+        matplotlib is configured to use.
+        """
+        return plot_raw(raw, events, duration, start, n_row, bgcolor, color,
+                        bad_color, event_color, scales, remove_dc, order,
+                        show_options)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')

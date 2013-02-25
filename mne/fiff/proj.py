@@ -412,14 +412,26 @@ def make_eeg_average_ref_proj(info, verbose=None):
     return eeg_proj
 
 
+def _has_eeg_average_ref_proj(projs):
+    """Determine if a list of projectors has an average EEG ref"""
+    for proj in projs:
+        if proj['desc'] == 'Average EEG reference' or \
+                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+            return True
+    return False
+
+
 @verbose
-def setup_proj(info, verbose=None):
+def setup_proj(info, add_eeg_ref=True, verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
     ----------
     info : dict
         The measurement info.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -431,11 +443,9 @@ def setup_proj(info, verbose=None):
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    proj_desc = [p['desc'] for p in info['projs']]
-    proj_kind = [p['kind'] for p in info['projs']]
     eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
-    if len(eeg_sel) > 0 and ('Average EEG reference' not in proj_desc
-            and FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF not in proj_kind):
+    if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
+            and add_eeg_ref is True:
         eeg_proj = make_eeg_average_ref_proj(info)
         info['projs'].append(eeg_proj)
 
