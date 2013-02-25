@@ -59,6 +59,8 @@ Changelog
 
    - Support reading of KIT data by `Teon Brooks`_ and `Christian Brodbeck`_
 
+   - Raw data visualization by `Eric Larson`_
+
 
 API
 ~~~
