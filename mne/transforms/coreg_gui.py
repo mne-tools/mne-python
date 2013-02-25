@@ -182,7 +182,8 @@ class FixDigHeadShape(HeadViewer):
         cdist = pdist(pts, metric='euclidean', p=2, w=None, V=None, VI=None)
         z = linkage(cdist, method='single')
         self._root = to_tree(z)
-        self._leaves = leaves_list(z)
+        self._leaves = np.asarray(leaves_list(z))
+        self._z = z
 
         self._sel = None
         self._plots = []
@@ -196,6 +197,8 @@ class FixDigHeadShape(HeadViewer):
     @traits.on_trait_change('clusters')
     def on_update_clusters(self):
         self.scene.disable_render = True
+
+        # cleanup plot
         if hasattr(self, 'mesh'):
             self.mesh.remove()
             del self.mesh
@@ -207,26 +210,38 @@ class FixDigHeadShape(HeadViewer):
             self.rsurf.remove()
             del self.rsurf
 
+        # find new mesh
         node = self._root
-        rnode = None  # rejected node
-        i = 0
-        i_last = 0
+        rnode = None  # last rejected node
+        r0 = None
+        i_left = 0
+        i_right = len(self._leaves)
         for _ in xrange(self.clusters):
-            rnode = node.left
-            node = node.right
-            i_last = i
-            i += rnode.count
+            left = node.left
+            right = node.right
+            # remove the smaller node from the selection
+            if right.count > left.count:
+                rnode = left
+                node = right
+                r0 = i_left
+                r1 = i_left = i_left + rnode.count
+            else:
+                rnode = right
+                node = left
+                r1 = i_right
+                r0 = i_right = i_right - rnode.count
+
             if node.is_leaf():
                 return
 
-        self.i = (i, i_last)
-        sel = np.sort(self._leaves[i:])
-        pts = self.pts[sel]
+        self.i = (i_left, i_right)
+        idx = np.sort(self._leaves[i_left:i_right])
+        pts = self.pts[idx]
         self.mesh, self.surf = self._plot_pts(pts)
 
-        if rnode is not None:
-            rsel = np.sort(self._leaves[i_last:i])
-            pts = self.pts[rsel]
+        if r0 is not None:
+            idx = np.sort(self._leaves[r0:r1])
+            pts = self.pts[idx]
             if len(pts) > 2:
                 self.rmesh, self.rsurf = self._plot_pts(pts, color=(1, 0, 0))
 
