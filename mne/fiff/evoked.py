@@ -509,9 +509,10 @@ class Evoked(object):
         self | evoked : instance of Evoked
         """
         evoked = self.copy() if copy else self
-        if getattr(self, 'proj', None) is not None:
+        if getattr(self, 'proj', None) is None:
             evoked.data = self._apply_projector(evoked.data, True, self.info)
-        logger.info('Projection has already been applied. Doing nothing.')
+        else:
+            logger.info('Projection has already been applied. Doing nothing.')
 
         return evoked
 
@@ -634,7 +635,7 @@ def merge_evoked(all_evoked):
     return evoked
 
 
-def read_evoked(fname, setno=None, baseline=None, kind='average'):
+def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     """Read an evoked dataset
 
     Parameters
@@ -655,6 +656,8 @@ def read_evoked(fname, setno=None, baseline=None, kind='average'):
         interval is used.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
+    proj : True
+        If False, available projectors won't be applied to the data.
     Returns
     -------
     evoked : instance of Evoked or list of Evoked
