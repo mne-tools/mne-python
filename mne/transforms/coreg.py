@@ -10,7 +10,6 @@ from glob import iglob
 import os
 import re
 import shutil
-from subprocess import check_output, CalledProcessError
 
 import logging
 from mne.utils import get_config
