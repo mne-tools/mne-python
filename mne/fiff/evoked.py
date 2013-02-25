@@ -664,10 +664,10 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
         The evoked datasets.
     """
     if isinstance(setno, list):
-        return [Evoked(fname, s, baseline=baseline, kind=kind)
+        return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
                 for s in setno]
     else:
-        return Evoked(fname, setno, baseline=baseline, kind=kind)
+        return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
 
 
 def write_evoked(fname, evoked):
