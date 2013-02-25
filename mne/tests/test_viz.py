@@ -187,3 +187,9 @@ def test_plot_drop_log():
     plot_drop_log([['One'], [], []])
     plot_drop_log([['One'], ['Two'], []])
     plot_drop_log([['One'], ['One', 'Two'], []])
+
+
+def test_plot_raw():
+    """Test plotting of raw data
+    """
+    raw.plot(events=events, show_options=True)

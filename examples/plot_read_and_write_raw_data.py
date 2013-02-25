@@ -41,9 +41,4 @@ raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks,
 
 ###############################################################################
 # Show MEG data
-import pylab as pl
-pl.close('all')
-pl.plot(times, data.T)
-pl.xlabel('time (s)')
-pl.ylabel('MEG data (T)')
-pl.show()
+raw.plot()
