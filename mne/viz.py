@@ -1973,13 +1973,17 @@ def _toggle_options(event, params):
                         x.set_color('r')
             # make minimal size
             fig_opts.set_size_inches((1, 1), forward=True)
+            # pass key presses from option dialog over
+            fig_opts.canvas.mpl_connect('key_press_event',
+                                        params['callback_key'])
+            proj_checks.on_clicked(params['callback_proj'])
             params['fig_opts'] = fig_opts
             params['proj_checks'] = proj_checks
-            # pass key presses from option dialog over
-            params['fig_opts'].canvas.mpl_connect('key_press_event',
-                                                  params['callback_key'])
-            params['proj_checks'].on_clicked(params['callback_proj'])
-            fig_opts.show()
+            # this should work for non-test cases
+            try:
+                fig_opts.canvas.show()
+            except Exception:
+                pass
         else:
             # turn off options dialog
             pl.close(params['fig_opts'])
