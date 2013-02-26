@@ -4,60 +4,42 @@
 #
 # License: BSD (3-clause)
 
-from struct import unpack
+from datetime import datetime
+import cPickle as pickle
 from os import SEEK_CUR, path
 import re
-import cPickle as pickle
+from struct import unpack
+
 import numpy as np
 from scipy import linalg
+
+from ... import __version__
 from ..constants import FIFF
-from ...transforms.transforms import apply_trans, rotation, translation
 from .constants import KIT
 
 
-def get_points(mrk_fname, elp_fname, hsp_fname):
-    """Extracts dig points, elp, and mrk points from files needed for coreg
+
+def get_dig_points(fid_points, elp_points, hsp_points):
+    """Create a dig point list for the info dictionary
 
     Parameters
     ----------
-    mrk_fname : str
-        Path to marker file (saved as text from MEG160).
-    elp_fname : str
-        Path to elp digitizer file.
-    hsp_fname : str
-        Path to hsp headshape file.
+    fid_points : array, shape = (3, 3)
+        Polhemus fiducial (in the target coordinate system).
+    elp_points : array, shape = (5, 3)
+        Polhemus elp points (in the target coordinate system).
+    hsp_points : array, shape = (n_points, 3)
+        Array with headshape points (in the target coordinate system).
 
     Returns
     -------
-    mrk_points : numpy.array, shape = (n_points, 3)
-        Array of 5 points by coordinate (x,y,z) from marker measurement.
-    elp_points : numpy.array, shape = (n_points, 3)
-        Array of 5 points by coordinate (x,y,z) from digitizer laser point.
-    dig : dict
-        A dictionary containing the mrk_points, elp_points, and hsp_points in
-        a format used for raw.info['dig'].
+    dig : list
+        A list containing the mrk_points, elp_points, and hsp_points in
+        the format used for raw.info['dig'].
     """
-
-    mrk_points = read_mrk(mrk_fname=mrk_fname)
-    mrk_points = transform_pts(mrk_points, unit='m')
-
-    elp_points = read_elp(elp_fname=elp_fname)
-    elp_points = transform_pts(elp_points)
-    nasion = elp_points[0, :]
-    lpa = elp_points[1, :]
-    rpa = elp_points[2, :]
-
-    trans = get_neuromag_transform(lpa, rpa, nasion)
-    elp_points = np.dot(elp_points, trans.T)
-    nasion = elp_points[0]
-    lpa = elp_points[1]
-    rpa = elp_points[2]
-    elp_points = elp_points[3:]
-
-    hsp_points = read_hsp(hsp_fname=hsp_fname)
-    hsp_points = transform_pts(hsp_points)
-    hsp_points = np.dot(hsp_points, trans.T)
     dig = []
+
+    nasion, lpa, rpa = fid_points
 
     point_dict = {}
     point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -95,15 +77,16 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
         point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = point
         dig.append(point_dict)
-    return mrk_points, elp_points, dig
+
+    return dig
 
 
-def read_mrk(mrk_fname):
+def read_mrk(fname):
     """Marker Point Extraction in MEG space directly from sqd
 
     Parameters
     ----------
-    mrk_fname : str
+    fname : str
         Absolute path to Marker file.
         File formats allowed: *.sqd, *.txt, *.pickled
 
@@ -112,9 +95,9 @@ def read_mrk(mrk_fname):
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    ext = path.splitext(mrk_fname)[-1]
+    ext = path.splitext(fname)[-1]
     if ext == '.sqd':
-        with open(mrk_fname, 'r') as fid:
+        with open(fname, 'r') as fid:
             fid.seek(KIT.MRK_INFO)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
             fid.seek(mrk_offset)
@@ -127,13 +110,27 @@ def read_mrk(mrk_fname):
                 fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
-    elif ext == '.hpi':
-        mrk_points = np.loadtxt(mrk_fname)
+    elif ext == '.txt':
+        mrk_points = np.loadtxt(fname)
     elif ext == '.pickled':
-        mrk = pickle.load(open(mrk_fname))
-        mrk_points = mrk['points']
+        with open(fname) as fid:
+            food = pickle.load(fid)
+        try:
+            mrk_points = food['mrk']
+        except:
+            err = ("%r does not contain marker points." % fname)
+            raise ValueError(err)
     else:
-        raise TypeError('File must be *.sqd, *.hpi or *.pickled.')
+        err = ('KIT marker file must be *.sqd, *.txt or *.pickled, '
+               'not *%s.' % ext)
+        raise ValueError(err)
+
+    # check output
+    mrk_points = np.asarray(mrk_points)
+    if mrk_points.shape != (5, 3):
+        err = ("%r is no marker file, shape is "
+               "%s" % (fname, mrk_points.shape))
+        raise ValueError(err)
     return mrk_points
 
 
@@ -157,7 +154,7 @@ def read_elp(elp_fname):
     return elp_points
 
 
-def read_hsp(hsp_fname, max_n=KIT.DIG_POINTS):
+def read_hsp(hsp_fname):
     """HSP point extraction in Polhemus head space
 
     Parameters
@@ -180,16 +177,37 @@ def read_hsp(hsp_fname, max_n=KIT.DIG_POINTS):
         hsp_points = p.findall(open(hsp_fname).read())
         hsp_points = np.array(hsp_points, dtype=float)
         # downsample the digitizer points
-        n_pts = len(hsp_points)
-        if (max_n is not None) and (n_pts > max_n):
-            space = int(n_pts / max_n)
-            hsp_points = np.copy(hsp_points[::space])
     elif ext == '.pickled':
         hsp = pickle.load(open(hsp_fname))
-        hsp_points = hsp['points']
+        hsp_points = hsp['hsp']
     else:
-        raise TypeError('File must be either *.txt or *.pickled.')
+        err = ('Polhemus hsp file must be *.txt or *.pickled, not *%s.' % ext)
+        raise ValueError(err)
     return hsp_points
+
+
+def write_hsp(fname, pts):
+    """Write a headshape hsp file
+
+    Parameters
+    ----------
+    fname : str
+        Target file.
+    pts : array, shape = (n_pts, 3)
+        Points comprising the headshape.
+    """
+    pts = np.asarray(pts)
+    if (pts.ndim != 2) or (pts.shape[1] != 3):
+        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
+        raise ValueError(err)
+
+    with open(fname, 'w') as fid:
+        version = __version__
+        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
+        fid.write("% Ascii 3D points file created by mne-python version "
+                  "{version} at {now}\n".format(version=version, now=now))
+        fid.write("% {N} 3D points, x y z per line\n".format(N=len(pts)))
+        np.savetxt(fid, pts, '%8.2f', ' ')
 
 
 def read_sns(sns_fname):
@@ -213,7 +231,7 @@ def read_sns(sns_fname):
     return locs
 
 
-def get_neuromag_transform(lpa, rpa, nasion):
+def get_neuromag_transform(nasion, lpa, rpa):
     """Creates a transformation matrix from RAS to Neuromag-like space
 
     Resets the origin to mid-distance of peri-auricular points with nasion
@@ -222,12 +240,12 @@ def get_neuromag_transform(lpa, rpa, nasion):
 
     Parameters
     ----------
+    nasion : numpy.array, shape = (1, 3)
+        Nasion point coordinate.
     lpa : numpy.array, shape = (1, 3)
         Left peri-auricular point coordinate.
     rpa : numpy.array, shape = (1, 3)
         Right peri-auricular point coordinate.
-    nasion : numpy.array, shape = (1, 3)
-        Nasion point coordinate.
 
     Returns
     -------
@@ -248,10 +266,13 @@ def get_neuromag_transform(lpa, rpa, nasion):
     return trans
 
 
-def transform_pts(pts, unit='mm'):
-    """Transform KIT and Polhemus points to RAS coordinate system
+def transform_ALS_to_RAS(pts, unit='mm'):
+    """Transform points from a ALS to RAS a coordinate system
 
-    This is used to orient points in Neuromag coordinates.
+    This is used to orient points in Neuromag coordinates. KIT and Polhemus
+    points are originally in a ALS (anterior, left, superior) coordinate
+    system and ahve to be transformed to the neuromag RAS (right, anterior,
+    superior) coordinate system.
     KIT sensors are (x,y,z) in [mm].
     KIT markers are (x,y,z) in [m].
     Polhemus points are (x,y,z) in [mm].
@@ -269,11 +290,11 @@ def transform_pts(pts, unit='mm'):
     pts : numpy.array, shape = (n_points, 3)
         Points transformed to Neuromag-like head space (RAS).
     """
-    if unit == 'mm':
-        pts = pts / 1e3
-    elif unit != 'm':
-        raise ValueError('The unit must be either "m" or "mm".')
     pts = np.array(pts, ndmin=2)
     pts = pts[:, [1, 0, 2]]
-    pts[:, 0] = pts[:, 0] * -1
+    pts[:, 0] *= -1
+    if unit == 'mm':
+        pts /= 1e3
+    elif unit != 'm':
+        raise ValueError('The unit must be either "m" or "mm".')
     return pts

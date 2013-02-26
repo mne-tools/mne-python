@@ -53,9 +53,9 @@ if __name__ == '__main__':
     if isinstance(stim, str):
         stim = stim.split(':')
 
-    raw = read_raw_kit(input_fname=input_fname, mrk_fname=mrk_fname,
-                       elp_fname=elp_fname, hsp_fname=hsp_fname,
-                       sns_fname=sns_fname, stim=stim, stimthresh=stimthresh)
+    raw = read_raw_kit(input_fname=input_fname, mrk=mrk_fname, elp=elp_fname,
+                       hsp=hsp_fname, sns_fname=sns_fname, stim=stim,
+                       stimthresh=stimthresh)
 
     raw.save(out_fname)
     raw.close()

@@ -8,12 +8,15 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 #
 # License: BSD (3-clause)
 
-import time
 import logging
-from struct import unpack
 from os import SEEK_CUR
+from struct import unpack
+import time
+import warnings
+
 import numpy as np
 from scipy.linalg import norm
+
 from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
 from ...utils import verbose
@@ -21,7 +24,8 @@ from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from . import coreg
+from .coreg import get_dig_points, read_elp, read_hsp, read_mrk, read_sns, \
+                   get_neuromag_transform, transform_ALS_to_RAS
 
 logger = logging.getLogger('mne')
 
@@ -33,12 +37,13 @@ class RawKIT(Raw):
     ----------
     input_fname : str
         Absolute path to the sqd file.
-    mrk_fname : str
-        Absolute path to marker coils file.
-    elp_fname : str
-        Absolute path to elp digitizer laser points file.
-    hsp_fname : str
-        Absolute path to elp digitizer head shape points file.
+    mrk : str | array, shape = (5, 3)
+        Absolute path to marker coils file, or array of points.
+    elp : str | array, shape = (8, 3)
+        Absolute path to elp digitizer laser points file, or array with points.
+    hsp : str | array, shape = (n_pts, 3)
+        Absolute path to elp digitizer head shape points file, or array with
+        points.
     sns_fname : str
         Absolute path to sensor information file.
     stim : list of int | '<' | '>'
@@ -62,8 +67,12 @@ class RawKIT(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim='<', stimthresh=1, verbose=None, preload=False):
+    def __init__(self, input_fname, mrk=None, elp=None, hsp=None,
+                 sns_fname=None, stim='<', stimthresh=1, verbose=None,
+                 preload=False):
+        if sns_fname is None:
+            err = ("An sns_fname must be provided, can't be None")
+            raise NotImplementedError(err)
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -102,11 +111,12 @@ class RawKIT(Raw):
         self.info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         self.info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
 
-        mrk, elp, self.info['dig'] = coreg.get_points(mrk_fname=mrk_fname,
-                                                      elp_fname=elp_fname,
-                                                      hsp_fname=hsp_fname)
-        self.info['dev_head_t']['trans'] = fit_matched_pts(tgt_pts=mrk,
-                                                           src_pts=elp)
+        if (mrk and elp and hsp):
+            self.set_dig(mrk, elp, hsp)
+        elif (mrk or elp or hsp):
+            err = ("mrk, elp and hsp need to be provided as a group (all or "
+                   "none)")
+            raise ValueError(err)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -117,8 +127,8 @@ class RawKIT(Raw):
                                  in range(1, self._sqd_params['nmiscchan']
                                           + 1)]
         ch_names['STIM'] = ['STI 014']
-        locs = coreg.read_sns(sns_fname=sns_fname)
-        chan_locs = coreg.transform_pts(locs[:, :3])
+        locs = read_sns(sns_fname=sns_fname)
+        chan_locs = transform_ALS_to_RAS(locs[:, :3])
         chan_angles = locs[:, 3:]
         self.info['chs'] = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
@@ -165,7 +175,7 @@ class RawKIT(Raw):
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((vec_x, vec_y, vec_z))
-            vecs = coreg.transform_pts(vecs, unit='m')
+            vecs = transform_ALS_to_RAS(vecs, unit='m')
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             self.info['chs'].append(chan_info)
 
@@ -339,6 +349,68 @@ class RawKIT(Raw):
 
         return data, times
 
+    def set_dig(self, mrk, elp, hsp):
+        """
+        Fill in the digitizer data using points in Polhemus space
+
+        Parameters
+        ----------
+        mrk : None | array, shape = (5, 3)
+            Marker points used to estimate the device head transform. If trans
+            is provided, mrk is not used and can be None).
+        max_hsp_n : None | int
+            Maximum number of head shape points to keep.
+        """
+        if isinstance(hsp, basestring):
+            hsp = read_hsp(hsp)
+            n_pts = len(hsp)
+            if n_pts > KIT.DIG_POINTS:
+                msg = ("The selected head shape contains %i points, which is "
+                       "more than recommended (%i)" % (n_pts, KIT.DIG_POINTS))
+                warnings.warn(msg)
+
+        if isinstance(elp, basestring):
+            elp = read_elp(elp)
+
+        if isinstance(mrk, basestring):
+            mrk = read_mrk(mrk)
+
+        hsp = transform_ALS_to_RAS(hsp)
+        elp = transform_ALS_to_RAS(elp)
+        mrk = transform_ALS_to_RAS(mrk, unit='m')
+
+        nasion, lpa, rpa = elp[:3]
+        nmtrans = get_neuromag_transform(nasion, lpa, rpa).T
+        elp = np.dot(elp, nmtrans)
+        hsp = np.dot(hsp, nmtrans)
+
+        # device head transform
+        trans = fit_matched_pts(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+
+        self.set_transformed_dig(elp[:3], elp[3:], hsp, trans)
+
+    def set_transformed_dig(self, fid, elp, hsp, trans):
+        """
+        Fill in the digitizer data using points that are already transformed to
+        neuromag space
+
+        Parameters
+        ----------
+        fid : array, shape = (3, 3)
+            Digitizer fiducials.
+        elp : array, shape = (5, 3)
+            Digitizer ELP points.
+        trans : None | array, shape = (4, 4)
+            Device head transformation.
+        """
+        self.info['dig'] = get_dig_points(fid, elp, hsp)
+
+        trans = np.asarray(trans)
+        if not trans.shape == (4, 4):
+            raise ValueError("trans needs to be 4 by 4 array")
+        self.info['dev_head_t']['trans'] = trans
+
+
 
 def get_sqd_params(rawfile):
     """Extracts all the information from the sqd file.
@@ -429,7 +501,7 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+def read_raw_kit(input_fname, mrk, elp, hsp, sns_fname,
                  stim='<', stimthresh=1, verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
@@ -437,12 +509,13 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
     ----------
     input_fname : str
         Absolute path to the sqd file.
-    mrk_fname : str
-        Absolute path to marker coils file.
-    elp_fname : str
-        Absolute path to elp digitizer laser points file.
-    hsp_fname : str
-        Absolute path to elp digitizer head shape points file.
+    mrk : str | array, shape = (5, 3)
+        Absolute path to marker coils file, or array of points.
+    elp : str | array, shape = (8, 3)
+        Absolute path to elp digitizer laser points file, or array with points.
+    hsp : str | array, shape = (n_pts, 3)
+        Absolute path to elp digitizer head shape points file, or array with
+        points.
     sns_fname : str
         Absolute path to sensor information file.
     stim : list of int | '<' | '>'
@@ -461,7 +534,6 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
-                  elp_fname=elp_fname, hsp_fname=hsp_fname,
+    return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   sns_fname=sns_fname, stim=stim, stimthresh=stimthresh,
                   verbose=verbose, preload=preload)
