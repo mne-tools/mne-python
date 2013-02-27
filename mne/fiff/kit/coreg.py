@@ -5,8 +5,9 @@
 # License: BSD (3-clause)
 
 from struct import unpack
-from os import SEEK_CUR
+from os import SEEK_CUR, path
 import re
+import cPickle as pickle
 import numpy as np
 from ..constants import FIFF
 from ...transforms.transforms import apply_trans, rotation, translation
@@ -102,26 +103,36 @@ def read_mrk(mrk_fname):
     Parameters
     ----------
     mrk_fname : str
-        Absolute path to Marker sqd file.
+        Absolute path to Marker file.
+        File formats allowed: *.sqd, *.txt, *.pickled
 
     Returns
     -------
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    with open(mrk_fname, 'r') as fid:
-        fid.seek(KIT.MRK_INFO)
-        mrk_offset = unpack('i', fid.read(KIT.INT))[0]
-        fid.seek(mrk_offset)
-        # skips match_done, meg_to_mri and mri_to_meg
-        fid.seek(KIT.INT + (2 * KIT.DOUBLE * 4 ** 2), SEEK_CUR)
-        mrk_count = unpack('i', fid.read(KIT.INT))[0]
-        pts = []
-        for _ in range(mrk_count):
-            # skips mri/meg mrk_type and done, mri_marker
-            fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
-            pts.append(np.fromfile(fid, dtype='d', count=3))
-        mrk_points = np.array(pts)
+    ext = path.splitext(mrk_fname)[-1]
+    if ext == '.sqd':
+        with open(mrk_fname, 'r') as fid:
+            fid.seek(KIT.MRK_INFO)
+            mrk_offset = unpack('i', fid.read(KIT.INT))[0]
+            fid.seek(mrk_offset)
+            # skips match_done, meg_to_mri and mri_to_meg
+            fid.seek(KIT.INT + (2 * KIT.DOUBLE * 4 ** 2), SEEK_CUR)
+            mrk_count = unpack('i', fid.read(KIT.INT))[0]
+            pts = []
+            for _ in range(mrk_count):
+                # skips mri/meg mrk_type and done, mri_marker
+                fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
+                pts.append(np.fromfile(fid, dtype='d', count=3))
+                mrk_points = np.array(pts)
+    elif ext == '.hpi':
+        mrk_points = np.loadtxt(mrk_fname)
+    elif ext == '.pickled':
+        mrk = pickle.load(open(mrk_fname))
+        mrk_points = mrk['points']
+    else:
+        raise TypeError('File must be *.sqd, *.hpi or *.pickled.')
     return mrk_points
 
 
@@ -132,6 +143,7 @@ def read_elp(elp_fname):
     ----------
     elp_fname : str
         Absolute path to laser point file acquired from Polhemus system.
+        File formats allowed: *.txt
 
     Returns
     -------
@@ -156,16 +168,23 @@ def read_hsp(hsp_fname):
     -------
     hsp_points : numpy.array, shape = (n_points, 3)
         Headshape points in Polhemus head space.
+        File formats allowed: *.txt, *.pickled
     """
-
-    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    hsp_points = p.findall(open(hsp_fname).read())
-    hsp_points = np.array(hsp_points, dtype=float)
-    # downsample the digitizer points
-    n_pts = len(hsp_points)
-    if n_pts > KIT.DIG_POINTS:
-        space = int(n_pts / KIT.DIG_POINTS)
-        hsp_points = np.copy(hsp_points[::space])
+    ext = path.splitext(hsp_fname)[-1]
+    if ext == '.txt':
+        p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+        hsp_points = p.findall(open(hsp_fname).read())
+        hsp_points = np.array(hsp_points, dtype=float)
+        # downsample the digitizer points
+        n_pts = len(hsp_points)
+        if n_pts > KIT.DIG_POINTS:
+            space = int(n_pts / KIT.DIG_POINTS)
+            hsp_points = np.copy(hsp_points[::space])
+    elif ext == '.pickled':
+        hsp = pickle.load(open(hsp_fname))
+        hsp_points = hsp['points']
+    else:
+        raise TypeError('File must be either *.txt or *.pickled.')
     return hsp_points
 
 
