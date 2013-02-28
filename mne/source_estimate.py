@@ -947,7 +947,8 @@ class SourceEstimate(object):
         time_viewer : bool
             Display time viewer GUI.
         config_opts : dict
-            Options for Brain initialization. See pysurfer.viz.Brain.
+            Keyword arguments for Brain initialization.
+            See pysurfer.viz.Brain.
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.

@@ -966,7 +966,8 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
     time_viewer : bool
         Display time viewer GUI.
     config_opts : dict
-        Options for Brain initialization. See pysurfer.viz.Brain.
+        Keyword arguments for Brain initialization.
+        See pysurfer.viz.Brain.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
