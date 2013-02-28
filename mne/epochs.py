@@ -708,7 +708,7 @@ class Epochs(object):
                                    for k in picks]
         evoked.info['nchan'] = len(picks)
         evoked.data = evoked.data[picks]
-        # other wise the apply_projector will be confused
+        # otherwise the apply_projector will be confused
         evoked.proj = True if self.proj is True else None
 
         return evoked
