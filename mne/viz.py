@@ -1840,7 +1840,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         inds += [pick_types(info, meg=t, exclude=[])]
         types += [t] * len(inds[-1])
     pick_args = dict(meg=False, exclude=[])
-    for t in ['eeg', 'eog', 'ecg', 'emg', 'stim', 'misc']:
+    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+              'misc']:
         pick_args[t] = True
         inds += [pick_types(raw.info, **pick_args)]
         types += [t] * len(inds[-1])
