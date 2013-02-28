@@ -228,7 +228,7 @@ def get_neuromag_transform(lpa, rpa, nasion):
 
     Returns
     -------
-    trans : numpy.array, shape = (4, 4)
+    trans : numpy.array, shape = (3, 3)
         Transformation matrix to Neuromag-like space.
     """
     origin = (lpa + rpa) / 2
