@@ -40,9 +40,9 @@ def apply_trans(trans, pts):
         pts = np.dot(trans, pts)
         pts = pts[:3, 0]
     else:
-        pts = np.vstack((pts.T, np.ones(len(pts))))
-        pts = np.dot(trans, pts)
-        pts = pts[:3].T
+        pts = np.hstack((pts, np.ones((len(pts), 1))))
+        pts = np.dot(pts, trans.T)
+        pts = pts[:, :3]
     return pts
 
 
