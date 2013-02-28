@@ -70,6 +70,13 @@ def fit_mri_to_head(raw, s_from='fsaverage', s_to=None, trans_fname=_trans,
     return gui
 
 
+def kit2fiff():
+    from .transforms.kit2fiff_gui import MainWindow
+    gui = MainWindow()
+    gui.configure_traits()
+    return gui
+
+
 def set_fiducials(subject, fid=None, subjects_dir=None):
     """Open a gui for creating a fiducials file for an mri
 
