@@ -80,7 +80,7 @@ def read_inverse_operator(fname, verbose=None):
     #   Find all inverse operators
     #
     invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
-    if invs is None:
+    if invs is None or len(invs) < 1:
         fid.close()
         raise Exception('No inverse solutions in %s' % fname)
 

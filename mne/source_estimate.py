@@ -540,6 +540,12 @@ class SourceEstimate(object):
 
     def __iadd__(self, a):
         if isinstance(a, SourceEstimate):
+            if len(a.vertno) == len(self.vertno):
+                if not all([np.array_equal(av, vv)
+                            for av, vv in zip(a.vertno, self.vertno)]):
+                    raise RuntimeError('Cannot add SourceEstimates that do '
+                                       'not have the same vertices. Consider '
+                                       'using stc.expand().')
             self.data += a.data
         else:
             self.data += a
@@ -612,6 +618,9 @@ class SourceEstimate(object):
 
     def sqrt(self):
         return self ** (0.5)
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):
         """Returns a SourceEstimate object with data summarized over time bins
@@ -718,6 +727,35 @@ class SourceEstimate(object):
         label_stc = SourceEstimate(values, vertices=vertices,
                                    tmin=self.tmin, tstep=self.tstep)
         return label_stc
+
+    def expand(self, vertno):
+        """Expand SourceEstimate to include more vertices
+
+        This will add rows to stc.data (zero-filled) and modify stc.vertno
+        to include all vertices in stc.vertno and the input vertno.
+
+        Parameters
+        ----------
+        vertno : list of array
+            New vertices to add. Can also contain old values.
+        """
+        if not isinstance(vertno, list):
+            raise TypeError('vertno must be a list')
+        if not len(self.vertno) == len(vertno):
+            raise ValueError('vertno must have the same length as stc.vertno')
+        inserters = list()
+        offsets = [0]
+        for vi, (v_old, v_new) in enumerate(zip(self.vertno, vertno)):
+            v_new = np.setdiff1d(v_new, v_old)
+            inds = np.searchsorted(v_old, v_new)
+            inserters += [inds]
+            offsets += [len(v_old)]
+            self.vertno[vi] = np.insert(v_old, inds, v_new)
+        inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
+        inds = np.concatenate(inds)
+        new_data = np.zeros((len(inds), self.data.shape[1]))
+        self.data = np.insert(self.data, inds, new_data, axis=0)
+        return self
 
     @verbose
     def extract_label_time_course(self, labels, src, mode='mean_flip',
