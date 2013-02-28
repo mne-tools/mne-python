@@ -369,10 +369,10 @@ class SourceEstimate(object):
     Parameters
     ----------
     data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
-        The data in source space. The data can either as a single array or
-        using a tuple with two arrays: "kernel" shape (n_vertices, n_sensors)
-        and "sens_data" shape (n_sensors, n_times). In this case, the source
-        space data corresponds to "np.dot(kernel, sens_data)".
+        The data in source space. The data can either be a single array or
+        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
+        "sens_data" shape (n_sensors, n_times). In this case, the source
+        space data corresponds to "numpy.dot(kernel, sens_data)".
 
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
@@ -385,12 +385,6 @@ class SourceEstimate(object):
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    .. note::
-        If the data can be represented as "numpy.dot(kernel, sens_data)", it
-        is possible to pass None for data and instead pass kernel and
-        sens_data. This will save memory and can enable faster time-frequency
-        transforms in source space.
 
     .. note::
         For backwards compatibility, the SourceEstimate can also be
@@ -923,11 +917,6 @@ class SourceEstimate(object):
 
         The transorm is applied to each source time course independently.
 
-        Note: Applying transforms can be significantly faster if the
-        SourceEstimate object was created using "(kernel, sens_data)", for the
-        "data" parameter as the transform is applied in sensor space. Inverse
-        methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" will do this
-        automatically (if possible).
 
         Parameters
         ----------
@@ -955,6 +944,13 @@ class SourceEstimate(object):
         -------
         data_t : ndarray
             The transformed data.
+
+        .. note::
+            Applying transforms can be significantly faster if the
+            SourceEstimate object was created using "(kernel, sens_data)", for
+            the "data" parameter as the transform is applied in sensor space.
+            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+            this automatically (if possible).
         """
 
         if idx is None:
@@ -966,7 +962,6 @@ class SourceEstimate(object):
 
         if self._kernel is None and self._sens_data is None:
             # transform source space data directly
-
             data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
                                    *fun_args, **kwargs)
 
@@ -975,7 +970,6 @@ class SourceEstimate(object):
                 data_t = data_t[0]
         else:
             # apply transform in sensor space
-
             sens_data_t = transform_fun(self._sens_data[:, tmin_idx:tmax_idx],
                                         *fun_args, **kwargs)
 
