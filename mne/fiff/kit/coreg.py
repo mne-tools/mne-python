@@ -9,6 +9,7 @@ from os import SEEK_CUR, path
 import re
 import cPickle as pickle
 import numpy as np
+import scipy as sp
 from ..constants import FIFF
 from ...transforms.transforms import apply_trans, rotation, translation
 from .constants import KIT
@@ -47,7 +48,7 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
     rpa = elp_points[2, :]
 
     trans = get_neuromag_transform(lpa, rpa, nasion)
-    elp_points = apply_trans(trans, elp_points)
+    elp_points = np.dot(elp_points, trans.T)
     nasion = elp_points[0]
     lpa = elp_points[1]
     rpa = elp_points[2]
@@ -55,7 +56,7 @@ def get_points(mrk_fname, elp_fname, hsp_fname):
 
     hsp_points = read_hsp(hsp_fname=hsp_fname)
     hsp_points = transform_pts(hsp_points)
-    hsp_points = apply_trans(trans, hsp_points)
+    hsp_points = np.dot(hsp_points, trans.T)
     dig = []
 
     point_dict = {}
@@ -230,29 +231,17 @@ def get_neuromag_transform(lpa, rpa, nasion):
     trans : numpy.array, shape = (4, 4)
         Transformation matrix to Neuromag-like space.
     """
-    x, y, z = -(lpa + rpa) / 2
-    origin = translation(x, y, z)
-    nasion = apply_trans(origin, nasion)
+    origin = (lpa + rpa) / 2
+    nasion = nasion - origin
+    lpa = lpa - origin
+    rpa = rpa - origin
+    axes = np.empty((3, 3))
+    axes[1] = nasion / sp.linalg.norm(nasion)
+    axes[2] = np.cross(axes[1], lpa - rpa)
+    axes[2] /= np.linalg.norm(axes[2])
+    axes[0] = np.cross(axes[1], axes[2])
 
-    rot1 = np.arctan(nasion[0] / nasion[1])
-    if nasion[1] < 0:
-        rot1 += np.pi
-    rot1 = rotation(z=rot1)
-    trans = np.dot(rot1, origin)
-
-    nasion = apply_trans(rot1, nasion)
-    rot2 = np.arctan(nasion[2] / nasion[1])
-    if nasion[1] < 0:
-        rot2 += np.pi
-    rot2 = rotation(x=rot2)
-    trans = np.dot(rot2, trans)
-
-    rpa = apply_trans(trans, rpa)
-    rot3 = np.arctan(rpa[2] / rpa[0])
-    if rpa[0] < 0:
-        rot3 += np.pi
-    rot3 = rotation(y=rot3)
-    trans = np.dot(rot3, trans)
+    trans = sp.linalg.inv(axes)
     return trans
 
 
