@@ -17,7 +17,7 @@ from .tag import read_tag
 from .tree import dir_tree_find
 from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
-from .proj import make_projector_info, activate_proj
+from .proj import make_projector_info, activate_proj, deactivate_proj
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
@@ -512,10 +512,10 @@ class Evoked(object):
         self | evoked : instance of Evoked
         """
         evoked = self.copy() if copy else self
-        if evoked.proj is not True:  # don't compare value with array
+        if evoked.proj is True:  # only proceed if flag is True
             if evoked.info['projs'] is None:
-                logger.info('No projector specified for these data')
-                evoked.proj = None
+                logger.info('No projector specified for these data'
+                            'Please consider the method evoked.add_proj')
             else:
                 #   Create the projector
                 proj, nproj = make_projector_info(evoked.info)
@@ -527,21 +527,41 @@ class Evoked(object):
                     logger.info('Created an SSP operator (subspace dimension '
                                 '= %d)' % nproj)
                     evoked.proj = proj
-
-                #   The projection items have been activated
+                #  The projection items have been activated
                 evoked.info['projs'] = activate_proj(evoked.info['projs'],
                                                      copy=False)
-
-            if evoked.proj is not None:
+            # don't proceed if evoked.proj still is True
+            if isinstance(evoked.proj, np.ndarray):
                 logger.info("SSP projectors applied...")
                 data = np.dot(evoked.proj, evoked.data)
             evoked.data = data
         else:
-            logger.info('Projection has already been applied or the attempt to'
-                        'apply it has not been successfull. Doing nothing.'
-                        'Please check info[\'projs\']')
+            logger.info('Projection has already been applied or evoked.proj'
+                        'is set to False. Doing nothing.')
 
         return evoked if copy else None
+
+    def add_proj(self, projs, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors.
+        remove_existing : bool
+            Remove the projection vectors currently in the file.
+        """
+        # mark proj as inactive, as they have not been applied
+        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
+
+        if remove_existing:
+            # we cannot remove the proj if they are active
+            if any(p['active'] for p in self.info['projs']):
+                raise ValueError('Cannot remove projectors that have '
+                                 'already been applied')
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
 
     def copy(self):
         """ Copy the instance of evoked
