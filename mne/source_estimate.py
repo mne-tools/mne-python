@@ -361,6 +361,18 @@ class _NotifyArray(np.ndarray):
         return np.ndarray.__array_wrap__(self, out_arr, context)
 
 
+def _verify_source_estimate_compat(a, b):
+    """Make sure two SourceEstimates are compatible for arith. operations"""
+    compat = False
+    if len(a.vertno) == len(b.vertno):
+        if all([np.array_equal(av, vv) for av, vv in zip(a.vertno, b.vertno)]):
+            compat = True
+
+    if not compat:
+        raise ValueError('Cannot combine SourceEstimates that do not have the '
+                         'same vertices. Consider using stc.expand().')
+
+
 class SourceEstimate(object):
     """SourceEstimate container
 
@@ -638,12 +650,7 @@ class SourceEstimate(object):
     def __iadd__(self, a):
         self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
-            if len(a.vertno) == len(self.vertno):
-                if not all([np.array_equal(av, vv)
-                            for av, vv in zip(a.vertno, self.vertno)]):
-                    raise RuntimeError('Cannot add SourceEstimates that do '
-                                       'not have the same vertices. Consider '
-                                       'using stc.expand().')
+            _verify_source_estimate_compat(self, a)
             self._data += a.data
         else:
             self._data += a
@@ -657,6 +664,7 @@ class SourceEstimate(object):
     def __isub__(self, a):
         self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
+            _verify_source_estimate_compat(self, a)
             self._data -= a.data
         else:
             self._data -= a
@@ -670,6 +678,7 @@ class SourceEstimate(object):
     def __idiv__(self, a):
         self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
+            _verify_source_estimate_compat(self, a)
             self._data /= a.data
         else:
             self._data /= a
@@ -683,6 +692,7 @@ class SourceEstimate(object):
     def __imul__(self, a):
         self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
+            _verify_source_estimate_compat(self, a)
             self._data *= a.data
         else:
             self._data *= a
@@ -846,6 +856,10 @@ class SourceEstimate(object):
             raise TypeError('vertno must be a list')
         if not len(self.vertno) == len(vertno):
             raise ValueError('vertno must have the same length as stc.vertno')
+
+        # can no longer use kernel and sensor data
+        self._remove_kernel_sens_data_()
+
         inserters = list()
         offsets = [0]
         for vi, (v_old, v_new) in enumerate(zip(self.vertno, vertno)):
@@ -856,8 +870,8 @@ class SourceEstimate(object):
             self.vertno[vi] = np.insert(v_old, inds, v_new)
         inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
         inds = np.concatenate(inds)
-        new_data = np.zeros((len(inds), self.data.shape[1]))
-        self.data = np.insert(self.data, inds, new_data, axis=0)
+        new_data = np.zeros((len(inds), self._data.shape[1]))
+        self._data = np.insert(self._data, inds, new_data, axis=0)
         return self
 
     @verbose

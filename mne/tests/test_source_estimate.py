@@ -43,7 +43,7 @@ def test_expand():
     for label in labels_lh[:2]:
         stc_new += stc.in_label(label).expand(stc_limited.vertno)
     # make sure we can't add unless vertno agree
-    assert_raises(RuntimeError, stc.__add__, stc.in_label(labels_lh[0]))
+    assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
 def test_io_stc():
