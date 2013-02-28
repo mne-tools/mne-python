@@ -60,6 +60,7 @@ if __name__ == "__main__":
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
                     'mne.tests',
+                    'mne.transforms',
                     'mne.stats', 'mne.stats.tests',
                     'mne.time_frequency', 'mne.time_frequency.tests'],
           package_data={'mne': ['data/*.sel',
