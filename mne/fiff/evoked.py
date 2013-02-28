@@ -499,13 +499,13 @@ class Evoked(object):
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def apply_projector(self, copy=False):
-        """ Apply projector
+        """Apply SSPs projections
 
         Parameters
         ----------
         copy : bool
-            If True, the projections will be applied to copy. Else the
-            evoked instance is modified in-place.
+            If True, the projections will be applied to a copy. If False,
+            the projections will be applied in-place.
 
         Returns
         -------
