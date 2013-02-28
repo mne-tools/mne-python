@@ -906,7 +906,8 @@ class SourceEstimate(object):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-             transparent=True, time_viewer=False, subjects_dir=None):
+             transparent=True, time_viewer=False, config_opts={},
+             subjects_dir=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -945,6 +946,8 @@ class SourceEstimate(object):
             If True, use a linear transparency between fmin and fmid.
         time_viewer : bool
             Display time viewer GUI.
+        config_opts : dict
+            Options for Brain initialization. See pysurfer.viz.Brain.
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
@@ -960,7 +963,8 @@ class SourceEstimate(object):
                         hemi=hemi, colormap=colormap, time_label=time_label,
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent,
-                        time_viewer=time_viewer, subjects_dir=subjects_dir)
+                        time_viewer=time_viewer, config_opts=config_opts,
+                        subjects_dir=subjects_dir)
         return brain
 
 ###############################################################################

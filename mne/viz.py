@@ -926,7 +926,7 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, time_viewer=False,
-                          subjects_dir=None):
+                          config_opts={}, subjects_dir=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -965,6 +965,8 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         If True, use a linear transparency between fmin and fmid.
     time_viewer : bool
         Display time viewer GUI.
+    config_opts : dict
+        Options for Brain initialization. See pysurfer.viz.Brain.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
@@ -1002,13 +1004,14 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         args = inspect.getargspec(Brain.__init__)[0]
         if 'subjects_dir' in args:
             brain = Brain(subject, hemi, surface, title=title,
-                          subjects_dir=subjects_dir)
+                          config_opts=config_opts, subjects_dir=subjects_dir)
         else:
             # Current PySurfer versions need the SUBJECTS_DIR env. var.
             # so we set it here. This is a hack as it can break other things
             # XXX reminder to remove this once upstream pysurfer is changed
             os.environ['SUBJECTS_DIR'] = subjects_dir
-            brain = Brain(subject, hemi, surface, title=title)
+            brain = Brain(subject, hemi, surface, config_opts=config_opts,
+                          title=title)
 
         if hemi_idx == 0:
             data = stc.data[:len(stc.vertno[0])]
