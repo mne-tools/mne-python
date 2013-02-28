@@ -95,6 +95,8 @@ class Evoked(object):
         self.verbose = verbose
         logger.info('Reading %s ...' % fname)
         fid, tree, _ = fiff_open(fname)
+        if not isinstance(proj, bool):
+            raise ValueError(r"'proj' must be 'True' or 'False'")
 
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree)
@@ -267,8 +269,7 @@ class Evoked(object):
         # bind info, proj, data to self so apply_projector can be used
         self.info = info
         self.data = all_data
-        self.proj = proj
-        self.apply_projector(copy=False)
+        self.apply_projector(proj=proj, copy=False)
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
@@ -498,7 +499,7 @@ class Evoked(object):
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
-    def apply_projector(self, copy=False):
+    def apply_projector(self, proj=True, copy=False):
         """Apply SSPs projections
 
         Parameters
@@ -512,16 +513,19 @@ class Evoked(object):
         self | evoked : instance of Evoked
         """
         evoked = self.copy() if copy else self
-        if evoked.proj is True:  # only proceed if flag is True
-            if evoked.info['projs'] is None:
+        if proj is True:
+            if getattr(evoked, 'proj', None) == 'applied':
+                logger.info('Projection has already been applied. Doing '
+                            'nothing.')
+            elif evoked.info['projs'] is None:
                 logger.info('No projector specified for these data'
-                            'Please consider the method evoked.add_proj')
+                            'Please consider the method evoked.add_proj.')
             else:
                 #   Create the projector
                 proj, nproj = make_projector_info(evoked.info)
                 if nproj == 0:
                     logger.info('The projection vectors do not apply to these'
-                                ' channels')
+                                ' channels. Consider updating the projections.')
                     evoked.proj = None
                 else:
                     logger.info('Created an SSP operator (subspace dimension '
@@ -534,12 +538,10 @@ class Evoked(object):
             if isinstance(evoked.proj, np.ndarray):
                 logger.info("SSP projectors applied...")
                 data = np.dot(evoked.proj, evoked.data)
-            evoked.data = data
-        else:
-            logger.info('Projection has already been applied or evoked.proj'
-                        'is set to False. Doing nothing.')
+                evoked.proj = 'applied'
+                evoked.data = data
 
-        return evoked if copy else None
+        return evoked
 
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
