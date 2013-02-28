@@ -9,7 +9,7 @@ from os import SEEK_CUR, path
 import re
 import cPickle as pickle
 import numpy as np
-import scipy as sp
+from scipy import linalg
 from ..constants import FIFF
 from ...transforms.transforms import apply_trans, rotation, translation
 from .constants import KIT
@@ -236,12 +236,12 @@ def get_neuromag_transform(lpa, rpa, nasion):
     lpa = lpa - origin
     rpa = rpa - origin
     axes = np.empty((3, 3))
-    axes[1] = nasion / sp.linalg.norm(nasion)
+    axes[1] = nasion / linalg.norm(nasion)
     axes[2] = np.cross(axes[1], lpa - rpa)
-    axes[2] /= np.linalg.norm(axes[2])
+    axes[2] /= linalg.norm(axes[2])
     axes[0] = np.cross(axes[1], axes[2])
 
-    trans = sp.linalg.inv(axes)
+    trans = linalg.inv(axes)
     return trans
 
 
