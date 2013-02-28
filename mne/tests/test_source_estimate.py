@@ -27,6 +27,21 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 tempdir = _TempDir()
 
 
+def test_expand():
+    """Test stc expansion
+    """
+    stc = read_source_estimate(fname)
+    labels_lh, _ = labels_from_parc('sample', hemi='lh',
+                                    subjects_dir=subjects_dir)
+    stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
+    stc_new = stc_limited.copy()
+    stc_new.data.fill(0)
+    for label in labels_lh[:2]:
+        stc_new += stc.in_label(label).expand(stc_limited.vertno)
+    # make sure we can't add unless vertno agree
+    assert_raises(RuntimeError, stc.__add__, stc.in_label(labels_lh[0]))
+
+
 def test_io_stc():
     """Test IO for STC files
     """
