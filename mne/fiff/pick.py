@@ -29,6 +29,7 @@ def channel_type(info, idx):
     Returns
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
+           'ref_meg' | 'resp'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -49,6 +50,8 @@ def channel_type(info, idx):
         return 'emg'
     elif kind == FIFF.FIFFV_ECG_CH:
         return 'ecg'
+    elif kind == FIFF.FIFFV_RESP_CH:
+        return 'resp'
     elif kind == FIFF.FIFFV_MISC_CH:
         return 'misc'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
@@ -118,8 +121,8 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg=False, misc=False, include=[], exclude=None,
-               selection=None):
+               emg=False, ref_meg=False, misc=False, resp=False, include=[],
+               exclude=None, selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -144,6 +147,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include CTF / 4D reference channels.
     misc : bool
         If True include miscellaneous analog channels.
+    resp : bool
+        If True include response-trigger channel. For some MEG systems this
+        is separate from the stim channel.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -198,6 +204,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_MISC_CH and misc:
             pick[k] = True
         elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_RESP_CH and resp:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -290,7 +298,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
-                      include=[], exclude=None):
+                      resp=False, include=[], exclude=None):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -315,6 +323,9 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         If True include CTF / 4D reference channels
     misc : bool
         If True include miscellaneous analog channels
+    resp : bool
+        If True include response-trigger channel. For some MEG systems this
+        is separate from the stim channel.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -328,7 +339,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         exclude are None it returns orig without copy.
     """
     sel = pick_types(orig.info, meg, eeg, stim, eog, ecg, emg, ref_meg, misc,
-                     include, exclude)
+                     resp, include, exclude)
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
