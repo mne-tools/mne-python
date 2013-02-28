@@ -141,8 +141,8 @@ class Raw(object):
         else:
             data_buffer = None
 
-        self._data, self._times = read_raw_segment(self,
-                                                   data_buffer=data_buffer)
+        self._data, self._times = self.read_raw_segment(data_buffer=
+                                                        data_buffer)
         self._preloaded = True
 
     @verbose
@@ -343,9 +343,9 @@ class Raw(object):
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
-            data, times = read_raw_segment(self, start=start, stop=stop,
-                                           sel=sel, proj=self._projector,
-                                           verbose=self.verbose)
+            data, times = self.read_raw_segment(start=start, stop=stop,
+                                                sel=sel, proj=self._projector,
+                                                verbose=self.verbose)
         return data, times
 
     def __setitem__(self, item, value):
@@ -1251,7 +1251,7 @@ class Raw(object):
             nsamp = c_ns[-1]
 
             if not self._preloaded:
-                this_data = read_raw_segment(self)[0]
+                this_data = self.read_raw_segment()[0]
             else:
                 this_data = self._data
 
@@ -1268,7 +1268,7 @@ class Raw(object):
                 if not r._preloaded:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    read_raw_segment(raws[ri], data_buffer=data_buffer)
+                    self.read_raw_segment(data_buffer=data_buffer)[ri]
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
 
@@ -1422,10 +1422,243 @@ class Raw(object):
 
         return raw_ts
 
+
+    @verbose
+    def read_raw_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+        verbose=None, proj=None):
+        """Read a chunck of raw data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the first
+            sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
+        data_buffer : array or str, optional
+            numpy array to fill with data read, must have the correct shape.
+            If str, a np.memmap with the correct data type will be used
+            to store the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        proj : array
+            SSP operator to apply to the data.
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
+        if stop is None:
+            stop = self.last_samp - self.first_samp + 1
+
+        #  Initial checks
+        start = int(start)
+        stop = int(stop)
+        stop = min([stop, self.last_samp - self.first_samp + 1])
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
+                               start, stop - 1, start / float(self.info['sfreq']),
+                               (stop - 1) / float(self.info['sfreq'])))
+
+        #  Initialize the data and calibration vector
+        nchan = self.info['nchan']
+
+        n_sel_channels = nchan if sel is None else len(sel)
+        # convert sel to a slice if possible for efficiency
+        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+            sel = slice(sel[0], sel[-1] + 1)
+        idx = slice(None, None, None) if sel is None else sel
+        data_shape = (n_sel_channels, stop - start)
+        if isinstance(data_buffer, np.ndarray):
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        else:
+            data = None  # we will allocate it later, once we know the type
+
+        if proj is not None:
+            mult = list()
+            for ri in range(len(self._raw_lengths)):
+                mult.append(np.diag(self.cals.ravel()))
+                if self.comp is not None:
+                    mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+                mult[ri] = np.dot(proj, mult[ri])
+        else:
+            mult = None
+
+        # deal with having multiple files accessed by the raw object
+        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths, dtype='int')))
+        cumul_lens = np.cumsum(cumul_lens)
+        files_used = np.logical_and(np.less(start, cumul_lens[1:]),
+                                    np.greater_equal(stop - 1, cumul_lens[:-1]))
+
+        first_file_used = False
+        s_off = 0
+        dest = 0
+        if isinstance(idx, slice):
+            cals = self.cals.ravel()[idx][:, np.newaxis]
+        else:
+            cals = self.cals.ravel()[:, np.newaxis]
+
+        for fi in np.nonzero(files_used)[0]:
+            start_loc = self._first_samps[fi]
+            # first iteration (only) could start in the middle somewhere
+            if not first_file_used:
+                first_file_used = True
+                start_loc += start - cumul_lens[fi]
+            stop_loc = np.min([stop - 1 - cumul_lens[fi] + self._first_samps[fi],
+                               self._last_samps[fi]])
+            if start_loc < self._first_samps[fi]:
+                raise ValueError('Bad array indexing, could be a bug')
+            if stop_loc > self._last_samps[fi]:
+                raise ValueError('Bad array indexing, could be a bug')
+            if stop_loc < start_loc:
+                raise ValueError('Bad array indexing, could be a bug')
+            len_loc = stop_loc - start_loc + 1
+
+            for this in self.rawdirs[fi]:
+
+                #  Do we need this buffer
+                if this['last'] >= start_loc:
+                    #  The picking logic is a bit complicated
+                    if stop_loc > this['last'] and start_loc < this['first']:
+                        #    We need the whole buffer
+                        first_pick = 0
+                        last_pick = this['nsamp']
+                        logger.debug('W')
+
+                    elif start_loc >= this['first']:
+                        first_pick = start_loc - this['first']
+                        if stop_loc <= this['last']:
+                            #   Something from the middle
+                            last_pick = this['nsamp'] + stop_loc - this['last']
+                            logger.debug('M')
+                        else:
+                            #   From the middle to the end
+                            last_pick = this['nsamp']
+                            logger.debug('E')
+                    else:
+                        #    From the beginning to the middle
+                        first_pick = 0
+                        last_pick = stop_loc - this['first'] + 1
+                        logger.debug('B')
+
+                    #   Now we are ready to pick
+                    picksamp = last_pick - first_pick
+                    if picksamp > 0:
+                        # only read data if it exists
+                        if this['ent'] is not None:
+                            one = read_tag(self.fids[fi], this['ent'].pos,
+                                           shape=(this['nsamp'], nchan),
+                                           rlims=(first_pick, last_pick)).data
+                            if np.isrealobj(one):
+                                dtype = np.float
+                            else:
+                                dtype = np.complex128
+                            one.shape = (picksamp, nchan)
+                            one = one.T.astype(dtype)
+
+                            if mult is not None:  # use proj + cal factors in mult
+                                one = np.dot(mult[fi], one)
+                            else:  # apply just the calibration factors
+                                # this logic is designed to limit memory copies
+                                if isinstance(idx, slice):
+                                    # This is a view operation, so it's fast
+                                    one[idx] *= cals
+                                else:
+                                    # Extra operations are actually faster here
+                                    # than creating a new array (fancy indexing)
+                                    one *= cals
+
+                            # if not already done, allocate array with right type
+                            data = _allocate_data(data, data_buffer, data_shape,
+                                                  dtype)
+                            if isinstance(idx, slice):
+                                # faster to slice in data than doing one = one[idx]
+                                # sooner
+                                data[:, dest:(dest + picksamp)] = one[idx]
+                            else:
+                                # faster than doing one = one[idx]
+                                data_view = data[:, dest:(dest + picksamp)]
+                                for ii, ix in enumerate(idx):
+                                    data_view[ii] = one[ix]
+                        dest += picksamp
+
+                #   Done?
+                if this['last'] >= stop_loc:
+                    # if not already done, allocate array with float dtype
+                    data = _allocate_data(data, data_buffer, data_shape, np.float)
+                    break
+
+            self.fids[fi].seek(0, 0)  # Go back to beginning of the file
+            s_off += len_loc
+            # double-check our math
+            if not s_off == dest:
+                raise ValueError('Incorrect file reading')
+
+        logger.info('[done]')
+        times = np.arange(start, stop) / self.info['sfreq']
+
+        return data, times
+
+
+    @verbose
+    def read_raw_segment_times(self, start, stop, sel=None, verbose=None):
+        """Read a chunck of raw data
+
+        Parameters
+        ----------
+        start : float
+            Starting time of the segment in seconds.
+        stop : float
+            End time of the segment in seconds.
+        sel : array, optional
+            Indices of channels to select.
+        node : tree node
+            The node of the tree where to look.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
+        #   Convert to samples
+        start = floor(start * self.info['sfreq'])
+        stop = ceil(stop * self.info['sfreq'])
+
+        #   Read it
+        return self.read_raw_segment(start, stop, sel)
+
+
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1)
         return "<Raw  |  %s>" % s
+
+
+def _allocate_data(data, data_buffer, data_shape, dtype):
+    if data is None:
+        # if not already done, allocate array with right type
+        if isinstance(data_buffer, basestring):
+            # use a memmap
+            data = np.memmap(data_buffer, mode='w+',
+                             dtype=dtype, shape=data_shape)
+        else:
+            data = np.zeros(data_shape, dtype=dtype)
+    return data
 
 
 def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
@@ -1478,241 +1711,6 @@ class _RawShell():
         self.rawdir = None
         self._projector = None
 
-
-@verbose
-def read_raw_segment(raw, start=0, stop=None, sel=None, data_buffer=None,
-    verbose=None, proj=None):
-    """Read a chunck of raw data
-
-    Parameters
-    ----------
-    raw : Raw object
-        An instance of Raw.
-    start : int, (optional)
-        first sample to include (first is 0). If omitted, defaults to the first
-        sample in data.
-    stop : int, (optional)
-        First sample to not include.
-        If omitted, data is included to the end.
-    sel : array, optional
-        Indices of channels to select.
-    data_buffer : array or str, optional
-        numpy array to fill with data read, must have the correct shape.
-        If str, a np.memmap with the correct data type will be used
-        to store the data.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-    proj : array
-        SSP operator to apply to the data.
-
-    Returns
-    -------
-    data : array, [channels x samples]
-       the data matrix (channels x samples).
-    times : array, [samples]
-        returns the time values corresponding to the samples.
-    """
-    if stop is None:
-        stop = raw.last_samp - raw.first_samp + 1
-
-    #  Initial checks
-    start = int(start)
-    stop = int(stop)
-    stop = min([stop, raw.last_samp - raw.first_samp + 1])
-
-    if start >= stop:
-        raise ValueError('No data in this range')
-
-    logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                           start, stop - 1, start / float(raw.info['sfreq']),
-                           (stop - 1) / float(raw.info['sfreq'])))
-
-    #  Initialize the data and calibration vector
-    nchan = raw.info['nchan']
-
-    n_sel_channels = nchan if sel is None else len(sel)
-    # convert sel to a slice if possible for efficiency
-    if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
-        sel = slice(sel[0], sel[-1] + 1)
-    idx = slice(None, None, None) if sel is None else sel
-    data_shape = (n_sel_channels, stop - start)
-    if isinstance(data_buffer, np.ndarray):
-        if data_buffer.shape != data_shape:
-            raise ValueError('data_buffer has incorrect shape')
-        data = data_buffer
-    else:
-        data = None  # we will allocate it later, once we know the type
-
-    if proj is not None:
-        mult = list()
-        for ri in range(len(raw._raw_lengths)):
-            mult.append(np.diag(raw.cals.ravel()))
-            if raw.comp is not None:
-                mult[ri] = np.dot(raw.comp[idx, :], mult[ri])
-            mult[ri] = np.dot(proj, mult[ri])
-    else:
-        mult = None
-
-    # deal with having multiple files accessed by the raw object
-    cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths, dtype='int')))
-    cumul_lens = np.cumsum(cumul_lens)
-    files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                np.greater_equal(stop - 1, cumul_lens[:-1]))
-
-    first_file_used = False
-    s_off = 0
-    dest = 0
-    if isinstance(idx, slice):
-        cals = raw.cals.ravel()[idx][:, np.newaxis]
-    else:
-        cals = raw.cals.ravel()[:, np.newaxis]
-
-    for fi in np.nonzero(files_used)[0]:
-        start_loc = raw._first_samps[fi]
-        # first iteration (only) could start in the middle somewhere
-        if not first_file_used:
-            first_file_used = True
-            start_loc += start - cumul_lens[fi]
-        stop_loc = np.min([stop - 1 - cumul_lens[fi] + raw._first_samps[fi],
-                           raw._last_samps[fi]])
-        if start_loc < raw._first_samps[fi]:
-            raise ValueError('Bad array indexing, could be a bug')
-        if stop_loc > raw._last_samps[fi]:
-            raise ValueError('Bad array indexing, could be a bug')
-        if stop_loc < start_loc:
-            raise ValueError('Bad array indexing, could be a bug')
-        len_loc = stop_loc - start_loc + 1
-
-        for this in raw.rawdirs[fi]:
-
-            #  Do we need this buffer
-            if this['last'] >= start_loc:
-                #  The picking logic is a bit complicated
-                if stop_loc > this['last'] and start_loc < this['first']:
-                    #    We need the whole buffer
-                    first_pick = 0
-                    last_pick = this['nsamp']
-                    logger.debug('W')
-
-                elif start_loc >= this['first']:
-                    first_pick = start_loc - this['first']
-                    if stop_loc <= this['last']:
-                        #   Something from the middle
-                        last_pick = this['nsamp'] + stop_loc - this['last']
-                        logger.debug('M')
-                    else:
-                        #   From the middle to the end
-                        last_pick = this['nsamp']
-                        logger.debug('E')
-                else:
-                    #    From the beginning to the middle
-                    first_pick = 0
-                    last_pick = stop_loc - this['first'] + 1
-                    logger.debug('B')
-
-                #   Now we are ready to pick
-                picksamp = last_pick - first_pick
-                if picksamp > 0:
-                    # only read data if it exists
-                    if this['ent'] is not None:
-                        one = read_tag(raw.fids[fi], this['ent'].pos,
-                                       shape=(this['nsamp'], nchan),
-                                       rlims=(first_pick, last_pick)).data
-                        if np.isrealobj(one):
-                            dtype = np.float
-                        else:
-                            dtype = np.complex128
-                        one.shape = (picksamp, nchan)
-                        one = one.T.astype(dtype)
-
-                        if mult is not None:  # use proj + cal factors in mult
-                            one = np.dot(mult[fi], one)
-                        else:  # apply just the calibration factors
-                            # this logic is designed to limit memory copies
-                            if isinstance(idx, slice):
-                                # This is a view operation, so it's fast
-                                one[idx] *= cals
-                            else:
-                                # Extra operations are actually faster here
-                                # than creating a new array (fancy indexing)
-                                one *= cals
-
-                        # if not already done, allocate array with right type
-                        data = _allocate_data(data, data_buffer, data_shape,
-                                              dtype)
-                        if isinstance(idx, slice):
-                            # faster to slice in data than doing one = one[idx]
-                            # sooner
-                            data[:, dest:(dest + picksamp)] = one[idx]
-                        else:
-                            # faster than doing one = one[idx]
-                            data_view = data[:, dest:(dest + picksamp)]
-                            for ii, ix in enumerate(idx):
-                                data_view[ii] = one[ix]
-                    dest += picksamp
-
-            #   Done?
-            if this['last'] >= stop_loc:
-                # if not already done, allocate array with float dtype
-                data = _allocate_data(data, data_buffer, data_shape, np.float)
-                break
-
-        raw.fids[fi].seek(0, 0)  # Go back to beginning of the file
-        s_off += len_loc
-        # double-check our math
-        if not s_off == dest:
-            raise ValueError('Incorrect file reading')
-
-    logger.info('[done]')
-    times = np.arange(start, stop) / raw.info['sfreq']
-
-    return data, times
-
-
-def _allocate_data(data, data_buffer, data_shape, dtype):
-    if data is None:
-        # if not already done, allocate array with right type
-        if isinstance(data_buffer, basestring):
-            # use a memmap
-            data = np.memmap(data_buffer, mode='w+',
-                             dtype=dtype, shape=data_shape)
-        else:
-            data = np.zeros(data_shape, dtype=dtype)
-    return data
-
-
-@verbose
-def read_raw_segment_times(raw, start, stop, sel=None, verbose=None):
-    """Read a chunck of raw data
-
-    Parameters
-    ----------
-    raw : Raw object
-        An instance of Raw.
-    start : float
-        Starting time of the segment in seconds.
-    stop : float
-        End time of the segment in seconds.
-    sel : array, optional
-        Indices of channels to select.
-    node : tree node
-        The node of the tree where to look.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    data : array, [channels x samples]
-       the data matrix (channels x samples).
-    times : array, [samples]
-        returns the time values corresponding to the samples.
-    """
-    #   Convert to samples
-    start = floor(start * raw.info['sfreq'])
-    stop = ceil(stop * raw.info['sfreq'])
-
-    #   Read it
-    return read_raw_segment(raw, start, stop, sel)
 
 ###############################################################################
 # Writing
