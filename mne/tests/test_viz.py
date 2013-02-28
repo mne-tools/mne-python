@@ -128,7 +128,8 @@ def test_plot_sparse_source_estimates():
     colormap = mne_analyze_colormap(format='matplotlib')
     # don't really need to test matplotlib method since it's not used now...
     colormap = mne_analyze_colormap()
-    plot_source_estimates(stc, 'sample', colormap=colormap)
+    plot_source_estimates(stc, 'sample', colormap=colormap,
+                          config_opts={'background': (1, 1, 0)})
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
