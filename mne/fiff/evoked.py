@@ -264,12 +264,15 @@ class Evoked(object):
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
-        all_data = self._apply_projector(data=all_data, proj=proj, info=info)
-        # Run baseline correction
-        all_data = rescale(all_data, times, baseline, 'mean', copy=False)
-
-        # Put it all together
+        # bind info, proj, data to self so apply_projector can be used
         self.info = info
+        self.data = all_data
+        self.proj = proj
+        self.apply_projector(copy=False)
+        # Run baseline correction
+        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
+
+        # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
         self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
@@ -335,7 +338,7 @@ class Evoked(object):
         unit : bool
             Scale plot with channel (SI) unit.
         show : bool
-            Call pylab.show() as the end or not.
+            Call pylab.show() at the end or not.
         ylim : dict
             ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
             Valid keys are eeg, mag, grad
@@ -509,12 +512,36 @@ class Evoked(object):
         self | evoked : instance of Evoked
         """
         evoked = self.copy() if copy else self
-        if getattr(self, 'proj', None) is None:
-            evoked.data = evoked._apply_projector(evoked.data, True, evoked.info)
-        else:
-            logger.info('Projection has already been applied. Doing nothing.')
+        if evoked.proj is not True:  # don't compare value with array
+            if evoked.info['projs'] is None:
+                logger.info('No projector specified for these data')
+                evoked.proj = None
+            else:
+                #   Create the projector
+                proj, nproj = make_projector_info(evoked.info)
+                if nproj == 0:
+                    logger.info('The projection vectors do not apply to these'
+                                ' channels')
+                    evoked.proj = None
+                else:
+                    logger.info('Created an SSP operator (subspace dimension '
+                                '= %d)' % nproj)
+                    evoked.proj = proj
 
-        return evoked
+                #   The projection items have been activated
+                evoked.info['projs'] = activate_proj(evoked.info['projs'],
+                                                     copy=False)
+
+            if evoked.proj is not None:
+                logger.info("SSP projectors applied...")
+                data = np.dot(evoked.proj, evoked.data)
+            evoked.data = data
+        else:
+            logger.info('Projection has already been applied or the attempt to'
+                        'apply it has not been successfull. Doing nothing.'
+                        'Please check info[\'projs\']')
+
+        return evoked if copy else None
 
     def copy(self):
         """ Copy the instance of evoked
@@ -527,32 +554,6 @@ class Evoked(object):
         evoked = deepcopy(self)
 
         return evoked
-
-    def _apply_projector(self, data, proj, info):
-        """ Aux function """
-        if info['projs'] is None or not proj:
-            logger.info('No projector specified for these data')
-            self.proj = None
-        else:
-            #   Create the projector
-            proj, nproj = make_projector_info(info)
-            if nproj == 0:
-                logger.info('The projection vectors do not apply to these'
-                            ' channels')
-                self.proj = None
-            else:
-                logger.info('Created an SSP operator (subspace dimension '
-                            '= %d)' % nproj)
-                self.proj = proj
-
-            #   The projection items have been activated
-            info['projs'] = activate_proj(info['projs'], copy=False)
-
-        if self.proj is not None:
-            logger.info("SSP projectors applied...")
-            data = np.dot(self.proj, data)
-
-        return data
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
@@ -656,7 +657,7 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
         interval is used.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
-    proj : True
+    proj : bool
         If False, available projectors won't be applied to the data.
     Returns
     -------
