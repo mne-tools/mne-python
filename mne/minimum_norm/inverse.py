@@ -863,18 +863,31 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
                    and not pick_normal)
 
+    if not is_free_ori and noise_norm is not None:
+        # premultiply kernel with noise normalization
+        K *= noise_norm
+
     for k, e in enumerate(epochs):
-        logger.info("Processing epoch : %d" % (k + 1))
-        sol = np.dot(K, e[sel])  # apply imaging kernel
-
+        logger.info('Processing epoch : %d' % (k + 1))
         if is_free_ori:
-            logger.info('combining the current components...')
-            sol = combine_xyz(sol)
+            # Compute solution and combine current components (non-linear)
+            sol = np.dot(K, e[sel])  # apply imaging kernel
+            if is_free_ori:
+                logger.info('combining the current components...')
+                sol = combine_xyz(sol)
 
-        if noise_norm is not None:
-            sol *= noise_norm
+                if noise_norm is not None:
+                    sol *= noise_norm
+        else:
+            # Linear inverse: do computation here or delayed
+            if len(sel) < K.shape[0]:
+                sol = (K, e[sel])
+            else:
+                sol = np.dot(K, e[sel])
 
-        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+
+        yield stc
 
     logger.info('[done]')
 
