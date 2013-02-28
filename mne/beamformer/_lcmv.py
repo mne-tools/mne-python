@@ -125,6 +125,9 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         return_single = False
         stcs = []
 
+    if not is_free_ori:
+        W /= noise_norm[:, None]
+
     for i, M in enumerate(data):
         if len(M) != len(picks):
             raise ValueError('data and picks must have the same length')
@@ -137,13 +140,18 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         M = np.dot(whitener, M)
 
         # project to source space using beamformer weights
-        sol = np.dot(W, M)
 
         if is_free_ori:
+            sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-
-        sol /= noise_norm[:, None]
+            sol /= noise_norm[:, None]
+        else:
+            # Linear inverse: do computation here or delayed
+            if M.shape[0] < W.shape[0]:
+                sol = (W, M)
+            else:
+                sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']
         stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
