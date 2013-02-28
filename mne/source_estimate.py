@@ -1131,7 +1131,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     """
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
-    if smooth is None:
+    if smooth is not None:
         smooth -= 1
     # make sure we're in CSR format
     e = e.tocsr()
