@@ -4,7 +4,11 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal,\
+                          assert_allclose
+
+from scipy.fftpack import fft
+from scipy.linalg import svd
 
 from mne.datasets import sample
 from mne import stats, SourceEstimate
@@ -128,7 +132,7 @@ def test_stc_methods():
     stc = read_source_estimate(fname)
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
-    # note that using no padding for this STC actually reduces edge ringing...
+    # note that using no padding for this STC reduces edge ringing...
     stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
     assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
     assert_true(stc_new.tstep == stc.tstep / 2)
@@ -261,6 +265,68 @@ def test_morph_data():
     stc_to5 = morph_data(subject_from, subject_to, stc_from,
                          grade=None, smooth=12, buffer_size=3)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
+
+
+def _my_trans(data):
+    """FFT that adds an additional dimension by repeating result"""
+    data_t = fft(data)
+    data_t = np.concatenate([data_t[:, :, None], data_t[:, :, None]], axis=2)
+    return data_t, None
+
+
+def test_transform_data():
+    """Test applying linear (time) transform to data"""
+    # make up some data
+    n_sensors, n_vertices, n_times = 10, 20, 4
+    kernel = np.random.randn(n_vertices, n_sensors)
+    sens_data = np.random.randn(n_sensors, n_times)
+
+    vertices = np.arange(n_vertices)
+    data = np.dot(kernel, sens_data)
+
+    for idx, tmin_idx, tmax_idx in\
+            zip([None, np.arange(n_vertices / 2, n_vertices)],
+                [None, 1], [None, 3]):
+
+        if idx is None:
+            idx_use = slice(None, None)
+        else:
+            idx_use = idx
+
+        data_f, _ = _my_trans(data[idx_use, tmin_idx:tmax_idx])
+
+        for stc_data in (data, (kernel, sens_data)):
+            stc = SourceEstimate(stc_data, vertices=vertices,
+                                 tmin=0., tstep=1.)
+            stc_data_t = stc.transform_data(_my_trans, idx=idx,
+                                            tmin_idx=tmin_idx,
+                                            tmax_idx=tmax_idx)
+            assert_allclose(data_f, stc_data_t)
+
+
+def test_notify_array_source_estimate():
+    """Test that modifying the stc data removes the kernel and sensor data"""
+    # make up some data
+    n_sensors, n_vertices, n_times = 10, 20, 4
+    kernel = np.random.randn(n_vertices, n_sensors)
+    sens_data = np.random.randn(n_sensors, n_times)
+    vertices = np.arange(n_vertices)
+
+    stc = SourceEstimate((kernel, sens_data), vertices=vertices,
+                         tmin=0., tstep=1.)
+
+    assert_true(stc._data is None)
+    assert_true(stc._kernel is not None)
+    assert_true(stc._sens_data is not None)
+
+    # now modify the data in some way
+    data_half = stc.data[:, n_times/2:]
+    data_half[0] = 1.0
+    data_half.fill(1.0)
+
+    # the kernel and sensor data can no longer be used: they have been removed
+    assert_true(stc._kernel is None)
+    assert_true(stc._sens_data is None)
 
 
 def test_spatio_temporal_tris_connectivity():

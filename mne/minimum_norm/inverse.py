@@ -839,7 +839,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
                               label=None, nave=1, pick_normal=False, dSPM=None,
-                              delayed=False, verbose=None):
+                              verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
 
@@ -863,31 +863,30 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
                    and not pick_normal)
 
-    if is_free_ori and delayed:
-        logger.warn('Delayed computation is not supported for '
-                    'free-orientation source estimates, disabling it.')
-        delayed = False
-
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
         K *= noise_norm
 
     for k, e in enumerate(epochs):
         logger.info('Processing epoch : %d' % (k + 1))
-        if not delayed:
+        if is_free_ori:
+            # Compute solution and combine current components (non-linear)
             sol = np.dot(K, e[sel])  # apply imaging kernel
-
             if is_free_ori:
                 logger.info('combining the current components...')
                 sol = combine_xyz(sol)
 
                 if noise_norm is not None:
                     sol *= noise_norm
-
-            stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
         else:
-            stc = SourceEstimate(None, vertices=vertno, tmin=tmin,
-                                 tstep=tstep, kernel=K, sens_data=e[sel])
+            # Linear inverse: do computation here or delayed
+            if len(sel) < K.shape[0]:
+                sol = (K, e[sel])
+            else:
+                sol = np.dot(K, e[sel])
+
+        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+
         yield stc
 
     logger.info('[done]')
@@ -896,7 +895,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_normal=False, dSPM=None,
-                         return_generator=False, delayed=False, verbose=None):
+                         return_generator=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -936,7 +935,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_normal=pick_normal, dSPM=dSPM,
-                                     delayed=delayed, verbose=verbose)
+                                     verbose=verbose)
 
     if not return_generator:
         # return a list

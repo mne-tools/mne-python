@@ -361,6 +361,12 @@ def test_apply_mne_inverse_epochs():
     assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
     assert_array_almost_equal(stcs_rh[0].data, stcs_bh[0].data[n_lh:])
 
+    # test without using a label (so delayed computation is used)
+    stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                pick_normal=True)
+    label_stc = stcs[0].in_label(label_rh)
+    assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
+
 
 def test_make_inverse_operator_bads():
     """Test MNE inverse computation given a mismatch of bad channels

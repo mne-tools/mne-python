@@ -368,8 +368,11 @@ class SourceEstimate(object):
 
     Parameters
     ----------
-    data : array of shape (n_dipoles, n_times)
-        The data in source space.
+    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+        The data in source space. The data can either as a single array or
+        using a tuple with two arrays: "kernel" shape (n_vertices, n_sensors)
+        and "sens_data" shape (n_sensors, n_times). In this case, the source
+        space data corresponds to "np.dot(kernel, sens_data)".
 
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
@@ -382,14 +385,6 @@ class SourceEstimate(object):
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    kernel : array of shape (n_dipoles, n_sensors)
-        Kernel which together with sens_data can be used to represent
-        the data.
-
-    sens_data : array of shape (n_sensors, n_times)
-        Sensor data which together with kernel can be used to represent
-        the data.
 
     .. note::
         If the data can be represented as "numpy.dot(kernel, sens_data)", it
@@ -421,12 +416,21 @@ class SourceEstimate(object):
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
-                 verbose=None, kernel=None, sens_data=None):
-        if data is None and kernel is None and sens_data is None:
+                 verbose=None):
+        kernel, sens_data = None, None
+        if data is None:
             warnings.warn('Constructing a SourceEstimate object with no '
                           'attributes is deprecated and will stop working in '
                           'v0.6. Use the proper constructor.')
             return
+        elif isinstance(data, tuple):
+            if len(data) != 2:
+                raise ValueError('If data is a tuple it has to be length 2')
+            kernel, sens_data = data
+            data = None
+            if kernel.shape[1] != sens_data.shape[0]:
+                raise ValueError('kernel and sens_data have invalid dimensions')
+
         elif isinstance(data, basestring):
             warnings.warn('Constructing a SourceEstimate object with a '
                           'filename is deprecated and will stop working in '
@@ -442,14 +446,6 @@ class SourceEstimate(object):
                     not all([isinstance(v, np.ndarray) for v in vertices]):
                 raise ValueError('Vertices, if a list, must contain one or '
                                  'two numpy arrays')
-
-        if kernel is not None or sens_data is not None:
-            if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid dimensions')
-            if data is not None:
-                raise ValueError('data has to be None if kernel and sens_data '
-                                 'are provided')
-
         self._data = data
         self.tmin = tmin
         self.tstep = tstep
@@ -513,12 +509,16 @@ class SourceEstimate(object):
                       vertices=self.vertno[0], data=self.data)
         logger.info('[done]')
 
-    def _modified_(self):
-        """Gets called when self.data is modified by the user
+    def _remove_kernel_sens_data_(self):
+        """Remove kernel and sensor space data
+
+        Note: self._data is also computed if it is None
         """
         if self._kernel is not None or self._sens_data is not None:
             # we can no longer use the kernel and sens_data
             logger.info('STC data modified: removing kernel and sensor data')
+            if self._data is None:
+                self._data = np.dot(self._kernel, self._sens_data)
             self._kernel = None
             self._sens_data = None
 
@@ -546,7 +546,12 @@ class SourceEstimate(object):
         if tmin is not None:
             mask = mask & (self.times >= tmin)
             self.tmin = tmin
-        self.data = self.data[:, mask]
+
+        if self._kernel is not None and self._sens_data is not None:
+            self._sens_data = self._sens_data[:, mask]
+            self._data = None  # will be recomputed when data is accessed
+        else:
+            self._data = self._data[:, mask]
 
         self._update_times()
 
@@ -576,8 +581,13 @@ class SourceEstimate(object):
 
         Note that the sample rate of the original data is inferred from tstep.
         """
+        # resampling in sensor instead of source space gives a somewhat
+        # different result, so we don't allow it
+        self._remove_kernel_sens_data_()
+
         o_sfreq = 1.0 / self.tstep
-        self.data = resample(self.data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+        self._data = resample(self._data, sfreq, o_sfreq, npad, n_jobs=n_jobs)
+
         # adjust indirectly affected variables
         self.tstep = 1.0 / sfreq
         self._update_times()
@@ -589,7 +599,7 @@ class SourceEstimate(object):
             # return a "notify array", so we can later remove the kernel
             # and sensor data if the user modifies self._data
             self._data = _NotifyArray(np.dot(self._kernel, self._sens_data),
-                                      modify_callback=self._modified_)
+                modify_callback=self._remove_kernel_sens_data_)
         return self._data
 
     @property
@@ -632,6 +642,7 @@ class SourceEstimate(object):
         return stc
 
     def __iadd__(self, a):
+        self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
             if len(a.vertno) == len(self.vertno):
                 if not all([np.array_equal(av, vv)
@@ -639,9 +650,9 @@ class SourceEstimate(object):
                     raise RuntimeError('Cannot add SourceEstimates that do '
                                        'not have the same vertices. Consider '
                                        'using stc.expand().')
-            self.data += a.data
+            self._data += a.data
         else:
-            self.data += a
+            self._data += a
         return self
 
     def __sub__(self, a):
@@ -650,10 +661,11 @@ class SourceEstimate(object):
         return stc
 
     def __isub__(self, a):
+        self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
-            self.data -= a.data
+            self._data -= a.data
         else:
-            self.data -= a
+            self._data -= a
         return self
 
     def __div__(self, a):
@@ -662,10 +674,11 @@ class SourceEstimate(object):
         return stc
 
     def __idiv__(self, a):
+        self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
-            self.data /= a.data
+            self._data /= a.data
         else:
-            self.data /= a
+            self._data /= a
         return self
 
     def __mul__(self, a):
@@ -674,10 +687,11 @@ class SourceEstimate(object):
         return stc
 
     def __imul__(self, a):
+        self._remove_kernel_sens_data_()
         if isinstance(a, SourceEstimate):
-            self.data *= a.data
+            self._data *= a.data
         else:
-            self.data *= a
+            self._data *= a
         return self
 
     def __pow__(self, a):
@@ -686,7 +700,8 @@ class SourceEstimate(object):
         return stc
 
     def __ipow__(self, a):
-        self.data **= a
+        self._remove_kernel_sens_data_()
+        self._data **= a
         return self
 
     def __radd__(self, a):
@@ -703,7 +718,8 @@ class SourceEstimate(object):
 
     def __neg__(self):
         stc = copy.deepcopy(self)
-        stc.data *= -1
+        stc._remove_kernel_sens_data_()
+        stc._data *= -1
         return stc
 
     def __pos__(self):
@@ -901,11 +917,17 @@ class SourceEstimate(object):
 
         return label_tc
 
-    def transformed_data(self, transform_fun, fun_args=None,
-                         idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
-        """Get data after a linear transform has been applied
+    def transform_data(self, transform_fun, fun_args=None,
+                       idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
+        """Get data after a linear (time) transform has been applied
 
-        The transorm is applied to each source time series.
+        The transorm is applied to each source time course independently.
+
+        Note: Applying transforms can be significantly faster if the
+        SourceEstimate object was created using "(kernel, sens_data)", for the
+        "data" parameter as the transform is applied in sensor space. Inverse
+        methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" will do this
+        automatically (if possible).
 
         Parameters
         ----------
@@ -924,8 +946,8 @@ class SourceEstimate(object):
             Index of first time point to include. If None, the index of the
             first time point is used.
         tmax_idx : int | None
-            Index of last time point to include. If None, the index of the
-            last time point is used.
+            Index of the first time point not to include. If None, time points
+            up to (and including) the last time point are included.
         **kwargs : dict
             Keyword arguments to be passed to transform_fun.
 

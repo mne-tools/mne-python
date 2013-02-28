@@ -317,10 +317,10 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
     # compute tapered spectra
     if mode in ['multitaper', 'fourier']:
         if isinstance(data, SourceEstimate):
-            x_mt = data.transformed_data(_mt_spectra,
-                                         fun_args=(window_fun, sfreq),
-                                         idx=sig_idx, tmin_idx=tmin_idx,
-                                         tmax_idx=tmax_idx)
+            x_mt = data.transform_data(_mt_spectra,
+                                       fun_args=(window_fun, sfreq),
+                                       idx=sig_idx, tmin_idx=tmin_idx,
+                                       tmax_idx=tmax_idx)
         else:
             x_mt, _ = _mt_spectra(data[sig_idx, tmin_idx:tmax_idx],
                                   window_fun, sfreq)
@@ -346,10 +346,10 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
     elif mode == 'cwt_morlet':
         # estimate spectra using CWT
         if isinstance(data, SourceEstimate):
-            x_cwt = data.transformed_data(cwt, fun_args=(wavelets,),
-                                         idx=sig_idx, tmin_idx=tmin_idx,
-                                         tmax_idx=tmax_idx, use_fft=True,
-                                         mode='same')
+            x_cwt = data.transform_data(cwt, fun_args=(wavelets,),
+                                        idx=sig_idx, tmin_idx=tmin_idx,
+                                        tmax_idx=tmax_idx, use_fft=True,
+                                        mode='same')
         else:
             x_cwt = cwt(data, wavelets, use_fft=True, mode='same')
 
@@ -699,7 +699,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 tmin_true = times_in[tmin_idx]
             if tmax is not None:
                 tmax_idx = np.argmin(np.abs(times_in - tmax)) + 1
-                tmax_true = times_in[tmax_idx]
+                tmax_true = times_in[tmax_idx - 1]  # time of last point used
 
             times = times_in[tmin_idx:tmax_idx]
             n_times = len(times)

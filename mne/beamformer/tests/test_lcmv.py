@@ -87,6 +87,13 @@ def test_lcmv():
     stc_fixed = lcmv(evoked, forward_fixed, noise_cov, data_cov, reg=0.01)
     assert_array_almost_equal(stc_avg, stc_fixed.data)
 
+    # use a label so we have few source vertices and delayed computation is
+    # not used
+    stcs_label = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov,
+                             reg=0.01, label=label)
+
+    assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
+
 
 def test_lcmv_raw():
     """Test LCMV with raw data
