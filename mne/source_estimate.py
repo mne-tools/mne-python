@@ -1134,7 +1134,7 @@ class SourceEstimate(object):
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, alpha=1.0, time_viewer=False,
-             config_opts={}, subjects_dir=None):
+             config_opts={}, subjects_dir=None, figure=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1182,6 +1182,9 @@ class SourceEstimate(object):
         subjects_dir : str
             The path to the FreeSurfer subjects reconstructions.
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of mayavi.core.scene.Scene | None
+            If None, the last figure will be cleaned and a new figure will
+            be created
 
         Returns
         -------
@@ -1195,7 +1198,7 @@ class SourceEstimate(object):
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent, alpha=alpha,
                         time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir)
+                        subjects_dir=subjects_dir, figure=figure)
         return brain
 
     @verbose
