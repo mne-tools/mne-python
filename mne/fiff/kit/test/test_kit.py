@@ -16,6 +16,8 @@ data_dir = os.path.join(parent_dir, 'data')
 
 
 def test_data():
+    """Test reading raw kit files
+    """
     raw_py = kit.read_raw_kit(input_fname=os.path.join(data_dir, 'test.sqd'),
                            mrk_fname=os.path.join(data_dir, 'test_mrk.sqd'),
                            elp_fname=os.path.join(data_dir, 'test_elp.txt'),
@@ -23,10 +25,10 @@ def test_data():
                            sns_fname=os.path.join(data_dir, 'sns.txt'),
                            stim=range(167, 159, -1))
     # Binary file only stores the sensor channels
-    py_picks = pick_types(raw_py.info)
+    py_picks = pick_types(raw_py.info, exclude=[])
     raw_bin = os.path.join(data_dir, 'test_bin.fif')
     raw_bin = Raw(raw_bin, preload=True)
-    bin_picks = pick_types(raw_bin.info)
+    bin_picks = pick_types(raw_bin.info, exclude=[])
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
@@ -42,6 +44,8 @@ def test_data():
 
 
 def test_ch_loc():
+    """Test raw kit loc
+    """
     raw_py = kit.read_raw_kit(input_fname=os.path.join(data_dir, 'test.sqd'),
                        mrk_fname=os.path.join(data_dir, 'test_mrk.sqd'),
                        elp_fname=os.path.join(data_dir, 'test_elp.txt'),
