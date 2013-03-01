@@ -385,16 +385,12 @@ class SourceEstimate(object):
         a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
         "sens_data" shape (n_sensors, n_times). In this case, the source
         space data corresponds to "numpy.dot(kernel, sens_data)".
-
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
-
     tmin : scalar
         Time point of the first sample in data.
-
     tstep : scalar
         Time step between successive samples in data.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -409,16 +405,13 @@ class SourceEstimate(object):
     ----------
     data : array of shape (n_dipoles, n_times)
         The data in source space.
-
     shape : 2-tuple of int (n_dipoles, n_times)
         The shape of the data.
-
     times : array of shape (n_times,)
         The time vector.
-
-    vertno : list of array of shape [n_dipoles in each source space]
-        The indices of the dipoles in the different source spaces.
-
+    vertno : array or list of array of shape [n_dipoles in each source space]
+        The indices of the dipoles in the different source spaces. Can
+        be an array if there is only one source space (e.g., for volumes).
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -435,7 +428,8 @@ class SourceEstimate(object):
             kernel, sens_data = data
             data = None
             if kernel.shape[1] != sens_data.shape[0]:
-                raise ValueError('kernel and sens_data have invalid dimensions')
+                raise ValueError('kernel and sens_data have invalid '
+                                 'dimensions')
 
         elif isinstance(data, basestring):
             warnings.warn('Constructing a SourceEstimate object with a '
@@ -452,6 +446,15 @@ class SourceEstimate(object):
                     not all([isinstance(v, np.ndarray) for v in vertices]):
                 raise ValueError('Vertices, if a list, must contain one or '
                                  'two numpy arrays')
+            n_src = sum([len(v) for v in vertices])
+        elif not isinstance(vertices, np.ndarray):
+            raise ValueError('Vertices must be a list or numpy array')
+        else:
+            n_src = len(vertices)
+        # safeguard the user against doing something silly
+        if data is not None and data.shape[0] != n_src:
+            raise ValueError('Number of vertices (%i) and stc.shape[0] (%i) '
+                             'must match' % (n_src, data.shape[0]))
         self._data = data
         self.tmin = tmin
         self.tstep = tstep
@@ -1514,10 +1517,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     if data_morphed[0] is None:
         if data_morphed[1] is None:
             data = np.r_[[], []]
+            vertices = [np.array([], dtype=int), np.array([], dtype=int)]
         else:
             data = data_morphed[1]
+            vertices = [np.array([], dtype=int), vertices[1]]
     elif data_morphed[1] is None:
         data = data_morphed[0]
+        vertices = [vertices[0], np.array([], dtype=int)]
     else:
         data = np.r_[data_morphed[0], data_morphed[1]]
 

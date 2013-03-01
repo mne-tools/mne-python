@@ -349,7 +349,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     if mode in ['fixed', 'free']:
         sensitivity_map /= np.max(sensitivity_map)
 
-    vertices = fwd['src'][0]['vertno'], fwd['src'][1]['vertno']
+    vertices = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc = SourceEstimate(sensitivity_map[:, np.newaxis],
                          vertices=vertices, tmin=0, tstep=1)
     return stc

@@ -188,12 +188,12 @@ class RawKIT(Raw):
 
         # Add time info
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp, self.last_samp + 1)
+        self._times = np.arange(self.first_samp, self.last_samp + 1,
+                                dtype=float)
         self._times /= self.info['sfreq']
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                     % (self.first_samp, self.last_samp,
-                       float(self.first_samp) / self.info['sfreq'],
-                       float(self.last_samp) / self.info['sfreq']))
+                       self._times[0], self._times[-1]))
         logger.info('Ready.')
 
 

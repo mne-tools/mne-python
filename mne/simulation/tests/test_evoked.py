@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import read_label, read_forward_solution
@@ -67,3 +67,10 @@ def test_simulate_evoked():
                              tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
+
+    # make a vertex that doesn't exist in fwd, should throw error
+    stc_bad = stc.copy()
+    mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
+    stc_bad.vertno[0][0] = mv + 1
+    assert_raises(RuntimeError, generate_evoked, fwd, stc_bad,
+                  evoked_template, cov, snr, tmin=0.0, tmax=0.2)
