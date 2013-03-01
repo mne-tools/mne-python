@@ -141,8 +141,7 @@ class Raw(object):
         else:
             data_buffer = None
 
-        self._data, self._times = self.read_segment(data_buffer=
-                                                        data_buffer)
+        self._data, self._times = self._read_segment(data_buffer=data_buffer)
         self._preloaded = True
 
     @verbose
@@ -343,9 +342,9 @@ class Raw(object):
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
-            data, times = self.read_segment(start=start, stop=stop,
-                                                sel=sel, proj=self._projector,
-                                                verbose=self.verbose)
+            data, times = self._read_segment(start=start, stop=stop, sel=sel,
+                                            proj=self._projector,
+                                            verbose=self.verbose)
         return data, times
 
     def __setitem__(self, item, value):
@@ -1251,7 +1250,7 @@ class Raw(object):
             nsamp = c_ns[-1]
 
             if not self._preloaded:
-                this_data = self.read_segment()[0]
+                this_data = self._read_segment()[0]
             else:
                 this_data = self._data
 
@@ -1268,7 +1267,7 @@ class Raw(object):
                 if not r._preloaded:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    self.read_segment(data_buffer=data_buffer)[ri]
+                    self._read_segment(data_buffer=data_buffer)[ri]
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
 
@@ -1422,17 +1421,16 @@ class Raw(object):
 
         return raw_ts
 
-
     @verbose
-    def read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
         verbose=None, proj=None):
-        """Read a chunck of raw data
+        """Read a chunk of raw data
 
         Parameters
         ----------
         start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the first
-            sample in data.
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
@@ -1465,8 +1463,8 @@ class Raw(object):
         if start >= stop:
             raise ValueError('No data in this range')
 
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' % (
-                               start, stop - 1, start / float(self.info['sfreq']),
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
 
         #  Initialize the data and calibration vector
@@ -1496,10 +1494,12 @@ class Raw(object):
             mult = None
 
         # deal with having multiple files accessed by the raw object
-        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths, dtype='int')))
+        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
+                                                   dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
         files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                    np.greater_equal(stop - 1, cumul_lens[:-1]))
+                                    np.greater_equal(stop - 1,
+                                                     cumul_lens[:-1]))
 
         first_file_used = False
         s_off = 0
@@ -1515,8 +1515,8 @@ class Raw(object):
             if not first_file_used:
                 first_file_used = True
                 start_loc += start - cumul_lens[fi]
-            stop_loc = np.min([stop - 1 - cumul_lens[fi] + self._first_samps[fi],
-                               self._last_samps[fi]])
+            stop_loc = np.min([stop - 1 - cumul_lens[fi] +
+                               self._first_samps[fi], self._last_samps[fi]])
             if start_loc < self._first_samps[fi]:
                 raise ValueError('Bad array indexing, could be a bug')
             if stop_loc > self._last_samps[fi]:
@@ -1566,8 +1566,8 @@ class Raw(object):
                                 dtype = np.complex128
                             one.shape = (picksamp, nchan)
                             one = one.T.astype(dtype)
-
-                            if mult is not None:  # use proj + cal factors in mult
+                            # use proj + cal factors in mult
+                            if mult is not None:
                                 one = np.dot(mult[fi], one)
                             else:  # apply just the calibration factors
                                 # this logic is designed to limit memory copies
@@ -1576,15 +1576,17 @@ class Raw(object):
                                     one[idx] *= cals
                                 else:
                                     # Extra operations are actually faster here
-                                    # than creating a new array (fancy indexing)
+                                    # than creating a new array
+                                    # (fancy indexing)
                                     one *= cals
 
-                            # if not already done, allocate array with right type
-                            data = _allocate_data(data, data_buffer, data_shape,
-                                                  dtype)
+                            # if not already done, allocate array with
+                            # right type
+                            data = _allocate_data(data, data_buffer,
+                                                  data_shape, dtype)
                             if isinstance(idx, slice):
-                                # faster to slice in data than doing one = one[idx]
-                                # sooner
+                                # faster to slice in data than doing
+                                # one = one[idx] sooner
                                 data[:, dest:(dest + picksamp)] = one[idx]
                             else:
                                 # faster than doing one = one[idx]
@@ -1596,7 +1598,8 @@ class Raw(object):
                 #   Done?
                 if this['last'] >= stop_loc:
                     # if not already done, allocate array with float dtype
-                    data = _allocate_data(data, data_buffer, data_shape, np.float)
+                    data = _allocate_data(data, data_buffer, data_shape,
+                                          np.float)
                     break
 
             self.fids[fi].seek(0, 0)  # Go back to beginning of the file
@@ -1609,39 +1612,6 @@ class Raw(object):
         times = np.arange(start, stop) / self.info['sfreq']
 
         return data, times
-
-
-    @verbose
-    def read_segment_times(self, start, stop, sel=None, verbose=None):
-        """Read a chunck of raw data
-
-        Parameters
-        ----------
-        start : float
-            Starting time of the segment in seconds.
-        stop : float
-            End time of the segment in seconds.
-        sel : array, optional
-            Indices of channels to select.
-        node : tree node
-            The node of the tree where to look.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-        times : array, [samples]
-            returns the time values corresponding to the samples.
-        """
-        #   Convert to samples
-        start = floor(start * self.info['sfreq'])
-        stop = ceil(stop * self.info['sfreq'])
-
-        #   Read it
-        return self.read_segment(start, stop, sel)
-
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
