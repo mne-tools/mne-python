@@ -22,7 +22,7 @@ from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
 
 logger = logging.getLogger('mne')
-
+K = KIT
 
 class RawKIT(Raw):
     """Raw object from KIT SQD file adapted from bti/raw.py
@@ -47,6 +47,9 @@ class RawKIT(Raw):
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    preload : bool
+        If True, all data are loaded at initialization.
+        If False, data are not read until save.
 
     See Also
     --------
@@ -54,15 +57,20 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim, data=None, stimthresh=3.5, verbose=None):
+                 stim, data=None, stimthresh=3.5, verbose=None, preload=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         sqd = _get_sqd_params(input_fname)
         logger.info('Creating Raw.info structure...')
 
+        # Info needed across methods but shouldn't be stored in the raw obj.
+        K.stim = stim
+        K.stimthresh = stimthresh
+        K.fids = input_fname
+
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = True
+        self._preloaded = preload
         self.fids = list()
 
         # Create raw.info dict for raw fif object with SQD data
@@ -175,8 +183,9 @@ class RawKIT(Raw):
                                  ch_names['STIM'])
 
         logger.info('Reading raw data from %s...' % input_fname)
-        self._data = _get_sqd_data(rawfile=input_fname, sqd=sqd)
-        assert len(self._data) == self.info['nchan']
+        if self._preloaded:
+            self._data = _get_sqd_data(rawfile=input_fname, sqd=sqd)
+            assert len(self._data) == self.info['nchan']
 
         # Create a synthetic channel
         trig_chs = self._data[stim, :]
@@ -195,6 +204,77 @@ class RawKIT(Raw):
                     % (self.first_samp, self.last_samp,
                        self._times[0], self._times[-1]))
         logger.info('Ready.')
+
+    def read_segment(self, start=0, stop=None, verbose=None):
+        """Read a chunk of raw data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
+        if stop is None:
+            stop = self.last_samp - self.first_samp + 1
+
+        #  Initial checks
+        start = int(start)
+        stop = int(stop)
+        stop = min([stop, self.last_samp - self.first_samp + 1])
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (start, stop - 1, start / float(self.info['sfreq']),
+                               (stop - 1) / float(self.info['sfreq'])))
+
+        #  Initialize the data
+        nchan = self.info['nchan']
+
+        with open(K.fids, 'r') as fid:
+            # extract data
+            fid.seek(K.DATA_OFFSET)
+            # data offset info
+            data_offset = unpack('i', fid.read(K.INT))[0]
+            buffer_size = stop - start
+            pointer = start * (buffer_size * nchan) * K.SHORT
+            fid.seek(data_offset + pointer)
+            data = np.empty((buffer_size, nchan + 1))
+            count = buffer_size * nchan
+            data[:, :nchan] = np.fromfile(fid, dtype='h',
+                                          count=count).reshape(buffer_size,
+                                                               nchan)
+        # amplifier applies only to the sensor channels
+        K.sensor_gain[:K.n_sens] /= K.amp_gain
+        conv_factor = np.array((K.VOLTAGE_RANGE /
+                                K.DYNAMIC_RANGE) *
+                               K.sensor_gain, ndmin=2)
+        data *= conv_factor
+        # Create a synthetic channel
+        trig_chs = data[K.stim, :]
+        trig_chs = trig_chs > K.stimthresh
+        trig_vals = np.array(2 ** np.arange(len(K.stim)), ndmin=2).T
+        trig_chs = trig_chs * trig_vals
+        stim_ch = trig_chs.sum(axis=0)
+        data[-1, :] = stim_ch
+
+        logger.info('[done]')
+        times = np.arange(start, stop) / self.info['sfreq']
+
+        return data, times
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
