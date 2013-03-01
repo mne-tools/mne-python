@@ -141,7 +141,7 @@ class Raw(object):
         else:
             data_buffer = None
 
-        self._data, self._times = self.read_segment(data_buffer=data_buffer)
+        self._data, self._times = self._read_segment(data_buffer=data_buffer)
         self._preloaded = True
 
     @verbose
@@ -342,7 +342,7 @@ class Raw(object):
         if self._preloaded:
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
-            data, times = self.read_segment(start=start, stop=stop, sel=sel,
+            data, times = self._read_segment(start=start, stop=stop, sel=sel,
                                             proj=self._projector,
                                             verbose=self.verbose)
         return data, times
@@ -1250,7 +1250,7 @@ class Raw(object):
             nsamp = c_ns[-1]
 
             if not self._preloaded:
-                this_data = self.read_segment()[0]
+                this_data = self._read_segment()[0]
             else:
                 this_data = self._data
 
@@ -1267,7 +1267,7 @@ class Raw(object):
                 if not r._preloaded:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    self.read_segment(data_buffer=data_buffer)[ri]
+                    self._read_segment(data_buffer=data_buffer)[ri]
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
 
@@ -1422,7 +1422,7 @@ class Raw(object):
         return raw_ts
 
     @verbose
-    def read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
         verbose=None, proj=None):
         """Read a chunk of raw data
 
@@ -1642,7 +1642,7 @@ class Raw(object):
         stop = ceil(stop * self.info['sfreq'])
 
         #   Read it
-        return self.read_segment(start, stop, sel)
+        return self._read_segment(start, stop, sel)
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
