@@ -114,6 +114,31 @@ def translation(x=0, y=0, z=0):
     return m
 
 
+def coord_trans(src='ALS', dst='RAS'):
+    """Create a transform between two coordinate systems
+
+    Currently only ALS -> RAS is implemented.
+
+    Parameters
+    ----------
+    src : str
+        Source coordinate system.
+    dst : str
+        Target coordinate system.
+
+    Returns
+    -------
+    trans : array, shape = (3, 3)
+        Transform from src to dst coordinate system.
+    """
+    if src == 'ALS' and dst == 'RAS':
+        trans = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    else:
+        raise NotImplementedError
+
+    return trans
+
+
 def read_trans(fname):
     """Read a -trans.fif file
 
