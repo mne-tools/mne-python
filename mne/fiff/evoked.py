@@ -498,37 +498,6 @@ class Evoked(ProjMixin):
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
-    # def apply_projector(self):
-    #     """Apply SSPs projections
-
-    #     Returns
-    #     -------
-    #     self | evoked : instance of Evoked
-    #     """
-    #     # if getattr(self, 'proj', None) == 'applied':
-    #     #     logger.info('Projection has already been applied. Doing '
-    #     #                 'nothing.')
-    #     else:
-    #         #   Create the projector
-    #         proj, nproj = make_projector_info(self.info)
-    #         if nproj == 0:
-    #             logger.info('The projection vectors do not apply to these'
-    #                         ' channels. Consider updating the projections.')
-    #             self.proj = None
-    #         else:
-    #             logger.info('Created an SSP operator (subspace dimension '
-    #                         '= %d)' % nproj)
-    #             self.proj = proj
-    #         #  The projection items have been activated
-    #         self.info['projs'] = activate_proj(self.info['projs'],
-    #                                              copy=False)
-    #     # don't proceed if self.proj still is True
-    #     if isinstance(self.proj, np.ndarray):
-    #         logger.info("SSP projectors applied...")
-    #         data = np.dot(self.proj, self.data)
-    #         self.data = data
-
-    #     return self
     def copy(self):
         """ Copy the instance of evoked
 
