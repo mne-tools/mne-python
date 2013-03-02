@@ -1267,7 +1267,7 @@ class Raw(object):
                 if not r._preloaded:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
-                    self._read_segment(data_buffer=data_buffer)[ri]
+                    raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
 
