@@ -27,7 +27,7 @@ from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
 from .fiff.pick import pick_types, channel_indices_by_type, channel_type
-from .fiff.proj import setup_proj
+from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
@@ -37,7 +37,7 @@ from . import verbose
 from .fixes import in1d
 
 
-class Epochs(object):
+class Epochs(ProjMixin):
     """List of Epochs
 
     Parameters

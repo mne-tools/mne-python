@@ -24,7 +24,7 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
-from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
+from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
@@ -34,7 +34,7 @@ from ..viz import plot_raw
 from .. import verbose
 
 
-class Raw(object):
+class Raw(ProjMixin):
     """Raw data
 
     Parameters
@@ -102,6 +102,7 @@ class Raw(object):
         self.verbose = verbose
         self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
+        self.proj = False
 
         if preload:
             self._preload_data(preload)
@@ -817,60 +818,6 @@ class Raw(object):
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
         return raw
-
-    def apply_projector(self):
-        """Apply the signal space projection (SSP) operators to the data.
-
-        Note: Once the projectors have been applied, they can no longer be
-              removed. It is usually not recommended to apply the projectors at
-              this point, as they are applied automatically later on (e.g. when
-              computing inverse solutions).
-       """
-        self._projector, self.info = setup_proj(self.info,
-                                                verbose=self.verbose)
-        activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
-
-        if self._preloaded:
-            self._data = np.dot(self._projector, self._data)
-
-    def add_proj(self, projs, remove_existing=False):
-        """Add SSP projection vectors
-
-        Parameters
-        ----------
-        projs : list
-            List with projection vectors.
-        remove_existing : bool
-            Remove the projection vectors currently in the file.
-        """
-        # mark proj as inactive, as they have not been applied
-        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
-
-        if remove_existing:
-            # we cannot remove the proj if they are active
-            if any(p['active'] for p in self.info['projs']):
-                raise ValueError('Cannot remove projectors that have '
-                                 'already been applied')
-            self.info['projs'] = projs
-        else:
-            self.info['projs'].extend(projs)
-
-    def del_proj(self, idx):
-        """Remove SSP projection vector
-
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
-
-        Parameters:
-        -----------
-        idx : int
-            Index of the projector to remove.
-        """
-        if self.info['projs'][idx]['active']:
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
-
-        self.info['projs'].pop(idx)
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,

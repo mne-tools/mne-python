@@ -17,7 +17,7 @@ from .tag import read_tag
 from .tree import dir_tree_find
 from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
-from .proj import make_projector_info, activate_proj, deactivate_proj
+from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
@@ -29,14 +29,11 @@ from .write import start_file, start_block, end_file, end_block, \
 from ..viz import plot_evoked
 from .. import verbose
 
-
-aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
 aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(object):
+class Evoked(ProjMixin):
     """Evoked data
 
     Parameters
@@ -269,7 +266,8 @@ class Evoked(object):
         # bind info, proj, data to self so apply_projector can be used
         self.info = info
         self.data = all_data
-        self.apply_projector(proj=proj, copy=False)
+        if proj == True:
+            self.apply_projector()
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
@@ -499,72 +497,37 @@ class Evoked(object):
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
-    def apply_projector(self, proj=True, copy=False):
-        """Apply SSPs projections
+    # def apply_projector(self):
+    #     """Apply SSPs projections
 
-        Parameters
-        ----------
-        copy : bool
-            If True, the projections will be applied to a copy. If False,
-            the projections will be applied in-place.
+    #     Returns
+    #     -------
+    #     self | evoked : instance of Evoked
+    #     """
+    #     # if getattr(self, 'proj', None) == 'applied':
+    #     #     logger.info('Projection has already been applied. Doing '
+    #     #                 'nothing.')
+    #     else:
+    #         #   Create the projector
+    #         proj, nproj = make_projector_info(self.info)
+    #         if nproj == 0:
+    #             logger.info('The projection vectors do not apply to these'
+    #                         ' channels. Consider updating the projections.')
+    #             self.proj = None
+    #         else:
+    #             logger.info('Created an SSP operator (subspace dimension '
+    #                         '= %d)' % nproj)
+    #             self.proj = proj
+    #         #  The projection items have been activated
+    #         self.info['projs'] = activate_proj(self.info['projs'],
+    #                                              copy=False)
+    #     # don't proceed if self.proj still is True
+    #     if isinstance(self.proj, np.ndarray):
+    #         logger.info("SSP projectors applied...")
+    #         data = np.dot(self.proj, self.data)
+    #         self.data = data
 
-        Returns
-        -------
-        self | evoked : instance of Evoked
-        """
-        evoked = self.copy() if copy else self
-        if proj is True:
-            if getattr(evoked, 'proj', None) == 'applied':
-                logger.info('Projection has already been applied. Doing '
-                            'nothing.')
-            elif evoked.info['projs'] is None:
-                logger.info('No projector specified for these data'
-                            'Please consider the method evoked.add_proj.')
-            else:
-                #   Create the projector
-                proj, nproj = make_projector_info(evoked.info)
-                if nproj == 0:
-                    logger.info('The projection vectors do not apply to these'
-                                ' channels. Consider updating the projections.')
-                    evoked.proj = None
-                else:
-                    logger.info('Created an SSP operator (subspace dimension '
-                                '= %d)' % nproj)
-                    evoked.proj = proj
-                #  The projection items have been activated
-                evoked.info['projs'] = activate_proj(evoked.info['projs'],
-                                                     copy=False)
-            # don't proceed if evoked.proj still is True
-            if isinstance(evoked.proj, np.ndarray):
-                logger.info("SSP projectors applied...")
-                data = np.dot(evoked.proj, evoked.data)
-                evoked.proj = 'applied'
-                evoked.data = data
-
-        return evoked
-
-    def add_proj(self, projs, remove_existing=False):
-        """Add SSP projection vectors
-
-        Parameters
-        ----------
-        projs : list
-            List with projection vectors.
-        remove_existing : bool
-            Remove the projection vectors currently in the file.
-        """
-        # mark proj as inactive, as they have not been applied
-        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
-
-        if remove_existing:
-            # we cannot remove the proj if they are active
-            if any(p['active'] for p in self.info['projs']):
-                raise ValueError('Cannot remove projectors that have '
-                                 'already been applied')
-            self.info['projs'] = projs
-        else:
-            self.info['projs'].extend(projs)
-
+    #     return self
     def copy(self):
         """ Copy the instance of evoked
 
