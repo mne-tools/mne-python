@@ -266,6 +266,7 @@ class Evoked(ProjMixin):
         # bind info, proj, data to self so apply_projector can be used
         self.info = info
         self.data = all_data
+        self.proj = proj
         if proj == True:
             self.apply_projector()
         # Run baseline correction

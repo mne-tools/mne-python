@@ -79,11 +79,15 @@ class ProjMixin(object):
             # this also helps avoiding circular imports
             data = getattr(self, '_data', getattr(self, 'data', None))
             if data is not None:
-                if data.ndim <= 2:
+                if data.ndim == 2:
                     data = np.dot(self._projector, data)
-                else:
+                elif data.ndim == 3:
                     data = np.r_[[np.dot(self._projector, e) for e in data]]
                 self.proj = True
+                if hasattr(self, '_data'):
+                    self._data = data
+                else:
+                    self.data = data
         else:
             logger.info('Projection has already been applied. Doing '
                         'nothing.')
