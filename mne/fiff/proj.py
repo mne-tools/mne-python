@@ -59,6 +59,8 @@ class ProjMixin(object):
         else:
             self.info['projs'].extend(projs)
 
+        return self
+
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.
 
