@@ -30,6 +30,84 @@ class Projection(dict):
         return "Projection (%s)" % s
 
 
+class ProjMixin(object):
+    """ Mixin class for Raw, Evoked, Epochs
+    """
+
+    def __init__(self):
+        pass
+
+    def add_proj(self, projs, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors.
+        remove_existing : bool
+            Remove the projection vectors currently in the file.
+        """
+        # mark proj as inactive, as they have not been applied
+        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
+
+        if remove_existing:
+            # we cannot remove the proj if they are active
+            if any(p['active'] for p in self.info['projs']):
+                raise ValueError('Cannot remove projectors that have '
+                                 'already been applied')
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
+
+    def apply_projector(self):
+        """Apply the signal space projection (SSP) operators to the data.
+
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              this point, as they are applied automatically later on (e.g. when
+              computing inverse solutions).
+        """
+        if self.info['projs'] is None:
+            logger.info('No projector specified for this dataset.'
+                        'Please consider the method self.add_proj.')
+
+        elif self.proj == False:
+            self._projector, self.info = setup_proj(self.info,
+                                                verbose=self.verbose)
+            activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
+            # handle different data / preload attrs and create reference
+            # this also helps avoiding circular imports
+            data = getattr(self, '_data', getattr(self, 'data', None))
+            if data is not None:
+                if data.ndim <= 2:
+                    data = np.dot(self._projector, data)
+                else:
+                    data = np.r_[[np.dot(self._projector, e) for e in data]]
+                self.proj = True
+        else:
+            logger.info('Projection has already been applied. Doing '
+                        'nothing.')
+
+        return self
+
+    def del_proj(self, idx):
+        """Remove SSP projection vector
+
+        Note: The projection vector can only be removed if it is inactive
+              (has not been applied to the data).
+
+        Parameters:
+        -----------
+        idx : int
+            Index of the projector to remove.
+        """
+        if self.info['projs'][idx]['active']:
+            raise ValueError('Cannot remove projectors that have already '
+                             'been applied')
+
+        self.info['projs'].pop(idx)
+
+
 def proj_equal(a, b):
     """ Test if two projectors are equal """
 
