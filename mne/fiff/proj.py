@@ -62,8 +62,19 @@ class ProjMixin(object):
 
         Note: Once the projectors have been applied, they can no longer be
               removed. It is usually not recommended to apply the projectors at
-              this point, as they are applied automatically later on (e.g. when
+              too early, as they are applied automatically later on (e.g. when
               computing inverse solutions).
+              Hint: using the copy method individual projection vectors
+              can be tested without affecting the original data.
+              With evoked data, consider the folliowing example:
+
+                  projs_a = mne.read_proj('proj_a.fif')
+                  projs_b = mne.read_proj('proj_b.fif')
+                  evokd.add_proj(a)  # add the first and see ...
+                  evoked.copy().apply_projector().plot()
+                  evokd.add_proj(b)  # add the second and see ...
+                  evoked.copy().apply_projector().plot()
+                  evoked.apply_projector()  # keep both
         """
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'
