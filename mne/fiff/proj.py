@@ -75,8 +75,8 @@ class ProjMixin(object):
                   # add the second, copy, apply and see ...
                   evoked.add_proj(b).copy().apply_projector().plot()
                   # drop the first and see again
-                  evoked.apply_projector()  # finally keep both
                   evoked.copy().del_proj(0).apply_projector().plot()
+                  evoked.apply_projector()  # finally keep both
 
         """
         if self.info['projs'] is None:
