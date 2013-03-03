@@ -14,6 +14,7 @@ from struct import unpack
 from os import SEEK_CUR
 import numpy as np
 from scipy.linalg import norm
+from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
 from ...utils import verbose
 from ..raw import Raw
@@ -22,6 +23,7 @@ from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
 
 logger = logging.getLogger('mne')
+
 
 class RawKIT(Raw):
     """Raw object from KIT SQD file adapted from bti/raw.py
@@ -38,8 +40,12 @@ class RawKIT(Raw):
         Absolute path to elp digitizer head shape points file.
     sns_fname : str
         Absolute path to sensor information file.
-    stim : list
+    stim : list or None
         List of trigger channels.
+        If None, the trigger channels are extracted from misc channels
+            in their default location.
+    endianness : 'big' | 'little'
+        Directionality of the triggers.
     data : bool | array-like
         Array-like data to use in lieu of data from sqd file.
     stimthresh : float
@@ -56,16 +62,14 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim, data=None, stimthresh=3.5, verbose=None, preload=True):
+                 stim=None, endianness='little', data=None, stimthresh=3.5,
+                 verbose=None, preload=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._K = self._get_sqd_params(input_fname)
-        logger.info('Creating Raw.info structure...')
-
-        # Info needed across methods but shouldn't be stored in the raw obj.
-        self._K.stim = stim
         self._K.stimthresh = stimthresh
         self._K.fid = input_fname
+        logger.info('Creating Raw.info structure...')
 
         # Raw attributes
         self.verbose = verbose
@@ -73,7 +77,7 @@ class RawKIT(Raw):
         self.fids = list()
         self._projector = None
         self.first_samp = 0
-        self.last_samp = self._K.nsamples
+        self.last_samp = self._K.nsamples - 1
 
         # Create raw.info dict for raw fif object with SQD data
         self.info = {}
@@ -184,8 +188,16 @@ class RawKIT(Raw):
         self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
                                  ch_names['STIM'])
 
-        logger.info('Reading raw data from %s...' % input_fname)
+        # Acquire stim channels
+        if stim is None:
+            stim = pick_types(self.info, meg=False, misc=True,
+                              exclude=[])[:8]
+            if endianness == 'little':
+                stim = stim[::-1]
+        self._K.stim = stim
+
         if self._preloaded:
+            logger.info('Reading raw data from %s...' % input_fname)
             self._data = self._get_sqd_data()
             assert len(self._data) == self.info['nchan']
 
@@ -314,8 +326,8 @@ class RawKIT(Raw):
         """
         if stop is None:
             raise NotImplementedError
-        if stop > self.last_samp:
-            stop = self.last_samp
+        if stop > self.last_samp + 1:
+            stop = self.last_samp + 1
 
         #  Initial checks
         start = int(start)
@@ -405,7 +417,8 @@ class RawKIT(Raw):
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim, data=None, stimthresh=3.5, verbose=None, preload=True):
+                 stim=None, endianness='little', data=None, stimthresh=3.5,
+                 verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -420,8 +433,12 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
         Absolute path to elp digitizer head shape points file.
     sns_fname : str
         Absolute path to sensor information file.
-    stim : list
+    stim : list or None
         List of trigger channels.
+        If None, the trigger channels are extracted from misc channels
+            in their default location.
+    endianness : 'big' | 'little'
+        Directionality of the triggers.
     data : bool | array-like
         Array-like data to use in lieu of data from sqd file.
     stimthresh : float
