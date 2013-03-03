@@ -4,10 +4,11 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from copy import deepcopy
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal,\
-                          assert_array_equal
+                          assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises
 
 from mne.fiff import read_evoked, write_evoked, pick_types
@@ -136,3 +137,31 @@ def test_as_data_frame():
     assert_true('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
+
+
+def test_evoked_proj():
+    """Test SSP proj operations
+    """
+    for proj in [True, False]:
+        ave = read_evoked(fname, setno=0, proj=proj)
+        assert_true(all(p['active'] == proj for p in ave.info['projs']))
+
+        # test adding / deleting proj
+        if proj:
+            assert_raises(ValueError, ave.add_proj, [],
+                          {'remove_existing': True})
+            assert_raises(ValueError, ave.del_proj, 0)
+        else:
+            projs = deepcopy(ave.info['projs'])
+            n_proj = len(ave.info['projs'])
+            ave.del_proj(0)
+            assert_true(len(ave.info['projs']) == n_proj - 1)
+            ave.add_proj(projs, remove_existing=False)
+            assert_true(len(ave.info['projs']) == 2 * n_proj - 1)
+            ave.add_proj(projs, remove_existing=True)
+            assert_true(len(ave.info['projs']) == n_proj)
+
+    ave = read_evoked(fname, setno=0, proj=False)
+    data = ave.data.copy()
+    ave.apply_projector()
+    assert_allclose(np.dot(ave._projector, data), ave.data)

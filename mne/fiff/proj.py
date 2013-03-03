@@ -31,12 +31,8 @@ class Projection(dict):
 
 
 class ProjMixin(object):
-    """ Mixin class for Raw, Evoked, Epochs
+    """Mixin class for Raw, Evoked, Epochs
     """
-
-    def __init__(self):
-        pass
-
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
@@ -75,7 +71,7 @@ class ProjMixin(object):
 
         elif self.proj == False:
             self._projector, self.info = setup_proj(self.info,
-                                                verbose=self.verbose)
+                                                    verbose=self.verbose)
             activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
             # handle different data / preload attrs and create reference
             # this also helps avoiding circular imports
@@ -84,7 +80,8 @@ class ProjMixin(object):
                 if data.ndim == 2:
                     data = np.dot(self._projector, data)
                 elif data.ndim == 3:
-                    data = np.r_[[np.dot(self._projector, e) for e in data]]
+                    for e in data:
+                        e[:] = np.dot(self._projector, e)
                 self.proj = True
                 if hasattr(self, '_data'):
                     self._data = data

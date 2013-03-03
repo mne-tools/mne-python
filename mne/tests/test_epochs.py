@@ -4,6 +4,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from copy import deepcopy
+
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal, \
                           assert_allclose
@@ -617,3 +619,34 @@ def test_as_data_frame():
     assert_true(df.index.names == ['epoch', 'time'])
     assert_array_equal(df.values[:, 1], data[0] * 1e13)
     assert_array_equal(df.values[:, 3], data[2] * 1e15)
+
+
+def test_epochs_proj_mixin():
+    """Test SSP proj operations
+    """
+    for proj in [True, False]:
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), proj=proj)
+
+        assert_true(all(p['active'] == proj for p in epochs.info['projs']))
+
+        # test adding / deleting proj
+        if proj:
+            assert_raises(ValueError, epochs.add_proj, [],
+                          {'remove_existing': True})
+            assert_raises(ValueError, epochs.del_proj, 0)
+        else:
+            projs = deepcopy(epochs.info['projs'])
+            n_proj = len(epochs.info['projs'])
+            epochs.del_proj(0)
+            assert_true(len(epochs.info['projs']) == n_proj - 1)
+            epochs.add_proj(projs, remove_existing=False)
+            assert_true(len(epochs.info['projs']) == 2 * n_proj - 1)
+            epochs.add_proj(projs, remove_existing=True)
+            assert_true(len(epochs.info['projs']) == n_proj)
+
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=False)
+    data = epochs.data.copy()
+    epochs.apply_projector()
+    assert_allclose(np.dot(epochs._projector, data[0]), epochs.data[0])

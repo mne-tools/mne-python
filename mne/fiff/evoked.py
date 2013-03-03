@@ -266,7 +266,7 @@ class Evoked(ProjMixin):
         # bind info, proj, data to self so apply_projector can be used
         self.info = info
         self.data = all_data
-        self.proj = proj
+        self.proj = False
         if proj == True:
             self.apply_projector()
         # Run baseline correction
@@ -499,15 +499,13 @@ class Evoked(ProjMixin):
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):
-        """ Copy the instance of evoked
+        """Copy the instance of evoked
 
         Returns
         -------
         evoked : instance of Evoked
-
         """
         evoked = deepcopy(self)
-
         return evoked
 
     def __add__(self, evoked):
@@ -614,6 +612,7 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
+
     Returns
     -------
     evoked : instance of Evoked or list of Evoked
