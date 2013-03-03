@@ -24,9 +24,9 @@ def coregistration(raw, subject=None, trans_fname=_trans, subjects_dir=None):
     Parameters
     ----------
     raw : str(path)
-        path to a raw file containing the digitizer data.
+        Path to a raw file containing the digitizer data.
     subject : str
-        name of the mri subject.
+        Name of the mri subject.
         Can be None if the raw file-name starts with "{subject}_".
     trans_fname : str
         Filename pattern for the trans file. "{raw_dir}" will be formatted to
@@ -38,6 +38,25 @@ def coregistration(raw, subject=None, trans_fname=_trans, subjects_dir=None):
     """
     from .transforms.coreg_gui import HeadMriCoreg
     gui = HeadMriCoreg(raw, subject, trans_fname, subjects_dir)
+    gui.configure_traits()
+    return gui
+
+
+def fiducials(subject, subjects_dir=None, fid_file=None):
+    """Open a gui to set the fiducials for an mri subject
+
+    Parameters
+    ----------
+    subject : str
+        Name of the mri subject.
+    subjects_dir : None | str
+        Overrule the subjects_dir environment variable.
+    fid_file : None | str
+        Load a fiducials file different form the subject's default
+        ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
+    """
+    from .transforms.fiducials_gui import MainWindow
+    gui = MainWindow(subject, subjects_dir, fid_file=fid_file)
     gui.configure_traits()
     return gui
 
@@ -73,23 +92,5 @@ def fit_mri_to_head(raw, s_from='fsaverage', s_to=None, trans_fname=_trans,
 def kit2fiff():
     from .transforms.kit2fiff_gui import MainWindow
     gui = MainWindow()
-    gui.configure_traits()
-    return gui
-
-
-def set_fiducials(subject, fid=None, subjects_dir=None):
-    """Open a gui for creating a fiducials file for an mri
-
-    Parameters
-    ----------
-    subject : str
-        The mri subject.
-    fid : None | str
-        Fiducials file for initial positions.
-    subjects_dir : None | str
-        Overrule the subjects_dir environment variable.
-    """
-    from .transforms.coreg_gui import Fiducials
-    gui = Fiducials(subject, fid, subjects_dir)
     gui.configure_traits()
     return gui
