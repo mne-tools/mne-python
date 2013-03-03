@@ -67,7 +67,7 @@ from sklearn.cross_validation import cross_val_score, ShuffleSplit
 
 clf = SVC(C=1, kernel='linear')
 # Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(X), n_iter=10, test_size=0.2)
+cv = ShuffleSplit(len(X), test_size=0.2)
 
 scores = np.empty(n_times)
 std_scores = np.empty(n_times)
