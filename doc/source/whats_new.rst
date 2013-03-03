@@ -63,6 +63,8 @@ Changelog
 
    - Smarter SourceEstimate object that contains linear inverse kernel and sensor space data for fast time-frequency transforms in source space by `Martin Luessi`_
 
+   - Add example of decoding/MVPA on MEG sensor data by `Alex Gramfort`_
+
 API
 ~~~
 
