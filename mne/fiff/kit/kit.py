@@ -40,12 +40,14 @@ class RawKIT(Raw):
         Absolute path to elp digitizer head shape points file.
     sns_fname : str
         Absolute path to sensor information file.
-    stim : list or None
-        List of trigger channels.
-        If None, the trigger channels are extracted from misc channels
-            in their default location.
-    endianness : 'big' | 'little'
-        Directionality of the triggers.
+    stim : list of int | '<' | '>'
+        Can be submitted as list of trigger channels.
+        If a list is not specifies, the default triggers extracted from
+        misc channels, will be used with specified directionality.
+        '<' means that largest values assigned to the first channel
+        in sequence.
+        '>' means the largest trigger assigned to the last channel
+        in sequence.
     data : bool | array-like
         Array-like data to use in lieu of data from sqd file.
     stimthresh : float
@@ -61,8 +63,8 @@ class RawKIT(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim=None, endianness='little', data=None, stimthresh=3.5,
+    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname,
+                 sns_fname, stim='<', data=None, stimthresh=3.5,
                  verbose=None, preload=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
@@ -190,11 +192,15 @@ class RawKIT(Raw):
                                  ch_names['STIM'])
 
         # Acquire stim channels
-        if stim is None:
-            stim = pick_types(self.info, meg=False, misc=True,
+        if isinstance(stim, str):
+            picks = pick_types(self.info, meg=False, misc=True,
                               exclude=[])[:8]
-            if endianness == 'little':
-                stim = stim[::-1]
+            if stim == '<':
+                stim = picks[::-1]
+            elif stim == '>':
+                stim = picks
+            else:
+                raise NotImplementedError
         self._sqd_params.stim = stim
 
         if self._preloaded:
@@ -477,8 +483,8 @@ class RawKIT(Raw):
         return data.T
 
 
-def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim=None, endianness='little', data=None, stimthresh=3.5,
+def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
+                 sns_fname, stim='<', data=None, stimthresh=3.5,
                  verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
@@ -494,12 +500,14 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
         Absolute path to elp digitizer head shape points file.
     sns_fname : str
         Absolute path to sensor information file.
-    stim : list or None
-        List of trigger channels.
-        If None, the trigger channels are extracted from misc channels
-            in their default location.
-    endianness : 'big' | 'little'
-        Directionality of the triggers.
+    stim : list of int | '<' | '>'
+        Can be submitted as list of trigger channels.
+        If a list is not specifies, the default triggers extracted from
+        misc channels, will be used with specified directionality.
+        '<' means that largest values assigned to the first channel
+        in sequence.
+        '>' means the largest trigger assigned to the last channel
+        in sequence.
     data : bool | array-like
         Array-like data to use in lieu of data from sqd file.
     stimthresh : float
