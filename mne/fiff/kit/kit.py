@@ -348,7 +348,8 @@ class RawKIT(Raw):
 
         return stim_ch
 
-    def _read_segment(self, start=0, stop=None, verbose=None, **kwargs):
+    def _read_segment(self, start=0, stop=None, sel=None,
+                      verbose=None, **kwargs):
         """Read a chunk of raw data
 
         Parameters
@@ -359,6 +360,8 @@ class RawKIT(Raw):
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -417,6 +420,8 @@ class RawKIT(Raw):
         trig_chs = trig_chs * trig_vals
         stim_ch = trig_chs.sum(axis=0)
         data[-1, :] = stim_ch
+        if sel is not None:
+            data = data[sel]
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']

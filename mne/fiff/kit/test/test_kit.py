@@ -25,7 +25,7 @@ def test_data():
                            elp_fname=op.join(data_dir, 'test_elp.txt'),
                            hsp_fname=op.join(data_dir, 'test_hsp.txt'),
                            sns_fname=op.join(data_dir, 'sns.txt'),
-                           stim=range(167, 159, -1))
+                           stim=range(167, 159, -1), preload=True)
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude=[])
     raw_bin = op.join(data_dir, 'test_bin.fif')
