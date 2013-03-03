@@ -47,9 +47,13 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
 
         """
+        if (not isinstance(projs, list) and
+            not all(isinstance(p, Projection) for p in projs)):
+            raise ValueError('Only projs can be added. You supplied '
+                             'something else.')
+
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
-
         if remove_existing:
             # we cannot remove the proj if they are active
             if any(p['active'] for p in self.info['projs']):
@@ -89,19 +93,22 @@ class ProjMixin(object):
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
 
-        elif not any([p['active'] for p in self.info['projs']]):
+        elif not any(p['active'] for p in self.info['projs']):
             self._projector, self.info = setup_proj(self.info,
                                                     verbose=self.verbose)
             activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
             # handle different data / preload attrs and create reference
             # this also helps avoiding circular imports
-            data = getattr(self, '_data', getattr(self, 'data', None))
+            data = getattr(self, 'get_data', getattr(self, '_data',
+                           getattr(self, 'data', None)))
+
             if data is not None:
-                if data.ndim == 2:
-                    data = np.dot(self._projector, data)
-                elif data.ndim == 3:
+                if callable(data):
+                    data = data()
                     for e in data:
                         e[:] = np.dot(self._projector, e)
+                else:
+                    data = np.dot(self._projector, data)
                 self.proj = True
                 if hasattr(self, '_data'):
                     self._data = data

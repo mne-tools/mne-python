@@ -628,12 +628,15 @@ def test_epochs_proj_mixin():
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=proj)
 
-        assert_true(all(p['active'] == proj for p in epochs.info['projs']))
+        assert_true(all(p['active'] == False for p in epochs.info['projs']))
 
         # test adding / deleting proj
         if proj:
-            assert_raises(ValueError, epochs.add_proj, [],
+            epochs.get_data()
+            assert_true(all(p['active'] == proj for p in epochs.info['projs']))
+            assert_raises(ValueError, epochs.add_proj, epochs.info['projs'][0],
                           {'remove_existing': True})
+            assert_raises(ValueError, epochs.add_proj, 'spam')
             assert_raises(ValueError, epochs.del_proj, 0)
         else:
             projs = deepcopy(epochs.info['projs'])
@@ -647,6 +650,6 @@ def test_epochs_proj_mixin():
 
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), proj=False)
-    data = epochs.data.copy()
+    data = epochs.get_data().copy()
     epochs.apply_projector()
-    assert_allclose(np.dot(epochs._projector, data[0]), epochs.data[0])
+    assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])

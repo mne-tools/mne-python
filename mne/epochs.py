@@ -238,6 +238,8 @@ class Epochs(ProjMixin):
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
+        # make sure projs are really copied.
+        self.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                                ecg=True, eog=True, misc=True, exclude=[])
@@ -389,8 +391,7 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
         epoch, _ = self.raw[self.picks, start:stop]
-
-        if self.proj and self._projector is not None:
+        if self.proj:
             logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
@@ -423,6 +424,9 @@ class Epochs(ProjMixin):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        # apply here isntead of in the constructor to make sure it reflects
+        if self.proj:  # the actual processing
+            self._projector, self.info = setup_proj(self.info)
         n_events = len(self.events)
         data = np.array([])
         if self._bad_dropped:
@@ -546,6 +550,10 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
+        # apply here instead of in the constructor to make sure it reflects
+        if self._current < 1 and self.proj:  # the actual processing.
+            self._projector, self.info = setup_proj(self.info)
+
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -661,6 +669,8 @@ class Epochs(ProjMixin):
         _do_std = True if mode == 'stderr' else False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
+        # make sure projs are really copied.
+        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
