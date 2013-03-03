@@ -42,6 +42,10 @@ class ProjMixin(object):
             List with projection vectors.
         remove_existing : bool
             Remove the projection vectors currently in the file.
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+
         """
         # mark proj as inactive, as they have not been applied
         projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
@@ -77,7 +81,9 @@ class ProjMixin(object):
                   # drop the first and see again
                   evoked.copy().del_proj(0).apply_projector().plot()
                   evoked.apply_projector()  # finally keep both
-
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
         """
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'
@@ -117,6 +123,10 @@ class ProjMixin(object):
         -----------
         idx : int
             Index of the projector to remove.
+
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
         """
         if self.info['projs'][idx]['active']:
             raise ValueError('Cannot remove projectors that have already '
