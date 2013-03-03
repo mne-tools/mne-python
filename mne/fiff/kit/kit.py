@@ -22,7 +22,6 @@ from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
 
 logger = logging.getLogger('mne')
-K = KIT_NY
 
 class RawKIT(Raw):
     """Raw object from KIT SQD file adapted from bti/raw.py
@@ -107,9 +106,9 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         ch_names = {}
         ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, self._K.KIT.n_sens + 1)]
+                                in range(1, self._K.n_sens + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
-                                 in range(1, self._K.KIT.nmiscchan + 1)]
+                                 in range(1, self._K.nmiscchan + 1)]
         ch_names['STIM'] = ['STI 014']
         locs = coreg.read_sns(sns_fname=sns_fname)
         chan_locs = coreg.transform_pts(locs[:, :3])
@@ -119,15 +118,15 @@ class RawKIT(Raw):
                                           chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
+            chan_info['cal'] = self._K.CALIB_FACTOR
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
-            chan_info['range'] = KIT.RANGE
-            chan_info['unit_mul'] = KIT.UNIT_MUL
+            chan_info['range'] = self._K.RANGE
+            chan_info['unit_mul'] = self._K.UNIT_MUL
             chan_info['ch_name'] = ch_name
             chan_info['unit'] = FIFF.FIFF_UNIT_T
             chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-            if idx <= self._K.KIT.nmegchan:
+            if idx <= self._K.nmegchan:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
             else:
@@ -165,9 +164,9 @@ class RawKIT(Raw):
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
-                                      self._K.KIT.n_sens):
+                                      self._K.n_sens):
             chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
+            chan_info['cal'] = self._K.CALIB_FACTOR
             chan_info['logno'] = idy
             chan_info['scanno'] = idy
             chan_info['range'] = 1.0
@@ -236,9 +235,9 @@ class RawKIT(Raw):
             sqd.nchan = unpack('i', fid.read(KIT.INT))[0]
 
             if sysname == 'New York University Abu Dhabi':
-                sqd.KIT = KIT_AD
+                sqd.update(KIT_AD)
             elif sysname == 'NYU 160ch System since Jan24 2009':
-                sqd.KIT = KIT_NY
+                sqd.update(KIT_NY)
             else:
                 raise NotImplementedError
 
@@ -248,24 +247,24 @@ class RawKIT(Raw):
             fid.seek(amp_offset)
             amp_data = unpack('i', fid.read(KIT.INT))[0]
 
-            gain1 = sqd.KIT.GAINS[(sqd.KIT.GAIN1_MASK & amp_data)
-                                  >> sqd.KIT.GAIN1_BIT]
-            gain2 = sqd.KIT.GAINS[(sqd.KIT.GAIN2_MASK & amp_data)
-                                  >> sqd.KIT.GAIN2_BIT]
-            if sqd.KIT.GAIN3_BIT:
-                gain3 = sqd.KIT.GAINS[(sqd.KIT.GAIN3_MASK & amp_data)
-                                         >> sqd.KIT.GAIN3_BIT]
+            gain1 = sqd.GAINS[(sqd.GAIN1_MASK & amp_data)
+                                  >> sqd.GAIN1_BIT]
+            gain2 = sqd.GAINS[(sqd.GAIN2_MASK & amp_data)
+                                  >> sqd.GAIN2_BIT]
+            if sqd.GAIN3_BIT:
+                gain3 = sqd.GAINS[(sqd.GAIN3_MASK & amp_data)
+                                         >> sqd.GAIN3_BIT]
                 sqd.amp_gain = gain1 * gain2 * gain3
             else:
                 sqd.amp_gain = gain1 * gain2
 
             # filter settings
-            sqd.lowpass = sqd.KIT.LPFS[(sqd.KIT.LPF_MASK & amp_data)
-                                       >> sqd.KIT.LPF_BIT]
-            sqd.highpass = sqd.KIT.HPFS[(sqd.KIT.HPF_MASK & amp_data)
-                                        >> sqd.KIT.HPF_BIT]
-            sqd.notch = sqd.KIT.BEFS[(sqd.KIT.BEF_MASK & amp_data)
-                                     >> sqd.KIT.BEF_BIT]
+            sqd.lowpass = sqd.LPFS[(sqd.LPF_MASK & amp_data)
+                                       >> sqd.LPF_BIT]
+            sqd.highpass = sqd.HPFS[(sqd.HPF_MASK & amp_data)
+                                        >> sqd.HPF_BIT]
+            sqd.notch = sqd.BEFS[(sqd.BEF_MASK & amp_data)
+                                     >> sqd.BEF_BIT]
 
             # only sensor channels requires gain. the additional misc channels
             # (trigger channels, audio and voice channels) are passed
@@ -276,9 +275,9 @@ class RawKIT(Raw):
             fid.seek(sens_offset)
             sens = np.fromfile(fid, dtype='d', count=sqd.nchan * 2)
             sensitivities = (np.reshape(sens, (sqd.nchan, 2))
-                             [:sqd.KIT.n_sens, 1])
+                             [:sqd.n_sens, 1])
             sqd.sensor_gain = np.ones(sqd.nchan + 1)  # extra ch for STI 014
-            sqd.sensor_gain[:sqd.KIT.n_sens] = sensitivities
+            sqd.sensor_gain[:sqd.n_sens] = sensitivities
 
             fid.seek(KIT.SAMPLE_INFO)
             acqcond_offset = unpack('i', fid.read(KIT.INT))[0]
@@ -292,7 +291,7 @@ class RawKIT(Raw):
                 raise NotImplementedError
         return sqd
 
-    def read_segment(self, start=0, stop=None, verbose=None, **kwargs):
+    def _read_segment(self, start=0, stop=None, verbose=None, **kwargs):
         """Read a chunk of raw data
 
         Parameters
@@ -315,6 +314,8 @@ class RawKIT(Raw):
         """
         if stop is None:
             raise NotImplementedError
+        if stop > self.last_samp:
+            stop = self.last_samp
 
         #  Initial checks
         start = int(start)
@@ -332,12 +333,12 @@ class RawKIT(Raw):
 
         with open(self._K.fid, 'r') as fid:
             # extract data
-            fid.seek(KIT.DATA_OFFSET)
+            fid.seek(self._K.DATA_OFFSET)
             # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            data_offset = unpack('i', fid.read(self._K.INT))[0]
             buffer_size = stop - start
             count = buffer_size * self._K.nchan
-            pointer = start * self._K.nchan
+            pointer = start * self._K.nchan * self._K.SHORT
             fid.seek(data_offset + pointer)
             data = np.empty((buffer_size, nchan))
             fract = np.fromfile(fid, dtype='h', count=count)
@@ -345,9 +346,11 @@ class RawKIT(Raw):
             data[:, :self._K.nchan] = fract
 
         # amplifier applies only to the sensor channels
-        conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._K.KIT.DYNAMIC_RANGE) *
-                               self._K.sensor_gain, ndmin=2)
+        n_sens = self._K.n_sens
+        sensor_gain = np.copy(self._K.sensor_gain)
+        sensor_gain[:n_sens] = (sensor_gain[:n_sens] / self._K.amp_gain)
+        conv_factor = np.array((self._K.VOLTAGE_RANGE / self._K.DYNAMIC_RANGE)
+                               * sensor_gain, ndmin=2)
         data *= conv_factor
         data = data.T
         # Create a synthetic channel
@@ -380,9 +383,9 @@ class RawKIT(Raw):
         """
         with open(self._K.fid, 'r') as fid:
             # extract data
-            fid.seek(KIT.DATA_OFFSET)
+            fid.seek(self._K.DATA_OFFSET)
             # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            data_offset = unpack('i', fid.read(self._K.INT))[0]
 
             fid.seek(data_offset)
             data = np.empty((self._K.nsamples, self._K.nchan + 1))
@@ -391,10 +394,12 @@ class RawKIT(Raw):
                                                  ).reshape((self._K.nsamples,
                                                             self._K.nchan))
             # amplifier applies only to the sensor channels
-            self._K.sensor_gain[:self._K.KIT.n_sens] /= self._K.amp_gain
-            conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                    self._K.KIT.DYNAMIC_RANGE) *
-                                   self._K.sensor_gain, ndmin=2)
+            n_sens = self._K.n_sens
+            sensor_gain = np.copy(self._K.sensor_gain)
+            sensor_gain[:n_sens] = (sensor_gain[:n_sens] / self._K.amp_gain)
+            conv_factor = np.array((self._K.VOLTAGE_RANGE /
+                                    self._K.DYNAMIC_RANGE) *
+                                   sensor_gain, ndmin=2)
             data *= conv_factor
         return data.T
 
