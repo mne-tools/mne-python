@@ -66,15 +66,18 @@ class ProjMixin(object):
               computing inverse solutions).
               Hint: using the copy method individual projection vectors
               can be tested without affecting the original data.
-              With evoked data, consider the folliowing example:
+              With evoked data, consider the following example:
 
                   projs_a = mne.read_proj('proj_a.fif')
                   projs_b = mne.read_proj('proj_b.fif')
-                  evokd.add_proj(a)  # add the first and see ...
-                  evoked.copy().apply_projector().plot()
-                  evokd.add_proj(b)  # add the second and see ...
-                  evoked.copy().apply_projector().plot()
-                  evoked.apply_projector()  # keep both
+                  # add the first, copy, apply and see ...
+                  evoked.add_proj(a).copy().apply_projector().plot()
+                  # add the second, copy, apply and see ...
+                  evoked.add_proj(b).copy().apply_projector().plot()
+                  # drop the first and see again
+                  evoked.apply_projector()  # finally keep both
+                  evoked.copy().del_proj(0).apply_projector().plot()
+
         """
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'
@@ -120,6 +123,8 @@ class ProjMixin(object):
                              'been applied')
 
         self.info['projs'].pop(idx)
+
+        return self
 
 
 def proj_equal(a, b):
