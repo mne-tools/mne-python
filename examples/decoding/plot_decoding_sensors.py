@@ -51,7 +51,12 @@ mne.epochs.equalize_epoch_counts(epochs_list)
 ###############################################################################
 # Decoding in sensor space using a linear SVM
 n_times = len(epochs.times)
+# Take only the data channels (here the gradiometers)
 data_picks = fiff.pick_types(epochs.info, meg=True, exclude='bads')
+# Make arrays X and y such that :
+# X is 3d with X.shape[0] is the total number of epochs to classify
+# y is filled with integers coding for the class to predict
+# We must have X.shape[0] equal to y.shape[0]
 X = [e.get_data()[:, data_picks, :] for e in epochs_list]
 y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
 X = np.concatenate(X)
@@ -73,6 +78,7 @@ for t in xrange(n_times):
     Xt -= Xt.mean(axis=0)
     Xt /= Xt.std(axis=0)
     # Run cross-validation
+    # Note : for sklearn the Xt matrix should be 2d (n_samples x n_features)
     scores_t = cross_val_score(clf, Xt, y, cv=cv, n_jobs=1)
     scores[t] = scores_t.mean()
     std_scores[t] = scores_t.std()
