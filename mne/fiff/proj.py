@@ -69,7 +69,7 @@ class ProjMixin(object):
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
 
-        elif self.proj == False:
+        elif not any([p['active'] for p in self.info['projs']]):
             self._projector, self.info = setup_proj(self.info,
                                                     verbose=self.verbose)
             activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
