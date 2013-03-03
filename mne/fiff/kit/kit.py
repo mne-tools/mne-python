@@ -66,9 +66,9 @@ class RawKIT(Raw):
                  verbose=None, preload=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
-        self._K = self._get_sqd_params(input_fname)
-        self._K.stimthresh = stimthresh
-        self._K.fid = input_fname
+        self._sqd_params = self._get_sqd_params(input_fname)
+        self._sqd_params.stimthresh = stimthresh
+        self._sqd_params.fid = input_fname
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -77,7 +77,7 @@ class RawKIT(Raw):
         self.fids = list()
         self._projector = None
         self.first_samp = 0
-        self.last_samp = self._K.nsamples - 1
+        self.last_samp = self._sqd_params.nsamples - 1
 
         # Create raw.info dict for raw fif object with SQD data
         self.info = {}
@@ -86,10 +86,11 @@ class RawKIT(Raw):
         self.info['meas_date'] = int(time.time())
         self.info['projs'] = []
         self.info['comps'] = []
-        self.info['lowpass'] = self._K.lowpass
-        self.info['highpass'] = self._K.highpass
-        self.info['sfreq'] = float(self._K.sfreq)
-        self.info['nchan'] = self._K.nchan + 1  # adds synthetic channel
+        self.info['lowpass'] = self._sqd_params.lowpass
+        self.info['highpass'] = self._sqd_params.highpass
+        self.info['sfreq'] = float(self._sqd_params.sfreq)
+        # meg channels plus synthetic channel
+        self.info['nchan'] = self._sqd_params.nchan + 1
         self.info['bads'] = []
         self.info['acq_pars'], self.info['acq_stim'] = None, None
         self.info['filename'] = None
@@ -110,9 +111,9 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         ch_names = {}
         ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, self._K.n_sens + 1)]
+                                in range(1, self._sqd_params.n_sens + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
-                                 in range(1, self._K.nmiscchan + 1)]
+                                 in range(1, self._sqd_params.nmiscchan + 1)]
         ch_names['STIM'] = ['STI 014']
         locs = coreg.read_sns(sns_fname=sns_fname)
         chan_locs = coreg.transform_pts(locs[:, :3])
@@ -122,15 +123,15 @@ class RawKIT(Raw):
                                           chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
             chan_info = {}
-            chan_info['cal'] = self._K.CALIB_FACTOR
+            chan_info['cal'] = self._sqd_params.CALIB_FACTOR
             chan_info['logno'] = idx
             chan_info['scanno'] = idx
-            chan_info['range'] = self._K.RANGE
-            chan_info['unit_mul'] = self._K.UNIT_MUL
+            chan_info['range'] = self._sqd_params.RANGE
+            chan_info['unit_mul'] = self._sqd_params.UNIT_MUL
             chan_info['ch_name'] = ch_name
             chan_info['unit'] = FIFF.FIFF_UNIT_T
             chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-            if idx <= self._K.nmegchan:
+            if idx <= self._sqd_params.nmegchan:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
             else:
@@ -168,9 +169,9 @@ class RawKIT(Raw):
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
-                                      self._K.n_sens):
+                                      self._sqd_params.n_sens):
             chan_info = {}
-            chan_info['cal'] = self._K.CALIB_FACTOR
+            chan_info['cal'] = self._sqd_params.CALIB_FACTOR
             chan_info['logno'] = idy
             chan_info['scanno'] = idy
             chan_info['range'] = 1.0
@@ -194,7 +195,7 @@ class RawKIT(Raw):
                               exclude=[])[:8]
             if endianness == 'little':
                 stim = stim[::-1]
-        self._K.stim = stim
+        self._sqd_params.stim = stim
 
         if self._preloaded:
             logger.info('Reading raw data from %s...' % input_fname)
@@ -323,26 +324,29 @@ class RawKIT(Raw):
         if start >= stop:
             raise ValueError('No data in this range')
 
-        with open(self._K.fid, 'r') as fid:
+        with open(self._sqd_params.fid, 'r') as fid:
             # extract data
-            fid.seek(self._K.DATA_OFFSET)
+            fid.seek(self._sqd_params.DATA_OFFSET)
             # data offset info
-            data_offset = unpack('i', fid.read(self._K.INT))[0]
+            data_offset = unpack('i', fid.read(self._sqd_params.INT))[0]
             for startblock in range(start, stop, buffer_size):
                 if buffer_size > stop - startblock:
                     buffer_size = stop - startblock + 1
-                count = buffer_size * self._K.nchan
-                pointer = startblock * self._K.nchan * self._K.SHORT
+                count = buffer_size * self._sqd_params.nchan
+                pointer = (startblock * self._sqd_params.nchan *
+                           self._sqd_params.SHORT)
                 fid.seek(data_offset + pointer)
                 events.append(np.fromfile(fid, dtype='h',
                               count=count).reshape((buffer_size,
-                              self._K.nchan))[:, self._K.stim].T)
+                    self._sqd_params.nchan))[:, self._sqd_params.stim].T)
         events = np.hstack(events)
-        events = (self._K.VOLTAGE_RANGE / self._K.DYNAMIC_RANGE) * events
+        events = (self._sqd_params.VOLTAGE_RANGE /
+                  self._sqd_params.DYNAMIC_RANGE) * events
 
         # Create a synthetic channel
-        events = events > self._K.stimthresh
-        trig_vals = np.array(2 ** np.arange(len(self._K.stim)), ndmin=2).T
+        events = events > self._sqd_params.stimthresh
+        trig_vals = np.array(2 ** np.arange(len(self._sqd_params.stim)),
+                             ndmin=2).T
         events = events * trig_vals
         stim_ch = events.sum(axis=0)
 
@@ -391,32 +395,36 @@ class RawKIT(Raw):
         #  Initialize the data
         nchan = self.info['nchan']
 
-        with open(self._K.fid, 'r') as fid:
+        with open(self._sqd_params.fid, 'r') as fid:
             # extract data
-            fid.seek(self._K.DATA_OFFSET)
+            fid.seek(self._sqd_params.DATA_OFFSET)
             # data offset info
-            data_offset = unpack('i', fid.read(self._K.INT))[0]
+            data_offset = unpack('i', fid.read(self._sqd_params.INT))[0]
             buffer_size = stop - start
-            count = buffer_size * self._K.nchan
-            pointer = start * self._K.nchan * self._K.SHORT
+            count = buffer_size * self._sqd_params.nchan
+            pointer = (start * self._sqd_params.nchan *
+                       self._sqd_params.SHORT)
             fid.seek(data_offset + pointer)
             data = np.empty((buffer_size, nchan))
             fract = np.fromfile(fid, dtype='h', count=count)
-            fract = fract.reshape((buffer_size, self._K.nchan))
-            data[:, :self._K.nchan] = fract
+            fract = fract.reshape((buffer_size, self._sqd_params.nchan))
+            data[:, :self._sqd_params.nchan] = fract
 
         # amplifier applies only to the sensor channels
-        n_sens = self._K.n_sens
-        sensor_gain = np.copy(self._K.sensor_gain)
-        sensor_gain[:n_sens] = (sensor_gain[:n_sens] / self._K.amp_gain)
-        conv_factor = np.array((self._K.VOLTAGE_RANGE / self._K.DYNAMIC_RANGE)
+        n_sens = self._sqd_params.n_sens
+        sensor_gain = np.copy(self._sqd_params.sensor_gain)
+        sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
+                                self._sqd_params.amp_gain)
+        conv_factor = np.array((self._sqd_params.VOLTAGE_RANGE /
+                                self._sqd_params.DYNAMIC_RANGE)
                                * sensor_gain, ndmin=2)
         data *= conv_factor
         data = data.T
         # Create a synthetic channel
-        trig_chs = data[self._K.stim, :]
-        trig_chs = trig_chs > self._K.stimthresh
-        trig_vals = np.array(2 ** np.arange(len(self._K.stim)), ndmin=2).T
+        trig_chs = data[self._sqd_params.stim, :]
+        trig_chs = trig_chs > self._sqd_params.stimthresh
+        trig_vals = np.array(2 ** np.arange(len(self._sqd_params.stim)),
+                             ndmin=2).T
         trig_chs = trig_chs * trig_vals
         stim_ch = trig_chs.sum(axis=0)
         data[-1, :] = stim_ch
@@ -443,24 +451,27 @@ class RawKIT(Raw):
         sqd : dict
             A dict containing all the sqd parameter settings.
         """
-        with open(self._K.fid, 'r') as fid:
+        with open(self._sqd_params.fid, 'r') as fid:
             # extract data
-            fid.seek(self._K.DATA_OFFSET)
+            fid.seek(self._sqd_params.DATA_OFFSET)
             # data offset info
-            data_offset = unpack('i', fid.read(self._K.INT))[0]
+            data_offset = unpack('i', fid.read(self._sqd_params.INT))[0]
 
             fid.seek(data_offset)
-            data = np.empty((self._K.nsamples, self._K.nchan + 1))
-            count = self._K.nsamples * self._K.nchan
-            data[:, :self._K.nchan] = np.fromfile(fid, dtype='h', count=count
-                                                 ).reshape((self._K.nsamples,
-                                                            self._K.nchan))
+            data = np.empty((self._sqd_params.nsamples,
+                             self._sqd_params.nchan + 1))
+            count = self._sqd_params.nsamples * self._sqd_params.nchan
+            nchan = self._sqd_params.nchan
+            nsamples = self._sqd_params.nsamples
+            data[:, :nchan] = np.fromfile(fid, dtype='h', count=count
+                                          ).reshape((nsamples, nchan))
             # amplifier applies only to the sensor channels
-            n_sens = self._K.n_sens
-            sensor_gain = np.copy(self._K.sensor_gain)
-            sensor_gain[:n_sens] = (sensor_gain[:n_sens] / self._K.amp_gain)
-            conv_factor = np.array((self._K.VOLTAGE_RANGE /
-                                    self._K.DYNAMIC_RANGE) *
+            n_sens = self._sqd_params.n_sens
+            sensor_gain = np.copy(self._sqd_params.sensor_gain)
+            sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
+                                    self._sqd_params.amp_gain)
+            conv_factor = np.array((self._sqd_params.VOLTAGE_RANGE /
+                                    self._sqd_params.DYNAMIC_RANGE) *
                                    sensor_gain, ndmin=2)
             data *= conv_factor
         return data.T
