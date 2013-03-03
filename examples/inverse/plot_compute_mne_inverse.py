@@ -30,7 +30,7 @@ lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0), proj=True)
+evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
