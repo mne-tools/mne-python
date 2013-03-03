@@ -303,6 +303,51 @@ class RawKIT(Raw):
                 raise NotImplementedError
         return sqd
 
+    def _read_events(self, buffer_size=1e5):
+        """Read events from data
+        Parameter
+        ---------
+        buffer_size : int
+            The size of chunk to by which the data are scanned.
+
+        Returns
+        -------
+        events : array, [samples]
+           The event vector (1 x samples).
+        """
+        buffer_size = int(buffer_size)
+        start = int(self.first_samp)
+        stop = int(self.last_samp)
+        events = []
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        with open(self._K.fid, 'r') as fid:
+            # extract data
+            fid.seek(self._K.DATA_OFFSET)
+            # data offset info
+            data_offset = unpack('i', fid.read(self._K.INT))[0]
+            for startblock in range(start, stop, buffer_size):
+                if buffer_size > stop - startblock:
+                    buffer_size = stop - startblock + 1
+                count = buffer_size * self._K.nchan
+                pointer = startblock * self._K.nchan * self._K.SHORT
+                fid.seek(data_offset + pointer)
+                events.append(np.fromfile(fid, dtype='h',
+                              count=count).reshape((buffer_size,
+                              self._K.nchan))[:, self._K.stim].T)
+        events = np.hstack(events)
+        events = (self._K.VOLTAGE_RANGE / self._K.DYNAMIC_RANGE) * events
+
+        # Create a synthetic channel
+        events = events > self._K.stimthresh
+        trig_vals = np.array(2 ** np.arange(len(self._K.stim)), ndmin=2).T
+        events = events * trig_vals
+        stim_ch = events.sum(axis=0)
+
+        return stim_ch
+
     def _read_segment(self, start=0, stop=None, verbose=None, **kwargs):
         """Read a chunk of raw data
 
