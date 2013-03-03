@@ -91,7 +91,10 @@ class Epochs(ProjMixin):
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
     proj : bool, optional
-        Apply SSP projection vectors
+        Apply SSP projection vectors. If proj is False but reject is specified
+        data will be projected before the rejection decsision and will be
+        if not rejected will be read once more. This is the only way to
+        reject epochs and postpone the projection to the evoked stage.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
@@ -364,7 +367,7 @@ class Epochs(ProjMixin):
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
-    def _get_epoch_from_disk(self, idx, verbose=None):
+    def _get_epoch_from_disk(self, idx, proj, verbose=None):
         """Load one epoch from disk"""
         if self.raw is None:
             # This should never happen, as raw=None only if preload=True
@@ -427,7 +430,7 @@ class Epochs(ProjMixin):
                 return
             for ii in xrange(n_events):
                 # faster to pre-allocate memory here
-                epoch = self._get_epoch_from_disk(ii)
+                epoch = self._get_epoch_from_disk(ii, proj=self.proj)
                 if ii == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
@@ -437,7 +440,7 @@ class Epochs(ProjMixin):
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
             for idx in xrange(n_events):
-                epoch = self._get_epoch_from_disk(idx)
+                epoch = self._get_epoch_from_disk(idx, proj=self.proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
@@ -553,9 +556,11 @@ class Epochs(ProjMixin):
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch = self._get_epoch_from_disk(self._current)
+                epoch = self._get_epoch_from_disk(self._current, proj=True)
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
+        if self.proj == False and self.reject is not None:
+            epoch = self._get_epoch_from_disk(self._current, proj=self.proj)
 
         return epoch
 
@@ -1384,7 +1389,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.tmax = tmax
     epochs.name = comment
     epochs.times = times
-    epochs.data = data
+    epochs._data = data
     epochs.proj = proj
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref)
     epochs.ch_names = info['ch_names']
