@@ -243,7 +243,6 @@ class RawKIT(Raw):
         buffer_size = int(buffer_size)
         start = int(self.first_samp)
         stop = int(self.last_samp)
-        events = []
 
         if start >= stop:
             raise ValueError('No data in this range')
@@ -253,6 +252,8 @@ class RawKIT(Raw):
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
+            events = np.empty((len(self._sqd_params['stim']), stop + 1),
+                              dtype=float)
             for startblock in range(start, stop, buffer_size):
                 if buffer_size > stop - startblock:
                     buffer_size = stop - startblock + 1
@@ -260,12 +261,12 @@ class RawKIT(Raw):
                 pointer = (startblock * self._sqd_params['nchan'] *
                            KIT.SHORT)
                 fid.seek(data_offset + pointer)
-                events.append(np.fromfile(fid, dtype='h',
+                idx = startblock
+                idy = startblock + buffer_size
+                events[:, idx:idy] = np.fromfile(fid, dtype='h',
                               count=count).reshape((buffer_size,
-                    self._sqd_params['nchan']))[:, self._sqd_params['stim']].T)
-        events = np.hstack(events)
-        events = ((KIT.VOLTAGE_RANGE / self._sqd_params['DYNAMIC_RANGE'])
-                  * events)
+                    self._sqd_params['nchan']))[:, self._sqd_params['stim']].T
+        events *= KIT.VOLTAGE_RANGE / self._sqd_params['DYNAMIC_RANGE']
 
         # Create a synthetic channel
         events = events > self._sqd_params['stimthresh']
