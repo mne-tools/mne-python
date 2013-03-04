@@ -18,7 +18,7 @@ from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
 from ...utils import verbose
 from ..raw import Raw
-from ..constants import FIFF, Bunch
+from ..constants import FIFF
 from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
 
@@ -70,7 +70,7 @@ class RawKIT(Raw):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
-        self._sqd_params['fid'] = input_fname
+        self._sqd_params['fname'] = input_fname
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -227,8 +227,9 @@ class RawKIT(Raw):
                            float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
 
-    def _read_events(self, buffer_size=1e5):
+    def read_stim_ch(self, buffer_size=1e5):
         """Read events from data
+
         Parameter
         ---------
         buffer_size : int
@@ -247,7 +248,7 @@ class RawKIT(Raw):
         if start >= stop:
             raise ValueError('No data in this range')
 
-        with open(self._sqd_params['fid'], 'r') as fid:
+        with open(self._sqd_params['fname'], 'r') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -263,7 +264,8 @@ class RawKIT(Raw):
                               count=count).reshape((buffer_size,
                     self._sqd_params['nchan']))[:, self._sqd_params['stim']].T)
         events = np.hstack(events)
-        events = (KIT.VOLTAGE_RANGE / KIT.DYNAMIC_RANGE) * events
+        events = ((KIT.VOLTAGE_RANGE / self._sqd_params['DYNAMIC_RANGE'])
+                  * events)
 
         # Create a synthetic channel
         events = events > self._sqd_params['stimthresh']
@@ -317,7 +319,7 @@ class RawKIT(Raw):
         #  Initialize the data
         nchan = self.info['nchan']
 
-        with open(self._sqd_params['fid'], 'r') as fid:
+        with open(self._sqd_params['fname'], 'r') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -337,7 +339,8 @@ class RawKIT(Raw):
         sensor_gain = np.copy(self._sqd_params['sensor_gain'])
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._sqd_params['amp_gain'])
-        conv_factor = np.array((KIT.VOLTAGE_RANGE / KIT.DYNAMIC_RANGE)
+        conv_factor = np.array((KIT.VOLTAGE_RANGE /
+                                self._sqd_params['DYNAMIC_RANGE'])
                                * sensor_gain, ndmin=2)
         data *= conv_factor
         data = data.T
@@ -372,7 +375,7 @@ class RawKIT(Raw):
         sqd : dict
             A dict containing all the sqd parameter settings.
         """
-        with open(self._sqd_params['fid'], 'r') as fid:
+        with open(self._sqd_params['fname'], 'r') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -392,7 +395,7 @@ class RawKIT(Raw):
             sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                     self._sqd_params['amp_gain'])
             conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                    KIT.DYNAMIC_RANGE) *
+                                    self._sqd_params['DYNAMIC_RANGE']) *
                                    sensor_gain, ndmin=2)
             data *= conv_factor
         return data.T
@@ -483,6 +486,7 @@ def get_sqd_params(rawfile):
         sqd['n_sens'] = KIT_SYS.n_sens
         sqd['nmegchan'] = KIT_SYS.nmegchan
         sqd['nmiscchan'] = KIT_SYS.nmiscchan
+        sqd['DYNAMIC_RANGE'] = KIT_SYS.DYNAMIC_RANGE
     return sqd
 
 
