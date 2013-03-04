@@ -42,7 +42,7 @@ class RawKIT(Raw):
         Absolute path to sensor information file.
     stim : list of int | '<' | '>'
         Can be submitted as list of trigger channels.
-        If a list is not specifies, the default triggers extracted from
+        If a list is not specified, the default triggers extracted from
         misc channels, will be used with specified directionality.
         '<' means that largest values assigned to the first channel
         in sequence.
@@ -65,7 +65,7 @@ class RawKIT(Raw):
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname,
                  sns_fname, stim='<', data=None, stimthresh=3.5,
-                 verbose=None, preload=True):
+                 verbose=None, preload=False):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -201,7 +201,7 @@ class RawKIT(Raw):
             elif stim == '>':
                 stim = picks
             else:
-                raise NotImplementedError
+                raise ValueError("stim needs to be list of int, '>' or '<', not %r" % stim)
         self._sqd_params['stim'] = stim
 
         if self._preloaded:
@@ -511,7 +511,7 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
         Absolute path to sensor information file.
     stim : list of int | '<' | '>'
         Can be submitted as list of trigger channels.
-        If a list is not specifies, the default triggers extracted from
+        If a list is not specified, the default triggers extracted from
         misc channels, will be used with specified directionality.
         '<' means that largest values assigned to the first channel
         in sequence.
