@@ -63,16 +63,14 @@ src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
                                          return_generator=True)
 
-fmin = np.arange(5., 40., 1., dtype=np.float)
-fmax = fmin + 2
+fmin, fmax = 5., 40.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
         method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+        fmax=fmax, mt_adaptive=True, n_jobs=2)
 
 import pylab as pl
-freqs = [f[0] for f in freqs]
 n_rows, n_cols = con.shape[:2]
 fig, axes = pl.subplots(n_rows, n_cols, sharex=True, sharey=True)
 pl.suptitle('Between labels connectivity')
@@ -90,8 +88,8 @@ for i in range(n_rows):
             axes[0, i].set_title(names[i])
         if i == (n_rows - 1):
             axes[i, j].set_xlabel(names[j])
-        axes[i, j].set_xlim([fmin[0], fmin[-1]])
-        axes[j, i].set_xlim([fmin[0], fmin[-1]])
+        axes[i, j].set_xlim([fmin, fmax])
+        axes[j, i].set_xlim([fmin, fmax])
 
         # Show band limits
         for f in [8, 12, 18, 35]:
