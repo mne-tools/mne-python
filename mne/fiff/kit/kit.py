@@ -354,6 +354,7 @@ class RawKIT(Raw):
         data[-1, :] = stim_ch
         if sel is not None:
             data = data[sel]
+            data = np.hstack((data, stim_ch))
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
@@ -390,7 +391,7 @@ class RawKIT(Raw):
             data[:, :nchan] = np.fromfile(fid, dtype='h', count=count
                                           ).reshape((nsamples, nchan))
             # amplifier applies only to the sensor channels
-            n_sens = self.info['nchan'] - 1
+            n_sens = self._sqd_params['n_sens']
             sensor_gain = np.copy(self._sqd_params['sensor_gain'])
             sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                     self._sqd_params['amp_gain'])
