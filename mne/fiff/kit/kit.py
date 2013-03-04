@@ -68,7 +68,7 @@ class RawKIT(Raw):
                  verbose=None, preload=True):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
-        self._sqd_params = self._get_sqd_params(input_fname)
+        self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fid'] = input_fname
         logger.info('Creating Raw.info structure...')
@@ -113,9 +113,9 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         ch_names = {}
         ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, KIT.n_sens + 1)]
+                                in range(1, self._sqd_params['n_sens'] + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
-                                 in range(1, KIT.nmiscchan
+                                 in range(1, self._sqd_params['nmiscchan']
                                           + 1)]
         ch_names['STIM'] = ['STI 014']
         locs = coreg.read_sns(sns_fname=sns_fname)
@@ -134,7 +134,7 @@ class RawKIT(Raw):
             chan_info['ch_name'] = ch_name
             chan_info['unit'] = FIFF.FIFF_UNIT_T
             chan_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-            if idx <= KIT.nmegchan:
+            if idx <= self._sqd_params['nmegchan']:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
             else:
@@ -172,7 +172,7 @@ class RawKIT(Raw):
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
-                                      KIT.n_sens):
+                                      self._sqd_params['n_sens']):
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
@@ -226,90 +226,6 @@ class RawKIT(Raw):
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
-
-    def _get_sqd_params(self, rawfile):
-        """Extracts all the information from the sqd file.
-
-        Parameters
-        ----------
-        rawfile : str
-            Raw sqd file to be read.
-
-        Returns
-        -------
-        sqd : dict
-            A dict containing all the sqd parameter settings.
-        """
-        sqd = dict()
-        sqd['rawfile'] = rawfile
-        with open(rawfile, 'r') as fid:
-            fid.seek(KIT.BASIC_INFO)
-            basic_offset = unpack('i', fid.read(KIT.INT))[0]
-            fid.seek(basic_offset)
-            # skips version, revision, sysid
-            fid.seek(KIT.INT * 3, SEEK_CUR)
-            # basic info
-            sysname = unpack('128s', fid.read(KIT.STRING))
-            sysname = sysname[0].split('\n')[0]
-            fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
-            sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
-
-            if sysname == 'New York University Abu Dhabi':
-                KIT.update(KIT_AD)
-            elif sysname == 'NYU 160ch System since Jan24 2009':
-                KIT.update(KIT_NY)
-            else:
-                raise NotImplementedError
-
-            # amplifier gain
-            fid.seek(KIT.AMPLIFIER_INFO)
-            amp_offset = unpack('i', fid.read(KIT.INT))[0]
-            fid.seek(amp_offset)
-            amp_data = unpack('i', fid.read(KIT.INT))[0]
-
-            gain1 = KIT.GAINS[(KIT.GAIN1_MASK & amp_data)
-                                  >> KIT.GAIN1_BIT]
-            gain2 = KIT.GAINS[(KIT.GAIN2_MASK & amp_data)
-                                  >> KIT.GAIN2_BIT]
-            if KIT.GAIN3_BIT:
-                gain3 = KIT.GAINS[(KIT.GAIN3_MASK & amp_data)
-                                         >> KIT.GAIN3_BIT]
-                sqd['amp_gain'] = gain1 * gain2 * gain3
-            else:
-                sqd['amp_gain'] = gain1 * gain2
-
-            # filter settings
-            sqd['lowpass'] = KIT.LPFS[(KIT.LPF_MASK & amp_data)
-                                       >> KIT.LPF_BIT]
-            sqd['highpass'] = KIT.HPFS[(KIT.HPF_MASK & amp_data)
-                                        >> KIT.HPF_BIT]
-            sqd['notch'] = KIT.BEFS[(KIT.BEF_MASK & amp_data)
-                                     >> KIT.BEF_BIT]
-
-            # only sensor channels requires gain. the additional misc channels
-            # (trigger channels, audio and voice channels) are passed
-            # through unaffected
-
-            fid.seek(KIT.CHAN_SENS)
-            sens_offset = unpack('i', fid.read(KIT.INT))[0]
-            fid.seek(sens_offset)
-            sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
-            sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
-                             [:KIT.n_sens, 1])
-            sqd['sensor_gain'] = np.ones(KIT.nchan + 1)  # extra ch for STI 014
-            sqd['sensor_gain'][:KIT.n_sens] = sensitivities
-
-            fid.seek(KIT.SAMPLE_INFO)
-            acqcond_offset = unpack('i', fid.read(KIT.INT))[0]
-            fid.seek(acqcond_offset)
-            acq_type = unpack('i', fid.read(KIT.INT))[0]
-            if acq_type == 1:
-                sqd['sfreq'] = unpack('d', fid.read(KIT.DOUBLE))[0]
-                _ = fid.read(KIT.INT)  # initialized estimate of samples
-                sqd['nsamples'] = unpack('i', fid.read(KIT.INT))[0]
-            else:
-                raise NotImplementedError
-        return sqd
 
     def _read_events(self, buffer_size=1e5):
         """Read events from data
@@ -417,7 +333,7 @@ class RawKIT(Raw):
             data[:, :self._sqd_params['nchan']] = fract
 
         # amplifier applies only to the sensor channels
-        n_sens = KIT.n_sens
+        n_sens = self.info['nchan'] - 1
         sensor_gain = np.copy(self._sqd_params['sensor_gain'])
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._sqd_params['amp_gain'])
@@ -471,14 +387,103 @@ class RawKIT(Raw):
             data[:, :nchan] = np.fromfile(fid, dtype='h', count=count
                                           ).reshape((nsamples, nchan))
             # amplifier applies only to the sensor channels
-            n_sens = KIT.n_sens
+            n_sens = self.info['nchan'] - 1
             sensor_gain = np.copy(self._sqd_params['sensor_gain'])
             sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                     self._sqd_params['amp_gain'])
-            conv_factor = np.array((KIT.VOLTAGE_RANGE / KIT.DYNAMIC_RANGE) *
+            conv_factor = np.array((KIT.VOLTAGE_RANGE /
+                                    KIT.DYNAMIC_RANGE) *
                                    sensor_gain, ndmin=2)
             data *= conv_factor
         return data.T
+
+
+def get_sqd_params(rawfile):
+    """Extracts all the information from the sqd file.
+
+    Parameters
+    ----------
+    rawfile : str
+        Raw sqd file to be read.
+
+    Returns
+    -------
+    sqd : dict
+        A dict containing all the sqd parameter settings.
+    """
+    sqd = dict()
+    sqd['rawfile'] = rawfile
+    with open(rawfile, 'r') as fid:
+        fid.seek(KIT.BASIC_INFO)
+        basic_offset = unpack('i', fid.read(KIT.INT))[0]
+        fid.seek(basic_offset)
+        # skips version, revision, sysid
+        fid.seek(KIT.INT * 3, SEEK_CUR)
+        # basic info
+        sysname = unpack('128s', fid.read(KIT.STRING))
+        sysname = sysname[0].split('\n')[0]
+        fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
+        sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
+
+        if sysname == 'New York University Abu Dhabi':
+            KIT_SYS = KIT_AD
+        elif sysname == 'NYU 160ch System since Jan24 2009':
+            KIT_SYS = KIT_NY
+        else:
+            raise NotImplementedError
+
+        # amplifier gain
+        fid.seek(KIT_SYS.AMPLIFIER_INFO)
+        amp_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
+        fid.seek(amp_offset)
+        amp_data = unpack('i', fid.read(KIT_SYS.INT))[0]
+
+        gain1 = KIT_SYS.GAINS[(KIT_SYS.GAIN1_MASK & amp_data)
+                              >> KIT_SYS.GAIN1_BIT]
+        gain2 = KIT_SYS.GAINS[(KIT_SYS.GAIN2_MASK & amp_data)
+                              >> KIT_SYS.GAIN2_BIT]
+        if KIT_SYS.GAIN3_BIT:
+            gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data)
+                                     >> KIT_SYS.GAIN3_BIT]
+            sqd['amp_gain'] = gain1 * gain2 * gain3
+        else:
+            sqd['amp_gain'] = gain1 * gain2
+
+        # filter settings
+        sqd['lowpass'] = KIT_SYS.LPFS[(KIT_SYS.LPF_MASK & amp_data)
+                                   >> KIT_SYS.LPF_BIT]
+        sqd['highpass'] = KIT_SYS.HPFS[(KIT_SYS.HPF_MASK & amp_data)
+                                    >> KIT_SYS.HPF_BIT]
+        sqd['notch'] = KIT_SYS.BEFS[(KIT_SYS.BEF_MASK & amp_data)
+                                 >> KIT_SYS.BEF_BIT]
+
+        # only sensor channels requires gain. the additional misc channels
+        # (trigger channels, audio and voice channels) are passed
+        # through unaffected
+
+        fid.seek(KIT_SYS.CHAN_SENS)
+        sens_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
+        fid.seek(sens_offset)
+        sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
+        sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
+                         [:KIT_SYS.n_sens, 1])
+        sqd['sensor_gain'] = np.ones(KIT_SYS.nchan + 1)  # extra ch for STI 014
+        sqd['sensor_gain'][:KIT_SYS.n_sens] = sensitivities
+
+        fid.seek(KIT_SYS.SAMPLE_INFO)
+        acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
+        fid.seek(acqcond_offset)
+        acq_type = unpack('i', fid.read(KIT_SYS.INT))[0]
+        if acq_type == 1:
+            sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
+            _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
+            sqd['nsamples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+        else:
+            raise NotImplementedError
+        sqd['n_sens'] = KIT_SYS.n_sens
+        sqd['nmegchan'] = KIT_SYS.nmegchan
+        sqd['nmiscchan'] = KIT_SYS.nmiscchan
+    return sqd
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
