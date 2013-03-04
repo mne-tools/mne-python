@@ -150,7 +150,7 @@ class RawKIT(Raw):
             vec_z = np.array([x, y, z])
             length = norm(vec_z)
             vec_z /= length
-            vec_x = np.zeros(vec_z.size, dtype=float)
+            vec_x = np.zeros(vec_z.size, dtype=np.float)
             if vec_z[1] < vec_z[2]:
                 if vec_z[0] < vec_z[1]:
                     vec_x[0] = 1.0
@@ -253,7 +253,7 @@ class RawKIT(Raw):
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             events = np.empty((len(self._sqd_params['stim']), stop + 1),
-                              dtype=float)
+                              dtype=np.float)
             for startblock in range(start, stop, buffer_size):
                 if buffer_size > stop - startblock:
                     buffer_size = stop - startblock + 1
@@ -277,8 +277,7 @@ class RawKIT(Raw):
 
         return stim_ch
 
-    def _read_segment(self, start=0, stop=None, sel=None,
-                      verbose=None, **kwargs):
+    def _read_segment(self, start=0, stop=None, verbose=None, **kwargs):
         """Read a chunk of raw data
 
         Parameters
@@ -330,13 +329,13 @@ class RawKIT(Raw):
             pointer = (start * self._sqd_params['nchan'] *
                        KIT.SHORT)
             fid.seek(data_offset + pointer)
-            data = np.empty((buffer_size, nchan))
-            fract = np.fromfile(fid, dtype='h', count=count)
-            fract = fract.reshape((buffer_size, self._sqd_params['nchan']))
-            data[:, :self._sqd_params['nchan']] = fract
-
+            data = np.empty((buffer_size, nchan), dtype=np.float)
+            kitchan = self._sqd_params['nchan']
+            data[:, :kitchan] = np.fromfile(fid, dtype='h',
+                                    count=count).reshape((buffer_size,
+                                    self._sqd_params['nchan']))
         # amplifier applies only to the sensor channels
-        n_sens = self.info['nchan'] - 1
+        n_sens = self._sqd_params['n_sens']
         sensor_gain = np.copy(self._sqd_params['sensor_gain'])
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._sqd_params['amp_gain'])
@@ -353,9 +352,6 @@ class RawKIT(Raw):
         trig_chs = trig_chs * trig_vals
         stim_ch = trig_chs.sum(axis=0)
         data[-1, :] = stim_ch
-        if sel is not None:
-            data = data[sel]
-            data = np.hstack((data, stim_ch))
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
@@ -385,7 +381,7 @@ class RawKIT(Raw):
 
             fid.seek(data_offset)
             data = np.empty((self._sqd_params['nsamples'],
-                             self._sqd_params['nchan'] + 1))
+                             self._sqd_params['nchan'] + 1), dtype=np.float)
             count = self._sqd_params['nsamples'] * self._sqd_params['nchan']
             nchan = self._sqd_params['nchan']
             nsamples = self._sqd_params['nsamples']

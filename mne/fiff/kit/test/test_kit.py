@@ -67,7 +67,13 @@ def test_read_segment():
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
-
+    raw3 = kit.read_raw_kit(input_fname=op.join(data_dir, 'test.sqd'),
+                           mrk_fname=op.join(data_dir, 'test_mrk.sqd'),
+                           elp_fname=op.join(data_dir, 'test_elp.txt'),
+                           hsp_fname=op.join(data_dir, 'test_hsp.txt'),
+                           sns_fname=op.join(data_dir, 'sns.txt'),
+                           stim=range(167, 159, -1), preload=True)
+    assert_array_almost_equal(raw1._data, raw3._data)
 
 def test_ch_loc():
     """Test raw kit loc
