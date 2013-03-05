@@ -64,7 +64,7 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, stim='<', data=None, stimthresh=3.5,
+                 sns_fname, stim='<', data=None, stimthresh=1,
                  verbose=None, preload=False):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
@@ -243,43 +243,19 @@ class RawKIT(Raw):
         """
         buffer_size = int(buffer_size)
         start = int(self.first_samp)
-        stop = int(self.last_samp)
+        stop = int(self.last_samp + 1)
 
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        with open(self._sqd_params['fname'], 'r') as fid:
-            # extract data
-            fid.seek(KIT.DATA_OFFSET)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
-            events = np.empty((len(self._sqd_params['stim']), stop + 1),
-                              dtype=np.float)
-            for startblock in range(start, stop, buffer_size):
-                if buffer_size > stop - startblock:
-                    buffer_size = stop - startblock + 1
-                count = buffer_size * self._sqd_params['nchan']
-                pointer = (startblock * self._sqd_params['nchan'] *
-                           KIT.SHORT)
-                fid.seek(data_offset + pointer)
-                idx = startblock
-                idy = startblock + buffer_size
-                events[:, idx:idy] = np.fromfile(fid, dtype='h',
-                              count=count).reshape((buffer_size,
-                    self._sqd_params['nchan']))[:, self._sqd_params['stim']].T
-        events *= KIT.VOLTAGE_RANGE / self._sqd_params['DYNAMIC_RANGE']
-
-        # Create a synthetic channel
-        events = events > self._sqd_params['stimthresh']
-        trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
-                             ndmin=2).T
-        events = events * trig_vals
-        stim_ch = events.sum(axis=0)
+        pick = pick_types(self.info, meg=False, stim=True)
+        stim_ch = np.empty((1, stop), dtype=np.int)
+        for b_start in range(start, stop, buffer_size):
+            b_stop = b_start + buffer_size
+            x, _ = self._read_segment(start=b_start, stop=b_stop, sel=pick)
+            stim_ch[:, b_start:b_start + x.shape[1]] = x
 
         return stim_ch
 
-    def _read_segment(self, start=0, stop=None, verbose=None,
-                      sel=None, proj=None):
+    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
+                      proj=None):
         """Read a chunk of raw data
 
         Parameters
@@ -290,6 +266,8 @@ class RawKIT(Raw):
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -300,8 +278,10 @@ class RawKIT(Raw):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
-        if sel is not None:
-            raise NotImplementedError('Can only read all channels at once.')
+        if sel is None:
+            sel = range(self.info['nchan'])
+        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
+            return (666, 666)
         if proj is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
@@ -320,24 +300,19 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
 
-        #  Initialize the data
-        nchan = self.info['nchan']
 
         with open(self._sqd_params['fname'], 'r') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
+            nchan = self._sqd_params['nchan']
             buffer_size = stop - start
-            count = buffer_size * self._sqd_params['nchan']
-            pointer = (start * self._sqd_params['nchan'] *
-                       KIT.SHORT)
+            count = buffer_size * nchan
+            pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
-            data = np.empty((buffer_size, nchan), dtype=np.float)
-            kitchan = self._sqd_params['nchan']
-            data[:, :kitchan] = np.fromfile(fid, dtype='h',
-                                    count=count).reshape((buffer_size,
-                                    self._sqd_params['nchan']))
+            data = np.fromfile(fid, dtype='h', count=count)
+            data = data.reshape((buffer_size, nchan))
         # amplifier applies only to the sensor channels
         n_sens = self._sqd_params['n_sens']
         sensor_gain = np.copy(self._sqd_params['sensor_gain'])
@@ -346,7 +321,7 @@ class RawKIT(Raw):
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
                                 self._sqd_params['DYNAMIC_RANGE'])
                                * sensor_gain, ndmin=2)
-        data *= conv_factor
+        data = conv_factor * data
         data = data.T
         # Create a synthetic channel
         trig_chs = data[self._sqd_params['stim'], :]
@@ -354,8 +329,9 @@ class RawKIT(Raw):
         trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
                              ndmin=2).T
         trig_chs = trig_chs * trig_vals
-        stim_ch = trig_chs.sum(axis=0)
-        data[-1, :] = stim_ch
+        stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+        data = np.vstack((data, stim_ch))
+        data = data[sel]
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
@@ -432,7 +408,7 @@ def get_sqd_params(rawfile):
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
         sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
                          [:KIT_SYS.n_sens, 1])
-        sqd['sensor_gain'] = np.ones(KIT_SYS.nchan + 1)  # extra ch for STI 014
+        sqd['sensor_gain'] = np.ones(KIT_SYS.nchan)
         sqd['sensor_gain'][:KIT_SYS.n_sens] = sensitivities
 
         fid.seek(KIT_SYS.SAMPLE_INFO)
@@ -453,7 +429,7 @@ def get_sqd_params(rawfile):
 
 
 def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, stim='<', data=None, stimthresh=3.5,
+                 sns_fname, stim='<', data=None, stimthresh=1,
                  verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 

@@ -26,12 +26,13 @@ def test_data():
                            elp_fname=op.join(data_dir, 'test_elp.txt'),
                            hsp_fname=op.join(data_dir, 'test_hsp.txt'),
                            sns_fname=op.join(data_dir, 'sns.txt'),
-                           stim=range(167, 159, -1), preload=True)
+                           stim=range(167, 159, -1), stimthresh=1,
+                           preload=True)
     # Binary file only stores the sensor channels
-    py_picks = pick_types(raw_py.info, exclude=[])
+    py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin.fif')
     raw_bin = Raw(raw_bin, preload=True)
-    bin_picks = pick_types(raw_bin.info, exclude=[])
+    bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
     data_py, _ = raw_py[py_picks]
 
@@ -42,7 +43,8 @@ def test_data():
 
     assert_array_almost_equal(data_py, data_Ykgw)
 
-    data_py = data_py[bin_picks]
+    py_picks = pick_types(raw_py.info, stim=True, exclude='bads')
+    data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
 
@@ -101,7 +103,7 @@ def test_stim_ch():
                            hsp_fname=op.join(data_dir, 'test_hsp.txt'),
                            sns_fname=op.join(data_dir, 'sns.txt'),
                            stim=range(167, 159, -1), preload=True)
-    stim_pick = pick_types(raw.info, meg=False, stim=True, exclude=[])
+    stim_pick = pick_types(raw.info, meg=False, stim=True, exclude='bads')
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
