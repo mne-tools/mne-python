@@ -10,7 +10,7 @@ import os
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
-from pyface.api import confirm, error, FileDialog, OK, YES
+from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
 from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
                        Array, Bool, Button, Color, Enum, File, Float, Int, List, \
                        Range, Str, Tuple
@@ -29,15 +29,21 @@ from ..fiff.kit.kit import RawKIT
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+hsp_wildcard = ['Pickled Head Shape (*.pickled)|*.pickled',
+                'Plain Text File (*.txt)|*.txt']
 
 
 class Kit2FiffPanel(HasPrivateTraits):
     """Control panel for kit2fiff conversion"""
     # Source Files
-    sqd_file = File(filter=['*.sqd'])
-    hsp_file = File(exists=True, filter=['*.pickled', '*.txt'],
-                    desc="Digitizer head shape")
+    sqd_file = File(exists=True, filter=['*.sqd'])
+    sns_file = File(exists=True, filter=['*.txt'])
+    hsp_file = File(exists=True, filter=hsp_wildcard, desc="Digitizer head "
+                    "shape")
     fid_file = File(exists=True, filter=['*.txt'], desc="Digitizer fiducials")
+
+    # Raw
+    raw = Property(depends_on=['sqd_file', 'sns_file'])
 
     # Marker Points
     mrk_ALS = Array(float, shape=(5, 3))
@@ -50,7 +56,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_raw = Property(depends_on=['hsp_file'])
     neuromag_trans = Property(depends_on=['elp_raw'])
 
-    # Polhemus data
+    # Polhemus data (in neuromag space)
     elp_src = Property(depends_on=['neuromag_trans'])
     fid_src = Property(depends_on=['neuromag_trans'])
     hsp_src = Property(depends_on=['hsp_raw', 'neuromag_trans'])
@@ -69,18 +75,20 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_obj = Instance(PointObject)
 
     # Output
-    can_save = Property(Bool, depends_on=['sqd_file', 'elp_dst', 'hsp_dst',
-                                          'dev_head_trans'])
-    save_as = Button(enabled_when='can_save', label='Save FIFF...')
+    can_save = Property(Bool, depends_on=['raw', 'fid_src', 'elp_src',
+                                          'hsp_src', 'dev_head_trans'])
+    save_as = Button(label='Save FIFF...')
 
-    view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
+    view = View(VGroup(VGroup(Item('sns_file', label='SNS File'),
+                              Item('sqd_file', label="Data"),
                               Item('fid_file', label='Dig Points'),
                               Item('hsp_file', label='Head Shape'),
                               Item('use_mrk', editor=use_editor, style='custom'),
                               label="Sources", show_border=True),
-                       VGroup(Item('endian', style='custom'),
-                              Item('event_info', style='readonly', show_label=False),
-                              label='Events', show_border=True)))
+#                       VGroup(Item('endian', style='custom'),
+#                              Item('event_info', style='readonly', show_label=False),
+#                              label='Events', show_border=True),
+                       Item('save_as', enabled_when='can_save', show_label=False)))
 
     @cached_property
     def _get_mrk(self):
@@ -94,8 +102,15 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     @cached_property
     def _get_hsp_raw(self):
-        if os.path.exists(self.hsp_file):
-            return read_hsp(self.hsp_file)
+        fname = self.hsp_file
+        if os.path.exists(fname):
+            _, ext = os.path.splitext(fname)
+            if ext == '.pickled':
+                with open(fname) as fid:
+                    food = pickle.load(fid)
+                return food['hsp']
+            else:
+                return read_hsp(fname)
 
     @cached_property
     def _get_neuromag_trans(self):
@@ -151,7 +166,7 @@ class Kit2FiffPanel(HasPrivateTraits):
             src_pts = src_pts[self.use_mrk]
             dst_pts = dst_pts[self.use_mrk]
 
-        trans = fit_matched_pts(src_pts, dst_pts, params=False)
+        trans = fit_matched_pts(src_pts, dst_pts, out='trans')
         return trans
 
     @cached_property
@@ -172,39 +187,67 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        can_save = (self.sqd_file and np.any(self.dev_head_trans)
+        can_save = (self.raw and np.any(self.dev_head_trans)
                     and np.any(self.hsp_src) and np.any(self.elp_src)
                     and np.any(self.fid_src))
         return can_save
 
+    @cached_property
+    def _get_raw(self):
+        if not self.sqd_file:
+            return
+        elif not self.sns_file:
+            return
+
+        try:
+            raw = RawKIT(self.sqd_file, sns_fname=self.sns_file, preload=False)
+        except Exception as err:
+            error(None, str(err), "Error Creating KIT Raw")
+            raise
+        else:
+            return raw
+
     def _save_as_fired(self):
         # find default path
-        path = self.sqd_file[:-3]
-        if not path.endswith('raw'):
-            path += '-raw'
-        path += '.fif'
+        stem, _ = os.path.splitext(self.sqd_file)
+        if not stem.endswith('raw'):
+            stem += '-raw'
+        default_path = stem + '.fif'
 
         # save as dialog
         dlg = FileDialog(action="save as", wildcard="fiff raw file (*.fif)|*.fif",
-                         default_path=path)
+                         default_path=default_path)
         dlg.open()
         if dlg.return_code != OK:
             return
-        if not path.endswith('.fif'):
-            path += '.fif'
-            if os.path.exists(path):
+
+        fname = dlg.path
+        if not fname.endswith('.fif'):
+            fname += '.fif'
+            if os.path.exists(fname):
                 answer = confirm(None, "The file %r already exists. Should it be "
                                  "replaced?", "Overwrite File?")
                 if answer != YES:
                     return
 
+        raw = self.raw
+        raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
+                                self.dev_head_trans)
+
+        prog = ProgressDialog(title="KIT to FIFF", message="Converting SQD to "
+                              "FIFF...")
+        prog.open()
+        prog.update(0)
+
         try:
-            raw = RawKIT()
-            raw.save(path)
+            raw.save(fname, overwrite=True)
         except Exception as err:
+            prog.close()
             msg = str(err)
-            error(None, msg, "Kit2Fiff Error")
+            error(None, msg, "Error Saving Fiff")
             raise
+        else:
+            prog.close()
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
