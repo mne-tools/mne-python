@@ -11,12 +11,17 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from mayavi.modules.text3d import Text3D
 import numpy as np
+from pyface.api import error
 from scipy.spatial import Delaunay
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, Instance, Property, \
                        Array, Bool, Button, Color, Enum, Float, List, Range, Str, Tuple
-from traitsui.api import View, Item, Group, HGroup
+from traitsui.api import View, Item, Group, HGroup, VGroup
 
 from .transforms import apply_trans
+
+
+headview_borders = VGroup(Item('headview', style='custom', show_label=False),
+                          show_border=True, label='View')
 
 
 class HeadViewController(HasTraits):
@@ -44,8 +49,7 @@ class HeadViewController(HasTraits):
 
     view = View(Group(HGroup('72', Item('top', show_label=False), '100',
                              Item('scale', label='Scale')),
-                      HGroup('right', 'front', 'left', show_labels=False),
-                      label='View', show_border=True))
+                      HGroup('right', 'front', 'left', show_labels=False)))
 
     @on_trait_change('scene.activated')
     def _init_view(self):
@@ -109,7 +113,7 @@ class HeadViewController(HasTraits):
 class Object(HasPrivateTraits):
     """Represents a 3d object in a mayavi scene"""
     points = Array(float, shape=(None, 3))
-    trans = Array(float, shape=(None, None))
+    trans = Array()
     name = Str
 
     scene = Instance(MlabSceneModel, ())
@@ -124,6 +128,33 @@ class Object(HasPrivateTraits):
     @cached_property
     def _get_rgbcolor(self):
         return tuple(v / 255. for v in self.color.Get())
+
+    @on_trait_change('trans')
+    def _update_points(self):
+        """Update the location of the plotted points"""
+        if not hasattr(self.src, 'data'):
+            return
+
+        trans = self.trans
+        if np.any(trans):
+            if trans.ndim == 0 or trans.shape == (3,) or trans.shape == (1, 3):
+                pts = self.points * trans
+            elif trans.shape == (3, 3):
+                pts = np.dot(self.points, trans.T)
+            elif trans.shape == (4, 4):
+                pts = apply_trans(trans, self.points)
+            else:
+                err = ("trans must be a scalar, a length 3 sequence, or an "
+                       "array of shape (1,3), (3, 3) or (4, 4). "
+                       "Got %s" % str(trans))
+                error(None, err, "Display Error")
+                raise ValueError(err)
+        else:
+            pts = self.points
+
+        self.src.data.points = pts
+        self.scene.reset_zoom()
+
 
 
 
@@ -182,32 +213,22 @@ class PointObject(Object):
         self.sync_trait('rgbcolor', self.glyph.actor.property, 'color', mutual=False)
         self.sync_trait('visible', self.glyph, 'visible')
         self.sync_trait('opacity', self.glyph.actor.property, 'opacity')
+        self.on_trait_change(self._update_points, 'points')
 
         self.scene.camera.parallel_scale = _scale
-
-    @on_trait_change('points,trans')
-    def _update_points(self):
-        """Update the location of the plotted points"""
-        if not hasattr(self.src, 'data'):
-            return
-
-        trans = self.trans
-        if np.any(trans):
-            if trans.shape == (3, 3):
-                pts = np.dot(self.points, trans.T)
-            elif trans.shape == (4, 4):
-                pts = apply_trans(trans, self.points)
-            else:
-                raise ValueError("trans must be 3 by 3 or 4 by 4 array")
-        else:
-            pts = self.points
-
-        self.src.data.points = pts
 
 
 
 class SurfaceObject(Object):
-    """Represents a solid object in a mayavi scene"""
+    """Represents a solid object in a mayavi scene
+
+    Notes
+    -----
+    Doesn't automatically update plot because update requires both
+    :attr:`points` and :attr:`tri`. Call :meth:`plot` after updateing both
+    attributes.
+
+    """
     rep = Enum("Surface", "Wireframe")
     tri = Array(int, shape=(None, 3))
 
@@ -215,15 +236,17 @@ class SurfaceObject(Object):
 
     view = View(HGroup('color', 'visible', 'opacity'))
 
-    @on_trait_change('scene.activated')
-    def _plot_surf(self):
-        """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale
-
+    def clear(self):
         if hasattr(self.src, 'remove'):
             self.src.remove()
         if hasattr(self.surf, 'remove'):
             self.surf.remove()
+
+    @on_trait_change('scene.activated')
+    def plot(self):
+        """Add the points to the mayavi pipeline"""
+        _scale = self.scene.camera.parallel_scale
+        self.clear()
 
         if not np.any(self.tri):
             return
@@ -249,22 +272,3 @@ class SurfaceObject(Object):
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
         self.scene.camera.parallel_scale = _scale
-
-    @on_trait_change('trans')
-    def _update_points(self):
-        """Update the location of the plotted points"""
-        if not hasattr(self.src, 'data'):
-            return
-
-        trans = self.trans
-        if np.any(trans):
-            if trans.shape == (3, 3):
-                pts = np.dot(self.points, trans.T)
-            elif trans.shape == (4, 4):
-                pts = apply_trans(trans, self.points)
-            else:
-                raise ValueError("trans must be 3 by 3 or 4 by 4 array")
-        else:
-            pts = self.points
-
-        self.src.data.points = pts
