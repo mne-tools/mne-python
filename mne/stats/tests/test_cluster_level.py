@@ -6,18 +6,19 @@ from scipy import sparse, linalg, stats
 
 from mne.stats.cluster_level import permutation_cluster_test, \
                                     permutation_cluster_1samp_test, \
+                                    spatio_temporal_cluster_test, \
                                     spatio_temporal_cluster_1samp_test
 
-noiselevel = 20
+noise_level = 20
 
 normfactor = np.hanning(20).sum()
 
 rng = np.random.RandomState(42)
-condition1_1d = rng.randn(40, 350) * noiselevel
+condition1_1d = rng.randn(40, 350) * noise_level
 for c in condition1_1d:
     c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-condition2_1d = rng.randn(33, 350) * noiselevel
+condition2_1d = rng.randn(33, 350) * noise_level
 for c in condition2_1d:
     c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
@@ -48,7 +49,6 @@ def test_cluster_permutation_test():
             permutation_cluster_test([condition1, condition2],
                                     n_permutations=100, tail=0, seed=1,
                                     n_jobs=2)
-
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
@@ -81,8 +81,8 @@ def test_cluster_permutation_t_test():
         assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
-def test_cluster_permutation_t_test_with_connectivity():
-    """Test cluster level permutations T-test with connectivity matrix."""
+def test_cluster_permutation_with_connectivity():
+    """Test cluster level permutations with connectivity matrix."""
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -156,7 +156,7 @@ def test_cluster_permutation_t_test_with_connectivity():
                              connectivity=connectivity, max_step=1,
                              threshold=1.67)
 
-    # clutsers could be in a different order
+    # clusters could be in a different order
     sums_4 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_4[1]]
     sums_5 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_5[1]]
     sums_4 = np.sort(sums_4)
@@ -167,6 +167,19 @@ def test_cluster_permutation_t_test_with_connectivity():
                              condition1_3, n_permutations=1,
                              connectivity=connectivity, max_step=1,
                              threshold=1.67, n_jobs=-1000)
+
+    # test with 2 samples and f_oneway
+    condition2_2 = np.concatenate((condition2_1d,
+                                   condition2_1d), axis=1)
+    condition2_3 = np.reshape(condition2_2, (33, 2, 350))
+    out_connectivity_6 = spatio_temporal_cluster_test(
+                             [condition1_3, condition2_3], n_permutations=50,
+                             connectivity=connectivity, max_step=1,
+                             threshold=1.67)
+    sums_6 = [np.sum(out_connectivity_6[0][a]) for a in out_connectivity_6[1]]
+    sums_6 = np.sort(sums_6)
+    assert_equal(len(out_connectivity_6[1]), 8)
+    assert_equal(np.sum(out_connectivity_6[2] < 0.05), 1)  # 1 good cluster
 
 
 def ttest_1samp(X):

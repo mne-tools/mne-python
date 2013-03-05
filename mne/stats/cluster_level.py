@@ -468,11 +468,28 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
     return max_cluster_sums
 
 
+def _setup_sparse_connectivity(connectivity, n_vertices, n_times):
+    if connectivity.shape[0] == n_vertices:  # use global algorithm
+        connectivity = connectivity.tocoo()
+        n_times = None
+    else:  # use temporal adjacency algorithm
+        if not round(n_vertices / float(connectivity.shape[0])) == n_times:
+            raise ValueError('connectivity must be of the correct size')
+        # we claim to only use upper triangular part... not true here
+        connectivity = (connectivity + connectivity.transpose()).tocsr()
+        connectivity = [connectivity.indices[connectivity.indptr[i]:
+                        connectivity.indptr[i + 1]] for i in
+                        range(len(connectivity.indptr) - 1)]
+    return connectivity
+
+
 @verbose
 def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
                              n_permutations=1000, tail=0,
-                             connectivity=None, n_jobs=1,
-                             verbose=None, seed=None, out_type='mask'):
+                             connectivity=None, verbose=None, n_jobs=1,
+                             seed=None, max_step=1, exclude=None,
+                             step_down_p=0, t_power=1, out_type='mask',
+                             check_disjoint=False):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -507,12 +524,37 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
         Seed the random number generator for results reproducibility.
+    max_step : int
+        When connectivity is a n_vertices x n_vertices matrix, specify the
+        maximum number of steps between vertices along the second dimension
+        (typically time) to be considered connected. This is not used for full
+        or None connectivity matrices.
+    exclude : boolean array or None
+        Mask to apply to the data to exclude certain points from clustering
+        (e.g., medial wall vertices). Should be the same shape as X. If None,
+        no points are excluded.
+    step_down_p : float
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
+    t_power : float
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that t_power == 0 will give a
+        count of nodes in each cluster, t_power == 1 will weight each node by
+        its statistical score.
     out_type : str
         For arrays with connectivity, this sets the output format for clusters.
         If 'mask', it will pass back a list of boolean mask arrays.
         If 'indices', it will pass back a list of lists, where each list is the
         set of vertices in a given cluster. Note that the latter may use far
         less memory for large datasets.
+    check_disjoint : bool
+        If True, the connectivity matrix (or list) will be examined to
+        determine of it can be separated into disjoint sets. In some cases
+        (usually with connectivity as a list and many "time" points), this
+        can lead to faster clustering, but results should be identical.
 
     Returns
     -------
@@ -540,6 +582,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
 
     # flatten the last dimensions if data is high dimensional
     sample_shape = X[0].shape[1:]
+    n_times = X[0].shape[1]
+
     if X[0].ndim > 2:
         X = [np.reshape(x, (x.shape[0], -1)) for x in X]
 
@@ -547,7 +591,8 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     n_samples_per_condition = [x.shape[0] for x in X]
 
     if connectivity is not None:
-        connectivity = connectivity.tocoo()
+        connectivity = _setup_sparse_connectivity(connectivity, X_full.shape[1],
+                                                  n_times)
 
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
@@ -559,8 +604,23 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     if connectivity is None:
         T_obs.shape = sample_shape
 
+    if exclude is not None:
+        include = np.logical_not(exclude)
+    else:
+        include = None
+
+    # determine if connectivity itself can be separated into disjoint sets
+    if check_disjoint is True and connectivity is not None:
+        partitions = _get_partitions_from_connectivity(connectivity, n_times)
+    else:
+        partitions = None
+
     clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity)
+                                             connectivity, max_step=max_step,
+                                             include=include,
+                                             partitions=partitions,
+                                             t_power=t_power)
+
     logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
@@ -783,17 +843,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
         X = np.reshape(X, (X.shape[0], -1))
 
     if connectivity is not None:
-        if connectivity.shape[0] == X.shape[1]:  # use global algorithm
-            connectivity = connectivity.tocoo()
-            n_times = None
-        else:  # use temporal adjacency algorithm
-            if not round(X.shape[1] / float(connectivity.shape[0])) == n_times:
-                raise ValueError('connectivity must be of the correct size')
-            # we claim to only use upper triangular part... not true here
-            connectivity = (connectivity + connectivity.transpose()).tocsr()
-            connectivity = [connectivity.indices[connectivity.indptr[i]:
-                            connectivity.indptr[i + 1]] for i in
-                            range(len(connectivity.indptr) - 1)]
+        connectivity = _setup_sparse_connectivity(connectivity, X.shape[1],
+                                                  n_times)
 
     if (exclude is not None) and not exclude.size == X.shape[1]:
         raise ValueError('exclude must be the same shape as X[1]')
@@ -995,6 +1046,92 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
 
 spatio_temporal_cluster_1samp_test.__test__ = False
+
+
+@verbose
+def spatio_temporal_cluster_test(X, threshold=1.67,
+        n_permutations=1024, tail=0, stat_fun=f_oneway,
+        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
+        spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
+        check_disjoint=False):
+    """Non-parametric cluster-level test for spatio-temporal data
+
+    This function provides a convenient wrapper for data organized in the form
+    (observations x space x time) to use permutation_cluster_test.
+
+    Parameters
+    ----------
+    X: list of arrays
+        Array of shape (observations, time , vertices) in each group.
+    threshold: float
+        The threshold for the statistic.
+    n_permutations: int
+        See permutation_cluster_1samp_test.
+    tail : -1 or 0 or 1 (default = 0)
+        See permutation_cluster_1samp_test.
+    stat_fun : function
+        See permutation_cluster_test.
+    connectivity : sparse matrix or None
+        See permutation_cluster_test.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    n_jobs : int
+        See permutation_cluster_test.
+    seed : int or None
+        See permutation_cluster_test.
+    max_step : int
+        See permutation_cluster_test.
+    spatial_exclude : list of int or None
+        List of spatial indices to exclude from clustering.
+    step_down_p : float
+        See permutation_cluster_test.
+    t_power : float
+        See permutation_cluster_test.
+    out_type : str
+        See permutation_cluster_test.
+    check_disjoint : bool
+        See permutation_cluster_test.
+
+    Returns
+    -------
+    T_obs : array of shape [n_tests]
+        T-statistic observerd for all variables
+    clusters : list
+        List type defined by out_type above.
+    cluster_pv: array
+        P-value for each cluster
+    H0 : array of shape [n_permutations]
+        Max cluster level stats observed under permutation.
+
+    Notes
+    -----
+    Reference:
+    Cluster permutation algorithm as described in
+    Maris/Oostenveld (2007),
+    "Nonparametric statistical testing of EEG- and MEG-data"
+    Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
+    doi:10.1016/j.jneumeth.2007.03.024
+    """
+    n_samples, n_times, n_vertices = X[0].shape
+
+    # convert spatial_exclude before passing on if necessary
+    if spatial_exclude is not None:
+        exclude = _st_mask_from_s_inds(n_times, n_vertices,
+                                       spatial_exclude, True)
+    else:
+        exclude = None
+
+    # do the heavy lifting
+    out = permutation_cluster_test(X, threshold=threshold,
+              stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
+              connectivity=connectivity, n_jobs=n_jobs, seed=seed,
+              max_step=max_step, exclude=exclude, step_down_p=step_down_p,
+              t_power=t_power, out_type=out_type,
+              check_disjoint=check_disjoint)
+    return out
+
+
+spatio_temporal_cluster_test.__test__ = False
 
 
 def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
