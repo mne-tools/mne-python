@@ -13,7 +13,8 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
 from pyface.api import confirm, error, FileDialog, OK, YES
-from traits.api import HasTraits, on_trait_change, Instance, Property, \
+from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, \
+                       Instance, Property, \
                        Array, Bool, Button, Color, Enum, File, Float, List, \
                        Str, Tuple
 from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor
@@ -22,35 +23,32 @@ from tvtk.pyface.scene_editor import SceneEditor
 
 from .coreg import fit_matched_pts
 from .transforms import apply_trans, rotation, translation
-from .viewer import HeadViewController, PointObject
+from .viewer import HeadViewController, headview_borders, PointObject
 from ..fiff.kit.coreg import read_mrk
 
 
 
-out_wildcard = ("Pickled marker coordinates (*.pickled)|*.pickled|"
-                "Hpi (text) file (*.hpi)|*.hpi")
-out_ext = ['.pickled', '.hpi']
+out_wildcard = ("Pickled KIT parameters (*.pickled)|*.pickled|"
+                "Tab separated values file (*.txt)|*.txt")
+out_ext = ['.pickled', '.txt']
 
 use_editor = CheckListEditor(cols=1, values=[(i, str(i)) for i in xrange(5)])
 
 
 
-class MarkerPoints(HasTraits):
+class MarkerPoints(HasPrivateTraits):
     """Represent 5 marker points"""
     points = Array(float, (5, 3))
+
+    can_save = Property(depends_on='points')
     save_as = Button()
 
-    file = File
-    name = Property(Str, depends_on='file')
-    dir = Property(Str, depends_on='file')
+    view = View(VGroup('points',
+                       Item('save_as', enabled_when='can_save')))
 
-    view = View(VGroup('file', 'name', 'points', 'save_as'))
-
-    def _get_dir(self):
-        return os.path.dirname(self.file)
-
-    def _get_name(self):
-        return os.path.basename(self.file)
+    @cached_property
+    def _get_can_save(self):
+        return np.any(self.points)
 
     def _save_as_fired(self):
         dlg = FileDialog(action="save as", wildcard=out_wildcard,
@@ -73,11 +71,9 @@ class MarkerPoints(HasTraits):
         mrk = np.array(self.points)
         if ext == '.pickled':
             with open(path, 'w') as fid:
-                pickle.dump(mrk, fid)
-        elif ext == '.hpi':
+                pickle.dump({'mrk': mrk}, fid)
+        elif ext == '.txt':
             np.savetxt(path, mrk, fmt='%.18e', delimiter='\t', newline='\n')
-        else:
-            error(None, "Not Implemented: %r" % ext)
 
 
 
@@ -86,32 +82,51 @@ class MarkerPointSource(MarkerPoints):
     file = File(filter=['Sqd marker file (*.sqd)|*.sqd',
                         'Text marker file (*.txt)|*.txt',
                         'Pickled markers (*.pickled)|*.pickled'], exists=True)
+    name = Property(Str, depends_on='file')
+    dir = Property(Str, depends_on='file')
+
     use = List(range(5), desc="Which points to use for the interpolated "
                "marker.")
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
 
-    def _get_enabled(self):
-        return np.any(self.points)
-
-    view = View(VGroup(Item('name', style='readonly'),
-                       'file',
+    view = View(VGroup('file',
+                       Item('name', show_label=False, style='readonly'),
                        HGroup(
                               Item('use', editor=use_editor, enabled_when="enabled", style='custom'),
                               'points',
                               ),
-                       HGroup(Item('clear', enabled_when="enabled", show_label=False),
-                              Item('save_as', enabled_when="enabled", show_label=False)),
+                       HGroup(Item('clear', enabled_when="can_save", show_label=False),
+                              Item('save_as', enabled_when="can_save", show_label=False)),
                        ))
+
+    @cached_property
+    def _get_enabled(self):
+        return np.any(self.points)
+
+    @cached_property
+    def _get_dir(self):
+        if self.file:
+            return os.path.dirname(self.file)
+
+    @cached_property
+    def _get_name(self):
+        if self.file:
+            return os.path.basename(self.file)
 
     @on_trait_change('file')
     def load(self, fname):
-        if fname:
-            pts = read_mrk(fname)
-            self.points = pts
-            self.scene.reset_zoom()
-        else:
+        if not fname:
             self.reset_traits(['points'])
+            return
+
+        try:
+            pts = read_mrk(fname)
+        except Exception as err:
+            error(None, str(err), "Error Reading mrk")
+            self.reset_traits(['points'])
+        else:
+            self.points = pts
 
     def _clear_fired(self):
         self.reset_traits(['file', 'points'])
@@ -136,11 +151,13 @@ class MarkerPointDest(MarkerPoints):
                   "of the mrk1 and mrk2 coordinates for each point.")
 
     view = View(VGroup(Item('method', style='custom'),
-                       Item('save_as', show_label=False)))
+                       Item('save_as', enabled_when='can_save', show_label=False)))
 
+    @cached_property
     def _get_dir(self):
         return self.src1.dir
 
+    @cached_property
     def _get_name(self):
         n1 = self.src1.name
         n2 = self.src2.name
@@ -169,9 +186,11 @@ class MarkerPointDest(MarkerPoints):
 
         return n1[:i]
 
+    @cached_property
     def _get_enabled(self):
         return np.any(self.points)
 
+    @cached_property
     def _get_points(self):
         # in case only one or no source is enabled
         if not (self.src1 and self.src1.enabled):
@@ -185,7 +204,8 @@ class MarkerPointDest(MarkerPoints):
         # Average method
         if self.method == 'Average':
             if len(np.union1d(self.src1.use, self.src2.use)) < 5:
-                error("Need at least one source for each point.")
+                error(None, "Need at least one source for each point.",
+                      "Marker Average Error")
                 return np.zeros((5, 3))
 
             pts = (self.src1.points + self.src2.points) / 2
@@ -199,23 +219,26 @@ class MarkerPointDest(MarkerPoints):
         # Transform method
         idx = np.intersect1d(self.src1.use, self.src2.use, assume_unique=True)
         if len(idx) < 3:
-            error("Need at least three shared points for transformation.")
+            error(None, "Need at least three shared points for trans"
+                  "formation.", "Marker Interpolation Error")
             return np.zeros((5, 3))
 
         src_pts = self.src1.points[idx]
         tgt_pts = self.src2.points[idx]
-        _, rot, tra = fit_matched_pts(src_pts, tgt_pts, params=True)
+        est = fit_matched_pts(src_pts, tgt_pts)
+        rot = np.array(est[:3]) / 2
+        tra = np.array(est[3:]) / 2
 
         if len(self.src1.use) == 5:
-            trans = np.dot(translation(*(tra / 2)), rotation(*(rot / 2)))
+            trans = np.dot(translation(*tra), rotation(*rot))
             pts = apply_trans(trans, self.src1.points)
         elif len(self.src2.use) == 5:
-            trans = np.dot(translation(*(-tra / 2)), rotation(*(-rot / 2)))
+            trans = np.dot(translation(* -tra), rotation(* -rot))
             pts = apply_trans(trans, self.src2.points)
         else:
-            trans1 = np.dot(translation(*(tra / 2)), rotation(*(rot / 2)))
+            trans1 = np.dot(translation(*tra), rotation(*rot))
             pts = apply_trans(trans1, self.src1.points)
-            trans2 = np.dot(translation(*(-tra / 2)), rotation(*(-rot / 2)))
+            trans2 = np.dot(translation(* -tra), rotation(* -rot))
             for i in np.setdiff1d(self.src2.use, self.src1.use):
                 pts[i] = apply_trans(trans2, self.src2.points[i])
 
@@ -240,19 +263,18 @@ class MarkerPanel(HasTraits):
 
     def _mrk1_default(self):
         if os.path.exists(self.mrk1_file):
-            return MarkerPointSource(scene=self.scene, file=self.mrk1_file)
+            return MarkerPointSource(file=self.mrk1_file)
         else:
-            return MarkerPointSource(scene=self.scene)
+            return MarkerPointSource()
 
     def _mrk2_default(self):
         if os.path.exists(self.mrk2_file):
-            return MarkerPointSource(scene=self.scene, file=self.mrk2_file)
+            return MarkerPointSource(file=self.mrk2_file)
         else:
-            return MarkerPointSource(scene=self.scene)
+            return MarkerPointSource()
 
     def _mrk3_default(self):
-        mrk = MarkerPointDest(scene=self.scene, src1=self.mrk1,
-                              src2=self.mrk2)
+        mrk = MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
         return mrk
 
     view = View(VGroup(VGroup(Item('mrk1', style='custom'),
@@ -297,10 +319,10 @@ class MainWindow(HasTraits):
         Path to pre- and post measurement marker files (*.sqd) or empty string.
     """
     scene = Instance(MlabSceneModel, ())
-    head_view = Instance(HeadViewController)
+    headview = Instance(HeadViewController)
     panel = Instance(MarkerPanel)
 
-    def _head_view_default(self):
+    def _headview_default(self):
         return HeadViewController(scene=self.scene, system='ALS')
 
     def _panel_default(self):
@@ -308,7 +330,7 @@ class MainWindow(HasTraits):
 
     view = View(HGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                             dock='vertical'),
-                       VGroup(Item('head_view', style='custom'),
+                       VGroup(headview_borders,
                               Item('panel', style="custom"),
                               show_labels=False),
                        show_labels=False,
