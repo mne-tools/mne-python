@@ -202,13 +202,12 @@ class RawKIT(Raw):
                 stim = picks
             else:
                 raise ValueError("stim needs to be list of int, '>' or '<', "
-                                 + "not %r" % stim)
+                                 "not %r" % stim)
         self._sqd_params['stim'] = stim
 
         if self._preloaded:
             logger.info('Reading raw data from %s...' % input_fname)
-            self._data, _ = self._read_segment(self.first_samp,
-                                                self.last_samp + 1)
+            self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
 
             # Create a synthetic channel
@@ -279,7 +278,8 @@ class RawKIT(Raw):
 
         return stim_ch
 
-    def _read_segment(self, start=0, stop=None, verbose=None, **kwargs):
+    def _read_segment(self, start=0, stop=None, verbose=None,
+                      sel=None, proj=None):
         """Read a chunk of raw data
 
         Parameters
@@ -290,8 +290,6 @@ class RawKIT(Raw):
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -302,9 +300,13 @@ class RawKIT(Raw):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
+        if sel is not None:
+            raise NotImplementedError('Can only read all channels at once.')
+        if proj is not None:
+            raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
-            raise NotImplementedError
-        if stop > self.last_samp + 1:
+            stop = self.last_samp + 1
+        elif stop > self.last_samp + 1:
             stop = self.last_samp + 1
 
         #  Initial checks
