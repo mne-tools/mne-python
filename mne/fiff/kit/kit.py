@@ -43,7 +43,7 @@ class RawKIT(Raw):
     stim : list of int | '<' | '>'
         Can be submitted as list of trigger channels.
         If a list is not specified, the default triggers extracted from
-        misc channels, will be used with specified directionality.
+        misc channels will be used with specified directionality.
         '<' means that largest values assigned to the first channel
         in sequence.
         '>' means the largest trigger assigned to the last channel
@@ -201,12 +201,14 @@ class RawKIT(Raw):
             elif stim == '>':
                 stim = picks
             else:
-                raise ValueError("stim needs to be list of int, '>' or '<', not %r" % stim)
+                raise ValueError("stim needs to be list of int, '>' or '<', "
+                                 + "not %r" % stim)
         self._sqd_params['stim'] = stim
 
         if self._preloaded:
             logger.info('Reading raw data from %s...' % input_fname)
-            self._data = self._get_sqd_data()
+            self._data, _ = self._read_segment(self.first_samp,
+                                                self.last_samp + 1)
             assert len(self._data) == self.info['nchan']
 
             # Create a synthetic channel
@@ -358,46 +360,6 @@ class RawKIT(Raw):
 
         return data, times
 
-    def _get_sqd_data(self):
-        """Extracts the data from the sqd file.
-
-        Parameters
-        ----------
-        rawfile : str
-            Raw sqd file to be read.
-        sqd : dict
-            A dict of parameters for the rawfile.
-
-        Returns
-        -------
-        sqd : dict
-            A dict containing all the sqd parameter settings.
-        """
-        with open(self._sqd_params['fname'], 'r') as fid:
-            # extract data
-            fid.seek(KIT.DATA_OFFSET)
-            # data offset info
-            data_offset = unpack('i', fid.read(KIT.INT))[0]
-
-            fid.seek(data_offset)
-            data = np.empty((self._sqd_params['nsamples'],
-                             self._sqd_params['nchan'] + 1), dtype=np.float)
-            count = self._sqd_params['nsamples'] * self._sqd_params['nchan']
-            nchan = self._sqd_params['nchan']
-            nsamples = self._sqd_params['nsamples']
-            data[:, :nchan] = np.fromfile(fid, dtype='h', count=count
-                                          ).reshape((nsamples, nchan))
-            # amplifier applies only to the sensor channels
-            n_sens = self._sqd_params['n_sens']
-            sensor_gain = np.copy(self._sqd_params['sensor_gain'])
-            sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
-                                    self._sqd_params['amp_gain'])
-            conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                    self._sqd_params['DYNAMIC_RANGE']) *
-                                   sensor_gain, ndmin=2)
-            data *= conv_factor
-        return data.T
-
 
 def get_sqd_params(rawfile):
     """Extracts all the information from the sqd file.
@@ -452,11 +414,11 @@ def get_sqd_params(rawfile):
 
         # filter settings
         sqd['lowpass'] = KIT_SYS.LPFS[(KIT_SYS.LPF_MASK & amp_data)
-                                   >> KIT_SYS.LPF_BIT]
+                                      >> KIT_SYS.LPF_BIT]
         sqd['highpass'] = KIT_SYS.HPFS[(KIT_SYS.HPF_MASK & amp_data)
-                                    >> KIT_SYS.HPF_BIT]
+                                       >> KIT_SYS.HPF_BIT]
         sqd['notch'] = KIT_SYS.BEFS[(KIT_SYS.BEF_MASK & amp_data)
-                                 >> KIT_SYS.BEF_BIT]
+                                    >> KIT_SYS.BEF_BIT]
 
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed

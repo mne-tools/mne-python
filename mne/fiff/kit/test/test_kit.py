@@ -6,10 +6,11 @@
 
 import os.path as op
 import inspect
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
-from mne.fiff import Raw, pick_types, kit
-from mne.utils import _TempDir
+from ....utils import _TempDir
+from ... import Raw, pick_types, kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -90,3 +91,17 @@ def test_ch_loc():
         if bin_ch['ch_name'].startswith('MEG'):
             # the mne_kit2fiff_bin has a different representation of pi.
             assert_array_almost_equal(py_ch['loc'], bin_ch['loc'], decimal=5)
+
+def test_stim_ch():
+    """Test raw kit stim ch
+    """
+    raw = kit.read_raw_kit(input_fname=op.join(data_dir, 'test.sqd'),
+                           mrk_fname=op.join(data_dir, 'test_mrk.sqd'),
+                           elp_fname=op.join(data_dir, 'test_elp.txt'),
+                           hsp_fname=op.join(data_dir, 'test_hsp.txt'),
+                           sns_fname=op.join(data_dir, 'sns.txt'),
+                           stim=range(167, 159, -1), preload=True)
+    stim_pick = pick_types(raw.info, meg=False, stim=True, exclude=[])
+    stim1, _ = raw[stim_pick]
+    stim2 = np.array(raw.read_stim_ch(), ndmin=2)
+    assert_array_equal(stim1, stim2)
