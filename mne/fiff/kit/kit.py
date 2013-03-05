@@ -48,8 +48,6 @@ class RawKIT(Raw):
         in sequence.
         '>' means the largest trigger assigned to the last channel
         in sequence.
-    data : bool | array-like
-        Array-like data to use in lieu of data from sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -63,9 +61,8 @@ class RawKIT(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, stim='<', data=None, stimthresh=1,
-                 verbose=None, preload=False):
+    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+                 stim='<', stimthresh=1, verbose=None, preload=False):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -300,7 +297,6 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
 
-
         with open(self._sqd_params['fname'], 'r') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
@@ -428,9 +424,8 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
-                 sns_fname, stim='<', data=None, stimthresh=1,
-                 verbose=None, preload=False):
+def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
+                 stim='<', stimthresh=1, verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -453,8 +448,6 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
         in sequence.
         '>' means the largest trigger assigned to the last channel
         in sequence.
-    data : bool | array-like
-        Array-like data to use in lieu of data from sqd file.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -465,6 +458,5 @@ def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname,
     """
     return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
                   elp_fname=elp_fname, hsp_fname=hsp_fname,
-                  sns_fname=sns_fname, stim=stim, data=data,
-                  stimthresh=stimthresh, verbose=verbose,
-                  preload=preload)
+                  sns_fname=sns_fname, stim=stim, stimthresh=stimthresh,
+                  verbose=verbose, preload=preload)
