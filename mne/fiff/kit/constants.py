@@ -10,6 +10,7 @@ from ..constants import Bunch
 KIT = Bunch()
 
 # byte values
+KIT.SHORT = 2
 KIT.INT = 4
 KIT.DOUBLE = 8
 KIT.STRING = 128
