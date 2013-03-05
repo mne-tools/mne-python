@@ -114,6 +114,13 @@ def fit_matched_pts(src_pts, tgt_pts, tol=None, params=False):
     [translation : array, len = 3, optional]
         The translation parameters in x, y, and z direction.
     """
+    src_pts = np.asarray(src_pts)
+    tgt_pts = np.asarray(tgt_pts)
+    if src_pts.shape != tgt_pts.shape:
+        err = ("src_pts and tgt_pts must have same shape "
+               "(got {0}, {1})".format(src_pts.shape, tgt_pts.shape))
+        raise ValueError(err)
+
     def error(params):
         trans = dot(translation(*params[:3]), rotation(*params[3:]))
         est = apply_trans(trans, src_pts)
