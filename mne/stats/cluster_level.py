@@ -1043,7 +1043,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     Parameters
     ----------
     X: list of arrays
-        Array of shape (observations, time , vertices) in each group.
+        Array of shape (observations, time, vertices) in each group.
     threshold: float
         The threshold for the statistic.
     n_permutations: int
