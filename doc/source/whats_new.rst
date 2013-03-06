@@ -65,6 +65,8 @@ Changelog
 
    - Add example of decoding/MVPA on MEG sensor data by `Alex Gramfort`_
 
+   - Add support for non-paired tests in spatiotemporal cluster stats by `Alex Gramfort`_
+
 API
 ~~~
 
