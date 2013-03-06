@@ -94,7 +94,7 @@ def test_cluster_permutation_with_connectivity():
     n_pts = condition1_1d.shape[1]
     # we don't care about p-values in any of these, so do fewer permutations
     args = dict(seed=None, max_step=1, exclude=None,
-                step_down_p=0, t_power=1,
+                step_down_p=0, t_power=1, threshold=1.67,
                 check_disjoint=False, n_permutations=50)
 
     for X1d, X2d, func, spatio_temporal_func in \
