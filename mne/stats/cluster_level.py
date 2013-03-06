@@ -435,8 +435,9 @@ def _pval_from_histogram(T, H0, tail):
     return pval
 
 
-def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
-                     seeds, sample_shape):
+def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
+                     max_step, include, partitions, t_power, seeds,
+                     sample_shape):
 
     n_samp = X_full.shape[0]
 
@@ -458,8 +459,14 @@ def _do_permutations(X_full, slices, stat_fun, tail, threshold, connectivity,
         if connectivity is None:
             T_obs_surr.shape = sample_shape
 
-        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold, tail,
-                                               connectivity)
+        # Find cluster on randomized stats
+        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
+                                               tail=tail, max_step=max_step,
+                                               connectivity=connectivity,
+                                               partitions=partitions,
+                                               include=include,
+                                               t_power=t_power)
+
         if len(perm_clusters_sums) > 0:
             max_cluster_sums[seed_idx] = np.max(perm_clusters_sums)
         else:
@@ -484,8 +491,8 @@ def _setup_sparse_connectivity(connectivity, n_vertices, n_times):
 
 
 @verbose
-def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
-                             n_permutations=1000, tail=0,
+def permutation_cluster_test(X, threshold=1.67, n_permutations=1024,
+                             tail=0, stat_fun=f_oneway,
                              connectivity=None, verbose=None, n_jobs=1,
                              seed=None, max_step=1, exclude=None,
                              step_down_p=0, t_power=1, out_type='mask',
@@ -502,9 +509,6 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     X : list
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
         elements of groups
-    stat_fun : callable
-        function called to calculate statistics, must accept 1d-arrays as
-        arguments (default: scipy.stats.f_oneway)
     threshold : float
         The threshold for the statistic.
     n_permutations : int
@@ -514,6 +518,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
         If tail is -1, the statistic is thresholded below threshold.
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
+    stat_fun : callable
+        function called to calculate statistics, must accept 1d-arrays as
+        arguments (default: scipy.stats.f_oneway)
     connectivity : sparse matrix.
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
@@ -576,6 +583,7 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    n_jobs = check_n_jobs(n_jobs)
 
     if not out_type in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
@@ -593,6 +601,9 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
     if connectivity is not None:
         connectivity = _setup_sparse_connectivity(connectivity, X_full.shape[1],
                                                   n_times)
+
+    if (exclude is not None) and not exclude.size == X[0].shape[1]:
+        raise ValueError('exclude must be the same shape as X[0][0]')
 
     # Step 1: Calculate Anova (or other stat_fun) for original data
     # -------------------------------------------------------------
@@ -646,11 +657,48 @@ def permutation_cluster_test(X, stat_fun=f_oneway, threshold=1.67,
             seeds = [None] * n_permutations
         else:
             seeds = list(seed + np.arange(n_permutations))
-        H0 = parallel(my_do_permutations(X_full, slices, stat_fun, tail,
-                            threshold, connectivity, s, sample_shape)
-                            for s in split_list(seeds, n_jobs))
-        H0 = np.concatenate(H0)
-        cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+
+        # Step 3: repeat permutations for stetp-down-in-jumps procedure
+        smallest_p = -1
+        clusters_kept = 0
+        step_down_include = None  # start out including all points
+        step_down_iteration = 0
+        while smallest_p < step_down_p:
+            # actually do the clustering for each partition
+            if include is not None:
+                if step_down_include is not None:
+                    this_include = np.logical_and(include, step_down_include)
+                else:
+                    this_include = include
+            else:
+                this_include = step_down_include
+
+            H0 = parallel(my_do_permutations(X_full, slices, threshold, tail,
+                                connectivity, stat_fun, max_step, this_include,
+                                partitions, t_power, s, sample_shape)
+                                for s in split_list(seeds, n_jobs))
+            H0 = np.concatenate(H0)
+            cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
+
+            # sort them by significance; for backward compat, don't sort the
+            # clusters themselves
+            inds = np.argsort(cluster_pv)
+            ord_pv = cluster_pv[inds]
+            smallest_p = ord_pv[clusters_kept]
+            step_down_include = np.ones(X_full.shape[1], dtype=bool)
+            under = np.where(cluster_pv < step_down_p)[0]
+            for ci in under:
+                step_down_include[clusters[ci]] = False
+            step_down_iteration += 1
+            if step_down_p > 0:
+                extra_text = 'additional ' if step_down_iteration > 1 else ''
+                new_count = under.size - clusters_kept
+                plural = '' if new_count == 1 else 's'
+                logger.info('Step-down-in-jumps iteration'
+                            '%i found %i %scluster%s'
+                            % (step_down_iteration, new_count,
+                               extra_text, plural))
+            clusters_kept += under.size
         return T_obs, clusters, cluster_pv, H0
     else:
         return T_obs, np.array([]), np.array([]), np.array([])
@@ -847,11 +895,13 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                                   n_times)
 
     if (exclude is not None) and not exclude.size == X.shape[1]:
-        raise ValueError('exclude must be the same shape as X[1]')
+        raise ValueError('exclude must be the same shape as X[0]')
 
     # Step 1: Calculate T-stat for original data
     # -------------------------------------------------------------
     T_obs = stat_fun(X)
+    logger.info('stat_fun(H1): min=%f max=%f'
+                % (np.min(T_obs), np.max(T_obs)))
 
     # The stat should have the same shape as the samples for no conn.
     if connectivity is None:
@@ -873,6 +923,8 @@ def permutation_cluster_1samp_test(X, threshold=1.67, n_permutations=1024,
                                              include=include,
                                              partitions=partitions,
                                              t_power=t_power)
+
+    logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
     if connectivity is not None and out_type == 'mask':
@@ -1066,9 +1118,9 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     threshold: float
         The threshold for the statistic.
     n_permutations: int
-        See permutation_cluster_1samp_test.
+        See permutation_cluster_test.
     tail : -1 or 0 or 1 (default = 0)
-        See permutation_cluster_1samp_test.
+        See permutation_cluster_test.
     stat_fun : function
         See permutation_cluster_test.
     connectivity : sparse matrix or None

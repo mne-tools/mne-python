@@ -1,7 +1,7 @@
 """
-=================================================================
-Permutation t-test on source data with spatio-temporal clustering
-=================================================================
+=========================================================================
+2 samples permutation test on source data with spatio-temporal clustering
+=========================================================================
 
 Tests if the source space data are significantly different between
 2 groups of subjects (simulated here using one subject's data).
