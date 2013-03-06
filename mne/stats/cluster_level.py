@@ -705,7 +705,7 @@ def ttest_1samp_no_p(X):
 
 
 @verbose
-def permutation_cluster_test(X, threshold=1.67, n_permutations=1024,
+def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              tail=0, stat_fun=f_oneway,
                              connectivity=None, verbose=None, n_jobs=1,
                              seed=None, max_step=1, exclude=None,
@@ -724,7 +724,8 @@ def permutation_cluster_test(X, threshold=1.67, n_permutations=1024,
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
         elements of groups
     threshold : float
-        The threshold for the statistic.
+        The threshold for the statistic. If None, it will choose a F-threshold
+        equivalent to p < 0.05 for the given number of observations.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -797,6 +798,14 @@ def permutation_cluster_test(X, threshold=1.67, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    if threshold is None:
+        p_thresh = 0.05 / (1 + (tail == 0))
+        n_samples_per_group = [len(x) for x in X]
+        threshold = stats.distributions.f.ppf(1. - p_thresh,
+                                              *n_samples_per_group)
+        if np.sign(tail) < 0:
+            threshold = -threshold
+
     return _permutation_cluster_test(X=X, threshold=threshold,
                         n_permutations=n_permutations,
                         tail=tail, stat_fun=stat_fun,
@@ -827,15 +836,15 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
 
     Parameters
     ----------
-    X: array, shape=(n_samples, p, q) or (n_samples, p)
+    X : array, shape=(n_samples, p, q) or (n_samples, p)
         Array where the first dimension corresponds to the
         samples (observations). X[k] can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
-    threshold: float
+    threshold : float
         The threshold for the statistic. If None, it will choose a T-threshold
         equivalent to p < 0.05 for the given number of (within-subject)
         observations.
-    n_permutations: int
+    n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
         If tail is 1, the statistic is thresholded above threshold.
@@ -946,12 +955,12 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
     Parameters
     ----------
-    X: array
+    X : array
         Array of shape observations x time x vertices.
-    threshold: float, or None
+    threshold : float, or None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
-    n_permutations: int
+    n_permutations : int
         See permutation_cluster_1samp_test.
     tail : -1 or 0 or 1 (default = 0)
         See permutation_cluster_1samp_test.
