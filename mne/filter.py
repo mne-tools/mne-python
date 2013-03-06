@@ -3,8 +3,7 @@
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq
-from scipy.signal.windows import get_window
-from scipy.signal import freqz, iirdesign, iirfilter, filter_dict
+from scipy.signal import freqz, iirdesign, iirfilter, filter_dict, get_window
 from scipy import signal, stats
 from copy import deepcopy
 
