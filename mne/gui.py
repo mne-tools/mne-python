@@ -1,4 +1,4 @@
-"""Convenience functions for opening guis."""
+"""Convenience functions for opening GUIs."""
 
 from .transforms.coreg import trans_fname as _trans
 
@@ -18,31 +18,28 @@ def combine_markers(mrk1='', mrk2=''):
     return gui
 
 
-def coregistration(raw, subject=None, trans_fname=_trans, subjects_dir=None):
+def coregistration(raw=None, subject=None, subjects_dir=None):
     """Open a gui for scaling an mri to fit a subject's head shape
+
+    All parameters are optional, since they can be set through the GUI.
 
     Parameters
     ----------
-    raw : str(path)
+    raw : None | str(path)
         Path to a raw file containing the digitizer data.
-    subject : str
+    subject : None | str
         Name of the mri subject.
-        Can be None if the raw file-name starts with "{subject}_".
-    trans_fname : str
-        Filename pattern for the trans file. "{raw_dir}" will be formatted to
-        the directory containing the raw file, and "{subject}" will be
-        formatted to the subject name.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
     """
-    from .transforms.coreg_gui import HeadMriCoreg
-    gui = HeadMriCoreg(raw, subject, trans_fname, subjects_dir)
+    from .transforms.coreg_gui import CoregFrame
+    gui = CoregFrame(raw, subject, subjects_dir)
     gui.configure_traits()
     return gui
 
 
-def fiducials(subject, subjects_dir=None, fid_file=None):
+def fiducials(subject=None, subjects_dir=None, fid_file=None):
     """Open a gui to set the fiducials for an mri subject
 
     Parameters
