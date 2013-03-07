@@ -35,7 +35,7 @@ events = mne.find_events(raw, stim_channel="STI 014")
 # Visualize raw file
 raw.plot()
 
-# Make and evoked file from the experimental data
+# Make an evoked file from the experimental data
 picks = mne.fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 
 # Read epochs
