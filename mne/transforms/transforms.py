@@ -47,7 +47,7 @@ def apply_trans(trans, pts):
 
 
 def rotation(x=0, y=0, z=0):
-    """Create an array with a rotation matrix
+    """Create an array with a 4 dimensional rotation matrix
 
     Parameters
     ----------
@@ -71,6 +71,33 @@ def rotation(x=0, y=0, z=0):
                    - sin_x * cos_z + cos_x * sin_y * sin_z, 0],
                   [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
                   [0, 0, 0, 1]], dtype=float)
+    return r
+
+
+def rotation3d(x=0, y=0, z=0):
+    """Create an array with a 3 dimensional rotation matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Rotation around the origin (in rad).
+
+    Returns
+    -------
+    r : array, shape = (3, 3)
+        The rotation matrix.
+    """
+    cos_x = cos(x)
+    cos_y = cos(y)
+    cos_z = cos(z)
+    sin_x = sin(x)
+    sin_y = sin(y)
+    sin_z = sin(z)
+    r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
+                   sin_x * sin_z + cos_x * sin_y * cos_z],
+                  [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
+                   - sin_x * cos_z + cos_x * sin_y * sin_z],
+                  [-sin_y, sin_x * cos_y, cos_x * cos_y]], dtype=float)
     return r
 
 
