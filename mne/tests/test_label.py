@@ -217,6 +217,10 @@ def test_morph():
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
+    # make sure label smoothing can run
+    label.morph('sample', 'fsaverage', 5,
+                [np.arange(10242), np.arange(10242)], subjects_dir, 2)
+    label.smooth('fsaverage')
 
 
 def test_grow_labels():

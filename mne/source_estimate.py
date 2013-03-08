@@ -1107,8 +1107,8 @@ class SourceEstimate(object):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-             transparent=True, time_viewer=False, config_opts={},
-             subjects_dir=None):
+             transparent=True, alpha=1.0, time_viewer=False,
+             config_opts={}, subjects_dir=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1145,6 +1145,8 @@ class SourceEstimate(object):
             The maximum value for the colormap.
         transparent : bool
             If True, use a linear transparency between fmin and fmid.
+        alpha : float
+            Alpha value to apply globally to the overlay.
         time_viewer : bool
             Display time viewer GUI.
         config_opts : dict
@@ -1164,7 +1166,7 @@ class SourceEstimate(object):
         brain = plot_source_estimates(self, subject, surface=surface,
                         hemi=hemi, colormap=colormap, time_label=time_label,
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
-                        fmax=fmax, transparent=transparent,
+                        fmax=fmax, transparent=transparent, alpha=alpha,
                         time_viewer=time_viewer, config_opts=config_opts,
                         subjects_dir=subjects_dir)
         return brain
