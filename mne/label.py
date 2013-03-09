@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from os import path as op
+import os
 import copy as cp
 import numpy as np
 from scipy import linalg
@@ -759,6 +760,19 @@ def _read_annot(fname):
         List of region names as stored in the annot file
 
     """
+    if not op.isfile(fname):
+        dir_name = op.split(fname)[0]
+        if not op.isdir(dir_name):
+            raise IOError('Directory for annotation does not exist: %s',
+                          fname)
+        cands = os.listdir(dir_name)
+        cands = [c for c in cands if '.annot' in c]
+        if len(cands) == 0:
+            raise IOError('No such file %s, no candidate parcellations '
+                          'found in directory' % fname)
+        else:
+            raise IOError('No such file %s, candidate parcellations in '
+                          'that directory: %s' % (fname, ', '.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
         data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
