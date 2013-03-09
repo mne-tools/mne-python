@@ -925,7 +925,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                          transparent=True, time_viewer=False,
+                          transparent=True, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None):
     """Plot SourceEstimates with PySurfer
 
@@ -963,6 +963,8 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         The maximum value for the colormap.
     transparent : bool
         If True, use a linear transparency between fmin and fmid.
+    alpha : float
+        Alpha value to apply globally to the overlay.
     time_viewer : bool
         Display time viewer GUI.
     config_opts : dict
@@ -1024,7 +1026,7 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
         time = 1e3 * stc.times
         brain.add_data(data, colormap=colormap, vertices=vertices,
                        smoothing_steps=smoothing_steps, time=time,
-                       time_label=time_label)
+                       time_label=time_label, alpha=alpha)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,

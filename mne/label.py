@@ -42,10 +42,10 @@ class Label(dict):
     ----------
     vertices : array (length N)
         vertex indices (0 based).
-    pos : array (N by 3)
-        locations in meters.
-    values : array (length N)
-        values at the vertices.
+    pos : array (N by 3) | None
+        locations in meters. If None, then zeros are used.
+    values : array (length N) | None
+        values at the vertices. If None, then ones are used.
     hemi : 'lh' | 'rh'
         Hemisphere to which the label applies.
     comment, name, fpath : str
@@ -76,9 +76,15 @@ class Label(dict):
     dictionary entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
     """
     @verbose
-    def __init__(self, vertices, pos, values, hemi, comment="", name=None,
-                 filename=None, verbose=None):
+    def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
+                 name=None, filename=None, verbose=None):
+        if not isinstance(hemi, basestring):
+            raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
+        if values is None:
+            values = np.ones(len(vertices))
+        if pos is None:
+            pos = np.zeros((len(vertices), 3))
         values = np.asarray(values)
         pos = np.asarray(pos)
         if not (len(vertices) == len(values) == len(pos)):
@@ -253,7 +259,7 @@ class Label(dict):
         on the new surface are required, consider using mne.read_surface
         with label.vertices.
         """
-        self.morph(subject, subject, grade, smooth, subjects_dir, n_jobs)
+        self.morph(subject, subject, smooth, grade, subjects_dir, n_jobs)
 
     @verbose
     def morph(self, subject_from, subject_to, smooth=5, grade=None,
