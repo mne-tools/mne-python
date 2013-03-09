@@ -9,6 +9,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 # License: BSD (3-clause)
 
 import logging
+import os
 from os import SEEK_CUR
 from struct import unpack
 import time
@@ -237,6 +238,12 @@ class RawKIT(Raw):
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
+
+    def __repr__(self):
+        s = ('%r' % os.path.basename(self._sqd_params['fname']),
+             "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+                                       self.last_samp - self.first_samp + 1))
+        return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data
