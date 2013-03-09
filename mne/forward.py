@@ -240,7 +240,7 @@ def read_forward_meas_info(tree, fid):
     parent_meg = parent_meg[0]
 
     tag = find_tag(fid, parent_meg, FIFF.FIFF_MNE_FILE_NAME)
-    info['meas_file'] = tag.data
+    info['meas_file'] = tag.data if tag is not None else None
     tag = find_tag(fid, parent_meg, FIFF.FIFF_PARENT_FILE_ID)
     info['meas_id'] = tag.data if tag is not None else None
 
