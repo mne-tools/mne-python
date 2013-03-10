@@ -524,9 +524,13 @@ def label_sign_flip(label, src):
     # get source orientations
     if label.hemi == 'lh':
         vertno_sel = np.intersect1d(lh_vertno, label.vertices)
+        if len(vertno_sel) == 0:
+            return np.array([])
         ori = src[0]['nn'][vertno_sel]
     elif label.hemi == 'rh':
         vertno_sel = np.intersect1d(rh_vertno, label.vertices)
+        if len(vertno_sel) == 0:
+            return np.array([])
         ori = src[1]['nn'][vertno_sel]
     else:
         raise Exception("Unknown hemisphere type")
@@ -534,7 +538,7 @@ def label_sign_flip(label, src):
     _, _, Vh = linalg.svd(ori, full_matrices=False)
 
     # Comparing to the direction of the first right singular vector
-    flip = np.sign(np.dot(ori, Vh[:, 0]))
+    flip = np.sign(np.dot(ori, Vh[:, 0] if len(vertno_sel) > 3 else Vh[0]))
     return flip
 
 
