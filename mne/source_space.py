@@ -498,6 +498,11 @@ def _get_vertno(src):
     return [s['vertno'] for s in src]
 
 
+def prepare_bem_model(bem, method='linear'):
+    cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
+    run_subprocess(cmd)
+
+
 def setup_mri(subject, subjects_dir=None):
     """Wrapper for the mne_setup_mri command line utility
 
@@ -507,11 +512,23 @@ def setup_mri(subject, subjects_dir=None):
         The mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    cmd = ["mne_setup_mri", "--subject", subject]
     env = os.environ.copy()
     env['SUBJECTS_DIR'] = subjects_dir
+
+    cmd = ["mne_setup_mri", "--subject", subject]
+
     run_subprocess(cmd, env=env)
+
+
+def setup_source_space(subject, ico=4, subjects_dir=None):
+    "Incomplete"
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = subjects_dir
+
+    cmd = ['mne_setup_source_space', '--subject', subject, '--ico', str(ico)]
+
+    print run_subprocess(cmd, env=env)
 
 
 def watershed_bem(subject, atlas=False, subjects_dir=None):
