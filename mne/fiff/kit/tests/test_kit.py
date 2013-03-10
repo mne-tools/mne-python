@@ -9,8 +9,8 @@ import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
-from ....utils import _TempDir
-from ... import Raw, pick_types, kit
+from mne.utils import _TempDir
+from mne.fiff import Raw, pick_types, kit
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))

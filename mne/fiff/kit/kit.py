@@ -217,7 +217,8 @@ class RawKIT(Raw):
 
             # Add time info
             self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-            self._times = np.arange(self.first_samp, self.last_samp + 1)
+            self._times = np.arange(self.first_samp, self.last_samp + 1,
+                                    dtype=np.float64)
             self._times /= self.info['sfreq']
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
@@ -242,7 +243,7 @@ class RawKIT(Raw):
         start = int(self.first_samp)
         stop = int(self.last_samp + 1)
 
-        pick = pick_types(self.info, meg=False, stim=True)
+        pick = pick_types(self.info, meg=False, stim=True, exclude=[])
         stim_ch = np.empty((1, stop), dtype=np.int)
         for b_start in range(start, stop, buffer_size):
             b_stop = b_start + buffer_size
