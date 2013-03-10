@@ -832,8 +832,8 @@ class Epochs(object):
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
         # First and last sample
-        first = -int(np.sum(self.times < 0))
-        last = int(np.sum(self.times > 0))
+        first = int(self.times[0] * self.info['sfreq'])
+        last = first + len(self.times) - 1
         write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
         write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
 

@@ -8,10 +8,9 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal,\
                           assert_allclose
 
 from scipy.fftpack import fft
-from scipy.linalg import svd
 
 from mne.datasets import sample
-from mne import stats, SourceEstimate
+from mne import stats, SourceEstimate, Label
 from mne import read_stc, write_stc, read_source_estimate, morph_data,\
                 extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
@@ -221,6 +220,14 @@ def test_extract_label_time_course():
                 assert_array_almost_equal(tc1, label_means)
             if mode == 'mean_flip':
                 assert_array_almost_equal(tc1, label_means_flipped)
+
+    # test label with very few vertices (check SVD conditionals)
+    label = Label(vertices=src[0]['vertno'][:2], hemi='lh')
+    x = label_sign_flip(label, src)
+    assert_true(len(x) == 2)
+    label = Label(vertices=[], hemi='lh')
+    x = label_sign_flip(label, src)
+    assert_true(x.size == 0)
 
 
 def test_morph_data():

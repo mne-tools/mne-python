@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 from os import path as op
+import os
 import copy as cp
 import numpy as np
 from scipy import linalg
@@ -523,9 +524,13 @@ def label_sign_flip(label, src):
     # get source orientations
     if label.hemi == 'lh':
         vertno_sel = np.intersect1d(lh_vertno, label.vertices)
+        if len(vertno_sel) == 0:
+            return np.array([])
         ori = src[0]['nn'][vertno_sel]
     elif label.hemi == 'rh':
         vertno_sel = np.intersect1d(rh_vertno, label.vertices)
+        if len(vertno_sel) == 0:
+            return np.array([])
         ori = src[1]['nn'][vertno_sel]
     else:
         raise Exception("Unknown hemisphere type")
@@ -533,7 +538,7 @@ def label_sign_flip(label, src):
     _, _, Vh = linalg.svd(ori, full_matrices=False)
 
     # Comparing to the direction of the first right singular vector
-    flip = np.sign(np.dot(ori, Vh[:, 0]))
+    flip = np.sign(np.dot(ori, Vh[:, 0] if len(vertno_sel) > 3 else Vh[0]))
     return flip
 
 
@@ -759,6 +764,19 @@ def _read_annot(fname):
         List of region names as stored in the annot file
 
     """
+    if not op.isfile(fname):
+        dir_name = op.split(fname)[0]
+        if not op.isdir(dir_name):
+            raise IOError('Directory for annotation does not exist: %s',
+                          fname)
+        cands = os.listdir(dir_name)
+        cands = [c for c in cands if '.annot' in c]
+        if len(cands) == 0:
+            raise IOError('No such file %s, no candidate parcellations '
+                          'found in directory' % fname)
+        else:
+            raise IOError('No such file %s, candidate parcellations in '
+                          'that directory: %s' % (fname, ', '.join(cands)))
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
         data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
