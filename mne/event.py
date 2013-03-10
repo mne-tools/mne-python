@@ -548,15 +548,20 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     ----------
     raw : instance of Raw
         A raw object to use the data from.
-    duration: float
-        The duration to separate events by.
     id : int
         The id to use.
+    start : float
+        Time of first event.
+    stop : float | None
+        Maximum time of last event. If None, events extend to the end
+        of the recording.
+    duration: float
+        The duration to separate events by.
 
     Returns
     -------
     new_events: array
-        The new events
+        The new events.
     """
     start = raw.time_as_index(start)
     start = start[0] + raw.first_samp
