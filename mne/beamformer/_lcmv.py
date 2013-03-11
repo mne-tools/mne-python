@@ -109,7 +109,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
-        Wk[:] = np.dot(linalg.pinv(Ck, 0.01), Wk)
+        Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
 
     # noise normalization
     noise_norm = np.sum(W ** 2, axis=1)
