@@ -1310,7 +1310,7 @@ def read_epochs(fname, proj=True, verbose=None):
     comment = None
     data = None
     bmin, bmax = None, None
-
+    baseline = None
     for k in range(my_epochs['nent']):
         kind = my_epochs['directory'][k].kind
         pos = my_epochs['directory'][k].pos
