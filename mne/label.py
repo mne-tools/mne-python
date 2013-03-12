@@ -7,30 +7,19 @@ from os import path as op
 import os
 import copy as cp
 import numpy as np
-from scipy import linalg
-import warnings
+from scipy import linalg, sparse
 
 import logging
 logger = logging.getLogger('mne')
 
-from .utils import get_subjects_dir
+from .utils import get_subjects_dir, _check_subject
 from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
 from . import verbose
 
 
-def _aslabel(label):
-    "For maintaining backwards-compatibility: convert dict to Label"
-    if hasattr(label, 'hemi'):
-        return label
-    else:
-        warnings.warn('Representing labels as dicts is deprecated and will be '
-                      'removed in v0.6. Use Label objects.')
-        return Label(**label)
-
-
-class Label(dict):
+class Label():
     """An freesurfer/MNE label with vertices restricted to one hemisphere
 
     Labels can be combined with the ``+`` operator:
@@ -51,6 +40,9 @@ class Label(dict):
         Hemisphere to which the label applies.
     comment, name, fpath : str
         Kept as information but not used by the object itself.
+    subject : str | None
+        Name of the subject the label is from. If None, an attempt
+        will be made to extract it from the label file header.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -64,21 +56,18 @@ class Label(dict):
         A name for the label. It is OK to change that attribute manually.
     pos : array, shape = (n_pos, 3)
         Locations in meters.
+    subject : str
+        Subject name.
     values : array, len = n_pos
         Values at the vertices.
     verbose : bool, str, int, or None
         See above.
     vertices : array, len = n_pos
         Vertex indices (0 based)
-
-    Notes
-    -----
-    For backwards compatibility, the following attributes are stored as
-    dictionary entries: ``'vertices', 'pos', 'values', 'hemi', 'comment'``
     """
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, verbose=None):
+                 name=None, filename=None, subject=None, verbose=None):
         if not isinstance(hemi, basestring):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
@@ -99,12 +88,7 @@ class Label(dict):
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-
-        # also set dict entries (for backwards compatibility)
-        self._dep_warn = False
-        self.update(vertices=vertices, pos=pos, values=values, hemi=hemi,
-                    comment=comment)
-        self._dep_warn = True
+        self.subject = subject
 
         # name
         if name is None and filename is not None:
@@ -113,44 +97,22 @@ class Label(dict):
         self.filename = filename
 
     def __repr__(self):
-        name = repr(self.name) if self.name is not None else "unnamed"
+        name = self.subject + ', ' if self.subject is None else 'unknown, '
+        name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
 
     def __len__(self):
         return len(self.vertices)
 
-    def __getitem__(self, key):
-        warnings.warn('Dictionary-like usage of Label objects is deprecated '
-                      'and will be removed in v0.6. Use attributes.')
-        return super(Label, self).__getitem__(key)
-
-    def _update_attr_from_dict(self):
-        "backwards compatibility"
-        if self._dep_warn:
-            warnings.warn('Dictionary-like usage of Label objects is '
-                          'deprecated and will be removed in v0.6.')
-        for key in ['vertices', 'pos', 'values', 'hemi', 'comment']:
-            setattr(self, key, self.get(key, None))
-
-    def __setitem__(self, key, value):
-        super(Label, self).__setitem__(key, value)
-        self._update_attr_from_dict()
-
-    def set(self, key, value):
-        "Deprecated. Create a new Label."
-        super(Label, self).set(key, value)
-        self._update_attr_from_dict()
-
-    def update(self, **D):
-        "Deprecated. Create a new Label."
-        super(Label, self).update(D)
-        self._update_attr_from_dict()
-
     def __add__(self, other):
         if isinstance(other, BiHemiLabel):
             return other + self
         elif isinstance(other, Label):
+            if self.subject != other.subject:
+                raise ValueError('Label subject parameters must match, got '
+                                 '"%s" and "%s"' % (self.subject,
+                                                    other.subject))
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
                 if self.hemi == 'lh':
@@ -212,14 +174,10 @@ class Label(dict):
         label : instance of Label
             The copied label.
         """
-        # catch warnings here to suppress deprecation warning
-        # XXX this can be removed once dict useage is removed
-        with warnings.catch_warnings(record=True) as w:
-            label = cp.deepcopy(self)
-        return label
+        return cp.deepcopy(self)
 
     @verbose
-    def smooth(self, subject, smooth=2, grade=None,
+    def smooth(self, subject=None, smooth=2, grade=None,
                subjects_dir=None, n_jobs=1, verbose=None):
         """Smooth the label
 
@@ -228,8 +186,9 @@ class Label(dict):
 
         Parameters
         ----------
-        subject : str
-            The name of the subject used.
+        subject : str | None
+            The name of the subject used. If None, the value will be
+            taken from self.subject.
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used. For a
@@ -260,10 +219,11 @@ class Label(dict):
         on the new surface are required, consider using mne.read_surface
         with label.vertices.
         """
+        subject = _check_subject(self.subject, subject)
         self.morph(subject, subject, smooth, grade, subjects_dir, n_jobs)
 
     @verbose
-    def morph(self, subject_from, subject_to, smooth=5, grade=None,
+    def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
               subjects_dir=None, n_jobs=1, verbose=None):
         """Morph the label
 
@@ -271,10 +231,12 @@ class Label(dict):
 
         Parameters
         ----------
-        subject_from : str
-            The name of the subject of the current label.
+        subject_from : str | None
+            The name of the subject of the current label. If None, the
+            initial subject will be taken from self.subject.
         subject_to : str
-            The name of the subject to morph the label to.
+            The name of the subject to morph the label to. This will
+            replace self.subject.
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used.
@@ -302,6 +264,7 @@ class Label(dict):
         on the new surface are required, consider using mne.read_surface
         with label.vertices.
         """
+        subject_from = _check_subject(self.subject, subject_from)
         if not isinstance(smooth, int):
             raise ValueError('smooth must be an integer')
         if np.all(self.values == 0):
@@ -318,7 +281,8 @@ class Label(dict):
         else:
             vertices = [np.array([]), self.vertices]
         data = self.values[:, np.newaxis]
-        stc = SourceEstimate(data, vertices, tmin=1, tstep=1)
+        stc = SourceEstimate(data, vertices, tmin=1, tstep=1,
+                             subject=subject_from)
         stc = morph_data(subject_from, subject_to, stc, grade=grade,
                          smooth=smooth, subjects_dir=subjects_dir,
                          n_jobs=n_jobs)
@@ -329,6 +293,7 @@ class Label(dict):
             self.vertices = stc.vertno[0][inds]
         else:
             self.vertices = stc.vertno[1][inds]
+        self.subject = subject_to
 
 
 class BiHemiLabel(object):
@@ -341,24 +306,28 @@ class BiHemiLabel(object):
         respectively
     name : None | str
         name for the label
+    subject : str | None
+        Name of the subject the label is from.
 
     Attributes
     ----------
     lh, rh : Label
-        Labels for the left and right hemisphere, respectively
+        Labels for the left and right hemisphere, respectively.
     name : None | str
         A name for the label. It is OK to change that attribute manually.
     """
     hemi = 'both'
 
-    def __init__(self, lh, rh, name=None):
+    def __init__(self, lh, rh, name=None, subject=None):
         self.lh = lh
         self.rh = rh
         self.name = name
+        self.subject = subject
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
-        name = repr(self.name) if self.name is not None else "unnamed"
+        name = self.subject + ', ' if self.subject is None else 'unknown, '
+        name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
     def __len__(self):
@@ -382,13 +351,16 @@ class BiHemiLabel(object):
         return BiHemiLabel(lh, rh, name=name)
 
 
-def read_label(filename):
+def read_label(filename, subject=None):
     """Read FreeSurfer Label file
 
     Parameters
     ----------
     filename : string
         Path to label file.
+    subject : str | None
+        Name of the subject the label is from. If None, an attempt
+        will be made to extract it from the label file header.
 
     Returns
     -------
@@ -401,6 +373,18 @@ def read_label(filename):
     """
     fid = open(filename, 'r')
     comment = fid.readline().replace('\n', '')[1:]
+    # extract subject name from comment
+    if subject is None:
+        subject = comment.split('from subject ')
+        if len(subject) > 1:
+            subject = subject[1].split(' ')[0]
+            if len(subject) == 0:
+                subject = None
+        else:
+            subject = None
+    elif not isinstance(subject, basestring):
+        raise TypeError('subject must be a string')
+
     nv = int(fid.readline())
     data = np.empty((5, nv))
     for i, line in enumerate(fid):
@@ -418,7 +402,7 @@ def read_label(filename):
 
     label = Label(vertices=np.array(data[0], dtype=np.int32),
                   pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
-                  comment=comment, filename=filename)
+                  comment=comment, filename=filename, subject=subject)
 
     return label
 
@@ -436,7 +420,6 @@ def write_label(filename, label, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    label = _aslabel(label)
     hemi = label.hemi
     path_head, name = op.split(filename)
     if name.endswith('.label'):
@@ -467,11 +450,11 @@ def label_time_courses(labelfile, stcfile):
     Parameters
     ----------
     labelfile : string
-        Path to the label file
+        Path to the label file.
 
     stcfile : string
         Path to the stc file. The name of the stc file (must be on the
-        same subject and hemisphere as the stc file)
+        same subject and hemisphere as the stc file).
 
     Returns
     -------
@@ -504,9 +487,9 @@ def label_sign_flip(label, src):
     Parameters
     ----------
     label : Label
-        A label
+        A label.
     src : list of dict
-        The source space over which the label is defined
+        The source space over which the label is defined.-
 
     Returns
     -------
@@ -515,8 +498,6 @@ def label_sign_flip(label, src):
     """
     if len(src) != 2:
         raise ValueError('Only source spaces with 2 hemisphers are accepted')
-
-    label = _aslabel(label)
 
     lh_vertno = src[0]['vertno']
     rh_vertno = src[1]['vertno']
@@ -542,16 +523,17 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src, smooth=5, subjects_dir=None):
+def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
     ----------
     stc : SourceEstimate
-        The source estimates
-    src : list of dict or string
+        The source estimates.
+    src : list of dict | string | None
         The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
+        Can be None if stc.subject is not None.
     smooth : int
         Number of smoothing steps to use.
     subjects_dir : string, or None
@@ -562,7 +544,13 @@ def stc_to_label(stc, src, smooth=5, subjects_dir=None):
     labels : list of Labels
         The generated labels. One per hemisphere containing sources.
     """
-    from scipy import sparse
+    src = stc.subject if src is None else src
+    if src is None:
+        raise ValueError('src cannot be None if stc.subject is None')
+    if isinstance(src, basestring):
+        subject = src
+    else:
+        subject = stc.subject
 
     if not stc.is_surface():
         raise ValueError('SourceEstimate should be surface source estimates')
@@ -606,7 +594,8 @@ def stc_to_label(stc, src, smooth=5, subjects_dir=None):
                       pos=this_rr[idx_use],
                       values=np.ones(len(idx_use)),
                       hemi=hemi,
-                      comment='Label from stc')
+                      comment='Label from stc',
+                      subject=subject)
 
         labels.append(label)
 

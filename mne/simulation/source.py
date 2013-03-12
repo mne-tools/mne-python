@@ -7,7 +7,6 @@
 import numpy as np
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
-from ..label import _aslabel
 
 
 def select_source_in_label(src, label, random_state=None):
@@ -33,8 +32,6 @@ def select_source_in_label(src, label, random_state=None):
     rh_vertno = list()
 
     rng = check_random_state(random_state)
-
-    label = _aslabel(label)
 
     if label.hemi == 'lh':
         src_sel_lh = np.intersect1d(src[0]['vertno'], label.vertices)
@@ -150,8 +147,6 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
 
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
-
-    labels = map(_aslabel, labels)
 
     vertno = [[], []]
     stc_data_extended = [[], []]

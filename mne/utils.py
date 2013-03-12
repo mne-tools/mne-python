@@ -673,3 +673,22 @@ def _check_fname(fname, overwrite):
                           '"overwrite=True" to force overwriting.')
         else:
             logger.info('Overwriting existing file.')
+
+
+def _check_subject(class_subject, input_subject, raise_error=True):
+    """Helper to get subject name from class"""
+    if input_subject is not None:
+        if not isinstance(input_subject, basestring):
+            raise ValueError('subject input must be a string')
+        else:
+            return input_subject
+    elif class_subject is not None:
+        if not isinstance(class_subject, basestring):
+            raise ValueError('Neither subject input nor class subject '
+                             'attribute was a string')
+        else:
+            return class_subject
+    else:
+        if raise_error is True:
+            raise ValueError('Neither subject input nor class subject '
+                             'attribute was a string')

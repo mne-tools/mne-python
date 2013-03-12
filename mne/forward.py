@@ -292,6 +292,11 @@ def read_forward_meas_info(tree, fid):
     return info
 
 
+def _subject_from_forward(forward):
+    """Get subject id from inverse operator"""
+    return forward['src'][0].get('subject_his_id', None)
+
+
 @verbose
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                               include=[], exclude=[], verbose=None):
