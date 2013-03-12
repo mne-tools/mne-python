@@ -514,8 +514,12 @@ class SourceEstimate(object):
             logger.info('Writing STC to disk...')
             if not fname.endswith('-vl.stc'):
                 fname += '-vl.stc'
+            if isinstance(self.vertno, list):
+                write_indices = self.vertno[0]
+            else:
+                write_indices = self.vertno
             write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                      vertices=self.vertno[0], data=self.data)
+                      vertices=write_indices, data=self.data)
         logger.info('[done]')
 
     def _remove_kernel_sens_data_(self):
@@ -636,10 +640,10 @@ class SourceEstimate(object):
     def is_surface(self):
         """Returns True if source estimate is defined over surfaces
         """
-        if len(self.vertno) == 1:
-            return False
-        else:
+        if isinstance(self.vertno, list) and len(self.vertno) == 2:
             return True
+        else:
+            return False
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep"""

@@ -30,6 +30,23 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 tempdir = _TempDir()
 
 
+def test_volume_stc():
+    """Test reading and writing volume STCs
+    """
+    data = np.arange(1000)[:, np.newaxis]
+    vertices = np.arange(1000)
+    stc = SourceEstimate(data, vertices, 0, 1)
+    assert_true(stc.is_surface() is False)
+    fname = op.join(tempdir, 'temp-vl.stc')
+    stc_new = stc
+    for _ in xrange(2):
+        stc_new.save(fname)
+        stc_new = read_source_estimate(fname)
+        assert_true(stc_new.is_surface() is False)
+        assert_array_equal(stc.vertno, stc_new.vertno)
+        assert_array_almost_equal(stc.data, stc_new.data)
+
+
 def test_expand():
     """Test stc expansion
     """
