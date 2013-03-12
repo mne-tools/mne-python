@@ -33,8 +33,9 @@ tempdir = _TempDir()
 def test_volume_stc():
     """Test reading and writing volume STCs
     """
-    data = np.arange(1000)[:, np.newaxis]
-    vertices = np.arange(1000)
+    N = 100
+    data = np.arange(N)[:, np.newaxis]
+    vertices = np.arange(N)
     stc = SourceEstimate(data, vertices, 0, 1)
     assert_true(stc.is_surface() is False)
     fname = op.join(tempdir, 'temp-vl.stc')
@@ -44,6 +45,32 @@ def test_volume_stc():
         stc_new = read_source_estimate(fname)
         assert_true(stc_new.is_surface() is False)
         assert_array_equal(stc.vertno, stc_new.vertno)
+        assert_array_almost_equal(stc.data, stc_new.data)
+
+    # test different vertices arrangement
+    vertices = np.arange(N)[:, np.newaxis]
+    stc = SourceEstimate(data, vertices, 0, 1)
+    assert_true(stc.is_surface() is False)
+    fname = op.join(tempdir, 'temp-vl.stc')
+    stc_new = stc
+    for _ in xrange(2):
+        stc_new.save(fname)
+        stc_new = read_source_estimate(fname)
+        assert_true(stc_new.is_surface() is False)
+        assert_array_equal(vertices[:, 0], stc_new.vertno)
+        assert_array_almost_equal(stc.data, stc_new.data)
+
+    # do one that could, in principle, be confused with 2-element list
+    vertices = np.arange(2)[:, np.newaxis]
+    stc = SourceEstimate(np.zeros((2, 1)), vertices, 0, 1)
+    assert_true(stc.is_surface() is False)
+    fname = op.join(tempdir, 'temp-vl.stc')
+    stc_new = stc
+    for _ in xrange(2):
+        stc_new.save(fname)
+        stc_new = read_source_estimate(fname)
+        assert_true(stc_new.is_surface() is False)
+        assert_array_equal(vertices[:, 0], stc_new.vertno)
         assert_array_almost_equal(stc.data, stc_new.data)
 
 
