@@ -54,6 +54,7 @@ def test_volume_stc():
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol)
     stc_new = stc
+    assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for _ in xrange(2):
         fname_temp = op.join(tempdir, 'temp-vol.w')
         stc_new.save(fname_temp, ftype='w')
