@@ -509,7 +509,7 @@ class SourceEstimate(object):
                 raise ValueError('invalid file type')
         else:
             if ftype != 'stc':
-                raise ValueError('ftype has to be \"stc\" volume source '
+                raise ValueError('ftype has to be \"stc\" for volume source '
                                  'spaces')
             logger.info('Writing STC to disk...')
             if not fname.endswith('-vl.stc'):
