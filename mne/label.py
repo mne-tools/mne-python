@@ -41,8 +41,7 @@ class Label():
     comment, name, fpath : str
         Kept as information but not used by the object itself.
     subject : str | None
-        Name of the subject the label is from. If None, an attempt
-        will be made to extract it from the label file header.
+        Name of the subject the label is from.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
