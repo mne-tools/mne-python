@@ -242,7 +242,7 @@ def read_source_estimate(fname):
     source-estimate file(s) as string.
 
      - for volume source estimates, ``fname`` should provide the path to a
-       single file named '*-vl.stc`
+       single file named '*-vl.stc` or '*-vol.stc'
      - for surface source estimates, ``fname`` should either provide the
        path to the file corresponding to a single hemisphere ('*-lh.stc',
        '*-rh.stc') or only specify the asterisk part in these patterns. In any
@@ -262,7 +262,8 @@ def read_source_estimate(fname):
     # make sure corresponding file(s) can be found
     ftype = None
     if os.path.exists(fname):
-        if fname.endswith('-vl.stc'):
+        if fname.endswith('-vl.stc') or fname.endswith('-vol.stc') or \
+                fname.endswith('-vl.w') or fname.endswith('-vol.w'):
             ftype = 'volume'
         elif fname.endswith('.stc'):
             ftype = 'surface'
@@ -298,7 +299,15 @@ def read_source_estimate(fname):
 
     # read the files
     if ftype == 'volume':  # volume source space
-        kwargs = read_stc(fname)
+        if fname.endswith('.stc'):
+            kwargs = read_stc(fname)
+        elif fname.endswith('.w'):
+            kwargs = read_w(fname)
+            kwargs['data'] = kwargs['data'][:, np.newaxis]
+            kwargs['tmin'] = 0.0
+            kwargs['tstep'] = 0.0
+        else:
+            raise IOError('Volume source estimate must end with .stc or .w')
     elif ftype == 'surface':  # stc file with surface source spaces
         lh = read_stc(fname + '-lh.stc')
         rh = read_stc(fname + '-rh.stc')
@@ -476,16 +485,16 @@ class SourceEstimate(object):
             spaces are obtained by adding "-lh.stc" and "-rh.stc" (or "-lh.w"
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively. For volume source spaces, the stem is
-            extended with "-vl.stc".
+            extended with "-vl.stc" or "-vl.w".
         ftype : string
             File format to use. Allowed values are "stc" (default) and "w".
-            The "stc" format can be for surface and volume source spaces,
-            while the "w" format only supports surface source spaces with a
-            single time point.
+            The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
+        if ftype not in ['stc', 'w']:
+            raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
         if self.is_surface():
             lh_data = self.data[:len(self.lh_vertno)]
             rh_data = self.data[-len(self.rh_vertno):]
@@ -505,17 +514,25 @@ class SourceEstimate(object):
                         data=lh_data[:, 0])
                 write_w(fname + '-rh.w', vertices=self.rh_vertno,
                         data=rh_data[:, 0])
-            else:
-                raise ValueError('invalid file type')
         else:
-            if ftype != 'stc':
-                raise ValueError('ftype has to be \"stc\" volume source '
-                                 'spaces')
-            logger.info('Writing STC to disk...')
-            if not fname.endswith('-vl.stc'):
-                fname += '-vl.stc'
-            write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                      vertices=self.vertno[0], data=self.data)
+            if isinstance(self.vertno, list):
+                write_vertices = self.vertno[0]
+            else:
+                write_vertices = self.vertno
+            if ftype == 'stc':
+                logger.info('Writing STC to disk...')
+                if not (fname.endswith('-vl.stc')
+                        or fname.endswith('-vol.stc')):
+                    fname += '-vl.stc'
+                write_stc(fname, tmin=self.tmin, tstep=self.tstep,
+                          vertices=write_vertices, data=self.data)
+            elif ftype == 'w':
+                logger.info('Writing STC to disk (w format)...')
+                if not (fname.endswith('-vl.w')
+                        or fname.endswith('-vol.w')):
+                    fname += '-vl.w'
+                write_w(fname, vertices=write_vertices, data=self.data)
+
         logger.info('[done]')
 
     def _remove_kernel_sens_data_(self):
@@ -636,10 +653,10 @@ class SourceEstimate(object):
     def is_surface(self):
         """Returns True if source estimate is defined over surfaces
         """
-        if len(self.vertno) == 1:
-            return False
-        else:
+        if isinstance(self.vertno, list) and len(self.vertno) == 2:
             return True
+        else:
+            return False
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep"""

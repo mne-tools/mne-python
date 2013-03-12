@@ -26,8 +26,42 @@ subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-meg-inv.fif')
-
+fname_vol = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis-grad-vol-7-fwd-sensmap-vol.w')
 tempdir = _TempDir()
+
+
+def test_volume_stc():
+    """Test reading and writing volume STCs
+    """
+    N = 100
+    data = np.arange(N)[:, np.newaxis]
+    datas = [data, data, np.arange(2)[:, np.newaxis]]
+    vertno = np.arange(N)
+    vertnos = [vertno, vertno[:, np.newaxis], np.arange(2)[:, np.newaxis]]
+    vertno_reads = [vertno, vertno, np.arange(2)]
+    for data, vertno, vertno_read in zip(datas, vertnos, vertno_reads):
+        stc = SourceEstimate(data, vertno, 0, 1)
+        assert_true(stc.is_surface() is False)
+        fname_temp = op.join(tempdir, 'temp-vl.stc')
+        stc_new = stc
+        for _ in xrange(2):
+            stc_new.save(fname_temp)
+            stc_new = read_source_estimate(fname_temp)
+            assert_true(stc_new.is_surface() is False)
+            assert_array_equal(vertno_read, stc_new.vertno)
+            assert_array_almost_equal(stc.data, stc_new.data)
+    # now let's actually read a MNE-C processed file
+    stc = read_source_estimate(fname_vol)
+    stc_new = stc
+    assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
+    for _ in xrange(2):
+        fname_temp = op.join(tempdir, 'temp-vol.w')
+        stc_new.save(fname_temp, ftype='w')
+        stc_new = read_source_estimate(fname_temp)
+        assert_true(stc_new.is_surface() is False)
+        assert_array_equal(stc.vertno, stc_new.vertno)
+        assert_array_almost_equal(stc.data, stc_new.data)
 
 
 def test_expand():
