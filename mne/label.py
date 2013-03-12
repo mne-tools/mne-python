@@ -97,7 +97,7 @@ class Label():
         self.filename = filename
 
     def __repr__(self):
-        name = self.subject + ', ' if self.subject is None else 'unknown, '
+        name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         n_vert = len(self)
         return "<Label  |  %s, %s : %i vertices>" % (name, self.hemi, n_vert)
