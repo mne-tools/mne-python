@@ -692,3 +692,4 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         if raise_error is True:
             raise ValueError('Neither subject input nor class subject '
                              'attribute was a string')
+        return None

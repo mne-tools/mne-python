@@ -270,14 +270,13 @@ def test_morph_data():
     subject_from = 'sample'
     subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc_from = read_source_estimate(fname)
+    stc_from = read_source_estimate(fname, subject='sample')
     fname = op.join(data_path, 'MEG', 'sample', 'fsaverage_audvis-meg')
     stc_to = read_source_estimate(fname)
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
-    stc_to1 = morph_data(subject_from, subject_to, stc_from,
-                         grade=3, smooth=12, buffer_size=1000)
+    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3)
@@ -294,8 +293,7 @@ def test_morph_data():
     morph_mat = compute_morph_matrix(subject_from, subject_to,
                                      stc_from.vertno, vertices_to,
                                      smooth=12)
-    stc_to3 = morph_data_precomputed(subject_from, subject_to,
-                                     stc_from, vertices_to, morph_mat)
+    stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
     mean_from = stc_from.data.mean(axis=0)

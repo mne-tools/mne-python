@@ -1569,7 +1569,6 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     stc_to : SourceEstimate
         Source estimate for the destination subject.
     """
-
     if not stc_from.is_surface():
         raise ValueError('Morphing is only possible with surface source '
                          'estimates')
@@ -1776,6 +1775,8 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         raise ValueError('stc_from.data.shape[0] must be the same as '
                          'morph_mat.shape[0]')
 
+    if stc_from.subject is not None and stc_from.subject != subject_from:
+        raise ValueError('stc_from.subject and subject_from must match')
     data = morph_mat * stc_from.data
     stc_to = SourceEstimate(data, vertices_to, stc_from.tmin, stc_from.tstep,
                             verbose=stc_from.verbose, subject=subject_to)

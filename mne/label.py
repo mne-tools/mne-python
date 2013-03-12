@@ -119,7 +119,7 @@ class Label():
                     lh, rh = self.copy(), other.copy()
                 else:
                     lh, rh = other.copy(), self.copy()
-                return BiHemiLabel(lh, rh, name=name)
+                return BiHemiLabel(lh, rh, name=name, subject=self.subject)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
@@ -265,6 +265,8 @@ class Label():
         with label.vertices.
         """
         subject_from = _check_subject(self.subject, subject_from)
+        if not isinstance(subject_to, basestring):
+            raise TypeError('"subject_to" must be entered as a string')
         if not isinstance(smooth, int):
             raise ValueError('smooth must be an integer')
         if np.all(self.values == 0):
@@ -348,7 +350,7 @@ class BiHemiLabel(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         name = '%s + %s' % (self.name, other.name)
-        return BiHemiLabel(lh, rh, name=name)
+        return BiHemiLabel(lh, rh, name=name, subject=self.subject)
 
 
 def read_label(filename, subject=None):
