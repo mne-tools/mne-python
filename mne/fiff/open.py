@@ -107,7 +107,7 @@ def fiff_open(fname, preload=False, verbose=None):
 
 
 def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
-              verbose=None):
+              output=str, verbose=None):
     """Show FIFF information
 
     This function is similar to mne_show_fiff.
@@ -124,13 +124,20 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     max_str : int
         Max number of characters of string representation to print for
         each tag's data.
+    output : type
+        Either str or list. str is equilavent to `'\n'.join(list)`,
+        which is more convenient for using `print show_fiff(...)`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    if not output in [list, str]:
+        raise ValueError('output must be list or str')
     f, tree, directory = fiff_open(fname)
     with f as fid:
         out = _show_tree(fid, tree['children'][0], indent=indent, level=0,
                          read_limit=read_limit, max_str=max_str)
+    if output == str:
+        out = '\n'.join(out)
     return out
 
 
@@ -147,8 +154,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = (this_idt + str(tree['block'][0]) + ' = '
-           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_'])) + '\n')
+    out = [this_idt + str(tree['block'][0]) + ' = '
+           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
         sizes = [ent.size for ent in tree['directory']]
@@ -185,9 +192,9 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                     else:
                         postpend += ' ... (unknown type)'
                 postpend = '>' * 20 + 'BAD' if not good else postpend
-                out += (next_idt + prepend + str(k) + ' = '
+                out += [next_idt + prepend + str(k) + ' = '
                         + '/'.join(this_type) + ' (' + str(size) + ')'
-                        + postpend + '\n')
+                        + postpend]
                 counter = 0
                 good = True
 

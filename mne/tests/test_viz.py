@@ -9,7 +9,7 @@ from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
                     plot_evoked, plot_sparse_source_estimates, \
                     plot_source_estimates, plot_cov, mne_analyze_colormap, \
                     plot_image_epochs, plot_connectivity_circle, \
-                    circular_layout, plot_drop_log
+                    circular_layout, plot_drop_log, compare_fiff
 from mne.datasets.sample import data_path
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -194,3 +194,9 @@ def test_plot_raw():
     """Test plotting of raw data
     """
     raw.plot(events=events, show_options=True)
+
+
+def test_compare_fiff():
+    """Test comparing fiff files
+    """
+    compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)

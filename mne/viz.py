@@ -12,6 +12,9 @@ from itertools import cycle
 from functools import partial
 from operator import add
 from collections import Counter
+import difflib
+import tempfile
+import webbrowser
 
 import copy
 import inspect
@@ -29,6 +32,7 @@ from warnings import warn
 from .fixes import tril_indices
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir, get_config, set_config
+from .fiff import show_fiff
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj, setup_proj
 from . import verbose
@@ -2273,3 +2277,57 @@ def figure_nobar(*args, **kwargs):
     finally:
         pl.mpl.rcParams['toolbar'] = old_val
     return fig
+
+
+def _show_local_html(filename):
+    """Helper to show a HTML page"""
+    webbrowser.open_new_tab(filename)
+
+
+@verbose
+def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
+                 read_limit=np.inf, max_str=30, verbose=None):
+    """Compare the contents of two fiff files using diff and show_fiff
+
+    Parameters
+    ----------
+    fname_1 : str
+        First file to compare.
+    fname_2 : str
+        Second file to compare.
+    fname_out : str | None
+        Filename to store the resulting diff. If None, a temporary
+        file will be created.
+    show : bool
+        If True, show the resulting diff in a new tab in a web browser.
+    indent : str
+        How to indent the lines.
+    read_limit : int
+        Max number of bytes of data to read from a tag. Can be np.inf
+        to always read all data (helps test read completion).
+    max_str : int
+        Max number of characters of string representation to print for
+        each tag's data.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fname_out : str
+        The filename used for storing the diff. Could be useful for
+        when a temporary file is used.
+    """
+    file_1 = show_fiff(fname_1, output=list, indent=indent,
+                       read_limit=read_limit, max_str=max_str)
+    file_2 = show_fiff(fname_2, output=list, indent=indent,
+                       read_limit=read_limit, max_str=max_str)
+    diff = difflib.HtmlDiff().make_file(file_1, file_2, fname_1, fname_2)
+    if fname_out is not None:
+        f = open(fname_out, 'w')
+    else:
+        f = tempfile.NamedTemporaryFile('w', delete=False)
+        fname_out = f.name
+    with f as fid:
+        fid.write(diff)
+    if show is True:
+        _show_local_html(fname_out)
