@@ -19,7 +19,7 @@ from .surface import read_surface
 from . import verbose
 
 
-class Label():
+class Label(object):
     """An freesurfer/MNE label with vertices restricted to one hemisphere
 
     Labels can be combined with the ``+`` operator:
@@ -55,7 +55,7 @@ class Label():
         A name for the label. It is OK to change that attribute manually.
     pos : array, shape = (n_pos, 3)
         Locations in meters.
-    subject : str
+    subject : str | None
         Subject name.
     values : array, len = n_pos
         Values at the vertices.
@@ -87,7 +87,7 @@ class Label():
         self.hemi = hemi
         self.comment = comment
         self.verbose = verbose
-        self.subject = subject
+        self.subject = _check_subject(None, subject, False)
 
         # name
         if name is None and filename is not None:
@@ -118,7 +118,7 @@ class Label():
                     lh, rh = self.copy(), other.copy()
                 else:
                     lh, rh = other.copy(), self.copy()
-                return BiHemiLabel(lh, rh, name=name, subject=self.subject)
+                return BiHemiLabel(lh, rh, name=name)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
@@ -307,8 +307,6 @@ class BiHemiLabel(object):
         respectively
     name : None | str
         name for the label
-    subject : str | None
-        Name of the subject the label is from.
 
     Attributes
     ----------
@@ -316,14 +314,19 @@ class BiHemiLabel(object):
         Labels for the left and right hemisphere, respectively.
     name : None | str
         A name for the label. It is OK to change that attribute manually.
+    subject : str | None
+        Subject the label is from.
     """
     hemi = 'both'
 
-    def __init__(self, lh, rh, name=None, subject=None):
+    def __init__(self, lh, rh, name=None):
+        if lh.subject != rh.subject:
+            raise ValueError('lh.subject (%s) and rh.subject (%s) must '
+                             'agree' % (lh.subject, rh.subject))
         self.lh = lh
         self.rh = rh
         self.name = name
-        self.subject = subject
+        self.subject = lh.subject
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
@@ -349,7 +352,7 @@ class BiHemiLabel(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         name = '%s + %s' % (self.name, other.name)
-        return BiHemiLabel(lh, rh, name=name, subject=self.subject)
+        return BiHemiLabel(lh, rh, name=name)
 
 
 def read_label(filename, subject=None):
