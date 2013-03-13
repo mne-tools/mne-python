@@ -14,7 +14,6 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
 raw_0 = Raw(raw_fname, preload=True).crop(0, 10, False)
-raw_0.close()
 
 
 def test_compute_proj_ecg():
