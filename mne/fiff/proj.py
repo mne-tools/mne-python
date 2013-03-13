@@ -207,7 +207,10 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     ch_names : list of strings
         List of channels to include in the projection matrix.
     bads : list of strings
-        Some bad channels to exclude.
+        Some bad channels to exclude. If bad channels were marked
+        in the raw file when they were calculated using mne-python,
+        they should not need to be included here as they will
+        have been automatically omitted from the projectors.
     include_active : bool
         Also include projectors that are already active.
 
