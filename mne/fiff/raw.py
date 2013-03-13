@@ -143,6 +143,8 @@ class Raw(object):
 
         self._data, self._times = self._read_segment(data_buffer=data_buffer)
         self._preloaded = True
+        # close files once data are preloaded
+        self.close()
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
@@ -287,6 +289,10 @@ class Raw(object):
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
                     float(raw.last_samp) / info['sfreq']))
+
+        # store the original buffer size
+        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir])
+                                   / info['sfreq'])
 
         raw.fid = fid
         raw.info = info
@@ -875,16 +881,17 @@ class Raw(object):
         Parameters
         ----------
         fname : string
-            File name of the new dataset. Caveat! This has to be a new
-            filename.
+            File name of the new dataset. This has to be a new filename
+            unless data have been preloaded.
         picks : list of int
             Indices of channels to include.
         tmin : float
             Time in seconds of first sample to save.
         tmax : float
             Time in seconds of last sample to save.
-        buffer_size_sec : float
-            Size of data chunks in seconds.
+        buffer_size_sec : float | None
+            Size of data chunks in seconds. If None, the buffer size of
+            the original file is used.
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
@@ -908,9 +915,18 @@ class Raw(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Notes
+        -----
+        If Raw is a concatenation of several raw files, *be warned* that only
+        the measurement information from the first raw file is stored. This
+        likely means that certain operations with external tools may not
+        work properly on a saved concatenated file (e.g., probably some
+        or all forms of SSS). It is recommended not to concatenate and
+        then save raw files for this reason.
         """
         fname = op.abspath(fname)
-        if fname in self.info['filenames']:
+        if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
@@ -959,6 +975,11 @@ class Raw(object):
         else:
             stop = int(floor(tmax * self.info['sfreq']))
 
+        if buffer_size_sec is None:
+            if 'buffer_size_sec' in self.info:
+                buffer_size_sec = self.info['buffer_size_sec']
+            else:
+                buffer_size_sec = 10.0
         buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
         #
         #   Read and write all the data
@@ -1282,25 +1303,30 @@ class Raw(object):
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_lengths = np.r_[self._raw_lengths, r._raw_lengths]
             self.rawdirs += r.rawdirs
-            self.fids += r.fids
             self.info['filenames'] += r.info['filenames']
+        # reconstruct fids in case some were preloaded and others weren't
+        self._initialize_fids()
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
     def close(self):
         [f.close() for f in self.fids]
+        self.fids = []
 
     def copy(self):
         """ Return copy of Raw instance
         """
         new = deepcopy(self)
-        if self._preloaded:
-            new.fids = []
-        else:
-            new.fids = [open(fname, "rb") for fname in self.info['filenames']]
-            for new_fid, this_fid in zip(new.fids, self.fids):
-                new_fid.seek(this_fid.tell())
-
+        new._initialize_fids()
         return new
+
+    def _initialize_fids(self):
+        """Initialize self.fids based on self.info['filenames']
+        """
+        if not self._preloaded:
+            self.fids = [open(fname, "rb") for fname in self.info['filenames']]
+            [fid.seek(0, 0) for fid in self.fids]
+        else:
+            self.fids = []
 
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=dict(mag=1e15, grad=1e13, eeg=1e6),

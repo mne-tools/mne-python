@@ -164,6 +164,7 @@ Visualization
    :template: function.rst
 
    circular_layout
+   compare_fiff
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov

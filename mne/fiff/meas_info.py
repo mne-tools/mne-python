@@ -7,6 +7,7 @@ from warnings import warn
 from copy import deepcopy
 import numpy as np
 from scipy import linalg
+from StringIO import StringIO
 
 import logging
 logger = logging.getLogger('mne')
@@ -21,7 +22,7 @@ from .channels import read_bad_channels
 
 from .write import start_block, end_block, write_string, write_dig_point, \
                    write_float, write_int, write_coord_trans, write_ch_info, \
-                   write_name_list
+                   write_name_list, start_file
 from .. import verbose
 
 
@@ -69,6 +70,10 @@ def read_meas_info(fid, tree, verbose=None):
     nchan = None
     sfreq = None
     chs = []
+    experimenter = None
+    description = None
+    proj_id = None
+    proj_name = None
     p = 0
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
@@ -101,6 +106,18 @@ def read_meas_info(fid, tree, verbose=None):
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
                                 cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
+        elif kind == FIFF.FIFF_EXPERIMENTER:
+            tag = read_tag(fid, pos)
+            experimenter = tag.data
+        elif kind == FIFF.FIFF_DESCRIPTION:
+            tag = read_tag(fid, pos)
+            description = tag.data
+        elif kind == FIFF.FIFF_PROJ_ID:
+            tag = read_tag(fid, pos)
+            proj_id = tag.data
+        elif kind == FIFF.FIFF_PROJ_NAME:
+            tag = read_tag(fid, pos)
+            proj_name = tag.data
 
     # Check that we have everything we need
     if nchan is None:
@@ -183,6 +200,9 @@ def read_meas_info(fid, tree, verbose=None):
     else:
         info = dict(file_id=None)
 
+    #   Load extra information blocks
+    read_extra_meas_info(fid, tree, info)
+
     #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:
         if meas_info['id'] is None:
@@ -197,6 +217,11 @@ def read_meas_info(fid, tree, verbose=None):
             info['meas_id'] = meas_info['id']
     else:
         info['meas_id'] = meas_info['parent_id']
+
+    info['experimenter'] = experimenter
+    info['description'] = description
+    info['proj_id'] = proj_id
+    info['proj_name'] = proj_name
 
     if meas_date is None:
         info['meas_date'] = [info['meas_id']['secs'], info['meas_id']['usecs']]
@@ -238,6 +263,38 @@ def read_meas_info(fid, tree, verbose=None):
     return info, meas
 
 
+def read_extra_meas_info(fid, tree, info):
+    """Read extra blocks from fid"""
+    # current method saves them into a cStringIO file instance for simplicity
+    # this and its partner, write_extra_meas_info, could be made more
+    # comprehensive (i.e.., actually parse and read the data instead of
+    # just storing it for later)
+    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_EVENTS,
+              FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
+              FIFF.FIFFB_PROCESSING_HISTORY]
+    info['orig_blocks'] = blocks
+
+    fid_str = StringIO()
+    fid_str = start_file(fid_str)
+    start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
+    for block in blocks:
+        nodes = dir_tree_find(tree, block)
+        copy_tree(fid, tree['id'], nodes, fid_str)
+    info['orig_fid_str'] = fid_str
+
+
+def write_extra_meas_info(fid, info):
+    """Write otherwise left out blocks of data"""
+    # uses cStringIO fake file to read the appropriate blocks
+    if 'orig_blocks' in info:
+        # Blocks from the original
+        blocks = info['orig_blocks']
+        fid_str, tree, _ = fiff_open(info['orig_fid_str'])
+        for block in blocks:
+            nodes = dir_tree_find(tree, block)
+            copy_tree(fid_str, tree['id'], nodes, fid)
+
+
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info in fif file.
 
@@ -262,16 +319,16 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
-    # Blocks from the original
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_HPI_MEAS,
-              FIFF.FIFFB_PROCESSING_HISTORY]
+    #   Extra measurement info
+    write_extra_meas_info(fid, info)
 
-    if 'filename' in info and info['filename'] is not None:
-        fid2, tree, _ = fiff_open(info['filename'])
-        for block in blocks:
-            nodes = dir_tree_find(tree, block)
-            copy_tree(fid2, tree['id'], nodes, fid)
-        fid2.close()
+    #   Polhemus data
+    if info['dig'] is not None:
+        start_block(fid, FIFF.FIFFB_ISOTRAK)
+        for d in info['dig']:
+            write_dig_point(fid, d)
+
+        end_block(fid, FIFF.FIFFB_ISOTRAK)
 
     #   megacq parameters
     if info['acq_pars'] is not None or info['acq_stim'] is not None:
@@ -291,14 +348,6 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     if info['ctf_head_t'] is not None:
         write_coord_trans(fid, info['ctf_head_t'])
 
-    #   Polhemus data
-    if info['dig'] is not None:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-        for d in info['dig']:
-            write_dig_point(fid, d)
-
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
-
     #   Projectors
     write_proj(fid, info['projs'])
 
@@ -312,14 +361,22 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
 
     #   General
-    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
-    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
-    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    if info.get('experimenter') is not None:
+        write_string(fid, FIFF.FIFF_EXPERIMENTER, info['experimenter'])
+    if info.get('description') is not None:
+        write_string(fid, FIFF.FIFF_DESCRIPTION, info['description'])
+    if info.get('proj_id') is not None:
+        write_int(fid, FIFF.FIFF_PROJ_ID, info['proj_id'])
+    if info.get('proj_name') is not None:
+        write_string(fid, FIFF.FIFF_PROJ_NAME, info['proj_name'])
+    if info.get('meas_date') is not None:
+        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
     write_int(fid, FIFF.FIFF_NCHAN, info['nchan'])
+    write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
+    write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
+    write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
-    if info['meas_date'] is not None:
-        write_int(fid, FIFF.FIFF_MEAS_DATE, info['meas_date'])
 
     #  Channel information
     for k, c in enumerate(info['chs']):

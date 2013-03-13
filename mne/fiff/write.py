@@ -186,18 +186,24 @@ def start_file(fname):
 
     Parameters
     ----------
-    fname : string
+    fname : string | fid
         The name of the file to open. It is recommended
-        that the name ends with .fif or .fif.gz
+        that the name ends with .fif or .fif.gz. Can also be an
+        already opened file.
     """
-    if op.splitext(fname)[1].lower() == '.gz':
-        logger.debug('Writing using gzip')
-        # defaults to compression level 9, which is barely smaller but much
-        # slower. 2 offers a good compromise.
-        fid = gzip.open(fname, "wb", compresslevel=2)
+    if isinstance(fname, basestring):
+        if op.splitext(fname)[1].lower() == '.gz':
+            logger.debug('Writing using gzip')
+            # defaults to compression level 9, which is barely smaller but much
+            # slower. 2 offers a good compromise.
+            fid = gzip.open(fname, "wb", compresslevel=2)
+        else:
+            logger.debug('Writing using normal I/O')
+            fid = open(fname, "wb")
     else:
-        logger.debug('Writing using normal I/O')
-        fid = open(fname, "wb")
+        logger.debug('Writing using %s I/O' % type(fname))
+        fid = fname
+        fid.seek(0)
     #   Write the compulsory items
     write_id(fid, FIFF.FIFF_FILE_ID)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
