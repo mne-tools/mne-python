@@ -2279,11 +2279,6 @@ def figure_nobar(*args, **kwargs):
     return fig
 
 
-def _show_local_html(filename):
-    """Helper to show a HTML page"""
-    webbrowser.open_new_tab(filename)
-
-
 @verbose
 def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
                  read_limit=np.inf, max_str=30, verbose=None):
@@ -2330,4 +2325,5 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     with f as fid:
         fid.write(diff)
     if show is True:
-        _show_local_html(fname_out)
+        webbrowser.open_new_tab(fname_out)
+    return fname_out
