@@ -288,6 +288,10 @@ class Raw(object):
                     float(raw.first_samp) / info['sfreq'],
                     float(raw.last_samp) / info['sfreq']))
 
+        # store the original buffer size
+        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir])
+                                   / info['sfreq'])
+
         raw.fid = fid
         raw.info = info
         raw.verbose = verbose
@@ -883,8 +887,9 @@ class Raw(object):
             Time in seconds of first sample to save.
         tmax : float
             Time in seconds of last sample to save.
-        buffer_size_sec : float
-            Size of data chunks in seconds.
+        buffer_size_sec : float | None
+            Size of data chunks in seconds. If None, the buffer size of
+            the original file is used.
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
@@ -908,6 +913,15 @@ class Raw(object):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Notes
+        -----
+        If Raw is a concatenation of several raw files, *be warned* that only
+        the measurement information from the first raw file is stored. This
+        likely means that certain operations with external tools may not
+        work properly on a saved concatenated file (e.g., probably some
+        or all forms of SSS). It is recommended not to concatenate and
+        then save raw files for this reason.
         """
         fname = op.abspath(fname)
         if fname in self.info['filenames']:
@@ -959,6 +973,11 @@ class Raw(object):
         else:
             stop = int(floor(tmax * self.info['sfreq']))
 
+        if buffer_size_sec is None:
+            if 'buffer_size_sec' in self.info:
+                buffer_size_sec = self.info['buffer_size_sec']
+            else:
+                buffer_size_sec = 10.0
         buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
         #
         #   Read and write all the data
@@ -1293,12 +1312,9 @@ class Raw(object):
         """ Return copy of Raw instance
         """
         new = deepcopy(self)
-        if self._preloaded:
-            new.fids = []
-        else:
-            new.fids = [open(fname, "rb") for fname in self.info['filenames']]
-            for new_fid, this_fid in zip(new.fids, self.fids):
-                new_fid.seek(this_fid.tell())
+        new.fids = [open(fname, "rb") for fname in self.info['filenames']]
+        for new_fid, this_fid in zip(new.fids, self.fids):
+            new_fid.seek(this_fid.tell())
 
         return new
 

@@ -22,8 +22,8 @@ def fiff_open(fname, preload=False, verbose=None):
 
     Parameters
     ----------
-    fname : string
-        name of the fif file
+    fname : string | fid
+        Name of the fif file, or an opened file (will seek back to 0).
     preload : bool
         If True, all data from the file is read into a memory buffer. This
         requires more memory, but can be faster for I/O operations that require
@@ -41,12 +41,16 @@ def fiff_open(fname, preload=False, verbose=None):
     directory : list
         list of nodes.
     """
-    if op.splitext(fname)[1].lower() == '.gz':
-        logger.debug('Using gzip')
-        fid = gzip.open(fname, "rb")  # Open in binary mode
+    if isinstance(fname, basestring):
+        if op.splitext(fname)[1].lower() == '.gz':
+            logger.debug('Using gzip')
+            fid = gzip.open(fname, "rb")  # Open in binary mode
+        else:
+            logger.debug('Using normal I/O')
+            fid = open(fname, "rb")  # Open in binary mode
     else:
-        logger.debug('Using normal I/O')
-        fid = open(fname, "rb")  # Open in binary mode
+        fid = fname
+        fid.seek(0)
 
     # do preloading of entire file
     if preload:

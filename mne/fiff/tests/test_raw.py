@@ -28,6 +28,16 @@ bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 tempdir = _TempDir()
 
 
+def test_copy_append():
+    """Test raw copying and appending combinations
+    """
+    raw = Raw(fif_fname, preload=True).copy()
+    raw_full = Raw(fif_fname)
+    raw_full.append(raw)
+    data = raw_full[:, :][0]
+    assert_true(data.shape[1] == 2 * raw._data.shape[1])
+
+
 def test_rank_estimation():
     """Test raw rank estimation
     """
