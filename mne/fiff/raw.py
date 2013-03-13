@@ -143,6 +143,8 @@ class Raw(object):
 
         self._data, self._times = self._read_segment(data_buffer=data_buffer)
         self._preloaded = True
+        # close files once data are preloaded
+        self.close()
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
@@ -879,8 +881,8 @@ class Raw(object):
         Parameters
         ----------
         fname : string
-            File name of the new dataset. Caveat! This has to be a new
-            filename.
+            File name of the new dataset. This has to be a new filename
+            unless data have been preloaded.
         picks : list of int
             Indices of channels to include.
         tmin : float
@@ -924,7 +926,7 @@ class Raw(object):
         then save raw files for this reason.
         """
         fname = op.abspath(fname)
-        if fname in self.info['filenames']:
+        if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
                                ' Please use a different filename.')
 
@@ -1301,22 +1303,30 @@ class Raw(object):
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_lengths = np.r_[self._raw_lengths, r._raw_lengths]
             self.rawdirs += r.rawdirs
-            self.fids += r.fids
             self.info['filenames'] += r.info['filenames']
+        # reconstruct fids in case some were preloaded and others weren't
+        self._initialize_fids()
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
     def close(self):
         [f.close() for f in self.fids]
+        self.fids = []
 
     def copy(self):
         """ Return copy of Raw instance
         """
         new = deepcopy(self)
-        new.fids = [open(fname, "rb") for fname in self.info['filenames']]
-        for new_fid, this_fid in zip(new.fids, self.fids):
-            new_fid.seek(this_fid.tell())
-
+        new._initialize_fids()
         return new
+
+    def _initialize_fids(self):
+        """Initialize self.fids based on self.info['filenames']
+        """
+        if not self._preloaded:
+            self.fids = [open(fname, "rb") for fname in self.info['filenames']]
+            [fid.seek(0, 0) for fid in self.fids]
+        else:
+            self.fids = []
 
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=dict(mag=1e15, grad=1e13, eeg=1e6),

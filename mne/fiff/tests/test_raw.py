@@ -721,13 +721,21 @@ def test_raw_time_as_index():
 
 def test_save():
     """ Test saving raw"""
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=False)
+    # can't write over file being read
     assert_raises(ValueError, raw.save, fif_fname)
+    raw = Raw(fif_fname, preload=True)
+    # can't overwrite file without overwrite=True
+    assert_raises(IOError, raw.save, fif_fname)
+
+    # test abspath support
     new_fname = op.join(op.abspath(op.curdir), 'break.fif')
-    raw.save(op.join(tempdir, new_fname))
-    new_raw = Raw(op.join(tempdir, new_fname))
+    raw.save(op.join(tempdir, new_fname), overwrite=True)
+    new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
-    new_raw.close()
+    # make sure we can overwrite the file we loaded when preload=True
+    new_raw = Raw(op.join(tempdir, new_fname), preload=True)
+    new_raw.save(op.join(tempdir, new_fname), overwrite=True)
     os.remove(new_fname)
 
 
