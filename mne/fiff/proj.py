@@ -256,7 +256,7 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
             sel = []
             vecsel = []
             for c, name in enumerate(ch_names):
-                if name in p['data']['col_names']:
+                if name in p['data']['col_names'] and name not in bads:
                     sel.append(c)
                     vecsel.append(p['data']['col_names'].index(name))
 
