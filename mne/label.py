@@ -247,7 +247,7 @@ class Label(object):
             initial subject will be taken from self.subject.
         subject_to : str
             The name of the subject to morph the label to. This will
-            replace self.subject.
+            be put in label.subject of the output label file.
         smooth : int
             Number of iterations for the smoothing of the surface data.
             Cannot be None here since not all vertices are used.

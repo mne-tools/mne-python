@@ -49,7 +49,8 @@ pl.show()
 
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
-brain = stc.plot(None, 'inflated', 'rh', subjects_dir=subjects_dir)
+brain = stc.plot(subject=None, surface='inflated', hemi='rh',
+                 subjects_dir=subjects_dir)
 brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
