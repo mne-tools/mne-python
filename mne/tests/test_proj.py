@@ -206,4 +206,7 @@ def test_compute_proj_raw():
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
 
-
+    # test that bad channels can be excluded
+    proj, nproj, U = make_projector(projs, raw.ch_names,
+                                    bads=raw.ch_names)
+    assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
