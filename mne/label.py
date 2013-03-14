@@ -56,7 +56,8 @@ class Label(object):
     pos : array, shape = (n_pos, 3)
         Locations in meters.
     subject : str | None
-        Subject name.
+        Subject name. It is best practice to set this to the proper
+        value on initialization, but it can also be set manually.
     values : array, len = n_pos
         Values at the vertices.
     verbose : bool, str, int, or None
@@ -110,8 +111,11 @@ class Label(object):
         elif isinstance(other, Label):
             if self.subject != other.subject:
                 raise ValueError('Label subject parameters must match, got '
-                                 '"%s" and "%s"' % (self.subject,
-                                                    other.subject))
+                                 '"%s" and "%s". Consider setting the '
+                                 'subject parameter on initialization, or '
+                                 'setting label.subject manually before '
+                                 'combining labels.' % (self.subject,
+                                                        other.subject))
             if self.hemi != other.hemi:
                 name = '%s + %s' % (self.name, other.name)
                 if self.hemi == 'lh':
@@ -177,7 +181,7 @@ class Label(object):
 
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
-               subjects_dir=None, n_jobs=1, verbose=None):
+               subjects_dir=None, n_jobs=1, copy=True, verbose=None):
         """Smooth the label
 
         Useful for filling in labels made in a
@@ -208,9 +212,16 @@ class Label(object):
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
             Number of jobs to run in parallel
+        copy : bool
+            If False, smoothing is done in-place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Returns
+        -------
+        label : instance of Label
+            The smoothed label.
 
         Notes
         -----
@@ -219,11 +230,12 @@ class Label(object):
         with label.vertices.
         """
         subject = _check_subject(self.subject, subject)
-        self.morph(subject, subject, smooth, grade, subjects_dir, n_jobs)
+        return self.morph(subject, subject, smooth, grade, subjects_dir,
+                          n_jobs, copy)
 
     @verbose
     def morph(self, subject_from=None, subject_to=None, smooth=5, grade=None,
-              subjects_dir=None, n_jobs=1, verbose=None):
+              subjects_dir=None, n_jobs=1, copy=True, verbose=None):
         """Morph the label
 
         Useful for transforming a label from one subject to another.
@@ -253,9 +265,16 @@ class Label(object):
         subjects_dir : string, or None
             Path to SUBJECTS_DIR if it is not set in the environment.
         n_jobs : int
-            Number of jobs to run in parallel
+            Number of jobs to run in parallel.
+        copy : bool
+            If False, the morphing is done in-place.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        label : instance of Label
+            The morphed label.
 
         Notes
         -----
@@ -288,13 +307,18 @@ class Label(object):
                          smooth=smooth, subjects_dir=subjects_dir,
                          n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
-        self.values = stc.data[inds, :].ravel()
-        self.pos = np.zeros((len(inds), 3))
-        if self.hemi == 'lh':
-            self.vertices = stc.vertno[0][inds]
+        if copy is True:
+            label = self.copy()
         else:
-            self.vertices = stc.vertno[1][inds]
-        self.subject = subject_to
+            label = self
+        label.values = stc.data[inds, :].ravel()
+        label.pos = np.zeros((len(inds), 3))
+        if label.hemi == 'lh':
+            label.vertices = stc.vertno[0][inds]
+        else:
+            label.vertices = stc.vertno[1][inds]
+        label.subject = subject_to
+        return label
 
 
 class BiHemiLabel(object):
@@ -330,7 +354,7 @@ class BiHemiLabel(object):
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
-        name = self.subject + ', ' if self.subject is None else 'unknown, '
+        name = 'unknown, ' if self.subject is None else self.subject + ', '
         name += repr(self.name) if self.name is not None else "unnamed"
         return temp % (name, len(self.lh), len(self.rh))
 
@@ -363,8 +387,11 @@ def read_label(filename, subject=None):
     filename : string
         Path to label file.
     subject : str | None
-        Name of the subject the label is from. If None, an attempt
-        will be made to extract it from the label file header.
+        Name of the subject the data are defined for.
+        It is good practice to set this attribute to avoid combining
+        incompatible labels and SourceEstimates (e.g., ones from other
+        subjects). Note that due to file specification limitations, the
+        subject name isn't saved to or loaded from files written to disk.
 
     Returns
     -------
@@ -377,16 +404,7 @@ def read_label(filename, subject=None):
     """
     fid = open(filename, 'r')
     comment = fid.readline().replace('\n', '')[1:]
-    # extract subject name from comment
-    if subject is None:
-        subject = comment.split('from subject ')
-        if len(subject) > 1:
-            subject = subject[1].split(' ')[0]
-            if len(subject) == 0:
-                subject = None
-        else:
-            subject = None
-    elif not isinstance(subject, basestring):
+    if subject is not None and not isinstance(subject, basestring):
         raise TypeError('subject must be a string')
 
     nv = int(fid.readline())
@@ -455,7 +473,6 @@ def label_time_courses(labelfile, stcfile):
     ----------
     labelfile : string
         Path to the label file.
-
     stcfile : string
         Path to the stc file. The name of the stc file (must be on the
         same subject and hemisphere as the stc file).
@@ -463,11 +480,11 @@ def label_time_courses(labelfile, stcfile):
     Returns
     -------
     values : 2d array
-        The time courses
+        The time courses.
     times : 1d array
-        The time points
+        The time points.
     vertices : array
-        The indices of the vertices corresponding to the time points
+        The indices of the vertices corresponding to the time points.
     """
     stc = read_stc(stcfile)
     lab = read_label(labelfile)
@@ -493,7 +510,7 @@ def label_sign_flip(label, src):
     label : Label
         A label.
     src : list of dict
-        The source space over which the label is defined.-
+        The source space over which the label is defined.
 
     Returns
     -------

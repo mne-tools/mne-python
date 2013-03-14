@@ -239,6 +239,10 @@ def read_source_estimate(fname, subject=None):
         Path to (a) source-estimate file(s).
     subject : str | None
         Name of the subject the source estimate(s) is (are) from.
+        It is good practice to set this attribute to avoid combining
+        incompatible labels and SourceEstimates (e.g., ones from other
+        subjects). Note that due to file specification limitations, the
+        subject name isn't saved to or loaded from files written to disk.
 
     Notes
     -----
@@ -537,7 +541,11 @@ class SourceEstimate(object):
             self._sens_data = None
 
     def __repr__(self):
-        s = "%d vertices" % sum([len(v) for v in self.vertno])
+        if isinstance(self.vertno, list):
+            nv = sum([len(v) for v in self.vertno])
+        else:
+            nv = self.vertno.size
+        s = "%d vertices" % nv
         if self.subject is not None:
             s += ", subject : %s" % self.subject
         s += ", tmin : %s (ms)" % (1e3 * self.tmin)

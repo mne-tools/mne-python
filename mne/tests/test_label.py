@@ -21,8 +21,6 @@ subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'
 label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
-label_subj_fname = op.join(data_path, 'subjects', 'sample', 'label',
-                           'lh.BA1.label')
 label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
@@ -44,8 +42,10 @@ def test_label_subject():
     """
     label = read_label(label_fname)
     assert_true(label.subject is None)
-    label = read_label(label_subj_fname)
-    assert_true(label.subject == 'sample')
+    assert_true('unknown' in repr(label))
+    label = read_label(label_fname, subject='fsaverage')
+    assert_true(label.subject == 'fsaverage')
+    assert_true('fsaverage' in repr(label))
 
 
 def test_label_addition():
@@ -221,15 +221,18 @@ def test_morph():
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 2)
-        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
+        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 2,
+                    copy=False)
+        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
+                    copy=False)
         assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
     label.morph(label.subject, 'fsaverage', 5,
-                [np.arange(10242), np.arange(10242)], subjects_dir, 2)
+                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
+                 copy=False)
     # subject name should be inferred now
     label.smooth()
 

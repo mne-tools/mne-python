@@ -15,8 +15,7 @@ from mne import read_stc, write_stc, read_source_estimate, morph_data,\
                 extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
-                                compute_morph_matrix, grade_to_vertices, \
-                                morph_data_precomputed
+                                compute_morph_matrix, grade_to_vertices
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
 from mne.utils import _TempDir
@@ -52,7 +51,8 @@ def test_volume_stc():
             assert_array_equal(vertno_read, stc_new.vertno)
             assert_array_almost_equal(stc.data, stc_new.data)
     # now let's actually read a MNE-C processed file
-    stc = read_source_estimate(fname_vol)
+    stc = read_source_estimate(fname_vol, 'sample')
+    assert_true('sample' in repr(stc))
     stc_new = stc
     assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for _ in xrange(2):
@@ -67,7 +67,8 @@ def test_volume_stc():
 def test_expand():
     """Test stc expansion
     """
-    stc = read_source_estimate(fname)
+    stc = read_source_estimate(fname, 'sample')
+    assert_true('sample' in repr(stc))
     labels_lh, _ = labels_from_parc('sample', hemi='lh',
                                     subjects_dir=subjects_dir)
     stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
