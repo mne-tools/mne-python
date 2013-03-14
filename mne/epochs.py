@@ -947,7 +947,8 @@ class Epochs(object):
         [df.insert(i, k, v) for i, k, v in insert_info]
 
         if index is not None:
-            df.set_index(index, inplace=True)
+            with warnings.catch_warnings(True):
+                df.set_index(index, inplace=True)
             if 'time' in df.index.names:
                 df.index.levels[1] = df.index.levels[1].astype(int)
 

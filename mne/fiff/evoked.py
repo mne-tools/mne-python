@@ -6,6 +6,7 @@
 
 from copy import deepcopy
 import numpy as np
+import warnings
 
 import logging
 logger = logging.getLogger('mne')
@@ -29,8 +30,8 @@ from ..viz import plot_evoked
 from .. import verbose
 
 
-aspect_dict = {'average' : FIFF.FIFFV_ASPECT_AVERAGE,
-               'standard_error' : FIFF.FIFFV_ASPECT_STD_ERR}
+aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
+               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
 aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
@@ -440,12 +441,12 @@ class Evoked(object):
             picks = range(self.info['nchan'])
         else:
             if not in1d(picks, np.arange(len(self.ch_names))).all():
-                raise ValueError('At least one picked channel is not present in'
-                                 ' this eppochs instance.')
+                raise ValueError('At least one picked channel is not present '
+                                 'in this eppochs instance.')
 
         data, times = self.data, self.times
 
-        if copy == True:
+        if copy is True:
             data = data.copy()
 
         types = [channel_type(self.info, idx) for idx in picks]
@@ -468,8 +469,9 @@ class Evoked(object):
         df = pd.DataFrame(data.T, columns=col_names)
         df.insert(0, 'time', times * scale_time)
 
-        if use_time_index == True:
-            df.set_index('time', inplace=True)
+        if use_time_index is True:
+            with warnings.catch_warnings(True):
+                df.set_index('time', inplace=True)
             df.index = df.index.astype(int)
 
         return df
