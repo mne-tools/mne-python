@@ -127,7 +127,7 @@ def test_evoked_to_nitime():
 
 @requires_pandas
 def test_as_data_frame():
-    """Test Pandas exporter"""
+    """Test evoked Pandas exporter"""
     ave = read_evoked(fname, [0])[0]
     assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
     df = ave.as_data_frame()

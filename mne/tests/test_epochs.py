@@ -595,7 +595,7 @@ def test_access_by_name():
 
 @requires_pandas
 def test_as_data_frame():
-    """Test Pandas exporter"""
+    """Test epochs Pandas exporter"""
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     assert_raises(ValueError, epochs.as_data_frame, index=['foo', 'bar'])
     assert_raises(ValueError, epochs.as_data_frame, index='qux')

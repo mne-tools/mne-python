@@ -1400,7 +1400,8 @@ class Raw(object):
         df.insert(0, 'time', times * scale_time)
 
         if use_time_index is True:
-            df.set_index('time', inplace=True)
+            with warnings.catch_warnings(True):
+                df.set_index('time', inplace=True)
             df.index = df.index.astype(int)
 
         return df
