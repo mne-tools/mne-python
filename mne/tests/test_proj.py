@@ -45,6 +45,7 @@ def test_sensitivity_maps():
         stc = sensitivity_map(fwd, projs=projs, ch_type=ch_type,
                               mode='free', exclude='bads')
         assert_array_almost_equal(stc.data.ravel(), w, decim)
+        assert_true(stc.subject == 'sample')
         # let's just make sure the others run
         if ch_type == 'grad':
             # fixed

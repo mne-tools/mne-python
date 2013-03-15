@@ -657,6 +657,11 @@ def _check_method(method, dSPM):
     return method
 
 
+def _subject_from_inverse(inverse_operator):
+    """Get subject id from inverse operator"""
+    return inverse_operator['src'][0].get('subject_his_id', None)
+
+
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                   pick_normal=False, dSPM=None, verbose=None):
@@ -720,7 +725,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+    subject = _subject_from_inverse(inverse_operator)
+    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                         subject=subject)
     logger.info('[done]')
 
     return stc
@@ -831,7 +838,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+    subject = _subject_from_inverse(inverse_operator)
+    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                         subject=subject)
     logger.info('[done]')
 
     return stc
@@ -867,6 +876,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
         # premultiply kernel with noise normalization
         K *= noise_norm
 
+    subject = _subject_from_inverse(inverse_operator)
     for k, e in enumerate(epochs):
         logger.info('Processing epoch : %d' % (k + 1))
         if is_free_ori:
@@ -885,7 +895,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
             else:
                 sol = np.dot(K, e[sel])
 
-        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                             subject=subject)
 
         yield stc
 

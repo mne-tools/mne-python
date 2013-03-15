@@ -109,6 +109,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals,
     stc_1 = apply_inverse(evoked, inv_1, lambda2, "dSPM")
     stc_2 = apply_inverse(evoked, inv_2, lambda2, "dSPM")
 
+    assert_true(stc_1.subject == stc_2.subject)
     assert_equal(stc_1.times, stc_2.times)
     assert_array_almost_equal(stc_1.data, stc_2.data, stc_decimals)
 
@@ -152,16 +153,19 @@ def test_apply_inverse_operator():
     assert_true(compute_rank_inverse(inverse_operator) == 302)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
+    assert_true(stc.subject == 'sample')
     assert_true(stc.data.min() > 0)
     assert_true(stc.data.max() < 10e-10)
     assert_true(stc.data.mean() > 1e-11)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
+    assert_true(stc.subject == 'sample')
     assert_true(stc.data.min() > 0)
     assert_true(stc.data.max() < 10.0)
     assert_true(stc.data.mean() > 0.1)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
+    assert_true(stc.subject == 'sample')
     assert_true(stc.data.min() > 0)
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
@@ -171,6 +175,7 @@ def test_apply_inverse_operator():
     assert_true('dev_head_t' in my_inv_op['info'])
     assert_true('mri_head_t' in my_inv_op)
 
+    assert_true(my_stc.subject == 'sample')
     assert_equal(stc.times, my_stc.times)
     assert_array_almost_equal(stc.data, my_stc.data, 2)
 
@@ -257,6 +262,8 @@ def test_inverse_operator_volume():
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     _compare_io(inverse_operator_vol)
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
+    # volume inverses don't have associated subject IDs
+    assert_true(stc.subject is None)
     stc.save(op.join(tempdir, 'tmp-vl.stc'))
     stc2 = read_source_estimate(op.join(tempdir, 'tmp-vl.stc'))
     assert_true(np.all(stc.data > 0))
@@ -292,9 +299,10 @@ def test_apply_mne_inverse_raw():
             assert_true(np.all(stc.data > 0))
             assert_true(np.all(stc2.data > 0))
 
+        assert_true(stc.subject == 'sample')
+        assert_true(stc2.subject == 'sample')
         assert_array_almost_equal(stc.times, times)
         assert_array_almost_equal(stc2.times, times)
-
         assert_array_almost_equal(stc.data, stc2.data)
 
 
@@ -318,6 +326,8 @@ def test_apply_mne_inverse_fixed_raw():
                              label=label_lh, start=start, stop=stop, nave=1,
                              pick_normal=False, buffer_size=3)
 
+    assert_true(stc.subject == 'sample')
+    assert_true(stc2.subject == 'sample')
     assert_array_almost_equal(stc.times, times)
     assert_array_almost_equal(stc2.times, times)
     assert_array_almost_equal(stc.data, stc2.data)
@@ -342,6 +352,7 @@ def test_apply_mne_inverse_epochs():
 
     assert_true(len(stcs) == 4)
     assert_true(3 < stcs[0].data.max() < 10)
+    assert_true(stcs[0].subject == 'sample')
 
     data = sum(stc.data for stc in stcs) / len(stcs)
     flip = label_sign_flip(label_lh, inverse_operator['src'])
@@ -364,7 +375,9 @@ def test_apply_mne_inverse_epochs():
     # test without using a label (so delayed computation is used)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 pick_normal=True)
+    assert_true(stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
+    assert_true(label_stc.subject == 'sample')
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
 
 
