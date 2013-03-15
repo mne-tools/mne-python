@@ -216,7 +216,7 @@ def test_morph():
     # should work for specifying vertices for both hemis, or just the
     # hemi of the given label
     vals = list()
-    for grade in [[np.arange(10242), np.arange(10242)], np.arange(10242)]:
+    for grade in [5, [np.arange(10242), np.arange(10242)], np.arange(10242)]:
         label = label_orig.copy()
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')

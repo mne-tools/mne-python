@@ -1195,7 +1195,6 @@ class SourceEstimate(object):
                         subjects_dir=subjects_dir)
         return brain
 
-
     @verbose
     def morph(self, subject_to, grade=5, smooth=None,
               subjects_dir=None, buffer_size=64, n_jobs=1, subject_from=None,
@@ -1215,7 +1214,9 @@ class SourceEstimate(object):
             in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
             grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
             standard grade 5 source space) can be substantially faster than
-            computing vertex locations.
+            computing vertex locations. Note that if subject='fsaverage'
+            and 'grade=5', this set of vertices will automatically be used
+            (instead of computed) for speed, since this is a common morph.
         smooth : int or None
             Number of iterations for the smoothing of the surface data.
             If None, smooth is automatically defined to fill the surface
@@ -1557,7 +1558,9 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
         grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
         standard grade 5 source space) can be substantially faster than
-        computing vertex locations.
+        computing vertex locations. Note that if subject='fsaverage'
+        and 'grade=5', this set of vertices will automatically be used
+        (instead of computed) for speed, since this is a common morph.
     smooth : int or None
         Number of iterations for the smoothing of the surface data.
         If None, smooth is automatically defined to fill the surface
@@ -1704,7 +1707,9 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
         in grade[0] and grade[1]. Note that specifying the vertices (e.g.,
         grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
         standard grade 5 source space) can be substantially faster than
-        computing vertex locations.
+        computing vertex locations. Note that if subject='fsaverage'
+        and 'grade=5', this set of vertices will automatically be used
+        (instead of computed) for speed, since this is a common morph.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment
     n_jobs : int
@@ -1717,6 +1722,9 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     vertices : list of arrays of int
         Vertex numbers for LH and RH
     """
+    # add special case for fsaverage for speed
+    if subject == 'fsaverage' and grade == 5:
+        return [np.arange(10242), np.arange(10242)]
     subjects_dir = get_subjects_dir(subjects_dir)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',

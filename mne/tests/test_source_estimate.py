@@ -360,7 +360,7 @@ def test_notify_array_source_estimate():
     assert_true(stc._sens_data is not None)
 
     # now modify the data in some way
-    data_half = stc.data[:, n_times/2:]
+    data_half = stc.data[:, n_times / 2:]
     data_half[0] = 1.0
     data_half.fill(1.0)
 
