@@ -14,6 +14,7 @@ logger = logging.getLogger('mne')
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
 from ..source_estimate import SourceEstimate
@@ -154,7 +155,9 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']
-        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep)
+        subject = _subject_from_forward(forward)
+        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                             subject=subject)
 
         if not return_single:
             stcs.append(stc)

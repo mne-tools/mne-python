@@ -104,7 +104,7 @@ for ii, cluster_ind in enumerate(good_cluster_inds):
 data_summary[:, 0] = np.sum(data_summary, axis=1)
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
-                                     tstep=1e-3)
+                                     tstep=1e-3, subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration

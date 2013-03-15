@@ -15,8 +15,7 @@ from mne import read_stc, write_stc, read_source_estimate, morph_data,\
                 extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
-                                compute_morph_matrix, grade_to_vertices, \
-                                morph_data_precomputed
+                                compute_morph_matrix, grade_to_vertices
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
 from mne.utils import _TempDir
@@ -52,7 +51,8 @@ def test_volume_stc():
             assert_array_equal(vertno_read, stc_new.vertno)
             assert_array_almost_equal(stc.data, stc_new.data)
     # now let's actually read a MNE-C processed file
-    stc = read_source_estimate(fname_vol)
+    stc = read_source_estimate(fname_vol, 'sample')
+    assert_true('sample' in repr(stc))
     stc_new = stc
     assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
     for _ in xrange(2):
@@ -67,7 +67,8 @@ def test_volume_stc():
 def test_expand():
     """Test stc expansion
     """
-    stc = read_source_estimate(fname)
+    stc = read_source_estimate(fname, 'sample')
+    assert_true('sample' in repr(stc))
     labels_lh, _ = labels_from_parc('sample', hemi='lh',
                                     subjects_dir=subjects_dir)
     stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
@@ -270,14 +271,13 @@ def test_morph_data():
     subject_from = 'sample'
     subject_to = 'fsaverage'
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc_from = read_source_estimate(fname)
+    stc_from = read_source_estimate(fname, subject='sample')
     fname = op.join(data_path, 'MEG', 'sample', 'fsaverage_audvis-meg')
     stc_to = read_source_estimate(fname)
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
-    stc_to1 = morph_data(subject_from, subject_to, stc_from,
-                         grade=3, smooth=12, buffer_size=1000)
+    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3)
@@ -294,8 +294,7 @@ def test_morph_data():
     morph_mat = compute_morph_matrix(subject_from, subject_to,
                                      stc_from.vertno, vertices_to,
                                      smooth=12)
-    stc_to3 = morph_data_precomputed(subject_from, subject_to,
-                                     stc_from, vertices_to, morph_mat)
+    stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
     mean_from = stc_from.data.mean(axis=0)
@@ -361,7 +360,7 @@ def test_notify_array_source_estimate():
     assert_true(stc._sens_data is not None)
 
     # now modify the data in some way
-    data_half = stc.data[:, n_times/2:]
+    data_half = stc.data[:, n_times / 2:]
     data_half[0] = 1.0
     data_half.fill(1.0)
 

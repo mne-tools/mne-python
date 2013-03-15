@@ -31,7 +31,8 @@ from warnings import warn
 # XXX : don't import pylab here or you will break the doc
 from .fixes import tril_indices
 from .baseline import rescale
-from .utils import deprecated, get_subjects_dir, get_config, set_config
+from .utils import deprecated, get_subjects_dir, get_config, set_config, \
+                   _check_subject
 from .fiff import show_fiff
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj, setup_proj
@@ -926,7 +927,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         pl.show()
 
 
-def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
+def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, alpha=1.0, time_viewer=False,
@@ -945,9 +946,10 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
     ----------
     stc : SourceEstimates
         The source estimates to plot.
-    subject : str
+    subject : str | None
         The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None the environment will be used.
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'both'
@@ -992,6 +994,7 @@ def plot_source_estimates(stc, subject, surface='inflated', hemi='lh',
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
+    subject = _check_subject(stc.subject, subject, False)
     if subject is None:
         if 'SUBJECT' in os.environ:
             subject = os.environ['SUBJECT']

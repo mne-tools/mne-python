@@ -10,7 +10,6 @@ from scipy import sparse
 import logging
 logger = logging.getLogger('mne')
 
-from .label import _aslabel
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
@@ -457,8 +456,6 @@ def label_src_vertno_sel(label, src):
     src_sel : array of int (len(idx) = len(vertno[0]) + len(vertno[1]))
         Indices of the selected vertices in sourse space
     """
-    label = _aslabel(label)
-
     if src[0]['type'] != 'surf':
         return Exception('Label are only supported with surface source spaces')
 

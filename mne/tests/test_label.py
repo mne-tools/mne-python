@@ -29,12 +29,23 @@ tempdir = _TempDir()
 
 
 def assert_labels_equal(l0, l1, decimal=5):
-    for attr in ['comment', 'hemi']:
+    for attr in ['comment', 'hemi', 'subject']:
         assert_true(getattr(l0, attr) == getattr(l1, attr))
     for attr in ['vertices', 'pos', 'values']:
         a0 = getattr(l0, attr)
         a1 = getattr(l1, attr)
         assert_array_almost_equal(a0, a1, decimal)
+
+
+def test_label_subject():
+    """Test label subject name extraction
+    """
+    label = read_label(label_fname)
+    assert_true(label.subject is None)
+    assert_true('unknown' in repr(label))
+    label = read_label(label_fname, subject='fsaverage')
+    assert_true(label.subject == 'fsaverage')
+    assert_true('fsaverage' in repr(label))
 
 
 def test_label_addition():
@@ -79,9 +90,7 @@ def test_label_addition():
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-
     values, times, vertices = label_time_courses(label_fname, stc_fname)
-
     assert_true(len(times) == values.shape[1])
     assert_true(len(vertices) == values.shape[0])
 
@@ -190,7 +199,7 @@ def test_stc_to_label():
     """Test stc_to_label
     """
     src = read_source_spaces(src_fname)
-    stc = read_source_estimate(stc_fname)
+    stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
     labels2 = stc_to_label(stc, src=src, smooth=3)
@@ -203,24 +212,29 @@ def test_morph():
     """Test inter-subject label morphing
     """
     label_orig = read_label(label_fname)
+    label_orig.subject = 'sample'
     # should work for specifying vertices for both hemis, or just the
     # hemi of the given label
     vals = list()
-    for grade in [[np.arange(10242), np.arange(10242)], np.arange(10242)]:
+    for grade in [5, [np.arange(10242), np.arange(10242)], np.arange(10242)]:
         label = label_orig.copy()
         # this should throw an error because the label has all zero values
         assert_raises(ValueError, label.morph, 'sample', 'fsaverage')
         label.values.fill(1)
-        label.morph('sample', 'fsaverage', 5, grade, subjects_dir, 2)
-        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2)
+        label.morph(None, 'fsaverage', 5, grade, subjects_dir, 2,
+                    copy=False)
+        label.morph('fsaverage', 'sample', 5, None, subjects_dir, 2,
+                    copy=False)
         assert_true(np.mean(in1d(label_orig.vertices, label.vertices)) == 1.0)
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
-    label.morph('sample', 'fsaverage', 5,
-                [np.arange(10242), np.arange(10242)], subjects_dir, 2)
-    label.smooth('fsaverage')
+    label.morph(label.subject, 'fsaverage', 5,
+                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
+                 copy=False)
+    # subject name should be inferred now
+    label.smooth()
 
 
 def test_grow_labels():
