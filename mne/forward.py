@@ -1364,7 +1364,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if bem is not None:
         cmd += ['--bem', bem]
     if mri is not None:
-        cmd += ['--mri', '%s' % mri  ]
+        cmd += ['--mri', '%s' % mri]
     if trans is not None:
         cmd += ['--trans', '%s' % trans]
     if not meg:

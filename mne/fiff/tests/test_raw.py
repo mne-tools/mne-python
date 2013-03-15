@@ -679,7 +679,7 @@ def test_raw_to_nitime():
 
 @requires_pandas
 def test_as_data_frame():
-    """Test Pandas exporter"""
+    """Test raw Pandas exporter"""
     raw = Raw(fif_fname, preload=True)
     df = raw.as_data_frame()
     assert_true((df.columns == raw.ch_names).all())

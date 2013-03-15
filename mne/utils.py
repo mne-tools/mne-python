@@ -627,6 +627,14 @@ def sizeof_fmt(num):
 def run_subprocess(*args, **kwargs):
     """Calls subprocess.Popen
 
+    By default, this will also add stdout= and stderr=subproces.PIPE
+    to the call to Popen to suppress printing to the terminal.
+
+    Parameters
+    ----------
+    *args, **kwargs : arguments
+        Arguments to pass to subprocess.Popen.
+
     Returns
     -------
     returncode : int
@@ -636,6 +644,10 @@ def run_subprocess(*args, **kwargs):
     stderr : str
         Stderr returned by the process.
     """
+    if 'stderr' not in kwargs:
+        kwargs['stderr'] = subprocess.PIPE
+    if 'stdout' not in kwargs:
+        kwargs['stdout'] = subprocess.PIPE
     p = subprocess.Popen(*args, **kwargs)
     stdout, stderr = p.communicate()
     return p.returncode, stdout, stderr
