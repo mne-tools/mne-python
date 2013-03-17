@@ -82,6 +82,10 @@ class Label(object):
                    "of vertices)")
             raise ValueError(err)
 
+        # name
+        if name is None and filename is not None:
+            name = op.basename(filename[:-6])
+
         self.vertices = vertices
         self.pos = pos
         self.values = values
@@ -89,12 +93,31 @@ class Label(object):
         self.comment = comment
         self.verbose = verbose
         self.subject = _check_subject(None, subject, False)
-
-        # name
-        if name is None and filename is not None:
-            name = op.basename(filename[:-6])
         self.name = name
         self.filename = filename
+
+    def __setstate__(self, state):
+        self.vertices = state['vertices']
+        self.pos = state['pos']
+        self.values = state['values']
+        self.hemi = state['hemi']
+        self.comment = state['comment']
+        self.verbose = state['verbose']
+        self.subject = state.get('subject', None)
+        self.name = state['name']
+        self.filename = state['filename']
+
+    def __getstate__(self):
+        out = dict(vertices=self.vertices,
+                   pos=self.pos,
+                   values=self.values,
+                   hemi=self.hemi,
+                   comment=self.comment,
+                   verbose=self.verbose,
+                   subject=self.subject,
+                   name=self.name,
+                   filename=self.filename)
+        return out
 
     def __repr__(self):
         name = 'unknown, ' if self.subject is None else self.subject + ', '
