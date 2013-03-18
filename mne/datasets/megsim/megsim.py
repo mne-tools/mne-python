@@ -89,6 +89,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
     split = op.splitext(destination)
     is_zip = True if split[1].lower() == '.zip' else False
     # Fetch the file
+    do_unzip = False
     if not op.isfile(destination) or force_update:
         logger.info('Downloading data, please wait:')
         logger.info(url)
@@ -97,18 +98,20 @@ def data_path(url, path=None, force_update=False, update_path=None):
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
         _download_status(url, destination, False)
+        do_unzip = True
 
-        # decompress if necessary
-        if is_zip:
-            z = zipfile.ZipFile(destination)
-            decomp_dir, name = op.split(destination)
-            files = z.namelist()
+    if is_zip:
+        z = zipfile.ZipFile(destination)
+        decomp_dir, name = op.split(destination)
+        files = z.namelist()
+        # decompress if necessary (if download was re-done)
+        if do_unzip:
             stdout.write('Decompressing %g files from\n'
                          '"%s" ...' % (len(files), name))
             z.extractall(decomp_dir)
-            z.close()
-            destinations = [op.join(decomp_dir, f) for f in files]
             stdout.write(' [done]\n')
+        z.close()
+        destinations = [op.join(decomp_dir, f) for f in files]
 
     # Offer to update the path
     path = op.abspath(path)
