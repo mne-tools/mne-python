@@ -1184,7 +1184,7 @@ Command-line options
 
     An estimate for the amplitude SNR. The regularization parameter will
     be set as :math:`\lambda^2 = 1/SNR^2`. The default value is
-    SNR = 3. Automatic selection of the regularization parameter is
+    SNR = 1. Automatic selection of the regularization parameter is
     currently not supported.
 
 **\---spm**
