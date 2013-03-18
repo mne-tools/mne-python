@@ -110,6 +110,9 @@ class Epochs(object):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -183,7 +186,7 @@ class Epochs(object):
                  picks=None, name='Unknown', keep_comp=False, dest_comp=0,
                  preload=False, reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 verbose=None):
+                 add_eeg_ref=True, verbose=None):
         if raw is None:
             return
 
@@ -244,7 +247,7 @@ class Epochs(object):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info)
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
@@ -1265,7 +1268,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
 
 
 @verbose
-def read_epochs(fname, proj=True, verbose=None):
+def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     """Read epochs from a fif file
 
     Parameters
@@ -1274,6 +1277,9 @@ def read_epochs(fname, proj=True, verbose=None):
         The name of the file.
     proj : bool, optional
         Apply SSP projection vectors.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -1377,7 +1383,7 @@ def read_epochs(fname, proj=True, verbose=None):
     epochs.times = times
     epochs.data = data
     epochs.proj = proj
-    epochs._projector, epochs.info = setup_proj(info)
+    epochs._projector, epochs.info = setup_proj(info, add_eeg_ref)
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))

@@ -15,6 +15,7 @@ from mne import fiff, Epochs, read_events, pick_events, read_epochs
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
+from mne.fiff.proj import _has_eeg_average_ref_proj
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -129,6 +130,16 @@ def test_epochs_proj():
     epochs_no_proj.average()
     data_no_proj = epochs_no_proj.get_data()
     assert_array_almost_equal(data, data_no_proj, decimal=8)
+
+    # make sure we can exclude avg ref
+    this_picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
+                                 eog=True, exclude=exclude)
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
+                    baseline=(None, 0), proj=True, add_eeg_ref=True)
+    assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
+                    baseline=(None, 0), proj=True, add_eeg_ref=False)
+    assert_true(not _has_eeg_average_ref_proj(epochs.info['projs']))
 
 
 def test_evoked_arithmetic():
