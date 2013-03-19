@@ -1,6 +1,7 @@
 import os
 import commands
 import os.path as op
+import cPickle as pickle
 import glob
 
 import numpy as np
@@ -101,6 +102,14 @@ def test_label_io():
     label = read_label(label_fname)
     label.save(op.join(tempdir, 'foo'))
     label2 = read_label(op.join(tempdir, 'foo-lh.label'))
+    assert_labels_equal(label, label2)
+
+    # pickling
+    dest = op.join(tempdir, 'foo.pickled')
+    with open(dest, 'w') as fid:
+        pickle.dump(label, fid, pickle.HIGHEST_PROTOCOL)
+    with open(dest) as fid:
+        label2 = pickle.load(fid)
     assert_labels_equal(label, label2)
 
 
