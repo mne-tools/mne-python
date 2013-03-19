@@ -72,16 +72,10 @@ def test_write_source_space():
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
     """
-    # these were random vertices pulled from "sample" in mne_analyze
-    # but mne_analyze won't load the xfm file! So we must use fsaverage,
-    # which is sily because the xfm is the identity matrix..
-    # vertices = [109445, 82962, 137444]
-    # coords = [[-33.3, 11.5, 50.7], [51.8, -15.4, 30.5], [37.6, 38.4, 57.1]]
-    # hemi = [0, 1, 1]
-    # coords_2 = vertex_to_mni(vertices, hemis, 'sample')
-    vertices = [148611, 157229, 95466]
-    coords = [[-55.7, -36.6, -9.6], [-48.5, -35.7, -1.1], [44.0, -34.9, -0.9]]
-    hemis = [0, 0, 1]  # , 1]
-    coords_2 = np.round(vertex_to_mni(vertices, hemis, 'fsaverage'), 1)
-    for vi in range(len(vertices)):
-        assert_true(coords[vi] == coords_2[vi].tolist())
+    # obtained using "tksurfer sample (l/r)h white"
+    vertices = [100960, 7620, 150549, 96761]
+    coords = np.array([[-60.25, -10.96, -2.13], [-36.09, -90.37, 2.54],
+                       [-37.62, 48.07, -11.33], [46.67, 9.92, 42.74]])
+    hemis = [0, 0, 0, 1]
+    coords_2 = np.round(vertex_to_mni(vertices, hemis, 'sample'), 1)
+    assert_true(np.all(np.abs(coords - coords_2) < 5))

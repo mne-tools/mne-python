@@ -578,7 +578,11 @@ def _download_status(url, file_name, print_destination=True):
     #opener = urllib.urlopen(url)
     #open(archive_name, 'wb').write(opener.read())
 
-    u = urllib2.urlopen(url)
+    try:
+        u = urllib2.urlopen(url)
+    except Exception as exc:
+        print 'Could not load URL: %s' % url
+        raise exc
     with open(file_name, 'wb') as f:
         meta = u.info()
         file_size = int(meta.getheaders("Content-Length")[0])

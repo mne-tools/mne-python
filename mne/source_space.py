@@ -5,7 +5,7 @@
 
 import numpy as np
 import os.path as op
-from scipy import sparse
+from scipy import sparse, linalg
 
 import logging
 logger = logging.getLogger('mne')
@@ -19,7 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
-from .utils import get_subjects_dir
+from .utils import get_subjects_dir, run_subprocess
 from . import verbose
 
 
@@ -643,6 +643,11 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     -------
     coordinates : n_vertices x 3 array of float
         The MNI coordinates (in mm) of the vertices
+
+    Notes
+    -----
+    This function requires Freesurfer (with utility "mri_info") to
+    be correctly installed.
     """
 
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
@@ -661,48 +666,60 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     rr = [read_surface(s)[0] for s in surfs]
 
     # take point locations in RAS space and convert to MNI coordinates
-    xfm = _freesurfer_read_talxfm(op.join(subjects_dir, subject, 'mri',
-                                          'transforms', 'talairach.xfm'))
+    xfm = _freesurfer_read_talxfm(subject, subjects_dir)
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
     return np.dot(xfm, data).T
 
 
 @verbose
-def _freesurfer_read_talxfm(fname, verbose=None):
+def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
     """Read MNI transform from FreeSurfer talairach.xfm file
 
-    Adapted from freesurfer m-files.
+    Adapted from freesurfer m-files. Altered to deal with Norig
+    and Torig correctly.
     """
+    fname = op.join(subjects_dir, subject, 'mri', 'transforms',
+                    'talairach.xfm')
+    with open(fname, 'r') as fid:
+        logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
-    fid = open(fname, 'r')
-
-    logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
-
-    # read lines until we get the string 'Linear_Transform', which precedes
-    # the data transformation matrix
-    got_it = False
-    comp = 'Linear_Transform'
-    for line in fid:
-        if line[:len(comp)] == comp:
-            # we have the right line, so don't read any more
-            got_it = True
-            break
-
-    if got_it:
-        xfm = list()
-        # read the transformation matrix (3x4)
-        for ii, line in enumerate(fid):
-            digs = [float(s) for s in line.strip('\n;').split()]
-            xfm.append(digs)
-            if ii == 2:
+        # read lines until we get the string 'Linear_Transform', which precedes
+        # the data transformation matrix
+        got_it = False
+        comp = 'Linear_Transform'
+        for line in fid:
+            if line[:len(comp)] == comp:
+                # we have the right line, so don't read any more
+                got_it = True
                 break
-        # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
-        xfm = np.array(xfm)
-        fid.close()
-    else:
-        fid.close()
-        raise ValueError('failed to find \'Linear_Transform\' string in xfm '
-                         'file:\n%s' % fname)
 
+        if got_it:
+            xfm = list()
+            # read the transformation matrix (3x4)
+            for ii, line in enumerate(fid):
+                digs = [float(s) for s in line.strip('\n;').split()]
+                xfm.append(digs)
+                if ii == 2:
+                    break
+            # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
+            xfm = np.array(xfm, dtype=float)
+        else:
+            raise ValueError('failed to find \'Linear_Transform\' string in '
+                             'xfm file:\n%s' % fname)
+
+    # now get Norig and Torig
+    path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
+    nt_orig = list()
+    for conv in ['--vox2ras', '--vox2ras-tkr']:
+        rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
+        if rc != 0:
+            raise ValueError('Could not get transform information: %s\n%s'
+                             % (stdout, stderr))
+        stdout = np.fromstring(stdout, sep=' ').astype(float)
+        if not stdout.size == 16:
+            raise ValueError('Could not parse Freesurfer mri_info output')
+        nt_orig.append(stdout.reshape(4, 4))
+
+    xfm = np.dot(xfm, np.dot(nt_orig[0], linalg.inv(nt_orig[1])))
     return xfm
