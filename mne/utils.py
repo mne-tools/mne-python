@@ -139,6 +139,35 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     else:
         return rank
 
+
+def run_subprocess(*args, **kwargs):
+    """Calls subprocess.Popen
+
+    By default, this will also add stdout= and stderr=subproces.PIPE
+    to the call to Popen to suppress printing to the terminal.
+
+    Parameters
+    ----------
+    *args, **kwargs : arguments
+        Arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    returncode : int
+        The return code.
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
+    """
+    if 'stderr' not in kwargs:
+        kwargs['stderr'] = subprocess.PIPE
+    if 'stdout' not in kwargs:
+        kwargs['stdout'] = subprocess.PIPE
+    p = subprocess.Popen(*args, **kwargs)
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout, stderr
+
 ###############################################################################
 # DECORATORS
 
@@ -293,6 +322,18 @@ def has_command_line_tools():
 
 requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
                                      'Requires MNE command line tools')
+
+
+def has_freesurfer():
+    if not 'FREESURFER_HOME' in os.environ:
+        return False
+    else:
+        return True
+
+
+requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
+                                            'Requires Freesurfer')
+
 
 def requires_pandas(function):
     """Decorator to skip test if pandas is not available"""
@@ -626,35 +667,6 @@ def sizeof_fmt(num):
         return '0 bytes'
     if num == 1:
         return '1 byte'
-
-
-def run_subprocess(*args, **kwargs):
-    """Calls subprocess.Popen
-
-    By default, this will also add stdout= and stderr=subproces.PIPE
-    to the call to Popen to suppress printing to the terminal.
-
-    Parameters
-    ----------
-    *args, **kwargs : arguments
-        Arguments to pass to subprocess.Popen.
-
-    Returns
-    -------
-    returncode : int
-        The return code.
-    stdout : str
-        Stdout returned by the process.
-    stderr : str
-        Stderr returned by the process.
-    """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
-    p = subprocess.Popen(*args, **kwargs)
-    stdout, stderr = p.communicate()
-    return p.returncode, stdout, stderr
 
 
 def _url_to_local_path(url, path):

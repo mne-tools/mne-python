@@ -19,7 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
-from .utils import get_subjects_dir, run_subprocess
+from .utils import get_subjects_dir, run_subprocess, has_freesurfer
 from . import verbose
 
 
@@ -649,6 +649,9 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     This function requires Freesurfer (with utility "mri_info") to
     be correctly installed.
     """
+    if not has_freesurfer():
+        raise RuntimeError('Freesurfer must be correctly installed and '
+                           'accessible from Python running system commands')
 
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
