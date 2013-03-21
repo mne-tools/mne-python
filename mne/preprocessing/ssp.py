@@ -46,6 +46,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         What type of events to detect.
     raw : mne.fiff.Raw
         Raw input file.
+    eog_user :  string
+        Specifies EOG channel name specified by user (when not marked)
     raw_event : mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
     tmin : float
@@ -134,7 +136,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
                            l_freq=exg_l_freq, h_freq=exg_h_freq,
-                           filter_length=filter_length)
+                           filter_length=filter_length, ch_name=ch_name)
     else:
         raise ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -302,7 +304,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog=np.inf), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
                      tstart=0., filter_method='fft',
-                     iir_params=dict(order=4, ftype='butter'), verbose=None):
+                     iir_params=dict(order=4, ftype='butter'), verbose=None, 
+                     ch_name=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -358,18 +361,20 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Method for filtering ('iir' or 'fft').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    ch_name: str
+        If not None, specify EOG channel name.
 
     Returns
     -------
     proj: list
         Computed SSP projectors.
     eog_events: ndarray
-        Detected ECG events.
+        Detected EOG events.
     """
-
+       
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
-                        average, filter_length, n_jobs, None,
+                        average, filter_length, n_jobs, ch_name,
                         reject, flat, bads, avg_ref, no_proj, event_id,
                         eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6,
                         filter_method=filter_method, iir_params=iir_params)
