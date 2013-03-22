@@ -19,7 +19,8 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
-from .utils import get_subjects_dir, run_subprocess, has_freesurfer
+from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
+                   has_nibabel
 from . import verbose
 
 
@@ -623,7 +624,8 @@ def _write_one_source_space(fid, this, verbose=None):
 
 
 @verbose
-def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
+def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
+                  verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
@@ -636,6 +638,11 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Name of the subject to load surfaces from.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    mode : string | None
+        Either 'nibabel' or 'freesurfer' for the software to use to
+        obtain the transforms. If None, 'nibabel' is tried first, falling
+        back to 'freesurfer' if it fails. Results should be equivalent with
+        either option, but nibabel may be quicker (and more pythonic).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -646,12 +653,12 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
 
     Notes
     -----
-    This function requires Freesurfer (with utility "mri_info") to
-    be correctly installed.
+    This function requires either nibabel (in Python) or Freesurfer
+    (with utility "mri_info") to be correctly installed.
     """
-    if not has_freesurfer():
-        raise RuntimeError('Freesurfer must be correctly installed and '
-                           'accessible from Python running system commands')
+    if not has_freesurfer and not has_nibabel():
+        raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
+                           'correctly installed and accessible from Python')
 
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
@@ -669,19 +676,21 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     rr = [read_surface(s)[0] for s in surfs]
 
     # take point locations in RAS space and convert to MNI coordinates
-    xfm = _freesurfer_read_talxfm(subject, subjects_dir)
+    xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
-    return np.dot(xfm, data).T
+    return np.dot(xfm, data)[:3, :].T.copy()
 
 
 @verbose
-def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
+def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     """Read MNI transform from FreeSurfer talairach.xfm file
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
+    if mode is not None and not mode in ['nibabel', 'freesurfer']:
+        raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
     with open(fname, 'r') as fid:
@@ -705,7 +714,7 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
                 xfm.append(digs)
                 if ii == 2:
                     break
-            # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
+            xfm.append([0., 0., 0., 1.])
             xfm = np.array(xfm, dtype=float)
         else:
             raise ValueError('failed to find \'Linear_Transform\' string in '
@@ -713,16 +722,40 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
 
     # now get Norig and Torig
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
-    nt_orig = list()
-    for conv in ['--vox2ras', '--vox2ras-tkr']:
-        rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
-        if rc != 0:
-            raise ValueError('Could not get transform information: %s\n%s'
-                             % (stdout, stderr))
-        stdout = np.fromstring(stdout, sep=' ').astype(float)
-        if not stdout.size == 16:
-            raise ValueError('Could not parse Freesurfer mri_info output')
-        nt_orig.append(stdout.reshape(4, 4))
 
+    try:
+        import nibabel as nib
+        use_nibabel = True
+    except ImportError:
+        use_nibabel = False
+        if mode == 'nibabel':
+            raise ImportError('Tried to import nibabel but failed, try using '
+                              'mode=None or mode=Freesurfer')
+
+    # note that if mode == None, then we default to using nibabel
+    if use_nibabel is True and mode == 'freesurfer':
+        use_nibabel = False
+    if use_nibabel:
+        img = nib.load(path)
+        hdr = img.get_header()
+        n_orig = hdr.get_vox2ras()
+        shape = hdr.get_data_shape()
+        dv = hdr.get_zooms()
+        t_orig = np.array([[-dv[0], 0, 0, shape[0] / 2],
+                           [0, 0, dv[1], -shape[1] / 2],
+                           [0, -dv[2], 0, shape[2] / 2],
+                           [0, 0, 0, 1]], dtype=float)
+        nt_orig = [n_orig, t_orig]
+    else:
+        nt_orig = list()
+        for conv in ['--vox2ras', '--vox2ras-tkr']:
+            rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
+            if rc != 0:
+                raise ValueError('Could not get transform information using '
+                                 'freesurfer: %s\n%s' % (stdout, stderr))
+            stdout = np.fromstring(stdout, sep=' ').astype(float)
+            if not stdout.size == 16:
+                raise ValueError('Could not parse Freesurfer mri_info output')
+            nt_orig.append(stdout.reshape(4, 4))
     xfm = np.dot(xfm, np.dot(nt_orig[0], linalg.inv(nt_orig[1])))
     return xfm
