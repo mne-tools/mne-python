@@ -1522,12 +1522,47 @@ def _morph_mult(data, e, use_sparse, idx_use_data, idx_use_out=None):
     return data
 
 
-def _compute_nearest(xhs, rr):
-    nearest = np.zeros(len(rr), dtype=np.int)
-    dr = 32
-    for k in range(0, len(rr), dr):
-        dots = np.dot(rr[k:k + dr], xhs.T)
-        nearest[k:k + dr] = np.argmax(dots, axis=1)
+def _compute_nearest(xhs, rr, use_balltree=True):
+    """Find nearest neighbors
+
+    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
+    the result will be incorrect.
+
+    Parameters
+    ----------
+    xhs : array, shape=(n_samples, n_dim)
+        Points of data set.
+
+    rr : array, shape=(n_query, n_dim)
+        Points to find nearest neighbors for.
+
+    use_balltree : bool
+        Use fast BallTree based search from scikit-learn. If scikit-learn
+        is not installed it will fall back to the slow brute force search.
+
+    Returns
+    -------
+    nearest : array, shape=(n_query,)
+        Index of nearest neighbor in xhs for every point in rr.
+    """
+    if use_balltree:
+        try:
+            from sklearn.neighbors import BallTree
+        except ImportError:
+            logger.info('Nearest-neighbor searches will be significantly '
+                        'faster if scikit-learn is installed.')
+            use_balltree = False
+
+    if use_balltree:
+        ball_tree = BallTree(xhs)
+        nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
+    else:
+        nearest = np.zeros(len(rr), dtype=np.int)
+        dr = 32
+        for k in range(0, len(rr), dr):
+            dots = np.dot(rr[k:k + dr], xhs.T)
+            nearest[k:k + dr] = np.argmax(dots, axis=1)
+
     return nearest
 
 
