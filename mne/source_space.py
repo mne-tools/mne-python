@@ -19,7 +19,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
-from .utils import get_subjects_dir, run_subprocess, has_freesurfer
+from .utils import get_subjects_dir, run_subprocess, has_fs_or_nibabel
 from . import verbose
 
 
@@ -649,9 +649,9 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     This function requires Freesurfer (with utility "mri_info") to
     be correctly installed.
     """
-    if not has_freesurfer():
-        raise RuntimeError('Freesurfer must be correctly installed and '
-                           'accessible from Python running system commands')
+    if not has_fs_or_nibabel():
+        raise RuntimeError('nibabel (python) or Freesurfer (unix) must be '
+                           'correctly installed and accessible from Python')
 
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
         vertices = [vertices]
@@ -672,7 +672,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     xfm = _freesurfer_read_talxfm(subject, subjects_dir)
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
-    return np.dot(xfm, data).T
+    return np.dot(xfm, data)[:3, :].T.copy()
 
 
 @verbose
@@ -705,7 +705,7 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
                 xfm.append(digs)
                 if ii == 2:
                     break
-            # xfm.append([0., 0., 0., 1.])  # Don't bother appending this
+            xfm.append([0., 0., 0., 1.])
             xfm = np.array(xfm, dtype=float)
         else:
             raise ValueError('failed to find \'Linear_Transform\' string in '
@@ -713,16 +713,36 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
 
     # now get Norig and Torig
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
-    nt_orig = list()
-    for conv in ['--vox2ras', '--vox2ras-tkr']:
-        rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
-        if rc != 0:
-            raise ValueError('Could not get transform information: %s\n%s'
-                             % (stdout, stderr))
-        stdout = np.fromstring(stdout, sep=' ').astype(float)
-        if not stdout.size == 16:
-            raise ValueError('Could not parse Freesurfer mri_info output')
-        nt_orig.append(stdout.reshape(4, 4))
 
+    # try to use nibabel first since it's faster (and pythonic)
+    try:
+        import nibabel as nib
+    except:
+        use_nibabel = False
+    else:
+        use_nibabel = True
+
+    if use_nibabel:
+        img = nib.load(path)
+        hdr = img.get_header()
+        n_orig = hdr.get_vox2ras()
+        shape = hdr.get_data_shape()
+        dv = hdr.get_zooms()
+        t_orig = np.array([[-dv[0], 0, 0, shape[0] / 2],
+                           [0, 0, dv[1], -shape[1] / 2],
+                           [0, -dv[2], 0, shape[2] / 2],
+                           [0, 0, 0, 1]], dtype=float)
+        nt_orig = [n_orig, t_orig]
+    else:
+        nt_orig = list()
+        for conv in ['--vox2ras', '--vox2ras-tkr']:
+            rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
+            if rc != 0:
+                raise ValueError('Could not get transform information: %s\n%s'
+                                 % (stdout, stderr))
+            stdout = np.fromstring(stdout, sep=' ').astype(float)
+            if not stdout.size == 16:
+                raise ValueError('Could not parse Freesurfer mri_info output')
+            nt_orig.append(stdout.reshape(4, 4))
     xfm = np.dot(xfm, np.dot(nt_orig[0], linalg.inv(nt_orig[1])))
     return xfm

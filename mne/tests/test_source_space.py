@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces
-from mne.utils import _TempDir, requires_freesurfer
+from mne.utils import _TempDir, requires_fs_or_nibabel
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
@@ -69,7 +69,7 @@ def test_write_source_space():
         assert_true(src0.info[name] == src1.info[name])
 
 
-@requires_freesurfer
+@requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
     """
