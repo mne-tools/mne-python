@@ -74,14 +74,17 @@ def test_write_source_space():
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
     """
-    # obtained using "tksurfer sample (l/r)h white"
+    # obtained using "tksurfer (sample/fsaverage) (l/r)h white"
     vertices = [100960, 7620, 150549, 96761]
-    coords = np.array([[-60.25, -10.96, -2.13], [-36.09, -90.37, 2.54],
-                       [-37.62, 48.07, -11.33], [46.67, 9.92, 42.74]])
+    coords_s = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
+                         [-38.00, 50.08, -10.61], [47.14, 8.01, 46.93]])
+    coords_f = np.array([[-41.28, -40.04, 18.20], [-6.05, 49.74, -18.15],
+                         [-61.71, -14.55, 20.52], [21.70, -60.84, 25.02]])
     hemis = [0, 0, 0, 1]
-    coords_2 = vertex_to_mni(vertices, hemis, 'sample')
-    # less than 5mm error
-    assert_allclose(coords, coords_2, atol=5)
+    for coords, subj in zip([coords_s, coords_f], ['sample', 'fsaverage']):
+        coords_2 = vertex_to_mni(vertices, hemis, subj)
+        # less than 1mm error
+        assert_allclose(coords, coords_2, atol=1.0)
 
 
 @requires_freesurfer
