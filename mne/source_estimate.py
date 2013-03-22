@@ -1532,10 +1532,8 @@ def _compute_nearest(xhs, rr, use_balltree=True):
     ----------
     xhs : array, shape=(n_samples, n_dim)
         Points of data set.
-
     rr : array, shape=(n_query, n_dim)
         Points to find nearest neighbors for.
-
     use_balltree : bool
         Use fast BallTree based search from scikit-learn. If scikit-learn
         is not installed it will fall back to the slow brute force search.
