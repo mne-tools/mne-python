@@ -19,7 +19,8 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
-from .utils import get_subjects_dir, run_subprocess, has_fs_or_nibabel
+from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
+                   has_nibabel
 from . import verbose
 
 
@@ -623,7 +624,8 @@ def _write_one_source_space(fid, this, verbose=None):
 
 
 @verbose
-def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
+def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
+                  verbose=None):
     """Convert the array of vertices for a hemisphere to MNI coordinates
 
     Parameters
@@ -636,6 +638,11 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
         Name of the subject to load surfaces from.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    mode : string | None
+        Either 'nibabel' or 'freesurfer' for the software to use to
+        obtain the transforms. If None, 'nibabel' is tried first, falling
+        back to 'freesurfer' if it fails. Results should be equivalent with
+        either option, but nibabel may be quicker (and more pythonic).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -646,11 +653,11 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
 
     Notes
     -----
-    This function requires Freesurfer (with utility "mri_info") to
-    be correctly installed.
+    This function requires either nibabel (in Python) or Freesurfer
+    (with utility "mri_info") to be correctly installed.
     """
-    if not has_fs_or_nibabel():
-        raise RuntimeError('nibabel (python) or Freesurfer (unix) must be '
+    if not has_freesurfer and not has_nibabel():
+        raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
                            'correctly installed and accessible from Python')
 
     if not isinstance(vertices, list) and not isinstance(vertices, np.ndarray):
@@ -669,19 +676,21 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, verbose=None):
     rr = [read_surface(s)[0] for s in surfs]
 
     # take point locations in RAS space and convert to MNI coordinates
-    xfm = _freesurfer_read_talxfm(subject, subjects_dir)
+    xfm = _read_talxfm(subject, subjects_dir, mode)
     data = np.array([np.concatenate((rr[h][v, :], [1]))
                      for h, v in zip(hemis, vertices)]).T
     return np.dot(xfm, data)[:3, :].T.copy()
 
 
 @verbose
-def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
+def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     """Read MNI transform from FreeSurfer talairach.xfm file
 
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
+    if mode is not None and not mode in ['nibabel', 'freesurfer']:
+        raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
     with open(fname, 'r') as fid:
@@ -714,14 +723,18 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
     # now get Norig and Torig
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
 
-    # try to use nibabel first since it's faster (and pythonic)
     try:
         import nibabel as nib
-    except:
-        use_nibabel = False
-    else:
         use_nibabel = True
+    except ImportError:
+        use_nibabel = False
+        if mode == 'nibabel':
+            raise ImportError('Tried to import nibabel but failed, try using '
+                              'mode=None or mode=Freesurfer')
 
+    # note that if mode == None, then we default to using nibabel
+    if use_nibabel is True and mode == 'freesurfer':
+        use_nibabel = False
     if use_nibabel:
         img = nib.load(path)
         hdr = img.get_header()
@@ -738,8 +751,8 @@ def _freesurfer_read_talxfm(subject, subjects_dir, verbose=None):
         for conv in ['--vox2ras', '--vox2ras-tkr']:
             rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
             if rc != 0:
-                raise ValueError('Could not get transform information: %s\n%s'
-                                 % (stdout, stderr))
+                raise ValueError('Could not get transform information using '
+                                 'freesurfer: %s\n%s' % (stdout, stderr))
             stdout = np.fromstring(stdout, sep=' ').astype(float)
             if not stdout.size == 16:
                 raise ValueError('Could not parse Freesurfer mri_info output')

@@ -324,22 +324,29 @@ requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
                                      'Requires MNE command line tools')
 
 
-def has_fs_or_nibabel():
+def has_nibabel():
     try:
         import nibabel
-        assert nibabel
-    except:
-        if not 'FREESURFER_HOME' in os.environ:
-            return False
-        else:
-            return True
+        return True
+    except ImportError:
+        return False
+
+
+def has_freesurfer():
+    if not 'FREESURFER_HOME' in os.environ:
+        return False
     else:
         return True
 
 
-requires_fs_or_nibabel = np.testing.dec.skipif(not has_fs_or_nibabel(),
+requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
+                                               not has_freesurfer(),
                                                'Requires nibabel or '
                                                'Freesurfer')
+requires_nibabel = np.testing.dec.skipif(not has_nibabel(),
+                                         'Requires nibabel')
+requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
+                                            'Requires Freesurfer')
 
 
 def requires_pandas(function):
@@ -370,7 +377,7 @@ def make_skipper_dec(module, skip_str):
     skip = False
     try:
         __import__(module)
-    except:
+    except ImportError:
         skip = True
     return np.testing.dec.skipif(skip, skip_str)
 

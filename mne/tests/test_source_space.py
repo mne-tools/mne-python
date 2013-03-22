@@ -5,7 +5,8 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces
-from mne.utils import _TempDir, requires_fs_or_nibabel
+from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
+                      requires_freesurfer
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
@@ -78,5 +79,21 @@ def test_vertex_to_mni():
     coords = np.array([[-60.25, -10.96, -2.13], [-36.09, -90.37, 2.54],
                        [-37.62, 48.07, -11.33], [46.67, 9.92, 42.74]])
     hemis = [0, 0, 0, 1]
-    coords_2 = np.round(vertex_to_mni(vertices, hemis, 'sample'), 1)
+    coords_2 = vertex_to_mni(vertices, hemis, 'sample')
+    # less than 5mm error
     assert_allclose(coords, coords_2, atol=5)
+
+
+@requires_freesurfer
+@requires_nibabel
+def test_vertex_to_mni_fs_nibabel():
+    """Test equivalence of vert_to_mni for nibabel and freesurfer
+    """
+    n_check = 1000
+    for subject in ['sample', 'fsaverage']:
+        vertices = np.random.randint(0, 100000, n_check)
+        hemis = np.random.randint(0, 1, n_check)
+        coords = vertex_to_mni(vertices, hemis, subject, mode='nibabel')
+        coords_2 = vertex_to_mni(vertices, hemis, subject, mode='freesurfer')
+        # less than 0.1 mm error
+        assert_allclose(coords, coords_2, atol=0.1)
