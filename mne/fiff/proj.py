@@ -114,7 +114,6 @@ class ProjMixin(object):
                     e[:] = np.dot(self._projector, e)
             else:
                 data = np.dot(self._projector, data)
-            self.proj = True
             if hasattr(self, '_data'):
                 self._data = data
             else:
