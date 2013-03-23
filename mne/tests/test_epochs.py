@@ -633,7 +633,7 @@ def test_epochs_proj_mixin():
     """
     for proj in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), proj=proj)
+                        baseline=(None, 0), proj=proj, add_eeg_ref=proj)
 
         assert_true(all(p['active'] == proj for p in epochs.info['projs']))
 
