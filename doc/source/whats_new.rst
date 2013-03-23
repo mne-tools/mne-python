@@ -67,6 +67,10 @@ Changelog
 
    - Add support for non-paired tests in spatiotemporal cluster stats by `Alex Gramfort`_
 
+   - Add unified SSP-projector API for Raw, Epochs and Evoked objects by `Denis Engemann`_, `Alex Gramfort`_ `Eric Larson`_ and `Martin Luessi`_
+
+   - Add support for delayed SSP application at evoked stage `Denis Engemann`_, `Alex Gramfort`_, `Eric Larson`_ and `Martin Luessi`_
+
 API
 ~~~
 
@@ -79,6 +83,8 @@ API
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 
    - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
+
+   - Raw constructor argument activate_proj deprecated -- use proj argument instead. 
 
 .. _changes_0_5:
 

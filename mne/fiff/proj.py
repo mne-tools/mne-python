@@ -71,8 +71,8 @@ class ProjMixin(object):
 
         Note: Once the projectors have been applied, they can no longer be
               removed. It is usually not recommended to apply the projectors at
-              too early, as they are applied automatically later on (e.g. when
-              computing inverse solutions).
+              too early stages, as they are applied automatically later on
+              (e.g. when computing inverse solutions).
               Hint: using the copy method individual projection vectors
               can be tested without affecting the original data.
               With evoked data, consider the following example:
