@@ -262,15 +262,7 @@ class Evoked(ProjMixin):
         all_data *= cals[:, np.newaxis]
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
-
-        # bind info, proj, data to self so apply_projector can be used
         self.info = info
-        self.data = all_data
-        self.proj = False
-        if proj == True:
-            self.apply_projector()
-        # Run baseline correction
-        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
         # Put the rest together all together
         self.nave = nave
@@ -281,6 +273,14 @@ class Evoked(ProjMixin):
         self.comment = comment
         self.times = times
         self.data = all_data
+
+        # bind info, proj, data to self so apply_projector can be used
+        self.data = all_data
+        self.proj = False
+        if proj == True:
+            self.apply_projector()
+        # Run baseline correction
+        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
         fid.close()
 

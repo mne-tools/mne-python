@@ -230,7 +230,7 @@ class Epochs(ProjMixin):
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.flat = flat
-        self.proj = proj
+        self.proj = proj or raw.proj  # proj is on when applied in Raw
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
@@ -252,7 +252,8 @@ class Epochs(ProjMixin):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref)
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+                                                activate=self.proj)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
@@ -391,7 +392,7 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
         epoch, _ = self.raw[self.picks, start:stop]
-        if self.proj:
+        if self._projector is not None:
             logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
@@ -1401,7 +1402,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.times = times
     epochs._data = data
     epochs.proj = proj
-    epochs._projector, epochs.info = setup_proj(info, add_eeg_ref)
+    epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
+                                                activate=proj)
+
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
