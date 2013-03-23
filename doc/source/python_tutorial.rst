@@ -233,7 +233,7 @@ Read epochs:
 Get single epochs for one condition:
 
     >>> epochs_data = epochs['aud_l'].get_data() # doctest: +ELLIPSIS
-    Reading ...
+    Created an SSP operator ...
     >>> print epochs_data.shape
     (55, 365, 106)
 
@@ -248,17 +248,17 @@ or if you want to keep all the information about the data you can save your epoc
 in a fif file:
 
     >>> epochs.save('sample-epo.fif') # doctest: +ELLIPSIS
-    Reading ...
+    Created an SSP operator ...
 
 and read them later with:
 
     >>> saved_epochs = mne.read_epochs('sample-epo.fif') # doctest: +ELLIPSIS
-    Reading ...
+    Reading sample-epo.fif ...
 
 Compute evoked responses for auditory responses by averaging and plot it:
 
     >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
-    Reading ...
+    Created an SSP operator ...
     >>> print evoked
     <Evoked  |  comment : 'aud_l', time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106>
     >>> evoked.plot() # doctest:+SKIP
@@ -271,7 +271,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
   1. Extract the max value of each epoch
 
   >>> max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
-  Reading ...
+  Created an SSP operator ...
   >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
   [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
 
