@@ -571,7 +571,7 @@ class Epochs(ProjMixin):
                 is_good = self._is_good_epoch(epoch)[0]
         # If in delayed-ssp mode, read 'virgin' data after rejection decision.
         if self.proj == False and self.reject is not None:
-            epoch = self._get_epoch_from_disk(self._current, proj=self.proj)
+            epoch = self._get_epoch_from_disk(self._current - 1, proj=self.proj)
 
         return epoch
 

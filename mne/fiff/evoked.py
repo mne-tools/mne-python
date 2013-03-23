@@ -29,6 +29,8 @@ from .write import start_file, start_block, end_file, end_block, \
 from ..viz import plot_evoked
 from .. import verbose
 
+aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
+               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
 aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
