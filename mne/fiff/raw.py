@@ -952,7 +952,7 @@ class Raw(ProjMixin):
                 data, times = self[picks, first:last]
 
             if projector is not None:
-                data = np.dot(proj, data)
+                data = np.dot(projector, data)
 
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
