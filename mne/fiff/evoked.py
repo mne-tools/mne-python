@@ -266,15 +266,7 @@ class Evoked(ProjMixin):
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
-        # bind info, proj, data to self so apply_projector can be used
         self.info = info
-        self.data = all_data
-        self.proj = proj
-        if proj == True:
-            self.apply_projector()
-        # Run baseline correction
-        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
-
         # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
@@ -283,7 +275,14 @@ class Evoked(ProjMixin):
         self.last = last
         self.comment = comment
         self.times = times
+
+        # bind info, proj, data to self so apply_projector can be used
         self.data = all_data
+        self.proj = proj
+        if proj == True:
+            self.apply_projector()
+        # Run baseline correction
+        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
         fid.close()
 

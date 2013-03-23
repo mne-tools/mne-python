@@ -72,27 +72,30 @@ class ProjMixin(object):
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
+            return
 
-        elif self.proj == False:
-            self._projector, self.info = setup_proj(self.info,
-                                                verbose=self.verbose)
-            activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
-            # handle different data / preload attrs and create reference
-            # this also helps avoiding circular imports
-            data = getattr(self, '_data', getattr(self, 'data', None))
-            if data is not None:
-                if data.ndim == 2:
-                    data = np.dot(self._projector, data)
-                elif data.ndim == 3:
-                    data = np.r_[[np.dot(self._projector, e) for e in data]]
-                self.proj = True
-                if hasattr(self, '_data'):
-                    self._data = data
-                else:
-                    self.data = data
-        else:
-            logger.info('Projection has already been applied. Doing '
+        if all([p['active'] for p in self.info['projs']]):
+            logger.info('Projections have already been applied. Doing '
                         'nothing.')
+            return
+
+        self.proj = True  # track that proj were applied
+        self._projector, self.info = setup_proj(self.info, active=True,
+                                                verbose=self.verbose)
+        # handle different data / preload attrs and create reference
+        # this also helps avoiding circular imports
+        data = getattr(self, '_data', getattr(self, 'data', None))
+        if data is not None:
+            logger.info("SSP projectors applied...")
+            if data.ndim == 2:
+                data = np.dot(self._projector, data)
+            elif data.ndim == 3:
+                data = np.r_[[np.dot(self._projector, e) for e in data]]
+            self.proj = True
+            if hasattr(self, '_data'):
+                self._data = data
+            else:
+                self.data = data
 
         return self
 
@@ -509,7 +512,7 @@ def _has_eeg_average_ref_proj(projs):
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, active=True, verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
@@ -519,6 +522,8 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    active : bool
+        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -548,6 +553,7 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
                                                                % nproj)
 
     #   The projection items have been activated
-    info['projs'] = activate_proj(info['projs'], copy=False)
+    if active:
+        info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info

@@ -121,13 +121,18 @@ def test_epochs_proj():
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
-    epochs.average()
+    assert_true(all(p['active'] == True for p in epochs.info['projs']))
+    evoked = epochs.average()
+    assert_true(all(p['active'] == True for p in evoked.info['projs']))
     data = epochs.get_data()
 
-    raw_proj = fiff.Raw(raw_fname, proj_active=True)
+    raw_proj = fiff.Raw(raw_fname, proj=True)
     epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
                             picks=this_picks, baseline=(None, 0), proj=False)
-    epochs_no_proj.average()
+    assert_true(all(p['active'] == True for p in epochs_no_proj.info['projs']))
+    evoked_no_proj = epochs_no_proj.average()
+    assert_true(all(p['active'] == True for p in evoked_no_proj.info['projs']))
+    assert_true(epochs_no_proj.proj == True)  # as projs are active from Raw
     data_no_proj = epochs_no_proj.get_data()
     assert_array_almost_equal(data, data_no_proj, decimal=8)
 
