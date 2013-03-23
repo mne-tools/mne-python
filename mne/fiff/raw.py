@@ -54,7 +54,7 @@ class Raw(ProjMixin):
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    projection : bool
+    proj : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
         applied, they can no longer be removed. It is usually not
@@ -78,7 +78,8 @@ class Raw(ProjMixin):
                  verbose=None, proj=False, proj_active=None):
 
         if proj_active is not None:
-            warnings.warn('proj_active param in Raw is deprecated. Use proj.')
+            warnings.warn('proj_active param in Raw is deprecated and will be'
+                          ' removed in version 0.7. Plsease use proj instead.')
             proj = proj_active
 
         if not isinstance(fnames, list):
@@ -878,7 +879,8 @@ class Raw(ProjMixin):
         then save raw files for this reason.
         """
         if proj_active is not None:
-            warnings.warn('proj_active param is deprecated. Use proj.')
+            warnings.warn('proj_active param in Raw is deprecated and will be'
+                          ' removed in version 0.7. Plsease use proj instead.')
             proj = proj_active
 
         fname = op.abspath(fname)

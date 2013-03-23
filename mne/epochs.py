@@ -92,7 +92,7 @@ class Epochs(ProjMixin):
         If flat is None then no rejection is done.
     proj : bool, optional
         Apply SSP projection vectors. If proj is False but reject is specified
-        data will be projected before the rejection decsision and if not
+        data will be projected before the rejection decision and if not
         rejected will be read once more. This is the only way to
         reject epochs and postpone the projection to the evoked stage.
     decim : int
@@ -551,8 +551,9 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        # apply here instead of in the constructor to make sure it reflects
-        if self._current < 1 and self.proj:  # the actual processing.
+        # The projection info shouldn't be set active before actually
+        # applying projs to the data, that is, when accessing the data.
+        if self._current < 1 and self.proj:
             self._projector, self.info = setup_proj(self.info)
 
         if self.preload:
@@ -568,6 +569,7 @@ class Epochs(ProjMixin):
                 epoch = self._get_epoch_from_disk(self._current, proj=True)
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
+        # If in delayed-ssp mode, read 'virgin' data after rejection decision.
         if self.proj == False and self.reject is not None:
             epoch = self._get_epoch_from_disk(self._current, proj=self.proj)
 
