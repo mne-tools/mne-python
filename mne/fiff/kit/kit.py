@@ -253,7 +253,7 @@ class RawKIT(Raw):
         return stim_ch
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      proj=None):
+                      projector=None):
         """Read a chunk of raw data
 
         Parameters
@@ -266,6 +266,8 @@ class RawKIT(Raw):
             If omitted, data is included to the end.
         sel : array, optional
             Indices of channels to select.
+        projector : array
+            SSP operator to apply to the data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -280,7 +282,7 @@ class RawKIT(Raw):
             sel = range(self.info['nchan'])
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
-        if proj is not None:
+        if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
