@@ -17,7 +17,7 @@ from .tag import read_tag
 from .tree import dir_tree_find
 from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
-from .proj import make_projector_info, activate_proj
+from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
@@ -36,7 +36,7 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(object):
+class Evoked(ProjMixin):
     """Evoked data
 
     Parameters
@@ -95,6 +95,8 @@ class Evoked(object):
         self.verbose = verbose
         logger.info('Reading %s ...' % fname)
         fid, tree, _ = fiff_open(fname)
+        if not isinstance(proj, bool):
+            raise ValueError(r"'proj' must be 'True' or 'False'")
 
         #   Read the measurement info
         info, meas = read_meas_info(fid, tree)
@@ -264,34 +266,8 @@ class Evoked(object):
 
         times = np.arange(first, last + 1, dtype=np.float) / info['sfreq']
 
-        # Set up projection
-        if info['projs'] is None or not proj:
-            logger.info('No projector specified for these data')
-            self.proj = None
-        else:
-            #   Create the projector
-            proj, nproj = make_projector_info(info)
-            if nproj == 0:
-                logger.info('The projection vectors do not apply to these'
-                            ' channels')
-                self.proj = None
-            else:
-                logger.info('Created an SSP operator (subspace dimension '
-                            '= %d)' % nproj)
-                self.proj = proj
-
-            #   The projection items have been activated
-            info['projs'] = activate_proj(info['projs'], copy=False)
-
-        if self.proj is not None:
-            logger.info("SSP projectors applied...")
-            all_data = np.dot(self.proj, all_data)
-
-        # Run baseline correction
-        all_data = rescale(all_data, times, baseline, 'mean', copy=False)
-
-        # Put it all together
         self.info = info
+        # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
         self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
@@ -299,7 +275,14 @@ class Evoked(object):
         self.last = last
         self.comment = comment
         self.times = times
+
+        # bind info, proj, data to self so apply_projector can be used
         self.data = all_data
+        self.proj = proj
+        if proj == True:
+            self.apply_projector()
+        # Run baseline correction
+        self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
         fid.close()
 
@@ -357,7 +340,7 @@ class Evoked(object):
         unit : bool
             Scale plot with channel (SI) unit.
         show : bool
-            Call pylab.show() as the end or not.
+            Call pylab.show() at the end or not.
         ylim : dict
             ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
             Valid keys are eeg, mag, grad
@@ -517,6 +500,18 @@ class Evoked(object):
                                eog=False, ecg=False, emg=False, exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
+    def copy(self):
+        """ Copy the instance of evoked
+
+        Returns
+        -------
+        evoked : instance of Evoked
+
+        """
+        evoked = deepcopy(self)
+
+        return evoked
+
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
         out = merge_evoked([self, evoked])
@@ -598,7 +593,7 @@ def merge_evoked(all_evoked):
     return evoked
 
 
-def read_evoked(fname, setno=None, baseline=None, kind='average'):
+def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     """Read an evoked dataset
 
     Parameters
@@ -619,16 +614,18 @@ def read_evoked(fname, setno=None, baseline=None, kind='average'):
         interval is used.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
+    proj : bool
+        If False, available projectors won't be applied to the data.
     Returns
     -------
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
     if isinstance(setno, list):
-        return [Evoked(fname, s, baseline=baseline, kind=kind)
+        return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
                 for s in setno]
     else:
-        return Evoked(fname, setno, baseline=baseline, kind=kind)
+        return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
 
 
 def write_evoked(fname, evoked):

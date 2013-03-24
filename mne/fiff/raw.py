@@ -24,7 +24,7 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
-from .proj import setup_proj, activate_proj, deactivate_proj, proj_equal
+from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
@@ -34,7 +34,7 @@ from ..viz import plot_raw
 from .. import verbose
 
 
-class Raw(object):
+class Raw(ProjMixin):
     """Raw data
 
     Parameters
@@ -54,7 +54,7 @@ class Raw(object):
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    proj_active : bool
+    proj : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
         applied, they can no longer be removed. It is usually not
@@ -75,7 +75,10 @@ class Raw(object):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=None, proj_active=False):
+                 verbose=None, proj=False, proj_active=None):
+        if proj_active is not None:
+            warnings.warn('proj_active param in Raw is deprecated. Use proj.')
+            proj = proj_active
 
         if not isinstance(fnames, list):
             fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
@@ -110,7 +113,8 @@ class Raw(object):
 
         # setup the SSP projector
         self._projector = None
-        if proj_active:
+        self.proj = proj
+        if proj:
             self.apply_projector()
 
     def __del__(self):
@@ -349,7 +353,7 @@ class Raw(object):
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                            proj=self._projector,
+                                            projector=self._projector,
                                             verbose=self.verbose)
         return data, times
 
@@ -818,64 +822,10 @@ class Raw(object):
         raw.last_samp = raw.first_samp + (smax - smin)
         return raw
 
-    def apply_projector(self):
-        """Apply the signal space projection (SSP) operators to the data.
-
-        Note: Once the projectors have been applied, they can no longer be
-              removed. It is usually not recommended to apply the projectors at
-              this point, as they are applied automatically later on (e.g. when
-              computing inverse solutions).
-       """
-        self._projector, self.info = setup_proj(self.info,
-                                                verbose=self.verbose)
-        activate_proj(self.info['projs'], copy=False, verbose=self.verbose)
-
-        if self._preloaded:
-            self._data = np.dot(self._projector, self._data)
-
-    def add_proj(self, projs, remove_existing=False):
-        """Add SSP projection vectors
-
-        Parameters
-        ----------
-        projs : list
-            List with projection vectors.
-        remove_existing : bool
-            Remove the projection vectors currently in the file.
-        """
-        # mark proj as inactive, as they have not been applied
-        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
-
-        if remove_existing:
-            # we cannot remove the proj if they are active
-            if any(p['active'] for p in self.info['projs']):
-                raise ValueError('Cannot remove projectors that have '
-                                 'already been applied')
-            self.info['projs'] = projs
-        else:
-            self.info['projs'].extend(projs)
-
-    def del_proj(self, idx):
-        """Remove SSP projection vector
-
-        Note: The projection vector can only be removed if it is inactive
-              (has not been applied to the data).
-
-        Parameters:
-        -----------
-        idx : int
-            Index of the projector to remove.
-        """
-        if self.info['projs'][idx]['active']:
-            raise ValueError('Cannot remove projectors that have already '
-                             'been applied')
-
-        self.info['projs'].pop(idx)
-
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj_active=False, format='single',
-             overwrite=False, verbose=None):
+             drop_small_buffer=False, proj=False, format='single',
+             overwrite=False, verbose=None, proj_active=None):
         """Save raw data to file
 
         Parameters
@@ -895,10 +845,10 @@ class Raw(object):
         drop_small_buffer : bool
             Drop or not the last buffer. It is required by maxfilter (SSS)
             that only accepts raw files with buffers of the same size.
-        proj_active : bool
+        proj : bool
             If True the data is saved with the projections applied (active).
             Note: If apply_projector() was used to apply the projectons,
-            the projectons will be active even if proj_active is False.
+            the projectons will be active even if proj is False.
         format : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
@@ -925,6 +875,10 @@ class Raw(object):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        if proj_active is not None:
+            warnings.warn('proj_active param is deprecated. Use proj.')
+            proj = proj_active
+
         fname = op.abspath(fname)
         if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
@@ -952,13 +906,13 @@ class Raw(object):
         # check for file existence
         _check_fname(fname, overwrite)
 
-        if proj_active:
+        if proj:
             info = copy.deepcopy(self.info)
-            proj, info = setup_proj(info)
+            projector, info = setup_proj(info, active=proj)
             activate_proj(info['projs'], copy=False)
         else:
             info = self.info
-            proj = None
+            projector = None
 
         outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
                                          reset_range=reset_dict[format])
@@ -995,8 +949,8 @@ class Raw(object):
             else:
                 data, times = self[picks, first:last]
 
-            if proj is not None:
-                data = np.dot(proj, data)
+            if projector is not None:
+                data = np.dot(projector, data)
 
             if (drop_small_buffer and (first > start)
                                             and (len(times) < buffer_size)):
@@ -1450,7 +1404,7 @@ class Raw(object):
 
     @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-        verbose=None, proj=None):
+        verbose=None, projector=None):
         """Read a chunk of raw data
 
         Parameters
@@ -1469,7 +1423,7 @@ class Raw(object):
             to store the data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-        proj : array
+        projector : array
             SSP operator to apply to the data.
 
         Returns
@@ -1510,13 +1464,13 @@ class Raw(object):
         else:
             data = None  # we will allocate it later, once we know the type
 
-        if proj is not None:
+        if projector is not None:
             mult = list()
             for ri in range(len(self._raw_lengths)):
                 mult.append(np.diag(self.cals.ravel()))
                 if self.comp is not None:
                     mult[ri] = np.dot(self.comp[idx, :], mult[ri])
-                mult[ri] = np.dot(proj, mult[ri])
+                mult[ri] = np.dot(projector, mult[ri])
         else:
             mult = None
 

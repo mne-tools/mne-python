@@ -30,6 +30,93 @@ class Projection(dict):
         return "Projection (%s)" % s
 
 
+class ProjMixin(object):
+    """ Mixin class for Raw, Evoked, Epochs
+    """
+
+    def __init__(self):
+        pass
+
+    def add_proj(self, projs, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors.
+        remove_existing : bool
+            Remove the projection vectors currently in the file.
+        """
+        # mark proj as inactive, as they have not been applied
+        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
+
+        if remove_existing:
+            # we cannot remove the proj if they are active
+            if any(p['active'] for p in self.info['projs']):
+                raise ValueError('Cannot remove projectors that have '
+                                 'already been applied')
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
+
+        return self
+
+    def apply_projector(self):
+        """Apply the signal space projection (SSP) operators to the data.
+
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              this point, as they are applied automatically later on (e.g. when
+              computing inverse solutions).
+        """
+        if self.info['projs'] is None:
+            logger.info('No projector specified for this dataset.'
+                        'Please consider the method self.add_proj.')
+            return
+
+        if all([p['active'] for p in self.info['projs']]):
+            logger.info('Projections have already been applied. Doing '
+                        'nothing.')
+            return
+
+        self.proj = True  # track that proj were applied
+        self._projector, self.info = setup_proj(self.info, active=True,
+                                                verbose=self.verbose)
+        # handle different data / preload attrs and create reference
+        # this also helps avoiding circular imports
+        data = getattr(self, '_data', getattr(self, 'data', None))
+        if data is not None:
+            logger.info("SSP projectors applied...")
+            if data.ndim == 2:
+                data = np.dot(self._projector, data)
+            elif data.ndim == 3:
+                data = np.r_[[np.dot(self._projector, e) for e in data]]
+            self.proj = True
+            if hasattr(self, '_data'):
+                self._data = data
+            else:
+                self.data = data
+
+        return self
+
+    def del_proj(self, idx):
+        """Remove SSP projection vector
+
+        Note: The projection vector can only be removed if it is inactive
+              (has not been applied to the data).
+
+        Parameters:
+        -----------
+        idx : int
+            Index of the projector to remove.
+        """
+        if self.info['projs'][idx]['active']:
+            raise ValueError('Cannot remove projectors that have already '
+                             'been applied')
+
+        self.info['projs'].pop(idx)
+
+
 def proj_equal(a, b):
     """ Test if two projectors are equal """
 
@@ -425,7 +512,7 @@ def _has_eeg_average_ref_proj(projs):
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, active=True, verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
@@ -435,6 +522,8 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    active : bool
+        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -464,6 +553,7 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
                                                                % nproj)
 
     #   The projection items have been activated
-    info['projs'] = activate_proj(info['projs'], copy=False)
+    if active:
+        info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info
