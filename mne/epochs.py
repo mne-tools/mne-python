@@ -392,7 +392,7 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
         epoch, _ = self.raw[self.picks, start:stop]
-        if self._projector is not None:
+        if self._projector is not None and proj:
             logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
