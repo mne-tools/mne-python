@@ -31,7 +31,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-# pick Magnetometer channels
+# pick magnetometer channels
 picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
                         include=[], exclude='bads')
 
@@ -44,7 +44,7 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 
 ###############################################################################
-# View evoked response with projectos idle
+# View evoked response with projectors idle
 
 times = 1e3 * epochs.times  # time in milliseconds
 import pylab as pl
@@ -69,8 +69,8 @@ pl.show()
 
 # finally we are going to track the incremental effects of the single
 # projection vectors.
-title = 'Incremental SSP application'
 
+title = 'Incremental SSP application'
 projs, evoked.info['projs'] = evoked.info['projs'], []  # pop projs
 fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
 for proj, ax in zip(projs, axes.flatten()):
