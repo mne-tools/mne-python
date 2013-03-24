@@ -19,7 +19,6 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.viz import plot_drop_log
 data_path = sample.data_path()
 
 ###############################################################################
@@ -45,22 +44,22 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 
 ###############################################################################
-# View evoked response
+# View evoked response with projectos idle
 times = 1e3 * epochs.times  # time in miliseconds
 import pylab as pl
 pl.figure()
 evoked.plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
-pl.ylabel('Potential (uV)')
-pl.title('MEG evoked fields | SSP off')
+pl.ylabel('MEG evoked fields (fT)')
+pl.title('Magnetometers | SSP off')
 pl.show()
 
-# View evoked response
+# now with projectors activated
 pl.figure()
-evoked.apply_projector().plot()
+evoked.copy().apply_projector().plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
-pl.ylabel('Potential (uV)')
-pl.title('MEG evoked fields | SSP on')
+pl.ylabel('MEG evoked fields (fT)')
+pl.title('Magnetometers | SSP on')
 pl.show()
