@@ -79,9 +79,9 @@ Make life easier
 
   From IPython e.g. say::
 
-    cd examples/preprocessing
+   cd examples/preprocessing
 
-    %run plot_find_ecg_artifacts.py
+   %run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -279,7 +279,7 @@ It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked1 = mne.fiff.Evoked(evoked_fname, setno=0, baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
-    Reading /Users/denisaengemann/python/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
