@@ -349,7 +349,7 @@ class Epochs(ProjMixin):
     def _preprocess_epoch(self, epoch, verbose):
         # Detrend
         if verbose == 'reload':
-            logger.info("Reloading unprojected epoch...\n")
+            logger.info("Restoring unprojected epoch ...\n")
             verbose = False
         else:
             verbose = self.verbose

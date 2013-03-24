@@ -134,21 +134,21 @@ class ProjMixin(object):
                                                 verbose=self.verbose)
         # handle different data / preload attrs and create reference
         # this also helps avoiding circular imports
-        data = getattr(self, 'get_data', getattr(self, '_data',
-                       getattr(self, 'data', None)))
-
-        if data is not None:
-            if callable(data):
+        for attr in ('get_data', '_data', 'data'):
+            data = getattr(self, attr, None)
+            if data is None:
+                continue
+            elif callable(data):
+                # if epochs.proj == True, get_data will apply projs
                 data = data()
-                for e in data:
-                    e[:] = np.dot(self._projector, e)
             else:
                 data = np.dot(self._projector, data)
-            logger.info('SSP projectors applied...')
-            if hasattr(self, '_data'):
-                self._data = data
-            else:
-                self.data = data
+            break
+        logger.info('SSP projectors applied...')
+        if hasattr(self, '_data'):
+            self._data = data
+        else:
+            self.data = data
 
         return self
 

@@ -664,4 +664,6 @@ def test_epochs_proj_mixin():
 
     data = epochs.get_data().copy()
     epochs.apply_proj()
+    assert_array_equal(epochs._projector, epochs2._projector)
+    assert_allclose(epochs._data, epochs2.get_data())
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
