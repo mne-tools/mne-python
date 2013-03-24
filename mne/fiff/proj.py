@@ -529,13 +529,15 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 @verbose
-def make_eeg_average_ref_proj(info, verbose=None):
+def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     """Create an EEG average reference SSP projection vector
 
     Parameters
     ----------
     info : dict
         Measurement info.
+    activate : bool
+        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -555,7 +557,7 @@ def make_eeg_average_ref_proj(info, verbose=None):
     vec = np.ones((1, n_eeg)) / n_eeg
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
-    eeg_proj = Projection(active=True, data=eeg_proj_data,
+    eeg_proj = Projection(active=activate, data=eeg_proj_data,
                     desc='Average EEG reference',
                     kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
     return eeg_proj
@@ -598,7 +600,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
     eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
     if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
             and add_eeg_ref is True:
-        eeg_proj = make_eeg_average_ref_proj(info)
+        eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 
     #   Create the projector
