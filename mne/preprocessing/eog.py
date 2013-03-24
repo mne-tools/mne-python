@@ -25,7 +25,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High pass frequency.
     filter_length : str | int | None
         Number of taps to use for filtering.
-    ch_name: str
+    ch_name: str | None
         If not None, use specified channel(s) for EOG
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -55,7 +55,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
         # Check if multiple EOG Channels
         if ',' in ch_name:
-            ch_name = ch_name.replace('[','').replace(']','').split(',')
+            ch_name = ch_name.strip('[]').split(',')
         else:
             ch_name = [ch_name]
 

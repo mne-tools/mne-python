@@ -96,8 +96,8 @@ if __name__ == '__main__':
                       help="raw file to use for event detection", default=None)
     parser.add_option("--tstart", dest="tstart", type="float",
                       help="Start artifact detection after tstart seconds", default=0.)
-    parser.add_option("-c","--channel", dest="ch_name",
-                      help="User specified list of EOG channel(s)",
+    parser.add_option("-c","--channel", dest="ch_name", type="string",
+                      help="Custom EOG channel(s), comma separated",
                       default=None)
 
     options, args = parser.parse_args()
@@ -160,12 +160,14 @@ if __name__ == '__main__':
         raw_event = raw
 
     flat = None  # XXX : not exposed to the user
-    projs, events = mne.preprocessing.compute_proj_eog(raw=raw, raw_event=raw_event,
-                            tmin=tmin, tmax=tmax, n_grad=n_grad, n_mag=n_mag, n_eeg=n_eeg,
-                            l_freq=l_freq, h_freq=h_freq, average=average, filter_length=filter_length,
-                            n_jobs=n_jobs, reject=reject, flat=flat, bads=bads,
-                            avg_ref=avg_ref, no_proj=no_proj, event_id=event_id,
-                            eog_l_freq=eog_l_freq, eog_h_freq=eog_h_freq, tstart=tstart, ch_name=ch_name)
+    projs, events = mne.preprocessing.compute_proj_eog(raw=raw,
+                    raw_event=raw_event, tmin=tmin, tmax=tmax, n_grad=n_grad,
+                    n_mag=n_mag, n_eeg=n_eeg, l_freq=l_freq, h_freq=h_freq,
+                    average=average, filter_length=filter_length,
+                    n_jobs=n_jobs, reject=reject, flat=flat, bads=bads,
+                    avg_ref=avg_ref, no_proj=no_proj, event_id=event_id,
+                    eog_l_freq=eog_l_freq, eog_h_freq=eog_h_freq, 
+                    tstart=tstart, ch_name=ch_name)
 
     raw.close()
 
