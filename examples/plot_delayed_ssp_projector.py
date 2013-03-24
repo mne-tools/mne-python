@@ -57,7 +57,7 @@ pl.show()
 
 # now with projectors activated
 pl.figure()
-evoked.copy().apply_projector().plot()
+evoked.copy().apply_proj().plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('MEG evoked fields (fT)')

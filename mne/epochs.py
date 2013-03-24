@@ -346,6 +346,29 @@ class Epochs(ProjMixin):
         """
         self._get_data_from_disk(out=False)
 
+    def _preprocess_epoch(self, epoch, verbose):
+        # Detrend
+        if verbose == 'reload':
+            logger.info("Reloading unprojected epoch...\n")
+            verbose = False
+        else:
+            verbose = self.verbose
+
+        if self.detrend is not None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False, exclude=[])
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+
+        # Baseline correct
+        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
+                        copy=False, verbose=self.verbose)
+
+        # Decimate
+        if self.decim > 1:
+            epoch = epoch[:, self._decim_idx]
+
+        return epoch
+
     @verbose
     def drop_epochs(self, indices, verbose=None):
         """Drop epochs based on indices or boolean mask
@@ -392,25 +415,12 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
         epoch, _ = self.raw[self.picks, start:stop]
+        if self.reject is not None and self.proj == False:
+            self._epoch_tmp = epoch.copy()
         if self._projector is not None and proj:
-            logger.info("SSP projectors applied...")
             epoch = np.dot(self._projector, epoch)
 
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False)
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
-
-        return epoch
+        return self._preprocess_epoch(epoch, verbose=self.verbose)
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -445,10 +455,15 @@ class Epochs(ProjMixin):
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
             for idx in xrange(n_events):
-                epoch = self._get_epoch_from_disk(idx, proj=self.proj)
+                if self.reject is not None and self.proj == False:
+                    proj = True
+                else:
+                    proj = self.proj
+                epoch = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
+                    epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
@@ -571,9 +586,7 @@ class Epochs(ProjMixin):
                 is_good = self._is_good_epoch(epoch)[0]
             # If in delayed-ssp mode, read 'virgin' data after rejection decision.
             if self.proj == False and self.reject is not None:
-                epoch = self._get_epoch_from_disk(self._current - 1,
-                            proj=self.proj)
-                logger.info('Reloading unprojected data ...')
+                epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
 
         return epoch
 
