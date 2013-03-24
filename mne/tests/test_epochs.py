@@ -629,11 +629,11 @@ def test_as_data_frame():
 
 
 def test_epochs_proj_mixin():
-    """Test SSP proj operations
+    """Test SSP proj methods from ProjMixing class
     """
     for proj in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), proj=proj, add_eeg_ref=proj)
+                        baseline=(None, 0), proj=proj)
 
         assert_true(all(p['active'] == proj for p in epochs.info['projs']))
 
