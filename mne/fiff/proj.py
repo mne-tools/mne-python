@@ -93,7 +93,7 @@ class ProjMixin(object):
         -------
         self : instance of Raw | Epochs | Evoked
         """
-        self.apply_proj()
+        return self.apply_proj()
 
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
