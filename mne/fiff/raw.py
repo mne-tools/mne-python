@@ -118,7 +118,7 @@ class Raw(ProjMixin):
         # setup the SSP projector
         self.proj = proj
         if proj:
-            self.apply_projector()
+            self.apply_proj()
 
     def __del__(self):
         # remove file for memmap
@@ -850,7 +850,7 @@ class Raw(ProjMixin):
             that only accepts raw files with buffers of the same size.
         proj : bool
             If True the data is saved with the projections applied (active).
-            Note: If apply_projector() was used to apply the projectons,
+            Note: If apply_proj() was used to apply the projectons,
             the projectons will be active even if proj is False.
         format : str
             Format to use to save raw data. Valid options are 'double',
@@ -1117,7 +1117,7 @@ class Raw(ProjMixin):
         by this function (can be memory intensive).
 
         Projectors are not taken into account unless they have been applied
-        to the data using apply_projector(), since it is not always possible
+        to the data using apply_proj(), since it is not always possible
         to tell whether or not projectors have been applied previously.
 
         Bad channels will be excluded from calculations.

@@ -741,7 +741,7 @@ class Epochs(ProjMixin):
                                    for k in picks]
         evoked.info['nchan'] = len(picks)
         evoked.data = evoked.data[picks]
-        # otherwise the apply_projector will be confused
+        # otherwise the apply_proj will be confused
         evoked.proj = True if self.proj is True else None
         evoked.verbose = self.verbose
 

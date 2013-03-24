@@ -47,7 +47,7 @@ def test_rank_estimation():
     raw = Raw(fif_fname, preload=True)
     assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
     raw = Raw(fif_fname, preload=False)
-    raw.apply_projector()
+    raw.apply_proj()
     n_proj = len(raw.info['projs'])
     assert_array_equal(raw.estimate_rank(tstart=10, tstop=20),
                        n_meg + n_eeg - n_proj)
@@ -400,7 +400,7 @@ def test_proj():
     for preload in [True, False]:
         raw = Raw(fif_fname, preload=preload, proj=False)
         data, times = raw[:, 0:2]
-        raw.apply_projector()
+        raw.apply_proj()
         data_proj_1 = np.dot(raw._projector, data)
 
         # load the file again without proj
@@ -419,8 +419,8 @@ def test_proj():
         assert_allclose(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
 
-        # test that apply_projector works
-        raw.apply_projector()
+        # test that apply_proj works
+        raw.apply_proj()
         data_proj_2, _ = raw[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
