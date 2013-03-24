@@ -435,9 +435,6 @@ class Epochs(ProjMixin):
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        # apply here isntead of in the constructor to make sure it reflects
-        if self.proj:  # the actual processing
-            self._projector, self.info = setup_proj(self.info)
         n_events = len(self.events)
         data = np.array([])
         if self._bad_dropped:
@@ -566,11 +563,6 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        # The projection info shouldn't be set active before actually
-        # applying projs to the data, that is, when accessing the data.
-        if self._current < 1 and self.proj:
-            self._projector, self.info = setup_proj(self.info)
-
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
