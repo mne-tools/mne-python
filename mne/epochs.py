@@ -569,9 +569,11 @@ class Epochs(ProjMixin):
                 epoch = self._get_epoch_from_disk(self._current, proj=True)
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
-        # If in delayed-ssp mode, read 'virgin' data after rejection decision.
-        if self.proj == False and self.reject is not None:
-            epoch = self._get_epoch_from_disk(self._current - 1, proj=self.proj)
+            # If in delayed-ssp mode, read 'virgin' data after rejection decision.
+            if self.proj == False and self.reject is not None:
+                epoch = self._get_epoch_from_disk(self._current - 1,
+                            proj=self.proj)
+                logger.info('Reloading unprojected data ...')
 
         return epoch
 
@@ -728,6 +730,7 @@ class Epochs(ProjMixin):
         evoked.data = evoked.data[picks]
         # otherwise the apply_projector will be confused
         evoked.proj = True if self.proj is True else None
+        evoked.verbose = self.verbose
 
         return evoked
 
