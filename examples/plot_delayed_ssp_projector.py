@@ -45,6 +45,7 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 ###############################################################################
 # View evoked response with projectos idle
+
 times = 1e3 * epochs.times  # time in milliseconds
 import pylab as pl
 pl.figure()
@@ -56,10 +57,25 @@ pl.title('Magnetometers | SSP off')
 pl.show()
 
 # now with projectors activated
+times = evoked.times * 1e3
+import pylab as pl
 pl.figure()
 evoked.copy().apply_proj().plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('MEG evoked fields (fT)')
-pl.title('Magnetometers | SSP on')
+pl.title('Magnetometers | SSP off')
+pl.show()
+
+# finally we are going to track the incremental effects of the single
+# projection vectors.
+title = 'Incremental SSP application'
+
+projs, evoked.info['projs'] = evoked.info['projs'], []  # pop projs
+fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
+for proj, ax in zip(projs, axes.flatten()):
+    evoked.add_proj(proj)  # add and apply on a copy,
+    evoked.copy().apply_proj().plot(axes=ax)  # as this can not be undone.
+    ax.set_title('+ %s' % proj['desc'])
+pl.suptitle(title)
 pl.show()
