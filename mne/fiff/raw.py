@@ -79,7 +79,7 @@ class Raw(ProjMixin):
 
         if proj_active is not None:
             warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Plsease use proj instead.')
+                          ' removed in version 0.7. Please use proj instead.')
             proj = proj_active
 
         if not isinstance(fnames, list):
@@ -880,7 +880,7 @@ class Raw(ProjMixin):
         """
         if proj_active is not None:
             warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Plsease use proj instead.')
+                          ' removed in version 0.7. Please use proj instead.')
             proj = proj_active
 
         fname = op.abspath(fname)
