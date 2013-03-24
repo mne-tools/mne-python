@@ -49,8 +49,11 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
 
         """
+        if isinstance(projs, Projection):
+            projs = [projs]
+
         if (not isinstance(projs, list) and
-            not all(isinstance(p, Projection) for p in projs)):
+            not all([isinstance(p, Projection) for p in projs])):
             raise ValueError('Only projs can be added. You supplied '
                              'something else.')
 
