@@ -17,6 +17,7 @@ from .constants import FIFF
 from .tag import find_tag
 from .pick import pick_types
 from .. import verbose
+from ..utils import deprecated
 
 
 class Projection(dict):
@@ -66,7 +67,35 @@ class ProjMixin(object):
 
         return self
 
+    @deprecated(r"'apply_projector' is deprecated and will be removed in "
+                "version 0.7. Please use apply_proj instead")
     def apply_projector(self):
+        """Apply the signal space projection (SSP) operators to the data.
+
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              too early stages, as they are applied automatically later on
+              (e.g. when computing inverse solutions).
+              Hint: using the copy method individual projection vectors
+              can be tested without affecting the original data.
+              With evoked data, consider the following example:
+
+                  projs_a = mne.read_proj('proj_a.fif')
+                  projs_b = mne.read_proj('proj_b.fif')
+                  # add the first, copy, apply and see ...
+                  evoked.add_proj(a).copy().apply_projector().plot()
+                  # add the second, copy, apply and see ...
+                  evoked.add_proj(b).copy().apply_projector().plot()
+                  # drop the first and see again
+                  evoked.copy().del_proj(0).apply_projector().plot()
+                  evoked.apply_projector()  # finally keep both
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+        """
+        self.apply_proj()
+
+    def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
         Note: Once the projectors have been applied, they can no longer be
@@ -115,6 +144,7 @@ class ProjMixin(object):
                     e[:] = np.dot(self._projector, e)
             else:
                 data = np.dot(self._projector, data)
+            logger.info('SSP projectors applied...')
             if hasattr(self, '_data'):
                 self._data = data
             else:

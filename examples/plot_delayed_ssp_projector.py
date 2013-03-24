@@ -45,7 +45,7 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 ###############################################################################
 # View evoked response with projectos idle
-times = 1e3 * epochs.times  # time in miliseconds
+times = 1e3 * epochs.times  # time in milliseconds
 import pylab as pl
 pl.figure()
 evoked.plot()
