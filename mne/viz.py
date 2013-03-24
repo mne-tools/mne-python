@@ -11,7 +11,6 @@ import warnings
 from itertools import cycle
 from functools import partial
 from operator import add
-from collections import Counter
 import difflib
 import tempfile
 import webbrowser
@@ -29,7 +28,7 @@ from warnings import warn
 
 
 # XXX : don't import pylab here or you will break the doc
-from .fixes import tril_indices
+from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
