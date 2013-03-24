@@ -657,6 +657,11 @@ def test_epochs_proj_mixin():
 
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), proj=False)
+    epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=True)
+    assert_allclose(epochs.copy().apply_proj().get_data()[0],
+                    epochs2.get_data()[0])
+
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
