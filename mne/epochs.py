@@ -454,16 +454,16 @@ class Epochs(ProjMixin):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
+            delayed_ssp = self.reject is not None and self.proj == False
+            proj = True if delayed_ssp else self.proj
             for idx in xrange(n_events):
-                if self.reject is not None and self.proj == False:
-                    proj = True
-                else:
-                    proj = self.proj
                 epoch = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
-                    epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
+                    if delayed_ssp:
+                        epoch = self._preprocess_epoch(self._epoch_tmp,
+                                                       'reload')
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
@@ -1427,6 +1427,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
+    epochs.verbose = verbose
     fid.close()
 
     return epochs
