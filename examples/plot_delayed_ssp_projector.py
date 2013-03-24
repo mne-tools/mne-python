@@ -58,7 +58,7 @@ pl.show()
 
 # View evoked response
 pl.figure()
-evoked.plot()
+evoked.apply_projector().plot()
 pl.xlim([times[0], times[-1]])
 pl.xlabel('time (ms)')
 pl.ylabel('Potential (uV)')
