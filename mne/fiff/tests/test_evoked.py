@@ -163,5 +163,5 @@ def test_evoked_proj():
 
     ave = read_evoked(fname, setno=0, proj=False)
     data = ave.data.copy()
-    ave.apply_projector()
+    ave.apply_proj()
     assert_allclose(np.dot(ave._projector, data), ave.data)

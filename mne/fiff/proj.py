@@ -83,12 +83,12 @@ class ProjMixin(object):
                   projs_a = mne.read_proj('proj_a.fif')
                   projs_b = mne.read_proj('proj_b.fif')
                   # add the first, copy, apply and see ...
-                  evoked.add_proj(a).copy().apply_projector().plot()
+                  evoked.add_proj(a).copy().apply_proj().plot()
                   # add the second, copy, apply and see ...
-                  evoked.add_proj(b).copy().apply_projector().plot()
+                  evoked.add_proj(b).copy().apply_proj().plot()
                   # drop the first and see again
-                  evoked.copy().del_proj(0).apply_projector().plot()
-                  evoked.apply_projector()  # finally keep both
+                  evoked.copy().del_proj(0).apply_proj().plot()
+                  evoked.apply_proj()  # finally keep both
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
@@ -109,12 +109,12 @@ class ProjMixin(object):
                   projs_a = mne.read_proj('proj_a.fif')
                   projs_b = mne.read_proj('proj_b.fif')
                   # add the first, copy, apply and see ...
-                  evoked.add_proj(a).copy().apply_projector().plot()
+                  evoked.add_proj(a).copy().apply_proj().plot()
                   # add the second, copy, apply and see ...
-                  evoked.add_proj(b).copy().apply_projector().plot()
+                  evoked.add_proj(b).copy().apply_proj().plot()
                   # drop the first and see again
-                  evoked.copy().del_proj(0).apply_projector().plot()
-                  evoked.apply_projector()  # finally keep both
+                  evoked.copy().del_proj(0).apply_proj().plot()
+                  evoked.apply_proj()  # finally keep both
         Returns
         -------
         self : instance of Raw | Epochs | Evoked

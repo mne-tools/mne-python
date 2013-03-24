@@ -276,11 +276,11 @@ class Evoked(ProjMixin):
         self.times = times
         self.data = all_data
 
-        # bind info, proj, data to self so apply_projector can be used
+        # bind info, proj, data to self so apply_proj can be used
         self.data = all_data
         self.proj = False
         if proj == True:
-            self.apply_projector()
+            self.apply_proj()
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
