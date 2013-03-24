@@ -79,9 +79,9 @@ Make life easier
 
   From IPython e.g. say::
 
-	cd examples/preprocessing
+    cd examples/preprocessing
 
-	%run plot_find_ecg_artifacts.py
+    %run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -233,7 +233,7 @@ Read epochs:
 Get single epochs for one condition:
 
     >>> epochs_data = epochs['aud_l'].get_data() # doctest: +ELLIPSIS
-    Created an SSP operator ...
+    Reading ...
     >>> print epochs_data.shape
     (55, 365, 106)
 
@@ -248,17 +248,17 @@ or if you want to keep all the information about the data you can save your epoc
 in a fif file:
 
     >>> epochs.save('sample-epo.fif') # doctest: +ELLIPSIS
-    Created an SSP operator ...
+    Reading ...
 
 and read them later with:
 
     >>> saved_epochs = mne.read_epochs('sample-epo.fif') # doctest: +ELLIPSIS
-    Reading sample-epo.fif ...
+    Reading ...
 
 Compute evoked responses for auditory responses by averaging and plot it:
 
     >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
-    Created an SSP operator ...
+    Reading ...
     >>> print evoked
     <Evoked  |  comment : 'aud_l', time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106>
     >>> evoked.plot() # doctest:+SKIP
@@ -271,7 +271,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
   1. Extract the max value of each epoch
 
   >>> max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
-  Created an SSP operator ...
+  Reading ...
   >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
   [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
 
@@ -279,7 +279,7 @@ It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked1 = mne.fiff.Evoked(evoked_fname, setno=0, baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
-    Reading ...MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading /Users/denisaengemann/python/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
