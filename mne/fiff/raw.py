@@ -1055,8 +1055,8 @@ class Raw(object):
         show_options : bool
             If True, a dialog for options related to projecion is shown.
         title : str | None
-            The title of the window. If None, '<unknown>' will be displayed as
-            title.
+            The title of the window. If None, and either the filename of the
+            raw object or '<unknown>' will be displayed as title.
 
         Returns
         -------
