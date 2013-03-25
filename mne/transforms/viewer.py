@@ -20,6 +20,7 @@ from traitsui.api import View, Item, Group, HGroup, VGroup
 from .transforms import apply_trans
 
 
+headview_item = Item('headview', style='custom', show_label=False)
 headview_borders = VGroup(Item('headview', style='custom', show_label=False),
                           show_border=True, label='View')
 
@@ -54,15 +55,12 @@ class HeadViewController(HasTraits):
     @on_trait_change('scene.activated')
     def _init_view(self):
         self.scene.parallel_projection = True
-        self.sync_trait('scale', self.scene.camera, 'parallel_scale')
-        # this alone seems not to be enough to sync the camera scale (see
-        # ._on_view_scale_update() method below
 
-    @on_trait_change('scale')
-    def _on_view_scale_update(self):
-        if self.scene is not None:
-            self.scene.camera.parallel_scale = self.scale
-            self.scene.render()
+        # apparently scene,activated happens several times
+        if self.scene.renderer:
+            self.sync_trait('scale', self.scene.camera, 'parallel_scale')
+            # and apparently this does not happen by default:
+            self.on_trait_change(self.scene.render, 'scale')
 
     @on_trait_change('top,left,right,front')
     def on_set_view(self, view, _):
@@ -241,6 +239,7 @@ class SurfaceObject(Object):
             self.src.remove()
         if hasattr(self.surf, 'remove'):
             self.surf.remove()
+        self.reset_traits(['src', 'surf'])
 
     @on_trait_change('scene.activated')
     def plot(self):
