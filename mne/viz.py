@@ -1838,7 +1838,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     projs = info['projs']
     info['projs'] = []
     n_times = raw.n_times
-    title = raw.info['filenames'][0]
+
+    # allow for raw objects without filename, e.g., ICA
+    title = raw.info.get('filenames', '')
+    if title:
+        title = title[0]
     if len(title) > 60:
         title = '...' + title[-60:]
     if len(raw.info['filenames']) > 1:
@@ -2220,7 +2224,11 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
     tick_list = []
     for ii in xrange(n_channels):
         ch_ind = ii + params['ch_start']
-        if ch_ind < len(info['ch_names']):
+        # let's be generous here and allow users to pass
+        # n_channels per view >= the number of traces available
+        if ii >= len(lines):
+            break
+        elif ch_ind < len(info['ch_names']):
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
