@@ -656,14 +656,20 @@ def test_epochs_proj_mixin():
             assert_true(len(epochs.info['projs']) == n_proj)
 
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=False)
+                    baseline=(None, 0), proj=False, add_eeg_ref=True)
     epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=True)
+                    baseline=(None, 0), proj=True, add_eeg_ref=True)
     assert_allclose(epochs.copy().apply_proj().get_data()[0],
                     epochs2.get_data()[0])
 
     data = epochs.get_data().copy()
+    data2 = np.array([e for e in epochs])
+    assert_array_equal(data, data2)
     epochs.apply_proj()
     assert_array_equal(epochs._projector, epochs2._projector)
     assert_allclose(epochs._data, epochs2.get_data())
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=None, proj=False, add_eeg_ref=True)
+    data = epochs.get_data().copy()
+    epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
