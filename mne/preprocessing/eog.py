@@ -55,7 +55,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
         # Check if multiple EOG Channels
         if ',' in ch_name:
-            ch_name = ch_name.strip('[]').split(',')
+            ch_name = ch_name.split(',')
         else:
             ch_name = [ch_name]
 

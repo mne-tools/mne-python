@@ -46,8 +46,6 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         What type of events to detect.
     raw : mne.fiff.Raw
         Raw input file.
-    eog_user :  string
-        Specifies EOG channel name specified by user (when not marked)
     raw_event : mne.fiff.Raw or None
         Raw file to use for event detection (if None, raw is used).
     tmin : float
@@ -304,8 +302,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      eog=np.inf), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
                      tstart=0., filter_method='fft',
-                     iir_params=dict(order=4, ftype='butter'), verbose=None, 
-                     ch_name=None):
+                     iir_params=dict(order=4, ftype='butter'), ch_name=None,
+                     verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -371,7 +369,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     eog_events: ndarray
         Detected EOG events.
     """
-       
+
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
