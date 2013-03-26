@@ -359,7 +359,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Method for filtering ('iir' or 'fft').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    ch_name: str
+    ch_name: str | None
         If not None, specify EOG channel name.
 
     Returns
