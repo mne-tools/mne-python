@@ -1165,7 +1165,7 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
 @verbose
 def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    source_idx=None, ncol=3, nrow=10, verbose=None,
-                   show=True):
+                   title=None, show=True):
     """Create panel plots of ICA sources
 
     Note. Inspired by an example from Carl Vogel's stats blog 'Will it Python?'
@@ -1189,6 +1189,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         Number of panel-columns.
     nrow : int
         Number of panel-rows.
+    title : str
+        The figure title. If None a default is provided.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     show : bool
@@ -1200,17 +1202,19 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     """
     import pylab as pl
 
+    if source_idx is None:
+        source_idx = np.arange(len(sources))
+    else:
+        source_idx = np.array(source_idx)
+        sources = sources[source_idx]
+
     if n_components is None:
         n_components = len(sources)
 
     hangover = n_components % ncol
     nplots = nrow * ncol
 
-    if source_idx is not None:
-        sources = sources[source_idx]
-    if source_idx is None:
-        source_idx = np.arange(n_components)
-    elif source_idx.shape > nrow * ncol:
+    if source_idx.shape > nrow * ncol:
         logger.info('More sources selected than rows and cols specified.'
                     'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
@@ -1218,8 +1222,11 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     sources = sources[:, start:stop]
     ylims = sources.min(), sources.max()
     fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
-    fig.suptitle('MEG signal decomposition'
-                 ' -- %i components.' % n_components, size=16)
+    if title is None:
+        fig.suptitle('MEG signal decomposition'
+                     ' -- %i components.' % n_components, size=16)
+    elif title:
+        fig.suptitle(title, size=16)
 
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 

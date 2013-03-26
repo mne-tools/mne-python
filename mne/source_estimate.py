@@ -72,7 +72,8 @@ def read_stc(filename):
     # read the number of timepts
     data_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
-    if ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0:
+    if (vertices_n and  # vertices_n can be 0 (empty stc)
+            ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
         raise ValueError('incorrect stc file size')
 
     # read the data matrix

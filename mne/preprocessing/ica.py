@@ -507,7 +507,7 @@ class ICA(object):
 
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=10,
-                         show=True):
+                         title=None, show=True):
         """Create panel plots of ICA sources. Wrapper around viz.plot_ica_panel
 
         Parameters
@@ -530,6 +530,8 @@ class ICA(object):
             Number of panel-columns. If None, the entire data will be plotted.
         nrow : int | None
             Number of panel-rows. If None, the entire data will be plotted.
+        title : str
+            The figure title. If None a default is provided.
         show : bool
             If True, plot will be shown, else just the figure is returned.
 
@@ -549,7 +551,7 @@ class ICA(object):
         fig = plot_ica_panel(sources, start=0 if start is not None else start,
                              stop=(stop - start) if stop is not None else stop,
                              n_components=n_components, source_idx=source_idx,
-                             ncol=ncol, nrow=nrow)
+                             ncol=ncol, nrow=nrow, title=title)
         if show:
             import matplotlib.pylab as pl
             pl.show()
