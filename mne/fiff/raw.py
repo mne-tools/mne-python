@@ -1018,7 +1018,8 @@ class Raw(object):
              scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                          ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                          stim=1, resp=1),
-             remove_dc=True, order='type', show_options=False):
+             remove_dc=True, order='type', show_options=False,
+             title=None):
         """Plot raw data
 
         Parameters
@@ -1053,6 +1054,9 @@ class Raw(object):
             indices to use in plotting.
         show_options : bool
             If True, a dialog for options related to projecion is shown.
+        title : str | None
+            The title of the window. If None, and either the filename of the
+            raw object or '<unknown>' will be displayed as title.
 
         Returns
         -------
@@ -1067,7 +1071,7 @@ class Raw(object):
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scales, remove_dc,
-                        order, show_options)
+                        order, show_options, title)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')

@@ -1791,7 +1791,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
                          ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                          stim=1, resp=1),
-             remove_dc=True, order='type', show_options=False):
+             remove_dc=True, order='type', show_options=False, title=None):
     """Plot raw data
 
     Parameters
@@ -1826,6 +1826,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         indices to use in plotting.
     show_options : bool
         If True, a dialog for options related to projecion is shown.
+    title : str | None
+        The title of the window. If None, and either the filename of the
+        raw object or '<unknown>' will be displayed as title.
 
     Returns
     -------
@@ -1845,7 +1848,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     projs = info['projs']
     info['projs'] = []
     n_times = raw.n_times
-    title = raw.info['filenames'][0]
+
+    # allow for raw objects without filename, e.g., ICA
+    if title is None:
+        title = (raw.info['filenames'][0] if 'filenames' in raw.info
+                 else '<unknown>')
+    elif not isinstance(title, basestring):
+        raise TypeError('title must be None or a string')
     if len(title) > 60:
         title = '...' + title[-60:]
     if len(raw.info['filenames']) > 1:
@@ -2227,7 +2236,11 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
     tick_list = []
     for ii in xrange(n_channels):
         ch_ind = ii + params['ch_start']
-        if ch_ind < len(info['ch_names']):
+        # let's be generous here and allow users to pass
+        # n_channels per view >= the number of traces available
+        if ii >= len(lines):
+            break
+        elif ch_ind < len(info['ch_names']):
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
