@@ -8,6 +8,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+   - Option to specify EOG channel(s) when no channel is marked as EOG by `Mainak Jas`_
 
    - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
 
