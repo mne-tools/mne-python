@@ -563,6 +563,8 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
+        delayed_ssp = self.reject is not None and self.proj == False
+        proj = True if delayed_ssp else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -573,11 +575,11 @@ class Epochs(ProjMixin):
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch = self._get_epoch_from_disk(self._current, proj=True)
+                epoch = self._get_epoch_from_disk(self._current, proj=proj)
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
             # If in delayed-ssp mode, read 'virgin' data after rejection decision.
-            if self.proj == False and self.reject is not None:
+            if delayed_ssp:
                 epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
 
         return epoch
