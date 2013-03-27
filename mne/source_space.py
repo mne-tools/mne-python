@@ -739,10 +739,11 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         img = nib.load(path)
         hdr = img.get_header()
         n_orig = hdr.get_vox2ras()
-        shape = hdr.get_data_shape()
-        t_orig = np.array([[-1, 0, 0, shape[0] / 2],
-                           [0, 0, 1, -shape[2] / 2],
-                           [0, -1, 0, shape[1] / 2],
+        ds = np.array(hdr.get_zooms())
+        ns = (np.array(hdr.get_data_shape()[:3]) * ds) / 2.0
+        t_orig = np.array([[-ds[0], 0, 0, ns[0]],
+                           [0, 0, ds[2], -ns[2]],
+                           [0, -ds[1], 0, ns[1]],
                            [0, 0, 0, 1]], dtype=float)
         nt_orig = [n_orig, t_orig]
     else:
