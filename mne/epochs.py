@@ -415,13 +415,13 @@ class Epochs(ProjMixin):
         stop = start + self._epoch_stop
         if start < 0:
             return None
-        epoch, _ = self.raw[self.picks, start:stop]
-        if self.reject is not None and self.proj == False:
-            self._epoch_tmp = epoch.copy()
-        if self._projector is not None and proj:
-            epoch = np.dot(self._projector, epoch)
+        epoch_raw, _ = self.raw[self.picks, start:stop]
+        if self._projector is not None and proj == True:
+            epoch = np.dot(self._projector, epoch_raw)
+        else:
+            epoch = epoch_raw
 
-        return self._preprocess_epoch(epoch, verbose=self.verbose)
+        return self._preprocess_epoch(epoch, self.verbose), epoch_raw
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -443,7 +443,8 @@ class Epochs(ProjMixin):
                 return
             for ii in xrange(n_events):
                 # faster to pre-allocate memory here
-                epoch = self._get_epoch_from_disk(ii, proj=self.proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(ii,
+                                                             proj=self.proj)
                 if ii == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
@@ -454,13 +455,12 @@ class Epochs(ProjMixin):
             n_out = 0
             proj = True if self._delayed_ssp else self.proj
             for idx in xrange(n_events):
-                epoch = self._get_epoch_from_disk(idx, proj=proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
                     if self._delayed_ssp:
-                        epoch = self._preprocess_epoch(self._epoch_tmp,
-                                                       'reload')
+                        epoch = self._preprocess_epoch(epoch_raw, 'reload')
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
@@ -574,12 +574,12 @@ class Epochs(ProjMixin):
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch = self._get_epoch_from_disk(self._current, proj=proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(self._current, proj=proj)
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
             # If in delayed-ssp mode, read 'virgin' data after rejection decision.
             if self._delayed_ssp:
-                epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
+                epoch = self._preprocess_epoch(epoch_raw, 'reload')
 
         return epoch
 
