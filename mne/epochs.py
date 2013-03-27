@@ -231,6 +231,7 @@ class Epochs(ProjMixin):
         self.reject_tmax = reject_tmax
         self.flat = flat
         self.proj = proj or raw.proj  # proj is on when applied in Raw
+        self._delayed_ssp = self.reject is not None and self.proj == False
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
@@ -451,14 +452,13 @@ class Epochs(ProjMixin):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
-            delayed_ssp = self.reject is not None and self.proj == False
-            proj = True if delayed_ssp else self.proj
+            proj = True if self._delayed_ssp else self.proj
             for idx in xrange(n_events):
                 epoch = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
-                    if delayed_ssp:
+                    if self._delayed_ssp:
                         epoch = self._preprocess_epoch(self._epoch_tmp,
                                                        'reload')
                     if out:
@@ -563,8 +563,7 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        delayed_ssp = self.reject is not None and self.proj == False
-        proj = True if delayed_ssp else self.proj
+        proj = True if self._delayed_ssp else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -579,7 +578,7 @@ class Epochs(ProjMixin):
                 self._current += 1
                 is_good = self._is_good_epoch(epoch)[0]
             # If in delayed-ssp mode, read 'virgin' data after rejection decision.
-            if delayed_ssp:
+            if self._delayed_ssp:
                 epoch = self._preprocess_epoch(self._epoch_tmp, 'reload')
 
         return epoch
