@@ -10,7 +10,7 @@ from ..filter import band_pass_filter
 
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
-                    filter_length='10s', verbose=None):
+                    filter_length='10s', ch_name=None, verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -25,6 +25,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         High pass frequency.
     filter_length : str | int | None
         Number of taps to use for filtering.
+    ch_name: str | None
+        If not None, use specified channel(s) for EOG
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -33,23 +35,41 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     eog_events : array
         Events.
     """
+
     info = raw.info
 
-    # Geting EOG Channel
-    ch_EOG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                             eog=True, ecg=False, emg=False, exclude='bads')
-
-    if len(ch_EOG) == 0:
-        logger.info('No EOG channels found')
-        logger.info('Trying with EEG 061 and EEG 062')
-        ch_EOG = fiff.pick_channels(raw.ch_names,
+    # Getting EOG Channel
+    if ch_name is None:
+        ch_eog = fiff.pick_types(info, meg=False, eeg=False, stim=False,
+                                 eog=True, ecg=False, emg=False,
+                                 exclude='bads')
+        if len(ch_eog) == 0:
+            logger.info('No EOG channels found')
+            logger.info('Trying with EEG 061 and EEG 062')
+            ch_eog = fiff.pick_channels(raw.ch_names,
                                     include=['EEG 061', 'EEG 062'])
-        if len(ch_EOG) != 2:
-            raise ValueError('EEG 61 or EEG 62 channel not found !!')
+            if len(ch_eog) != 2:
+                raise ValueError('EEG 61 or EEG 62 channel not found !!')
 
-    logger.info('EOG channel index for this subject is: %s' % ch_EOG)
+    else:
 
-    eog, _ = raw[ch_EOG, :]
+        # Check if multiple EOG Channels
+        if ',' in ch_name:
+            ch_name = ch_name.split(',')
+        else:
+            ch_name = [ch_name]
+
+        ch_eog = fiff.pick_channels(raw.ch_names, include=ch_name)
+
+        if len(ch_eog) == 0:
+            raise ValueError('%s not in channel list' % ch_name)
+        else:
+            logger.info('Using channel %s as EOG channel%s' % (
+                   " and ".join(ch_name), '' if len(ch_eog) < 2 else 's'))
+
+    logger.info('EOG channel index for this subject is: %s' % ch_eog)
+
+    eog, _ = raw[ch_eog, :]
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
