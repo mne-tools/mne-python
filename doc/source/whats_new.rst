@@ -8,7 +8,8 @@ Current
 
 Changelog
 ~~~~~~~~~
-   - Option to specify EOG channel(s) when no channel is marked as EOG by `Mainak Jas`_
+
+   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts `Mainak Jas`_
 
    - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
 
@@ -359,3 +360,5 @@ of commits):
 .. _Simon Kornblith: http://simonster.com
 
 .. _Teon Brooks: https://files.nyu.edu/tlb331/public/
+
+.. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
