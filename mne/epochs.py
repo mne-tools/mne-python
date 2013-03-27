@@ -416,7 +416,7 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
         epoch_raw, _ = self.raw[self.picks, start:stop]
-        if self._projector is not None and proj == True:
+        if self._projector is not None and proj is True:
             epoch = np.dot(self._projector, epoch_raw)
         else:
             epoch = epoch_raw
@@ -443,8 +443,7 @@ class Epochs(ProjMixin):
                 return
             for ii in xrange(n_events):
                 # faster to pre-allocate memory here
-                epoch, epoch_raw = self._get_epoch_from_disk(ii,
-                                                             proj=self.proj)
+                epoch, _ = self._get_epoch_from_disk(ii, proj=self.proj)
                 if ii == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
