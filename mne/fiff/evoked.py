@@ -321,6 +321,39 @@ class Evoked(ProjMixin):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
+    def time_shift(self, tshift=None, relative=True):
+        """Shift time scale in evoked data
+
+        Parameters
+        ----------
+        tshift: float
+            The amount of time shift to be applied.
+        relative: bool
+            If true, move the time backwards or forwards by specified amount.
+            Else, set the starting time point to given amount.
+        """
+
+        if tshift is not None:
+
+            times = self.times
+            sfreq = self.info['sfreq']
+
+            if relative is not True:
+
+                self.first = int(tshift * sfreq)
+                self.last = self.first + len(times) - 1
+                times = np.arange(self.first, self.last + 1,
+                                  dtype=np.float)/sfreq
+
+            else:
+                if tshift > 0:
+                    self.times = times + tshift
+                else:
+                    self.times = times - tshift
+
+                self.first = int(times[0] * sfreq)
+                self.last = len(self.times) + self.first - 1
+
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
