@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -16,6 +17,7 @@ from .constants import FIFF
 from .tag import find_tag
 from .pick import pick_types
 from .. import verbose
+from ..utils import deprecated
 
 
 class Projection(dict):
@@ -28,6 +30,153 @@ class Projection(dict):
         s += ", active : %s " % self['active']
         s += ", nb of channels : %s " % self['data']['ncol']
         return "Projection (%s)" % s
+
+
+class ProjMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def add_proj(self, projs, remove_existing=False):
+        """Add SSP projection vectors
+
+        Parameters
+        ----------
+        projs : list
+            List with projection vectors.
+        remove_existing : bool
+            Remove the projection vectors currently in the file.
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+
+        """
+        if isinstance(projs, Projection):
+            projs = [projs]
+
+        if (not isinstance(projs, list) and
+            not all([isinstance(p, Projection) for p in projs])):
+            raise ValueError('Only projs can be added. You supplied '
+                             'something else.')
+
+        # mark proj as inactive, as they have not been applied
+        projs = deactivate_proj(projs, copy=True, verbose=self.verbose)
+        if remove_existing:
+            # we cannot remove the proj if they are active
+            if any(p['active'] for p in self.info['projs']):
+                raise ValueError('Cannot remove projectors that have '
+                                 'already been applied')
+            self.info['projs'] = projs
+        else:
+            self.info['projs'].extend(projs)
+
+        return self
+
+    @deprecated(r"'apply_projector' is deprecated and will be removed in "
+                "version 0.7. Please use apply_proj instead")
+    def apply_projector(self):
+        """Apply the signal space projection (SSP) operators to the data.
+
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              too early stages, as they are applied automatically later on
+              (e.g. when computing inverse solutions).
+              Hint: using the copy method individual projection vectors
+              can be tested without affecting the original data.
+              With evoked data, consider the following example:
+
+                  projs_a = mne.read_proj('proj_a.fif')
+                  projs_b = mne.read_proj('proj_b.fif')
+                  # add the first, copy, apply and see ...
+                  evoked.add_proj(a).copy().apply_proj().plot()
+                  # add the second, copy, apply and see ...
+                  evoked.add_proj(b).copy().apply_proj().plot()
+                  # drop the first and see again
+                  evoked.copy().del_proj(0).apply_proj().plot()
+                  evoked.apply_proj()  # finally keep both
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+        """
+        return self.apply_proj()
+
+    def apply_proj(self):
+        """Apply the signal space projection (SSP) operators to the data.
+
+        Note: Once the projectors have been applied, they can no longer be
+              removed. It is usually not recommended to apply the projectors at
+              too early stages, as they are applied automatically later on
+              (e.g. when computing inverse solutions).
+              Hint: using the copy method individual projection vectors
+              can be tested without affecting the original data.
+              With evoked data, consider the following example:
+
+                  projs_a = mne.read_proj('proj_a.fif')
+                  projs_b = mne.read_proj('proj_b.fif')
+                  # add the first, copy, apply and see ...
+                  evoked.add_proj(a).copy().apply_proj().plot()
+                  # add the second, copy, apply and see ...
+                  evoked.add_proj(b).copy().apply_proj().plot()
+                  # drop the first and see again
+                  evoked.copy().del_proj(0).apply_proj().plot()
+                  evoked.apply_proj()  # finally keep both
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+        """
+        if self.info['projs'] is None:
+            logger.info('No projector specified for this dataset.'
+                        'Please consider the method self.add_proj.')
+            return
+
+        if all([p['active'] for p in self.info['projs']]):
+            logger.info('Projections have already been applied. Doing '
+                         'nothing.')
+            return
+
+        self.proj = True  # track that proj were applied
+        self._projector, self.info = setup_proj(self.info, activate=True,
+                                                verbose=self.verbose)
+        # handle different data / preload attrs and create reference
+        # this also helps avoiding circular imports
+        for attr in ('get_data', '_data', 'data'):
+            data = getattr(self, attr, None)
+            if data is None:
+                continue
+            elif callable(data):
+                # if epochs.proj == True, get_data will apply projs
+                data = data()
+            else:
+                data = np.dot(self._projector, data)
+            break
+        logger.info('SSP projectors applied...')
+        if hasattr(self, '_data'):
+            self._data = data
+        else:
+            self.data = data
+
+        return self
+
+    def del_proj(self, idx):
+        """Remove SSP projection vector
+
+        Note: The projection vector can only be removed if it is inactive
+              (has not been applied to the data).
+
+        Parameters:
+        -----------
+        idx : int
+            Index of the projector to remove.
+
+        Returns
+        -------
+        self : instance of Raw | Epochs | Evoked
+        """
+        if self.info['projs'][idx]['active']:
+            raise ValueError('Cannot remove projectors that have already '
+                             'been applied')
+
+        self.info['projs'].pop(idx)
+
+        return self
 
 
 def proj_equal(a, b):
@@ -383,13 +532,15 @@ def deactivate_proj(projs, copy=True, verbose=None):
 
 
 @verbose
-def make_eeg_average_ref_proj(info, verbose=None):
+def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     """Create an EEG average reference SSP projection vector
 
     Parameters
     ----------
     info : dict
         Measurement info.
+    activate : bool
+        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -409,7 +560,7 @@ def make_eeg_average_ref_proj(info, verbose=None):
     vec = np.ones((1, n_eeg)) / n_eeg
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
-    eeg_proj = Projection(active=True, data=eeg_proj_data,
+    eeg_proj = Projection(active=activate, data=eeg_proj_data,
                     desc='Average EEG reference',
                     kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
     return eeg_proj
@@ -425,7 +576,8 @@ def _has_eeg_average_ref_proj(projs):
 
 
 @verbose
-def setup_proj(info, add_eeg_ref=True, verbose=None):
+def setup_proj(info, add_eeg_ref=True, activate=True,
+              verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
@@ -435,6 +587,8 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    activate : bool
+        If True projections are activated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -449,7 +603,7 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
     eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
     if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
             and add_eeg_ref is True:
-        eeg_proj = make_eeg_average_ref_proj(info)
+        eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 
     #   Create the projector
@@ -464,6 +618,7 @@ def setup_proj(info, add_eeg_ref=True, verbose=None):
                                                                % nproj)
 
     #   The projection items have been activated
-    info['projs'] = activate_proj(info['projs'], copy=False)
+    if activate:
+        info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info

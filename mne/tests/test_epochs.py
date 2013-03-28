@@ -4,6 +4,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from copy import deepcopy
+
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal, \
                           assert_allclose
@@ -121,14 +123,21 @@ def test_epochs_proj():
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
-    epochs.average()
+    assert_true(all(p['active'] == True for p in epochs.info['projs']))
+    evoked = epochs.average()
+    assert_true(all(p['active'] == True for p in evoked.info['projs']))
     data = epochs.get_data()
 
-    raw_proj = fiff.Raw(raw_fname, proj_active=True)
+    raw_proj = fiff.Raw(raw_fname, proj=True)
     epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
                             picks=this_picks, baseline=(None, 0), proj=False)
-    epochs_no_proj.average()
+
     data_no_proj = epochs_no_proj.get_data()
+    assert_true(all(p['active'] == True for p in epochs_no_proj.info['projs']))
+    evoked_no_proj = epochs_no_proj.average()
+    assert_true(all(p['active'] == True for p in evoked_no_proj.info['projs']))
+    assert_true(epochs_no_proj.proj == True)  # as projs are active from Raw
+
     assert_array_almost_equal(data, data_no_proj, decimal=8)
 
     # make sure we can exclude avg ref
@@ -617,3 +626,50 @@ def test_as_data_frame():
     assert_true(df.index.names == ['epoch', 'time'])
     assert_array_equal(df.values[:, 1], data[0] * 1e13)
     assert_array_equal(df.values[:, 3], data[2] * 1e15)
+
+
+def test_epochs_proj_mixin():
+    """Test SSP proj methods from ProjMixin class
+    """
+    for proj in [True, False]:
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), proj=proj)
+
+        assert_true(all(p['active'] == proj for p in epochs.info['projs']))
+
+        # test adding / deleting proj
+        if proj:
+            epochs.get_data()
+            assert_true(all(p['active'] == proj for p in epochs.info['projs']))
+            assert_raises(ValueError, epochs.add_proj, epochs.info['projs'][0],
+                          {'remove_existing': True})
+            assert_raises(ValueError, epochs.add_proj, 'spam')
+            assert_raises(ValueError, epochs.del_proj, 0)
+        else:
+            projs = deepcopy(epochs.info['projs'])
+            n_proj = len(epochs.info['projs'])
+            epochs.del_proj(0)
+            assert_true(len(epochs.info['projs']) == n_proj - 1)
+            epochs.add_proj(projs, remove_existing=False)
+            assert_true(len(epochs.info['projs']) == 2 * n_proj - 1)
+            epochs.add_proj(projs, remove_existing=True)
+            assert_true(len(epochs.info['projs']) == n_proj)
+
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=False, add_eeg_ref=True)
+    epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=True, add_eeg_ref=True)
+    assert_allclose(epochs.copy().apply_proj().get_data()[0],
+                    epochs2.get_data()[0])
+
+    data = epochs.get_data().copy()
+    data2 = np.array([e for e in epochs])
+    assert_array_equal(data, data2)
+    epochs.apply_proj()
+    assert_array_equal(epochs._projector, epochs2._projector)
+    assert_allclose(epochs._data, epochs2.get_data())
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                    baseline=None, proj=False, add_eeg_ref=True)
+    data = epochs.get_data().copy()
+    epochs.apply_proj()
+    assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])

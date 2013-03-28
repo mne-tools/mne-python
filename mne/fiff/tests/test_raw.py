@@ -47,7 +47,7 @@ def test_rank_estimation():
     raw = Raw(fif_fname, preload=True)
     assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
     raw = Raw(fif_fname, preload=False)
-    raw.apply_projector()
+    raw.apply_proj()
     n_proj = len(raw.info['projs'])
     assert_array_equal(raw.estimate_rank(tstart=10, tstop=20),
                        n_meg + n_eeg - n_proj)
@@ -372,9 +372,9 @@ def test_getitem():
 def test_proj():
     """Test SSP proj operations
     """
-    for proj_active in [True, False]:
-        raw = Raw(fif_fname, preload=False, proj_active=proj_active)
-        assert_true(all(p['active'] == proj_active for p in raw.info['projs']))
+    for proj in [True, False]:
+        raw = Raw(fif_fname, preload=False, proj=proj)
+        assert_true(all(p['active'] == proj for p in raw.info['projs']))
 
         data, times = raw[0:2, :]
         data1, times1 = raw[0:2]
@@ -382,7 +382,7 @@ def test_proj():
         assert_array_equal(times, times1)
 
         # test adding / deleting proj
-        if proj_active:
+        if proj:
             assert_raises(ValueError, raw.add_proj, [],
                           {'remove_existing': True})
             assert_raises(ValueError, raw.del_proj, 0)
@@ -398,29 +398,29 @@ def test_proj():
 
     # test apply_proj() with and without preload
     for preload in [True, False]:
-        raw = Raw(fif_fname, preload=preload, proj_active=False)
+        raw = Raw(fif_fname, preload=preload, proj=False)
         data, times = raw[:, 0:2]
-        raw.apply_projector()
+        raw.apply_proj()
         data_proj_1 = np.dot(raw._projector, data)
 
         # load the file again without proj
-        raw = Raw(fif_fname, preload=preload, proj_active=False)
+        raw = Raw(fif_fname, preload=preload, proj=False)
 
         # write the file with proj. activated, make sure proj has been applied
-        raw.save(op.join(tempdir, 'raw.fif'), proj_active=True, overwrite=True)
-        raw2 = Raw(op.join(tempdir, 'raw.fif'), proj_active=False)
+        raw.save(op.join(tempdir, 'raw.fif'), proj=True, overwrite=True)
+        raw2 = Raw(op.join(tempdir, 'raw.fif'), proj=False)
         data_proj_2, _ = raw2[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
 
         # read orig file with proj. active
-        raw2 = Raw(fif_fname, preload=preload, proj_active=True)
+        raw2 = Raw(fif_fname, preload=preload, proj=True)
         data_proj_2, _ = raw2[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert_true(all(p['active'] for p in raw2.info['projs']))
 
-        # test that apply_projector works
-        raw.apply_projector()
+        # test that apply_proj works
+        raw.apply_proj()
         data_proj_2, _ = raw[:, 0:2]
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))

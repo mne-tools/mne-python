@@ -27,7 +27,7 @@ from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
 from .fiff.pick import pick_types, channel_indices_by_type, channel_type
-from .fiff.proj import setup_proj
+from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
@@ -37,7 +37,7 @@ from . import verbose
 from .fixes import in1d
 
 
-class Epochs(object):
+class Epochs(ProjMixin):
     """List of Epochs
 
     Parameters
@@ -91,7 +91,10 @@ class Epochs(object):
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
     proj : bool, optional
-        Apply SSP projection vectors
+        Apply SSP projection vectors. If proj is False but reject is specified
+        data will be projected before the rejection decision and if not
+        rejected will be read once more. This is the only way to
+        reject epochs and postpone the projection to the evoked stage.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
@@ -227,7 +230,7 @@ class Epochs(object):
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.flat = flat
-        self.proj = proj
+        self.proj = proj or raw.proj  # proj is on when applied in Raw
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
@@ -235,6 +238,8 @@ class Epochs(object):
 
         # Handle measurement info
         self.info = cp.deepcopy(raw.info)
+        # make sure projs are really copied.
+        self.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                                ecg=True, eog=True, misc=True, exclude=[])
@@ -247,7 +252,8 @@ class Epochs(object):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref)
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+                                                activate=self.proj)
 
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
@@ -340,6 +346,11 @@ class Epochs(object):
         """
         self._get_data_from_disk(out=False)
 
+    def _delayed_ssp(self):
+        """ Aux method
+        """
+        return self.proj == False and self.reject == True
+
     @verbose
     def drop_epochs(self, indices, verbose=None):
         """Drop epochs based on indices or boolean mask
@@ -364,7 +375,7 @@ class Epochs(object):
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
-    def _get_epoch_from_disk(self, idx, verbose=None):
+    def _get_epoch_from_disk(self, idx, proj, verbose=None):
         """Load one epoch from disk"""
         if self.raw is None:
             # This should never happen, as raw=None only if preload=True
@@ -385,27 +396,35 @@ class Epochs(object):
         stop = start + self._epoch_stop
         if start < 0:
             return None
-        epoch, _ = self.raw[self.picks, start:stop]
 
-        if self.proj and self._projector is not None:
-            logger.info("SSP projectors applied...")
-            epoch = np.dot(self._projector, epoch)
+        epoch_raw, _ = self.raw[self.picks, start:stop]
 
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+        epochs = []
+        if self._projector is not None and proj is True:
+            epochs += [np.dot(self._projector, epoch_raw)]
+        else:
+            epochs += [epoch_raw]
+        if self.proj != proj:
+            epochs += [epoch_raw.copy()]
 
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False)
+        for ii, (e, verbose) in enumerate(zip(epochs, [self.verbose, False])):
+            # Detrend
+            if self.detrend is not None:
+                picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                                   eog=False, ecg=False, emg=False, exclude=[])
+                e[picks] = detrend(e[picks], self.detrend, axis=1)
+            # Baseline correct
+            e = rescale(e, self._raw_times, self.baseline, 'mean',
+                        copy=False, verbose=verbose)
+            # Decimate
+            if self.decim > 1:
+                e = e[:, self._decim_idx]
+            epochs[ii] = e
 
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
+        if len(epochs) == 1:
+            epochs += [None]
 
-        return epoch
+        return epochs
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -427,7 +446,7 @@ class Epochs(object):
                 return
             for ii in xrange(n_events):
                 # faster to pre-allocate memory here
-                epoch = self._get_epoch_from_disk(ii)
+                epoch, _ = self._get_epoch_from_disk(ii, proj=self.proj)
                 if ii == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
@@ -436,11 +455,14 @@ class Epochs(object):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
+            proj = True if self._delayed_ssp() else self.proj
             for idx in xrange(n_events):
-                epoch = self._get_epoch_from_disk(idx)
+                epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
+                    if self._delayed_ssp():
+                        epoch = epoch_raw
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
@@ -543,6 +565,7 @@ class Epochs(object):
     def next(self):
         """To make iteration over epochs easy.
         """
+        proj = True if self._delayed_ssp() else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -553,9 +576,13 @@ class Epochs(object):
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch = self._get_epoch_from_disk(self._current)
+                epoch, epoch_raw = self._get_epoch_from_disk(self._current,
+                                                             proj=proj)
                 self._current += 1
-                is_good = self._is_good_epoch(epoch)[0]
+                is_good, _ = self._is_good_epoch(epoch)
+            # If delayed-ssp mode, pass 'virgin' data after rejection decision.
+            if self._delayed_ssp():
+                epoch = epoch_raw
 
         return epoch
 
@@ -656,6 +683,8 @@ class Epochs(object):
         _do_std = True if mode == 'stderr' else False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
+        # make sure projs are really copied.
+        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
@@ -708,6 +737,10 @@ class Epochs(object):
                                    for k in picks]
         evoked.info['nchan'] = len(picks)
         evoked.data = evoked.data[picks]
+        # otherwise the apply_proj will be confused
+        evoked.proj = True if self.proj is True else None
+        evoked.verbose = self.verbose
+
         return evoked
 
     def crop(self, tmin=None, tmax=None, copy=False):
@@ -1381,13 +1414,16 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.tmax = tmax
     epochs.name = comment
     epochs.times = times
-    epochs.data = data
+    epochs._data = data
     epochs.proj = proj
-    epochs._projector, epochs.info = setup_proj(info, add_eeg_ref)
+    epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
+                                                activate=proj)
+
     epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
+    epochs.verbose = verbose
     fid.close()
 
     return epochs
