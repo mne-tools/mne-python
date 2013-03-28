@@ -629,7 +629,7 @@ def test_as_data_frame():
 
 
 def test_epochs_proj_mixin():
-    """Test SSP proj methods from ProjMixing class
+    """Test SSP proj methods from ProjMixin class
     """
     for proj in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,

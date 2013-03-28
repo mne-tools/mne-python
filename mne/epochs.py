@@ -231,7 +231,6 @@ class Epochs(ProjMixin):
         self.reject_tmax = reject_tmax
         self.flat = flat
         self.proj = proj or raw.proj  # proj is on when applied in Raw
-        self._delayed_ssp = self.reject is not None and self.proj == False
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
@@ -347,28 +346,10 @@ class Epochs(ProjMixin):
         """
         self._get_data_from_disk(out=False)
 
-    def _preprocess_epoch(self, epoch, verbose):
-        # Detrend
-        if verbose == 'reload':
-            logger.info("Restoring unprojected epoch ...\n")
-            verbose = False
-        else:
-            verbose = self.verbose
-
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose=self.verbose)
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
-
-        return epoch
+    def _delayed_ssp(self):
+        """ Aux method
+        """
+        return self.proj == False and self.reject == True
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
@@ -415,13 +396,35 @@ class Epochs(ProjMixin):
         stop = start + self._epoch_stop
         if start < 0:
             return None
-        epoch_raw, _ = self.raw[self.picks, start:stop]
-        if self._projector is not None and proj is True:
-            epoch = np.dot(self._projector, epoch_raw)
-        else:
-            epoch = epoch_raw
 
-        return self._preprocess_epoch(epoch, self.verbose), epoch_raw
+        epochs = []
+        epoch_raw, _ = self.raw[self.picks, start:stop]
+
+        if self._projector is not None and proj is True:
+            epochs += [np.dot(self._projector, epoch_raw)]
+        else:
+            epochs += [epoch_raw]
+        if self.proj != proj:
+            epochs += [epoch_raw.copy()]
+
+        for ii, (e, verbose) in enumerate(zip(epochs, [self.verbose, False])):
+            # Detrend
+            if self.detrend is not None:
+                picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                                   eog=False, ecg=False, emg=False, exclude=[])
+                e[picks] = detrend(e[picks], self.detrend, axis=1)
+            # Baseline correct
+            e = rescale(e, self._raw_times, self.baseline, 'mean',
+                        copy=False, verbose=verbose)
+            # Decimate
+            if self.decim > 1:
+                e = e[:, self._decim_idx]
+            epochs[ii] = e
+
+        if len(epochs) == 1:
+            epochs += [None]
+
+        return epochs
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -452,14 +455,14 @@ class Epochs(ProjMixin):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
-            proj = True if self._delayed_ssp else self.proj
+            proj = True if self._delayed_ssp() else self.proj
             for idx in xrange(n_events):
                 epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
-                    if self._delayed_ssp:
-                        epoch = self._preprocess_epoch(epoch_raw, 'reload')
+                    if self._delayed_ssp():
+                        epoch = epoch_raw
                     if out:
                         # faster to pre-allocate, then trim as necessary
                         if n_out == 0:
@@ -562,7 +565,7 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        proj = True if self._delayed_ssp else self.proj
+        proj = True if self._delayed_ssp() else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -575,10 +578,10 @@ class Epochs(ProjMixin):
                     raise StopIteration
                 epoch, epoch_raw = self._get_epoch_from_disk(self._current, proj=proj)
                 self._current += 1
-                is_good = self._is_good_epoch(epoch)[0]
-            # If in delayed-ssp mode, read 'virgin' data after rejection decision.
-            if self._delayed_ssp:
-                epoch = self._preprocess_epoch(epoch_raw, 'reload')
+                is_good, _ = self._is_good_epoch(epoch)
+            # If in delayed-ssp mode, pass the 'virgin' data after rejection decision.
+            if self._delayed_ssp():
+                epoch = epoch_raw
 
         return epoch
 
