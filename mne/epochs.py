@@ -397,9 +397,9 @@ class Epochs(ProjMixin):
         if start < 0:
             return None
 
-        epochs = []
         epoch_raw, _ = self.raw[self.picks, start:stop]
 
+        epochs = []
         if self._projector is not None and proj is True:
             epochs += [np.dot(self._projector, epoch_raw)]
         else:
@@ -565,7 +565,7 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        proj = True if self._delayed_ssp() else self.proj
+        proj = True if self._delayed_ssp else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
@@ -576,10 +576,11 @@ class Epochs(ProjMixin):
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch, epoch_raw = self._get_epoch_from_disk(self._current, proj=proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(self._current,
+                                                             proj=proj)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
-            # If in delayed-ssp mode, pass the 'virgin' data after rejection decision.
+            # If delayed-ssp mode, pass 'virgin' data after rejection decision.
             if self._delayed_ssp():
                 epoch = epoch_raw
 
