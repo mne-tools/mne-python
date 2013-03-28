@@ -565,7 +565,7 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        proj = True if self._delayed_ssp else self.proj
+        proj = True if self._delayed_ssp() else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
