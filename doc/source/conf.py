@@ -179,7 +179,7 @@ html_use_index = False
 html_show_sourcelink = False
 
 # variables to pass to HTML templating engine
-html_context = {'use_google_analytics':True}
+html_context = {'use_google_analytics':True, 'use_twitter':True}
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
