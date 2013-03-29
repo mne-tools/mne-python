@@ -86,7 +86,7 @@ API
 
    - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
 
-   - Raw constructor argument activate_proj deprecated -- use proj argument instead.
+   - Raw constructor argument proj_active deprecated -- use proj argument instead.
 
 .. _changes_0_5:
 

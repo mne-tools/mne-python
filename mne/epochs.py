@@ -91,10 +91,10 @@ class Epochs(ProjMixin):
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
     proj : bool, optional
-        Apply SSP projection vectors. If proj is False but reject is specified
-        data will be projected before the rejection decision and if not
-        rejected will be read once more. This is the only way to
-        reject epochs and postpone the projection to the evoked stage.
+        Apply SSP projection vectors. If proj is False but reject is not None
+        data will still be projected before the rejection decision, but
+        stored in the Epochs object unprojected. By doing so the selection
+        of the good projections can be postponed to the evoked stage.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered

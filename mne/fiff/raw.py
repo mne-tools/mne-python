@@ -850,7 +850,7 @@ class Raw(ProjMixin):
             that only accepts raw files with buffers of the same size.
         proj : bool
             If True the data is saved with the projections applied (active).
-            Note: If apply_proj() was used to apply the projectons,
+            Note: If apply_proj() was used to apply the projections,
             the projectons will be active even if proj is False.
         format : str
             Format to use to save raw data. Valid options are 'double',

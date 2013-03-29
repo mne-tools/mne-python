@@ -19,6 +19,7 @@ on the evoked data.
 
 print __doc__
 
+import pylab as pl
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -55,7 +56,6 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 # View evoked response with projectors idle
 
 times = 1e3 * epochs.times  # time in milliseconds
-import pylab as pl
 pl.figure()
 evoked.plot()
 pl.xlim([times[0], times[-1]])
@@ -66,7 +66,6 @@ pl.show()
 
 # Now with all projectors activated.
 times = evoked.times * 1e3
-import pylab as pl
 pl.figure()
 evoked.copy().apply_proj().plot()
 pl.xlim([times[0], times[-1]])
