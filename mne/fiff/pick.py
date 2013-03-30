@@ -121,8 +121,8 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg=False, misc=False, resp=False, include=[],
-               exclude=None, selection=None):
+               emg=False, ref_meg=False, misc=False, resp=False, chpi=False,
+               include=[], exclude=None, selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -150,6 +150,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     resp : bool
         If True include response-trigger channel. For some MEG systems this
         is separate from the stim channel.
+    chpi : bool
+        If True include continous HPI coil channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -206,6 +208,11 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
             pick[k] = True
         elif kind == FIFF.FIFFV_RESP_CH and resp:
+            pick[k] = True
+        elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
+                      FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
+                      FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
+                      FIFF.FIFFV_HPI_MOV] and chpi:
             pick[k] = True
 
     # restrict channels to selection if provided
@@ -298,7 +305,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
-                      resp=False, include=[], exclude=None):
+                      resp=False, chpi=False, include=[], exclude=None):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -326,6 +333,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     resp : bool
         If True include response-trigger channel. For some MEG systems this
         is separate from the stim channel.
+    chpi : bool
+        If True include continous HPI coil channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -338,8 +347,9 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         Evoked data restricted to selected channels. If include and
         exclude are None it returns orig without copy.
     """
-    sel = pick_types(orig.info, meg, eeg, stim, eog, ecg, emg, ref_meg, misc,
-                     resp, include, exclude)
+    sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
+                     ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
+                     resp=resp, chpi=chpi, include=include, exclude=exclude)
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
