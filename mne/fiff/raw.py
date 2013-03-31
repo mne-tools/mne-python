@@ -968,16 +968,9 @@ class Raw(ProjMixin):
         finish_writing_raw(outfid)
 
     def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
-             bgcolor='w',
-             color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                        emg='k', ref_meg='steelblue', misc='k', stim='k',
-                        resp='k', chpi='k'),
-             bad_color=(0.8, 0.8, 0.8), event_color='cyan',
-             scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
-                         ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
-                         stim=1, resp=1, chpi=1e-4),
-             remove_dc=True, order='type', show_options=False,
-             title=None):
+             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             event_color='cyan', scalings=None, remove_dc=True, order='type',
+             show_options=False, title=None):
         """Plot raw data
 
         Parameters
@@ -994,16 +987,18 @@ class Raw(ProjMixin):
             Number of channels to plot at once.
         bgcolor : color object
             Color of the background.
-        color : dict | color object
-            Color for the data traces. If dict(), should have entries for
-            each type of data.
+        color : dict | color object | None
+            Color for the data traces. If None, defaults to:
+            `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
+                 ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
         bad_color : color object
             Color to make bad channels.
         event_color : color object
             Color to use for events.
-        scales : dict
-            Scale factors for the traces. Must have entries for each type
-            of data.
+        scalings : dict | None
+            Scale factors for the traces. If None, defaults to:
+            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
+                 ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
         remove_dc : bool
             If True remove DC component when plotting data.
         order : 'type' | 'original' | array
@@ -1028,7 +1023,7 @@ class Raw(ProjMixin):
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
-                        color, bad_color, event_color, scales, remove_dc,
+                        color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
