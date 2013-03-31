@@ -17,18 +17,18 @@ import logging
 logger = logging.getLogger('mne')
 
 from . import fiff
-from .fiff.write import start_file, start_block, end_file, end_block, \
+from .io.fiff.write import start_file, start_block, end_file, end_block, \
                         write_int, write_float_matrix, write_float, \
                         write_id, write_string
-from .fiff.meas_info import read_meas_info, write_meas_info
-from .fiff.open import fiff_open
-from .fiff.raw import _time_as_index, _index_as_time
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff import Evoked, FIFF
-from .fiff.pick import pick_types, channel_indices_by_type, channel_type
-from .fiff.proj import setup_proj, ProjMixin
-from .fiff.evoked import aspect_rev
+from .io.fiff.meas_info import read_meas_info, write_meas_info
+from .io.fiff.open import fiff_open
+from .io.fiff.raw import _time_as_index, _index_as_time
+from .io.fiff.tree import dir_tree_find
+from .io.fiff.tag import read_tag
+from .io.fiff import Evoked, FIFF
+from .io.fiff.pick import pick_types, channel_indices_by_type, channel_type
+from .io.fiff.proj import setup_proj, ProjMixin
+from .io.fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import check_random_state
 from .filter import resample, detrend

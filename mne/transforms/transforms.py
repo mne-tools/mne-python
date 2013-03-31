@@ -10,11 +10,11 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from ..fiff import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import read_tag, find_tag
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import start_file, end_file, start_block, end_block, \
+from ..io.fiff import FIFF
+from ..io.fiff.open import fiff_open
+from ..io.fiff.tag import read_tag, find_tag
+from ..io.fiff.tree import dir_tree_find
+from ..io.fiff.write import start_file, end_file, start_block, end_block, \
                    write_coord_trans, write_dig_point, write_int
 
 

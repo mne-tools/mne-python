@@ -10,11 +10,11 @@ from scipy import sparse, linalg
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag, read_tag
-from .fiff.open import fiff_open
-from .fiff.write import start_block, end_block, write_int, \
+from .io.fiff.constants import FIFF
+from .io.fiff.tree import dir_tree_find
+from .io.fiff.tag import find_tag, read_tag
+from .io.fiff.open import fiff_open
+from .io.fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id

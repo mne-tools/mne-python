@@ -9,14 +9,14 @@ import logging
 logger = logging.getLogger('mne')
 
 from . import fiff, Epochs, verbose
-from .fiff.pick import pick_types, pick_types_forward
+from .io.fiff.pick import pick_types, pick_types_forward
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import is_fixed_orient, _subject_from_forward
 from .source_estimate import SourceEstimate
-from .fiff.proj import make_projector, make_eeg_average_ref_proj
-from .fiff import FIFF
+from .io.fiff.proj import make_projector, make_eeg_average_ref_proj
+from .io.fiff import FIFF
 
 
 def read_proj(fname):

@@ -9,11 +9,11 @@ from struct import pack
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag
-from .fiff.write import write_int, write_float, write_float_matrix, \
+from .io.fiff.constants import FIFF
+from .io.fiff.open import fiff_open
+from .io.fiff.tree import dir_tree_find
+from .io.fiff.tag import find_tag
+from .io.fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
 from . import verbose

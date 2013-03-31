@@ -12,12 +12,12 @@ from os.path import splitext
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff.open import fiff_open
-from .fiff.write import write_int, start_block, start_file, end_block, end_file
-from .fiff.pick import pick_channels
+from .io.fiff.constants import FIFF
+from .io.fiff.tree import dir_tree_find
+from .io.fiff.tag import read_tag
+from .io.fiff.open import fiff_open
+from .io.fiff.write import write_int, start_block, start_file, end_block, end_file
+from .io.fiff.pick import pick_channels
 from .utils import get_config
 from . import verbose
 

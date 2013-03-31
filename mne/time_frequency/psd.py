@@ -9,7 +9,7 @@ logger = logging.getLogger('mne')
 # XXX : don't import pylab here or you will break the doc
 
 from ..parallel import parallel_func
-from ..fiff.proj import make_projector_info
+from ..io.fiff.proj import make_projector_info
 from .. import verbose
 
 

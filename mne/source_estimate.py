@@ -1272,10 +1272,10 @@ class SourceEstimate(object):
 ###############################################################################
 # Morphing
 
-from .fiff.constants import FIFF
-from .fiff.tag import find_tag
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
+from .io.fiff.constants import FIFF
+from .io.fiff.tag import find_tag
+from .io.fiff.open import fiff_open
+from .io.fiff.tree import dir_tree_find
 from .surface import read_bem_surfaces
 
 

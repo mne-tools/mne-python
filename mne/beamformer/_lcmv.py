@@ -11,9 +11,9 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from ..fiff.constants import FIFF
-from ..fiff.proj import make_projector
-from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..io.fiff.constants import FIFF
+from ..io.fiff.proj import make_projector
+from ..io.fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
