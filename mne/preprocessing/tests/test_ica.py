@@ -255,7 +255,7 @@ def test_ica_additional():
                                          score_func=func)
         assert_true(ica.n_components_ == len(scores))
 
-    # check univariat stats
+    # check univariate stats
     scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
 
     # check exception handling

@@ -429,7 +429,7 @@ class ICA(object):
 
         return self
 
-    def sources_as_raw(self, raw, picks=None, start=None, stop=None, exclude=False):
+    def sources_as_raw(self, raw, picks=None, start=None, stop=None):
         """Export sources as raw object
 
         Parameters
@@ -445,8 +445,6 @@ class ICA(object):
         stop : int | None
             First sample to not include. If omitted, data is included to the
             end. If None, the entire data will be used.
-        exclude : if True, sources marked for exclusion will be treated as
-            bad channels.
 
         Returns
         -------
@@ -482,11 +480,11 @@ class ICA(object):
         out.first_samp = raw.first_samp + (start if start else 0)
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
-        self._ica_export_info(out.info, raw, picks, exclude)
+        self._ica_export_info(out.info, raw, picks)
 
         return out
 
-    def _ica_export_info(self, info, container, picks, exclude):
+    def _ica_export_info(self, info, container, picks):
             # set channel names and info
         ch_names = info['ch_names'] = []
         ch_info = info['chs'] = []
@@ -507,12 +505,12 @@ class ICA(object):
 
         # update number of channels
         info['nchan'] = len(picks) + self.n_components_
-        if exclude:
-            info['bads'] = [self.ch_names[k] for k in self.exclude]
-        container.info['filenames'] = []
-        return ch_names  # for containers without property ch_names
 
-    def sources_as_epochs(self, epochs, picks=None, exclude=False):
+        info['bads'] = [self.ch_names[k] for k in self.exclude]
+        container.info['filenames'] = []
+        return ch_names  # for containers without @property ch_names
+
+    def sources_as_epochs(self, epochs, picks=None):
         """ Create epochs in ICA space from raw object
 
         Parameters
@@ -522,23 +520,24 @@ class ICA(object):
         picks : array-like
             Channels to be included in addition to the sources. If None,
             artifact channels will be included.
-        exclude : if True, sources marked for exclusion will be treated as
-            bad channels.
 
         Returns
         -------
         ica_epochs : instance of Epochs
             The epochs in ICA space.
         """
+
         out = epochs.copy()
-        out._data = self.get_sources_epochs(epochs,
-                            concatenate=False)
+        sources = self.get_sources_epochs(epochs)
         if picks is None:
             picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True, exclude='bads')
+                               ecg=True, eog=True, stim=True)
 
-        # As long as ch_names is not a property as in raw we need to:
-        out.ch_names = self._ica_export_info(out.info, epochs, picks, exclude)
+        out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
+                                    axis=1) if len(picks) > 0 else sources
+
+        # As long as ch_names is not a @property as in raw we need to:
+        out.ch_names = self._ica_export_info(out.info, epochs, picks)
 
         return out
 
