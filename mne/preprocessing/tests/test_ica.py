@@ -51,6 +51,8 @@ epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                 baseline=(None, 0), preload=True)
 
+score_funcs_unsuited = ['pointbiserialr', 'ansari']
+
 
 @requires_sklearn
 def test_ica_core():
@@ -222,16 +224,13 @@ def test_ica_additional():
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
-    # score funcs raw, with catch since "ties preclude exact" warning
-    # XXX this should be fixed by a future PR...
-    with warnings.catch_warnings(True) as w:
-        sfunc_test = [ica.find_sources_raw(raw, target='EOG 061',
-                score_func=n, start=0, stop=10)
-                for n, f in score_funcs.items()]
-    # score funcs raw
-
-    # check lenght of scores
-    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
+    # check scrore funcs
+    for name, func in score_funcs.items():
+        if name in score_funcs_unsuited:
+            continue
+        scores = ica.find_sources_raw(raw, target='EOG 061', score_func=func,
+                                      start=0, stop=10)
+        assert_true(ica.n_components_ == len(scores))
 
     # check univariate stats
     scores = ica.find_sources_raw(raw, score_func=stats.skew)
@@ -248,16 +247,13 @@ def test_ica_additional():
                              var_criterion=idx, kurt_criterion=idx)
     ## score funcs epochs ##
 
-    # check lenght of scores
-    # XXX this needs to be fixed, some of the score funcs don't seem to be
-    # suited for the testing data.
-    with warnings.catch_warnings(True) as w:
-        sfunc_test = [ica.find_sources_epochs(epochs_eog, target='EOG 061',
-                score_func=n)
-                for n, f in score_funcs.items()]
-
-    # check lenght of scores
-    [assert_true(ica.n_components_ == len(scores)) for scores in sfunc_test]
+    # check score funcs
+    for name, func in score_funcs.items():
+        if name in score_funcs_unsuited:
+            continue
+        scores = ica.find_sources_epochs(epochs_eog, target='EOG 061',
+                                         score_func=func)
+        assert_true(ica.n_components_ == len(scores))
 
     # check univariat stats
     scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
