@@ -245,7 +245,6 @@ class Epochs(ProjMixin):
                                ecg=True, eog=True, misc=True, exclude=[])
         self.info['chs'] = [self.info['chs'][k] for k in picks]
         self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
-        self.ch_names = self.info['ch_names']
         self.info['nchan'] = len(picks)
         self.picks = picks
 
@@ -324,9 +323,7 @@ class Epochs(ProjMixin):
 
         # XXX : could maybe be factorized
         self.info['chs'] = [self.info['chs'][k] for k in idx]
-        self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
         self.info['nchan'] = len(idx)
-        self.ch_names = self.info['ch_names']
 
         if self._projector is not None:
             self._projector = self._projector[idx][:, idx]
@@ -1118,6 +1115,10 @@ class Epochs(ProjMixin):
         # actually remove the indices
         return epochs, indices
 
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     """Collapse event_ids from an epochs instance into a new event_id
@@ -1419,7 +1420,6 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                 activate=proj)
 
-    epochs.ch_names = info['ch_names']
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
