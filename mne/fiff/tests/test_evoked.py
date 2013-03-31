@@ -86,7 +86,7 @@ def test_time_shift_evoked():
 
     assert_true(np.allclose(ave_normal.data, ave_absolute.data,
                             atol=1e-16, rtol=1e-3))
-    assert_equal(ave_absolute.first, int(-0.3*ave.info['sfreq']))
+    assert_equal(ave_absolute.first, int(-0.3 * ave.info['sfreq']))
 
 
 def test_evoked_resample():

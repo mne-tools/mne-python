@@ -327,18 +327,18 @@ class Evoked(ProjMixin):
         Parameters
         ----------
         tshift : float
-            The amount of time shift to be applied.
-            When relative is True, positive value of tshift moves the data
-            forward while negative tshift moves it backward.
+            The amount of time shift to be applied if relative is True
+            else the first time point. When relative is True, positive value
+            of tshift moves the data forward while negative tshift moves it
+            backward.
         relative : bool
             If true, move the time backwards or forwards by specified amount.
-            Else, set the starting time point to given amount.
+            Else, set the starting time point to the value of tshift.
 
         Note
-        ----------
+        ----
         Maximum accuracy of time shift is 1 / evoked.info['sfreq']
         """
-
         times = self.times
         sfreq = self.info['sfreq']
 
