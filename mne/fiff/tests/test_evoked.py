@@ -69,7 +69,8 @@ def test_time_shift_evoked():
     ave_normal = read_evoked(fname, 0)
     ave_relative = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
 
-    assert_array_almost_equal(ave_normal.data, ave_relative.data, 10)
+    assert_true(np.allclose(ave_normal.data, ave_relative.data,
+                            atol=1e-16, rtol=1e-3))
     assert_array_almost_equal(ave_normal.times, ave_relative.times, 10)
 
     assert_equal(ave_normal.last, ave_relative.last)
@@ -82,7 +83,8 @@ def test_time_shift_evoked():
 
     ave_absolute = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
 
-    assert_array_almost_equal(ave_normal.data, ave_absolute.data, 10)
+    assert_true(np.allclose(ave_normal.data, ave_absolute.data,
+                            atol=1e-16, rtol=1e-3))
     assert_equal(ave_absolute.first, int(-0.3*ave.info['sfreq']))
 
 
