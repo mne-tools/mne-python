@@ -338,38 +338,33 @@ class Evoked(object):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def time_shift(self, tshift=None, relative=True):
+    def time_shift(self, tshift, relative=True):
         """Shift time scale in evoked data
 
         Parameters
         ----------
-        tshift: float
+        tshift : float
             The amount of time shift to be applied.
-        relative: bool
+            When relative is True, positive value of tshift moves the data
+            forward while negative tshift moves it backward.
+        relative : bool
             If true, move the time backwards or forwards by specified amount.
             Else, set the starting time point to given amount.
+
+        Note
+        ----------
+        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
         """
 
-        if tshift is not None:
+        times = self.times
+        sfreq = self.info['sfreq']
 
-            times = self.times
-            sfreq = self.info['sfreq']
+        offset = self.first if relative else 0
 
-            if relative is not True:
-
-                self.first = int(tshift * sfreq)
-                self.last = self.first + len(times) - 1
-                times = np.arange(self.first, self.last + 1,
-                                  dtype=np.float)/sfreq
-
-            else:
-                if tshift > 0:
-                    self.times = times + tshift
-                else:
-                    self.times = times - tshift
-
-                self.first = int(times[0] * sfreq)
-                self.last = len(self.times) + self.first - 1
+        self.first = int(tshift * sfreq) + offset
+        self.last = self.first + len(times) - 1
+        self.times = np.arange(self.first, self.last + 1,
+                               dtype=np.float) / sfreq
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
@@ -423,7 +418,7 @@ class Evoked(object):
             Indices of channels to apply. If None, all channels will be
             exported.
 
-        Retruns
+        Returns
         -------
         evoked_ts : instance of nitime.TimeSeries
         """
