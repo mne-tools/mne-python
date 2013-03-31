@@ -60,7 +60,6 @@ def _mutable_defaults(*mappings):
     Example usage:
     scalings, units = _mutable_defaults(('scalings', scalings,
                                          'units', units))
-    Note. Can be any object with items method, but beware the order.
     """
     out = []
     for k, v in mappings:
