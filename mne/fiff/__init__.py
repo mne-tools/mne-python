@@ -19,7 +19,6 @@ from ..io.fiff.pick import pick_types, pick_channels, pick_types_evoked, \
                 pick_types_forward, pick_channels_cov, \
                 pick_channels_evoked
 
-
 for k, v  in globals().items():
     if k == 'deprecated':
         continue
