@@ -429,7 +429,7 @@ class ICA(object):
 
         return self
 
-    def sources_as_raw(self, raw, picks=None, start=None, stop=None):
+    def sources_as_raw(self, raw, picks=None, start=None, stop=None, exclude=False):
         """Export sources as raw object
 
         Parameters
@@ -445,6 +445,8 @@ class ICA(object):
         stop : int | None
             First sample to not include. If omitted, data is included to the
             end. If None, the entire data will be used.
+        exclude : if True, sources marked for exclusion will be treated as
+            bad channels.
 
         Returns
         -------
@@ -480,11 +482,11 @@ class ICA(object):
         out.first_samp = raw.first_samp + (start if start else 0)
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
-        self._ica_export_info(out.info, raw, picks)
+        self._ica_export_info(out.info, raw, picks, exclude)
 
         return out
 
-    def _ica_export_info(self, info, container, picks):
+    def _ica_export_info(self, info, container, picks, exclude):
             # set channel names and info
         ch_names = info['ch_names'] = []
         ch_info = info['chs'] = []
@@ -505,48 +507,12 @@ class ICA(object):
 
         # update number of channels
         info['nchan'] = len(picks) + self.n_components_
-        info['bads'] = [self.ch_names[k] for k in self.exclude]
+        if exclude:
+            info['bads'] = [self.ch_names[k] for k in self.exclude]
         container.info['filenames'] = []
         return ch_names  # for containers without property ch_names
 
-    def sources_as_epochs_from_raw(self, raw, events, event_id=None, tmin=None,
-                            tmax=None, name=None, picks=None, verbose=None):
-        """ Create epochs in ICA space from raw object
-
-        Parameters
-        ----------
-        raw : instance of Raw
-            Raw object to export sources from.
-        events : array, of shape [n_events, 3]
-            Returned by the read_events function.
-        event_id : int | dict | None
-            The id of the event to consider. If dict,
-            the keys can later be used to acces associated events. Example:
-            dict(auditory=1, visual=3). If int, a dict will be created with
-            the id as string. If None, all events will be used with
-            and a dict is created with string integer names corresponding
-            to the event id integers.
-        tmin : float
-            Start time before event.
-        tmax : float
-            End time after event.
-        name : string
-            Comment that describes the Evoked data created.
-        picks : array-like
-            Channels to be included in addition to the sources. If None,
-            artifact and stimulus channels will be included.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to raw.verbose.
-
-        Returns
-        -------
-        ica_epochs : instance of Epochs
-            The epochs in ICA space.
-        """
-        pass
-
-    def sources_as_epochs_from_epochs(self, epochs, picks=None):
+    def sources_as_epochs(self, epochs, picks=None, exclude=False):
         """ Create epochs in ICA space from raw object
 
         Parameters
@@ -556,6 +522,8 @@ class ICA(object):
         picks : array-like
             Channels to be included in addition to the sources. If None,
             artifact channels will be included.
+        exclude : if True, sources marked for exclusion will be treated as
+            bad channels.
 
         Returns
         -------
@@ -563,14 +531,14 @@ class ICA(object):
             The epochs in ICA space.
         """
         out = epochs.copy()
-        out._data = self.get_sources_epochs(epochs, concatenate=False)
+        out._data = self.get_sources_epochs(epochs,
+                            concatenate=False)
         if picks is None:
             picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
                                ecg=True, eog=True, stim=True, exclude='bads')
-        else:
-            picks = []
+
         # As long as ch_names is not a property as in raw we need to:
-        out.ch_names = self._ica_export_info(out.info, epochs, picks)
+        out.ch_names = self._ica_export_info(out.info, epochs, picks, exclude)
 
         return out
 

@@ -187,7 +187,7 @@ def test_ica_additional():
             ica.pick_sources_raw(raw, exclude=[0, 1])
             assert_true(ica.exclude == [0, 1])
 
-            ica_raw = ica.sources_as_raw(raw)
+            ica_raw = ica.sources_as_raw(raw, exclude=True)
             assert_true(ica.exclude == [ica.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
@@ -290,7 +290,7 @@ def test_ica_additional():
     os.remove(test_ica_fname)
 
     # Test ica epochs export
-    ica_epochs = ica.sources_as_epochs_from_epochs(epochs)
+    ica_epochs = ica.sources_as_epochs(epochs)
     assert_true(ica_epochs.events.shape == epochs.events.shape)
     sources_epochs = ica.get_sources_epochs(epochs)
     assert_array_equal(ica_epochs.get_data(), sources_epochs)

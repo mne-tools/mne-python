@@ -133,10 +133,10 @@ pl.show()
 ################################################################################
 # Inspect evoked ica sources
 
-ica_epochs = ica.sources_as_epochs_from_epochs(epochs)
-
+ica_epochs = ica.sources_as_epochs(epochs)
 picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude='bads')
+ica_evoked = ica_epochs.average(picks)
 
 titles, scalings, units = [dict(misc=k) for k in 'ICA sources', 1.0, 'AU']
 pl.figure()
-ica_epochs.average(picks).plot(titles=titles, scalings=scalings, units=units)
+ica_evoked.plot(titles=titles, scalings=scalings, units=units)
