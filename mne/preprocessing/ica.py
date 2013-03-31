@@ -505,6 +505,58 @@ class ICA(object):
 
         return out
 
+    def sources_as_epochs_from_raw(raw, events, event_id=None, tmin=None,
+                            tmax=None, name=None, picks=None, verbose=None):
+        """ Create epochs in ica space from raw object
+
+        Parameters
+        ----------
+        raw : instance of Raw
+            Raw object to export sources from.
+        events : array, of shape [n_events, 3]
+            Returned by the read_events function.
+        event_id : int | dict | None
+            The id of the event to consider. If dict,
+            the keys can later be used to acces associated events. Example:
+            dict(auditory=1, visual=3). If int, a dict will be created with
+            the id as string. If None, all events will be used with
+            and a dict is created with string integer names corresponding
+            to the event id integers.
+        tmin : float
+            Start time before event.
+        tmax : float
+            End time after event.
+        name : string
+            Comment that describes the Evoked data created.
+        picks : array-like
+            Channels to be included in addition to the sources. If None,
+            artifact and stimulus channels will be included.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to raw.verbose.
+
+        Returns
+        -------
+        ica_epochs : instance of Epochs
+            The epochs in ICA space.
+        """
+        pass
+
+    def sources_as_epochs_from_epochs(epochs):
+        """ Create epochs in ica space from raw object
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            Epochs object to draw sources from.
+
+        Returns
+        -------
+        ica_epochs : instance of Epochs
+            The epochs in ICA space.
+        """
+        pass
+
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=10,
                          title=None, show=True):
