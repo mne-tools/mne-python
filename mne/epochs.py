@@ -323,6 +323,7 @@ class Epochs(ProjMixin):
 
         # XXX : could maybe be factorized
         self.info['chs'] = [self.info['chs'][k] for k in idx]
+        self.info['ch'] = [self.info['ch_names'][k] for k in idx]
         self.info['nchan'] = len(idx)
 
         if self._projector is not None:
