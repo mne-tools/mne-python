@@ -10,7 +10,8 @@ import os
 import warnings
 from itertools import cycle
 from functools import partial
-from operator import add
+from copy import deepcopy
+
 import difflib
 import tempfile
 import webbrowser
@@ -43,13 +44,13 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                     emg='k', ref_meg='steelblue', misc='k', stim='k',
                     resp='k', chpi='k'),
-                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
-                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
+                units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU'),
+                scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0),
                 scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
                     eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                     stim=1, resp=1, chpi=1e-4),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                    mag='Magnetometers'))
+                    mag='Magnetometers', misc='misc'))
 
 
 def _mutable_defaults(*mappings):
@@ -61,11 +62,14 @@ def _mutable_defaults(*mappings):
                                          'units', units))
     Note. Can be any object with items method, but beware the order.
     """
+    out = []
     for k, v in mappings:
-        if isinstance(v, dict):
-            yield dict(DEFAULTS[k].items() + v.items())
-        else:
-            yield DEFAULTS[k]
+        this_mapping = DEFAULTS[k]
+        if v is not None:
+            this_mapping = deepcopy(DEFAULTS[k])
+            this_mapping.update(v)
+        out += [this_mapping]
+    return out
 
 
 def _clean_names(names):
@@ -549,7 +553,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     fig : instacne fo matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    scalings = _mutable_defaults(('scalings', scalings)).next()
+    scalings = _mutable_defaults(('scalings', scalings))[0]
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
@@ -1823,8 +1827,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
-        Color for the data traces. If dict(), should have entries for
-        each type of data. If None, defaults to:
+        Color for the data traces. If None, defaults to:
         `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
              ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
     bad_color : color object
@@ -1832,8 +1835,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     event_color : color object
         Color to use for events.
     scalings : dict | None
-        Scale factors for the traces. Must have entries for each type
-        of data. If None, defaults to:
+        Scale factors for the traces. If None, defaults to:
         `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
              ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     remove_dc : bool

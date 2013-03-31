@@ -988,8 +988,7 @@ class Raw(ProjMixin):
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
-            Color for the data traces. If dict(), should have entries for
-            each type of data. If None, defaults to:
+            Color for the data traces. If None, defaults to:
             `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
                  ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
         bad_color : color object
@@ -997,8 +996,7 @@ class Raw(ProjMixin):
         event_color : color object
             Color to use for events.
         scalings : dict | None
-            Scale factors for the traces. Must have entries for each type
-            of data. If None, defaults to:
+            Scale factors for the traces. If None, defaults to:
             `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
                  ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
         remove_dc : bool
