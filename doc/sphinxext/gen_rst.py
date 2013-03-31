@@ -335,6 +335,29 @@ plot_rst_template = """
     :lines: %(end_row)s-
 
 **Total running time of the example:** %(time_elapsed) 4i seconds
+
+.. raw:: html
+
+    <div class="social-button-container">
+        <div class="social-button">
+            <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
+        </div>
+        <div class="social-button">
+            <div id="fb-root"></div>
+            <script>(function(d, s, id) {
+                var js, fjs = d.getElementsByTagName(s)[0];
+                if (d.getElementById(id)) return;
+                js = d.createElement(s); js.id = id;
+                js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+                fjs.parentNode.insertBefore(js, fjs);
+                }(document, 'script', 'facebook-jssdk'));
+            </script>
+            <div class="fb-like" data-send="false" data-layout="button_count" data-width="150" data-show-faces="false"></div>
+        </div>
+        <div class="social-button">
+            <g:plusone annotation="inline" width="120" size="medium"></g:plusone>
+        </div>
+    </div>
     """
 
 # The following strings are used when we have several pictures: we use
