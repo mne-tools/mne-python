@@ -321,6 +321,34 @@ class Evoked(ProjMixin):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
+    def time_shift(self, tshift, relative=True):
+        """Shift time scale in evoked data
+
+        Parameters
+        ----------
+        tshift : float
+            The amount of time shift to be applied.
+            When relative is True, positive value of tshift moves the data
+            forward while negative tshift moves it backward.
+        relative : bool
+            If true, move the time backwards or forwards by specified amount.
+            Else, set the starting time point to given amount.
+
+        Note
+        ----------
+        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
+        """
+
+        times = self.times
+        sfreq = self.info['sfreq']
+
+        offset = self.first if relative else 0
+
+        self.first = int(tshift * sfreq) + offset
+        self.last = self.first + len(times) - 1
+        self.times = np.arange(self.first, self.last + 1,
+                               dtype=np.float) / sfreq
+
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=dict(eeg='uV',
              grad='fT/cm', mag='fT'), scalings=dict(eeg=1e6, grad=1e13,
@@ -373,7 +401,7 @@ class Evoked(ProjMixin):
             Indices of channels to apply. If None, all channels will be
             exported.
 
-        Retruns
+        Returns
         -------
         evoked_ts : instance of nitime.TimeSeries
         """
