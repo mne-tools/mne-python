@@ -106,9 +106,6 @@ def test_plot_evoked():
     evoked.plot(exclude='bads')
     evoked.plot(exclude=evoked.info['bads'])  # does the same thing
 
-    # Assert we get an error with incorrect dict specification
-    assert_raises(ValueError, plot_evoked, evoked, hline=[1],
-                  units=dict(eeg=10))
     # test dict keys may differ as long as all channel types are supplied w/keys
     evoked.plot(hline=[1], units=dict(mag='fT',grad='fT/cm', misc='AU'))
 

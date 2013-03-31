@@ -40,6 +40,33 @@ from . import verbose
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
+DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+                    emg='k', ref_meg='steelblue', misc='k', stim='k',
+                    resp='k', chpi='k'),
+                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
+                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
+                scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
+                    eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
+                    stim=1, resp=1, chpi=1e-4),
+                titles=dict(eeg='EEG', grad='Gradiometers',
+                    mag='Magnetometers'))
+
+
+def _mutable_defaults(*mappings):
+    """ To avoid dicts as default keyword arguments
+
+    Use this function instead to resolve default dict values.
+    Example usage:
+    scalings, units = _mutable_defaults(('scalings', scalings,
+                                         'units', units))
+    Note. Can be any object with items method, but beware the order.
+    """
+    for k, v in mappings:
+        if isinstance(v, dict):
+            yield dict(DEFAULTS[k].items() + v.items())
+        else:
+            yield DEFAULTS[k]
+
 
 def _clean_names(names):
     """ Remove white-space on topo matching
@@ -481,7 +508,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
 def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None,
                            cmap=None, layout_scale=.95, title=None,
-                           scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
+                           scalings=None):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -514,14 +541,15 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         on the canvas.
     title : str
         Title of the figure.
-    scalings : dict
-        The scalings of the channel types to be applied for plotting.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If
+        None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     Returns
     -------
     fig : instacne fo matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-
+    scalings = _mutable_defaults(('scalings', scalings)).next()
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()
@@ -540,11 +568,8 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None,
-                units=dict(eeg='uV', grad='fT/cm', mag='fT'),
-                scalings=dict(eeg=1e6, grad=1e13, mag=1e15),
-                titles=dict(eeg='EEG', grad='Gradiometers',
-                mag='Magnetometers'), axes=None):
+                ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                scalings=None, titles=None, axes=None):
     """Plot evoked data
 
     Note: If bad channels are not excluded they are shown in red.
@@ -571,23 +596,27 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     proj : bool
         If true SSP projections are applied before display.
     hline : list of floats | None
-        The values at which show an horizontal line.
-    units : dict
-        The units of the channel types used for axes lables.
-    scalings : dict
-        The scalings of the channel types to be applied for plotting.
-    titles : dict
-        The titles associated with the channels.
+        The values at which show an horizontal line.`.
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    titles : dict | None
+        The titles associated with the channels. If None, defaults to
+        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
     axes : instance of Axes | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
     import pylab as pl
+    scalings, titles, units = _mutable_defaults(('scalings', scalings),
+                                                ('titles', titles),
+                                                ('units', units))
 
-    dict_args = dict(scalings=scalings, units=units, titles=titles)
-
-    channel_types = set(reduce(add, [d.keys() for d in dict_args.values()]))
+    channel_types = set(key for d in [scalings, titles, units] for key in d)
     if picks is None:
         picks = range(evoked.info['nchan'])
 
@@ -612,18 +641,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         if t in types:
             n_channel_types += 1
             ch_types_used.append(t)
-
-    check_k = dict(((k, t), not t in v) for t in ch_types_used
-                   for (k, v) in dict_args.items())
-    if any(check_k.values()):
-        missings = dict((k, t) for (k, t), misses in check_k.items() if misses)
-        msg = ('For some of the data types in evoked parameters'
-               ' are missing:')
-        for param, t in missings.items():
-            msg += ('\n   No \'%s\' parameter for channels of type'
-                    ' %s.' % (param, t))
-
-        raise ValueError(msg)
 
     if axes is None:
         pl.clf()
@@ -1274,8 +1291,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=dict(eeg='uV', grad='fT/cm', mag='fT'),
-                      scalings=dict(eeg=1e6, grad=1e13, mag=1e15)):
+                      units=None, scalings=None):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -1304,16 +1320,20 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         (data.shape[1] == len(times)
     show : bool
         Show or not the figure at the end
-    units : dict
-        The units of the channel types used for axes lables.
-    scalings : dict
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
         The scalings of the channel types to be applied for plotting.
-
+        If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15)`
     Returns
     -------
     figs : the list of matplotlib figures
         One figure per channel displayed
     """
+    units, scalings = _mutable_defaults(('units', units),
+                                        ('scalings', scalings))
+
     import pylab as pl
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
@@ -1783,15 +1803,9 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
-             bgcolor='w',
-             color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                        emg='k', ref_meg='steelblue', misc='k', stim='k',
-                        resp='k', chpi='k'),
-             bad_color=(0.8, 0.8, 0.8), event_color='cyan',
-             scales=dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6,
-                         ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
-                         stim=1, resp=1, chpi=1e-4),
-             remove_dc=True, order='type', show_options=False, title=None):
+             bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
+             event_color='cyan', scalings=None, remove_dc=True, order='type',
+             show_options=False, title=None):
     """Plot raw data
 
     Parameters
@@ -1808,16 +1822,20 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         Number of channels to plot at once.
     bgcolor : color object
         Color of the background.
-    color : dict | color object
+    color : dict | color object | None
         Color for the data traces. If dict(), should have entries for
-        each type of data.
+        each type of data. If None, defaults to:
+        `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
+             ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
     bad_color : color object
         Color to make bad channels.
     event_color : color object
         Color to use for events.
-    scales : dict
+    scalings : dict | None
         Scale factors for the traces. Must have entries for each type
-        of data.
+        of data. If None, defaults to:
+        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
+             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     remove_dc : bool
         If True remove DC component when plotting data.
     order : 'type' | 'original' | array
@@ -1842,6 +1860,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
     """
     import pylab as pl
+    color, scalings = _mutable_defaults(('color', color),
+                                        ('scalings_plot_raw', scalings))
 
     # make a copy of info, remove projection (for now)
     info = copy.deepcopy(raw.info)
@@ -1900,7 +1920,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, n_channels=n_channels,
-                  scales=scales, types=types, n_times=n_times, events=events)
+                  scalings=scalings, types=types, n_times=n_times, events=events)
 
     # set up plotting
     fig = figure_nobar(facecolor=bgcolor)
@@ -2090,7 +2110,7 @@ def _update_raw_data(params):
         data -= np.mean(data, axis=1)[:, np.newaxis]
     # scale
     for di in xrange(data.shape[0]):
-        data[di] /= params['scales'][params['types'][di]]
+        data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             data[di] = np.minimum(data[di], 1.0)
