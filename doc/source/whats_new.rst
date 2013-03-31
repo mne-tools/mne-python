@@ -73,6 +73,8 @@ Changelog
 
    - Add support for delayed SSP application at evoked stage `Denis Engemann`_, `Alex Gramfort`_, `Eric Larson`_ and `Martin Luessi`_
 
+   - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
+
 API
 ~~~
 
