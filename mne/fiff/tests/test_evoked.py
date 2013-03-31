@@ -49,6 +49,44 @@ def test_io_evoked():
     assert_array_almost_equal(ave.data, ave3.data, 19)
 
 
+def test_time_shift_evoked():
+    """ Test for shifting of time scale
+    """
+    # Shift backward
+    ave = read_evoked(fname, 0)
+    ave.time_shift(-0.1, relative=True)
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+
+    # Shift forward twice the amount
+    ave_bshift = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
+    ave_bshift.time_shift(0.2, relative=True)
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave_bshift)
+
+    # Shift backward again
+    ave_fshift = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
+    ave_fshift.time_shift(-0.1, relative=True)
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave_fshift)
+
+    ave_normal = read_evoked(fname, 0)
+    ave_relative = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
+
+    assert_array_almost_equal(ave_normal.data, ave_relative.data, 10)
+    assert_array_almost_equal(ave_normal.times, ave_relative.times, 10)
+
+    assert_equal(ave_normal.last, ave_relative.last)
+    assert_equal(ave_normal.first, ave_relative.first)
+
+    # Absolute time shift
+    ave = read_evoked(fname, 0)
+    ave.time_shift(-0.3, relative=False)
+    write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+
+    ave_absolute = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
+
+    assert_array_almost_equal(ave_normal.data, ave_absolute.data, 10)
+    assert_equal(ave_absolute.first, int(-0.3*ave.info['sfreq']))
+
+
 def test_evoked_resample():
     """Test for resampling of evoked data
     """
