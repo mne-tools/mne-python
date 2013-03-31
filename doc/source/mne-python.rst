@@ -14,3 +14,6 @@ MNE with Python
    whats_new.rst
    contributing.rst
 
+.. raw:: html
+
+    <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
