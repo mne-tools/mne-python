@@ -7,6 +7,7 @@
 import warnings
 import numpy as np
 import logging
+from distutils.version import LooseVersion
 import os
 import os.path as op
 from functools import wraps
@@ -355,10 +356,9 @@ def requires_pandas(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            from pandas import __version__ as version
-            if 'dev' in version:
-                version = version.split('.dev')[0]
-            if int(version.replace('.', '')) < 73:
+            import pandas
+            version = LooseVersion(pandas.__version__)
+            if version < '0.7.3':
                 skip = True
         except ImportError:
             skip = True
