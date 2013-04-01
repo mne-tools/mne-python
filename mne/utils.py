@@ -355,8 +355,10 @@ def requires_pandas(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import pandas
-            if int(pandas.__version__.replace('.', '')) < 73:
+            from pandas import __version__ as version
+            if 'dev' in version:
+                version = version.split('.dev')[0]
+            if int(version.replace('.', '')) < 73:
                 skip = True
         except ImportError:
             skip = True
