@@ -787,7 +787,7 @@ class Epochs(ProjMixin):
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
-    def time_shift(self, tshift, relative=True):
+    def shift_time_scale(self, tshift, relative=True):
         """Shift time scale in epochs object
 
         Parameters
@@ -802,17 +802,18 @@ class Epochs(ProjMixin):
 
         Notes
         ----------
-        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
+        Maximum accuracy of time shift is 1 / epochs.info['sfreq']
         """
 
         if self.preload:
             times = self.times
             sfreq = self.info['sfreq']
 
-            offset = times[0] if relative else 0
-            tfirst = int(tshift * sfreq) + offset
-            tlast = tfirst + len(times) - 1
-            self.times = np.arange(tfirst, tlast + 1, dtype=np.float) / sfreq
+            offset = (times[0] * sfreq) if relative else 0
+            self_first = tshift * sfreq + offset
+            self_last = self_first + len(times) - 1
+            self.times = np.arange(self_first, self_last + 1,
+                                   dtype=np.float) / sfreq
         else:
             raise RuntimeError('Can time shift only preloaded data')
 

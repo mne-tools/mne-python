@@ -389,7 +389,7 @@ def test_crop():
     assert_array_equal(data3, data_normal[:, :, tmask])
 
 
-def test_time_shift_epochs():
+def test_shift_time_scale_epochs():
     """ Test for shifting of time scale
     """
 
@@ -402,26 +402,24 @@ def test_time_shift_epochs():
     times_normal = cp.deepcopy(epochs.times)
 
     # Shift backward-forward-backward
-    epochs.time_shift(-0.1, relative=True)
-    epochs.time_shift(0.2, relative=True)
-    epochs.time_shift(-0.1, relative=True)
+    epochs.shift_time_scale(-0.1, relative=True)
+    epochs.shift_time_scale(0.2, relative=True)
+    epochs.shift_time_scale(-0.1, relative=True)
 
     data_relative = cp.deepcopy(epochs.get_data())
     times_relative = cp.deepcopy(epochs.times)
 
-    assert_true(np.allclose(data_normal, data_relative, atol=1e-16, rtol=1e-3))
-
-    # why does the following fail?
-    assert_array_almost_equal(times_normal, times_relative, 5)
+    assert_true(np.allclose(data_normal, data_relative, atol=1e-16, rtol=1e-8))
+    assert_array_almost_equal(times_normal, times_relative, 19)
 
     # Absolute time shift
-    #epochs_normal.time_shift(-0.3, relative=False)
+    epochs_normal.shift_time_scale(-0.3, relative=False)
 
-    #data_abs = cp.deepcopy(epochs_normal.get_data())
+    data_abs = cp.deepcopy(epochs_normal.get_data())
 
-    #assert_true(np.allclose(data_normal, data_abs,
-    #                        atol=1e-16, rtol=1e-3))
-    #assert_equal(epochs_abs.times[0], int(-0.3 * epochs.info['sfreq']))
+    assert_true(np.allclose(data_normal, data_abs,
+                            atol=1e-16, rtol=1e-8))
+    assert_equal(epochs_normal.times[0], -0.3)
 
 
 def test_resample():
