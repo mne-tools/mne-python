@@ -508,12 +508,8 @@ ul.keywordmatches li.goodmatch a {
     font-weight: bold;
 }
 
-div.social-button-container {
-    overflow: hidden; 
-}
-            
 div.social-button {
     float: left;
-    width: 100px;
-    height: 20px;
+    width: 120px;
+    height: 28px;
 }

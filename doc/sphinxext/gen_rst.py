@@ -343,6 +343,9 @@ plot_rst_template = """
             <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
         </div>
         <div class="social-button">
+            <g:plusone annotation="inline" width="120" size="medium"></g:plusone>
+        </div>
+        <div class="social-button">
             <div id="fb-root"></div>
             <script>(function(d, s, id) {
                 var js, fjs = d.getElementsByTagName(s)[0];
@@ -352,10 +355,7 @@ plot_rst_template = """
                 fjs.parentNode.insertBefore(js, fjs);
                 }(document, 'script', 'facebook-jssdk'));
             </script>
-            <div class="fb-like" data-send="false" data-layout="button_count" data-width="150" data-show-faces="false"></div>
-        </div>
-        <div class="social-button">
-            <g:plusone annotation="inline" width="120" size="medium"></g:plusone>
+            <div class="fb-like" data-send="false" data-width="450" data-show-faces="false"></div>
         </div>
     </div>
     """
