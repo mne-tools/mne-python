@@ -335,8 +335,8 @@ class Evoked(ProjMixin):
             If true, move the time backwards or forwards by specified amount.
             Else, set the starting time point to the value of tshift.
 
-        Note
-        ----
+        Notes
+        -----
         Maximum accuracy of time shift is 1 / evoked.info['sfreq']
         """
         times = self.times
