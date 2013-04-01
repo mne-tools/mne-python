@@ -805,17 +805,14 @@ class Epochs(ProjMixin):
         Maximum accuracy of time shift is 1 / epochs.info['sfreq']
         """
 
-        if self.preload:
-            times = self.times
-            sfreq = self.info['sfreq']
+        times = self.times
+        sfreq = self.info['sfreq']
 
-            offset = (times[0] * sfreq) if relative else 0
-            self_first = tshift * sfreq + offset
-            self_last = self_first + len(times) - 1
-            self.times = np.arange(self_first, self_last + 1,
-                                   dtype=np.float) / sfreq
-        else:
-            raise RuntimeError('Can time shift only preloaded data')
+        offset = (times[0] * sfreq) if relative else 0
+        self_first = tshift * sfreq + offset
+        self_last = self_first + len(times) - 1
+        self.times = np.arange(self_first, self_last + 1,
+                               dtype=np.float) / sfreq
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
