@@ -538,6 +538,8 @@ class ICA(object):
                                     axis=1) if len(picks) > 0 else sources
 
         self._ica_export_info(out.info, epochs, picks)
+        out.preload = True
+        out.raw = None
 
         return out
 
