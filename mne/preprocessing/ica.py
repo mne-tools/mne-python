@@ -481,6 +481,7 @@ class ICA(object):
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
         self._ica_export_info(out.info, raw, picks)
+        out._projector = None
 
         return out
 
@@ -507,12 +508,12 @@ class ICA(object):
 
         # update number of channels
         info['nchan'] = len(picks) + self.n_components_
-
         info['bads'] = [self.ch_names[k] for k in self.exclude]
-        container.info['filenames'] = []
+        info['projs'] = []  # make sure projections are removed.
+        info['filenames'] = []
 
     def sources_as_epochs(self, epochs, picks=None):
-        """ Create epochs in ICA space from raw object
+        """ Create epochs in ICA space from epochs object
 
         Parameters
         ----------
@@ -538,6 +539,9 @@ class ICA(object):
                                     axis=1) if len(picks) > 0 else sources
 
         self._ica_export_info(out.info, epochs, picks)
+        out.preload = True
+        out.raw = None
+        out._projector = None
 
         return out
 

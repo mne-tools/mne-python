@@ -296,6 +296,9 @@ def test_ica_additional():
     assert_array_equal(ica_epochs.get_data(), sources_epochs)
     ica_chans = [ch for ch in ica_epochs.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
+    assert_true(ica.n_components_ == ica_epochs.get_data().shape[1])
+    assert_true(ica_epochs.raw is None)
+    assert_true(ica_epochs.preload == True)
 
     # regression test for plot method
     assert_raises(ValueError, ica.plot_sources_raw, raw,
