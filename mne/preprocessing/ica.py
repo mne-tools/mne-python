@@ -25,7 +25,7 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels, channel_type
+from ..fiff.pick import pick_types, pick_channels
 from ..fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
@@ -532,7 +532,7 @@ class ICA(object):
         sources = self.get_sources_epochs(epochs)
         if picks is None:
             picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True, exclude=[])
+                               ecg=True, eog=True, stim=True, exclude='bads')
 
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
                                     axis=1) if len(picks) > 0 else sources
