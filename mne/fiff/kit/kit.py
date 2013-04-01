@@ -55,6 +55,11 @@ class RawKIT(Raw):
         in sequence.
         '>' means the largest trigger assigned to the last channel
         in sequence.
+    slope : '+' | '-'
+        '+' means a positive slope (low-to-high) on the event channel(s)
+        is used to trigger an event.
+        '-' means a negative slope (high-to-low) on the event channel(s)
+        is used to trigger an event.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -69,14 +74,15 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None,
-                 sns_fname=None, stim='<', stimthresh=1, verbose=None,
-                 preload=False):
+                 sns_fname=None, stim='<', slope='+',
+                 stimthresh=1, verbose=None, preload=False):
         if sns_fname is None:
             err = ("An sns_fname must be provided, can't be None")
             raise NotImplementedError(err)
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
+        self._sqd_params['slope'] = slope
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
         logger.info('Creating Raw.info structure...')
@@ -222,7 +228,12 @@ class RawKIT(Raw):
 
             # Create a synthetic channel
             trig_chs = self._data[stim, :]
-            trig_chs = trig_chs > stimthresh
+            if slope == '+':
+                trig_chs = trig_chs > stimthresh
+            elif slope == '-':
+                trig_chs = trig_chs < stimthresh
+            else:
+                raise ValueError("slope needs to be '+' or '-'")
             trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
             trig_chs = trig_chs * trig_vals
             stim_ch = trig_chs.sum(axis=0)
@@ -343,7 +354,12 @@ class RawKIT(Raw):
         data = data.T
         # Create a synthetic channel
         trig_chs = data[self._sqd_params['stim'], :]
-        trig_chs = trig_chs > self._sqd_params['stimthresh']
+        if self._sqd_params['slope'] == '+':
+            trig_chs = trig_chs > self._sqd_params['stimthresh']
+        elif self._sqd_params['slope'] == '-':
+            trig_chs = trig_chs < self._sqd_params['stimthresh']
+        else:
+            raise ValueError("slope needs to be '+' or '-'")
         trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
                              ndmin=2).T
         trig_chs = trig_chs * trig_vals
@@ -509,7 +525,8 @@ def get_sqd_params(rawfile):
 
 
 def read_raw_kit(input_fname, mrk, elp, hsp, sns_fname,
-                 stim='<', stimthresh=1, verbose=None, preload=False):
+                 stim='<', slope='+', stimthresh=1,
+                 verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -533,6 +550,11 @@ def read_raw_kit(input_fname, mrk, elp, hsp, sns_fname,
         in sequence.
         '>' means the largest trigger assigned to the last channel
         in sequence.
+    slope : '+' | '-'
+        '+' means a positive slope (low-to-high) on the event channel(s)
+        is used to trigger an event.
+        '-' means a negative slope (high-to-low) on the event channel(s)
+        is used to trigger an event.
     stimthresh : float
         The threshold level for accepting voltage change as a trigger event.
     verbose : bool, str, int, or None
@@ -542,5 +564,5 @@ def read_raw_kit(input_fname, mrk, elp, hsp, sns_fname,
         If False, data are not read until save.
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
-                  sns_fname=sns_fname, stim=stim, stimthresh=stimthresh,
-                  verbose=verbose, preload=preload)
+                  sns_fname=sns_fname, stim=stim, slope=slope,
+                  stimthresh=stimthresh, verbose=verbose, preload=preload)
