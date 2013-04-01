@@ -627,13 +627,12 @@ def set_config(key, value):
 
 
 class ProgressBar(object):
-    '''
-    Class for generating a command-line progressbar
+    """Class for generating a command-line progressbar
 
     Parameters
     ----------
-    n : number
-        Total size of process (e.g. number of samples to process, bytes to
+    max_value : number
+        Maximum value of process (e.g. number of samples to process, bytes to
         download, etc.).
     mesg : str
         Message to include at end of progress bar
@@ -649,17 +648,25 @@ class ProgressBar(object):
 
     Example
     -------
-    # Processing 13000 samples
     >>> progress = ProgressBar(13000)
-    # Indicate that the first 3000 samples are complete
     >>> progress.update(3000)
-    '''
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000)
+    [..................                      ] 46.15385 |
+
+    >>> progress = ProgressBar(13000, spinner=True)
+    >>> progress.update(3000)
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000)
+    [..................                      ] 46.15385 /
+    """
+
     spinner_symbols = ['|', '/', '-', '\\']
     template = '\r[{}{}] {:.05f} {} {}   '
 
-    def __init__(self, n, mesg='', max_chars=40, progress_character='.',
-                 spinner=False):
-        self.n = float(n)
+    def __init__(self, max_value, mesg='', max_chars=40,
+                 progress_character='.', spinner=False):
+        self.max_value = float(max_value)
         self.mesg = mesg
         self.max_chars = max_chars
         self.progress_character = progress_character
@@ -667,10 +674,23 @@ class ProgressBar(object):
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
 
-    def update(self, i, mesg=None):
+    def update(self, cur_value, mesg=None):
+        """Update progressbar with current value of process
+
+        Parameters
+        ----------
+        cur_value : number
+            Current value of process.  Should be <= max_value (but this is not
+            enforced).  The percent of the progressbar will be computed as
+            (cur_value / max_value) * 100
+        mesg : str
+            Message to display to the right of the progressbar.  If None, the
+            last message provided will be used.  To clear the current message,
+            pass a null string, ''.
+        """
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
-        progress = float(i) / self.n
+        progress = float(cur_value) / self.max_value
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
