@@ -651,15 +651,15 @@ class ProgressBar(object):
     Example
     -------
     >>> progress = ProgressBar(13000)
-    >>> progress.update(3000)
+    >>> progress.update(3000) # doctest: +SKIP
     [.........                               ] 23.07692 |
-    >>> progress.update(6000)
+    >>> progress.update(6000) # doctest: +SKIP
     [..................                      ] 46.15385 |
 
     >>> progress = ProgressBar(13000, spinner=True)
-    >>> progress.update(3000)
+    >>> progress.update(3000) # doctest: +SKIP
     [.........                               ] 23.07692 |
-    >>> progress.update(6000)
+    >>> progress.update(6000) # doctest: +SKIP
     [..................                      ] 46.15385 /
     """
 
