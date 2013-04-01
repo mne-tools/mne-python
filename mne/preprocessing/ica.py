@@ -507,9 +507,9 @@ class ICA(object):
 
         # update number of channels
         info['nchan'] = len(picks) + self.n_components_
-
         info['bads'] = [self.ch_names[k] for k in self.exclude]
-        container.info['filenames'] = []
+        info['projs'] = []  # make sure projections are removed.
+        info['filenames'] = []
 
     def sources_as_epochs(self, epochs, picks=None):
         """ Create epochs in ICA space from raw object
