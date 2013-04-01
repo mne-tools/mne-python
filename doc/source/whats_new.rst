@@ -9,7 +9,9 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts `Mainak Jas`_
+   - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
+
+   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_
 
    - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
 
