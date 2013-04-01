@@ -79,7 +79,9 @@ class MarkerPoints(HasPrivateTraits):
 
 class MarkerPointSource(MarkerPoints):
     """MarkerPoints subclass for source files"""
-    file = File(filter=['Sqd marker file (*.sqd)|*.sqd',
+    file = File(filter=['Supported Files (*.sqd, *.mrk, *.txt, *.pickled)|'
+                        '*.sqd;*.mrk;*.txt;*.pickled',
+                        'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
                         'Text marker file (*.txt)|*.txt',
                         'Pickled markers (*.pickled)|*.pickled'], exists=True)
     name = Property(Str, depends_on='file')
