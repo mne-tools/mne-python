@@ -66,7 +66,7 @@ Dependencies
 The required dependencies to build the software are python >= 2.6,
 NumPy >= 1.4, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
-Some isolated functions require pandas >= 7.3 and nitime (multitaper analysis).
+Some isolated functions require pandas >= 0.7.3 and nitime (multitaper analysis).
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically
