@@ -36,16 +36,17 @@ In the gui:
 Subjects without MRI
 --------------------
 
-For subjects for which no structural mri is available, an average brain model 
-can be substituted (for example, the *fsaverage* brain that comes with 
-Freesurfer_).
+For subjects for which no structural MRI model is available, a generic brain model 
+can be substituted. 
 
-To prepare the *fsaverage* brain for use with mne-python, run
+The default is to use the *fsaverage* brain that comes with Freesurfer_. 
+However, any valid MRI subject can be used.
+The convenience function :func:`mne.create_default_subject` can be used to copy
+the *fsaverage* brain form the freesurfer directory to the subjects directory 
+and add some auxiliary files form the mne directory. 
 
-    >>> mne.create_default_subject()
-
-Once this is done, a coregistration GUI can be used to 
-scale the *fsaverage* brain to better match another subject's head shape. The
+The mne-python coregistration GUI can be used to 
+scale a generic brain to better match each subject's head shape. The
 GUI is launched with::
 
     >>> mne.gui.coregistration()
