@@ -481,6 +481,7 @@ class ICA(object):
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
         self._ica_export_info(out.info, raw, picks)
+        out._projector = None
 
         return out
 
@@ -512,7 +513,7 @@ class ICA(object):
         info['filenames'] = []
 
     def sources_as_epochs(self, epochs, picks=None):
-        """ Create epochs in ICA space from raw object
+        """ Create epochs in ICA space from epochs object
 
         Parameters
         ----------
@@ -540,6 +541,7 @@ class ICA(object):
         self._ica_export_info(out.info, epochs, picks)
         out.preload = True
         out.raw = None
+        out._projector = None
 
         return out
 
