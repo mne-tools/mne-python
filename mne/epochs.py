@@ -801,7 +801,7 @@ class Epochs(ProjMixin):
             Else, set the starting time point to given amount.
 
         Notes
-        ----------
+        -----
         Maximum accuracy of time shift is 1 / epochs.info['sfreq']
         """
 
