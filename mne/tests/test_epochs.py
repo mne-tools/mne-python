@@ -394,7 +394,7 @@ def test_shift_time_scale_epochs():
     """
 
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
+                    baseline=(None, 0), preload=False,
                     reject=reject, flat=flat)
     epochs_normal = cp.copy(epochs)
 
