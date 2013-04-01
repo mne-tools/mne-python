@@ -151,6 +151,12 @@ def read_elp(elp_fname):
     p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = p.findall(open(elp_fname).read())
     elp_points = np.array(elp_points, dtype=float)
+    if elp_points.shape != (8, 3):
+        err = ("File %r does not contain correct number of points for a "
+               "fiducials file. Expected shape: (8 points, 3 "
+               "coordinates); got shape "
+               "%s." % (elp_fname, elp_points.shape))
+        raise ValueError(err)
     return elp_points
 
 
