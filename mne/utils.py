@@ -625,6 +625,7 @@ def set_config(key, value):
     with open(config_path, 'w') as fid:
         json.dump(config, fid, sort_keys=True, indent=0)
 
+
 class ProgressBar(object):
     '''
     Class for generating a command-line progressbar
@@ -669,9 +670,9 @@ class ProgressBar(object):
     def update(self, i, mesg=None):
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
-        progress = float(i)/self.n
-        num_chars = int(progress*self.max_chars)
-        num_left = self.max_chars-num_chars
+        progress = float(i) / self.n
+        num_chars = int(progress * self.max_chars)
+        num_left = self.max_chars - num_chars
 
         # Update the message
         if mesg is not None:
@@ -680,21 +681,20 @@ class ProgressBar(object):
         # The \r tells the cursor to return to the beginning of the line rather
         # than starting a new line.  This allows us to have a progressbar-style
         # display in the console window.
-        bar = self.template.format(self.progress_character*num_chars, 
-                                   ' '*num_left,
-                                   progress*100,
-                                   self.spinner_symbols[self.spinner_index], 
+        bar = self.template.format(self.progress_character*num_chars,
+                                   ' ' * num_left,
+                                   progress * 100,
+                                   self.spinner_symbols[self.spinner_index],
                                    self.mesg)
         sys.stdout.write(bar)
-
         # Increament the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
 
-
-        # Force a flush because sometimes when using bash scripts and pipes, the
-        # output is not printed until after the program exits.
+        # Force a flush because sometimes when using bash scripts and pipes,
+        # the output is not printed until after the program exits.
         sys.stdout.flush()
+
 
 def _download_status(url, file_name, print_destination=True):
     """Download a URL to a file destination, with status updates"""
@@ -721,6 +721,7 @@ def _download_status(url, file_name, print_destination=True):
             progress.update(file_size_dl)
         if print_destination is True:
             stdout.write('File saved as %s.\n' % file_name)
+
 
 def sizeof_fmt(num):
     """Turn number of bytes into human-readable str"""
