@@ -134,14 +134,11 @@ pl.show()
 ###############################################################################
 # Inspect evoked ICA sources
 
-# create ICA Epochs object and export additional channels.
-add_picks = mne.fiff.pick_types(epochs.info, meg=False, eog=True,
-                                include=['MEG 1531'])
-
-ica_epochs = ica.sources_as_epochs(epochs, picks=add_picks)
+# create ICA Epochs object.
+ica_epochs = ica.sources_as_epochs(epochs)
 
 # don't exclude bad sources by passing an empty list.
 ica_picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude=[])
-ica_evoked = ica_epochs.average(picks)
+ica_evoked = ica_epochs.average(ica_picks)
 pl.figure()
 ica_evoked.plot(titles=dict(misc='ICA sources'))
