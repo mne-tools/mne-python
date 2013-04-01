@@ -756,6 +756,35 @@ class Epochs(object):
         this_epochs._data = this_epochs._data[:, :, tmask]
         return this_epochs
 
+    def time_shift(self, tshift, relative=True):
+        """Shift time scale in epochs object
+
+        Parameters
+        ----------
+        tshift : float
+            The amount of time shift to be applied.
+            When relative is True, positive value of tshift moves the data
+            forward while negative tshift moves it backward.
+        relative : bool
+            If true, move the time backwards or forwards by specified amount.
+            Else, set the starting time point to given amount.
+
+        Notes
+        ----------
+        Maximum accuracy of time shift is 1 / evoked.info['sfreq']
+        """
+
+        if self.preload:
+            times = self.times
+            sfreq = self.info['sfreq']
+
+            offset = times[0] if relative else 0
+            tfirst = int(tshift * sfreq) + offset
+            tlast = tfirst + len(times) - 1
+            self.times = np.arange(tfirst, tlast + 1, dtype=np.float) / sfreq
+        else:
+            raise RuntimeError('Can time shift only preloaded data')
+
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
                  verbose=None):
