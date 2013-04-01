@@ -485,7 +485,9 @@ class ICA(object):
         return out
 
     def _ica_export_info(self, info, container, picks):
-            # set channel names and info
+        """ Aux function
+        """
+        # set channel names and info
         ch_names = info['ch_names'] = []
         ch_info = info['chs'] = []
         for ii in xrange(self.n_components_):
@@ -508,7 +510,6 @@ class ICA(object):
 
         info['bads'] = [self.ch_names[k] for k in self.exclude]
         container.info['filenames'] = []
-        return ch_names  # for containers without @property ch_names
 
     def sources_as_epochs(self, epochs, picks=None):
         """ Create epochs in ICA space from raw object
@@ -536,8 +537,7 @@ class ICA(object):
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
                                     axis=1) if len(picks) > 0 else sources
 
-        # As long as ch_names is not a @property as in raw we need to:
-        out.ch_names = self._ica_export_info(out.info, epochs, picks)
+        self._ica_export_info(out.info, epochs, picks)
 
         return out
 

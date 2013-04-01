@@ -187,7 +187,7 @@ def test_ica_additional():
             ica.pick_sources_raw(raw, exclude=[0, 1])
             assert_true(ica.exclude == [0, 1])
 
-            ica_raw = ica.sources_as_raw(raw, exclude=True)
+            ica_raw = ica.sources_as_raw(raw)
             assert_true(ica.exclude == [ica.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
