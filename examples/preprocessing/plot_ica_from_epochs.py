@@ -5,8 +5,10 @@ Compute ICA components on Epochs
 
 ICA is used to decompose raw data in 49 to 50 sources.
 The source matching the ECG is found automatically
-and displayed. Finally, the cleaned epochs are compared
-to the uncleaned epochs.
+and displayed. Finally, after the cleaned epochs are
+compared to the uncleaned epochs, evoked ICA sources
+are investigated using sensor space ERF plotting
+techniques.
 
 """
 print __doc__
@@ -128,3 +130,15 @@ pl.show()
 pl.figure()
 epochs_ica.average().plot()
 pl.show()
+
+###############################################################################
+# Inspect evoked ICA sources
+
+# create ICA Epochs object.
+ica_epochs = ica.sources_as_epochs(epochs)
+
+# don't exclude bad sources by passing an empty list.
+ica_picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude=[])
+ica_evoked = ica_epochs.average(ica_picks)
+pl.figure()
+ica_evoked.plot(titles=dict(misc='ICA sources'))

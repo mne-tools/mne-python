@@ -75,6 +75,8 @@ Changelog
 
    - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
 
+   - New ICA method `sources_as_epochs` to create Epochs in ICA space by `Denis Engemann`_
+
 API
 ~~~
 

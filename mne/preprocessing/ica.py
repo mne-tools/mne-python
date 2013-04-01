@@ -25,7 +25,7 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff import pick_types, pick_channels
+from ..fiff.pick import pick_types, pick_channels
 from ..fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
@@ -470,7 +470,6 @@ class ICA(object):
             raw._data, raw._times = data, times
 
         out.fids = []
-        out.info['filenames'] = []
         data_, times_ = raw[picks, start:stop]
 
         out._data = np.r_[sources, data_]
@@ -481,27 +480,64 @@ class ICA(object):
         out.first_samp = raw.first_samp + (start if start else 0)
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
+        self._ica_export_info(out.info, raw, picks)
+
+        return out
+
+    def _ica_export_info(self, info, container, picks):
+        """ Aux function
+        """
         # set channel names and info
-        ch_names = out.info['ch_names'] = []
-        ch_info = out.info['chs'] = []
-        for i in xrange(self.n_components_):
-            ch_names.append('ICA %03d' % (i + 1))
-            ch_info.append(dict(ch_name='ICA %03d' % (i + 1), cal=1,
-                logno=i + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+        ch_names = info['ch_names'] = []
+        ch_info = info['chs'] = []
+        for ii in xrange(self.n_components_):
+            this_source = 'ICA %03d' % (ii + 1)
+            ch_names.append(this_source)
+            ch_info.append(dict(ch_name=this_source, cal=1,
+                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
                 kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                loc=np.array([0., 0., 0., 1., 0., 0., 0., 1.,
-                              0., 0., 0., 1.], dtype=np.float32),
+                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
                 unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
-                scanno=i + 1, unit_mul=0, coil_trans=None))
+                scanno=ii + 1, unit_mul=0, coil_trans=None))
 
         # re-append additionally picked ch_names
-        ch_names += [raw.ch_names[k] for k in picks]
+        ch_names += [container.ch_names[k] for k in picks]
         # re-append additionally picked ch_info
-        ch_info += [raw.info['chs'][k] for k in picks]
+        ch_info += [container.info['chs'][k] for k in picks]
 
         # update number of channels
-        out.info['nchan'] = len(picks) + self.n_components_
-        out.info['bads'] = [self.ch_names[k] for k in self.exclude]
+        info['nchan'] = len(picks) + self.n_components_
+
+        info['bads'] = [self.ch_names[k] for k in self.exclude]
+        container.info['filenames'] = []
+
+    def sources_as_epochs(self, epochs, picks=None):
+        """ Create epochs in ICA space from raw object
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            Epochs object to draw sources from.
+        picks : array-like
+            Channels to be included in addition to the sources. If None,
+            artifact channels will be included.
+
+        Returns
+        -------
+        ica_epochs : instance of Epochs
+            The epochs in ICA space.
+        """
+
+        out = epochs.copy()
+        sources = self.get_sources_epochs(epochs)
+        if picks is None:
+            picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
+                               ecg=True, eog=True, stim=True, exclude='bads')
+
+        out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
+                                    axis=1) if len(picks) > 0 else sources
+
+        self._ica_export_info(out.info, epochs, picks)
 
         return out
 
