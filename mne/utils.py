@@ -626,13 +626,98 @@ def set_config(key, value):
         json.dump(config, fid, sort_keys=True, indent=0)
 
 
+class ProgressBar(object):
+    """Class for generating a command-line progressbar
+
+    Parameters
+    ----------
+    max_value : number
+        Maximum value of process (e.g. number of samples to process, bytes to
+        download, etc.).
+    mesg : str
+        Message to include at end of progress bar
+    max_chars : int
+        Number of characters to use for progress bar (be sure to save some room
+        for the message and % complete as well).
+    progress_character : char
+        Character in the progress bar that indicates the portion completed
+    spinner : bool
+        Show a spinner.  Useful for long-running processes that may not
+        increment the progress bar very often.  This provides the user with
+        feedback that the progress has not stalled.
+
+    Example
+    -------
+    >>> progress = ProgressBar(13000)
+    >>> progress.update(3000)
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000)
+    [..................                      ] 46.15385 |
+
+    >>> progress = ProgressBar(13000, spinner=True)
+    >>> progress.update(3000)
+    [.........                               ] 23.07692 |
+    >>> progress.update(6000)
+    [..................                      ] 46.15385 /
+    """
+
+    spinner_symbols = ['|', '/', '-', '\\']
+    template = '\r[{}{}] {:.05f} {} {}   '
+
+    def __init__(self, max_value, mesg='', max_chars=40,
+                 progress_character='.', spinner=False):
+        self.max_value = float(max_value)
+        self.mesg = mesg
+        self.max_chars = max_chars
+        self.progress_character = progress_character
+        self.spinner = spinner
+        self.spinner_index = 0
+        self.n_spinner = len(self.spinner_symbols)
+
+    def update(self, cur_value, mesg=None):
+        """Update progressbar with current value of process
+
+        Parameters
+        ----------
+        cur_value : number
+            Current value of process.  Should be <= max_value (but this is not
+            enforced).  The percent of the progressbar will be computed as
+            (cur_value / max_value) * 100
+        mesg : str
+            Message to display to the right of the progressbar.  If None, the
+            last message provided will be used.  To clear the current message,
+            pass a null string, ''.
+        """
+        # Ensure floating-point division so we can get fractions of a percent
+        # for the progressbar.
+        progress = float(cur_value) / self.max_value
+        num_chars = int(progress * self.max_chars)
+        num_left = self.max_chars - num_chars
+
+        # Update the message
+        if mesg is not None:
+            self.mesg = mesg
+
+        # The \r tells the cursor to return to the beginning of the line rather
+        # than starting a new line.  This allows us to have a progressbar-style
+        # display in the console window.
+        bar = self.template.format(self.progress_character*num_chars,
+                                   ' ' * num_left,
+                                   progress * 100,
+                                   self.spinner_symbols[self.spinner_index],
+                                   self.mesg)
+        sys.stdout.write(bar)
+        # Increament the spinner
+        if self.spinner:
+            self.spinner_index = (self.spinner_index + 1) % self.n_spinner
+
+        # Force a flush because sometimes when using bash scripts and pipes,
+        # the output is not printed until after the program exits.
+        sys.stdout.flush()
+
+
 def _download_status(url, file_name, print_destination=True):
     """Download a URL to a file destination, with status updates"""
-
-    # Old, simpler code:
-    #opener = urllib.urlopen(url)
-    #open(archive_name, 'wb').write(opener.read())
-
     try:
         u = urllib2.urlopen(url)
     except Exception as exc:
@@ -642,26 +727,18 @@ def _download_status(url, file_name, print_destination=True):
         meta = u.info()
         file_size = int(meta.getheaders("Content-Length")[0])
         stdout.write('Downloading: %s (%s)\n' % (url, sizeof_fmt(file_size)))
-        stdout.write('0%' + 64 * '.' + '100%\n' + ' |')
-        char_span = 64.0
 
+        progress = ProgressBar(file_size, max_chars=40, spinner=True,
+                               mesg='downloading')
         file_size_dl = 0
         block_sz = 65536
-        n_written = 0
         while True:
             buf = u.read(block_sz)
             if not buf:
                 break
-
             file_size_dl += len(buf)
             f.write(buf)
-            n_char = (int(float(file_size_dl) / file_size * char_span)
-                      - n_written)
-            if n_char > 0:
-                stdout.write('>' * n_char)
-                stdout.flush()
-                n_written += n_char
-        stdout.write('|\n')
+            progress.update(file_size_dl)
         if print_destination is True:
             stdout.write('File saved as %s.\n' % file_name)
 
