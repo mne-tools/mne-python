@@ -205,7 +205,7 @@ class RawKIT(Raw):
         # Acquire stim channels
         if isinstance(stim, str):
             picks = pick_types(self.info, meg=False, misc=True,
-                              exclude=[])[:8]
+                               exclude=[])[:8]
             if stim == '<':
                 stim = picks[::-1]
             elif stim == '>':

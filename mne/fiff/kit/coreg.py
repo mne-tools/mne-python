@@ -88,7 +88,7 @@ def read_mrk(fname):
     ----------
     fname : str
         Absolute path to Marker file.
-        File formats allowed: *.sqd, *.txt, *.pickled
+        File formats allowed: *.sqd, *.mrk, *.txt, *.pickled
 
     Returns
     -------
@@ -96,7 +96,7 @@ def read_mrk(fname):
         Marker points in MEG space [m].
     """
     ext = path.splitext(fname)[-1]
-    if ext == '.sqd':
+    if ext in ('.sqd', '.mrk'):
         with open(fname, 'r') as fid:
             fid.seek(KIT.MRK_INFO)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
