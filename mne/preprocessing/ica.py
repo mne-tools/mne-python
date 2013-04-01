@@ -532,7 +532,7 @@ class ICA(object):
         sources = self.get_sources_epochs(epochs)
         if picks is None:
             picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True)
+                               ecg=True, eog=True, stim=True, exclude=[])
 
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
                                     axis=1) if len(picks) > 0 else sources
