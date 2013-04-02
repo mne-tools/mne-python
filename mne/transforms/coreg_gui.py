@@ -108,6 +108,8 @@ class CoregControl(HasPrivateTraits):
     queue = Instance(Queue, ())
     has_worker = Bool(False)
 
+    background_processing = Bool(False)
+
     # View Element
     axis_labels = Str("Right   \t\tAnterior\t\tSuperior")
 
@@ -332,7 +334,7 @@ class CoregControl(HasPrivateTraits):
             bemdir = os.path.join(self.subjects_dir, subject, 'bem')
             bem = os.path.join(bemdir, '%s-inner_skull-bem.fif' % subject)
 
-            if mridlg.background:
+            if mridlg.background or self.background_processing:
                 if not self.has_worker:
                     def worker():
                         while True:
@@ -376,7 +378,8 @@ class CoregControl(HasPrivateTraits):
             prog.update(0)
 
             try:
-                scale_mri(self.subject, subject, scale=self.scale, overwrite=True)
+                scale_mri(self.subject, subject, scale=self.scale,
+                          overwrite=True, subjects_dir=self.subjects_dir)
             except Exception as e:
                 error(None, str(e), "Error while Saving Scaled MRI")
 
@@ -558,6 +561,8 @@ class CoregFrame(HasTraits):
     s_sel = Instance(SubjectSelector, ())
     coreg = Instance(CoregControl, ())
 
+    pick_tolerance = Float(.0025)
+
     # fiducials
     lock_fiducials = Bool(True)
     fid_panel = Instance(FiducialsPanel)
@@ -644,8 +649,8 @@ class CoregFrame(HasTraits):
                 self.s_sel.subject = subject
 
         # sync path components to fiducials panel
-#         self.s_sel.sync_trait('subject', self.fid_panel, mutual=False)
         self.s_sel.sync_trait('subjects_dir', self.fid_panel, mutual=False)
+        self.s_sel.sync_trait('subject', self.fid_panel, mutual=False)
 
         # lock fiducials if file is found
         if self.fid_panel.fid_file:
@@ -724,7 +729,7 @@ class CoregFrame(HasTraits):
 
 #     @on_trait_change('scene.camera.parallel_scale', post_init=True)
     def _on_view_scale_change(self, scale):
-        self.picker.tolerance = .0025 / scale
+        self.picker.tolerance = self.pick_tolerance / scale
 
     def _on_bem_file_change(self):
         bem_file = self.s_sel.bem_file
