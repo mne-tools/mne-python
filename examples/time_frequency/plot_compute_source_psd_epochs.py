@@ -65,7 +65,8 @@ bandwidth = 4.  # bandwidth of the windows in Hz
 
 stcs = compute_source_psd_epochs(epochs, inverse_operator, lambda2=lambda2,
                                  method=method, fmin=fmin, fmax=fmax,
-                                 bandwidth=bandwidth, return_generator=True)
+                                 bandwidth=bandwidth, label=label,
+                                 return_generator=True)
 
 # compute average PSD over the first 10 epochs
 n_epochs = 10
