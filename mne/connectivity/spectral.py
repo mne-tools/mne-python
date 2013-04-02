@@ -682,14 +682,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             if isinstance(first_epoch, SourceEstimate):
                 # input is a list of SourceEstimate
                 times_in = first_epoch.times
-                n_times_in = len(times_in)
 
             if times_in is None:
                 # we are not using Epochs or SourceEstimate(s) as input
-                n_times_in = first_epoch.shape[1]
-                times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
+                n_times = first_epoch.shape[1]
+                times_in = np.linspace(0.0, n_times / sfreq, n_times,
                                        endpoint=False)
 
+            n_times_in = len(times_in)
             tmin_idx = 0
             tmax_idx = n_times_in
             tmin_true = times_in[0]
