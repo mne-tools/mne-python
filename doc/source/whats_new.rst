@@ -73,7 +73,6 @@ Changelog
 
    - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
 
-
    - New ICA method `sources_as_epochs` to create Epochs in ICA space by `Denis Engemann`_
 
    - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
