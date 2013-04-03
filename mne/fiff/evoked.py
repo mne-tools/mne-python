@@ -321,7 +321,7 @@ class Evoked(ProjMixin):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def time_shift(self, tshift, relative=True):
+    def shift_time_scale(self, tshift, relative=True):
         """Shift time scale in evoked data
 
         Parameters
@@ -335,8 +335,8 @@ class Evoked(ProjMixin):
             If true, move the time backwards or forwards by specified amount.
             Else, set the starting time point to the value of tshift.
 
-        Note
-        ----
+        Notes
+        -----
         Maximum accuracy of time shift is 1 / evoked.info['sfreq']
         """
         times = self.times
