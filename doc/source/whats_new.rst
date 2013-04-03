@@ -9,10 +9,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
-
-   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_
-
    - Linear (and zeroth-order) detrending for Epochs and Evoked by `Eric Larson`_
 
    - Label morphing between subjects by `Eric Larson`_
@@ -77,7 +73,13 @@ Changelog
 
    - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
 
+
    - New ICA method `sources_as_epochs` to create Epochs in ICA space by `Denis Engemann`_
+
+   - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
+
+   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_
+
 
 API
 ~~~
