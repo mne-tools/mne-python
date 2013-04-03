@@ -321,7 +321,7 @@ class Evoked(ProjMixin):
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
 
-    def shift_time_scale(self, tshift, relative=True):
+    def shift_time(self, tshift, relative=True):
         """Shift time scale in evoked data
 
         Parameters
