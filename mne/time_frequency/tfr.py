@@ -201,7 +201,7 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     return tfrs
 
 
-def cwt(X, Ws, use_fft=True, mode='same'):
+def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     """Compute time freq decomposition with continuous wavelet transform
 
     Parameters
@@ -214,13 +214,15 @@ def cwt(X, Ws, use_fft=True, mode='same'):
         Use FFT for convolutions
     mode : 'same' | 'valid' | 'full'
         Convention for convolution
+    decim : int
+        Temporal decimation factor
 
     Returns
     -------
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
-    n_signals, n_times = X.shape
+    n_signals, n_times = X[:, ::decim].shape
     n_frequencies = len(Ws)
 
     if use_fft:
@@ -230,7 +232,7 @@ def cwt(X, Ws, use_fft=True, mode='same'):
 
     tfrs = np.empty((n_signals, n_frequencies, n_times), dtype=np.complex)
     for k, tfr in enumerate(coefs):
-        tfrs[k] = tfr
+        tfrs[k] = tfr[..., ::decim]
 
     return tfrs
 
@@ -260,7 +262,7 @@ def _time_frequency(X, Ws, use_fft):
 @verbose
 def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       n_jobs=1, zero_mean=False, verbose=None):
+                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -291,6 +293,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         power = [power - mean(power_baseline)] / std(power_baseline))
     times : array
         Required to define baseline
+    decim : int
+        Temporal decimation factor
     n_jobs : int
         The number of epochs to process at the same time
     zero_mean : bool
@@ -300,12 +304,12 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
     Returns
     -------
-    power : list of 2D array
-        Each element of the list the the power estimate for an epoch.
+    power : 4D array
+        Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
     mode = 'same'
     n_frequencies = len(frequencies)
-    n_epochs, n_channels, n_times = data.shape
+    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
@@ -316,16 +320,23 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
     power = np.empty((n_epochs, n_channels, n_frequencies, n_times),
                      dtype=np.float)
+
+    # Package arguments for `cwt` here to minimize omissions where only one of
+    # the two calls below is updated with new function arguments.
+    cwt_kw = dict(Ws=Ws, use_fft=use_fft, mode=mode, decim=decim)
     if n_jobs == 1:
         for k, e in enumerate(data):
-            power[k] = np.abs(cwt(e, Ws, mode)) ** 2
+            power[k] = np.abs(cwt(e, **cwt_kw)) ** 2
     else:
         # Precompute tf decompositions in parallel
-        tfrs = parallel(my_cwt(e, Ws, use_fft, mode) for e in data)
+        tfrs = parallel(my_cwt(e, **cwt_kw) for e in data)
         for k, tfr in enumerate(tfrs):
             power[k] = np.abs(tfr) ** 2
 
-    # Run baseline correction
+    # Run baseline correction.  Be sure to decimate the times array as well if
+    # needed.
+    if times is not None:
+        times = times[::decim]
     power = rescale(power, times, baseline, baseline_mode, copy=False)
     return power
 

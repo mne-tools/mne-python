@@ -143,7 +143,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
             e = np.dot(Vh, e)  # reducing data rank
 
         for f, w in enumerate(Ws):
-            tfr = cwt(e, [w], use_fft=use_fft)[:, :, ::decim]
+            tfr = cwt(e, [w], use_fft=use_fft, decim=decim)
             tfr = np.asfortranarray(tfr.reshape(len(e), -1))
 
             # phase lock and power at freq f
