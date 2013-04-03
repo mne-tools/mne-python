@@ -73,9 +73,9 @@ Changelog
 
    - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
 
-   - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
-
-   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_
+   - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_   
+   
+   - New method in Evoked class and at the Event level to shift time scale by `Mainak Jas`_
 
 API
 ~~~
