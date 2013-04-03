@@ -13,8 +13,8 @@ from scipy import optimize, linalg
 import logging
 logger = logging.getLogger('mne')
 
-from ..fiff import Raw
-from ..fiff.constants import FIFF
+from ..io.fiff import Raw
+from ..io.fiff.constants import FIFF
 from .. import verbose
 
 

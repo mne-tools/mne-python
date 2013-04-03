@@ -15,12 +15,12 @@ import logging
 logger = logging.getLogger('mne')
 
 from . import fiff, verbose
-from .fiff.write import start_file, end_file
-from .fiff.proj import make_projector, proj_equal, activate_proj
-from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
+from .io.fiff.write import start_file, end_file
+from .io.fiff.proj import make_projector, proj_equal, activate_proj
+from .io.fiff import fiff_open
+from .io.fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
                        pick_channels
-from .fiff.constants import FIFF
+from .io.fiff.constants import FIFF
 from .epochs import _is_good
 
 

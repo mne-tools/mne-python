@@ -33,9 +33,9 @@ from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
-from .fiff import show_fiff
-from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, activate_proj, setup_proj
+from .io.fiff import show_fiff
+from .io.fiff.pick import channel_type, pick_types
+from .io.fiff.proj import make_projector, activate_proj, setup_proj
 from . import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',

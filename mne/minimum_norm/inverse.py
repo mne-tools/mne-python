@@ -12,19 +12,19 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import find_tag
-from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
+from ..io.fiff.constants import FIFF
+from ..io.fiff.open import fiff_open
+from ..io.fiff.tag import find_tag
+from ..io.fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
                           write_named_matrix
-from ..fiff.proj import read_proj, make_projector, write_proj
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import write_int, write_float_matrix, start_file, \
+from ..io.fiff.proj import read_proj, make_projector, write_proj
+from ..io.fiff.tree import dir_tree_find
+from ..io.fiff.write import write_int, write_float_matrix, start_file, \
                          start_block, end_block, end_file, write_float, \
                          write_coord_trans
 
-from ..fiff.cov import read_cov, write_cov
-from ..fiff.pick import channel_type, pick_info
+from ..io.fiff.cov import read_cov, write_cov
+from ..io.fiff.pick import channel_type, pick_info
 from ..cov import prepare_noise_cov
 from ..forward import compute_depth_prior, read_forward_meas_info, \
                       write_forward_meas_info, is_fixed_orient, \

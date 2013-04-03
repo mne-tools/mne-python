@@ -19,20 +19,20 @@ import tempfile
 import logging
 logger = logging.getLogger('mne')
 
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.channels import read_bad_channels
-from .fiff.tag import find_tag, read_tag
-from .fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
+from .io.fiff.constants import FIFF
+from .io.fiff.open import fiff_open
+from .io.fiff.tree import dir_tree_find
+from .io.fiff.channels import read_bad_channels
+from .io.fiff.tag import find_tag, read_tag
+from .io.fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
                          write_named_matrix
-from .fiff.pick import pick_channels_forward, pick_info, pick_channels, \
+from .io.fiff.pick import pick_channels_forward, pick_info, pick_channels, \
                        pick_types
-from .fiff.write import write_int, start_block, end_block, \
+from .io.fiff.write import write_int, start_block, end_block, \
                         write_coord_trans, write_ch_info, write_name_list, \
                         write_string, start_file, end_file, write_id
-from .fiff.raw import Raw
-from .fiff.evoked import Evoked, write_evoked
+from .io.fiff.raw import Raw
+from .io.fiff.evoked import Evoked, write_evoked
 from .event import make_fixed_length_events
 from .epochs import Epochs
 from .source_space import read_source_spaces_from_tree, \

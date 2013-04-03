@@ -25,17 +25,18 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels
-from ..fiff.write import write_double_matrix, write_string, \
+
+from ..io.fiff import pick_types, pick_channels
+from ..io.fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
-from ..fiff.tree import dir_tree_find
-from ..fiff.open import fiff_open
-from ..fiff.tag import read_tag
-from ..fiff.constants import Bunch, FIFF
+from ..io.fiff.tree import dir_tree_find
+from ..io.fiff.open import fiff_open
+from ..io.fiff.tag import read_tag
+from ..io.fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
-from ..fiff.write import start_file, end_file
+from ..io.fiff.write import start_file, end_file
 
 
 def _make_xy_sfunc(func, ndim_output=False):

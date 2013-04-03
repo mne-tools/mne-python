@@ -11,7 +11,7 @@ from scipy import linalg, signal, fftpack
 import logging
 logger = logging.getLogger('mne')
 
-from ..fiff.constants import FIFF
+from ..io.fiff.constants import FIFF
 from ..source_estimate import SourceEstimate
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
