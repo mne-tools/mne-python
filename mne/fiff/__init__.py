@@ -24,3 +24,4 @@ for k, v  in globals().items():
         continue
     if 'fiff' in getattr(v,  '__module__', '') and hasattr(v, '__name__'):
         globals()[k] = deprecated(_io)(v)
+del k, v  # remove iterator names from module name space
