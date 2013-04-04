@@ -293,13 +293,13 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                                  mode, window_fun, eigvals, wavelets, freq_mask,
                                  mt_adaptive, idx_map, block_size, psd,
                                  accumulate_psd, con_method_types, con_methods,
-                                 accumulate_inplace=True):
+                                 n_signals, n_times, accumulate_inplace=True):
     """Connectivity estimation for one epoch see spectral_connectivity"""
 
     n_cons = len(idx_map[0])
 
     if wavelets is not None:
-        n_times_spectrum = data.shape[1]
+        n_times_spectrum = n_times
         n_freqs = len(wavelets)
     else:
         n_times_spectrum = 0
@@ -310,51 +310,95 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
         con_methods = [mtype(n_cons, n_freqs, n_times_spectrum)
                        for mtype in con_method_types]
 
-    if len(sig_idx) == data.shape[0]:
+    if len(sig_idx) == n_signals:
         # we use all signals: use a slice for faster indexing
         sig_idx = slice(None, None)
 
     # compute tapered spectra
     if mode in ['multitaper', 'fourier']:
-        if isinstance(data, SourceEstimate):
-            x_mt = data.transform_data(_mt_spectra,
-                                       fun_args=(window_fun, sfreq),
-                                       idx=sig_idx, tmin_idx=tmin_idx,
-                                       tmax_idx=tmax_idx)
-        else:
-            x_mt, _ = _mt_spectra(data[sig_idx, tmin_idx:tmax_idx],
-                                  window_fun, sfreq)
-
-        if mt_adaptive:
-            # compute PSD and adaptive weights
-            this_psd, weights = _psd_from_mt_adaptive(x_mt, eigvals,
-                                    freq_mask, return_weights=True)
-
-            # only keep freqs of interest
-            x_mt = x_mt[:, :, freq_mask]
-        else:
-            # do not use adaptive weights
-            x_mt = x_mt[:, :, freq_mask]
-            if mode == 'multitaper':
-                weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+        x_mt = list()
+        this_psd = list()
+        sig_pos_start = 0
+        for this_data in data:
+            this_n_sig = this_data.shape[0]
+            sig_pos_end = sig_pos_start + this_n_sig
+            if not isinstance(sig_idx, slice):
+                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start)
+                                & (sig_idx < sig_pos_end)] - sig_pos_start
             else:
-                # hack to so we can sum over axis=-2
-                weights = np.array([1.])[:, None, None]
+                this_sig_idx = sig_idx
+            if isinstance(this_data, SourceEstimate):
+                this_x_mt = this_data.transform_data(_mt_spectra,
+                                        fun_args=(window_fun, sfreq),
+                                        idx=this_sig_idx, tmin_idx=tmin_idx,
+                                        tmax_idx=tmax_idx)
+            else:
+                this_x_mt, _ = _mt_spectra(this_data[this_sig_idx,
+                                                     tmin_idx:tmax_idx],
+                                           window_fun, sfreq)
 
+            if mt_adaptive:
+                # compute PSD and adaptive weights
+                _this_psd, weights = _psd_from_mt_adaptive(this_x_mt, eigvals,
+                                        freq_mask, return_weights=True)
+
+                # only keep freqs of interest
+                this_x_mt = this_x_mt[:, :, freq_mask]
+            else:
+                # do not use adaptive weights
+                this_x_mt = this_x_mt[:, :, freq_mask]
+                if mode == 'multitaper':
+                    weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
+                else:
+                    # hack to so we can sum over axis=-2
+                    weights = np.array([1.])[:, None, None]
+
+                if accumulate_psd:
+                    _this_psd = _psd_from_mt(this_x_mt, weights)
+
+            x_mt.append(this_x_mt)
             if accumulate_psd:
-                this_psd = _psd_from_mt(x_mt, weights)
+                this_psd.append(_this_psd)
+
+        x_mt = np.concatenate(x_mt, axis=0)
+        if accumulate_psd:
+            this_psd = np.concatenate(this_psd, axis=0)
+
+        # advance position
+        sig_pos_start = sig_pos_end
+
     elif mode == 'cwt_morlet':
         # estimate spectra using CWT
-        if isinstance(data, SourceEstimate):
-            x_cwt = data.transform_data(cwt, fun_args=(wavelets,),
-                                        idx=sig_idx, tmin_idx=tmin_idx,
-                                        tmax_idx=tmax_idx, use_fft=True,
-                                        mode='same')
-        else:
-            x_cwt = cwt(data, wavelets, use_fft=True, mode='same')
+        x_cwt = list()
+        this_psd = list()
+        sig_pos_start = 0
+        for this_data in data:
+            this_n_sig = this_data.shape[0]
+            sig_pos_end = sig_pos_start + this_n_sig
+            if not isinstance(sig_idx, slice):
+                this_sig_idx = sig_idx[(sig_idx >= sig_pos_start)
+                    & (sig_idx < sig_pos_end)] - sig_pos_start
+            else:
+                this_sig_idx = sig_idx
+            if isinstance(this_data, SourceEstimate):
+                this_x_cwt = this_data.transform_data(cwt,
+                    fun_args=(wavelets,), idx=this_sig_idx, tmin_idx=tmin_idx,
+                    tmax_idx=tmax_idx, use_fft=True, mode='same')
+            else:
+                this_x_cwt = cwt(this_data[this_sig_idx, tmin_idx:tmax_idx],
+                                 wavelets, use_fft=True, mode='same')
 
+            if accumulate_psd:
+                this_psd.append(np.abs(this_x_cwt) ** 2)
+
+            x_cwt.append(this_x_cwt)
+
+            # advance position
+            sig_pos_start = sig_pos_end
+
+        x_cwt = np.concatenate(x_cwt, axis=0)
         if accumulate_psd:
-            this_psd = np.abs(x_cwt) ** 2
+            this_psd = np.concatenate(this_psd, axis=0)
     else:
         raise RuntimeError('invalid mode')
 
@@ -404,6 +448,8 @@ def _get_n_epochs(epochs, n):
     """Generator that returns lists with at most n epochs"""
     epochs_out = []
     for e in epochs:
+        if not isinstance(e, (list, tuple)):
+            e = (e,)
         epochs_out.append(e)
         if len(epochs_out) >= n:
             yield epochs_out
@@ -422,6 +468,38 @@ def _check_method(method):
         if member not in method_members:
             return False, member
     return True, None
+
+
+def _get_and_verify_data_sizes(data, n_signals=None, n_times=None, times=None):
+    """Helper function to get and/or verify the data sizes and time scales"""
+    if not isinstance(data, (list, tuple)):
+        raise ValueError('data has to be a list or tuple')
+    n_signals_tot = 0
+    for this_data in data:
+        this_n_signals, this_n_times = this_data.shape
+        if n_times is not None:
+            if this_n_times != n_times:
+                raise ValueError('all input time series must have the same '
+                                 'number of time points')
+        else:
+            n_times = this_n_times
+        n_signals_tot += this_n_signals
+
+        if hasattr(this_data, 'times'):
+            this_times = this_data.times
+            if times is not None:
+                if np.any(times != this_times):
+                    warn('time scales of input time series do not match')
+            else:
+                times = this_times
+
+    if n_signals is not None:
+        if n_signals != n_signals_tot:
+            raise ValueError('the number of time series has to be the same in '
+                             'each epoch')
+    n_signals = n_signals_tot
+
+    return n_signals, n_times, times
 
 
 # map names to estimator types
@@ -539,9 +617,14 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     Parameters
     ----------
     data : array, shape=(n_epochs, n_signals, n_times)
+           or list/generator of array, shape =(n_signals, n_times)
            or list/generator of SourceEstimate
            or Epochs
-        The data from which to compute connectivity.
+        The data from which to compute connectivity. Note that it is also
+        possible to combine multiple signals by providing a list of tuples,
+        e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],
+        corresponds to 3 epochs, and arr_* could be an array with the same
+        number of time points as stc_*.
     method : string | list of string
         Connectivity measure(s) to compute.
     indices : tuple of arrays | None
@@ -604,26 +687,23 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         (n_con, n_frequencies, n_times) mode: 'cwt_morlet'
         when "indices" is specified and "n_con = len(indices[0])".
     freqs : array
-        Frequency points at which the coherency was computed.
+        Frequency points at which the connectivity was computed.
     times : array
         Time points for which the connectivity was computed.
     n_epochs : int
         Number of epochs used for computation.
     n_tapers : int
         The number of DPSS tapers used. Only defined in 'multitaper' mode.
-        Otherwise is returned None.
+        Otherwise None is returned.
     """
     if n_jobs > 1:
         parallel, my_epoch_spectral_connectivity, _ = \
                 parallel_func(_epoch_spectral_connectivity, n_jobs,
                               verbose=verbose)
 
-    # time points of input data
-    times_in = None
-
     # format fmin and fmax and check inputs
     if fmin is None:
-        fmin = -np.inf # set it to -inf, so we can adjust it later
+        fmin = -np.inf  # set it to -inf, so we can adjust it later
 
     fmin = np.asarray((fmin,)).ravel()
     fmax = np.asarray((fmax,)).ravel()
@@ -679,14 +759,13 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             # initialize everything
             first_epoch = epoch_block[0]
 
-            if isinstance(first_epoch, SourceEstimate):
-                # input is a list of SourceEstimate
-                times_in = first_epoch.times
+            # get the data size and time scale
+            n_signals, n_times_in, times_in =\
+                    _get_and_verify_data_sizes(first_epoch)
 
             if times_in is None:
                 # we are not using Epochs or SourceEstimate(s) as input
-                n_times = first_epoch.shape[1]
-                times_in = np.linspace(0.0, n_times / sfreq, n_times,
+                times_in = np.linspace(0.0, n_times_in / sfreq, n_times_in,
                                        endpoint=False)
 
             n_times_in = len(times_in)
@@ -703,8 +782,6 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
             times = times_in[tmin_idx:tmax_idx]
             n_times = len(times)
-
-            n_signals = first_epoch.shape[0]
 
             if indices is None:
                 # only compute r for lower-triangular region
@@ -857,9 +934,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             # allocate space to accumulate PSD
             if accumulate_psd:
                 if n_times_spectrum == 0:
-                    psd_shape = (n_signals, n_freqs)
+                    psd_shape = (len(sig_idx), n_freqs)
                 else:
-                    psd_shape = (n_signals, n_freqs, n_times_spectrum)
+                    psd_shape = (len(sig_idx), n_freqs, n_times_spectrum)
                 psd = np.zeros(psd_shape)
             else:
                 psd = None
@@ -873,10 +950,10 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             logger.info('    the following metrics will be computed: %s'
                         % metrics_str)
 
-        # check dimensions
+        # check dimensions and time scale
         for this_epoch in epoch_block:
-            if this_epoch.shape != (n_signals, n_times_in):
-                raise ValueError('all epochs must have the same shape')
+            _get_and_verify_data_sizes(this_epoch, n_signals, n_times_in,
+                                       times_in)
 
         if n_jobs == 1:
             # no parallel processing
@@ -889,7 +966,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                     tmax_idx, sfreq, mode, window_fun, eigvals, wavelets,
                     freq_mask, mt_adaptive, idx_map, block_size, psd,
                     accumulate_psd, con_method_types, con_methods,
-                    accumulate_inplace=True)
+                    n_signals, n_times, accumulate_inplace=True)
                 epoch_idx += 1
         else:
             # process epochs in parallel
@@ -899,7 +976,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             out = parallel(my_epoch_spectral_connectivity(this_epoch, sig_idx,
                     tmin_idx, tmax_idx, sfreq, mode, window_fun, eigvals,
                     wavelets, freq_mask, mt_adaptive, idx_map, block_size, psd,
-                    accumulate_psd, con_method_types, None,
+                    accumulate_psd, con_method_types, None, n_signals, n_times,
                     accumulate_inplace=False) for this_epoch in epoch_block)
 
             # do the accumulation

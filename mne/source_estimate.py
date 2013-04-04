@@ -370,7 +370,8 @@ class _NotifyArray(np.ndarray):
     def __array_wrap__(self, out_arr, context=None):
         # this method is called whenever a numpy ufunc (+, +=..) is called
         # the last entry in context is the array that receives the result
-        if context[1][-1] is self:
+        if (context is not None and len(context[1]) == 3
+                and context[1][2] is self):
             self._modified_()
 
         return np.ndarray.__array_wrap__(self, out_arr, context)
@@ -536,6 +537,7 @@ class SourceEstimate(object):
         if self._kernel is not None or self._sens_data is not None:
             # we can no longer use the kernel and sens_data
             logger.info('STC data modified: removing kernel and sensor data')
+            1 / 0
             if self._data is None:
                 self._data = np.dot(self._kernel, self._sens_data)
             self._kernel = None
