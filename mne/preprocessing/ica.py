@@ -480,12 +480,12 @@ class ICA(object):
         out.first_samp = raw.first_samp + (start if start else 0)
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
-        self._ica_export_info(out.info, raw, picks)
+        self._export_info(out.info, raw, picks)
         out._projector = None
 
         return out
 
-    def _ica_export_info(self, info, container, picks):
+    def _export_info(self, info, container, picks):
         """ Aux function
         """
         # set channel names and info
@@ -508,7 +508,7 @@ class ICA(object):
 
         # update number of channels
         info['nchan'] = len(picks) + self.n_components_
-        info['bads'] = [self.ch_names[k] for k in self.exclude]
+        info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
         info['filenames'] = []
 
@@ -538,7 +538,7 @@ class ICA(object):
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
                                     axis=1) if len(picks) > 0 else sources
 
-        self._ica_export_info(out.info, epochs, picks)
+        self._export_info(out.info, epochs, picks)
         out.preload = True
         out.raw = None
         out._projector = None
