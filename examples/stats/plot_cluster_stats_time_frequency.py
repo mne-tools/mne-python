@@ -77,23 +77,35 @@ data_condition_2 = data_condition_2[:, 97:98, :]
 # Time vector
 times = 1e3 * epochs_condition_1.times  # change unit to ms
 
+# Factor to downsample the temporal dimension of the PSD computed by
+# single_trial_power.  Decimation occurs after frequency decomposition and can
+# be used to reduce memory usage (and possibly comptuational time of downstream
+# operations such as nonparametric statistics) if you don't need high
+# spectrotemporal resolution.
+decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
 epochs_power_1 = single_trial_power(data_condition_1, Fs=Fs,
                                     frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False)
+                                    n_cycles=n_cycles, use_fft=False,
+                                    decim=decim)
 
 epochs_power_2 = single_trial_power(data_condition_2, Fs=Fs,
                                     frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False)
+                                    n_cycles=n_cycles, use_fft=False,
+                                    decim=decim)
 
 epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
 epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix
 
-# do ratio with baseline power:
-epochs_power_1 /= np.mean(epochs_power_1[:, :, times < 0], axis=2)[:, :, None]
-epochs_power_2 /= np.mean(epochs_power_2[:, :, times < 0], axis=2)[:, :, None]
+# Compute ratio with baseline power (be sure to correct time vector with
+# decimation factor)
+baseline_mask = times[::decim] < 0
+epochs_baseline_1 = np.mean(epochs_power_1[:, :, baseline_mask], axis=2)
+epochs_power_1 /= epochs_baseline_1[..., np.newaxis]
+epochs_baseline_2 = np.mean(epochs_power_2[:, :, baseline_mask], axis=2)
+epochs_power_2 /= epochs_baseline_2[..., np.newaxis]
 
 ###############################################################################
 # Compute statistic
