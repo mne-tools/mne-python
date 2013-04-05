@@ -67,18 +67,28 @@ evoked_data = np.mean(data, 0)
 # data -= evoked_data[None,:,:] # remove evoked component
 # evoked_data = np.mean(data, 0)
 
+# Factor to downsample the temporal dimension of the PSD computed by
+# single_trial_power.  Decimation occurs after frequency decomposition and can
+# be used to reduce memory usage (and possibly comptuational time of downstream
+# operations such as nonparametric statistics) if you don't need high
+# spectrotemporal resolution.
+decim = 5
 frequencies = np.arange(8, 40, 2)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
 epochs_power = single_trial_power(data, Fs=Fs, frequencies=frequencies,
                                   n_cycles=4, use_fft=False, n_jobs=1,
                                   baseline=(-100, 0), times=times,
-                                  baseline_mode='ratio')
+                                  baseline_mode='ratio', decim=decim)
 
 # Crop in time to keep only what is between 0 and 400 ms
 time_mask = (times > 0) & (times < 400)
-epochs_power = epochs_power[:, :, :, time_mask]
 evoked_data = evoked_data[:, time_mask]
 times = times[time_mask]
+
+# The time vector reflects the origininal time points, not the decimated time
+# points returned by single trial powr.  Be sure to decimate the time mask
+# appropriately.
+epochs_power = epochs_power[..., time_mask[::decim]]
 
 epochs_power = epochs_power[:, 0, :, :]
 epochs_power = np.log10(epochs_power)  # take log of ratio
