@@ -515,7 +515,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     return events
 
 
-def merge_events(events, ids, new_id):
+def merge_events(events, ids, new_id, replace_events=True):
     """Merge a set of events
 
     Parameters
@@ -526,19 +526,26 @@ def merge_events(events, ids, new_id):
         The ids of events to merge.
     new_id : int
         The new id.
+    replace_events : bool
+        If True (default), old event ids are replaced. Otherwise,
+        new events will be added to the old event list.
 
     Returns
     -------
     new_events: array
         The new events
     """
-    events = events.copy()
-    for i in ids:
-        where = (events[:, 2] == i)
-        events[where, 2] = new_id
-        where = (events[:, 1] == i)
-        events[where, 1] = new_id
-    return events
+    events_out = events.copy()
+    where = np.empty(events.shape[0], dtype=bool)
+    for col in [1, 2]:
+        where.fill(False)
+        for i in ids:
+            where = (events[:, col] == i)
+            events_out[where, col] = new_id
+    if not replace_events:
+        events_out = np.concatenate((events_out, events), axis=0)
+        events_out = events_out[np.argsort(events_out[:, 0])]
+    return events_out
 
 
 def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):

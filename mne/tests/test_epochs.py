@@ -18,6 +18,7 @@ from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
 from mne.fiff.proj import _has_eeg_average_ref_proj
+from mne.event import merge_events
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -36,6 +37,19 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 tempdir = _TempDir()
+
+
+def test_epoch_combine_ids():
+    """Test combining event ids in epochs compared to events
+    """
+    for preload in [False]:
+        epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3,
+                                      'd': 4, 'e': 5, 'f': 32},
+                        tmin, tmax, picks=picks, preload=preload)
+        events_new = merge_events(events, [1, 2], 12)
+        epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
+        assert_array_equal(events_new, epochs_new.events)
+        # should probably add test + functionality for non-replacement XXX
 
 
 def test_read_write_epochs():
