@@ -188,7 +188,7 @@ def test_ica_additional():
             assert_true(ica.exclude == [0, 1])
 
             ica_raw = ica.sources_as_raw(raw)
-            assert_true(ica.exclude == [ica.ch_names.index(e) for e in
+            assert_true(ica.exclude == [ica_raw.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
         ica.n_pca_components = 2
