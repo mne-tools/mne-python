@@ -10,10 +10,9 @@ Shifting time-scale in evoked data
 
 print __doc__
 
+import pylab as pl
 from mne import fiff
 from mne.datasets import sample
-from mne.viz import plot_evoked
-import pylab as pl
 
 data_path = sample.data_path()
 
@@ -28,17 +27,17 @@ picks = fiff.pick_channels(ch_names=evoked.info['ch_names'],
 
 # Create subplots
 f, axarr = pl.subplots(3)
-plot_evoked(evoked, exclude=[], picks=picks, axes=axarr[0],
+evoked.plot(exclude=[], picks=picks, axes=axarr[0],
             titles=dict(grad='Before time shifting'))
 
 # Apply relative time-shift of 500 ms
-evoked.time_shift(0.5, relative=True)
+evoked.shift_time(0.5, relative=True)
 
-plot_evoked(evoked, exclude=[], picks=picks, axes=axarr[1],
+evoked.plot(exclude=[], picks=picks, axes=axarr[1],
             titles=dict(grad='Relative shift: 500 ms'))
 
 # Apply absolute time-shift of 500 ms
-evoked.time_shift(0.5, relative=False)
+evoked.shift_time(0.5, relative=False)
 
-plot_evoked(evoked, exclude=[], picks=picks, axes=axarr[2],
+evoked.plot(exclude=[], picks=picks, axes=axarr[2],
             titles=dict(grad='Absolute shift: 500 ms'))

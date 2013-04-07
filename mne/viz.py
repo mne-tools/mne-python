@@ -689,7 +689,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 pl.xlim(xlim)
             if ylim is not None and t in ylim:
                 pl.ylim(ylim[t])
-            pl.title(titles[t] + ' (%d channels)' % len(D))
+            pl.title(titles[t] + ' (%d channel%s)'
+                     % (len(D), 's' if len(D) > 1 else ''))
             pl.xlabel('time (ms)')
             pl.ylabel('data (%s)' % ch_unit)
 

@@ -546,25 +546,24 @@ def shift_time_events(events, ids, tshift, sfreq):
 
     Parameters
     ----------
-    events : array
-        Events
+    events : array, shape=(n_events, 3)
+        The events
     ids : array int
-        The ids of events to shift
+        The ids of events to shift.
     tshift : float
         Time-shift event. Use positive value tshift for forward shifting
-        the event and negative value for backward shift
+        the event and negative value for backward shift.
     sfreq : float
         The sampling frequency of the data.
 
     Returns
     -------
     new_events : array
-        The new events
+        The new events.
     """
     events = events.copy()
-    for i in ids:
-        where = (events[:, 2] == i)
-        events[where, 0] += int(tshift * sfreq)
+    for ii in ids:
+        events[events[:, 2] == ii, 0] += int(tshift * sfreq)
     return events
 
 
@@ -588,7 +587,7 @@ def make_fixed_length_events(raw, id, start=0, stop=None, duration=1.):
     Returns
     -------
     new_events : array
-        The new events
+        The new events.
     """
     start = raw.time_as_index(start)
     start = start[0] + raw.first_samp
