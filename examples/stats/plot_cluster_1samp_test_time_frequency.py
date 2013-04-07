@@ -69,7 +69,7 @@ evoked_data = np.mean(data, 0)
 
 # Factor to downsample the temporal dimension of the PSD computed by
 # single_trial_power.  Decimation occurs after frequency decomposition and can
-# be used to reduce memory usage (and possibly comptuational time of downstream
+# be used to reduce memory usage (and possibly computational time of downstream
 # operations such as nonparametric statistics) if you don't need high
 # spectrotemporal resolution.
 decim = 5
