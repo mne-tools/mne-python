@@ -8,7 +8,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, find_stim_steps, fiff)
 from mne.utils import _TempDir
-from mne.event import define_target_events
+from mne.event import define_target_events, merge_events
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
@@ -23,6 +23,24 @@ fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 tempdir = _TempDir()
+
+
+def test_merge_events():
+    """Test event merging
+    """
+    events = read_events(fname)  # Use as the gold standard
+    merges = [1, 2, 3, 4]
+    events_out = merge_events(events, merges, 1234)
+    events_out2 = events.copy()
+    for m in merges:
+        assert_true(not np.any(events_out[:, 2] == m))
+        events_out2[events[:, 2] == m, 2] = 1234
+    assert_array_equal(events_out, events_out2)
+    # test non-replacement functionality, should be sorted union of orig & new
+    events_out2 = merge_events(events, merges, 1234, False)
+    events_out = np.concatenate((events_out, events))
+    events_out = events_out[np.argsort(events_out[:, 0])]
+    assert_array_equal(events_out, events_out2)
 
 
 def test_io_events():
