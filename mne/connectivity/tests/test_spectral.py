@@ -30,13 +30,20 @@ for i in xrange(n_epochs):
     data[i, 1, :] += 1e-2 * np.random.randn(n_times)
 
 
-def _stc_gen(data, sfreq, tmin):
+def _stc_gen(data, sfreq, tmin, combo=False):
     """Simulate a SourceEstimate generator"""
     vertices = [np.arange(data.shape[1]), np.empty(0)]
     for d in data:
-        stc = SourceEstimate(data=d, vertices=vertices,
-                             tmin=tmin, tstep=1 / float(sfreq))
-        yield stc
+        if not combo:
+            stc = SourceEstimate(data=d, vertices=vertices,
+                                 tmin=tmin, tstep=1 / float(sfreq))
+            yield stc
+        else:
+            # simulate a combination of array and source estimate
+            arr = d[0]
+            stc = SourceEstimate(data=d[1:], vertices=vertices,
+                                 tmin=tmin, tstep=1 / float(sfreq))
+            yield (arr, stc)
 
 
 def test_spectral_connectivity():
@@ -141,6 +148,7 @@ def test_spectral_connectivity():
                 indices = tril_indices(n_signals, -1)
 
                 test_methods = (method, _CohEst)
+                combo = True if method == 'coh' else False
                 stc_data = _stc_gen(data, sfreq, tmin)
                 con2, freqs2, times2, n2, _ = spectral_connectivity(stc_data,
                         method=test_methods, mode=mode, indices=indices,
