@@ -26,7 +26,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     For two time series, and one computes the PSI between the first and the
     second time series as follows
 
-    indices = (np.array([0] np.array([1])))
+    indices = (np.array([0]), np.array([1]))
     psi = phase_slope_index(data, indices=indices, ...)
 
     A positive value means that time series 0 is ahead of time series 1 and
@@ -137,7 +137,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     # allocate space for output
     out_shape = list(cohy.shape)
     out_shape[freq_dim] = n_bands
-    psi = np.zeros(out_shape)
+    psi = np.zeros(out_shape, dtype=np.float)
 
     # allocate accumulator
     acc_shape = copy.copy(out_shape)

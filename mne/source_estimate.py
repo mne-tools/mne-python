@@ -537,7 +537,6 @@ class SourceEstimate(object):
         if self._kernel is not None or self._sens_data is not None:
             # we can no longer use the kernel and sens_data
             logger.info('STC data modified: removing kernel and sensor data')
-            1 / 0
             if self._data is None:
                 self._data = np.dot(self._kernel, self._sens_data)
             self._kernel = None

@@ -12,7 +12,7 @@ n_times = 500
 
 data = np.random.randn(n_epochs, n_signals, n_times)
 
-# simlate causal time shifts
+# simulate time shifts
 for i in range(n_epochs):
     data[i, 1, 10:] = data[i, 0, :-10]  # signal 0 is ahead
     data[i, 2, :-10] = data[i, 0, 10:]  # signal 2 is ahead
