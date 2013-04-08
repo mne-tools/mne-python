@@ -239,7 +239,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
         Data
     threshold : float
         Where to threshold the statistic. Should be negative for tail == -1,
-        and positive for tail == 0 or 1.
+        and positive for tail == 0 or 1. Can also be an array for
+        threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
     connectivity : sparse matrix in COO format, None, or list
@@ -282,57 +283,88 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
 
     x = np.asanyarray(x)
 
-    clusters = list()
-    sums = list()
-    if tail == 0:
-        if not by_sign:
-            if include is None:
-                x_in = np.abs(x) > threshold
-            else:
-                x_in = np.logical_and(np.abs(x) > threshold, include)
-
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
-                                            partitions, t_power)
-            clusters += out[0]
-            sums.append(out[1])
-        else:
-            if include is None:
-                x_in = x > threshold
-            else:
-                x_in = np.logical_and(x > threshold, include)
-
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
-                                            partitions, t_power)
-            clusters += out[0]
-            sums.append(out[1])
-
-            if include is None:
-                x_in = x < -threshold
-            else:
-                x_in = np.logical_and(x < -threshold, include)
-
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
-                                            partitions, t_power)
-            clusters += out[0]
-            sums.append(out[1])
+    if not np.isscalar(threshold):
+        if not isinstance(threshold, dict):
+            raise TypeError('threshold must be a number, or a dict for '
+                            'threshold-free cluster enhancement')
+        if not all([key in threshold for key in ['start', 'step']]):
+            raise KeyError('threshold, if dict, must have at least '
+                           '"start" and "step"')
+        tfce = True
+        thresholds = np.arange(threshold['start'], np.max(np.abs(x)),
+                               threshold['step'], float)
+        h_power = threshold.get('h_power', 2)
+        e_power = threshold.get('e_power', 0.5)
+        scores = np.zeros(x.size)
     else:
-        if tail == -1:
-            if include is None:
-                x_in = x < threshold
-            else:
-                x_in = np.logical_and(x < threshold, include)
-        else:  # tail == 1
-            if include is None:
-                x_in = x > threshold
-            else:
-                x_in = np.logical_and(x > threshold, include)
+        thresholds = [threshold]
+        tfce = False
 
-        out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
-                                        partitions, t_power)
-        clusters += out[0]
-        sums.append(out[1])
+    for ti, thresh in enumerate(thresholds):
+        clusters = list()
+        sums = list()
+        if tail == 0:
+            if not by_sign:
+                if include is None:
+                    x_in = np.abs(x) > thresh
+                else:
+                    x_in = np.logical_and(np.abs(x) > thresh, include)
 
-    sums = np.concatenate(sums)
+                out = _find_clusters_1dir_parts(x, x_in, connectivity,
+                                                max_step, partitions, t_power)
+                clusters += out[0]
+                sums.append(out[1])
+            else:
+                if include is None:
+                    x_in = x > thresh
+                else:
+                    x_in = np.logical_and(x > thresh, include)
+
+                out = _find_clusters_1dir_parts(x, x_in, connectivity,
+                                                max_step, partitions, t_power)
+                clusters += out[0]
+                sums.append(out[1])
+
+                if include is None:
+                    x_in = x < -thresh
+                else:
+                    x_in = np.logical_and(x < -thresh, include)
+
+                out = _find_clusters_1dir_parts(x, x_in, connectivity,
+                                                max_step, partitions, t_power)
+                clusters += out[0]
+                sums.append(out[1])
+        else:
+            if tail == -1:
+                if include is None:
+                    x_in = x < thresh
+                else:
+                    x_in = np.logical_and(x < thresh, include)
+            else:  # tail == 1
+                if include is None:
+                    x_in = x > thresh
+                else:
+                    x_in = np.logical_and(x > thresh, include)
+
+            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
+                                            partitions, t_power)
+            clusters += out[0]
+            sums.append(out[1])
+        if tfce is True:
+            # the score of each point is the sum of the h^H * e^E for each
+            # supporting section "rectangle" h x e.
+            if ti == 0:
+                h = abs(thresh)
+            else:
+                h = abs(thresh - thresholds[ti - 1])
+            h = h ** h_power
+            for c in clusters:
+                scores[c] += h * len(c) ** e_power
+        sums = np.concatenate(sums)
+    if tfce is True:
+        # each point gets treated independently
+        clusters = np.arange(x.size)[:, np.newaxis]
+        sums = scores
     return clusters, sums
 
 
@@ -840,10 +872,11 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         Array where the first dimension corresponds to the
         samples (observations). X[k] can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
-    threshold : float
-        The threshold for the statistic. If None, it will choose a T-threshold
-        equivalent to p < 0.05 for the given number of (within-subject)
-        observations.
+    threshold : float, array, or None
+        If threshold is None, it will choose a t-threshold equivalent to
+        p < 0.05 for the given number of (within-subject) observations.
+        If an array is used, then threshold-free cluster enhancement (TFCE)
+        will be used.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -957,9 +990,11 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     ----------
     X : array
         Array of shape observations x time x vertices.
-    threshold : float, or None
+    threshold : float, array, or None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
+        If an array is used, then threshold-free cluster enhancement (TFCE)
+        will be used.
     n_permutations : int
         See permutation_cluster_1samp_test.
     tail : -1 or 0 or 1 (default = 0)
@@ -1006,6 +1041,11 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     "Nonparametric statistical testing of EEG- and MEG-data"
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
+
+    TFCE originally described in Smith/Nichols (2009),
+    "Threshold-free cluster enhancement: Adressing problems of
+    smoothing, threshold dependence, and localisation in cluster
+    inference", NeuroImage 44 (2009) 83-98.
     """
     n_samples, n_times, n_vertices = X.shape
 
