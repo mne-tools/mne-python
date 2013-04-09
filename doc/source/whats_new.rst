@@ -79,6 +79,10 @@ Changelog
 
    - Added option to specify EOG channel(s) when computing PCA/SSP projections for EOG artifacts by `Mainak Jas`_
 
+   - Improved connectivity interface to allow combinations of signals, e.g., seed time series and source estimates, by `Martin Luessi`_
+
+   - Effective connectivity estimation using Phase Slope Index (PSI) by `Martin Luessi`_
+
 
 API
 ~~~
