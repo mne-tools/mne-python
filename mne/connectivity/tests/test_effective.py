@@ -10,7 +10,8 @@ n_signals = 3
 n_epochs = 10
 n_times = 500
 
-data = np.random.randn(n_epochs, n_signals, n_times)
+rng = np.random.RandomState(42)
+data = rng.randn(n_epochs, n_signals, n_times)
 
 # simulate time shifts
 for i in range(n_epochs):
