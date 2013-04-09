@@ -21,15 +21,15 @@ from ..fixes import in1d, unravel_index
 from .. import verbose
 
 
-def _get_clusters_spatial(x_in, neighbors):
+def _get_clusters_spatial(s, neighbors):
     """Helper function to form spatial clusters using neighbor lists
 
     This is equivalent to _get_components with n_times = 1, with a properly
     reconfigured connectivity matrix (formed as "neighbors" list)
     """
-    if not x_in.size == len(neighbors):
-        raise ValueError('x_in.size must be the same as len(neighbors)')
-    s = np.where(x_in)[0]
+    # s in a vector of spatial indicies that are significant, like:
+    #     s = np.where(x_in)[0]
+    # for x_in representing a single time-instant
     r = np.ones(s.shape, dtype=bool)
     clusters = list()
     next_ind = 0 if s.size > 0 else None
@@ -67,7 +67,7 @@ def _reassign(check, clusters, base, num):
     clusters[num - 1] = np.array([], dtype=int)
 
 
-def _get_clusters_st_1step(x_in, neighbors):
+def _get_clusters_st_1step(n_src, n_times, keepers, neighbors):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -77,17 +77,12 @@ def _get_clusters_st_1step(x_in, neighbors):
     This algorithm creates clusters for each time point using a method more
     efficient than the standard graph method (but otherwise equivalent), then
     combines these clusters across time points in a reasonable way."""
-    n_src = len(neighbors)
-    n_times = int(x_in.shape[0] / n_src)
-    orig_shape = x_in.shape
-    x_in.shape = (n_times, n_src)
-
     # start cluster numbering at 1 for diffing convenience
     enum_offset = 1
+    check = np.zeros((n_times, n_src), dtype=int)
     clusters = list()
-    check = np.zeros(x_in.shape, dtype=int)
-    for ii, xa in enumerate(x_in):
-        c = _get_clusters_spatial(xa, neighbors)
+    for ii, k in enumerate(keepers):
+        c = _get_clusters_spatial(k, neighbors)
         for ci, cl in enumerate(c):
             check[ii, cl] = ci + enum_offset
         enum_offset += len(c)
@@ -96,13 +91,14 @@ def _get_clusters_st_1step(x_in, neighbors):
         clusters += c
 
     # now that each cluster has been assigned a unique number, combine them
-    diffs = np.logical_and(np.diff(check, axis=0) > 0, check[:-1] > 0)
-    # go through each time point
-    for check1, check2, d in zip(check[:-1], check[1:], diffs):
+    # by going through each time point
+    for check1, check2, k in zip(check[:-1], check[1:], keepers[:-1]):
         # go through each one that needs reassignment
-        n = check2[d]
+        inds = k[check2[k] - check1[k] > 0]
+        check1_d = check1[inds]
+        n = check2[inds]
         for num in np.unique(n):
-            prevs = check1[d][num == n]
+            prevs = check1_d[num == n]
             base = np.min(prevs)
             for pr in np.unique(prevs[prevs != base]):
                 _reassign(check1, clusters, base, pr)
@@ -110,37 +106,23 @@ def _get_clusters_st_1step(x_in, neighbors):
             _reassign(check2, clusters, base, num)
     # clean up clusters
     clusters = [cl for cl in clusters if len(cl) > 0]
-    x_in.shape = orig_shape
     return clusters
 
 
-def _get_clusters_st_multistep(x_in, neighbors, max_step=1):
+def _get_clusters_st_multistep(n_src, n_times, keepers, neighbors, max_step=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
-    compared to with the square for the standard (graph) algorithm.
-
-    Note that it's possible an even faster algorithm could create clusters for
-    each time point (using the standard graph method), then combine these
-    clusters across time points in some reasonable way. This could then be used
-    to extend to time x space x frequency datasets, for example. This has not
-    been implemented yet."""
-    n_vertices = len(neighbors)
-    n_tot = x_in.size
-    n_times, junk = divmod(n_tot, n_vertices)
-    if not junk == 0:
-        raise ValueError('x_in.size must be multiple of connectivity.shape[0]')
-    v = np.where(x_in)[0]
-    t, s = divmod(v, n_vertices)
-
-    t_border = np.zeros((n_times + 1, 1), dtype=int)
-    for ii in range(n_times):
-        temp = np.where(np.less_equal(t, ii))[0]
-        if temp.size > 0:
-            t_border[ii + 1] = temp[-1] + 1
-        else:
-            t_border[ii + 1] = t_border[ii]
+    compared to with the square for the standard (graph) algorithm."""
+    t_border = [0]
+    for ki, k in enumerate(keepers):
+        keepers[ki] = k + ki * n_src
+        t_border += [t_border[ki] + len(k)]
+    t_border = np.array(t_border)[:, np.newaxis]
+    keepers = np.concatenate(keepers)
+    v = keepers
+    t, s = divmod(v, n_src)
 
     r = np.ones(t.shape, dtype=bool)
     clusters = list()
@@ -181,12 +163,15 @@ def _get_clusters_st_multistep(x_in, neighbors, max_step=1):
     return clusters
 
 
-def _get_clusters_st(x_in, neighbors, max_step=1):
+def _get_clusters_st(keepers, neighbors, max_step=1):
     """Helper function to choose the most efficient version"""
+    n_src = len(neighbors)
+    n_times = len(keepers)
     if max_step == 1:
-        return _get_clusters_st_1step(x_in, neighbors)
+        return _get_clusters_st_1step(n_src, n_times, keepers, neighbors)
     else:
-        return _get_clusters_st_multistep(x_in, neighbors, max_step)
+        return _get_clusters_st_multistep(n_src, n_times, keepers, neighbors,
+                                          max_step)
 
 
 def _get_components(x_in, connectivity, return_list=True):
@@ -228,10 +213,13 @@ def _get_components(x_in, connectivity, return_list=True):
         return components
 
 
-def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
-                   max_step=1, include=None, partitions=None, t_power=1):
+def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
+                   include=None, partitions=None, t_power=1):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
+
+    When doing a two-tailed test (tail == 0), only points with the same
+    sign will be clustered together.
 
     Parameters
     ----------
@@ -249,10 +237,6 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
         If connectivity is a list, it is assumed that each entry stores the
         indices of the spatial neighbors in a spatio-temporal dataset x.
         Defaut is None, i.e, a regular lattice connectivity.
-    by_sign : bool
-        When doing a two-tailed test (tail == 0), if True only points with
-        the same sign will be clustered together. This value is ignored for
-        one-tailed tests.
     max_step : int
         If connectivity is a list, this defines the maximal number of steps
         between vertices along the second dimension (typically time) to be
@@ -300,56 +284,74 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
         thresholds = [threshold]
         tfce = False
 
+    # include all points by default
+    if include is None:
+        include = np.ones(x.shape, dtype=bool)
+
+    if isinstance(connectivity, list):
+        n_src = len(connectivity)
+        n_times = int(x.shape[0] / n_src)
+
+    # previous clusters determine how the next threshold can find clusters;
+    # since thresholds always increase, clusters from a previous step can
+    # only fragment (not combine), thus we can set "partitions" by
+    # properly initializing previous clusters
+    if partitions is None:
+        previous_clusters = [np.arange(x.size)]
+    else:
+        previous_clusters = []
+        for p in range(np.max(partitions) + 1):
+            previous_clusters += [np.where(partitions == p)[0]]
+
+    clust_in = np.zeros(x.size, dtype=bool)
+    empty_inds = np.array([], dtype=np.int64)
+    if not np.all(np.diff(thresholds) > 0):
+        raise RuntimeError('Threshold misconfiguration, must be monotonically'
+                           ' increasing')
+
     for ti, thresh in enumerate(thresholds):
+        # only use partitions on the first threshold
         clusters = list()
         sums = list()
         if tail == 0:
-            if not by_sign:
-                if include is None:
-                    x_in = np.abs(x) > thresh
-                else:
-                    x_in = np.logical_and(np.abs(x) > thresh, include)
-
-                out = _find_clusters_1dir_parts(x, x_in, connectivity,
-                                                max_step, partitions, t_power)
-                clusters += out[0]
-                sums.append(out[1])
-            else:
-                if include is None:
-                    x_in = x > thresh
-                else:
-                    x_in = np.logical_and(x > thresh, include)
-
-                out = _find_clusters_1dir_parts(x, x_in, connectivity,
-                                                max_step, partitions, t_power)
-                clusters += out[0]
-                sums.append(out[1])
-
-                if include is None:
-                    x_in = x < -thresh
-                else:
-                    x_in = np.logical_and(x < -thresh, include)
-
-                out = _find_clusters_1dir_parts(x, x_in, connectivity,
-                                                max_step, partitions, t_power)
-                clusters += out[0]
-                sums.append(out[1])
-        else:
-            if tail == -1:
-                if include is None:
-                    x_in = x < thresh
-                else:
-                    x_in = np.logical_and(x < thresh, include)
-            else:  # tail == 1
-                if include is None:
-                    x_in = x > thresh
-                else:
-                    x_in = np.logical_and(x > thresh, include)
-
-            out = _find_clusters_1dir_parts(x, x_in, connectivity, max_step,
-                                            partitions, t_power)
-            clusters += out[0]
-            sums.append(out[1])
+            x_ins = [np.logical_and(x > thresh, include),
+                     np.logical_and(x < -thresh, include)]
+        elif tail == -1:
+            x_ins = [np.logical_and(x < thresh, include)]
+        else:  # tail == 1
+            x_ins = [np.logical_and(x > thresh, include)]
+        # loop over tails
+        for x_in in x_ins:
+            # loop over previous clusters. Clusters from a previous threshold
+            # must be a subset of former clusters, with each cluster from the
+            # previous threshold potentially splitting into new clusters
+            # (i.e., cluster size cannot increase with increased threshold)
+            for cl in previous_clusters:
+                inds = x_in[cl]
+                if np.any(inds):
+                    # Triage based on connectivity algorithm; MUCH faster
+                    # to avoid conversion to logical representation for ST
+                    if not isinstance(connectivity, list):
+                        clust_in[cl] = inds
+                        out = _find_clusters_1dir(x, clust_in, None,
+                                                  connectivity,
+                                                  max_step, t_power)
+                        clust_in[cl] = False
+                    else:
+                        keepers = [empty_inds] * n_times
+                        row, col = np.unravel_index(cl[inds], (n_times, n_src))
+                        order = np.argsort(row)
+                        row = row[order]
+                        col = col[order]
+                        inds = [0] + (np.where(np.diff(row) > 0)[0]
+                                      + 1).tolist() + [len(row)]
+                        for start, end in zip(inds[:-1], inds[1:]):
+                            keepers[row[start]] = np.sort(col[start:end])
+                        out = _find_clusters_1dir(x, x_in, keepers,
+                                                  connectivity,
+                                                  max_step, t_power)
+                    clusters += out[0]
+                    sums.append(out[1])
         if tfce is True:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
@@ -359,8 +361,13 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
                 h = abs(thresh - thresholds[ti - 1])
             h = h ** h_power
             for c in clusters:
-                scores[c] += h * len(c) ** e_power
-        sums = np.concatenate(sums)
+                scores[c] += h * (len(c) ** e_power)
+            # store previous clusters
+        previous_clusters = clusters
+        if len(sums) > 0:
+            sums = np.concatenate(sums)
+        else:
+            sums = np.array([])
     if tfce is True:
         # each point gets treated independently
         clusters = np.arange(x.size)[:, np.newaxis]
@@ -368,27 +375,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     return clusters, sums
 
 
-def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
-                              t_power):
-    """Deal with partitions, and pass the work to _find_clusters_1dir
-    """
-    if partitions is None:
-        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
-                                             t_power)
-    else:
-        # cluster each partition separately
-        clusters = list()
-        sums = list()
-        for p in range(np.max(partitions) + 1):
-            x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power)
-            clusters += out[0]
-            sums.append(out[1])
-        sums = np.concatenate(sums)
-    return clusters, sums
-
-
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
+def _find_clusters_1dir(x, x_in, keepers, connectivity, max_step, t_power):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -420,13 +407,10 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
         if x.ndim > 1:
             raise Exception("Data should be 1D when using a connectivity "
                             "to define clusters.")
-        if np.sum(x_in) == 0:
-            return [], np.empty(0)
-
         if isinstance(connectivity, sparse.spmatrix):
             clusters = _get_components(x_in, connectivity)
         elif isinstance(connectivity, list):  # use temporal adjacency
-            clusters = _get_clusters_st(x_in, connectivity, max_step)
+            clusters = _get_clusters_st(keepers, connectivity, max_step)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
