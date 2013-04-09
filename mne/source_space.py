@@ -528,7 +528,7 @@ def setup_source_space(subject, ico=4, subjects_dir=None):
 
     cmd = ['mne_setup_source_space', '--subject', subject, '--ico', str(ico)]
 
-    print run_subprocess(cmd, env=env)
+    run_subprocess(cmd, env=env)
 
 
 def watershed_bem(subject, atlas=False, subjects_dir=None):
