@@ -26,7 +26,8 @@ from scipy.spatial.distance import cdist
 from ..fiff import Raw, FIFF
 from ..fiff.meas_info import read_fiducials, write_fiducials
 from ..label import read_label, Label
-from ..source_space import read_source_spaces, write_source_spaces
+from ..source_space import read_source_spaces, write_source_spaces, \
+                           prepare_bem_model, setup_source_space
 from ..surface import read_surface, write_surface, read_bem_surfaces, \
                       write_bem_surface
 from ..utils import get_subjects_dir
@@ -38,7 +39,8 @@ from .transforms import apply_trans, rotation, rotation3d, scaling, \
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 
 
-def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
+def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None,
+                           ico=None):
     """Create a default subject in subjects_dir
 
     Create a copy of fsaverage from the freesurfer directory in subjects_dir
@@ -55,6 +57,10 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
+    ico : None | int
+        If not None, prepare the source space for fsaverage with this
+        subdivision level (only necessary if unscaled fsaverage brain is used
+        as source space).
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
@@ -78,7 +84,7 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
         err = ('fsaverage not found at %r. Is fs_home specified '
                'correctly?' % fs_src)
         raise IOError(err)
-    for name in ('bem', 'label', 'mri', 'surf'):
+    for name in ('label', 'mri', 'surf'):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
             err = ("Freesurfer fsaverage seems to be incomplete: No directory "
@@ -117,9 +123,17 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
 
     # add files from mne
     dest_bem = os.path.join(dest, 'bem')
+    os.mkdir(dest_bem)
     logger.info("Copying auxiliary fsaverage files from mne directory...")
     for name in mne_files:
         shutil.copy(mne_fname % name, dest_bem)
+
+    # prepare source space
+    if ico:
+        bem = os.path.join(dest_bem, 'fsaverage-inner_skull-bem.fif')
+        prepare_bem_model(bem)
+        setup_source_space('fsaverage', ico=ico, subjects_dir=subjects_dir)
+
 
 
 def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
