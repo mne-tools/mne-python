@@ -237,9 +237,9 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, by_sign=True,
     ----------
     x : 1D array
         Data
-    threshold : float
+    threshold : float | dict
         Where to threshold the statistic. Should be negative for tail == -1,
-        and positive for tail == 0 or 1. Can also be an array for
+        and positive for tail == 0 or 1. Can also be an dict for
         threshold-free cluster enhancement.
     tail : -1 | 0 | 1
         Type of comparison
@@ -719,9 +719,25 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         return T_obs, np.array([]), np.array([]), np.array([])
 
 
-def ttest_1samp_no_p(X):
-    """t-test with no p-value calculation
-    Returns T-values
+def ttest_1samp_no_p(X, sigma=0, method='relative'):
+    """t-test with variance adjustment and no p-value calculation
+
+    Parameters
+    ----------
+    X : array
+        Array to return t-values for.
+    sigma : float
+        The variance estate will be given by "var + sigma * max(var)" or
+        "var + sigma", depending on "method". By default this is 0 (no
+        adjustment). See Notes for details.
+    method : str
+        If 'relative', the minimum variance estimate will be sigma * max(var),
+        if 'absolute' the minimum variance estimate will be sigma.
+
+    Returns
+    -------
+    t : array
+        t-values, potentially adjusted using the hat method.
 
     Notes
     -----
@@ -730,10 +746,21 @@ def ttest_1samp_no_p(X):
         threshold = -scipy.stats.distributions.t.ppf(p_thresh, n_samples - 1)
 
     to convert a desired p-value threshold to t-value threshold. Don't forget
-    that for two-tailed tests, p_thresh in the above should be divided by 2
+    that for two-tailed tests, p_thresh in the above should be divided by 2.
+
+    To use the "hat" adjustment method, a value of sigma=1e-3 may be a
+    reasonable choice. See Ridgway et al. 2012 "The problem of low variance
+    voxels in statistical parametric mapping; a new hat avoids a 'haircut'",
+    NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    return np.mean(X, axis=0) \
-        / np.sqrt(np.var(X, axis=0, ddof=1) / X.shape[0])
+    if not method in ['absolute', 'relative']:
+        raise ValueError('method must be "absolute" or "relative", not %s'
+                         % method)
+    var = np.var(X, axis=0, ddof=1)
+    if sigma > 0:
+        limit = sigma * np.min(var) if method == 'relative' else sigma
+        var += limit
+    return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
 
 
 @verbose
@@ -755,9 +782,11 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     X : list
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
         elements of groups
-    threshold : float
-        The threshold for the statistic. If None, it will choose a F-threshold
-        equivalent to p < 0.05 for the given number of observations.
+    threshold : float | dict | None
+        If threshold is None, it will choose a t-threshold equivalent to
+        p < 0.05 for the given number of (within-subject) observations.
+        If a dict is used, then threshold-free cluster enhancement (TFCE)
+        will be used.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -872,10 +901,10 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         Array where the first dimension corresponds to the
         samples (observations). X[k] can be a 1D or 2D array (time series
         or TF image) associated to the kth observation.
-    threshold : float, array, or None
+    threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
-        If an array is used, then threshold-free cluster enhancement (TFCE)
+        If a dict is used, then threshold-free cluster enhancement (TFCE)
         will be used.
     n_permutations : int
         The number of permutations to compute.
@@ -990,10 +1019,10 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     ----------
     X : array
         Array of shape observations x time x vertices.
-    threshold : float, array, or None
+    threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
-        If an array is used, then threshold-free cluster enhancement (TFCE)
+        If a dict is used, then threshold-free cluster enhancement (TFCE)
         will be used.
     n_permutations : int
         See permutation_cluster_1samp_test.
