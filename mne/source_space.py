@@ -615,7 +615,7 @@ def _write_one_source_space(fid, this, verbose=None):
 
     #   Distances
     if this['dist'] is not None:
-        # Save only lower triangle
+        # Save only upper triangular portion of the matrix
         dists = this['dist'].copy()
         dists = sparse.triu(dists, format=dists.format)
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
