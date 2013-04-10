@@ -97,6 +97,6 @@ def bonferroni_correction(pval, alpha=0.05):
 
     """
     pval = np.asarray(pval)
-    pval_corrected = pval / float(pval.size)
+    pval_corrected = pval * float(pval.size)
     reject = pval < alpha
     return reject, pval_corrected
