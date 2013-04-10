@@ -276,12 +276,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
     Returns
     -------
-    clusters: list of slices or list of arrays (boolean masks)
+    clusters : list of slices or list of arrays (boolean masks)
         We use slices for 1D signals and mask to multidimensional
         arrays.
-
     sums: array
-        Sum of x values in clusters
+        Sum of x values in clusters.
     """
     if not tail in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
@@ -348,7 +347,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 out = _find_clusters_1dir_parts(x, x_in, connectivity,
                                                 max_step, partitions, t_power)
                 clusters += out[0]
-                sums.append(out[1])
+                sums = np.concatenate((sums, out[1]))
         if tfce is True:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
@@ -359,11 +358,6 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             h = h ** h_power
             for c in clusters:
                 scores[c] += h * (len(c) ** e_power)
-            # store previous clusters
-        if len(sums) > 0:
-            sums = np.concatenate(sums)
-        else:
-            sums = np.array([])
     if tfce is True:
         # each point gets treated independently
         clusters = np.arange(x.size)[:, np.newaxis]
@@ -507,12 +501,11 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
             T_obs_surr.shape = sample_shape
 
         # Find cluster on randomized stats
-        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
-                                               tail=tail, max_step=max_step,
-                                               connectivity=connectivity,
-                                               partitions=partitions,
-                                               include=include,
-                                               t_power=t_power)
+        out = _find_clusters(T_obs_surr, threshold=threshold, tail=tail,
+                             max_step=max_step, connectivity=connectivity,
+                             partitions=partitions, include=include,
+                             t_power=t_power)
+        perm_clusters_sums = out[1]
 
         if len(perm_clusters_sums) > 0:
             max_cluster_sums[seed_idx] = np.max(perm_clusters_sums)
@@ -558,12 +551,11 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             T_obs_surr.shape = sample_shape
 
         # Find cluster on randomized stats
-        _, perm_clusters_sums = _find_clusters(T_obs_surr, threshold=threshold,
-                                               tail=tail, max_step=max_step,
-                                               connectivity=connectivity,
-                                               partitions=partitions,
-                                               include=include,
-                                               t_power=t_power)
+        out = _find_clusters(T_obs_surr, threshold=threshold, tail=tail,
+                             max_step=max_step, connectivity=connectivity,
+                             partitions=partitions, include=include,
+                             t_power=t_power)
+        perm_clusters_sums = out[1]
         if len(perm_clusters_sums) > 0:
             # get max with sign info
             idx_max = np.argmax(np.abs(perm_clusters_sums))
@@ -623,11 +615,14 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     else:
         partitions = None
 
-    clusters, cluster_stats = _find_clusters(T_obs, threshold, tail,
-                                             connectivity, max_step=max_step,
-                                             include=include,
-                                             partitions=partitions,
-                                             t_power=t_power, show_info=True)
+    out = _find_clusters(T_obs, threshold, tail, connectivity,
+                         max_step=max_step, include=include,
+                         partitions=partitions, t_power=t_power,
+                         show_info=True)
+    clusters, cluster_stats = out
+    # For TFCE, return the "adjusted" statistic instead of raw scores
+    if isinstance(threshold, dict):
+        T_obs = cluster_stats.copy()
 
     logger.info('Found %d clusters' % len(clusters))
 
@@ -758,7 +753,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
                          % method)
     var = np.var(X, axis=0, ddof=1)
     if sigma > 0:
-        limit = sigma * np.min(var) if method == 'relative' else sigma
+        limit = sigma * np.max(var) if method == 'relative' else sigma
         var += limit
     return np.mean(X, axis=0) / np.sqrt(var / X.shape[0])
 
@@ -1230,7 +1225,7 @@ def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
         test = np.ones(connectivity.shape[0])
         test_conn = connectivity
 
-    part_clusts, _ = _find_clusters(test, 0, 1, test_conn)
+    part_clusts = _find_clusters(test, 0, 1, test_conn)[0]
     if len(part_clusts) > 1:
         logger.info('%i disjoint connectivity sets found'
                     % len(part_clusts))
