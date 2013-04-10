@@ -27,7 +27,7 @@ def _get_clusters_spatial(s, neighbors):
     This is equivalent to _get_components with n_times = 1, with a properly
     reconfigured connectivity matrix (formed as "neighbors" list)
     """
-    # s in a vector of spatial indicies that are significant, like:
+    # s is a vector of spatial indicies that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
     r = np.ones(s.shape, dtype=bool)
@@ -67,7 +67,7 @@ def _reassign(check, clusters, base, num):
     clusters[num - 1] = np.array([], dtype=int)
 
 
-def _get_clusters_st_1step(n_src, n_times, keepers, neighbors):
+def _get_clusters_st_1step(keepers, neighbors):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
@@ -77,6 +77,8 @@ def _get_clusters_st_1step(n_src, n_times, keepers, neighbors):
     This algorithm creates clusters for each time point using a method more
     efficient than the standard graph method (but otherwise equivalent), then
     combines these clusters across time points in a reasonable way."""
+    n_src = len(neighbors)
+    n_times = len(keepers)
     # start cluster numbering at 1 for diffing convenience
     enum_offset = 1
     check = np.zeros((n_times, n_src), dtype=int)
@@ -97,8 +99,9 @@ def _get_clusters_st_1step(n_src, n_times, keepers, neighbors):
         inds = k[check2[k] - check1[k] > 0]
         check1_d = check1[inds]
         n = check2[inds]
-        for num in np.unique(n):
-            prevs = check1_d[num == n]
+        nexts = np.unique(n)
+        for num in nexts:
+            prevs = check1_d[n == num]
             base = np.min(prevs)
             for pr in np.unique(prevs[prevs != base]):
                 _reassign(check1, clusters, base, pr)
@@ -109,12 +112,14 @@ def _get_clusters_st_1step(n_src, n_times, keepers, neighbors):
     return clusters
 
 
-def _get_clusters_st_multistep(n_src, n_times, keepers, neighbors, max_step=1):
+def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
     """Directly calculate connectivity based on knowledge that time points are
     only connected to adjacent neighbors for data organized as time x space.
 
     This algorithm time increases linearly with the number of time points,
     compared to with the square for the standard (graph) algorithm."""
+    n_src = len(neighbors)
+    n_times = len(keepers)
     t_border = [0]
     for ki, k in enumerate(keepers):
         keepers[ki] = k + ki * n_src
@@ -163,15 +168,28 @@ def _get_clusters_st_multistep(n_src, n_times, keepers, neighbors, max_step=1):
     return clusters
 
 
-def _get_clusters_st(keepers, neighbors, max_step=1):
+def _get_clusters_st(x_in, neighbors, max_step=1):
     """Helper function to choose the most efficient version"""
     n_src = len(neighbors)
-    n_times = len(keepers)
-    if max_step == 1:
-        return _get_clusters_st_1step(n_src, n_times, keepers, neighbors)
+    n_times = x_in.size / n_src
+    cl_goods = np.where(x_in)[0]
+    if len(cl_goods) > 0:
+        keepers = [np.array([], dtype=int)] * n_times
+        row, col = np.unravel_index(cl_goods, (n_times, n_src))
+        order = np.argsort(row)
+        row = row[order]
+        col = col[order]
+        lims = [0] + (np.where(np.diff(row) > 0)[0]
+                      + 1).tolist() + [len(row)]
+        for start, end in zip(lims[:-1], lims[1:]):
+            keepers[row[start]] = np.sort(col[start:end])
+        if max_step == 1:
+            return _get_clusters_st_1step(keepers, neighbors)
+        else:
+            return _get_clusters_st_multistep(keepers, neighbors,
+                                              max_step)
     else:
-        return _get_clusters_st_multistep(n_src, n_times, keepers, neighbors,
-                                          max_step)
+        return []
 
 
 def _get_components(x_in, connectivity, return_list=True):
@@ -214,7 +232,7 @@ def _get_components(x_in, connectivity, return_list=True):
 
 
 def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
-                   include=None, partitions=None, t_power=1):
+                   include=None, partitions=None, t_power=1, show_info=False):
     """For a given 1d-array (test statistic), find all clusters which
     are above/below a certain threshold. Returns a list of 2-tuples.
 
@@ -252,6 +270,9 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         summing (sign will be retained). Note that t_power == 0 will give a
         count of nodes in each cluster, t_power == 1 will weight each node by
         its statistical score.
+    show_info : bool
+        If True, display information about thresholds used (for TFCE). Should
+        only be done for the standard permutation.
 
     Returns
     -------
@@ -275,11 +296,29 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True
-        thresholds = np.arange(threshold['start'], np.max(np.abs(x)),
-                               threshold['step'], float)
+        if tail == -1:
+            if threshold['start'] > 0:
+                raise ValueError('threshold["start"] must be <= 0 for '
+                                 'tail == -1')
+            if threshold['step'] >= 0:
+                raise ValueError('threshold["step"] must be < 0 for '
+                                 'tail == -1')
+            thresholds = np.arange(threshold['start'], np.min(x),
+                                   threshold['step'], float)
+        elif tail == 1:
+            thresholds = np.arange(threshold['start'], np.max(x),
+                                   threshold['step'], float)
+        else:  # tail == 0
+            thresholds = np.arange(threshold['start'], np.max(np.abs(x)),
+                                   threshold['step'], float)
         h_power = threshold.get('h_power', 2)
         e_power = threshold.get('e_power', 0.5)
         scores = np.zeros(x.size)
+        if show_info is True:
+            logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
+                        'computation (h_power=%0.2f, e_power=%0.2f)'
+                        % (len(thresholds), thresholds[0], thresholds[-1],
+                           h_power, e_power))
     else:
         thresholds = [threshold]
         tfce = False
@@ -288,23 +327,6 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     if include is None:
         include = np.ones(x.shape, dtype=bool)
 
-    if isinstance(connectivity, list):
-        n_src = len(connectivity)
-        n_times = int(x.shape[0] / n_src)
-
-    # previous clusters determine how the next threshold can find clusters;
-    # since thresholds always increase, clusters from a previous step can
-    # only fragment (not combine), thus we can set "partitions" by
-    # properly initializing previous clusters
-    if partitions is None:
-        previous_clusters = [np.arange(x.size)]
-    else:
-        previous_clusters = []
-        for p in range(np.max(partitions) + 1):
-            previous_clusters += [np.where(partitions == p)[0]]
-
-    clust_in = np.zeros(x.size, dtype=bool)
-    empty_inds = np.array([], dtype=np.int64)
     if not np.all(np.diff(thresholds) > 0):
         raise RuntimeError('Threshold misconfiguration, must be monotonically'
                            ' increasing')
@@ -322,36 +344,11 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             x_ins = [np.logical_and(x > thresh, include)]
         # loop over tails
         for x_in in x_ins:
-            # loop over previous clusters. Clusters from a previous threshold
-            # must be a subset of former clusters, with each cluster from the
-            # previous threshold potentially splitting into new clusters
-            # (i.e., cluster size cannot increase with increased threshold)
-            for cl in previous_clusters:
-                inds = x_in[cl]
-                if np.any(inds):
-                    # Triage based on connectivity algorithm; MUCH faster
-                    # to avoid conversion to logical representation for ST
-                    if not isinstance(connectivity, list):
-                        clust_in[cl] = inds
-                        out = _find_clusters_1dir(x, clust_in, None,
-                                                  connectivity,
-                                                  max_step, t_power)
-                        clust_in[cl] = False
-                    else:
-                        keepers = [empty_inds] * n_times
-                        row, col = np.unravel_index(cl[inds], (n_times, n_src))
-                        order = np.argsort(row)
-                        row = row[order]
-                        col = col[order]
-                        inds = [0] + (np.where(np.diff(row) > 0)[0]
-                                      + 1).tolist() + [len(row)]
-                        for start, end in zip(inds[:-1], inds[1:]):
-                            keepers[row[start]] = np.sort(col[start:end])
-                        out = _find_clusters_1dir(x, x_in, keepers,
-                                                  connectivity,
-                                                  max_step, t_power)
-                    clusters += out[0]
-                    sums.append(out[1])
+            if np.any(x_in):
+                out = _find_clusters_1dir_parts(x, x_in, connectivity,
+                                                max_step, partitions, t_power)
+                clusters += out[0]
+                sums.append(out[1])
         if tfce is True:
             # the score of each point is the sum of the h^H * e^E for each
             # supporting section "rectangle" h x e.
@@ -363,7 +360,6 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             for c in clusters:
                 scores[c] += h * (len(c) ** e_power)
             # store previous clusters
-        previous_clusters = clusters
         if len(sums) > 0:
             sums = np.concatenate(sums)
         else:
@@ -375,7 +371,27 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, keepers, connectivity, max_step, t_power):
+def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
+                              t_power):
+    """Deal with partitions, and pass the work to _find_clusters_1dir
+    """
+    if partitions is None:
+        clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
+                                             t_power)
+    else:
+        # cluster each partition separately
+        clusters = list()
+        sums = list()
+        for p in range(np.max(partitions) + 1):
+            x_i = np.logical_and(x_in, partitions == p)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power)
+            clusters += out[0]
+            sums.append(out[1])
+        sums = np.concatenate(sums)
+    return clusters, sums
+
+
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -410,7 +426,7 @@ def _find_clusters_1dir(x, x_in, keepers, connectivity, max_step, t_power):
         if isinstance(connectivity, sparse.spmatrix):
             clusters = _get_components(x_in, connectivity)
         elif isinstance(connectivity, list):  # use temporal adjacency
-            clusters = _get_clusters_st(keepers, connectivity, max_step)
+            clusters = _get_clusters_st(x_in, connectivity, max_step)
         else:
             raise ValueError('Connectivity must be a sparse matrix or list')
         if t_power == 1:
@@ -611,7 +627,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                                              connectivity, max_step=max_step,
                                              include=include,
                                              partitions=partitions,
-                                             t_power=t_power)
+                                             t_power=t_power, show_info=True)
 
     logger.info('Found %d clusters' % len(clusters))
 
