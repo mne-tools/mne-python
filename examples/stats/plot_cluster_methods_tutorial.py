@@ -24,7 +24,7 @@ localisation in cluster inference", NeuroImage 44 (2009) 83-98.
 print __doc__
 
 import numpy as np
-from scipy import stats, sparse, signal
+from scipy import stats, sparse
 from functools import partial
 
 from mne.stats import spatio_temporal_cluster_1samp_test, bonferroni_correction
@@ -57,8 +57,7 @@ X = noise_sd * rng.randn(n_subjects, width, width)
 X[:, width // 2, width // 2] = signal_mean + rng.randn(n_subjects) * signal_sd
 #    Spatially smooth with a 2D Gaussian kernel
 size = width // 2 - 1
-x = np.arange(-size, size + 1)
-gaussian = np.exp(-(x ** 2 / float(gaussian_sd ** 2)))
+gaussian = np.exp(-(np.arange(-size, size + 1) ** 2 / float(gaussian_sd ** 2)))
 for si in range(X.shape[0]):
     for ri in range(X.shape[1]):
         X[si, ri, :] = np.convolve(X[si, ri, :], gaussian, 'same')
