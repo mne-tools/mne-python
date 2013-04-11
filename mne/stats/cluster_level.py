@@ -379,7 +379,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 # boolean masks
                 clusters = [clusters == ii for ii in range(len(clusters))]
         else:
-            clusters = clusters.tolist()
+            clusters = [[c] for c in clusters]
         sums = scores.ravel()
     return clusters, sums
 
