@@ -40,7 +40,7 @@ noise_sd = 0.1
 gaussian_sd = 5
 sigma = 1e-3  # sigma for the "hat" method
 threshold = -stats.distributions.t.ppf(0.05, n_subjects - 1)
-threshold_tfce = dict(start=2, step=0.25)
+threshold_tfce = dict(start=0, step=0.5)
 n_permutations = 1024  # number of clustering permutations
 
 ###############################################################################
