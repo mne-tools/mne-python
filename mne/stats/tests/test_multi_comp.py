@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_allclose, assert_raises
 from nose.tools import assert_true
 from scipy import stats
 
@@ -24,6 +24,7 @@ def test_multi_pval_correction():
     thresh_bonferroni = stats.t.ppf(1.0 - alpha / n_tests, n_samples - 1)
     assert_true(pval_bonferroni.ndim == 2)
     assert_true(reject_bonferroni.ndim == 2)
+    assert_allclose(pval_bonferroni / 10000, pval)
 
     fwer = np.mean(reject_bonferroni)
     assert_almost_equal(fwer, alpha, 1)
@@ -34,6 +35,8 @@ def test_multi_pval_correction():
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert_true(0 <= (reject_fdr.sum() - 50) <= 50 * 1.05)
     assert_true(thresh_uncorrected <= thresh_fdr <= thresh_bonferroni)
+    assert_raises(ValueError, fdr_correction, pval, alpha, method='blah')
+    assert_true(np.all(fdr_correction(pval, alpha=0)[0] == 0))
 
     reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='negcorr')
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
