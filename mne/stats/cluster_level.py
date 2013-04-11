@@ -302,14 +302,17 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             if threshold['step'] >= 0:
                 raise ValueError('threshold["step"] must be < 0 for '
                                  'tail == -1')
-            thresholds = np.arange(threshold['start'], np.min(x),
-                                   threshold['step'], float)
+            stop = np.min(x)
         elif tail == 1:
-            thresholds = np.arange(threshold['start'], np.max(x),
-                                   threshold['step'], float)
+            stop = np.max(x)
         else:  # tail == 0
-            thresholds = np.arange(threshold['start'], np.max(np.abs(x)),
-                                   threshold['step'], float)
+            stop = np.max(np.abs(x))
+        thresholds = np.arange(threshold['start'], stop,
+                               threshold['step'], float)
+        if len(thresholds) == 0:
+            raise ValueError('threshold["start"] (%s) is more extreme than '
+                             'data statistics with most extreme value %s'
+                             % (threshold['start'], stop))
         h_power = threshold.get('h_power', 2)
         e_power = threshold.get('e_power', 0.5)
         scores = np.zeros(x.size)

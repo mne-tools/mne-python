@@ -101,7 +101,8 @@ def test_cluster_permutation_with_connectivity():
                 [(condition1_1d, condition1_2d,
                   permutation_cluster_1samp_test,
                   spatio_temporal_cluster_1samp_test),
-                  ([condition1_1d, condition2_1d], [condition1_2d, condition2_2d],
+                  ([condition1_1d, condition2_1d],
+                   [condition1_2d, condition2_2d],
                     permutation_cluster_test,
                     spatio_temporal_cluster_test)]:
         out = func(X1d, **args)
@@ -112,7 +113,7 @@ def test_cluster_permutation_with_connectivity():
             assert_array_equal(out[0][a], out[0][b])
             assert_true(np.all(a[b]))
 
-        # test spatio-temporal with no time connectivity (repeat spatial pattern)
+        # test spatio-temporal w/o time connectivity (repeat spatial pattern)
         connectivity_2 = sparse.coo_matrix(
             linalg.block_diag(connectivity.asfptype().todense(),
                               connectivity.asfptype().todense()))
@@ -173,8 +174,10 @@ def test_cluster_permutation_with_connectivity():
                                  threshold=1.67)
 
         # clusters could be in a different order
-        sums_4 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_4[1]]
-        sums_5 = [np.sum(out_connectivity_4[0][a]) for a in out_connectivity_5[1]]
+        sums_4 = [np.sum(out_connectivity_4[0][a])
+                  for a in out_connectivity_4[1]]
+        sums_5 = [np.sum(out_connectivity_4[0][a])
+                  for a in out_connectivity_5[1]]
         sums_4 = np.sort(sums_4)
         sums_5 = np.sort(sums_5)
         assert_array_almost_equal(sums_4, sums_5)
@@ -184,9 +187,40 @@ def test_cluster_permutation_with_connectivity():
                                  connectivity=connectivity, max_step=1,
                                  threshold=1.67, n_jobs=-1000)
 
+        # not enough TFCE params
+        assert_raises(KeyError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity, threshold=dict(me='hello'))
+
+        # too extreme a start threshold
+        assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity,
+                      threshold=dict(start=10, step=1))
+
+        # too extreme a start threshold
+        assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity, tail=-1,
+                      threshold=dict(start=1, step=-1))
+        assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity, tail=-1,
+                      threshold=dict(start=-1, step=1))
+
+        # wrong type for threshold
+        assert_raises(TypeError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity, threshold=[])
+
+        # wrong value for tail
+        assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                      connectivity=connectivity, tail=2)
+
+        # make sure it actually found a significant point
+        out_connectivity_6 = spatio_temporal_func(
+                                 X1d_3, n_permutations=50,
+                                 connectivity=connectivity, max_step=1,
+                                 threshold=dict(start=1, step=1))
+        assert_true(np.min(out_connectivity_6[2]) < 0.05)
+
 
 def ttest_1samp(X):
     """Returns T-values
     """
-    T, _ = stats.ttest_1samp(X, 0)
-    return T
+    return stats.ttest_1samp(X, 0)[0]
