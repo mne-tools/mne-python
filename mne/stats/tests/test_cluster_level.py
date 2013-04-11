@@ -3,11 +3,13 @@ from numpy.testing import assert_equal, assert_array_equal,\
                           assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 from scipy import sparse, linalg, stats
+from functools import partial
 
 from mne.stats.cluster_level import permutation_cluster_test, \
                                     permutation_cluster_1samp_test, \
                                     spatio_temporal_cluster_test, \
-                                    spatio_temporal_cluster_1samp_test
+                                    spatio_temporal_cluster_1samp_test, \
+                                    ttest_1samp_no_p
 
 noise_level = 20
 
@@ -218,6 +220,61 @@ def test_cluster_permutation_with_connectivity():
                                  connectivity=connectivity, max_step=1,
                                  threshold=dict(start=1, step=1))
         assert_true(np.min(out_connectivity_6[2]) < 0.05)
+
+
+def test_permutation_connectivity_equiv():
+    """Test cluster level permutations with and without connectivity
+    """
+    try:
+        try:
+            from sklearn.feature_extraction.image import grid_to_graph
+        except ImportError:
+            from scikits.learn.feature_extraction.image import grid_to_graph
+    except ImportError:
+        return
+    rng = np.random.RandomState(0)
+    # subjects, time points, spatial points
+    X = rng.randn(7, 2, 10)
+    # add some significant points
+    X[:, 0:2, 0:2] += 10  # span two time points and two spatial points
+    X[:, 1, 5:9] += 10  # span four time points
+    max_steps = [1, 1, 1, 2]
+    # This will run full algorithm in two ways, then the ST-algorithm in 2 ways
+    # All of these should give the same results
+    conns = [None, grid_to_graph(2, 10),
+             grid_to_graph(1, 10), grid_to_graph(1, 10)]
+    stat_map = None
+    thresholds = [2, dict(start=0.5, step=0.5)]
+    sig_counts = [2, 8]
+    for threshold, count in zip(thresholds, sig_counts):
+        cs = None
+        ps = None
+        for max_step, conn in zip(max_steps, conns):
+            for stat_fun in [ttest_1samp_no_p,
+                             partial(ttest_1samp_no_p, sigma=1e-3)]:
+                t, clusters, p, H0 = \
+                        permutation_cluster_1samp_test(X, threshold=threshold,
+                                                       connectivity=conn,
+                                                       n_jobs=2,
+                                                       max_step=max_step,
+                                                       stat_fun=stat_fun)
+                inds = np.where(p < 0.05)[0]
+                assert_true(len(inds) == count)
+                this_cs = [clusters[ii] for ii in inds]
+                this_ps = p[inds]
+                this_stat_map = np.zeros((2, 10), dtype=bool)
+                for c in this_cs:
+                    this_stat_map[c] = True
+                if cs is None:
+                    ps = this_ps
+                    cs = this_cs
+                if stat_map is None:
+                    stat_map = this_stat_map
+                assert_array_equal(ps, this_ps)
+                assert_true(len(cs) == len(this_cs))
+                for c1, c2 in zip(cs, this_cs):
+                    assert_array_equal(c1, c2)
+                assert_array_equal(stat_map, this_stat_map)
 
 
 def ttest_1samp(X):

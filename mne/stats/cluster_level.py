@@ -315,7 +315,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                              % (threshold['start'], stop))
         h_power = threshold.get('h_power', 2)
         e_power = threshold.get('e_power', 0.5)
-        scores = np.zeros(x.size)
+        scores = np.zeros(x.shape)
         if show_info is True:
             logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
                         'computation (h_power=%0.2f, e_power=%0.2f)'
@@ -360,11 +360,27 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 h = abs(thresh - thresholds[ti - 1])
             h = h ** h_power
             for c in clusters:
-                scores[c] += h * (len(c) ** e_power)
+                # triage based on cluster storage type
+                if isinstance(c, slice):
+                    len_c = c.stop - c.start
+                elif c.dtype == bool:
+                    len_c = np.sum(c)
+                else:
+                    len_c = len(c)
+                scores[c] += h * (len_c ** e_power)
     if tfce is True:
         # each point gets treated independently
-        clusters = np.arange(x.size)[:, np.newaxis]
-        sums = scores
+        clusters = np.arange(x.size)
+        if connectivity is None:
+            if x.ndim == 1:
+                # slices
+                clusters = [slice(c, c + 1) for c in clusters]
+            else:
+                # boolean masks
+                clusters = [clusters == ii for ii in range(len(clusters))]
+        else:
+            clusters = clusters.tolist()
+        sums = scores.ravel()
     return clusters, sums
 
 
