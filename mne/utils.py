@@ -16,10 +16,13 @@ import subprocess
 import sys
 from sys import stdout
 import tempfile
+import time
+import shutil
 from shutil import rmtree
 import atexit
 from math import log
 import json
+import urllib
 import urllib2
 import urlparse
 from scipy import linalg
@@ -740,6 +743,225 @@ class ProgressBar(object):
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         sys.stdout.flush()
+
+
+# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+def _format_time(t):
+    if t > 60:
+        return "%4.1fmin" % (t / 60.)
+    else:
+        return " %5.1fs" % (t)
+
+
+# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+class ResumeURLOpener(urllib.FancyURLopener):
+    """Create sub-class in order to overide error 206.  This error means a
+       partial file is being sent,
+       which is ok in this case.  Do nothing with this error.
+
+       Note
+       ----
+       This was adapted from:
+       http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
+    """
+    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
+        pass
+
+
+# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+def _chunk_report_(bytes_so_far, total_size, t0):
+    """Show downloading percentage
+
+    Parameters
+    ----------
+    bytes_so_far: integer
+        Number of downloaded bytes
+
+    total_size: integer, optional
+        Total size of the file. None is valid
+
+    t0: integer, optional
+        The time in seconds (as returned by time.time()) at which the
+        download was started.
+    """
+    if total_size:
+        percent = float(bytes_so_far) / total_size
+        percent = round(percent * 100, 2)
+        dt = time.time() - t0
+        # We use a max to avoid a division by zero
+        remaining = (100. - percent) / max(0.01, percent) * dt
+        # Trailing whitespace is too erase extra char when message length
+        # varies
+        sys.stderr.write(
+            "Downloaded %d of %d bytes (%0.2f%%, %s remaining)  \r"
+            % (bytes_so_far, total_size, percent,
+               _format_time(remaining)))
+    else:
+        sys.stderr.write("Downloaded %d of ? bytes\r" % (bytes_so_far))
+
+
+# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
+                 initial_size=0, total_size=None, verbose=0):
+    """Download a file chunk by chunk and show advancement
+
+    Parameters
+    ----------
+    response: urllib.addinfourl
+        Response to the download request in order to get file size
+
+    local_file: file
+        Hard disk file where data should be written
+
+    chunk_size: integer, optional
+        Size of downloaded chunks. Default: 8192
+
+    report_hook: boolean
+        Whether or not to show downloading advancement. Default: None
+
+    initial_size: int, optional
+        If resuming, indicate the initial size of the file
+
+    Returns
+    -------
+    data: string
+        The downloaded file.
+
+    """
+    if total_size is None:
+        total_size = response.info().getheader('Content-Length').strip()
+    try:
+        total_size = int(total_size) + initial_size
+    except Exception, e:
+        if verbose > 0:
+            print "Warning: total size could not be determined."
+            if verbose > 1:
+                print "Full stack trace: %s" % e
+        total_size = None
+    bytes_so_far = initial_size
+
+    t0 = time.time()
+    while True:
+        chunk = response.read(chunk_size)
+        bytes_so_far += len(chunk)
+
+        if not chunk:
+            if report_hook:
+                sys.stderr.write('\n')
+            break
+
+        local_file.write(chunk)
+        if report_hook:
+            _chunk_report_(bytes_so_far, total_size, t0)
+
+    return
+
+
+# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
+                verbose=0):
+    """Load requested file, downloading it if needed or requested
+
+    Parameters
+    ----------
+    urls: array of strings
+        Contains the urls of files to be downloaded.
+
+    data_dir: string, optional
+        Path of the data directory. Used to force data storage in a specified
+        location. Default: None
+
+    resume: boolean, optional
+        If true, try to resume partially downloaded files
+
+    overwrite: boolean, optional
+        If true and file already exists, delete it.
+
+    md5sum: string, optional
+        MD5 sum of the file. Checked if download of the file is required
+
+    verbose: integer, optional
+        Defines the level of verbosity of the output
+
+    Returns
+    -------
+    files: array of string
+        Absolute paths of downloaded files on disk
+
+    Notes
+    -----
+    If, for any reason, the download procedure fails, all downloaded data are
+    cleaned.
+    """
+    # Determine data path
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+
+    file_name = os.path.basename(url)
+    temp_file_name = file_name + ".part"
+    full_name = os.path.join(data_dir, file_name)
+    temp_full_name = os.path.join(data_dir, temp_file_name)
+    if os.path.exists(full_name):
+        if overwrite:
+            os.remove(full_name)
+        else:
+            return full_name
+    if os.path.exists(temp_full_name):
+        if overwrite:
+            os.remove(temp_full_name)
+    t0 = time.time()
+    local_file = None
+    initial_size = 0
+    try:
+        # Download data
+        print 'Downloading data from %s ...' % url
+        if resume and os.path.exists(temp_full_name):
+            urlOpener = ResumeURLOpener()
+            # Download has been interrupted, we try to resume it.
+            local_file_size = os.path.getsize(temp_full_name)
+            # If the file exists, then only download the remainder
+            urlOpener.addheader("Range", "bytes=%s-" % (local_file_size))
+            try:
+                data = urlOpener.open(url)
+            except urllib2.HTTPError:
+                # There is a problem that may be due to resuming. Switch back
+                # to complete download method
+                return _fetch_file(url, data_dir, resume=False,
+                                   overwrite=False)
+            local_file = open(temp_full_name, "ab")
+            initial_size = local_file_size
+        else:
+            data = urllib2.urlopen(url)
+            local_file = open(temp_full_name, "wb")
+        _chunk_read_(data, local_file, report_hook=True,
+                     initial_size=initial_size, verbose=verbose)
+        # temp file must be closed prior to the move
+        if not local_file.closed:
+            local_file.close()
+        shutil.move(temp_full_name, full_name)
+        dt = time.time() - t0
+        print '...done. (%i seconds, %i min)' % (dt, dt / 60)
+    except urllib2.HTTPError, e:
+        print 'Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % file_name
+        if verbose > 0:
+            print "HTTP Error:", e, url
+        raise
+    except urllib2.URLError, e:
+        print 'Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % file_name
+        if verbose > 0:
+            print "URL Error:", e, url
+        raise
+    finally:
+        if local_file is not None:
+            if not local_file.closed:
+                local_file.close()
+    if md5sum is not None:
+        if (_md5_sum_file(full_name) != md5sum):
+            raise ValueError("File %s checksum verification has failed."
+                             " Dataset fetching aborted." % local_file)
+    return full_name
 
 
 def _download_status(url, file_name, print_destination=True):

@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ... import __version__ as mne_version
-from ...utils import get_config, set_config, _download_status
+from ...utils import get_config, set_config, _download_status, _fetch_file
 
 
 def _sample_version(path):
@@ -89,7 +89,8 @@ def data_path(path=None, force_update=False, update_path=True):
 
             logger.info('Downloading data, please wait (1.3 GB):')
             logger.info(url)
-            _download_status(url, archive_name, False)
+            #_download_status(url, archive_name, False)
+            _fetch_file(url, path)
 
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
