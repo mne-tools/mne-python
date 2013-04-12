@@ -83,6 +83,10 @@ Changelog
 
    - Effective connectivity estimation using Phase Slope Index (PSI) by `Martin Luessi`_
 
+   - Support for threshold-free cluster enhancement (TFCE) by `Eric Larson`_
+
+   - Support for "hat" variance regularization by `Eric Larson`_
+
 
 API
 ~~~
