@@ -113,10 +113,10 @@ T_obs, clusters, p_values, H0 = \
                                        tail=1, n_permutations=n_permutations)
 
 #    Let's put the cluster data in a readable format
-ps = np.zeros(width * width)
+p_std = np.zeros(width * width)
 for cl, p in zip(clusters, p_values):
-    ps[cl[1]] = -np.log10(p)
-ps = ps.reshape((width, width))
+    p_std[cl[1]] = -np.log10(p)
+p_std = p_std.reshape((width, width))
 T_obs = T_obs.reshape((width, width))
 
 #     To do a Bonferroni correction on these data is simple:
@@ -132,10 +132,10 @@ T_obs_hat, clusters, p_values, H0 = \
                                        stat_fun=stat_fun)
 
 #    Let's put the cluster data in a readable format
-ps_hat = np.zeros(width * width)
+p_hat = np.zeros(width * width)
 for cl, p in zip(clusters, p_values):
-    ps_hat[cl[1]] = -np.log10(p)
-ps_hat = ps_hat.reshape((width, width))
+    p_hat[cl[1]] = -np.log10(p)
+p_hat = p_hat.reshape((width, width))
 T_obs_hat = T_obs_hat.reshape((width, width))
 
 #    Now the threshold-free cluster enhancement method (TFCE):
@@ -144,7 +144,7 @@ T_obs_tfce, clusters, p_values, H0 = \
                                        connectivity=connectivity,
                                        tail=1, n_permutations=n_permutations)
 T_obs_tfce = T_obs_tfce.reshape((width, width))
-ps_tfce = -np.log10(p_values.reshape((width, width)))
+p_tfce = -np.log10(p_values.reshape((width, width)))
 
 #    Now the TFCE with "hat" variance correction:
 T_obs_tfce_hat, clusters, p_values, H0 = \
@@ -153,7 +153,7 @@ T_obs_tfce_hat, clusters, p_values, H0 = \
                                        tail=1, n_permutations=n_permutations,
                                        stat_fun=stat_fun)
 T_obs_tfce_hat = T_obs_tfce_hat.reshape((width, width))
-ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
+p_tfce_hat = -np.log10(p_values.reshape((width, width)))
 
 ###############################################################################
 # Visualize results
@@ -161,7 +161,7 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 import pylab as pl
 from mpl_toolkits.mplot3d import Axes3D  # this changes hidden matplotlib vars
 pl.ion()
-fig = pl.figure(facecolor='w')
+fig = pl.figure(facecolor='w', figsize=(8, 6))
 
 x, y = np.mgrid[0:width, 0:width]
 kwargs = dict(rstride=1, cstride=1, linewidth=0, cmap='Greens')
@@ -176,7 +176,7 @@ for ii, (t, title) in enumerate(zip(Ts, titles)):
     ax.set_title(title)
 
 p_lims = [1.3, -np.log10(1.0 / n_permutations)]
-pvals = [ps, ps_hat, ps_tfce, ps_tfce_hat]
+pvals = [p_std, p_hat, p_tfce, p_tfce_hat]
 titles = ['Standard clustering', 'Clust. w/"hat"',
           'Clust. w/TFCE', 'Clust. w/TFCE+"hat"']
 axs = []
@@ -188,7 +188,7 @@ for ii, (p, title) in enumerate(zip(pvals, titles)):
     ax.set_title(title)
     axs.append(ax)
 
-pl.tight_layout()
+pl.subplots_adjust(0.01, 0.06, 0.99, 0.95, 0.02, 0)
 for ax in axs:
     cbar = pl.colorbar(ax=ax, shrink=0.75, orientation='horizontal',
                        fraction=0.1, pad=0.025)
