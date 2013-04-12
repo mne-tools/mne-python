@@ -457,7 +457,7 @@ The command-line options of ``mne_inverse_operator`` are:
 **\---eeg**
 
     Employ EEG data in the calculation of the estimates. Note: The EEG
-    computations have not been throughly tested at this time.
+    computations have not been thoroughly tested at this time.
 
 **\---fixed**
 
@@ -710,7 +710,7 @@ Times and baseline
     analysis interval, indicated by the ``--tmin`` and ``--tmax`` options.
     The ``--rgb`` , ``--tif`` , ``--jpg`` , ``--png`` , and ``--w`` options
     control which file types are actually produced. When a ``--pick`` option
-    is encountered, the effect of any preceeding ``--pickrange`` option
+    is encountered, the effect of any preceding ``--pickrange`` option
     is ignored.
 
 **\---pickrange**
@@ -940,7 +940,7 @@ Output files
 
     Produce QuickTime movie files. This is the 'stem' of
     the ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.mov`` is added to indicate a QuickTime output
@@ -963,7 +963,7 @@ Output files
 
     Produce rgb snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.rgb`` is added to indicate an rgb output file.
@@ -973,7 +973,7 @@ Output files
 
     Produce tif snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.tif`` is added to indicate an rgb output file.
@@ -985,7 +985,7 @@ Output files
 
     Produce jpg snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.jpg`` is added to indicate an rgb output file.
@@ -995,7 +995,7 @@ Output files
 
     Produce png snapshots. This is the 'stem' of the
     ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` or ``-rh`` is
     then appended. The name of the view is indicated with ``-`` <*viename*> .
     Finally, ``.png`` is added to indicate an rgb output file.
@@ -1005,7 +1005,7 @@ Output files
 
     Produce w file snapshots. This is the 'stem' of
     the ouput file name. The actual name is derived by stripping anything
-    upto and including the last period from the end of <*name*> .
+    up to and including the last period from the end of <*name*> .
     According to the hemisphere, ``-lh`` .w or ``-rh`` .w
     is then appended. Files are produced for all picked times as dictated
     by the ``--pick`` and ``--integ`` options.

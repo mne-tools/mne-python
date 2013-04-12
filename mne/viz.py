@@ -973,7 +973,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'both'
-        The hemisphere to display. Using 'both' opens two seperate figures,
+        The hemisphere to display. Using 'both' opens two separate figures,
         one for each hemisphere.
     colormap : str
         The type of colormap to use.
@@ -1540,7 +1540,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Two arrays with indices of connections for which the connections
         strenghts are defined in con. Only needed if con is a 1D array.
     n_lines : int | None
-        If not None, only the n_lines strongest connections (strenght=abs(con))
+        If not None, only the n_lines strongest connections (strength=abs(con))
         are drawn.
     node_angles : array, shape=(len(node_names,)) | None
         Array with node positions in degrees. If None, the nodes are equally

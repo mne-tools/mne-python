@@ -2040,7 +2040,7 @@ of the dialog contains the following items:
 
 **Planar fixed [fT/cm]**
 
-    In the absense of a noise covariance matrix selection, a diagonal noise
+    In the absence of a noise covariance matrix selection, a diagonal noise
     covariance with fixed values on the diagonal is used. This entry
     specifies the fixed value of the planar gradiometers.
 

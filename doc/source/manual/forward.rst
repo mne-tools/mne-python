@@ -266,7 +266,7 @@ The command-line options are:
 
 **\---subject <*name*>**
 
-    Name of the subject in SUBJECTS_DIR. In the absense of this option,
+    Name of the subject in SUBJECTS_DIR. In the absence of this option,
     the SUBJECT environment variable will be consulted. If it is not
     defined, mne_setup_source_space exits
     with an error.
@@ -1198,7 +1198,7 @@ with the ``--meas`` option has software gradient compensation
 activated, mne_forward_solution computes
 the field of at the reference sensors in addition to the main MEG
 sensor array and computes a compensated forward solution using the
-methods descibed in :ref:`BEHDDFBI`.
+methods described in :ref:`BEHDDFBI`.
 
 .. warning:: If a data file specified with the ``--meas`` option    and that used in the actual inverse computations with mne_analyze and mne_make_movie have    different software gradient compensation states., the forward solution    will be in mismatch with the data to be analyzed and the current    estimates will be slightly erroneous.
 
