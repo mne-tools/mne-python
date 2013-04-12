@@ -65,7 +65,7 @@ psds_ssp = 10 * np.log10(psds_ssp)
 psds_notch = 10 * np.log10(psds_notch)
 
 ###############################################################################
-# Compute mean and standard deviation accross channels and then plot
+# Compute mean and standard deviation across channels and then plot
 def plot_psds(freqs, psds, fill_color):
     psd_mean = np.mean(psds, axis=0)
     psd_std = np.std(psds, axis=0)

@@ -25,7 +25,7 @@ def get_current_comp(info):
 
 
 # def findall(L, value, start=0):
-#     """Returns indices of all occurence of value in list L starting from start
+#     """Returns indices of all occurrence of value in list L starting from start
 #     """
 #     c = L.count(value)
 #     if c == 0:

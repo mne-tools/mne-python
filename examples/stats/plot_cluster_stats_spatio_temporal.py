@@ -5,7 +5,7 @@ Permutation t-test on source data with spatio-temporal clustering
 
 Tests if the evoked response is significantly different between
 conditions across subjects (simulated here using one subject's data).
-The multiple comparisons problem is adressed with a cluster-level
+The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 
 """

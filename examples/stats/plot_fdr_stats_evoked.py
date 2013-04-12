@@ -4,7 +4,7 @@ FDR correction on T-test on sensor data
 =======================================
 
 One tests if the evoked response significantly deviates from 0.
-Multiple comparison problem is adressed with
+Multiple comparison problem is addressed with
 False Discovery Rate (FDR) correction.
 
 """

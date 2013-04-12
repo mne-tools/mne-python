@@ -1046,7 +1046,7 @@ class Epochs(ProjMixin):
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
 
-        It tries to make the remaining epochs occuring as close as possible in
+        It tries to make the remaining epochs occurring as close as possible in
         time. This method works based on the idea that if there happened to be
         some time-varying (like on the scale of minutes) noise characteristics
         during a recording, they could be compensated for (to some extent) in
@@ -1180,7 +1180,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
 def equalize_epoch_counts(epochs_list, method='mintime'):
     """Equalize the number of trials in multiple Epoch instances
 
-    It tries to make the remaining epochs occuring as close as possible in
+    It tries to make the remaining epochs occurring as close as possible in
     time. This method works based on the idea that if there happened to be some
     time-varying (like on the scale of minutes) noise characteristics during
     a recording, they could be compensated for (to some extent) in the

@@ -222,7 +222,7 @@ the following command-line options:
 
 **\---collapse1**
 
-    Make all frames in the stc file (or the wfile) indentical. The value
+    Make all frames in the stc file (or the wfile) identical. The value
     at each source location is the :math:`L_1` norm
     of the output quantity at this location over the analysis period.
 

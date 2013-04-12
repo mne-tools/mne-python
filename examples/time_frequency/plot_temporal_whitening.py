@@ -38,7 +38,7 @@ picks = picks[:5]
 
 # Estimate AR models on raw data
 coefs = ar_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
-mean_coefs = np.mean(coefs, axis=0)  # mean model accross channels
+mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
 
 filt = np.r_[1, -mean_coefs]  # filter coefficient
 d, times = raw[0, 1e4:2e4]  # look at one channel from now on

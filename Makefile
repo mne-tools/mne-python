@@ -60,3 +60,8 @@ ctags:
 
 upload-pipy:
 	python setup.py sdist bdist_egg register upload
+
+codespell:
+	# The *.fif had to be there twice to be properly ignored (!)
+	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .
+

@@ -70,7 +70,7 @@ Make life easier
 
   For optimal performance we recommend using numpy / scipy with the multi-threaded
   ATLAS, gotoblas2, or intel MKL. The EPD python distribution for example ships with
-  tested MKL-compiled numpy / scipy verisons. Depending on the use case and your system
+  tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
   this may speed up operations by a factor greater than 10.
 
   The expected location for the MNE-sample data is my-path-to/mne-python/examples.

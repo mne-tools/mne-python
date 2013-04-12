@@ -4,7 +4,7 @@ Permutation F-test on sensor data with 1D cluster level
 =======================================================
 
 One tests if the evoked response is significantly different
-between conditions. Multiple comparison problem is adressed
+between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.
 
 """
