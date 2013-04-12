@@ -147,6 +147,6 @@ def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
     """
     picks = picks[:5]
     coefs = ar_raw(raw, order=order, picks=picks, tmin=tmin, tmax=tmax)
-    mean_coefs = np.mean(coefs, axis=0)  # mean model accross channels
+    mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
     a = np.r_[1, -mean_coefs]  # filter coefficients
     return a

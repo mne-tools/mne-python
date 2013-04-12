@@ -1155,7 +1155,7 @@ class SourceEstimate(object):
         surface : str
             The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh' | 'both'
-            The hemisphere to display. Using 'both' opens two seperate figures,
+            The hemisphere to display. Using 'both' opens two separate figures,
             one for each hemisphere.
         colormap : str
             The type of colormap to use.

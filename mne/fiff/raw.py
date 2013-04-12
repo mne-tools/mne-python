@@ -384,7 +384,7 @@ class Raw(ProjMixin):
         The Raw object has to be constructed using preload=True (or string).
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
+              additional time points need to be temporaily stored in memory.
 
         Note: If the data type changes (dtype != None), more memory is required
               since the original and the converted data needs to be stored in
@@ -457,7 +457,7 @@ class Raw(ProjMixin):
               be stored in memory.
 
         Note: If n_jobs > 1 and envelope=True, more memory is required as
-              "len(picks) * n_times" addtional time points need to be
+              "len(picks) * n_times" additional time points need to be
               temporaily stored in memory.
 
         Parameters
@@ -619,7 +619,7 @@ class Raw(ProjMixin):
         The Raw object has to be constructed using preload=True (or string).
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              addtional time points need to be temporaily stored in memory.
+              additional time points need to be temporaily stored in memory.
 
         Parameters
         ----------

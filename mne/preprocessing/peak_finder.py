@@ -29,7 +29,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     Returns
     -------
     peak_loc : array
-        The indicies of the identified peaks in x0
+        The indices of the identified peaks in x0
     peak_mag : array
         The magnitude of the identified peaks
 
@@ -39,7 +39,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
     Conversion from initial Matlab code from:
     Nathanael C. Yoder (ncyoder@purdue.edu)
 
-    Exemple
+    Example
     -------
     t = 0:.0001:10;
     x = 12*sin(10*2*pi*t)-3*sin(.1*2*pi*t)+randn(1,numel(t));
@@ -85,7 +85,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
 
         # Deal with first point a little differently since tacked it on
         # Calculate the sign of the derivative since we taked the first point
-        # on it does not neccessarily alternate like the rest.
+        # on it does not necessarily alternate like the rest.
         signDx = np.sign(np.diff(x[:3]))
         if signDx[0] <= 0:  # The first point is larger or equal to the second
             ii = -1

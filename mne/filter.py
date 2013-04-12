@@ -238,7 +238,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     """Filter signal using gain control points in the frequency domain.
 
     The filter impulse response is constructed from a Hamming window (window
-    used in "firwin2" function) to avoid ripples in the frequency reponse
+    used in "firwin2" function) to avoid ripples in the frequency response
     (windowing is a smoothing in frequency domain). The filter is zero-phase.
 
     If x is multi-dimensional, this operates along the last dimension.

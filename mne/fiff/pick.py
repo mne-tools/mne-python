@@ -151,7 +151,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include response-trigger channel. For some MEG systems this
         is separate from the stim channel.
     chpi : bool
-        If True include continous HPI coil channels.
+        If True include continuous HPI coil channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -334,7 +334,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         If True include response-trigger channel. For some MEG systems this
         is separate from the stim channel.
     chpi : bool
-        If True include continous HPI coil channels.
+        If True include continuous HPI coil channels.
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str

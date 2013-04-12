@@ -34,7 +34,7 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
     mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline)).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).

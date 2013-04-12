@@ -289,7 +289,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     baseline_mode : None | 'ratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
     times : array
         Required to define baseline

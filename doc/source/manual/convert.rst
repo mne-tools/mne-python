@@ -615,7 +615,7 @@ and the two auricular points) included in the digitization data.
 Using the locations of the fiducial points the digitization data
 are converted to the MEG head coordinate system employed in the
 MNE software, see :ref:`BJEBIBAI`. In the comparison of the
-channel names only the intial segment up to the first '-' (dash)
+channel names only the initial segment up to the first '-' (dash)
 in the EDF/EDF+/BDF channel name is significant.
 
 The EDF+ files may contain an annotation channel which can
@@ -656,7 +656,7 @@ The command-line options of mne_edf2fiff are:
     see :ref:`ch_browse`. In addition, in the mapping between TAL
     labels and trigger numbers provided by the ``--annotmap`` option is
     employed to assign trigger numbers in the event file produced. In
-    the absense of the ``--annotmap`` option default trigger number 1024
+    the absence of the ``--annotmap`` option default trigger number 1024
     is used.
 
 **\---annotmap <*filename*>**
@@ -1940,7 +1940,7 @@ contain two data structures, <*tag*>_raw and <*tag*>_raw_info .
 If ``--info`` option is specifed, the file contains the
 latter structure only.
 
-The <*tag*>_raw stucture
+The <*tag*>_raw structure
 contains only one field, data which
 is a matrix containing the raw data. Each row of this matrix constitutes
 the data from one channel in the original file. The data type of

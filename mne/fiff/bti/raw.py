@@ -260,7 +260,7 @@ def _read_config(fname):
         kind = ub['hdr'].pop('kind')
         if not kind:  # make sure reading goes right. Should never be empty
             raise RuntimeError('Could not read user block. Probably you'
-                               ' acquired data using a BTi verison currently'
+                               ' acquired data using a BTi version currently'
                                'not supported. Please contact the mne-python'
                                ' developers.')
         dta, cfg['user_blocks'][kind] = dict(), ub

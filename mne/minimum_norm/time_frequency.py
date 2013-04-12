@@ -67,7 +67,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     baseline_mode : None | 'logratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline)).
     pca : bool
         If True, the true dimension of data is estimated before running
@@ -297,7 +297,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     baseline_mode : None | 'logratio' | 'zscore'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
-        deviatio of power during baseline after substracting the mean,
+        deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline)).
     pca : bool
         If True, the true dimension of data is estimated before running
@@ -647,7 +647,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         The source space PSDs for each epoch.
     """
 
-    # use an auxillary function so we can either return a generator or a list
+    # use an auxiliary function so we can either return a generator or a list
     stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
                               lambda2=lambda2, method=method, fmin=fmin,
                               fmax=fmax, pick_normal=pick_normal, label=label,
