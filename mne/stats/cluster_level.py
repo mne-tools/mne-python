@@ -10,6 +10,7 @@
 
 import numpy as np
 from scipy import stats, sparse, ndimage
+import warnings
 
 import logging
 logger = logging.getLogger('mne')
@@ -309,18 +310,21 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             stop = np.max(np.abs(x))
         thresholds = np.arange(threshold['start'], stop,
                                threshold['step'], float)
-        if len(thresholds) == 0:
-            raise ValueError('threshold["start"] (%s) is more extreme than '
-                             'data statistics with most extreme value %s'
-                             % (threshold['start'], stop))
         h_power = threshold.get('h_power', 2)
         e_power = threshold.get('e_power', 0.5)
-        scores = np.zeros(x.shape)
         if show_info is True:
-            logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
-                        'computation (h_power=%0.2f, e_power=%0.2f)'
-                        % (len(thresholds), thresholds[0], thresholds[-1],
-                           h_power, e_power))
+            if len(thresholds) == 0:
+                txt = ('threshold["start"] (%s) is more extreme than '
+                       'data statistics with most extreme value %s'
+                       % (threshold['start'], stop))
+                logger.warn(txt)
+                warnings.warn(txt)
+            else:
+                logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
+                            'computation (h_power=%0.2f, e_power=%0.2f)'
+                            % (len(thresholds), thresholds[0], thresholds[-1],
+                               h_power, e_power))
+        scores = np.zeros(x.shape)
     else:
         thresholds = [threshold]
         tfce = False
@@ -333,10 +337,13 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         raise RuntimeError('Threshold misconfiguration, must be monotonically'
                            ' increasing')
 
+    # set these here just in case thresholds == []
+    clusters = list()
+    sums = np.empty(0)
     for ti, thresh in enumerate(thresholds):
-        # only use partitions on the first threshold
+        # these need to be reset on each run
         clusters = list()
-        sums = list()
+        sums = np.empty(0)
         if tail == 0:
             x_ins = [np.logical_and(x > thresh, include),
                      np.logical_and(x < -thresh, include)]

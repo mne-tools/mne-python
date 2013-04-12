@@ -4,6 +4,7 @@ from numpy.testing import assert_equal, assert_array_equal,\
 from nose.tools import assert_true, assert_raises
 from scipy import sparse, linalg, stats
 from functools import partial
+import warnings
 
 from mne.stats.cluster_level import permutation_cluster_test, \
                                     permutation_cluster_1samp_test, \
@@ -99,6 +100,7 @@ def test_cluster_permutation_with_connectivity():
                 step_down_p=0, t_power=1, threshold=1.67,
                 check_disjoint=False, n_permutations=50)
 
+    did_warn = False
     for X1d, X2d, func, spatio_temporal_func in \
                 [(condition1_1d, condition1_2d,
                   permutation_cluster_1samp_test,
@@ -194,9 +196,12 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        assert_raises(ValueError, spatio_temporal_func, X1d_3,
-                      connectivity=connectivity,
-                      threshold=dict(start=10, step=1))
+        with warnings.catch_warnings(True) as w:
+            spatio_temporal_func(X1d_3, connectivity=connectivity,
+                                 threshold=dict(start=10, step=1))
+        if not did_warn:
+            assert_true(len(w) == 1)
+            did_warn = True
 
         # too extreme a start threshold
         assert_raises(ValueError, spatio_temporal_func, X1d_3,
@@ -258,6 +263,10 @@ def test_permutation_connectivity_equiv():
                                                        n_jobs=2,
                                                        max_step=max_step,
                                                        stat_fun=stat_fun)
+                # make sure all comparisons were done; for TFCE, no perm
+                # should come up empty
+                if count == 8:
+                    assert_true(not np.any(H0 == 0))
                 inds = np.where(p < 0.05)[0]
                 assert_true(len(inds) == count)
                 this_cs = [clusters[ii] for ii in inds]
