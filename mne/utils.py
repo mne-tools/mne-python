@@ -840,6 +840,9 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
         total_size = None
     bytes_so_far = initial_size
 
+    if report_hook:
+        progress = ProgressBar(total_size, max_chars=40, spinner=True,
+                               mesg='downloading')
     t0 = time.time()
     while True:
         chunk = response.read(chunk_size)
@@ -852,7 +855,8 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
 
         local_file.write(chunk)
         if report_hook:
-            _chunk_report_(bytes_so_far, total_size, t0)
+            #_chunk_report_(bytes_so_far, total_size, t0)
+            progress.update(bytes_so_far)
 
     return
 
