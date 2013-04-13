@@ -20,7 +20,7 @@ from mne.source_estimate import spatio_temporal_tris_connectivity, \
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
-from mne.utils import _TempDir
+from mne.utils import _TempDir, requires_pandas
 
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
@@ -428,3 +428,16 @@ def test_spatio_temporal_src_connectivity():
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert_true(a == b)
+
+
+@requires_pandas
+def test_as_data_frame():
+    """Test epochs Pandas exporter"""
+    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
+    stc = read_source_estimate(fname, subject='sample')
+
+    assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
+    for ind in ['time', ('subject', 'time')]:
+        df = stc.as_data_frame(index=ind)
+        assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
+        assert_array_equal(df.values.T, stc.data)

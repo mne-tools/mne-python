@@ -897,7 +897,7 @@ class Epochs(ProjMixin):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
-    def as_data_frame(self, picks=None, index=['epoch', 'time'],
+    def as_data_frame(self, picks=None, index=('epoch', 'time'),
                       scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
                       eeg=1e6), copy=True):
         """Get the epochs as Pandas DataFrame
@@ -907,14 +907,12 @@ class Epochs(ProjMixin):
         The format matches a long table format commonly used to represent
         repeated measures in within-subject designs.
 
-        Returns
-        -------
-        df : instance of DataFrame
-            Epochs exported into tabular data structure.
+        Parameters
+        ----------
         picks : None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
-        index : list of str | None
+        index : tuple of str | None
             Column to be used as index for the data. Valid string options
             are 'epoch', 'time' and 'condition'. If None, all three info
             columns will be included in the table as categorial data.
@@ -925,6 +923,11 @@ class Epochs(ProjMixin):
             will be applied.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
+
+        Returns
+        -------
+        df : instance of DataFrame
+            Epochs exported into tabular data structure.
         """
         try:
             import pandas as pd

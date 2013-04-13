@@ -1270,6 +1270,74 @@ class SourceEstimate(object):
         return morph_data_precomputed(subject_from, subject_to, self,
                                       vertices_to, morph_mat)
 
+    def as_data_frame(self, index=None, scale_time=1e3, copy=True):
+        """Get the epochs as Pandas DataFrame
+
+        Export source estimates in tabular structure with vertices as columns
+        and two additional info columns 'subject' and 'time'.
+        This function is useful to analyse s with statistical software
+        such as statsmodels or R.
+
+        Parameters
+        ----------
+        index : tuple of str | None
+            Column to be used as index for the data. Valid string options
+            are 'epoch', 'time' and 'condition'. If None, all three info
+            columns will be included in the table as categorial data.
+        scale_time : float
+            Scaling to be applied to time units.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
+
+        Returns
+        -------
+        df : instance of DataFrame
+            Epochs exported into tabular data structure.
+        """
+        try:
+            import pandas as pd
+        except:
+            raise RuntimeError('For this method you need an installation of '
+                               'the Pandas library.')
+
+        def_index = 'subject', 'time'
+        if index is not None:
+            if not any(isinstance(index, k) for k in (list, tuple)):
+                index = [index]
+            invalid_choices = [e for e in index if not e in def_index]
+            if invalid_choices:
+                options = [', '.join(e) for e in [invalid_choices, def_index]]
+                raise ValueError('[%s] is not an valid option. Valid index'
+                                 'values are \'None\' or %s' % tuple(options))
+        else:
+            index = def_index
+
+        data = self.data.T
+        shape = data.shape
+        mindex_list = []
+        if 'time' in index:
+            mindex_list.append(('time', self.times * scale_time))
+        if 'subject' in index:
+            mindex_list.append(('subject', np.repeat(self.subject, shape[0])))
+
+        if copy:
+            data = data.copy()
+        assert all(len(mdx) == len(mindex_list[0]) for mdx in mindex_list)
+
+        vert_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
+                      for vert in vertno]
+                      for ii, vertno in enumerate(self.vertno)] for i in e]
+        df = pd.DataFrame(data, columns=vert_names)
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex_list)]
+
+        if index is not None:
+            with warnings.catch_warnings(True):
+                df.set_index([k for k, v in mindex_list], inplace=True)
+            if 'time' in df.index.names and hasattr(df.index, 'levels'):
+                df.index.levels[1] = df.index.levels[0].astype(int)
+
+        return df
+
 ###############################################################################
 # Morphing
 
