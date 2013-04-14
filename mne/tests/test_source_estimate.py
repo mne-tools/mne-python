@@ -11,7 +11,7 @@ from scipy.fftpack import fft
 
 from mne.datasets import sample
 from mne import stats, SourceEstimate, Label
-from mne import read_stc, write_stc, read_source_estimate, morph_data,\
+from mne import _read_stc, write_stc, read_source_estimate, morph_data,\
                 extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
@@ -85,11 +85,11 @@ def test_expand():
 def test_io_stc():
     """Test IO for STC files
     """
-    stc = read_stc(fname)
+    stc = _read_stc(fname)
 
     write_stc(op.join(tempdir, "tmp.stc"), stc['tmin'], stc['tstep'],
               stc['vertices'], stc['data'])
-    stc2 = read_stc(op.join(tempdir, "tmp.stc"))
+    stc2 = _read_stc(op.join(tempdir, "tmp.stc"))
 
     assert_array_almost_equal(stc['data'], stc2['data'])
     assert_array_almost_equal(stc['tmin'], stc2['tmin'])

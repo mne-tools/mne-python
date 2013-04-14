@@ -19,12 +19,15 @@ from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from .utils import get_subjects_dir, _check_subject, \
-                   _check_pandas_index_arguments, _check_pandas_installed
+                   _check_pandas_index_arguments, _check_pandas_installed, \
+                   deprecated
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
 
 
+@deprecated('read_stc is deprecated and will be removed with version 0.7. '
+            'Please use read_source_estimate instead.')
 def read_stc(filename):
     """Read an STC file and return as dict
 
@@ -47,6 +50,12 @@ def read_stc(filename):
     See Also
     --------
     read_source_estimate
+    """
+    return _read_stc(filename)
+
+
+def _read_stc(filename):
+    """ Aux Function
     """
     fid = open(filename, 'rb')
 
@@ -261,7 +270,7 @@ def read_source_estimate(fname, subject=None):
 
     See Also
     --------
-    read_stc, read_w
+    read_w
     """
     fname_arg = fname
 
@@ -306,7 +315,7 @@ def read_source_estimate(fname, subject=None):
     # read the files
     if ftype == 'volume':  # volume source space
         if fname.endswith('.stc'):
-            kwargs = read_stc(fname)
+            kwargs = _read_stc(fname)
         elif fname.endswith('.w'):
             kwargs = read_w(fname)
             kwargs['data'] = kwargs['data'][:, np.newaxis]
@@ -315,8 +324,8 @@ def read_source_estimate(fname, subject=None):
         else:
             raise IOError('Volume source estimate must end with .stc or .w')
     elif ftype == 'surface':  # stc file with surface source spaces
-        lh = read_stc(fname + '-lh.stc')
-        rh = read_stc(fname + '-rh.stc')
+        lh = _read_stc(fname + '-lh.stc')
+        rh = _read_stc(fname + '-rh.stc')
         assert lh['tmin'] == rh['tmin']
         assert lh['tstep'] == rh['tstep']
         kwargs = lh.copy()
