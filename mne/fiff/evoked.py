@@ -21,12 +21,13 @@ from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
+from ..utils import _check_pandas_installed
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
 
-from ..viz import plot_evoked
+from ..viz import plot_evoked, _mutable_defaults
 from .. import verbose
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -416,8 +417,8 @@ class Evoked(ProjMixin):
                                sampling_rate=self.info['sfreq'])
         return evoked_ts
 
-    def as_data_frame(self, picks=None, scale_time=1e3, scalings=dict(mag=1e15,
-                      grad=1e13, eeg=1e6), use_time_index=True, copy=True):
+    def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
+                      use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
@@ -430,8 +431,8 @@ class Evoked(ProjMixin):
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
-            Scaling to be applied to the channels picked. If None, no scaling
-            will be applied.
+            Scaling to be applied to the channels picked. If None, defaults to
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
@@ -440,14 +441,11 @@ class Evoked(ProjMixin):
 
         Returns
         -------
-        df : instance of DataFrame
-            Raw data exported into tabular data structure.
+        df : instance of pandas.core.DataFrame
+            Evoked data exported into tabular data structure.
         """
-        try:
-            import pandas as pd
-        except:
-            raise RuntimeError('For this method you need an installation of '
-                               'the Pandas library.')
+
+        pd = _check_pandas_installed()
 
         if picks is None:
             picks = range(self.info['nchan'])
@@ -464,6 +462,8 @@ class Evoked(ProjMixin):
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
+
+        scalings = _mutable_defaults(('scalings', scalings))[0]
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
