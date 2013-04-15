@@ -24,6 +24,7 @@ from math import log
 import json
 import urllib
 import urllib2
+import ftplib
 import urlparse
 from scipy import linalg
 
@@ -920,25 +921,37 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
         # Download data
         print 'Downloading data from %s ...' % url
         if resume and os.path.exists(temp_full_name):
-            urlOpener = ResumeURLOpener()
             # Download has been interrupted, we try to resume it.
+            data = ftplib.FTP()
+            parsed_url = urlparse.urlparse(url)
+            b_path = os.path.basename(parsed_url.path)
+            g_path = parsed_url.path.replace(b_path, "")
+            unquoted_g_path = urllib.unquote(g_path)
+            data.connect(parsed_url.hostname, parsed_url.port)
+            data.login()
+            if len(g_path) > 1:
+                data.cwd(unquoted_g_path)
+        
             local_file_size = os.path.getsize(temp_full_name)
             # If the file exists, then only download the remainder
-            urlOpener.addheader("Range", "bytes=%s-" % (local_file_size))
             try:
-                data = urlOpener.open(url)
+                data.sendcmd("TYPE I")
+                data.sendcmd("REST " + str(local_file_size))
+                print file_name
+                down_cmd = "RETR "+ file_name
+                local_file = open(temp_full_name, "ab")
+                initial_size = local_file_size
+                data.retrbinary(down_cmd, local_file.write)
             except urllib2.HTTPError:
                 # There is a problem that may be due to resuming. Switch back
                 # to complete download method
                 return _fetch_file(url, data_dir, resume=False,
                                    overwrite=False)
-            local_file = open(temp_full_name, "ab")
-            initial_size = local_file_size
         else:
             data = urllib2.urlopen(url)
             local_file = open(temp_full_name, "wb")
-        _chunk_read_(data, local_file, report_hook=True,
-                     initial_size=initial_size, verbose=verbose)
+            _chunk_read_(data, local_file, report_hook=True,
+                         initial_size=initial_size, verbose=verbose)
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
