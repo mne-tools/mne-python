@@ -951,7 +951,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, alpha=1.0, time_viewer=False,
-                          config_opts={}, subjects_dir=None):
+                          config_opts={}, subjects_dir=None, figure=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -999,6 +999,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    figure : instance of mayavi.core.scene.Scene | None
+        If None, the last figure will be cleaned and a new figure will
+        be created.
 
     Returns
     -------
@@ -1012,6 +1015,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if hemi not in ['lh', 'rh', 'both']:
         raise ValueError('hemi has to be either "lh", "rh", or "both"')
 
+    if hemi == 'both' and figure is not None:
+        raise RuntimeError('`hemi` can\'t be `both` if the figure parameter'
+                           ' is supplied.')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
     subject = _check_subject(stc.subject, subject, False)
@@ -1033,7 +1039,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         title = '%s-%s' % (subject, hemi)
         args = inspect.getargspec(Brain.__init__)[0]
         if 'subjects_dir' in args:
-            brain = Brain(subject, hemi, surface, title=title,
+            brain = Brain(subject, hemi, surface, title=title, figure=figure,
                           config_opts=config_opts, subjects_dir=subjects_dir)
         else:
             # Current PySurfer versions need the SUBJECTS_DIR env. var.
@@ -1041,7 +1047,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             # XXX reminder to remove this once upstream pysurfer is changed
             os.environ['SUBJECTS_DIR'] = subjects_dir
             brain = Brain(subject, hemi, surface, config_opts=config_opts,
-                          title=title)
+                          title=title, figure=figure)
 
         if hemi_idx == 0:
             data = stc.data[:len(stc.vertno[0])]
