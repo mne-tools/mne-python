@@ -182,8 +182,10 @@ def test_labels_from_parc_annot2labels():
         cwd = os.getcwd()
         try:
             os.chdir(label_dir)
+            env = os.environ.copy()
+            env['SUBJECTS_DIR'] = subjects_dir
             cmd = ['mne_annot2labels', '--subject', subject, '--parc', parc]
-            run_subprocess(cmd)
+            run_subprocess(cmd, env=env)
             label_fnames = glob.glob(label_dir + '/*.label')
             label_fnames.sort()
             labels = [read_label(fname) for fname in label_fnames]
