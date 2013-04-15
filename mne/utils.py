@@ -694,8 +694,9 @@ class ProgressBar(object):
     spinner_symbols = ['|', '/', '-', '\\']
     template = '\r[{}{}] {:.05f} {} {}   '
 
-    def __init__(self, max_value, mesg='', max_chars=40,
+    def __init__(self, initial_value, max_value, mesg='', max_chars=40,
                  progress_character='.', spinner=False):
+        self.cur_value = initial_value
         self.max_value = float(max_value)
         self.mesg = mesg
         self.max_chars = max_chars
@@ -720,7 +721,8 @@ class ProgressBar(object):
         """
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
-        progress = float(cur_value) / self.max_value
+        self.cur_value = cur_value
+        progress = float(self.cur_value) / self.max_value
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -744,6 +746,23 @@ class ProgressBar(object):
         # Force a flush because sometimes when using bash scripts and pipes,
         # the output is not printed until after the program exits.
         sys.stdout.flush()
+
+    def update_with_increment_value(self, increment_value, mesg=None):
+        """Update progressbar with the value of the increment instead of the
+        current value of process as in update()
+        
+        Parameters
+        ----------
+        increment_value : number
+            Value of the increment of process.  The percent of the progressbar
+            will be computed as 
+            (self.initial_size + increment_value / max_value) * 100
+        mesg : str
+            Message to display to the right of the progressbar.  If None, the
+            last message provided will be used.  To clear the current message,
+        """
+        self.cur_value += increment_value
+        self.update(self.cur_value, mesg)
 
 
 # Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -787,8 +806,8 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
     bytes_so_far = initial_size
 
     if report_hook:
-        progress = ProgressBar(total_size, max_chars=40, spinner=True,
-                               mesg='downloading')
+        progress = ProgressBar(bytes_so_far, total_size, max_chars=40, 
+                               spinner=True, mesg='downloading')
     t0 = time.time()
     while True:
         chunk = response.read(chunk_size)
@@ -937,7 +956,7 @@ def _download_status(url, file_name, print_destination=True):
         file_size = int(meta.getheaders("Content-Length")[0])
         stdout.write('Downloading: %s (%s)\n' % (url, sizeof_fmt(file_size)))
 
-        progress = ProgressBar(file_size, max_chars=40, spinner=True,
+        progress = ProgressBar(0, file_size, max_chars=40, spinner=True,
                                mesg='downloading')
         file_size_dl = 0
         block_sz = 65536
