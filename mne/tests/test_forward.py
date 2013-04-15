@@ -249,52 +249,58 @@ def test_do_forward_solution():
 
     # ## Error checks
     # bad subject
-    assert_raises(ValueError, do_forward_solution, 1, fname_raw)
+    assert_raises(ValueError, do_forward_solution, 1, fname_raw,
+                  subjects_dir=subjects_dir)
     # bad meas
-    assert_raises(ValueError, do_forward_solution, 'sample', 1)
+    assert_raises(ValueError, do_forward_solution, 'sample', 1,
+                  subjects_dir=subjects_dir)
     # meas doesn't exist
-    assert_raises(IOError, do_forward_solution, 'sample', fname_fake)
+    assert_raises(IOError, do_forward_solution, 'sample', fname_fake,
+                  subjects_dir=subjects_dir)
     # don't specify trans and meas
-    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw)
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  subjects_dir=subjects_dir)
     # specify both trans and meas
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  trans='me', mri='you')
+                  trans='me', mri='you', subjects_dir=subjects_dir)
     # specify non-existent trans
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  trans=fname_fake)
+                  trans=fname_fake, subjects_dir=subjects_dir)
     # specify non-existent mri
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_fake)
+                  mri=fname_fake, subjects_dir=subjects_dir)
     # specify non-string mri
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=1)
+                  mri=1, subjects_dir=subjects_dir)
     # specify non-string trans
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  trans=1)
+                  trans=1, subjects_dir=subjects_dir)
     # test specifying an actual trans in python space -- this should work but
     # the transform I/O reduces our accuracy -- so we'll just hack a test here
     # by making it bomb with eeg=False and meg=False
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=mri, eeg=False, meg=False)
+                  mri=mri, eeg=False, meg=False, subjects_dir=subjects_dir)
     # mindist as non-integer
     assert_raises(TypeError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, mindist=dict())
+                  mri=fname_mri, mindist=dict(), subjects_dir=subjects_dir)
     # mindist as string but not 'all'
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, eeg=False, mindist='yall')
+                  mri=fname_mri, eeg=False, mindist='yall',
+                  subjects_dir=subjects_dir)
     # src, spacing, and bem as non-str
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, src=1)
+                  mri=fname_mri, src=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, spacing=1)
+                  mri=fname_mri, spacing=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, bem=1)
+                  mri=fname_mri, bem=1, subjects_dir=subjects_dir)
     # no overwrite flag
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  existing_file, mri=fname_mri)
+                  existing_file, mri=fname_mri, subjects_dir=subjects_dir)
     # let's catch an MNE error, this time about trans being wrong
     assert_raises(RuntimeError, do_forward_solution, 'sample', fname_raw,
-                  existing_file, trans=fname_mri, overwrite=True)
+                  existing_file, trans=fname_mri, overwrite=True,
+                  subjects_dir=subjects_dir)
 
     # ## Actually calculate one and check
     # make a meas from raw (tests all steps in creating evoked),
