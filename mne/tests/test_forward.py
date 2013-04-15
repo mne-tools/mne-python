@@ -1,5 +1,6 @@
 import os
 import os.path as op
+from subprocess import CalledProcessError
 import warnings
 
 from nose.tools import assert_true, assert_raises
@@ -19,8 +20,6 @@ from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample',
-                    'all-trans.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
@@ -298,9 +297,9 @@ def test_do_forward_solution():
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
                   existing_file, mri=fname_mri, subjects_dir=subjects_dir)
     # let's catch an MNE error, this time about trans being wrong
-    assert_raises(RuntimeError, do_forward_solution, 'sample', fname_raw,
+    assert_raises(CalledProcessError, do_forward_solution, 'sample', fname_raw,
                   existing_file, trans=fname_mri, overwrite=True,
-                  subjects_dir=subjects_dir)
+                  spacing='oct-6', subjects_dir=subjects_dir)
 
     # ## Actually calculate one and check
     # make a meas from raw (tests all steps in creating evoked),
