@@ -87,6 +87,7 @@ Changelog
 
    - Support for "hat" variance regularization by `Eric Larson`_
 
+   - Access source estimates as Pandas DataFrame by `Denis Engemann`_. 
 
 API
 ~~~
