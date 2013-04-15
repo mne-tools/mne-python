@@ -1,7 +1,7 @@
 import os
 import os.path as op
+from subprocess import CalledProcessError
 import warnings
-import commands
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
@@ -15,13 +15,11 @@ from mne import read_forward_solution, apply_forward, apply_forward_raw, \
                 write_forward_solution
 from mne import SourceEstimate, read_trans
 from mne.label import read_label
-from mne.utils import requires_mne, _TempDir
+from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample',
-                    'all-trans.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
@@ -227,18 +225,15 @@ def test_average_forward_solution():
     fwd_copy['sol']['data'] *= 0.5
     fname_copy = op.join(temp_dir, 'fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
-    cmd = ('mne_average_forward_solutions --fwd %s --fwd %s --out %s'
-           % (fname, fname_copy, fname_copy))
-    st, output = commands.getstatusoutput(cmd)
-    if st != 0:
-        raise RuntimeError('could not average forward solutions:\n%s'
-                           % output)
+    cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
+           fname_copy, '--out' , fname_copy)
+    run_subprocess(cmd)
 
     # now let's actually do it, with one filename and one fwd
     fwd_ave = average_forward_solutions([fwd, fwd_copy])
     assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
-    #fwd_ave_mne = read_forward_solution(fname_copy)
-    #assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
+    # fwd_ave_mne = read_forward_solution(fname_copy)
+    # assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
 
 
 @requires_mne
@@ -251,56 +246,62 @@ def test_do_forward_solution():
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 
-    ### Error checks
+    # ## Error checks
     # bad subject
-    assert_raises(ValueError, do_forward_solution, 1, fname_raw)
+    assert_raises(ValueError, do_forward_solution, 1, fname_raw,
+                  subjects_dir=subjects_dir)
     # bad meas
-    assert_raises(ValueError, do_forward_solution, 'sample', 1)
+    assert_raises(ValueError, do_forward_solution, 'sample', 1,
+                  subjects_dir=subjects_dir)
     # meas doesn't exist
-    assert_raises(IOError, do_forward_solution, 'sample', fname_fake)
+    assert_raises(IOError, do_forward_solution, 'sample', fname_fake,
+                  subjects_dir=subjects_dir)
     # don't specify trans and meas
-    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw)
+    assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
+                  subjects_dir=subjects_dir)
     # specify both trans and meas
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  trans='me', mri='you')
+                  trans='me', mri='you', subjects_dir=subjects_dir)
     # specify non-existent trans
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  trans=fname_fake)
+                  trans=fname_fake, subjects_dir=subjects_dir)
     # specify non-existent mri
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_fake)
+                  mri=fname_fake, subjects_dir=subjects_dir)
     # specify non-string mri
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=1)
+                  mri=1, subjects_dir=subjects_dir)
     # specify non-string trans
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  trans=1)
+                  trans=1, subjects_dir=subjects_dir)
     # test specifying an actual trans in python space -- this should work but
     # the transform I/O reduces our accuracy -- so we'll just hack a test here
     # by making it bomb with eeg=False and meg=False
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=mri, eeg=False, meg=False)
+                  mri=mri, eeg=False, meg=False, subjects_dir=subjects_dir)
     # mindist as non-integer
     assert_raises(TypeError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, mindist=dict())
+                  mri=fname_mri, mindist=dict(), subjects_dir=subjects_dir)
     # mindist as string but not 'all'
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, eeg=False, mindist='yall')
+                  mri=fname_mri, eeg=False, mindist='yall',
+                  subjects_dir=subjects_dir)
     # src, spacing, and bem as non-str
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, src=1)
+                  mri=fname_mri, src=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, spacing=1)
+                  mri=fname_mri, spacing=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, bem=1)
+                  mri=fname_mri, bem=1, subjects_dir=subjects_dir)
     # no overwrite flag
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  existing_file, mri=fname_mri)
+                  existing_file, mri=fname_mri, subjects_dir=subjects_dir)
     # let's catch an MNE error, this time about trans being wrong
-    assert_raises(RuntimeError, do_forward_solution, 'sample', fname_raw,
-                  existing_file, trans=fname_mri, overwrite=True)
+    assert_raises(CalledProcessError, do_forward_solution, 'sample', fname_raw,
+                  existing_file, trans=fname_mri, overwrite=True,
+                  spacing='oct-6', subjects_dir=subjects_dir)
 
-    ### Actually calculate one and check
+    # ## Actually calculate one and check
     # make a meas from raw (tests all steps in creating evoked),
     # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
     fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',

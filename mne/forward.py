@@ -1390,17 +1390,12 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     env['SUBJECTS_DIR'] = subjects_dir
 
     try:
-        logger.info('Running forward solution generation command:\n%s and '
-                    'subjects_dir %s' % (cmd, subjects_dir))
-        st, out, err = run_subprocess(cmd, env=env)
-        if st != 0:
-            raise RuntimeError('mne_do_forward_solution non-zero exit status '
-                               '(%d) with output:\n%s\n%s' % (st, out, err))
+        logger.info('Running forward solution generation command with '
+                    'subjects_dir %s' % subjects_dir)
+        run_subprocess(cmd, env=env)
     except Exception as exception:
         raise exception
     else:
-        logger.info('Stdout:\n%s' % out)
-        logger.info('Stderr:\n%s' % err)
         fwd = read_forward_solution(op.join(path, fname))
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
