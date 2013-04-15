@@ -1295,7 +1295,6 @@ class SourceEstimate(object):
         df : instance of DataFrame
             Source estimates exported into tabular data structure.
         """
-
         pd = _check_pandas_installed()
 
         default_index = 'subject', 'time'

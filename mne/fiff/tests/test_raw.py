@@ -713,7 +713,7 @@ def test_raw_index_as_time():
 
 
 def test_raw_time_as_index():
-    """ Test index as time conversion"""
+    """ Test time as index conversion"""
     raw = Raw(fif_fname, preload=True)
     first_samp = raw.time_as_index([0], True)[0]
     assert_true(raw.first_samp == -first_samp)
