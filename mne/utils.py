@@ -747,61 +747,6 @@ class ProgressBar(object):
 
 
 # Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-def _format_time(t):
-    if t > 60:
-        return "%4.1fmin" % (t / 60.)
-    else:
-        return " %5.1fs" % (t)
-
-
-# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-class ResumeURLOpener(urllib.FancyURLopener):
-    """Create sub-class in order to overide error 206.  This error means a
-       partial file is being sent,
-       which is ok in this case.  Do nothing with this error.
-
-       Note
-       ----
-       This was adapted from:
-       http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
-    """
-    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
-        pass
-
-
-# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-def _chunk_report_(bytes_so_far, total_size, t0):
-    """Show downloading percentage
-
-    Parameters
-    ----------
-    bytes_so_far: integer
-        Number of downloaded bytes
-
-    total_size: integer, optional
-        Total size of the file. None is valid
-
-    t0: integer, optional
-        The time in seconds (as returned by time.time()) at which the
-        download was started.
-    """
-    if total_size:
-        percent = float(bytes_so_far) / total_size
-        percent = round(percent * 100, 2)
-        dt = time.time() - t0
-        # We use a max to avoid a division by zero
-        remaining = (100. - percent) / max(0.01, percent) * dt
-        # Trailing whitespace is too erase extra char when message length
-        # varies
-        sys.stderr.write(
-            "Downloaded %d of %d bytes (%0.2f%%, %s remaining)  \r"
-            % (bytes_so_far, total_size, percent,
-               _format_time(remaining)))
-    else:
-        sys.stderr.write("Downloaded %d of ? bytes\r" % (bytes_so_far))
-
-
-# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
                  initial_size=0, total_size=None, verbose=0):
     """Download a file chunk by chunk and show advancement
@@ -856,7 +801,6 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
 
         local_file.write(chunk)
         if report_hook:
-            #_chunk_report_(bytes_so_far, total_size, t0)
             progress.update(bytes_so_far)
 
     return
