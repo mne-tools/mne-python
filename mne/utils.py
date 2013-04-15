@@ -825,6 +825,14 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
     return
 
 
+def _chunk_write_(chunk, local_file, initial_size, progress):
+    """Write a chunk to file and update the progress bar"""
+    local_file.write(chunk)
+    progress.update_with_increment_value(len(chunk))
+    
+    return
+
+
 # Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
                 verbose=0):
@@ -904,7 +912,15 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
                 down_cmd = "RETR "+ file_name
                 local_file = open(temp_full_name, "ab")
                 initial_size = local_file_size
-                data.retrbinary(down_cmd, local_file.write)
+                
+                file_size = data.size(file_name)
+                progress = ProgressBar(initial_size, file_size, max_chars=40,
+                                       spinner=True, mesg='downloading')
+                chunk_write = lambda chunk: \
+                        _chunk_write_(chunk, local_file, initial_size, 
+                                      progress)
+                
+                data.retrbinary(down_cmd, chunk_write)
             except urllib2.HTTPError:
                 # There is a problem that may be due to resuming. Switch back
                 # to complete download method
