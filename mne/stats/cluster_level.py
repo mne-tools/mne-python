@@ -804,10 +804,10 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
         elements of groups
     threshold : float | dict | None
-        If threshold is None, it will choose a t-threshold equivalent to
-        p < 0.05 for the given number of (within-subject) observations.
+        The threshold for the statistic. If None, it will choose a F-threshold
+        equivalent to p < 0.05 for the given number of observations.
         If a dict is used, then threshold-free cluster enhancement (TFCE)
-        will be used.
+        will be used. See Notes for dict details.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -879,6 +879,33 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     "Nonparametric statistical testing of EEG- and MEG-data"
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
+
+    TFCE originally described in Smith/Nichols (2009),
+    "Threshold-free cluster enhancement: Adressing problems of
+    smoothing, threshold dependence, and localisation in cluster
+    inference", NeuroImage 44 (2009) 83-98.
+
+    For TFCE, the threhsold dict defines the following parameters:
+
+    start : float
+        Starting value for TFCE. Should ideally be close to zero. The
+        smaller this value, the longer the algorithm will take, but the
+        higher the sensitivity for small, broad activations. Should be
+        negative for tail == -1.
+    step : float
+        The step size for clustering. Recommended values between 0.1
+        and 1. The smaller the value, the better the integration estimate
+        (similar to Reimann approximation) but the longer the algorithm
+        will take. "start" and "step" are used to cluster at all
+        thresholds in the range np.arange(start, extreme_stat_val, step),
+        where extreme_stat_val is >= 0 for tail >= 0, and <= 0 for
+        tail == -1. Note that step must thus be negative for tail == -1.
+    h_power : float
+        Power used to raise the "height" / t-value integration.
+        Defaults to 2.
+    e_power : float
+        Power used to raise the "area" / dimensional integration (e.g.,
+        space, spatio-temporal, or time-frequency). Defaults to 0.5.
     """
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
@@ -926,7 +953,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
         If a dict is used, then threshold-free cluster enhancement (TFCE)
-        will be used.
+        will be used. See Notes for dict details.
     n_permutations : int
         The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
@@ -987,11 +1014,11 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observerd for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array of shape [n_permutations]
         Max cluster level stats observed under permutation.
 
@@ -1003,6 +1030,33 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     "Nonparametric statistical testing of EEG- and MEG-data"
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
+
+    TFCE originally described in Smith/Nichols (2009),
+    "Threshold-free cluster enhancement: Adressing problems of
+    smoothing, threshold dependence, and localisation in cluster
+    inference", NeuroImage 44 (2009) 83-98.
+
+    For TFCE, the threhsold dict defines the following parameters:
+
+    start : float
+        Starting value for TFCE. Should ideally be close to zero. The
+        smaller this value, the longer the algorithm will take, but the
+        higher the sensitivity for small, broad activations. Should be
+        negative for tail == -1.
+    step : float
+        The step size for clustering. Recommended values between 0.1
+        and 1. The smaller the value, the better the integration estimate
+        (similar to Reimann approximation) but the longer the algorithm
+        will take. "start" and "step" are used to cluster at all
+        thresholds in the range np.arange(start, extreme_stat_val, step),
+        where extreme_stat_val is >= 0 for tail >= 0, and <= 0 for
+        tail == -1. Note that step must thus be negative for tail == -1.
+    h_power : float
+        Power used to raise the "height" / t-value integration.
+        Defaults to 2.
+    e_power : float
+        Power used to raise the "area" / dimensional integration (e.g.,
+        space, spatio-temporal, or time-frequency). Defaults to 0.5.
     """
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
@@ -1044,7 +1098,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
         If a dict is used, then threshold-free cluster enhancement (TFCE)
-        will be used.
+        will be used. See permutation_cluster_1samp_test for dict details.
     n_permutations : int
         See permutation_cluster_1samp_test.
     tail : -1 or 0 or 1 (default = 0)
@@ -1075,11 +1129,11 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observerd for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array of shape [n_permutations]
         Max cluster level stats observed under permutation.
 
@@ -1166,11 +1220,11 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observerd for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
-        P-value for each cluster
+        P-value for each cluster.
     H0 : array of shape [n_permutations]
         Max cluster level stats observed under permutation.
 
@@ -1214,11 +1268,11 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     Parameters
     ----------
     n_times : int
-        Number of time points
+        Number of time points.
     n_vertices : int
-        Number of spatial points
+        Number of spatial points.
     vertices : list or array of int
-        Vertex numbers to set
+        Vertex numbers to set.
     set_as : bool
         If True, all points except "vertices" are set to False (inclusion).
         If False, all points except "vertices" are set to True (exclusion).
