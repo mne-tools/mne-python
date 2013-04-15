@@ -1,7 +1,6 @@
 import os
 import os.path as op
 import warnings
-import commands
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
@@ -15,7 +14,7 @@ from mne import read_forward_solution, apply_forward, apply_forward_raw, \
                 write_forward_solution
 from mne import SourceEstimate, read_trans
 from mne.label import read_label
-from mne.utils import requires_mne, _TempDir
+from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
 
 data_path = sample.data_path()
@@ -227,18 +226,15 @@ def test_average_forward_solution():
     fwd_copy['sol']['data'] *= 0.5
     fname_copy = op.join(temp_dir, 'fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
-    cmd = ('mne_average_forward_solutions --fwd %s --fwd %s --out %s'
-           % (fname, fname_copy, fname_copy))
-    st, output = commands.getstatusoutput(cmd)
-    if st != 0:
-        raise RuntimeError('could not average forward solutions:\n%s'
-                           % output)
+    cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
+           fname_copy, '--out' , fname_copy)
+    run_subprocess(cmd)
 
     # now let's actually do it, with one filename and one fwd
     fwd_ave = average_forward_solutions([fwd, fwd_copy])
     assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
-    #fwd_ave_mne = read_forward_solution(fname_copy)
-    #assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
+    # fwd_ave_mne = read_forward_solution(fname_copy)
+    # assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
 
 
 @requires_mne
@@ -251,7 +247,7 @@ def test_do_forward_solution():
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 
-    ### Error checks
+    # ## Error checks
     # bad subject
     assert_raises(ValueError, do_forward_solution, 1, fname_raw)
     # bad meas
@@ -300,7 +296,7 @@ def test_do_forward_solution():
     assert_raises(RuntimeError, do_forward_solution, 'sample', fname_raw,
                   existing_file, trans=fname_mri, overwrite=True)
 
-    ### Actually calculate one and check
+    # ## Actually calculate one and check
     # make a meas from raw (tests all steps in creating evoked),
     # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
     fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
