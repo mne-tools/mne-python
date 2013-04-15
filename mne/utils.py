@@ -168,7 +168,7 @@ def run_subprocess(command, *args, **kwargs):
     if 'stdout' not in kwargs:
         kwargs['stdout'] = subprocess.PIPE
 
-    logger.info("Running subprocess: %s" % command)
+    logger.info("Running subprocess: %s" % str(command))
     p = subprocess.Popen(command, *args, **kwargs)
     stdout, stderr = p.communicate()
 
