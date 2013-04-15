@@ -19,7 +19,7 @@ from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from .utils import get_subjects_dir, _check_subject, \
-                   _check_pandas_index_arguments
+                   _check_pandas_index_arguments, _check_pandas_installed
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
@@ -1295,10 +1295,8 @@ class SourceEstimate(object):
         df : instance of DataFrame
             Source estimates exported into tabular data structure.
         """
-        try:
-            import pandas as pd
-        except:
-            raise RuntimeError('This method requires the Pandas library.')
+
+        pd = _check_pandas_installed()
 
         default_index = 'subject', 'time'
         if index is not None:

@@ -21,6 +21,7 @@ from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
+from ..utils import _check_pandas_installed
 
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
@@ -443,11 +444,8 @@ class Evoked(ProjMixin):
         df : instance of pandas.core.DataFrame
             Evoked data exported into tabular data structure.
         """
-        try:
-            import pandas as pd
-        except:
-            raise RuntimeError('For this method you need an installation of '
-                               'the Pandas library.')
+
+        pd = _check_pandas_installed()
 
         if picks is None:
             picks = range(self.info['nchan'])

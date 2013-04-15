@@ -30,12 +30,14 @@ from .fiff.pick import pick_types, channel_indices_by_type, channel_type
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
-from .utils import check_random_state, _check_pandas_index_arguments
+from .utils import check_random_state, _check_pandas_index_arguments, \
+                   _check_pandas_installed
 from .filter import resample, detrend
 from .event import _read_events_fif
 from . import verbose
 from .fixes import in1d
 from .viz import _mutable_defaults
+
 
 class Epochs(ProjMixin):
     """List of Epochs
@@ -928,11 +930,8 @@ class Epochs(ProjMixin):
         df : instance of pandas.core.DataFrame
             Epochs exported into tabular data structure.
         """
-        try:
-            import pandas as pd
-        except:
-            raise RuntimeError('For this method you need an installation of '
-                               'the Pandas library.')
+
+        pd = _check_pandas_installed()
 
         default_index = ['condition', 'epoch', 'time']
         if index is not None:

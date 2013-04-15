@@ -804,6 +804,15 @@ def _check_subject(class_subject, input_subject, raise_error=True):
         return None
 
 
+def _check_pandas_installed():
+    try:
+        import pandas as pd
+        return pd
+    except:
+        raise RuntimeError('For this method to work the Pandas library is'
+                           ' required.')
+
+
 def _check_pandas_index_arguments(index, defaults):
     """ Helper function to check pandas index arguments """
     if not any(isinstance(index, k) for k in (list, tuple)):

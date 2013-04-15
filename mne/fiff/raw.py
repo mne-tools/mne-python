@@ -29,7 +29,8 @@ from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
-from ..utils import deprecated, _check_fname, estimate_rank
+from ..utils import deprecated, _check_fname, estimate_rank, \
+                    _check_pandas_installed
 from ..viz import plot_raw, _mutable_defaults
 from .. import verbose
 
@@ -1321,12 +1322,8 @@ class Raw(ProjMixin):
         df : instance of pandas.core.DataFrame
             Raw data exported into tabular data structure.
         """
-        try:
-            import pandas as pd
-        except:
-            raise RuntimeError('For this method you need an installation of '
-                               'the Pandas library.')
 
+        pd = _check_pandas_installed()
         if picks is None:
             picks = range(self.info['nchan'])
 
