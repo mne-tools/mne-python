@@ -1184,7 +1184,7 @@ class SourceEstimate(object):
             It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
         figure : instance of mayavi.core.scene.Scene | None
             If None, the last figure will be cleaned and a new figure will
-            be created
+            be created.
 
         Returns
         -------

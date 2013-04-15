@@ -1001,7 +1001,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     figure : instance of mayavi.core.scene.Scene | None
         If None, the last figure will be cleaned and a new figure will
-        be created
+        be created.
 
     Returns
     -------
@@ -1016,7 +1016,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", or "both"')
 
     if hemi == 'both' and figure is not None:
-        raise RuntimeError('If `hemi` can\'t be both if the figure parameter'
+        raise RuntimeError('`hemi` can\'t be `both` if the figure parameter'
                            ' is supplied.')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
