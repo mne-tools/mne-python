@@ -18,7 +18,8 @@ logger = logging.getLogger('mne')
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
-from .utils import get_subjects_dir, _check_subject
+from .utils import get_subjects_dir, _check_subject, \
+                   _check_pandas_index_arguments, _check_pandas_installed
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
@@ -1269,6 +1270,64 @@ class SourceEstimate(object):
         subject_from = _check_subject(self.subject, subject_from)
         return morph_data_precomputed(subject_from, subject_to, self,
                                       vertices_to, morph_mat)
+
+    def as_data_frame(self, index=None, scale_time=1e3, copy=True):
+        """Represent source estimates as Pandas DataFrame
+
+        Export source estimates in tabular structure with vertices as columns
+        and two additional info columns 'subject' and 'time'.
+        This function is useful to visualize and analyse source time courses
+        with external statistical software such as statsmodels or R.
+
+        Parameters
+        ----------
+        index : tuple of str | None
+            Column to be used as index for the data. Valid string options
+            are 'subject' and 'time'. If None, all three info
+            columns will be included in the table as categorial data.
+        scale_time : float
+            Scaling to be applied to time units.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
+
+        Returns
+        -------
+        df : instance of DataFrame
+            Source estimates exported into tabular data structure.
+        """
+        pd = _check_pandas_installed()
+
+        default_index = 'subject', 'time'
+        if index is not None:
+            _check_pandas_index_arguments(index, default_index)
+        else:
+            index = default_index
+
+        data = self.data.T
+        shape = data.shape
+        mindex_list = []
+        if 'time' in index:
+            mindex_list.append(('time', self.times * scale_time))
+        if 'subject' in index:
+            mindex_list.append(('subject', np.repeat(self.subject, shape[0])))
+
+        if copy:
+            data = data.copy()
+        assert all(len(mdx) == len(mindex_list[0]) for mdx in mindex_list)
+
+        vert_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
+                      for vert in vertno]
+                      for ii, vertno in enumerate(self.vertno)] for i in e]
+        df = pd.DataFrame(data, columns=vert_names)
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex_list)]
+
+        if index is not None:
+            with warnings.catch_warnings(True):
+                df.set_index([k for k, v in mindex_list], inplace=True)
+            if 'time' in df.index.names and hasattr(df.index, 'levels'):
+                df.index.levels[1] = df.index.levels[0].astype(int)
+
+        return df
 
 ###############################################################################
 # Morphing
