@@ -494,6 +494,7 @@ Statistics
    permutation_cluster_1samp_test
    permutation_t_test
    spatio_temporal_cluster_1samp_test
+   ttest_1samp_no_p
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 
