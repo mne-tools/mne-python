@@ -808,8 +808,8 @@ def _check_pandas_installed():
     try:
         import pandas as pd
         return pd
-    except:
-        raise ImportError('For this method to work the Pandas library is'
+    except ImportError:
+        raise RuntimeError('For this method to work the Pandas library is'
                            ' required.')
 
 
