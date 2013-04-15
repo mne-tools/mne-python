@@ -1,5 +1,4 @@
 import os
-import commands
 import os.path as op
 import cPickle as pickle
 import glob
@@ -10,10 +9,10 @@ from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import label_time_courses, read_label, stc_to_label, \
-               read_source_estimate, read_source_spaces, grow_labels,\
+               read_source_estimate, read_source_spaces, grow_labels, \
                labels_from_parc
 from mne.label import Label
-from mne.utils import requires_mne, _TempDir
+from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.fixes import in1d
 
 
@@ -183,11 +182,10 @@ def test_labels_from_parc_annot2labels():
         cwd = os.getcwd()
         try:
             os.chdir(label_dir)
-            cmd = 'mne_annot2labels --subject %s --parc %s' % (subject, parc)
-            st, output = commands.getstatusoutput(cmd)
-            if st != 0:
-                raise RuntimeError('mne_annot2labels non-zero exit status %d'
-                                   % st)
+            env = os.environ.copy()
+            env['SUBJECTS_DIR'] = subjects_dir
+            cmd = ['mne_annot2labels', '--subject', subject, '--parc', parc]
+            run_subprocess(cmd, env=env)
             label_fnames = glob.glob(label_dir + '/*.label')
             label_fnames.sort()
             labels = [read_label(fname) for fname in label_fnames]

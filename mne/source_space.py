@@ -749,10 +749,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     else:
         nt_orig = list()
         for conv in ['--vox2ras', '--vox2ras-tkr']:
-            rc, stdout, stderr = run_subprocess(['mri_info', conv, path])
-            if rc != 0:
-                raise ValueError('Could not get transform information using '
-                                 'freesurfer: %s\n%s' % (stdout, stderr))
+            stdout, stderr = run_subprocess(['mri_info', conv, path])
             stdout = np.fromstring(stdout, sep=' ').astype(float)
             if not stdout.size == 16:
                 raise ValueError('Could not parse Freesurfer mri_info output')

@@ -141,21 +141,23 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank
 
 
-def run_subprocess(*args, **kwargs):
-    """Calls subprocess.Popen
+def run_subprocess(command, *args, **kwargs):
+    """Run command using subprocess.Popen
 
+    Run command and wait for command to complete. If the return code was zero
+    then return, otherwise raise CalledProcessError.
     By default, this will also add stdout= and stderr=subproces.PIPE
     to the call to Popen to suppress printing to the terminal.
 
     Parameters
     ----------
+    command : list of str
+        Command to run as subprocess (see subprocess.Popen documentation).
     *args, **kwargs : arguments
         Arguments to pass to subprocess.Popen.
 
     Returns
     -------
-    returncode : int
-        The return code.
     stdout : str
         Stdout returned by the process.
     stderr : str
@@ -165,9 +167,21 @@ def run_subprocess(*args, **kwargs):
         kwargs['stderr'] = subprocess.PIPE
     if 'stdout' not in kwargs:
         kwargs['stdout'] = subprocess.PIPE
-    p = subprocess.Popen(*args, **kwargs)
+
+    logger.info("Running subprocess: %s" % str(command))
+    p = subprocess.Popen(command, *args, **kwargs)
     stdout, stderr = p.communicate()
-    return p.returncode, stdout, stderr
+
+    if stdout.strip():
+        logger.info("stdout:\n%s" % stdout)
+    if stderr.strip():
+        logger.info("stderr:\n%s" % stderr)
+
+    output = (stdout, stderr)
+    if p.returncode:
+        raise subprocess.CalledProcessError(p.returncode, command, output)
+
+    return output
 
 ###############################################################################
 # DECORATORS
@@ -703,7 +717,7 @@ class ProgressBar(object):
         # The \r tells the cursor to return to the beginning of the line rather
         # than starting a new line.  This allows us to have a progressbar-style
         # display in the console window.
-        bar = self.template.format(self.progress_character*num_chars,
+        bar = self.template.format(self.progress_character * num_chars,
                                    ' ' * num_left,
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
