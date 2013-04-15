@@ -638,10 +638,12 @@ def test_as_data_frame():
     assert_raises(ValueError, epochs.as_data_frame, np.arange(400))
     df = epochs.as_data_frame()
     data = np.hstack(epochs.get_data())
-    assert_true((df.columns[1:] == epochs.ch_names).all())
-    assert_true(df.index.names == ['epoch', 'time'])
-    assert_array_equal(df.values[:, 1], data[0] * 1e13)
-    assert_array_equal(df.values[:, 3], data[2] * 1e15)
+    assert_true((df.columns == epochs.ch_names).all())
+    assert_array_equal(df.values[:, 0], data[0] * 1e13)
+    assert_array_equal(df.values[:, 2], data[2] * 1e15)
+    for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
+        df = epochs.as_data_frame(index=ind)
+        assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
 
 
 def test_epochs_proj_mixin():

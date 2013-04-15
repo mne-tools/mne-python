@@ -802,3 +802,14 @@ def _check_subject(class_subject, input_subject, raise_error=True):
             raise ValueError('Neither subject input nor class subject '
                              'attribute was a string')
         return None
+
+
+def _check_pandas_index_arguments(index, defaults):
+    """ Helper function to check pandas index arguments """
+    if not any(isinstance(index, k) for k in (list, tuple)):
+        index = [index]
+    invalid_choices = [e for e in index if not e in defaults]
+    if invalid_choices:
+        options = [', '.join(e) for e in [invalid_choices, defaults]]
+        raise ValueError('[%s] is not an valid option. Valid index'
+                         'values are \'None\' or %s' % tuple(options))

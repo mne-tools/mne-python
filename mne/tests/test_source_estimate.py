@@ -432,12 +432,11 @@ def test_spatio_temporal_src_connectivity():
 
 @requires_pandas
 def test_as_data_frame():
-    """Test epochs Pandas exporter"""
+    """Test stc Pandas exporter"""
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc = read_source_estimate(fname, subject='sample')
-
     assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
-    for ind in ['time', ('subject', 'time')]:
+    for ind in ['time', ['time', 'subject']]:
         df = stc.as_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         assert_array_equal(df.values.T, stc.data)

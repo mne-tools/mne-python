@@ -18,7 +18,8 @@ logger = logging.getLogger('mne')
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
-from .utils import get_subjects_dir, _check_subject
+from .utils import get_subjects_dir, _check_subject, \
+                   _check_pandas_index_arguments
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
@@ -1271,18 +1272,18 @@ class SourceEstimate(object):
                                       vertices_to, morph_mat)
 
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
-        """Get the epochs as Pandas DataFrame
+        """Represent source estimates as Pandas DataFrame
 
         Export source estimates in tabular structure with vertices as columns
         and two additional info columns 'subject' and 'time'.
-        This function is useful to analyse s with statistical software
-        such as statsmodels or R.
+        This function is useful to visualize and analyse source time courses
+        with external statistical software such as statsmodels or R.
 
         Parameters
         ----------
         index : tuple of str | None
             Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info
+            are 'subject' and 'time'. If None, all three info
             columns will be included in the table as categorial data.
         scale_time : float
             Scaling to be applied to time units.
@@ -1292,25 +1293,18 @@ class SourceEstimate(object):
         Returns
         -------
         df : instance of DataFrame
-            Epochs exported into tabular data structure.
+            Source estimates exported into tabular data structure.
         """
         try:
             import pandas as pd
         except:
-            raise RuntimeError('For this method you need an installation of '
-                               'the Pandas library.')
+            raise RuntimeError('This method requires the Pandas library.')
 
-        def_index = 'subject', 'time'
+        default_index = 'subject', 'time'
         if index is not None:
-            if not any(isinstance(index, k) for k in (list, tuple)):
-                index = [index]
-            invalid_choices = [e for e in index if not e in def_index]
-            if invalid_choices:
-                options = [', '.join(e) for e in [invalid_choices, def_index]]
-                raise ValueError('[%s] is not an valid option. Valid index'
-                                 'values are \'None\' or %s' % tuple(options))
+            _check_pandas_index_arguments(index, default_index)
         else:
-            index = def_index
+            index = default_index
 
         data = self.data.T
         shape = data.shape

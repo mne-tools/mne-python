@@ -30,12 +30,12 @@ from .fiff.pick import pick_types, channel_indices_by_type, channel_type
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
-from .utils import check_random_state
+from .utils import check_random_state, _check_pandas_index_arguments
 from .filter import resample, detrend
 from .event import _read_events_fif
 from . import verbose
 from .fixes import in1d
-
+from .viz import _mutable_defaults
 
 class Epochs(ProjMixin):
     """List of Epochs
@@ -897,9 +897,8 @@ class Epochs(ProjMixin):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
-    def as_data_frame(self, picks=None, index=('epoch', 'time'),
-                      scale_time=1e3, scalings=dict(mag=1e15, grad=1e13,
-                      eeg=1e6), copy=True):
+    def as_data_frame(self, picks=None, index=None, scale_time=1e3,
+                      scalings=None, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export epochs data in tabular structure with MEG channels as columns
@@ -919,14 +918,14 @@ class Epochs(ProjMixin):
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
-            Scaling to be applied to the channels picked. If None, no scaling
-            will be applied.
+            Scaling to be applied to the channels picked. If None, defaults to
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
 
         Returns
         -------
-        df : instance of DataFrame
+        df : instance of pandas.core.DataFrame
             Epochs exported into tabular data structure.
         """
         try:
@@ -935,13 +934,11 @@ class Epochs(ProjMixin):
             raise RuntimeError('For this method you need an installation of '
                                'the Pandas library.')
 
-        info_cols = ['condition', 'epoch', 'time']
+        default_index = ['condition', 'epoch', 'time']
         if index is not None:
-            invalid_choices = [e for e in index if not e in info_cols]
-            if invalid_choices:
-                options = [', '.join(e) for e in [invalid_choices, info_cols]]
-                raise ValueError('[%s] is not an valid option. Valid index'
-                                 'values are \'None\' or %s' % tuple(options))
+            _check_pandas_index_arguments(index, default_index)
+        else:
+            index = default_index
 
         if picks is None:
             picks = range(self.info['nchan'])
@@ -959,6 +956,8 @@ class Epochs(ProjMixin):
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
+
+        scalings = _mutable_defaults(('scalings', scalings))[0]
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
@@ -972,21 +971,24 @@ class Epochs(ProjMixin):
 
         id_swapped = dict((v, k) for k, v in self.event_id.items())
         names = [id_swapped[k] for k in self.events[:, 2]]
-        condition = np.repeat(names, shape[2])
-        time = np.tile(self.times, shape[0]) * scale_time
-        epoch = np.repeat(np.arange(shape[0]), shape[2])
-        assert len(time) == len(data) == len(condition) == len(epoch)
 
+        mindex_list = []
+        if 'condition' in index:
+            mindex_list.append(('condition', np.repeat(names, shape[2])))
+        if 'time' in index:
+            mindex_list.append(('time', np.tile(self.times, shape[0]) * scale_time))
+        if 'epoch' in index:
+            mindex_list.append(('epoch', np.repeat(np.arange(shape[0]), shape[2])))
+
+        assert all(len(mdx) == len(mindex_list[0]) for mdx in mindex_list)
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data, columns=col_names)
-        insert_info = zip((0, 1, 2), info_cols, [condition, epoch, time])
-        [df.insert(i, k, v) for i, k, v in insert_info]
-
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex_list)]
         if index is not None:
             with warnings.catch_warnings(True):
                 df.set_index(index, inplace=True)
-            if 'time' in df.index.names:
+            if 'time' in df.index.names and hasattr(df.index, 'levels'):
                 df.index.levels[1] = df.index.levels[1].astype(int)
 
         return df

@@ -30,7 +30,7 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated, _check_fname, estimate_rank
-from ..viz import plot_raw
+from ..viz import plot_raw, _mutable_defaults
 from .. import verbose
 
 
@@ -1286,8 +1286,7 @@ class Raw(ProjMixin):
             self.fids = []
 
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
-                      scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
-                      use_time_index=True, copy=True):
+                      scalings=None, use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
 
         Export raw data in tabular structure with MEG channels.
@@ -1309,8 +1308,8 @@ class Raw(ProjMixin):
         scale_time : float
             Scaling to be applied to time units.
         scalings : dict | None
-            Scaling to be applied to the channels picked. If None, no scaling
-            will be applied.
+            Scaling to be applied to the channels picked. If None, defaults to
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
@@ -1319,7 +1318,7 @@ class Raw(ProjMixin):
 
         Returns
         -------
-        df : instance of DataFrame
+        df : instance of pandas.core.DataFrame
             Raw data exported into tabular data structure.
         """
         try:
@@ -1339,6 +1338,8 @@ class Raw(ProjMixin):
         types = [channel_type(self.info, idx) for idx in picks]
         n_channel_types = 0
         ch_types_used = []
+
+        scalings = _mutable_defaults(('scalings', scalings))[0]
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
