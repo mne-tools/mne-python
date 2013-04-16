@@ -766,7 +766,7 @@ class ProgressBar(object):
 
 
 # Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
+def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
                  initial_size=0, total_size=None, verbose=0):
     """Download a file chunk by chunk and show advancement
 
@@ -846,12 +846,12 @@ def _chunk_read_ftp_resume(url, temp_full_name, local_file):
                            spinner=True, mesg='downloading')
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write_(chunk, local_file, 
+    chunk_write = lambda chunk: _chunk_write(chunk, local_file, 
                                              local_file_size, progress)
     data.retrbinary(down_cmd, chunk_write)
 
 
-def _chunk_write_(chunk, local_file, initial_size, progress):
+def _chunk_write(chunk, local_file, initial_size, progress):
     """Write a chunk to file and update the progress bar"""
     local_file.write(chunk)
     progress.update_with_increment_value(len(chunk))
@@ -931,8 +931,8 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
         else:
             data = urllib2.urlopen(url)
             local_file = open(temp_full_name, "wb")
-            _chunk_read_(data, local_file, report_hook=True,
-                         initial_size=initial_size, verbose=verbose)
+            _chunk_read(data, local_file, report_hook=True,
+                        initial_size=initial_size, verbose=verbose)
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
