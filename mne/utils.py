@@ -765,7 +765,6 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
                  initial_size=0, total_size=None, verbose=0):
     """Download a file chunk by chunk and show advancement
@@ -793,6 +792,10 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
         The downloaded file.
 
     """
+    
+    # Adapted from NISL: 
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    
     if total_size is None:
         total_size = response.info().getheader('Content-Length').strip()
     try:
@@ -827,6 +830,10 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
 
 def _chunk_read_ftp_resume(url, temp_full_name, local_file):
     """Resume downloading of a file from an FTP server"""
+    
+    # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
+    # but with changes
+    
     parsed_url = urlparse.urlparse(url)
     file_name = os.path.basename(parsed_url.path)
     server_path = parsed_url.path.replace(file_name, "")
@@ -859,7 +866,6 @@ def _chunk_write(chunk, local_file, initial_size, progress):
     return
 
 
-# Copied from NISL: https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
                 verbose=0):
     """Load requested file, downloading it if needed or requested
@@ -895,6 +901,10 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
     If, for any reason, the download procedure fails, all downloaded data are
     cleaned.
     """
+    
+    # Adapted from NISL: 
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    
     # Determine data path
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
