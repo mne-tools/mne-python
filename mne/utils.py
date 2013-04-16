@@ -825,6 +825,32 @@ def _chunk_read_(response, local_file, chunk_size=8192, report_hook=None,
     return
 
 
+def _chunk_read_ftp_resume(url, temp_full_name, local_file):
+    """Resume downloading of a file from an FTP server"""
+    parsed_url = urlparse.urlparse(url)
+    file_name = os.path.basename(parsed_url.path)
+    server_path = parsed_url.path.replace(file_name, "")
+    unquoted_server_path = urllib.unquote(server_path)
+    local_file_size = os.path.getsize(temp_full_name)
+    
+    data = ftplib.FTP()
+    data.connect(parsed_url.hostname, parsed_url.port)
+    data.login()
+    if len(server_path) > 1:
+        data.cwd(unquoted_server_path)
+    data.sendcmd("TYPE I")
+    data.sendcmd("REST " + str(local_file_size))
+    down_cmd = "RETR "+ file_name
+    file_size = data.size(file_name)
+    progress = ProgressBar(local_file_size, file_size, max_chars=40,
+                           spinner=True, mesg='downloading')
+    # Callback lambda function that will be passed the downloaded data
+    # chunk and will write it to file and update the progress bar
+    chunk_write = lambda chunk: _chunk_write_(chunk, local_file, 
+                                             local_file_size, progress)
+    data.retrbinary(down_cmd, chunk_write)
+
+
 def _chunk_write_(chunk, local_file, initial_size, progress):
     """Write a chunk to file and update the progress bar"""
     local_file.write(chunk)
@@ -892,38 +918,14 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
         # Download data
         print 'Downloading data from %s ...' % url
         if resume and os.path.exists(temp_full_name):
-            # Download has been interrupted, we try to resume it.
-            data = ftplib.FTP()
-            parsed_url = urlparse.urlparse(url)
-            b_path = os.path.basename(parsed_url.path)
-            g_path = parsed_url.path.replace(b_path, "")
-            unquoted_g_path = urllib.unquote(g_path)
-            data.connect(parsed_url.hostname, parsed_url.port)
-            data.login()
-            if len(g_path) > 1:
-                data.cwd(unquoted_g_path)
-        
-            local_file_size = os.path.getsize(temp_full_name)
-            # If the file exists, then only download the remainder
+            local_file = open(temp_full_name, "ab")
             try:
-                data.sendcmd("TYPE I")
-                data.sendcmd("REST " + str(local_file_size))
-                print file_name
-                down_cmd = "RETR "+ file_name
-                local_file = open(temp_full_name, "ab")
-                initial_size = local_file_size
-                
-                file_size = data.size(file_name)
-                progress = ProgressBar(initial_size, file_size, max_chars=40,
-                                       spinner=True, mesg='downloading')
-                chunk_write = lambda chunk: \
-                        _chunk_write_(chunk, local_file, initial_size, 
-                                      progress)
-                
-                data.retrbinary(down_cmd, chunk_write)
-            except urllib2.HTTPError:
+                _chunk_read_ftp_resume(url, temp_full_name, local_file)
+            except:
                 # There is a problem that may be due to resuming. Switch back
                 # to complete download method
+                print 'Cannot resume downloading from %s '\
+                      'Attempting to restart downloading the entire file.' %url
                 return _fetch_file(url, data_dir, resume=False,
                                    overwrite=False)
         else:
