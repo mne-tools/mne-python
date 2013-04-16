@@ -177,7 +177,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                 # find the tag type
                 this_type = _find_type(k, fmts=['FIFF_'])
                 # prepend a count if necessary
-                prepend = 'x' + str(counter) + ': ' if counter > 0 else ''
+                prepend = 'x' + str(counter + 1) + ': ' if counter > 0 else ''
                 postpend = ''
                 # print tag data nicely
                 if tag.data is not None:
