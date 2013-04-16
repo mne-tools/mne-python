@@ -235,7 +235,15 @@ def _read_one_source_space(fid, this, verbose=None):
 
         parent_mri = dir_tree_find(this, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
         if len(parent_mri) == 0:
-            raise ValueError('Can not find parent MRI location')
+            # MNE 2.7.3 (and earlier) didn't store necessary information
+            # about volume coordinate translations. Although there is a
+            # FFIF_COORD_TRANS in the higher level of the FIFF file, this
+            # doesn't contain all the info we need. Safer to return an
+            # error unless a user really wants us to add backward compat.
+            raise ValueError('Can not find parent MRI location. The volume '
+                             'source space may have been made with an MNE '
+                             'version that is too old (<= 2.7.3). Consider '
+                             'updating and regenerating the inverse.')
 
         mri = parent_mri[0]
         for d in mri['directory']:
