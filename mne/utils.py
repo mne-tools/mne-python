@@ -168,6 +168,16 @@ def run_subprocess(command, *args, **kwargs):
     if 'stdout' not in kwargs:
         kwargs['stdout'] = subprocess.PIPE
 
+    # Check the PATH environment variable. If run_subprocess() is to be called
+    # frequently this should be refactored so as to only check the path once.
+    env = kwargs.get('env', os.environ)
+    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
+        msg = ("Your PATH environment variable contains at least one path "
+               "starting with a tilde ('~') character. Such paths are not "
+               "interpreted correctly from within Python. It is recommended "
+               "that you use '$HOME' instead of '~'.")
+        warnings.warn(msg)
+
     logger.info("Running subprocess: %s" % str(command))
     p = subprocess.Popen(command, *args, **kwargs)
     stdout, stderr = p.communicate()
