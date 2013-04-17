@@ -223,7 +223,6 @@ class deprecated(object):
     >>> @deprecated()
     ... def some_function(): pass
     """
-
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
 
