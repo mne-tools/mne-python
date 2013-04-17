@@ -647,7 +647,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if axes is None:
         pl.clf()
-        axes = [pl.subplot(n_channel_types, 1, c)
+        axes = [pl.subplot(n_channel_types, 1, c + 1)
                 for c in range(n_channel_types)]
     if not isinstance(axes, list):
         axes = [axes]
