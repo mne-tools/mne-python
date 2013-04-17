@@ -753,7 +753,7 @@ class ProgressBar(object):
         
         Parameters
         ----------
-        increment_value : number
+        increment_value : int
             Value of the increment of process.  The percent of the progressbar
             will be computed as 
             (self.initial_size + increment_value / max_value) * 100
@@ -773,26 +773,15 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
     ----------
     response: urllib.addinfourl
         Response to the download request in order to get file size
-
     local_file: file
         Hard disk file where data should be written
-
     chunk_size: integer, optional
         Size of downloaded chunks. Default: 8192
-
-    report_hook: boolean
+    report_hook: bool
         Whether or not to show downloading advancement. Default: None
-
     initial_size: int, optional
         If resuming, indicate the initial size of the file
-
-    Returns
-    -------
-    data: string
-        The downloaded file.
-
     """
-    
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
@@ -825,12 +814,9 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
         if report_hook:
             progress.update(bytes_so_far)
 
-    return
-
 
 def _chunk_read_ftp_resume(url, temp_full_name, local_file):
     """Resume downloading of a file from an FTP server"""
-    
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
     
@@ -862,8 +848,6 @@ def _chunk_write(chunk, local_file, initial_size, progress):
     """Write a chunk to file and update the progress bar"""
     local_file.write(chunk)
     progress.update_with_increment_value(len(chunk))
-    
-    return
 
 
 def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
@@ -874,20 +858,15 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
     ----------
     urls: array of strings
         Contains the urls of files to be downloaded.
-
     data_dir: string, optional
         Path of the data directory. Used to force data storage in a specified
         location. Default: None
-
-    resume: boolean, optional
+    resume: bool, optional
         If true, try to resume partially downloaded files
-
-    overwrite: boolean, optional
+    overwrite: bool, optional
         If true and file already exists, delete it.
-
     md5sum: string, optional
         MD5 sum of the file. Checked if download of the file is required
-
     verbose: integer, optional
         Defines the level of verbosity of the output
 
@@ -901,7 +880,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
     If, for any reason, the download procedure fails, all downloaded data are
     cleaned.
     """
-    
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
