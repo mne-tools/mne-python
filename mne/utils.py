@@ -765,7 +765,7 @@ class ProgressBar(object):
 
 
 def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
-                 initial_size=0, total_size=None, verbose=0):
+                 initial_size=0, verbose=0):
     """Download a file chunk by chunk and show advancement
 
     Parameters
@@ -784,16 +784,7 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
-    if total_size is None:
-        total_size = response.info().getheader('Content-Length').strip()
-    try:
-        total_size = int(total_size) + initial_size
-    except Exception, e:
-        if verbose > 0:
-            print "Warning: total size could not be determined."
-            if verbose > 1:
-                print "Full stack trace: %s" % e
-        total_size = None
+    total_size = response.info().getheader('Content-Length').strip()
     bytes_so_far = initial_size
 
     if report_hook:
