@@ -67,8 +67,9 @@ def data_path(path=None, force_update=False, update_path=True):
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Archive %s not found at:\n    %s\nDataset (~1.3GB) '
-                    'will be downloaded and extracted at this location.')
+        logger.info('Archive %s not found at:\n%s\nDataset (~1.3GB) '
+                    'will be downloaded and extracted at this location.' \
+                    % (archive_name, folder_path))
 
         if op.exists(martinos_path):
             archive_name = martinos_path
