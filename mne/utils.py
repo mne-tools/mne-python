@@ -845,8 +845,7 @@ def _chunk_write(chunk, local_file, initial_size, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
-                verbose=0):
+def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -860,8 +859,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
         If true, try to resume partially downloaded files
     overwrite: bool, optional
         If true and file already exists, delete it.
-    md5sum: string, optional
-        MD5 sum of the file. Checked if download of the file is required
     verbose: integer, optional
         Defines the level of verbosity of the output
 
