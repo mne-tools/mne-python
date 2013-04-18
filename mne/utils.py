@@ -171,6 +171,7 @@ def run_subprocess(command, *args, **kwargs):
         kwargs['stderr'] = subprocess.PIPE
     if 'stdout' not in kwargs:
         kwargs['stdout'] = subprocess.PIPE
+<<<<<<< HEAD
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
@@ -196,6 +197,11 @@ def run_subprocess(command, *args, **kwargs):
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
+=======
+    p = subprocess.Popen(*args, **kwargs)
+    p_stdout, p_stderr = p.communicate()
+    return p.returncode, p_stdout, p_stderr
+>>>>>>> FIX Small corrections
 
 ###############################################################################
 # DECORATORS
@@ -790,7 +796,6 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
     if report_hook:
         progress = ProgressBar(bytes_so_far, total_size, max_chars=40, 
                                spinner=True, mesg='downloading')
-    t0 = time.time()
     while True:
         chunk = response.read(chunk_size)
         bytes_so_far += len(chunk)
@@ -933,10 +938,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, md5sum=None,
         if local_file is not None:
             if not local_file.closed:
                 local_file.close()
-    if md5sum is not None:
-        if (_md5_sum_file(full_name) != md5sum):
-            raise ValueError("File %s checksum verification has failed."
-                             " Dataset fetching aborted." % local_file)
     return full_name
 
 
