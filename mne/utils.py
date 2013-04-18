@@ -223,7 +223,7 @@ class deprecated(object):
     in an empty of parentheses:
 
     >>> from mne.utils import deprecated_func
-    >>> deprecated() # doctest: +ELLIPSIS
+    >>> deprecated_func # doctest: +ELLIPSIS
     <mne.utils.deprecated object at ...>
 
     >>> @deprecated()
