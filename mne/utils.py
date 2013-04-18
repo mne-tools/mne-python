@@ -770,9 +770,25 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
-                 initial_size=0, verbose=0):
+class resume_url_opener(urllib.FancyURLopener):
+    """Create sub-class in order to overide error 206.  
+    
+    This error means a partial file is being sent, which is ok in this case.
+    Do nothing with this error.
+    """
+    # Adapted from: 
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
+    
+    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
+        pass
+
+
+def _chunk_read(response, local_file, chunk_size=8192, initial_size=0,
+                verbose=0):
     """Download a file chunk by chunk and show advancement
+
+    Can also be used when resuming downloads over http.
 
     Parameters
     ----------
@@ -782,32 +798,29 @@ def _chunk_read(response, local_file, chunk_size=8192, report_hook=None,
         Hard disk file where data should be written
     chunk_size: integer, optional
         Size of downloaded chunks. Default: 8192
-    report_hook: bool
-        Whether or not to show downloading advancement. Default: None
     initial_size: int, optional
         If resuming, indicate the initial size of the file
     """
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
-    total_size = response.info().getheader('Content-Length').strip()
     bytes_so_far = initial_size
+    # Returns amount left to download when resuming, not the size of the file
+    total_size = int(response.info().getheader('Content-Length').strip())
+    total_size += initial_size
 
-    if report_hook:
-        progress = ProgressBar(bytes_so_far, total_size, max_chars=40, 
-                               spinner=True, mesg='downloading')
+    progress = ProgressBar(bytes_so_far, total_size, max_chars=40, 
+                           spinner=True, mesg='downloading')
     while True:
         chunk = response.read(chunk_size)
         bytes_so_far += len(chunk)
 
         if not chunk:
-            if report_hook:
-                sys.stderr.write('\n')
+            sys.stderr.write('\n')
             break
 
         local_file.write(chunk)
-        if report_hook:
-            progress.update(bytes_so_far)
+        progress.update(bytes_so_far)
 
 
 def _chunk_read_ftp_resume(url, temp_full_name, local_file):
@@ -899,20 +912,32 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
         print 'Downloading data from %s ...' % url
         if resume and os.path.exists(temp_full_name):
             local_file = open(temp_full_name, "ab")
-            try:
+            # Resuming HTTP and FTP downloads requires different procedures 
+            scheme = urlparse.urlparse(url).scheme
+            if scheme == 'http':
+                url_opener = resume_url_opener()
+                local_file_size = os.path.getsize(temp_full_name)
+                # If the file exists, then only download the remainder
+                url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
+                try:
+                    data = url_opener.open(url)
+                except urllib2.HTTPError:
+                    # There is a problem that may be due to resuming, some
+                    # servers may not support the "Range" header. Switch back
+                    # to complete download method
+                    print 'Resuming download failed. Attempting to restart '\
+                          'downloading the entire file.'
+                    return _fetch_file(url, data_dir, resume=False,
+                                       overwrite=False)
+                _chunk_read(data, local_file, initial_size=local_file_size,
+                            verbose=verbose)
+            else:
                 _chunk_read_ftp_resume(url, temp_full_name, local_file)
-            except:
-                # There is a problem that may be due to resuming. Switch back
-                # to complete download method
-                print 'Cannot resume downloading from %s '\
-                      'Attempting to restart downloading the entire file.' %url
-                return _fetch_file(url, data_dir, resume=False,
-                                   overwrite=False)
         else:
-            data = urllib2.urlopen(url)
             local_file = open(temp_full_name, "wb")
-            _chunk_read(data, local_file, report_hook=True,
-                        initial_size=initial_size, verbose=verbose)
+            data = urllib2.urlopen(url)
+            _chunk_read(data, local_file, initial_size=initial_size,
+                        verbose=verbose)
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
