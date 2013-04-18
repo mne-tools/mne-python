@@ -255,7 +255,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         be symmetric and only the upper triangular half is used.
         If connectivity is a list, it is assumed that each entry stores the
         indices of the spatial neighbors in a spatio-temporal dataset x.
-        Defaut is None, i.e, a regular lattice connectivity.
+        Default is None, i.e, a regular lattice connectivity.
     max_step : int
         If connectivity is a list, this defines the maximal number of steps
         between vertices along the second dimension (typically time) to be
@@ -802,7 +802,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     ----------
     X : list
         List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
-        elements of groups
+        elements of groups.
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
@@ -817,15 +817,15 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         the distribution.
     stat_fun : callable
         function called to calculate statistics, must accept 1d-arrays as
-        arguments (default: scipy.stats.f_oneway)
+        arguments (default: scipy.stats.f_oneway).
     connectivity : sparse matrix.
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
-        Defaut is None, i.e, a regular lattice connectivity.
+        Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        Number of permutations to run in parallel (requires joblib package.)
+        Number of permutations to run in parallel (requires joblib package).
     seed : int or None
         Seed the random number generator for results reproducibility.
     max_step : int
@@ -844,7 +844,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
         but costs computation time.
     t_power : float
-        Power to raise the statistical values (usually t-values) by before
+        Power to raise the statistical values (usually f-values) by before
         summing (sign will be retained). Note that t_power == 0 will give a
         count of nodes in each cluster, t_power == 1 will weight each node by
         its statistical score.
@@ -863,7 +863,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
@@ -935,18 +935,18 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         If tail is 0, the statistic is thresholded on both sides of
         the distribution.
     stat_fun : function
-        Function used to compute the statistical map
+        Function used to compute the statistical map.
     connectivity : sparse matrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Defaut is None, i.e, a regular lattice connectivity.
+        (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        Number of permutations to run in parallel (requires joblib package.)
+        Number of permutations to run in parallel (requires joblib package).
     seed : int or None
         Seed the random number generator for results reproducibility.
         Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
@@ -987,7 +987,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observed for all variables
     clusters : list
         List type defined by out_type above.
     cluster_pv : array
@@ -1034,7 +1034,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
-    (observations x space x time) to use permutation_cluster_1samp_test.
+    (observations x time x space) to use permutation_cluster_1samp_test.
 
     Parameters
     ----------
@@ -1058,18 +1058,18 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
         This matrix must be square with dimension (n_vertices * n_times) or
-        (n_vertices). Defaut is None, i.e, a regular lattice connectivity.
+        (n_vertices). Default is None, i.e, a regular lattice connectivity.
         Use square n_vertices matrix for datasets with a large temporal
         extent to save on memory and computation time.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        Number of permutations to run in parallel (requires joblib package.)
+        Number of permutations to run in parallel (requires joblib package).
     seed : int or None
         Seed the random number generator for results reproducibility.
         Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
         two-tailed tests], this value will be ignored since an exact test
-        (full permutation test) will be performed
+        (full permutation test) will be performed.
     max_step : int
         When connectivity is a n_vertices x n_vertices matrix, specify the
         maximum number of steps between vertices along the second dimension
@@ -1103,7 +1103,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observed for all variables.
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
@@ -1121,7 +1121,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
     doi:10.1016/j.jneumeth.2007.03.024
 
     TFCE originally described in Smith/Nichols (2009),
-    "Threshold-free cluster enhancement: Adressing problems of
+    "Threshold-free cluster enhancement: Addressing problems of
     smoothing, threshold dependence, and localisation in cluster
     inference", NeuroImage 44 (2009) 83-98.
     """
@@ -1174,11 +1174,11 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     connectivity : sparse matrix or None
         Defines connectivity between features. The matrix is assumed to
         be symmetric and only the upper triangular half is used.
-        Defaut is None, i.e, a regular lattice connectivity.
+        Default is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        Number of permutations to run in parallel (requires joblib package.)
+        Number of permutations to run in parallel (requires joblib package).
     seed : int or None
         Seed the random number generator for results reproducibility.
     max_step : int
@@ -1195,7 +1195,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
         Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
         but costs computation time.
     t_power : float
-        Power to raise the statistical values (usually t-values) by before
+        Power to raise the statistical values (usually f-values) by before
         summing (sign will be retained). Note that t_power == 0 will give a
         count of nodes in each cluster, t_power == 1 will weight each node by
         its statistical score.
@@ -1214,7 +1214,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     Returns
     -------
     T_obs : array of shape [n_tests]
-        T-statistic observerd for all variables
+        T-statistic observed for all variables
     clusters : list
         List type defined by out_type above.
     cluster_pv: array
@@ -1262,11 +1262,11 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
     Parameters
     ----------
     n_times : int
-        Number of time points
+        Number of time points.
     n_vertices : int
-        Number of spatial points
+        Number of spatial points.
     vertices : list or array of int
-        Vertex numbers to set
+        Vertex numbers to set.
     set_as : bool
         If True, all points except "vertices" are set to False (inclusion).
         If False, all points except "vertices" are set to True (exclusion).
