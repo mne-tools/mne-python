@@ -1046,31 +1046,59 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         If a dict is used, then threshold-free cluster enhancement (TFCE)
         will be used.
     n_permutations : int
-        See permutation_cluster_1samp_test.
+        The number of permutations to compute.
     tail : -1 or 0 or 1 (default = 0)
-        See permutation_cluster_1samp_test.
+        If tail is 1, the statistic is thresholded above threshold.
+        If tail is -1, the statistic is thresholded below threshold.
+        If tail is 0, the statistic is thresholded on both sides of
+        the distribution.
     stat_fun : function
-        See permutation_cluster_1samp_test.
+        Function used to compute the statistical map.
     connectivity : sparse matrix or None
-        See permutation_cluster_1samp_test.
+        Defines connectivity between features. The matrix is assumed to
+        be symmetric and only the upper triangular half is used.
+        This matrix must be square with dimension (n_vertices * n_times) or
+        (n_vertices). Defaut is None, i.e, a regular lattice connectivity.
+        Use square n_vertices matrix for datasets with a large temporal
+        extent to save on memory and computation time.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        See permutation_cluster_1samp_test.
+        Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
-        See permutation_cluster_1samp_test.
+        Seed the random number generator for results reproducibility.
+        Note that if n_permutations >= 2^(n_samples) [or (2^(n_samples-1)) for
+        two-tailed tests], this value will be ignored since an exact test
+        (full permutation test) will be performed
     max_step : int
-        See permutation_cluster_1samp_test.
+        When connectivity is a n_vertices x n_vertices matrix, specify the
+        maximum number of steps between vertices along the second dimension
+        (typically time) to be considered connected. This is not used for full
+        or None connectivity matrices.
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
     step_down_p : float
-        See permutation_cluster_1samp_test.
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
     t_power : float
-        See permutation_cluster_1samp_test.
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that t_power == 0 will give a
+        count of nodes in each cluster, t_power == 1 will weight each node by
+        its statistical score.
     out_type : str
-        See permutation_cluster_1samp_test.
+        For arrays with connectivity, this sets the output format for clusters.
+        If 'mask', it will pass back a list of boolean mask arrays.
+        If 'indices', it will pass back a list of lists, where each list is the
+        set of vertices in a given cluster. Note that the latter may use far
+        less memory for large datasets.
     check_disjoint : bool
-        See permutation_cluster_1samp_test.
+        If True, the connectivity matrix (or list) will be examined to
+        determine of it can be separated into disjoint sets. In some cases
+        (usually with connectivity as a list and many "time" points), this
+        can lead to faster clustering, but results should be identical.
 
     Returns
     -------
@@ -1128,7 +1156,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     """Non-parametric cluster-level test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
-    (observations x space x time) to use permutation_cluster_test.
+    (observations x time x space) to use permutation_cluster_test.
 
     Parameters
     ----------
@@ -1141,27 +1169,47 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
     tail : -1 or 0 or 1 (default = 0)
         See permutation_cluster_test.
     stat_fun : function
-        See permutation_cluster_test.
+        function called to calculate statistics, must accept 1d-arrays as
+        arguments (default: scipy.stats.f_oneway)
     connectivity : sparse matrix or None
-        See permutation_cluster_test.
+        Defines connectivity between features. The matrix is assumed to
+        be symmetric and only the upper triangular half is used.
+        Defaut is None, i.e, a regular lattice connectivity.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     n_jobs : int
-        See permutation_cluster_test.
+        Number of permutations to run in parallel (requires joblib package.)
     seed : int or None
-        See permutation_cluster_test.
+        Seed the random number generator for results reproducibility.
     max_step : int
-        See permutation_cluster_test.
+        When connectivity is a n_vertices x n_vertices matrix, specify the
+        maximum number of steps between vertices along the second dimension
+        (typically time) to be considered connected. This is not used for full
+        or None connectivity matrices.
     spatial_exclude : list of int or None
         List of spatial indices to exclude from clustering.
     step_down_p : float
-        See permutation_cluster_test.
+        To perform a step-down-in-jumps test, pass a p-value for clusters to
+        exclude from each successive iteration. Default is zero, perform no
+        step-down test (since no clusters will be smaller than this value).
+        Setting this to a reasonable value, e.g. 0.05, can increase sensitivity
+        but costs computation time.
     t_power : float
-        See permutation_cluster_test.
+        Power to raise the statistical values (usually t-values) by before
+        summing (sign will be retained). Note that t_power == 0 will give a
+        count of nodes in each cluster, t_power == 1 will weight each node by
+        its statistical score.
     out_type : str
-        See permutation_cluster_test.
+        For arrays with connectivity, this sets the output format for clusters.
+        If 'mask', it will pass back a list of boolean mask arrays.
+        If 'indices', it will pass back a list of lists, where each list is the
+        set of vertices in a given cluster. Note that the latter may use far
+        less memory for large datasets.
     check_disjoint : bool
-        See permutation_cluster_test.
+        If True, the connectivity matrix (or list) will be examined to
+        determine of it can be separated into disjoint sets. In some cases
+        (usually with connectivity as a list and many "time" points), this
+        can lead to faster clustering, but results should be identical.
 
     Returns
     -------
