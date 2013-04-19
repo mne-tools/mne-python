@@ -875,8 +875,11 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     local_file = None
     initial_size = 0
     try:
-        # Download data
-        print 'Downloading data from %s ...' % url
+        # Checking file size and displaying it alongside the download url
+        u = urllib2.urlopen(url)
+        file_size = int(u.info().getheaders("Content-Length")[0])
+        print 'Downloading data from %s (%s)' % (url, sizeof_fmt(file_size))
+        # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures 

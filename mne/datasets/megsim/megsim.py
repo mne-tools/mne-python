@@ -90,8 +90,6 @@ def data_path(url, path=None, force_update=False, update_path=None):
     # Fetch the file
     do_unzip = False
     if not op.isfile(destination) or force_update:
-        logger.info('Downloading data, please wait:')
-        logger.info(url)
         if op.isfile(destination):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):

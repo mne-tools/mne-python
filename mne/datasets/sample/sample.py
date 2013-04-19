@@ -67,8 +67,8 @@ def data_path(path=None, force_update=False, update_path=True):
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Archive %s not found at:\n%s\nDataset (~1.3GB) '
-                    'will be downloaded and extracted at this location.' \
+        logger.info('Sample data archive %s not found at:\n%s\n'
+                    'It will be downloaded and extracted at this location.' \
                     % (archive_name, folder_path))
 
         if op.exists(martinos_path):
@@ -88,8 +88,6 @@ def data_path(path=None, force_update=False, update_path=True):
                     raise IOError('Archive file already exists at target '
                                   'location %r.' % archive_name)
 
-            logger.info('Downloading data, please wait (1.3 GB):')
-            logger.info(url)
             _fetch_file(url, archive_name, print_destination=False)
 
         if op.exists(folder_path):
