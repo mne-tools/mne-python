@@ -770,7 +770,7 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-class resume_url_opener(urllib.FancyURLopener):
+class http_resume_url_opener(urllib.FancyURLopener):
     """Create sub-class in order to overide error 206.  
     
     This error means a partial file is being sent, which is ok in this case.
@@ -784,8 +784,7 @@ class resume_url_opener(urllib.FancyURLopener):
         pass
 
 
-def _chunk_read(response, local_file, chunk_size=8192, initial_size=0,
-                verbose=0):
+def _chunk_read(response, local_file, chunk_size=8192, initial_size=0):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -805,7 +804,8 @@ def _chunk_read(response, local_file, chunk_size=8192, initial_size=0,
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
     bytes_so_far = initial_size
-    # Returns amount left to download when resuming, not the size of the file
+    # Returns only amount left to download when resuming, not the size of the
+    # entire file
     total_size = int(response.info().getheader('Content-Length').strip())
     total_size += initial_size
 
@@ -814,13 +814,10 @@ def _chunk_read(response, local_file, chunk_size=8192, initial_size=0,
     while True:
         chunk = response.read(chunk_size)
         bytes_so_far += len(chunk)
-
         if not chunk:
             sys.stderr.write('\n')
             break
-
-        local_file.write(chunk)
-        progress.update(bytes_so_far)
+        _chunk_write(chunk, local_file, progress)
 
 
 def _chunk_read_ftp_resume(url, temp_full_name, local_file):
@@ -847,18 +844,17 @@ def _chunk_read_ftp_resume(url, temp_full_name, local_file):
                            spinner=True, mesg='downloading')
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write(chunk, local_file, 
-                                             local_file_size, progress)
+    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
 
 
-def _chunk_write(chunk, local_file, initial_size, progress):
+def _chunk_write(chunk, local_file, progress):
     """Write a chunk to file and update the progress bar"""
     local_file.write(chunk)
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
+def _fetch_file(url, data_dir, resume=True, overwrite=False):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -872,8 +868,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
         If true, try to resume partially downloaded files
     overwrite: bool, optional
         If true and file already exists, delete it.
-    verbose: integer, optional
-        Defines the level of verbosity of the output
 
     Returns
     -------
@@ -915,7 +909,7 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
             # Resuming HTTP and FTP downloads requires different procedures 
             scheme = urlparse.urlparse(url).scheme
             if scheme == 'http':
-                url_opener = resume_url_opener()
+                url_opener = http_resume_url_opener()
                 local_file_size = os.path.getsize(temp_full_name)
                 # If the file exists, then only download the remainder
                 url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
@@ -929,15 +923,13 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
                           'downloading the entire file.'
                     return _fetch_file(url, data_dir, resume=False,
                                        overwrite=False)
-                _chunk_read(data, local_file, initial_size=local_file_size,
-                            verbose=verbose)
+                _chunk_read(data, local_file, initial_size=local_file_size)
             else:
                 _chunk_read_ftp_resume(url, temp_full_name, local_file)
         else:
             local_file = open(temp_full_name, "wb")
             data = urllib2.urlopen(url)
-            _chunk_read(data, local_file, initial_size=initial_size,
-                        verbose=verbose)
+            _chunk_read(data, local_file, initial_size=initial_size)
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
@@ -947,14 +939,12 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False, verbose=0):
     except urllib2.HTTPError, e:
         print 'Error while fetching file %s.' \
             ' Dataset fetching aborted.' % file_name
-        if verbose > 0:
-            print "HTTP Error:", e, url
+        print "HTTP Error:", e, url
         raise
     except urllib2.URLError, e:
         print 'Error while fetching file %s.' \
             ' Dataset fetching aborted.' % file_name
-        if verbose > 0:
-            print "URL Error:", e, url
+        print "URL Error:", e, url
         raise
     finally:
         if local_file is not None:
