@@ -784,7 +784,7 @@ class http_resume_url_opener(urllib.FancyURLopener):
         pass
 
 
-def _chunk_read(response, local_file, chunk_size=8192, initial_size=0):
+def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -792,13 +792,13 @@ def _chunk_read(response, local_file, chunk_size=8192, initial_size=0):
     Parameters
     ----------
     response: urllib.addinfourl
-        Response to the download request in order to get file size
+        Response to the download request in order to get file size.
     local_file: file
-        Hard disk file where data should be written
+        Hard disk file where data should be written.
     chunk_size: integer, optional
         Size of downloaded chunks. Default: 8192
     initial_size: int, optional
-        If resuming, indicate the initial size of the file
+        If resuming, indicate the initial size of the file.
     """
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -820,7 +820,7 @@ def _chunk_read(response, local_file, chunk_size=8192, initial_size=0):
         _chunk_write(chunk, local_file, progress)
 
 
-def _chunk_read_ftp_resume(url, temp_full_name, local_file):
+def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     """Resume downloading of a file from an FTP server"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -829,7 +829,7 @@ def _chunk_read_ftp_resume(url, temp_full_name, local_file):
     file_name = os.path.basename(parsed_url.path)
     server_path = parsed_url.path.replace(file_name, "")
     unquoted_server_path = urllib.unquote(server_path)
-    local_file_size = os.path.getsize(temp_full_name)
+    local_file_size = os.path.getsize(temp_file_name)
     
     data = ftplib.FTP()
     data.connect(parsed_url.hostname, parsed_url.port)
@@ -854,53 +854,38 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, data_dir, resume=True):
+def _fetch_file(url, file_name, print_destination=True, resume=True):
     """Load requested file, downloading it if needed or requested
 
     Parameters
     ----------
-    urls: array of strings
-        Contains the urls of files to be downloaded.
-    data_dir: string, optional
-        Path of the data directory. Used to force data storage in a specified
-        location. Default: None
+    url: string
+        The url of file to be downloaded.
+    file_name: string
+        Name, along with the path, of where downloaded file will be saved.
+    print_destination: bool, optional
+        If true, destination of where file was saved will be printed after
+        download finishes.
     resume: bool, optional
-        If true, try to resume partially downloaded files
-
-    Returns
-    -------
-    files: array of string
-        Absolute paths of downloaded files on disk
-
-    Notes
-    -----
-    If, for any reason, the download procedure fails, all downloaded data are
-    cleaned.
+        If true, try to resume partially downloaded files.
     """
     # Adapted from NISL: 
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
-    # Determine data path
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-
-    file_name = os.path.basename(url)
     temp_file_name = file_name + ".part"
-    full_name = os.path.join(data_dir, file_name)
-    temp_full_name = os.path.join(data_dir, temp_file_name)
     t0 = time.time()
     local_file = None
     initial_size = 0
     try:
         # Download data
         print 'Downloading data from %s ...' % url
-        if resume and os.path.exists(temp_full_name):
-            local_file = open(temp_full_name, "ab")
+        if resume and os.path.exists(temp_file_name):
+            local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures 
             scheme = urlparse.urlparse(url).scheme
             if scheme == 'http':
                 url_opener = http_resume_url_opener()
-                local_file_size = os.path.getsize(temp_full_name)
+                local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
                 url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
                 try:
@@ -911,36 +896,34 @@ def _fetch_file(url, data_dir, resume=True):
                     # to complete download method
                     print 'Resuming download failed. Attempting to restart '\
                           'downloading the entire file.'
-                    return _fetch_file(url, data_dir, resume=False,
-                                       overwrite=False)
+                    _fetch_file(url, resume=False)
                 _chunk_read(data, local_file, initial_size=local_file_size)
             else:
-                _chunk_read_ftp_resume(url, temp_full_name, local_file)
+                _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
-            local_file = open(temp_full_name, "wb")
+            local_file = open(temp_file_name, "wb")
             data = urllib2.urlopen(url)
             _chunk_read(data, local_file, initial_size=initial_size)
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
-        shutil.move(temp_full_name, full_name)
-        dt = time.time() - t0
-        print '...done. (%i seconds, %i min)' % (dt, dt / 60)
+        shutil.move(temp_file_name, file_name)
+        if print_destination is True:
+            stdout.write('File saved as %s.\n' % file_name)
     except urllib2.HTTPError, e:
         print 'Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % file_name
+            ' Dataset fetching aborted.' % url
         print "HTTP Error:", e, url
         raise
     except urllib2.URLError, e:
         print 'Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % file_name
+            ' Dataset fetching aborted.' % url
         print "URL Error:", e, url
         raise
     finally:
         if local_file is not None:
             if not local_file.closed:
                 local_file.close()
-    return full_name
 
 
 def _download_status(url, file_name, print_destination=True):
