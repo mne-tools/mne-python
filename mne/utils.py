@@ -16,7 +16,6 @@ import subprocess
 import sys
 from sys import stdout
 import tempfile
-import time
 import shutil
 from shutil import rmtree
 import atexit
@@ -873,7 +872,6 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     
     temp_file_name = file_name + ".part"
-    t0 = time.time()
     local_file = None
     initial_size = 0
     try:
