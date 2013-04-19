@@ -926,33 +926,6 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                 local_file.close()
 
 
-def _download_status(url, file_name, print_destination=True):
-    """Download a URL to a file destination, with status updates"""
-    try:
-        u = urllib2.urlopen(url)
-    except Exception as exc:
-        print 'Could not load URL: %s' % url
-        raise exc
-    with open(file_name, 'wb') as f:
-        meta = u.info()
-        file_size = int(meta.getheaders("Content-Length")[0])
-        stdout.write('Downloading: %s (%s)\n' % (url, sizeof_fmt(file_size)))
-
-        progress = ProgressBar(0, file_size, max_chars=40, spinner=True,
-                               mesg='downloading')
-        file_size_dl = 0
-        block_sz = 65536
-        while True:
-            buf = u.read(block_sz)
-            if not buf:
-                break
-            file_size_dl += len(buf)
-            f.write(buf)
-            progress.update(file_size_dl)
-        if print_destination is True:
-            stdout.write('File saved as %s.\n' % file_name)
-
-
 def sizeof_fmt(num):
     """Turn number of bytes into human-readable str"""
     unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
