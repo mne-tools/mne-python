@@ -854,7 +854,7 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, data_dir, resume=True, overwrite=False):
+def _fetch_file(url, data_dir, resume=True):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -866,8 +866,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False):
         location. Default: None
     resume: bool, optional
         If true, try to resume partially downloaded files
-    overwrite: bool, optional
-        If true and file already exists, delete it.
 
     Returns
     -------
@@ -890,14 +888,6 @@ def _fetch_file(url, data_dir, resume=True, overwrite=False):
     temp_file_name = file_name + ".part"
     full_name = os.path.join(data_dir, file_name)
     temp_full_name = os.path.join(data_dir, temp_file_name)
-    if os.path.exists(full_name):
-        if overwrite:
-            os.remove(full_name)
-        else:
-            return full_name
-    if os.path.exists(temp_full_name):
-        if overwrite:
-            os.remove(temp_full_name)
     t0 = time.time()
     local_file = None
     initial_size = 0
