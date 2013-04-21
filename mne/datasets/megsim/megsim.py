@@ -9,8 +9,7 @@ from sys import stdout
 import logging
 logger = logging.getLogger('mne')
 
-from ...utils import _download_status, get_config, set_config, \
-                     _url_to_local_path
+from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
 from .urls import url_match, valid_data_types, valid_data_formats, \
                   valid_conditions
 
@@ -91,13 +90,11 @@ def data_path(url, path=None, force_update=False, update_path=None):
     # Fetch the file
     do_unzip = False
     if not op.isfile(destination) or force_update:
-        logger.info('Downloading data, please wait:')
-        logger.info(url)
         if op.isfile(destination):
             os.remove(destination)
         if not op.isdir(op.dirname(destination)):
             os.makedirs(op.dirname(destination))
-        _download_status(url, destination, False)
+        _fetch_file(url, destination, print_destination=False)
         do_unzip = True
 
     if is_zip:

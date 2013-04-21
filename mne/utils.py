@@ -16,11 +16,14 @@ import subprocess
 import sys
 from sys import stdout
 import tempfile
+import shutil
 from shutil import rmtree
 import atexit
 from math import log
 import json
+import urllib
 import urllib2
+import ftplib
 import urlparse
 from scipy import linalg
 
@@ -193,6 +196,7 @@ def run_subprocess(command, *args, **kwargs):
 
     return output
 
+
 ###############################################################################
 # DECORATORS
 
@@ -212,14 +216,13 @@ class deprecated(object):
     and the docstring. Note: to use this with the default value for extra, put
     in an empty of parentheses:
 
-    >>> from mne.utils import deprecated_func
+    >>> from mne.utils import deprecated
     >>> deprecated() # doctest: +ELLIPSIS
     <mne.utils.deprecated object at ...>
 
     >>> @deprecated()
     ... def some_function(): pass
     """
-
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
 
@@ -690,8 +693,9 @@ class ProgressBar(object):
     spinner_symbols = ['|', '/', '-', '\\']
     template = '\r[{}{}] {:.05f} {} {}   '
 
-    def __init__(self, max_value, mesg='', max_chars=40,
+    def __init__(self, initial_value, max_value, mesg='', max_chars=40,
                  progress_character='.', spinner=False):
+        self.cur_value = initial_value
         self.max_value = float(max_value)
         self.mesg = mesg
         self.max_chars = max_chars
@@ -716,7 +720,8 @@ class ProgressBar(object):
         """
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
-        progress = float(cur_value) / self.max_value
+        self.cur_value = cur_value
+        progress = float(self.cur_value) / self.max_value
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -741,32 +746,180 @@ class ProgressBar(object):
         # the output is not printed until after the program exits.
         sys.stdout.flush()
 
+    def update_with_increment_value(self, increment_value, mesg=None):
+        """Update progressbar with the value of the increment instead of the
+        current value of process as in update()
 
-def _download_status(url, file_name, print_destination=True):
-    """Download a URL to a file destination, with status updates"""
+        Parameters
+        ----------
+        increment_value : int
+            Value of the increment of process.  The percent of the progressbar
+            will be computed as
+            (self.initial_size + increment_value / max_value) * 100
+        mesg : str
+            Message to display to the right of the progressbar.  If None, the
+            last message provided will be used.  To clear the current message,
+        """
+        self.cur_value += increment_value
+        self.update(self.cur_value, mesg)
+
+
+class _HTTPResumeURLOpener(urllib.FancyURLopener):
+    """Create sub-class in order to overide error 206.
+
+    This error means a partial file is being sent, which is ok in this case.
+    Do nothing with this error.
+    """
+    # Adapted from:
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
+
+    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
+        pass
+
+
+def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
+    """Download a file chunk by chunk and show advancement
+
+    Can also be used when resuming downloads over http.
+
+    Parameters
+    ----------
+    response: urllib.addinfourl
+        Response to the download request in order to get file size.
+    local_file: file
+        Hard disk file where data should be written.
+    chunk_size: integer, optional
+        Size of downloaded chunks. Default: 8192
+    initial_size: int, optional
+        If resuming, indicate the initial size of the file.
+    """
+    # Adapted from NISL:
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+
+    bytes_so_far = initial_size
+    # Returns only amount left to download when resuming, not the size of the
+    # entire file
+    total_size = int(response.info().getheader('Content-Length').strip())
+    total_size += initial_size
+
+    progress = ProgressBar(bytes_so_far, total_size, max_chars=40,
+                           spinner=True, mesg='downloading')
+    while True:
+        chunk = response.read(chunk_size)
+        bytes_so_far += len(chunk)
+        if not chunk:
+            sys.stderr.write('\n')
+            break
+        _chunk_write(chunk, local_file, progress)
+
+
+def _chunk_read_ftp_resume(url, temp_file_name, local_file):
+    """Resume downloading of a file from an FTP server"""
+    # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
+    # but with changes
+
+    parsed_url = urlparse.urlparse(url)
+    file_name = os.path.basename(parsed_url.path)
+    server_path = parsed_url.path.replace(file_name, "")
+    unquoted_server_path = urllib.unquote(server_path)
+    local_file_size = os.path.getsize(temp_file_name)
+
+    data = ftplib.FTP()
+    data.connect(parsed_url.hostname, parsed_url.port)
+    data.login()
+    if len(server_path) > 1:
+        data.cwd(unquoted_server_path)
+    data.sendcmd("TYPE I")
+    data.sendcmd("REST " + str(local_file_size))
+    down_cmd = "RETR " + file_name
+    file_size = data.size(file_name)
+    progress = ProgressBar(local_file_size, file_size, max_chars=40,
+                           spinner=True, mesg='downloading')
+    # Callback lambda function that will be passed the downloaded data
+    # chunk and will write it to file and update the progress bar
+    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
+    data.retrbinary(down_cmd, chunk_write)
+
+
+def _chunk_write(chunk, local_file, progress):
+    """Write a chunk to file and update the progress bar"""
+    local_file.write(chunk)
+    progress.update_with_increment_value(len(chunk))
+
+
+def _fetch_file(url, file_name, print_destination=True, resume=True):
+    """Load requested file, downloading it if needed or requested
+
+    Parameters
+    ----------
+    url: string
+        The url of file to be downloaded.
+    file_name: string
+        Name, along with the path, of where downloaded file will be saved.
+    print_destination: bool, optional
+        If true, destination of where file was saved will be printed after
+        download finishes.
+    resume: bool, optional
+        If true, try to resume partially downloaded files.
+    """
+    # Adapted from NISL:
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+
+    temp_file_name = file_name + ".part"
+    local_file = None
+    initial_size = 0
     try:
+        # Checking file size and displaying it alongside the download url
         u = urllib2.urlopen(url)
-    except Exception as exc:
-        print 'Could not load URL: %s' % url
-        raise exc
-    with open(file_name, 'wb') as f:
-        meta = u.info()
-        file_size = int(meta.getheaders("Content-Length")[0])
-        stdout.write('Downloading: %s (%s)\n' % (url, sizeof_fmt(file_size)))
-
-        progress = ProgressBar(file_size, max_chars=40, spinner=True,
-                               mesg='downloading')
-        file_size_dl = 0
-        block_sz = 65536
-        while True:
-            buf = u.read(block_sz)
-            if not buf:
-                break
-            file_size_dl += len(buf)
-            f.write(buf)
-            progress.update(file_size_dl)
+        file_size = int(u.info().getheaders("Content-Length")[0])
+        print 'Downloading data from %s (%s)' % (url, sizeof_fmt(file_size))
+        # Downloading data
+        if resume and os.path.exists(temp_file_name):
+            local_file = open(temp_file_name, "ab")
+            # Resuming HTTP and FTP downloads requires different procedures
+            scheme = urlparse.urlparse(url).scheme
+            if scheme == 'http':
+                url_opener = _HTTPResumeURLOpener()
+                local_file_size = os.path.getsize(temp_file_name)
+                # If the file exists, then only download the remainder
+                url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
+                try:
+                    data = url_opener.open(url)
+                except urllib2.HTTPError:
+                    # There is a problem that may be due to resuming, some
+                    # servers may not support the "Range" header. Switch back
+                    # to complete download method
+                    print 'Resuming download failed. Attempting to restart '\
+                          'downloading the entire file.'
+                    _fetch_file(url, resume=False)
+                _chunk_read(data, local_file, initial_size=local_file_size)
+            else:
+                _chunk_read_ftp_resume(url, temp_file_name, local_file)
+        else:
+            local_file = open(temp_file_name, "wb")
+            data = urllib2.urlopen(url)
+            _chunk_read(data, local_file, initial_size=initial_size)
+        # temp file must be closed prior to the move
+        if not local_file.closed:
+            local_file.close()
+        shutil.move(temp_file_name, file_name)
         if print_destination is True:
             stdout.write('File saved as %s.\n' % file_name)
+    except urllib2.HTTPError, e:
+        print 'Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % url
+        print "HTTP Error:", e, url
+        raise
+    except urllib2.URLError, e:
+        print 'Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % url
+        print "URL Error:", e, url
+        raise
+    finally:
+        if local_file is not None:
+            if not local_file.closed:
+                local_file.close()
 
 
 def sizeof_fmt(num):
