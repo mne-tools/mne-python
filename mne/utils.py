@@ -170,7 +170,6 @@ def run_subprocess(command, *args, **kwargs):
         kwargs['stderr'] = subprocess.PIPE
     if 'stdout' not in kwargs:
         kwargs['stdout'] = subprocess.PIPE
-<<<<<<< HEAD
 
     # Check the PATH environment variable. If run_subprocess() is to be called
     # frequently this should be refactored so as to only check the path once.
@@ -196,11 +195,7 @@ def run_subprocess(command, *args, **kwargs):
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
-=======
-    p = subprocess.Popen(*args, **kwargs)
-    p_stdout, p_stderr = p.communicate()
-    return p.returncode, p_stdout, p_stderr
->>>>>>> FIX Small corrections
+
 
 ###############################################################################
 # DECORATORS
