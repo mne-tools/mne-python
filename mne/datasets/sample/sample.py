@@ -68,7 +68,7 @@ def data_path(path=None, force_update=False, update_path=True):
 
     if not op.exists(folder_path) or force_update:
         logger.info('Sample data archive %s not found at:\n%s\n'
-                    'It will be downloaded and extracted at this location.' \
+                    'It will be downloaded and extracted at this location.'
                     % (archive_name, folder_path))
 
         if op.exists(martinos_path):
