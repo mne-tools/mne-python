@@ -754,12 +754,12 @@ class ProgressBar(object):
     def update_with_increment_value(self, increment_value, mesg=None):
         """Update progressbar with the value of the increment instead of the
         current value of process as in update()
-        
+
         Parameters
         ----------
         increment_value : int
             Value of the increment of process.  The percent of the progressbar
-            will be computed as 
+            will be computed as
             (self.initial_size + increment_value / max_value) * 100
         mesg : str
             Message to display to the right of the progressbar.  If None, the
@@ -769,16 +769,16 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-class http_resume_url_opener(urllib.FancyURLopener):
-    """Create sub-class in order to overide error 206.  
-    
+class _HTTPResumeURLOpener(urllib.FancyURLopener):
+    """Create sub-class in order to overide error 206.
+
     This error means a partial file is being sent, which is ok in this case.
     Do nothing with this error.
     """
-    # Adapted from: 
+    # Adapted from:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
     # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
-    
+
     def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
         pass
 
@@ -799,16 +799,16 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     initial_size: int, optional
         If resuming, indicate the initial size of the file.
     """
-    # Adapted from NISL: 
+    # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    
+
     bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
     total_size = int(response.info().getheader('Content-Length').strip())
     total_size += initial_size
 
-    progress = ProgressBar(bytes_so_far, total_size, max_chars=40, 
+    progress = ProgressBar(bytes_so_far, total_size, max_chars=40,
                            spinner=True, mesg='downloading')
     while True:
         chunk = response.read(chunk_size)
@@ -823,13 +823,13 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     """Resume downloading of a file from an FTP server"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
-    
+
     parsed_url = urlparse.urlparse(url)
     file_name = os.path.basename(parsed_url.path)
     server_path = parsed_url.path.replace(file_name, "")
     unquoted_server_path = urllib.unquote(server_path)
     local_file_size = os.path.getsize(temp_file_name)
-    
+
     data = ftplib.FTP()
     data.connect(parsed_url.hostname, parsed_url.port)
     data.login()
@@ -837,7 +837,7 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
         data.cwd(unquoted_server_path)
     data.sendcmd("TYPE I")
     data.sendcmd("REST " + str(local_file_size))
-    down_cmd = "RETR "+ file_name
+    down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
     progress = ProgressBar(local_file_size, file_size, max_chars=40,
                            spinner=True, mesg='downloading')
@@ -868,9 +868,9 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     resume: bool, optional
         If true, try to resume partially downloaded files.
     """
-    # Adapted from NISL: 
+    # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    
+
     temp_file_name = file_name + ".part"
     local_file = None
     initial_size = 0
@@ -882,10 +882,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
-            # Resuming HTTP and FTP downloads requires different procedures 
+            # Resuming HTTP and FTP downloads requires different procedures
             scheme = urlparse.urlparse(url).scheme
             if scheme == 'http':
-                url_opener = http_resume_url_opener()
+                url_opener = _HTTPResumeURLOpener()
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
                 url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
