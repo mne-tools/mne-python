@@ -32,6 +32,7 @@ from warnings import warn
 # XXX : don't import pylab here or you will break the doc
 from .fixes import tril_indices, Counter
 from .baseline import rescale
+from .layouts import read_layout
 from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
 from .fiff import show_fiff
@@ -587,7 +588,47 @@ def plot_proj_topomap(proj, layout):
     plot_topomap(data, pos)
 
 
-def plot_topomap(data, pos, vmax=None, cmap=None, res=100, axes=None):
+def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
+                        cmap='RdBu_r', colorbar=True, res=256):
+    """Plot a time point in an evoked as topographic map
+
+    Parameters
+    ----------
+    evoked : Evoked
+        The Evoked object.
+    time : scalar
+        The time point to plot.
+    ch_type : 'mag' | 'grad' | 'eeg'
+        The channel type to plot.
+    layout : None | str
+        Path to a .lout file specifying sensor positions (does not need to be
+        specified for ??? data).
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    colorbar : bool
+        Plot a colorbar.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    """
+    import pylab as pl
+
+    if layout is None:
+        layout = read_layout('Vectorview-%s' % ch_type)
+
+    picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
+    data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
+    pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
+
+    plot_topomap(data, pos, vmax=vmax, cmap=cmap, res=res)
+
+    if colorbar:
+        pl.colorbar()
+
+
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100, axes=None):
     """Plot a topographic map as image
 
     Parameters
