@@ -19,6 +19,7 @@ import webbrowser
 import copy
 import inspect
 
+from matplotlib import delaunay
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -568,6 +569,76 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                      x_label='Time (s)', y_label='Epoch')
 
     return fig
+
+
+def plot_proj_topomap(proj, layout):
+    """Plot a Projection instance as topomap
+
+    Parameters
+    ----------
+    proj : Projection
+        The projection.
+    layout :
+
+    """
+    data = proj['data']['data'][0]
+    idx = [layout.names.index(name) for name in proj['data']['col_names']]
+    pos = layout.pos[idx, :2]
+    plot_topomap(data, pos)
+
+
+def plot_topomap(data, pos, vmax=None, cmap=None, res=100, axes=None):
+    """Plot a topographic map as image
+
+    Parameters
+    ----------
+    data : array, length = n_points
+        The data values to plot.
+    pos : array, shape = (n_points, 2)
+        For each data point, the x and y coordinates.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    axes : matplotlib axes | None
+        The axes on which to plot. If None, use :func:`pylab.gca`.
+    """
+    import pylab as pl
+
+    data = np.asarray(data)
+    pos = np.asarray(pos)
+    if data.ndim > 1:
+        err = ("Data needs to be array of shape (n_sensors,); got shape "
+               "%s." % str(data.shape))
+        raise ValueError(err)
+    elif len(data) != len(pos):
+        err = ("Data and pos need to be of same length. Got data of shape %s, "
+               "pos of shape %s." % (str(), str()))
+
+
+    if axes is None:
+        axes = pl.gca(frame_on=False)
+
+    if vmax is None:
+        vmax = np.abs(data).max()
+
+    pl.xticks(())
+    pl.yticks(())
+
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    triang = delaunay.Triangulation(pos_x, pos_y)
+    interp = triang.linear_interpolator(data)
+    x = np.linspace(xmin, xmax, res)
+    y = np.linspace(ymin, ymax, res)
+    xi, yi = np.meshgrid(x, y)
+
+    im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
+                xi.min():xi.max():complex(0, xi.shape[1])]
+    im = np.ma.masked_array(im, im == np.nan)
+
+    pl.imshow(im, cmap=cmap, vmin= -vmax, vmax=vmax, origin='lower',
+              aspect='equal', extent=(xmin, xmax, ymin, ymax), axes=axes)
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
