@@ -32,7 +32,6 @@ from warnings import warn
 # XXX : don't import pylab here or you will break the doc
 from .fixes import tril_indices, Counter
 from .baseline import rescale
-from .layouts import read_layout
 from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
 from .fiff import show_fiff
@@ -616,6 +615,7 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     import pylab as pl
 
     if layout is None:
+        from .layouts import read_layout
         layout = read_layout('Vectorview-%s' % ch_type)
 
     picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
