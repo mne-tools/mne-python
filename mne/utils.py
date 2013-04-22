@@ -688,7 +688,7 @@ class ProgressBar(object):
     spinner_symbols = ['|', '/', '-', '\\']
     template = '\r[{}{}] {:.05f} {} {}   '
 
-    def __init__(self, initial_value, max_value, mesg='', max_chars=40,
+    def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
                  progress_character='.', spinner=False):
         self.cur_value = initial_value
         self.max_value = float(max_value)
@@ -798,7 +798,7 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     total_size = int(response.info().getheader('Content-Length').strip())
     total_size += initial_size
 
-    progress = ProgressBar(bytes_so_far, total_size, max_chars=40,
+    progress = ProgressBar(total_size, initial_size=bytes_so_far, max_chars=40,
                            spinner=True, mesg='downloading')
     while True:
         chunk = response.read(chunk_size)
@@ -829,7 +829,7 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     data.sendcmd("REST " + str(local_file_size))
     down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
-    progress = ProgressBar(local_file_size, file_size, max_chars=40,
+    progress = ProgressBar(file_size, initial_size=local_file_size, max_chars=40,
                            spinner=True, mesg='downloading')
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
