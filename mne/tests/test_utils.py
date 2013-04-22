@@ -5,7 +5,7 @@ import os
 import warnings
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config
+                    get_config, set_config, deprecated
 from ..fiff import Evoked, show_fiff
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
@@ -122,3 +122,12 @@ def test_show_fiff():
             'FIFF_EPOCH']
     assert_true(all([key in info for key in keys]))
     info = show_fiff(fname_raw, read_limit=1024)
+
+
+@deprecated('message')
+def deprecated_func():
+    pass
+
+
+def test_deprecated():
+    deprecated_func()

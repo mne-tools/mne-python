@@ -290,11 +290,6 @@ class deprecated(object):
         return newdoc
 
 
-@deprecated
-def deprecated_func():
-    pass
-
-
 def verbose(function):
     """Decorator to allow functions to override default log level
 
