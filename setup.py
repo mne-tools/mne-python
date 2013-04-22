@@ -54,6 +54,8 @@ if __name__ == "__main__":
                     'mne.datasets.sample',
                     'mne.datasets.megsim',
                     'mne.fiff', 'mne.fiff.tests',
+                    'mne.fiff.bti', 'mne.fiff.bti.tests'
+                    'mne.fiff.kit', 'mne.fiff.kit.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
                     'mne.mixed_norm', 'mne.mixed_norm.tests',
