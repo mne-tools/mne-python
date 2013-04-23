@@ -23,8 +23,6 @@ if __name__ == '__main__':
                     help='Headshape file name', metavar='filename')
     parser.add_option('--hsp', dest='hsp_fname',
                     help='Headshape file name', metavar='filename')
-    parser.add_option('--sns', dest='sns_fname',
-                    help='Sensor info file name', metavar='filename')
     parser.add_option('--stim', dest='stim',
                       help='Colon Separated Stimulus Trigger Channels',
                       metavar='chs')
@@ -44,7 +42,6 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(-1)
 
-    sns_fname = options.sns_fname
     hsp_fname = options.hsp_fname
     elp_fname = options.elp_fname
     mrk_fname = options.mrk_fname
@@ -57,8 +54,8 @@ if __name__ == '__main__':
         stim = stim.split(':')
 
     raw = read_raw_kit(input_fname=input_fname, mrk=mrk_fname, elp=elp_fname,
-                       hsp=hsp_fname, sns_fname=sns_fname, stim=stim,
-                       slope=slope, stimthresh=stimthresh)
+                       hsp=hsp_fname, stim=stim, slope=slope,
+                       stimthresh=stimthresh)
 
     raw.save(out_fname)
     raw.close()
