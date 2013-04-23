@@ -74,11 +74,8 @@ class RawKIT(Raw):
     """
     @verbose
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None,
-                 sns_fname=None, stim='<', slope='+',
-                 stimthresh=1, verbose=None, preload=False):
-        if sns_fname is None:
-            err = ("An sns_fname must be provided, can't be None")
-            raise NotImplementedError(err)
+                 stim='>', slope='-', stimthresh=1,
+                 verbose=None, preload=False):
 
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -524,8 +521,8 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk, elp, hsp, sns_fname,
-                 stim='<', slope='+', stimthresh=1,
+def read_raw_kit(input_fname, mrk, elp, hsp,
+                 stim='>', slope='-', stimthresh=1,
                  verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
