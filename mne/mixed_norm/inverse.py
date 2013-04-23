@@ -63,12 +63,17 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
 
 
 @verbose
-def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=None):
+def _make_sparse_stc(X, active_set, forward, tmin, tstep,
+                     active_is_idx=False, verbose=None):
     if not is_fixed_orient(forward):
         logger.info('combining the current components...')
         X = combine_xyz(X)
 
-    active_idx = np.where(active_set)[0]
+    if not active_is_idx:
+        active_idx = np.where(active_set)[0]
+    else:
+        active_idx = active_set
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)
