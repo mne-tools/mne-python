@@ -324,7 +324,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                             'computation (h_power=%0.2f, e_power=%0.2f)'
                             % (len(thresholds), thresholds[0], thresholds[-1],
                                h_power, e_power))
-        scores = np.zeros(x.shape)
+        scores = np.zeros(x.size)
     else:
         thresholds = [threshold]
         tfce = False
@@ -383,11 +383,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 # slices
                 clusters = [slice(c, c + 1) for c in clusters]
             else:
-                # boolean masks
-                clusters = [clusters == ii for ii in range(len(clusters))]
+                # boolean masks (raveled)
+                clusters = [(clusters == ii).ravel()
+                            for ii in range(len(clusters))]
         else:
-            clusters = [[c] for c in clusters]
-        sums = scores.ravel()
+            clusters = [np.array([c]) for c in clusters]
+        sums = scores
     return clusters, sums
 
 
@@ -417,6 +418,7 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
         labels, n_labels = ndimage.label(x_in)
 
         if x.ndim == 1:
+            # slices
             clusters = ndimage.find_objects(labels, n_labels)
             if len(clusters) == 0:
                 sums = []
@@ -429,11 +431,12 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
                                                   np.abs(x) ** t_power, labels,
                                                   index=range(1, n_labels + 1))
         else:
+            # boolean masks (raveled)
             clusters = list()
             sums = np.empty(n_labels)
             for l in range(1, n_labels + 1):
                 c = labels == l
-                clusters.append(c)
+                clusters.append(c.ravel())
                 if t_power == 1:
                     sums[l - 1] = np.sum(x[c])
                 else:
@@ -458,11 +461,19 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
     return clusters, np.atleast_1d(sums)
 
 
-def _clusters_to_bool(components, n_tot):
+def _cluster_indices_to_mask(components, n_tot):
     """Convert to the old format of clusters, which were bool arrays"""
     for ci, c in enumerate(components):
         components[ci] = np.zeros((n_tot), dtype=bool)
         components[ci][c] = True
+    return components
+
+
+def _cluster_mask_to_indices(components):
+    """Convert to the old format of clusters, which were bool arrays"""
+    for ci, c in enumerate(components):
+        if not isinstance(c, slice):
+            components[ci] = np.where(c)[0]
     return components
 
 
@@ -653,11 +664,16 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     logger.info('Found %d clusters' % len(clusters))
 
     # convert clusters to old format
-    if connectivity is not None and out_type == 'mask':
-        clusters = _clusters_to_bool(clusters, n_tests)
+    if connectivity is not None:
+        # our algorithms output lists of indices by default
+        if out_type == 'mask':
+            clusters = _cluster_indices_to_mask(clusters, n_tests)
+    else:
+        # ndimage outputs slices or boolean masks by default
+        if out_type == 'indices':
+            clusters = _cluster_mask_to_indices(clusters)
 
-    # The clusters and stat should have the same shape as the samples
-    clusters = _reshape_clusters(clusters, sample_shape)
+    # The stat should have the same shape as the samples
     T_obs.shape = sample_shape
 
     if len(X) == 1:  # 1 sample test
@@ -724,6 +740,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             under = np.where(cluster_pv < step_down_p)[0]
             for ci in under:
                 step_down_include[clusters[ci]] = False
+            if connectivity is None:
+                step_down_include.shape = sample_shape
             step_down_iteration += 1
             if step_down_p > 0:
                 extra_text = 'additional ' if step_down_iteration > 1 else ''
@@ -735,6 +753,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                                extra_text, plural))
             clusters_kept += under.size
 
+        # The clusters should have the same shape as the samples
+        clusters = _reshape_clusters(clusters, sample_shape)
         return T_obs, clusters, cluster_pv, H0
     else:
         return T_obs, np.array([]), np.array([]), np.array([])

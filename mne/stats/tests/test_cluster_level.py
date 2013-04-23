@@ -251,39 +251,60 @@ def test_permutation_connectivity_equiv():
     stat_map = None
     thresholds = [2, dict(start=0.5, step=0.5)]
     sig_counts = [2, 8]
-    for threshold, count in zip(thresholds, sig_counts):
+    sdps = [0, 0.05, 0.05]
+    ots = ['mask', 'mask', 'indices']
+    for thresh, count in zip(thresholds, sig_counts):
         cs = None
         ps = None
         for max_step, conn in zip(max_steps, conns):
             for stat_fun in [ttest_1samp_no_p,
                              partial(ttest_1samp_no_p, sigma=1e-3)]:
-                t, clusters, p, H0 = \
-                        permutation_cluster_1samp_test(X, threshold=threshold,
-                                                       connectivity=conn,
-                                                       n_jobs=2,
-                                                       max_step=max_step,
-                                                       stat_fun=stat_fun)
-                # make sure all comparisons were done; for TFCE, no perm
-                # should come up empty
-                if count == 8:
-                    assert_true(not np.any(H0 == 0))
-                inds = np.where(p < 0.05)[0]
-                assert_true(len(inds) == count)
-                this_cs = [clusters[ii] for ii in inds]
-                this_ps = p[inds]
-                this_stat_map = np.zeros((2, 10), dtype=bool)
-                for c in this_cs:
-                    this_stat_map[c] = True
-                if cs is None:
-                    ps = this_ps
-                    cs = this_cs
-                if stat_map is None:
-                    stat_map = this_stat_map
-                assert_array_equal(ps, this_ps)
-                assert_true(len(cs) == len(this_cs))
-                for c1, c2 in zip(cs, this_cs):
-                    assert_array_equal(c1, c2)
-                assert_array_equal(stat_map, this_stat_map)
+                for sdp, ot in zip(sdps, ots):
+                    t, clusters, p, H0 = \
+                            permutation_cluster_1samp_test(X,
+                                                           threshold=thresh,
+                                                           connectivity=conn,
+                                                           n_jobs=2,
+                                                           max_step=max_step,
+                                                           stat_fun=stat_fun,
+                                                           step_down_p=sdp,
+                                                           out_type=ot)
+                    # make sure our output datatype is correct
+                    if ot == 'mask':
+                        assert_true(isinstance(clusters[0], np.ndarray))
+                        assert_true(clusters[0].dtype == bool)
+                        assert_array_equal(clusters[0].shape, X.shape[1:])
+                    else:  # ot == 'indices'
+                        assert_true(isinstance(clusters[0], tuple))
+
+                    # make sure all comparisons were done; for TFCE, no perm
+                    # should come up empty
+                    if count == 8:
+                        assert_true(not np.any(H0 == 0))
+                    inds = np.where(p < 0.05)[0]
+                    assert_true(len(inds) == count)
+                    this_cs = [clusters[ii] for ii in inds]
+                    this_ps = p[inds]
+                    this_stat_map = np.zeros((2, 10), dtype=bool)
+                    for ci, c in enumerate(this_cs):
+                        if isinstance(c, tuple):
+                            this_c = np.zeros((2, 10), bool)
+                            for x, y in zip(c[0], c[1]):
+                                this_stat_map[x, y] = True
+                                this_c[x, y] = True
+                            this_cs[ci] = this_c
+                            c = this_c
+                        this_stat_map[c] = True
+                    if cs is None:
+                        ps = this_ps
+                        cs = this_cs
+                    if stat_map is None:
+                        stat_map = this_stat_map
+                    assert_array_equal(ps, this_ps)
+                    assert_true(len(cs) == len(this_cs))
+                    for c1, c2 in zip(cs, this_cs):
+                        assert_array_equal(c1, c2)
+                    assert_array_equal(stat_map, this_stat_map)
 
 
 def ttest_1samp(X):
