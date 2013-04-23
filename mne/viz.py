@@ -19,10 +19,10 @@ import webbrowser
 import copy
 import inspect
 
-from matplotlib import delaunay
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
+from matplotlib import delaunay
 
 import logging
 logger = logging.getLogger('mne')
@@ -571,25 +571,9 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_proj_topomap(proj, layout):
-    """Plot a Projection instance as topomap
-
-    Parameters
-    ----------
-    proj : Projection
-        The projection.
-    layout :
-
-    """
-    data = proj['data']['data'][0]
-    idx = [layout.names.index(name) for name in proj['data']['col_names']]
-    pos = layout.pos[idx, :2]
-    plot_topomap(data, pos)
-
-
 def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
                         cmap='RdBu_r', colorbar=True, res=256):
-    """Plot a time point in an evoked as topographic map
+    """Plot a time point of evoked data as topographic map
 
     Parameters
     ----------
@@ -599,9 +583,9 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         The time point to plot.
     ch_type : 'mag' | 'grad' | 'eeg'
         The channel type to plot.
-    layout : None | str
-        Path to a .lout file specifying sensor positions (does not need to be
-        specified for ??? data).
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data).
     vmax : scalar
         The value specfying the range of the color scale (-vmax to +vmax). If
         None, the largest absolute value in the data is used.
