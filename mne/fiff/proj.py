@@ -302,14 +302,18 @@ def read_proj(fid, node, verbose=None):
         else:
             active = False
 
+        # handle the case when data is transposed for some reason
+        if data.shape[0] == len(names) and data.shape[1] == nvec:
+            data = data.T
+
         if data.shape[1] != len(names):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
-                    data=dict(nrow=nvec, ncol=nchan, row_names=None,
-                              col_names=names, data=data))
+                         data=dict(nrow=nvec, ncol=nchan, row_names=None,
+                                   col_names=names, data=data))
 
         projs.append(one)
 

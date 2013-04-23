@@ -264,7 +264,7 @@ class RtClient(object):
 
     def start_measurement(self):
         """Start the measurement"""
-        cmd = 'meas %d' % self._client_id
+        cmd = 'start %d' % self._client_id
         self._send_command(cmd)
 
     def stop_measurement(self):
