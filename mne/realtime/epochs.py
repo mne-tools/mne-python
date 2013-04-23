@@ -117,6 +117,9 @@ class RtEpochs(_BaseEpochs):
         either turn off baseline correction, as this may introduce a DC
         shift, or set baseline correction to use the entire time interval
         (will yield equivalent results but be slower).
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to client.verbose.
@@ -140,7 +143,8 @@ class RtEpochs(_BaseEpochs):
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', keep_comp=False, dest_comp=0, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, verbose=None):
+                 reject_tmax=None, detrend=None, add_eeg_ref=True,
+                 verbose=None):
 
         info = client.get_measurement_info()
 
@@ -154,9 +158,9 @@ class RtEpochs(_BaseEpochs):
                 baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,
                 dest_comp=dest_comp, reject=reject, flat=flat, proj=proj,
                 decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
-                detrend=detrend, verbose=verbose)
+                detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
 
-        # FIXME: comp problem
+        # FIXME: comp problem (?)
 
         self._client = client
         self._n_epochs = n_epochs

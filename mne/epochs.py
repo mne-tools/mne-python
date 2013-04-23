@@ -99,11 +99,9 @@ class _BaseEpochs(ProjMixin):
         self.info = info
         if picks is None:
             picks = range(len(self.info['ch_names']))
-            self.ch_names = self.info['ch_names']
         else:
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
-            self.ch_names = self.info['ch_names']
             self.info['nchan'] = len(picks)
         self.picks = picks
 
@@ -213,7 +211,8 @@ class _BaseEpochs(ProjMixin):
                 data = data[:, self._reject_time]
 
             return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True)
+                            self.reject, self.flat, full_report=True,
+                            ignore_chs=self.info['bads'])
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -283,6 +282,8 @@ class _BaseEpochs(ProjMixin):
         _do_std = True if mode == 'stderr' else False
         evoked = Evoked(None)
         evoked.info = cp.deepcopy(self.info)
+        # make sure projs are really copied.
+        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
@@ -312,8 +313,8 @@ class _BaseEpochs(ProjMixin):
         evoked.times = self.times.copy()
         evoked.comment = self.name
         evoked.nave = n_events
-        evoked.first = -int(np.sum(self.times < 0))
-        evoked.last = int(np.sum(self.times > 0))
+        evoked.first = int(self.times[0] * self.info['sfreq'])
+        evoked.last = evoked.first + len(self.times) - 1
         if not _do_std:
             evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
         else:
@@ -325,7 +326,7 @@ class _BaseEpochs(ProjMixin):
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True,
                                stim=False, eog=False, ecg=False,
-                               emg=False)
+                               emg=False, exclude=[])
             if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
@@ -335,7 +336,15 @@ class _BaseEpochs(ProjMixin):
                                    for k in picks]
         evoked.info['nchan'] = len(picks)
         evoked.data = evoked.data[picks]
+        # otherwise the apply_proj will be confused
+        evoked.proj = True if self.proj is True else None
+        evoked.verbose = self.verbose
+
         return evoked
+
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
 
 
 class Epochs(_BaseEpochs):
@@ -501,6 +510,8 @@ class Epochs(_BaseEpochs):
         if event_id is None:
             # use all event types
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+
+        proj = proj or raw.proj # proj is on when applied in Raw
 
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(info, event_id, tmin, tmax,
@@ -1163,10 +1174,6 @@ class Epochs(_BaseEpochs):
         epochs.drop_epochs(indices)
         # actually remove the indices
         return epochs, indices
-
-    @property
-    def ch_names(self):
-        return self.info['ch_names']
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
