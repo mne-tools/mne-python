@@ -89,6 +89,9 @@ Changelog
 
    - Access source estimates as Pandas DataFrame by `Denis Engemann`_. 
 
+   - Add example of decoding/MVPA on MEG source space data by `Denis Engemann`_
+
+
 API
 ~~~
 

@@ -13,7 +13,6 @@ epochs in source space.
 # Author: Denis A. Engemann <d.engemann@fz-juelich.de>
 #         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
-#
 # License: BSD (3-clause)
 
 print __doc__
@@ -30,6 +29,7 @@ fname_fwd = data_path + 'MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 subjects_dir = data_path + '/subjects'
 subject = os.environ['SUBJECT'] = subjects_dir + '/sample'
+os.environ['SUBJECTS_DIR'] = subjects_dir
 
 ###############################################################################
 # Set parameters
@@ -133,7 +133,6 @@ print 'Average prediction accuracy: %0.3f | standard deviation:  %0.3f' % \
     (scores.mean(), scores.std())
 
 # prepare feature weights for visualization
-
 feature_weights /= (ii + 1)  # create average weights
 # create mask to avoid division error
 feature_weights = np.ma.masked_array(feature_weights, feature_weights == 0)
