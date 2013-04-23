@@ -499,6 +499,9 @@ class Epochs(_BaseEpochs):
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
 
+
+        proj = proj or raw.proj # proj is on when applied in Raw
+
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(info, event_id, tmin, tmax,
                 baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,

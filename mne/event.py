@@ -349,6 +349,72 @@ def find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
 
 
 @verbose
+def _find_events(data, first_samp, verbose=None, output='onset',
+                 consecutive='increasing', min_samples=0):
+    """Helper function for find events"""
+    if min_samples > 0:
+        merge = int(min_samples // 1)
+        if merge == min_samples:
+            merge -= 1
+    else:
+        merge = 0
+
+    if np.any(data < 0):
+        logger.warn('Trigger channel contains negative values. '
+                    'Taking absolute value.')
+        data = np.abs(data)  # make sure trig channel is positive
+    data = data.astype(np.int)
+
+    events = find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+
+    # Determine event onsets and offsets
+    if consecutive == 'increasing':
+        onsets = (events[:, 2] > events[:, 1])
+        offsets = np.logical_and(np.logical_or(onsets, (events[:, 2] == 0)),
+                                 (events[:, 1] > 0))
+    elif consecutive:
+        onsets = (events[:, 2] > 0)
+        offsets = (events[:, 1] > 0)
+    else:
+        onsets = (events[:, 1] == 0)
+        offsets = (events[:, 2] == 0)
+
+    onset_idx = np.where(onsets)[0]
+    offset_idx = np.where(offsets)[0]
+
+    if len(onset_idx) == 0 or len(offset_idx) == 0:
+        return np.empty((0, 3), dtype='int32')
+
+    # delete orphaned onsets/offsets
+    if onset_idx[0] > offset_idx[0]:
+        logger.info("Removing orphaned offset at the beginning of the file.")
+        offset_idx = np.delete(offset_idx, 0)
+
+    if onset_idx[-1] > offset_idx[-1]:
+        logger.info("Removing orphaned onset at the end of the file.")
+        onset_idx = np.delete(onset_idx, -1)
+
+    if output == 'onset':
+        events = events[onset_idx]
+    elif output == 'step':
+        idx = np.union1d(onset_idx, offset_idx)
+        events = events[idx]
+    elif output == 'offset':
+        event_id = events[onset_idx, 2]
+        events = events[offset_idx]
+        events[:, 1] = events[:, 2]
+        events[:, 2] = event_id
+        events[:, 0] -= 1
+    else:
+        raise Exception("Invalid output parameter %r" % output)
+
+    logger.info("%s events found" % len(events))
+    logger.info("Events id: %s" % np.unique(events[:, 2]))
+
+    return events
+
+
+@verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0):
     """Find events from raw file
@@ -445,13 +511,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     --------
     find_stim_steps : Find all the steps in the stim channel.
     """
-    if min_duration > 0:
-        min_samples = min_duration * raw.info['sfreq']
-        merge = int(min_samples // 1)
-        if merge == min_samples:
-            merge -= 1
-    else:
-        merge = 0
+    min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
     stim_channel = _get_stim_channel(stim_channel)
@@ -460,57 +520,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     if len(pick) == 0:
         raise ValueError('No stim channel found to extract event triggers.')
     data, _ = raw[pick, :]
-    if np.any(data < 0):
-        logger.warn('Trigger channel contains negative values. '
-                    'Taking absolute value.')
-        data = np.abs(data)  # make sure trig channel is positive
-    data = data.astype(np.int)
 
-    events = find_stim_steps(data, raw.first_samp, pad_stop=0, merge=merge)
-
-    # Determine event onsets and offsets
-    if consecutive == 'increasing':
-        onsets = (events[:, 2] > events[:, 1])
-        offsets = np.logical_and(np.logical_or(onsets, (events[:, 2] == 0)),
-                                 (events[:, 1] > 0))
-    elif consecutive:
-        onsets = (events[:, 2] > 0)
-        offsets = (events[:, 1] > 0)
-    else:
-        onsets = (events[:, 1] == 0)
-        offsets = (events[:, 2] == 0)
-
-    onset_idx = np.where(onsets)[0]
-    offset_idx = np.where(offsets)[0]
-
-    if len(onset_idx) == 0 or len(offset_idx) == 0:
-        return np.empty((0, 3), dtype='int32')
-
-    # delete orphaned onsets/offsets
-    if onset_idx[0] > offset_idx[0]:
-        logger.info("Removing orphaned offset at the beginning of the file.")
-        offset_idx = np.delete(offset_idx, 0)
-
-    if onset_idx[-1] > offset_idx[-1]:
-        logger.info("Removing orphaned onset at the end of the file.")
-        onset_idx = np.delete(onset_idx, -1)
-
-    if output == 'onset':
-        events = events[onset_idx]
-    elif output == 'step':
-        idx = np.union1d(onset_idx, offset_idx)
-        events = events[idx]
-    elif output == 'offset':
-        event_id = events[onset_idx, 2]
-        events = events[offset_idx]
-        events[:, 1] = events[:, 2]
-        events[:, 2] = event_id
-        events[:, 0] -= 1
-    else:
-        raise Exception("Invalid output parameter %r" % output)
-
-    logger.info("%s events found" % len(events))
-    logger.info("Events id: %s" % np.unique(events[:, 2]))
+    events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
+                          consecutive=consecutive, min_samples=min_samples)
 
     return events
 
