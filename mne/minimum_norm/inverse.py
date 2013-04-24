@@ -756,7 +756,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Use mininum norm, dSPM or sLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
-        source estimates will be computed for the entire cortical surface.
+        source estimates will be computed for the entire source space.
     start : int
         Index of first time sample (index not time is seconds).
     stop : int
@@ -925,7 +925,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
         Use mininum norm, dSPM or sLORETA.
     label : Label | None
         Restricts the source estimates to a given label. If None,
-        source estimates will be computed for the entire cortical surface.
+        source estimates will be computed for the entire source space.
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
