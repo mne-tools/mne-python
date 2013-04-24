@@ -612,7 +612,7 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         pl.colorbar()
 
 
-def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100, axes=None):
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100):
     """Plot a topographic map as image
 
     Parameters
@@ -623,8 +623,6 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100, axes=None):
         For each data point, the x and y coordinates.
     res : int
         The resolution of the topomap image (n pixels along each side).
-    axes : matplotlib axes | None
-        The axes on which to plot. If None, use :func:`pylab.gca`.
     """
     import pylab as pl
 
@@ -639,8 +637,8 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100, axes=None):
                "pos of shape %s." % (str(), str()))
 
 
-    if axes is None:
-        axes = pl.gca(frame_on=False)
+    axes = pl.gca()
+    axes.set_frame_on(False)
 
     if vmax is None:
         vmax = np.abs(data).max()
@@ -663,7 +661,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100, axes=None):
     im = np.ma.masked_array(im, im == np.nan)
 
     pl.imshow(im, cmap=cmap, vmin= -vmax, vmax=vmax, origin='lower',
-              aspect='equal', extent=(xmin, xmax, ymin, ymax), axes=axes)
+              aspect='equal', extent=(xmin, xmax, ymin, ymax))
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
