@@ -16,13 +16,13 @@ from .. import verbose
 
 
 @verbose
-def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
+def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
                    group_size=1, gammas=None, verbose=None):
     """Hierarchical Bayes (Gamma-MAP)
 
     Parameters
     ----------
-    M : array, /shape=(n_sensors, n_times)
+    M : array, shape=(n_sensors, n_times)
         Observation.
     G : array, shape=(n_sensors, n_sources)
         Forward operator.
@@ -34,6 +34,9 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
         Tolerance parameter for convergence.
     group_size : int
         Number of consecutive sources which use the same gamma.
+    update_mode : int
+        Update mode, 1: EM update (slow, not recommended), 2: MacKay update
+        (fast, default), 3: Modified MacKay update.
     gammas : array, shape=(n_sources,)
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
@@ -45,12 +48,13 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
     X : array, shape=(n_active, n_times)
         Estimated source time courses.
     active_set : array, shape=(n_active,)
-        Indices of in G of signals in X.
+        Indices of active sources.
 
     References
     ----------
-    Wipf et al. Analysis of Empirical Bayesian Methods for Neuroelectromagnetic
-    Source Localization. Advances in Neural Information Processing Systems (2007)
+    [1] Wipf et al. Analysis of Empirical Bayesian Methods for
+    Neuroelectromagnetic Source Localization, Advances in Neural Information
+    Processing Systems (2007).
     """
     G = G.copy()
     M = M.copy()
@@ -60,20 +64,15 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
 
     eps = np.finfo(float).eps
 
+    n_sources = G.shape[1]
     n_sensors, n_times = M.shape
-    Minit = M.copy()
 
-    MMt = np.dot(M, M.T)
-    normalize_constant = linalg.norm(MMt, ord='fro')
+    # apply normalization so the numerical values are sane
+    normalize_constant = linalg.norm(np.dot(M, M.T), ord='fro')
     M /= np.sqrt(normalize_constant)
-    Minit /= np.sqrt(normalize_constant)
-    MMt /= normalize_constant
     alpha /= normalize_constant
-
     G_normalize_constant = linalg.norm(G, ord=np.inf)
     G /= G_normalize_constant
-
-    n_sources = G.shape[1]
 
     if n_sources % group_size != 0:
         raise ValueError('Number of sources has to be evenly dividable by the '
@@ -82,12 +81,15 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
     n_active = n_sources
     active_set = np.arange(n_sources)
 
-    counter_n_active_fixed = 0
     gammas_full_old = gammas.copy()
 
-    for itno in np.arange(maxit):
-        counter_n_active_fixed += 1
+    if update_mode == 3:
+        denom_fun = np.sqrt
+    else:
+        # do nothing
+        denom_fun = lambda x: x
 
+    for itno in np.arange(maxit):
         gammas[np.isnan(gammas)] = 0.0
 
         gidx = (np.abs(gammas) > eps)
@@ -98,7 +100,6 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
         if n_active > len(active_set):
             n_active = active_set.size
             G = G[:, gidx]
-            counter_n_active_fixed = 0
 
         CM = alpha * np.eye(n_sensors) + np.dot(G * gammas[np.newaxis, :], G.T)
         # Invert CM keeping symmetry
@@ -111,35 +112,35 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update
 
         if update_mode == 1:
-            # M-SBL update
+            # M-SBL (EM) update (9) in [1]
             numer = (gammas ** 2 * np.mean(np.abs(A) ** 2, axis=1)
                      + gammas * (1 - gammas * np.sum(G * CMinvG, axis=0)))
             denom = None
         elif update_mode == 2:
-            # MacKay fixed point update (equivalent to Variational-Bayes Sato
-            # update in hbi_inverse.m)
+            # MacKay fixed point update (10) in [1]
             numer = gammas ** 2 * np.mean(np.abs(A) ** 2, axis=1)
             denom = gammas * np.sum(G * CMinvG, axis=0)
         elif update_mode == 3:
-            # modified MacKay fixed point update
-            1 / 0  # XXX fix this
-            gammas *= (np.sqrt(np.mean(np.abs(A) ** 2, axis=1)
-                       / np.sum(G * CMinvG, axis=0)))
+            # modified MacKay fixed point update (11) in [1]
+            numer = gammas * np.sqrt(np.mean(np.abs(A) ** 2, axis=1))
+            denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
+        else:
+            raise ValueError('Invalid value for update_mode')
 
         if group_size == 1:
             if denom is None:
                 gammas = numer
             else:
-                gammas = numer / denom
+                gammas = numer / denom_fun(denom)
         else:
-            numer_comb = np.mean(numer.reshape(-1, group_size), axis=1)
+            numer_comb = np.sum(numer.reshape(-1, group_size), axis=1)
             if denom is None:
                 gammas_comb = numer_comb
             else:
-                denom_comb = np.mean(denom.reshape(-1, group_size), axis=1)
-                gammas_comb = numer_comb / denom_comb
+                denom_comb = np.sum(denom.reshape(-1, group_size), axis=1)
+                gammas_comb = numer_comb / denom_fun(denom_comb)
 
-            gammas = np.repeat(gammas_comb, group_size)
+            gammas = np.repeat(gammas_comb / group_size, group_size)
 
         # compute convergence criterion
         gammas_full = np.zeros(n_sources, dtype=np.float)
@@ -159,20 +160,12 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
         if n_active == 0:
             break
 
-        #import pylab as pl
-        #pl.figure(2)
-        #pl.clf()
-        #pl.plot(gammas)
-        ##pl.ylim([0, 1])
-        #pl.show()
-        #print 'min max gamma: %e %e' % (np.min(gammas), np.max(gammas))
-        #print gammas.dtype
-
     if itno < maxit - 1:
         print('\nConvergence reached !\n')
     else:
         print('\nConvergence NOT reached !\n')
 
+    # undo normalization and compute final posterior mean
     n_const = np.sqrt(normalize_constant) / G_normalize_constant
     x_active = n_const * gammas[:, None] * A
 
@@ -181,16 +174,25 @@ def _gamma_map_opt(M, G, alpha, maxit=1000, tol=1e-6, update_mode=1,
 
 @verbose
 def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
-                      xyz_same_gamma=True, maxit=1000, tol=1e-6, update_mode=1,
+                      xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=2,
                       gammas=None, pca=True, verbose=None):
-    """Hierarchical Bayes (Gamma-MAP)
+    """Hierarchical Bayes (Gamma-MAP) sparse source localization method
+
+    Models each source time course using a zero-mean Gaussian prior with an
+    unknown variance (gamma) parameter. During estimation, most gammas are
+    driven to zero, resulting in a sparse source estimate.
+
+    For fixed-orientation forward operators, a separate gamma is used for each
+    source time course, while for free-orientation forward operators, the same
+    gamma is used for the three source time courses at each source space point
+    (separate gammas can be used in this case by using xyz_same_gamma=False).
 
     Parameters
     ----------
     evoked : instance of Evoked
         Evoked data to invert.
     forward : dict
-        Forward operator
+        Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
     alpha : float
@@ -209,11 +211,14 @@ def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         Maximum number of iterations.
     tol : float
         Tolerance parameter for convergence.
+    update_mode : int
+        Update mode, 1: EM update (slow, not recommended), 2: MacKay update
+        (fast, default), 3: Modified MacKay update.
     gammas : array, shape=(n_sources,)
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
     pca : bool
-        If True the rank of the data is reduced to true dimension.
+        If True the rank of the data is reduced to the true dimension.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -225,7 +230,10 @@ def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     References
     ----------
     Wipf et al. Analysis of Empirical Bayesian Methods for Neuroelectromagnetic
-    Source Localization. Advances in Neural Information Processing Systems (2007)
+    Source Localization, Advances in Neural Information Process. Systems (2007)
+
+    Wipf et al. A unified Bayesian framework for MEG/EEG source imaging,
+    NeuroImage, vol. 44, no. 3, pp. 947-66, Mar. 2009.
     """
     # make forward solution in fixed orientation if necessary
     if loose is None and not is_fixed_orient(forward):
@@ -255,6 +263,9 @@ def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     X, active_set = _gamma_map_opt(M, gain, alpha, maxit=maxit, tol=tol,
                                    update_mode=update_mode, gammas=gammas,
                                    group_size=group_size, verbose=verbose)
+
+    if len(active_set) == 0:
+        raise Exception("No active dipoles found. alpha is too big.")
 
     # reapply weights to have correct unit
     X /= source_weighting[active_set][:, None]

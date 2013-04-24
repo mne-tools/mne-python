@@ -815,7 +815,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         colors = [colors.next() for _ in
                         range(np.unique(np.concatenate(labels).ravel()).size)]
 
-    for v in unique_vertnos:
+    for idx, v in enumerate(unique_vertnos):
         # get indices of stcs it belongs to
         ind = [k for k, vertno in enumerate(vertnos) if v in vertno]
         is_common = len(ind) > 1
@@ -828,6 +828,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
+
+        if (isinstance(scale_factor, (np.ndarray, list, tuple))
+            and len(unique_vertnos) == len(scale_factor)):
+            scale_factor = scale_factor[idx]
+
         x, y, z = points[v]
         nx, ny, nz = normals[v]
         mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),

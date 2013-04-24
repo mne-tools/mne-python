@@ -59,6 +59,7 @@ if __name__ == "__main__":
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
                     'mne.mixed_norm', 'mne.mixed_norm.tests',
+                    'mne.sparse_learning', 'mne.sparse_learning.tests',
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
                     'mne.tests',
