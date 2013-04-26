@@ -91,8 +91,8 @@ def f_oneway(*args):
 
 # The following functions based on MATLAB code by Rik Henson
 # and Python code from the pyvttble toolbox by Roger Lew.
-def r_anova_twoway(data, factor_levels, factor_labels=None, alpha=0.05,
-        correction=False, n_jobs=1, return_pvals=True):
+def r_anova_twoway(data, factor_levels, alpha=0.05,
+                   correction=False, n_jobs=1, return_pvals=True):
     """ 2 way repeated measures ANOVA for fully balanced designs
 
     data : ndarray
@@ -107,7 +107,7 @@ def r_anova_twoway(data, factor_levels, factor_labels=None, alpha=0.05,
         subject k   2.45 7.90 3.09 4.76
 
         The last dimensions is thought to carry the observations
-        for mass univariate analysis
+        for mass univariate analysis.
     factor_levels : list-like
         The number of levels per factor.
     alpha : float
@@ -129,13 +129,18 @@ def r_anova_twoway(data, factor_levels, factor_labels=None, alpha=0.05,
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
     """
+
     if data.ndim == 2:
         data = data[:, :, np.newaxis]
+
+    if n_jobs > 1 and data.shape[2] < 2:
+        raise ValueError('You cannot use parallel jobs with less'
+                         'than two observations per subject.')
     n_obs = data.shape[2]
     n_replications = data.shape[0]
     parallel, parallel_anova, _ = parallel_func(_r_anova, n_jobs)
 
-    sc, sy, = [], []
+    sc, sy, = [], []  # setup contrasts
     for n_levels in factor_levels:
         sc.append([np.ones([n_levels, 1]),
             detrend(np.eye(n_levels), type='constant')])
@@ -172,7 +177,7 @@ def _r_anova(data, factor_levels, n_replications, sc, sy,
     """ Aux Function """
 
     n_factors, n_effects = 2, 3  # hard coded for now
-    iter_contrasts = [(1, 0, 0), (0, 1, 1), (1, 1, 1)]
+    iter_contrasts = [(1, 0, 1), (0, 1, 1), (1, 1, 1)]
     fvals, epsilon = [], []
     for obs in data if data.ndim == 3 else data[None:, ]:
         this_fvals, this_epsilon = [], []
