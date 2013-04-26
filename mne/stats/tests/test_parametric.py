@@ -7,8 +7,8 @@ import numpy as np
 
 def test_parametric_r_anova_twoway():
     """ Test 2-way anova """
-    iter_params = product([1, 10], [2, 15], [4, 6, 8], [1, 2],
-        [False])
+    iter_params = product([4, 10], [2, 15], [4, 6, 8], [1, 2],
+        [False, True])
     for params in iter_params:
         n_subj, n_obs, n_levels, n_jobs, correction = params
         data = np.random.random([n_subj, n_levels, n_obs])

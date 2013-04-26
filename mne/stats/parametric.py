@@ -136,6 +136,7 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
     if n_jobs > 1 and data.shape[2] < 2:
         raise ValueError('You cannot use parallel jobs with less'
                          'than two observations per subject.')
+
     n_obs = data.shape[2]
     n_replications = data.shape[0]
     parallel, parallel_anova, _ = parallel_func(_r_anova, n_jobs)
@@ -158,7 +159,7 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
 
     if correction:
         eps = np.concatenate(eps)
-        df1, df2 = [eps * d for d in df1, df2]
+        df1, df2 = [d[None, :].T * eps for d in df1, df2]
 
     if return_pvals:
         if not correction:
