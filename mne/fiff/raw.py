@@ -97,8 +97,7 @@ class Raw(ProjMixin):
         self.first_samp = raws[0].first_samp  # meta first sample
         self._first_samps = np.array([r.first_samp for r in raws])
         self._last_samps = np.array([r.last_samp for r in raws])
-        self._raw_lengths = np.array([r.last_samp - r.first_samp + 1
-                                      for r in raws])
+        self._raw_lengths = np.array([r.n_times for r in raws])
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
@@ -243,7 +242,7 @@ class Raw(ProjMixin):
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
-                                                                      ent.type)
+                                     ent.type)
                 if orig_format is None:
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
                         orig_format = 'short'
@@ -286,8 +285,7 @@ class Raw(ProjMixin):
         #   Add the calibration factors
         cals = np.zeros(info['nchan'])
         for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * \
-                      info['chs'][k]['cal']
+            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
         raw.cals = cals
         raw.rawdir = rawdir
@@ -803,8 +801,8 @@ class Raw(ProjMixin):
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin = raw.time_as_index(tmin)
-        smax = raw.time_as_index(tmax)
+        smin = raw.time_as_index(tmin)[0]
+        smax = raw.time_as_index(tmax)[0]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                      dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
@@ -828,8 +826,8 @@ class Raw(ProjMixin):
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-            drop_small_buffer=False, proj=False, format='single',
-            overwrite=False, verbose=None, proj_active=None):
+             drop_small_buffer=False, proj=False, format='single',
+             overwrite=False, verbose=None, proj_active=None):
         """Save raw data to file
 
         Parameters
@@ -887,7 +885,7 @@ class Raw(ProjMixin):
         fname = op.abspath(fname)
         if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
-                               ' Please use a different filename.')
+                             ' Please use a different filename.')
 
         if self._preloaded:
             if np.iscomplexobj(self._data):
@@ -998,8 +996,9 @@ class Raw(ProjMixin):
             Color to use for events.
         scalings : dict | None
             Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-                 ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+            `dict(mag=1e-12, grad=4e-11, eeg=20e-6,
+                  eog=150e-6, ecg=5e-4, emg=1e-3,
+                  ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
         remove_dc : bool
             If True remove DC component when plotting data.
         order : 'type' | 'original' | array
@@ -1118,11 +1117,11 @@ class Raw(ProjMixin):
 
         Bad channels will be excluded from calculations.
         """
-        start = max(0.0, self.time_as_index(tstart))
+        start = max(0, self.time_as_index(tstart)[0])
         if tstop is None:
             stop = self.n_times - 1
         else:
-            stop = min(self.n_times - 1, self.time_as_index(tstop))
+            stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
         picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
         # ensure we don't get a view of data
@@ -1223,9 +1222,7 @@ class Raw(ProjMixin):
         else:
             # do the concatenation ourselves since preload might be a string
             nchan = self.info['nchan']
-            c_ns = [self.last_samp - self.first_samp + 1]
-            c_ns += [r.last_samp - r.first_samp + 1 for r in raws]
-            c_ns = np.cumsum(np.array(c_ns, dtype='int'))
+            c_ns = np.cumsum([rr.n_times for rr in ([self] + raws)])
             nsamp = c_ns[-1]
 
             if not self._preloaded:
@@ -1243,16 +1240,13 @@ class Raw(ProjMixin):
             _data[:, 0:c_ns[0]] = this_data
 
             for ri in range(len(raws)):
-                if not r._preloaded:
+                if not raws[ri]._preloaded:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
                     raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
-
             self._data = _data
-            stop = self.last_samp - self.first_samp + 1
-            self._times = np.arange(0, stop) / self.info['sfreq']
             self._preloaded = True
 
         # now combine information from each raw file to construct new self
@@ -1265,6 +1259,10 @@ class Raw(ProjMixin):
         # reconstruct fids in case some were preloaded and others weren't
         self._initialize_fids()
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
+
+        # this has to be done after first and last sample are set appropriately
+        if self._preloaded:
+            self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
         [f.close() for f in self.fids]
@@ -1405,7 +1403,7 @@ class Raw(ProjMixin):
 
     @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-        verbose=None, projector=None):
+                      verbose=None, projector=None):
         """Read a chunk of raw data
 
         Parameters
@@ -1434,20 +1432,16 @@ class Raw(ProjMixin):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
-        if stop is None:
-            stop = self.last_samp - self.first_samp + 1
-
         #  Initial checks
         start = int(start)
-        stop = int(stop)
-        stop = min([stop, self.last_samp - self.first_samp + 1])
+        stop = self.n_times if stop is None else min([int(stop), self.n_times])
 
         if start >= stop:
             raise ValueError('No data in this range')
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(self.info['sfreq']),
-                               (stop - 1) / float(self.info['sfreq'])))
+                     (stop - 1) / float(self.info['sfreq'])))
 
         #  Initialize the data and calibration vector
         nchan = self.info['nchan']
@@ -1597,7 +1591,7 @@ class Raw(ProjMixin):
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                       self.last_samp - self.first_samp + 1)
+                                                self.n_times)
         return "<Raw  |  %s>" % s
 
 
@@ -1662,6 +1656,10 @@ class _RawShell():
         self.cals = None
         self.rawdir = None
         self._projector = None
+
+    @property
+    def n_times(self):
+        return self.last_samp - self.first_samp + 1
 
 
 ###############################################################################
@@ -1818,8 +1816,7 @@ def _check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
         if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
             raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
-        if not set(raw[ri].info['ch_names']) \
-                   == set(raw[0].info['ch_names']):
+        if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
         if not all(raw[ri].cals == raw[0].cals):
             raise ValueError('raw[%d].cals must match' % ri)

@@ -2108,8 +2108,8 @@ def _update_raw_proj(params):
 def _update_raw_data(params):
     """Helper only needs to be called when time or proj is changed"""
     start = params['t_start']
-    stop = params['raw'].time_as_index(start + params['duration'])
-    start = params['raw'].time_as_index(start)
+    stop = params['raw'].time_as_index(start + params['duration'])[0]
+    start = params['raw'].time_as_index(start)[0]
     data, times = params['raw'][:, start:stop]
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)

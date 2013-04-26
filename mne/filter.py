@@ -1201,7 +1201,7 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     if x_len > 0:
         # prep for resampling now
         orig_len = x_len + 2 * npad  # length after padding
-        new_len = ratio * orig_len   # length after resampling padded signal
+        new_len = int(round(ratio * orig_len))  # length after resampling
         to_remove = np.round(ratio * npad).astype(int)
 
         # figure out windowing function

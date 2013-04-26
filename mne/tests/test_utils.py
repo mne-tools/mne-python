@@ -130,4 +130,8 @@ def deprecated_func():
 
 
 def test_deprecated():
-    deprecated_func()
+    """Test deprecated function
+    """
+    with warnings.catch_warnings(True) as w:
+        deprecated_func()
+    assert_true(len(w) == 1)

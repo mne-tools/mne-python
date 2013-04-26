@@ -130,6 +130,7 @@ def test_multiple_files():
     raw_combos[3] = Raw(fif_fname, preload=True)
     raw_combos[3].append(Raw(fif_fname, preload=True))
     assert_true(raw_combos[0]._preloaded == True)
+    assert_true(len(raw_combos[3]._times) == raw_combos[3]._data.shape[1])
 
     # with any data not preloaded, don't set result as preloaded
     raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
