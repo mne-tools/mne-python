@@ -18,7 +18,7 @@ def _f_oneway(*args):
     Performs a 1-way ANOVA.
 
     The one-way ANOVA tests the null hypothesis that 2 or more groups have
-    the same population mean.  The test is applied to samples from two or
+    the same population mean. The test is applied to samples from two or
     more groups, possibly with differing sizes.
 
     Parameters
@@ -114,7 +114,7 @@ def r_anova_twoway(data, factor_levels, factor_labels=None, alpha=0.05,
         The significance threshold.
     correction : bool.
         The correction method to be employed. If True, sphericity
-        correction will using the Greenhouse-Gyser method will be applied
+        correction using the Greenhouse-Geisser method will be applied.
     return_pvals : bool
         If True, return p values corresponding to f values
     n_jobs : int
