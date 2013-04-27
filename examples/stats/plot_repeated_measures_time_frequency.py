@@ -1,16 +1,17 @@
 """
 ====================================================================
-Mass-univariate Twoway Repeated Measures ANOVA on Single Trial Power
+Mass-Univariate Twoway Repeated Measures ANOVA on Single Trial Power
 ====================================================================
 
 This script shows how to conduct a mass-univariate repeated measures
 ANOVA. As the model to be fitted assumes two fully crossed factors,
 we will study the interplay between perceptual modality
 (auditory VS visual) and the location of stimulus presentation
-(left VS right). Here we use single trials as replications (subject)
-and use time slices and frequency bands for mass-univariate
-observations. We will conclude with visualizing each effect by
-creating a corresponding mass-univariate effect image.
+(left VS right). Here we use single trials as replications
+(subjects) while iterating over time slices plus frequency bands
+for to fit our mass-univariate model. We will conclude with
+visualizing each effect by creating a corresponding mass-univariate
+effect image.
 """
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -40,7 +41,7 @@ raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
-raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
+raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
@@ -48,7 +49,7 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 
 ch_name = raw.info['ch_names'][picks[0]]
 
-# Load conditionw
+# Load conditions
 reject = dict(grad=4000e-13, eog=150e-6)
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
@@ -61,7 +62,7 @@ epochs.equalize_event_counts(event_id, copy=False)
 times = 1e3 * epochs.times  # change unit to ms
 
 # Factor to downs-sample the temporal dimension of the PSD computed by
-# single_trial_power. 
+# single_trial_power.
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
@@ -89,10 +90,21 @@ factor_levels = [2, 2]  # number of levels in each factor
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 # reshape last two dimensions in one mass-univariate observation-vector
 data = data.reshape(n_replications, n_conditions, 8 * 211)
+
 # so we have replications * conditions * observations:
 print data.shape
 
-# now we can run our repeated measures ANOVA.
+# while the iteration scheme used above for assembling the data matrix
+# makes sure the first two dimensions are organized as expected (with A =
+# modality and B = location):
+#
+#           A1B1 A1B2 A2B1 B2B2
+# trial 1   1.34 2.53 0.97 1.74
+# trial ... .... .... .... ....
+# trial 56  2.45 7.90 3.09 4.76
+#
+# So we're ready to run our repeated measures ANOVA.
+
 fvals, _ = r_anova_twoway(data, factor_levels, return_pvals=False, n_jobs=2)
 
 effect_labels = ['modality', 'location', 'modality by location']
@@ -105,5 +117,5 @@ for effect, effect_label in zip(np.split(fvals, 3,  axis=1), effect_labels):
     pl.colorbar()
     pl.xlabel('time (ms)')
     pl.ylabel('Frequency (Hz)')
-    pl.title(r"Induced F-values '%s'(%s)" % (effect_label, ch_name))
+    pl.title(r"Induced F-values '%s' (%s)" % (effect_label, ch_name))
     pl.show()
