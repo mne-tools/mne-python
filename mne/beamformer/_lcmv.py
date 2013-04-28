@@ -22,9 +22,48 @@ from ..source_space import label_src_vertno_sel
 from .. import verbose
 
 
+def _pick_normal(sol, vertno, forward):
+    """Compute the normal component of a solution
+
+    Parameters
+    ----------
+    sol : 2d array of shape [3 n x p]
+        Input [ x1 y1 z1 ... x_n y_n z_n ] where x1 ... z_n
+        can be vectors of length p.
+    vertno : list of length 2
+        Vertex numbers for left and right hemispheres
+    forward : dict
+        Forward operator.
+
+    Returns
+    -------
+    sol_normal : 2d array of shape [n x p]
+        Normal component of solution at each vertex
+    """
+    #TODO: What about the case when a label is given to choose vertices? Does
+    # this code work?
+    if sol.ndim != 2:
+        raise Exception('Input solution must be 2D')
+    if sol.shape[0] % 3 != 0:
+        raise Exception('Input solution must have 3N rows')
+
+    sol_normal = np.zeros((sol.shape[0]/3, sol.shape[1]))
+    i_src = 0
+    for hemisphere in range(len(vertno)):
+        for vert in vertno[hemisphere]:
+            normal_vector = forward['src'][hemisphere]['nn'][vert]
+            for time in range(sol.shape[1]):
+                # the three dipole moments for a single source i_src at a
+                # single time point
+                single_sol = sol[(i_src) * 3:(i_src) * 3 + 3, time]
+                sol_normal[i_src, time] = np.dot(single_sol, normal_vector)
+            i_src += 1
+    return sol_normal
+
+
 @verbose
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                label=None, picks=None, verbose=None):
+                label=None, picks=None, pick_ori=None, verbose=None):
     """ LCMV beamformer for evoked data, single epochs, and raw data
 
     Parameters
@@ -50,6 +89,9 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -60,6 +102,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     """
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+    
+    if pick_ori == 'normal' and not is_free_ori:
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator with free orientation is used.')
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, exclude='bads')
@@ -145,7 +191,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         if is_free_ori:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
-            sol = combine_xyz(sol)
+            if pick_ori == "normal":
+                sol = _pick_normal(sol, vertno, forward)
+            else:
+                sol = combine_xyz(sol)
             sol /= noise_norm[:, None]
         else:
             # Linear inverse: do computation here or delayed
@@ -163,7 +212,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
 @verbose
 def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
-         verbose=None):
+         pick_ori=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -207,14 +256,14 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = evoked.times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label).next()
+                      label, pick_ori=pick_ori).next()
 
     return stc
 
 
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
-                return_generator=False, verbose=None):
+                pick_ori=None, return_generator=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -264,7 +313,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                       label)
+                       label, pick_ori=pick_ori)
 
     if not return_generator:
         stcs = [s for s in stcs]
@@ -274,7 +323,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 @verbose
 def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
-             start=None, stop=None, picks=None, verbose=None):
+             start=None, stop=None, picks=None, pick_ori=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -329,6 +378,6 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, picks).next()
+                      label, picks, pick_ori).next()
 
     return stc

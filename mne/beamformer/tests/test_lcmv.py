@@ -68,6 +68,13 @@ def test_lcmv():
     assert_true(0.09 < tmax < 0.1)
     assert_true(2. < np.max(max_stc) < 3.)
 
+    # Test picking normal orientation
+    stc_normal = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+                      pick_ori="normal")
+
+    assert_true(stc_normal.shape == stc_normal.shape)
+    assert_true((stc_normal.data <= stc.data).all())
+
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
     forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
