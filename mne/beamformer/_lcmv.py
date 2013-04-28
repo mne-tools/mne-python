@@ -31,7 +31,7 @@ def _pick_normal(sol, vertno, forward):
         Input [ x1 y1 z1 ... x_n y_n z_n ] where x1 ... z_n
         can be vectors of length p.
     vertno : list of length 2
-        Vertex numbers for left and right hemispheres
+        Vertex numbers for left and right hemispheres.
     forward : dict
         Forward operator.
 
@@ -89,7 +89,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | "normal"
+    pick_ori : None | 'normal'
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept.
     verbose : bool, str, int, or None
@@ -102,7 +102,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     """
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-    
+
     if pick_ori == 'normal' and not is_free_ori:
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator with free orientation is used.')
