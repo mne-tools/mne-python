@@ -41,7 +41,6 @@ class Kit2FiffPanel(HasPrivateTraits):
     # Source Files
     sqd_file = File(exists=True, filter=['*.sqd'])
     sqd_fname = Property(Str, depends_on='sqd_file')
-    sns_file = File(exists=True, filter=['*.txt'])
     hsp_file = File(exists=True, filter=hsp_wildcard, desc="Digitizer head "
                     "shape")
     hsp_fname = Property(Str, depends_on='hsp_file')
@@ -49,7 +48,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     fid_fname = Property(Str, depends_on='fid_file')
 
     # Raw
-    raw = Property(depends_on=['sqd_file', 'sns_file'])
+    raw = Property(depends_on=['sqd_file'])
 
     # Marker Points
     mrk_ALS = Array(float, shape=(5, 3))
@@ -87,8 +86,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     save_as = Button(label='Save FIFF...')
     save_feedback = Str('')
 
-    view = View(VGroup(VGroup(Item('sns_file', label='SNS File'),
-                              Item('sqd_file', label="Data"),
+    view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
                               Item('sqd_fname', show_label=False, style='readonly'),
                               Item('fid_file', label='Dig Points'),
                               Item('fid_fname', show_label=False, style='readonly'),
@@ -257,11 +255,9 @@ class Kit2FiffPanel(HasPrivateTraits):
     def _get_raw(self):
         if not self.sqd_file:
             return
-        elif not self.sns_file:
-            return
 
         try:
-            raw = RawKIT(self.sqd_file, sns_fname=self.sns_file, preload=False)
+            raw = RawKIT(self.sqd_file, preload=False)
         except Exception as err:
             error(None, str(err), "Error Creating KIT Raw")
             raise
