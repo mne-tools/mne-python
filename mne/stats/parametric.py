@@ -112,11 +112,11 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
         The number of levels per factor.
     alpha : float
         The significance threshold.
-    correction : bool.
+    correction : bool
         The correction method to be employed. If True, sphericity
         correction using the Greenhouse-Geisser method will be applied.
     return_pvals : bool
-        If True, return p values corresponding to f values
+        If True, return p values corresponding to f values.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
 
@@ -154,11 +154,11 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
                 for d in split_list(np.rollaxis(data, 2), n_jobs))
 
     fvals, eps = zip(*results)
-    fvals = np.concatenate(fvals)
+    fvals = np.concatenate(fvals, -1).T
     df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
 
     if correction:
-        eps = np.concatenate(eps)
+        eps = np.concatenate(eps, -1).T
         df1, df2 = [d[None, :].T * eps for d in df1, df2]
 
     if return_pvals:
@@ -180,24 +180,24 @@ def _r_anova(data, factor_levels, n_replications, sc, sy,
     n_factors, n_effects = 2, 3  # hard coded for now
     iter_contrasts = [(1, 0, 1), (0, 1, 1), (1, 1, 1)]
     fvals, epsilon = [], []
-    for obs in data if data.ndim == 3 else data[None:, ]:
-        this_fvals, this_epsilon = [], []
-        for (c1, c2, c3) in iter_contrasts:
-            c_ = np.kron(sc[0][c1], sc[c3][c2])  # compute design matrix
+    for (c1, c2, c3) in iter_contrasts:
+        c_ = np.kron(sc[0][c1], sc[c3][c2])  # compute design matrix
+        c_fvals, c_epsilon = [], []
+        for obs in data if data.ndim == 3 else data[None:, ]:
             y_ = np.dot(obs, c_)
             b_ = np.mean(y_, axis=0)
             ss = np.sum(y_ * b_.T)
-            mse = (np.sum(np.diag(np.dot(y_.T, y_))) - ss) / df2
+            mse = (np.trace(np.dot(y_.T, y_)) - ss) / df2
             mss = ss / df1
             f_value = mss / mse
-            this_fvals.append(f_value)
+            c_fvals.append(f_value)
             if correction:
                 v_ = np.cov(y_, rowvar=False)  # sample covariance
-                this_epsilon.append(np.trace(v_) ** 2 \
+                c_epsilon.append(np.trace(v_) ** 2 \
                     / (df1 * np.trace(np.dot(v_.T, v_))))
 
-        fvals.append(this_fvals)
+        fvals.append(c_fvals)
         if correction:
-            epsilon.append(this_epsilon)
+            epsilon.append(c_epsilon)
 
     return fvals, epsilon
