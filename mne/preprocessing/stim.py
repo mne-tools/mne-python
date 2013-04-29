@@ -42,8 +42,8 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                            '(or string) in the constructor.')
     events_sel = (events[:, 2] == event_id)
     event_start = events[events_sel, 0]
-    s_start = np.ceil(raw.info['sfreq'] * np.abs(tmin))
-    s_end = np.ceil(raw.info['sfreq'] * tmax)
+    s_start = int(np.ceil(raw.info['sfreq'] * np.abs(tmin)))
+    s_end = int(np.ceil(raw.info['sfreq'] * tmax))
 
     picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
 
@@ -52,8 +52,8 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                            signal.hann(4)[-2:]].T
 
     for k in range(len(event_start)):
-        first_samp = event_start[k] - raw.first_samp - s_start
-        last_samp = event_start[k] - raw.first_samp + s_end
+        first_samp = int(event_start[k]) - raw.first_samp - s_start
+        last_samp = int(event_start[k]) - raw.first_samp + s_end
         data, _ = raw[picks, first_samp:last_samp]
         if mode == 'linear':
             x = np.array([first_samp, last_samp])

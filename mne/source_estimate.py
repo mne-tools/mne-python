@@ -893,7 +893,8 @@ class SourceEstimate(object):
         for vi, (v_old, v_new) in enumerate(zip(self.vertno, vertno)):
             v_new = np.setdiff1d(v_new, v_old)
             inds = np.searchsorted(v_old, v_new)
-            inserters += [inds]
+            # newer numpy might overwrite inds after np.insert, copy here
+            inserters += [inds.copy()]
             offsets += [len(v_old)]
             self.vertno[vi] = np.insert(v_old, inds, v_new)
         inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
