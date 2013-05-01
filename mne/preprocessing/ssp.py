@@ -134,7 +134,8 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
                            l_freq=exg_l_freq, h_freq=exg_h_freq,
-                           filter_length=filter_length, ch_name=ch_name)
+                           filter_length=filter_length, ch_name=ch_name,
+                           tstart=tstart)
     else:
         raise ValueError("mode must be 'ECG' or 'EOG'")
 
