@@ -91,6 +91,8 @@ Changelog
 
    - Add example of decoding/MVPA on MEG source space data by `Denis Engemann`_
 
+   - Add support for --tstart option in mne_compute_proj_eog.py by `Alex Gramfort`_
+
 
 API
 ~~~
