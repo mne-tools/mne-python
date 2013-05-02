@@ -748,6 +748,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     if isinstance(data, Epochs):
         times_in = data.times  # input times for Epochs input type
+        sfreq = data.info['sfreq']
 
     # loop over data; it could be a generator that returns
     # (n_signals x n_times) arrays or SourceEstimates
@@ -809,7 +810,9 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 if cwt_frequencies is None:
                     raise ValueError('define frequencies of interest using '
                                      'cwt_frequencies')
-                if any(cwt_frequencies > sfreq / 2):
+                else:
+                    cwt_frequencies = cwt_frequencies.astype(np.float)
+                if any(cwt_frequencies > (sfreq / 2.)):
                     raise ValueError('entries in cwt_frequencies cannot be '
                                      'larger than Nyquist (sfreq / 2)')
                 freqs_all = cwt_frequencies
