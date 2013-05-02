@@ -52,6 +52,25 @@ def test_epoch_combine_ids():
         # should probably add test + functionality for non-replacement XXX
 
 
+def test_read_epochs_bad_events():
+    """Test epochs when events are at the beginning or the end of the file
+    """
+    # Event at the beginning
+    epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
+                    event_id, tmin, tmax, picks=picks, baseline=(None, 0))
+    evoked = epochs.average()
+
+    epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
+                    event_id, tmin, tmax, picks=picks, baseline=(None, 0))
+    epochs.drop_bad_epochs()
+    evoked = epochs.average()
+
+    # Event at the end
+    epochs = Epochs(raw, np.array([[raw.last_samp, 0, event_id]]),
+                    event_id, tmin, tmax, picks=picks, baseline=(None, 0))
+    evoked = epochs.average()
+
+
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file
     """

@@ -10,7 +10,8 @@ from ..filter import band_pass_filter
 
 @verbose
 def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
-                    filter_length='10s', ch_name=None, verbose=None):
+                    filter_length='10s', ch_name=None, tstart=0,
+                    verbose=None):
     """Locate EOG artifacts
 
     Parameters
@@ -27,6 +28,8 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Number of taps to use for filtering.
     ch_name: str | None
         If not None, use specified channel(s) for EOG
+    tstart : float
+        Start detection after tstart seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -75,13 +78,14 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
                                   h_freq=h_freq,
                                   sampling_rate=raw.info['sfreq'],
                                   first_samp=raw.first_samp,
-                                  filter_length=filter_length)
+                                  filter_length=filter_length,
+                                  tstart=tstart)
 
     return eog_events
 
 
 def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
-                     filter_length='10s'):
+                     filter_length='10s', tstart=0.):
     """Helper function"""
 
     logger.info('Filtering the data to remove DC offset to help '
@@ -104,11 +108,13 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
     logger.info('Now detecting blinks and generating corresponding events')
 
     temp = filteog - np.mean(filteog)
+    n_samples_start = int(sampling_rate * tstart)
     if np.abs(np.max(temp)) > np.abs(np.min(temp)):
-        eog_events, _ = peak_finder(filteog, extrema=1)
+        eog_events, _ = peak_finder(filteog[n_samples_start:], extrema=1)
     else:
-        eog_events, _ = peak_finder(filteog, extrema=-1)
+        eog_events, _ = peak_finder(filteog[n_samples_start:], extrema=-1)
 
+    eog_events += n_samples_start
     n_events = len(eog_events)
     logger.info("Number of EOG events detected : %d" % n_events)
     eog_events = np.c_[eog_events + first_samp, np.zeros(n_events),

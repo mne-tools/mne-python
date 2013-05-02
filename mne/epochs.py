@@ -395,7 +395,7 @@ class Epochs(ProjMixin):
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
         stop = start + self._epoch_stop
         if start < 0:
-            return None
+            return None, None
 
         epoch_raw, _ = self.raw[self.picks, start:stop]
 
