@@ -11,9 +11,9 @@ we will study the interplay between perceptual modality
 (subjects) while iterating over time slices plus frequency bands
 for to fit our mass-univariate model. We will then visualize each
 effect by creating a corresponding mass-univariate effect image.
-We conclude with accounting for multiple comparisons for using
-the ANOVA functions as statistical function in a permutation
-clustering test.
+We conclude with accounting for multiple comparisons by using
+performing a permutation clustering test using the ANOVA as
+clustering function.
 """
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #          Eric Larson <larson.eric.d@gmail.com>
