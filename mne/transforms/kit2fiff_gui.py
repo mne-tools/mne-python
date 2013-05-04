@@ -16,7 +16,7 @@ from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
 from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
                        Array, Bool, Button, Color, Enum, File, Float, Int, List, \
                        Range, Str, Tuple
-from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor
+from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, EnumEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -34,12 +34,13 @@ use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
 hsp_wildcard = ['Supported Files (*.pickled;*.txt)|*.pickled;*.txt',
                 'Pickled Head Shape (*.pickled)|*.pickled',
                 'Plain Text File (*.txt)|*.txt']
+kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
 
 
 class Kit2FiffPanel(HasPrivateTraits):
     """Control panel for kit2fiff conversion"""
     # Source Files
-    sqd_file = File(exists=True, filter=['*.sqd'])
+    sqd_file = File(exists=True, filter=kit_con_wildcard)
     sqd_fname = Property(Str, depends_on='sqd_file')
     hsp_file = File(exists=True, filter=hsp_wildcard, desc="Digitizer head "
                     "shape")
@@ -71,8 +72,11 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     # Events
     events = Array(Int, shape=(None,), value=[])
-    endian = Enum("Little", "Big", desc="Binary coding of event channels")
-    event_info = Property(Str, depends_on=['events', 'endian'])
+    stim_chs = Enum(">", "<", desc="Binary coding of trigger values in "
+                    "event channels. <: little endian; >: big endian.")
+    stim_slope = Enum("-", "+", desc="Whether events are marked by a decrease"
+                 " (trough) or an increase (peak) in trigger channel values")
+    event_info = Property(Str, depends_on=['events', 'stim_chs'])
 
     # Visualization
     scene = Instance(MlabSceneModel)
@@ -94,9 +98,12 @@ class Kit2FiffPanel(HasPrivateTraits):
                               Item('hsp_fname', show_label=False, style='readonly'),
                               Item('use_mrk', editor=use_editor, style='custom'),
                               label="Sources", show_border=True),
-#                       VGroup(Item('endian', style='custom'),
-#                              Item('event_info', style='readonly', show_label=False),
-#                              label='Events', show_border=True),
+                    VGroup(Item('stim_chs', style='custom'),
+                           Item('stim_slope', style='custom',
+                                editor=EnumEditor(values={'+': '2:Peak',
+                                                          '-': '1:Trough'}, cols=2)),
+#                            Item('event_info', style='readonly', show_label=False),
+                           label='Events', show_border=True),
                        Item('save_as', enabled_when='can_save', show_label=False),
                        Item('save_feedback', show_label=False, style='readonly')))
 
@@ -290,6 +297,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                     return
 
         raw = self.raw
+        raw.set_stimchannels(self.stim_chs, self.stim_slope)
         raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
                                 self.dev_head_trans)
 
