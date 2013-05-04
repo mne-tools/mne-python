@@ -74,17 +74,15 @@ class RawKIT(Raw):
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None,
                  stim='>', slope='-', stimthresh=1,
                  verbose=None, preload=False):
-
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         self._sqd_params = get_sqd_params(input_fname)
-        self._sqd_params['slope'] = slope
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = preload
+        self._preloaded = False
         self.fids = list()
         self._projector = None
         self.first_samp = 0
@@ -203,25 +201,15 @@ class RawKIT(Raw):
         self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
                                  ch_names['STIM'])
 
-        # Acquire stim channels
-        if isinstance(stim, str):
-            picks = pick_types(self.info, meg=False, misc=True,
-                               exclude=[])[:8]
-            if stim == '<':
-                stim = picks[::-1]
-            elif stim == '>':
-                stim = picks
-            else:
-                raise ValueError("stim needs to be list of int, '>' or '<', "
-                                 "not %r" % stim)
-        self._sqd_params['stim'] = stim
-
-        if self._preloaded:
+        self.set_stimchannels(stim, slope)
+        if preload:
+            self._preloaded = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
 
             # Create a synthetic channel
+            stim = self._sqd_params['stim']
             trig_chs = self._data[stim, :]
             if slope == '+':
                 trig_chs = trig_chs > stimthresh
@@ -406,6 +394,46 @@ class RawKIT(Raw):
         trans = fit_matched_pts(tgt_pts=elp[3:], src_pts=mrk, out='trans')
 
         self.set_transformed_dig(elp[:3], elp[3:], hsp, trans)
+
+    def set_stimchannels(self, stim='<', slope='-'):
+        """Specify how the trigger channel is synthesized form analog channels.
+
+        Has to be done before loading data. For a RawKIT instance that has been
+        created with preload=True, this method will raise a NotImplementedError.
+
+        Parameters
+        ----------
+        stim : list of int | '<' | '>'
+            Can be submitted as list of trigger channels.
+            If a list is not specified, the default triggers extracted from
+            misc channels will be used with specified directionality.
+            '<' means that largest values assigned to the first channel
+            in sequence.
+            '>' means the largest trigger assigned to the last channel
+            in sequence.
+        slope : '+' | '-'
+            '+' means a positive slope (low-to-high) on the event channel(s)
+            is used to trigger an event.
+            '-' means a negative slope (high-to-low) on the event channel(s)
+            is used to trigger an event.
+        """
+        if self._preloaded:
+            err = "Can't change stim channel after preloading data"
+            raise NotImplementedError(err)
+
+        self._sqd_params['slope'] = slope
+
+        if isinstance(stim, str):
+            picks = pick_types(self.info, meg=False, misc=True, exclude=[])[:8]
+            if stim == '<':
+                stim = picks
+            elif stim == '>':
+                stim = picks[::-1]
+            else:
+                raise ValueError("stim needs to be list of int, '>' or "
+                                 "'<', not %r" % str(stim))
+
+        self._sqd_params['stim'] = stim
 
     def set_transformed_dig(self, fid, elp, hsp, trans):
         """
