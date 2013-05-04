@@ -6,8 +6,20 @@ from ..parallel import parallel_func
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
+
+DEFAULTS = {
+    'parse': {
+        'A': [0],
+        'B': [1],
+        'A+B': [0, 1],
+        'A:B': [2],
+        'A*B': [0, 1, 2]
+        },
+    'iter_contrasts': np.array([(1, 0, 1), (0, 1, 1), (1, 1, 1)])
+ }
 
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -90,9 +102,10 @@ def f_oneway(*args):
 
 
 # The following functions based on MATLAB code by Rik Henson
-# and Python code from the pyvttble toolbox by Roger Lew.
-def r_anova_twoway(data, factor_levels, alpha=0.05,
-                   correction=False, n_jobs=1, return_pvals=True):
+# and Python code from the pvttble toolbox by Roger Lew.
+def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
+                   correction=False, n_jobs=1,
+                   return_pvals=True):
     """ 2 way repeated measures ANOVA for fully balanced designs
 
     data : ndarray
@@ -110,11 +123,20 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
         for mass univariate analysis.
     factor_levels : list-like
         The number of levels per factor.
+    effects : str
+        A string denoting the effect to be returned. The following
+        mapping is currently supported:
+            'A': main effect of A
+            'B': main effect of B
+            'A:B': interaction effect
+            'A+B': both main effects
+            'A*B': all three effects
     alpha : float
         The significance threshold.
     correction : bool
-        The correction method to be employed. If True, sphericity
-        correction using the Greenhouse-Geisser method will be applied.
+        The correction method to be employed if one factor has more than two
+        levels. If True, sphericity correction using the Greenhouse-Geisser
+        method will be applied.
     return_pvals : bool
         If True, return p values corresponding to f values.
     n_jobs : int
@@ -129,7 +151,6 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
     """
-
     if data.ndim == 2:
         data = data[:, :, np.newaxis]
 
@@ -137,9 +158,13 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
         raise ValueError('You cannot use parallel jobs with less'
                          'than two observations per subject.')
 
+    if effects.upper() not in DEFAULTS['parse']:
+        raise ValueError('The value passed for `effects` is not supported.'
+            ' Please consider the documentation.')
+
+    effect_picks = DEFAULTS['parse'][effects]
     n_obs = data.shape[2]
     n_replications = data.shape[0]
-    parallel, parallel_anova, _ = parallel_func(_r_anova, n_jobs)
 
     sc, sy, = [], []  # setup contrasts
     for n_levels in factor_levels:
@@ -149,55 +174,57 @@ def r_anova_twoway(data, factor_levels, alpha=0.05,
 
     df1 = np.prod(np.array(factor_levels) - 1)
     df2 = df1 * (n_replications - 1)
-    results = parallel(parallel_anova(d, factor_levels,
-                n_replications, sc, sy, alpha, correction, df1, df2)
-                for d in split_list(np.rollaxis(data, 2), n_jobs))
 
-    fvals, eps = zip(*results)
-    fvals = np.concatenate(fvals, -1).T
+    if n_jobs > 1:
+        parallel, parallel_anova, _ = parallel_func(_r_anova, n_jobs)
+        results = parallel(parallel_anova(d, factor_levels, effect_picks,
+                    n_replications, sc, sy, alpha, correction, df1, df2)
+                    for d in split_list(np.rollaxis(data, 2), n_jobs))
+        fvals, eps = zip(*results)
+        fvals = np.concatenate(fvals, -1)
+        eps = np.concatenate(eps, -1) if correction else eps
+    else:
+        fvals, eps = _r_anova(np.rollaxis(data, 2), factor_levels,
+            effect_picks, n_replications, sc, sy, alpha, correction,
+            df1, df2)
+
+    fvals = np.array(fvals) if len(fvals) > 1 else np.array(fvals)[None, :]
     df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
 
     if correction:
-        eps = np.concatenate(eps, -1).T
-        df1, df2 = [d[None, :].T * eps for d in df1, df2]
+        eps = np.array(eps) if len(eps) > 1 else np.array(eps)[None, :].T
+        df1, df2 = [d[None, :] * eps for d in df1, df2]
 
     if return_pvals:
         if not correction:
-            pvals = np.c_[[stats.f(df1, df2).sf(fv) for fv in fvals.T]]
+            pvals = np.c_[[stats.f(df1, df2).sf(fv) for fv in fvals]]
         else:
-            pvals = np.c_[[stats.f(df1, df2).sf(fv) for fv, df1, df2 in
-                          zip(fvals.T, df1.T, df2.T)]]
+            pvals = np.c_[[stats.f(df1_, df2_).sf(fv) for fv, df1_, df2_ in
+                          zip(fvals, df1, df2)]]
     else:
         pvals = np.empty(0)
 
     return fvals, pvals
 
 
-def _r_anova(data, factor_levels, n_replications, sc, sy,
-            alpha, correction, df1, df2):
+def _r_anova(data, factor_levels, effect_picks, n_replications, sc, sy,
+             alpha, correction, df1, df2):
     """ Aux Function """
-
-    n_factors, n_effects = 2, 3  # hard coded for now
-    iter_contrasts = [(1, 0, 1), (0, 1, 1), (1, 1, 1)]
     fvals, epsilon = [], []
-    for (c1, c2, c3) in iter_contrasts:
+    for (c1, c2, c3) in DEFAULTS['iter_contrasts'][effect_picks]:
         c_ = np.kron(sc[0][c1], sc[c3][c2])  # compute design matrix
-        c_fvals, c_epsilon = [], []
-        for obs in data if data.ndim == 3 else data[None:, ]:
-            y_ = np.dot(obs, c_)
-            b_ = np.mean(y_, axis=0)
-            ss = np.sum(y_ * b_.T)
-            mse = (np.trace(np.dot(y_.T, y_)) - ss) / df2
-            mss = ss / df1
-            f_value = mss / mse
-            c_fvals.append(f_value)
-            if correction:
-                v_ = np.cov(y_, rowvar=False)  # sample covariance
-                c_epsilon.append(np.trace(v_) ** 2 \
-                    / (df1 * np.trace(np.dot(v_.T, v_))))
-
-        fvals.append(c_fvals)
+        y = np.dot(data, c_)
+        b = np.mean(y, axis=1)[:, np.newaxis, :]
+        ss = np.sum(np.sum(y * b, axis=2), axis=1)
+        mse = (np.sum(np.sum(y * y, axis=2), axis=1) - ss) / (df2 / df1)
+        fvals.append(ss / mse)
         if correction:
-            epsilon.append(c_epsilon)
+            # sample covariances, leave off "/ (y.shape[1] - 1)" norm because
+            # it falls out. the below line is faster than the equivalent:
+            # v = np.array([np.dot(y_.T, y_) for y_ in y])
+            v = np.array(map(np.dot, y.swapaxes(2, 1), y))
+            v = (np.array(map(np.trace, v)) ** 2 /
+                  (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
+            epsilon.append(v)
 
     return fvals, epsilon

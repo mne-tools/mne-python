@@ -9,11 +9,15 @@ we will study the interplay between perceptual modality
 (auditory VS visual) and the location of stimulus presentation
 (left VS right). Here we use single trials as replications
 (subjects) while iterating over time slices plus frequency bands
-for to fit our mass-univariate model. We will conclude with
-visualizing each effect by creating a corresponding mass-univariate
-effect image.
+for to fit our mass-univariate model. We will then visualize each
+effect by creating a corresponding mass-univariate effect image.
+We conclude with accounting for multiple comparisons for using
+the ANOVA functions as statistical function in a permutation
+clustering test.
 """
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
+#          Eric Larson <larson.eric.d@gmail.com>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -81,12 +85,15 @@ for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
     this_power /= epochs_baseline[..., np.newaxis]
     epochs_power.append(this_power)
 
+###############################################################################
+# Setup repeated measures ANOVA
 
 n_conditions = len(epochs.event_id)
 n_replications = epochs.events.shape[0] / n_conditions
 factor_levels = [2, 2]  # number of levels in each factor
 # assemble data matrix and swap axes so the trial replications
 # are the first dimension and the conditions are the second dimension
+effects = 'A*B'  # this is the default signature for computing all effects
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 # reshape last two dimensions in one mass-univariate observation-vector
 data = data.reshape(n_replications, n_conditions, 8 * 211)
@@ -105,17 +112,74 @@ print data.shape
 #
 # So we're ready to run our repeated measures ANOVA.
 
-fvals, _ = r_anova_twoway(data, factor_levels, return_pvals=False, n_jobs=2)
+fvals, pvals = r_anova_twoway(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
 import pylab as pl
-for effect, effect_label in zip(np.split(fvals, 3,  axis=1), effect_labels):
+
+# let's visualize our effects by computing f-images
+for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
     pl.figure()
+    # show naive F-values in gray
+    pl.imshow(effect.reshape(8, 211), cmap=pl.cm.gray, extent=[times[0],
+        times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+        origin='lower')
+    # create mask for significant Time-frequency locations
+    effect = np.ma.masked_array(effect, [sig > .05])
     pl.imshow(effect.reshape(8, 211), cmap=pl.cm.jet, extent=[times[0],
         times[-1], frequencies[0], frequencies[-1]], aspect='auto',
         origin='lower')
     pl.colorbar()
     pl.xlabel('time (ms)')
     pl.ylabel('Frequency (Hz)')
-    pl.title(r"Induced F-values '%s' (%s)" % (effect_label, ch_name))
+    pl.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
     pl.show()
+
+# Note. As we treat trials as subjects, the test only accounts for
+# time locked responses despite the 'induced' approach.
+# For analysis for induced power at the group level averaged TRFs
+# are required.
+
+
+###############################################################################
+# Account for multiple comparisons using a permutation clustering test
+
+# First we need to slightly modify the ANOVA function to be suitable for
+# the clustering procedure. Also want to set some defaults.
+
+def stat_fun(*args):  # variable number of arguments required for a stat_fun
+    # reshape data as required by r_anova_twoway
+    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications, \
+        n_conditions, 8 * 211)
+    # We will just pick the interaction by passing 'A:B'.
+    # (this notations is borrowed from the R formula language)
+    return r_anova_twoway(data, factor_levels=[2, 2], effects='A:B',
+                return_pvals=False)[0]
+
+threshold = 20.0  # f-values > 20. as clustering threshold to save some time
+tail = 1  # f-test, so tail > 0
+n_permutations = 256  # Save some time (the test won't be too sensitive ...)
+T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
+    epochs_power, stat_fun=stat_fun, threshold=threshold, tail=tail, n_jobs=2,
+    n_permutations=n_permutations)
+
+# Create new stats image with only significant clusters
+T_obs_plot = np.nan * np.ones_like(T_obs)
+for c, p_val in zip(clusters, cluster_p_values):
+    if p_val <= 0.05:
+        T_obs_plot[c] = T_obs[c]
+
+pl.imshow(T_obs, cmap=pl.cm.gray, extent=[times[0], times[-1],
+                                          frequencies[0], frequencies[-1]],
+                                  aspect='auto', origin='lower')
+pl.imshow(T_obs_plot, cmap=pl.cm.jet, extent=[times[0], times[-1],
+                                              frequencies[0], frequencies[-1]],
+                                  aspect='auto', origin='lower')
+
+# We see that the cluster level correction helps getting rid of random spots
+# we saw in the naive f-images.
+pl.xlabel('time (ms)')
+pl.ylabel('Frequency (Hz)')
+pl.title('Time-locked response for \'modality by location\' (%s)\n'
+          ' cluster-level corrected (p <= 0.5)' % ch_name)
+pl.show()
