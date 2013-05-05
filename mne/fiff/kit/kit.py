@@ -567,7 +567,9 @@ def get_sqd_params(rawfile):
             _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
             sqd['nsamples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
         else:
-            raise NotImplementedError
+            err = ("You are probably trying to load a file that is not a "
+                   "continuous recording sqd file.")
+            raise ValueError(err)
         sqd['n_sens'] = KIT_SYS.n_sens
         sqd['nmegchan'] = KIT_SYS.nmegchan
         sqd['nmiscchan'] = KIT_SYS.nmiscchan
