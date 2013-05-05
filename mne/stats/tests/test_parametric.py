@@ -1,5 +1,5 @@
 from itertools import product
-from ..parametric import r_anova_twoway, DEFAULTS
+from ..parametric import r_anova_twoway
 from nose.tools import assert_raises
 
 import numpy as np
