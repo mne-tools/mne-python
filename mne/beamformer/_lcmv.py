@@ -43,9 +43,9 @@ def _pick_normal(sol, vertno, forward):
     #TODO: What about the case when a label is given to choose vertices? Does
     # this code work?
     if sol.ndim != 2:
-        raise Exception('Input solution must be 2D')
+        raise ValueError('Input solution must be 2D')
     if sol.shape[0] % 3 != 0:
-        raise Exception('Input solution must have 3N rows')
+        raise ValueError('Input solution must have 3N rows')
 
     sol_normal = np.zeros((sol.shape[0]/3, sol.shape[1]))
     i_src = 0
