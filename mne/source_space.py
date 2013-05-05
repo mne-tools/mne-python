@@ -501,17 +501,7 @@ def _get_vertno(src):
 
 def prepare_bem_model(bem, method='linear'):
     cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
-    rcode, stdout, stderr = run_subprocess(cmd)
-
-    if rcode:
-        err = os.linesep.join(("mne_prepare_bem_model failed. See output "
-                               "below:", stdout, stderr))
-        raise CalledProcessError(err)
-    else:
-        if stdout.strip():
-            logger.info("stdout:\n%s" % stdout)
-        if stderr.strip():
-            logger.info("stderr:\n%s" % stderr)
+    stdout, stderr = run_subprocess(cmd)
 
 
 def setup_mri(subject, subjects_dir=None):
@@ -528,17 +518,7 @@ def setup_mri(subject, subjects_dir=None):
 
     cmd = ["mne_setup_mri", "--subject", subject]
 
-    rcode, stdout, stderr = run_subprocess(cmd, env=env)
-
-    if rcode:
-        err = os.linesep.join(("mne_setup_mri failed. See output "
-                               "below:", stdout, stderr))
-        raise CalledProcessError(err)
-    else:
-        if stdout.strip():
-            logger.info("stdout:\n%s" % stdout)
-        if stderr.strip():
-            logger.info("stderr:\n%s" % stderr)
+    run_subprocess(cmd, env=env)
 
 
 def setup_source_space(subject, ico=4, subjects_dir=None):
@@ -549,17 +529,7 @@ def setup_source_space(subject, ico=4, subjects_dir=None):
 
     cmd = ['mne_setup_source_space', '--subject', subject, '--ico', str(ico)]
 
-    rcode, stdout, stderr = run_subprocess(cmd, env=env)
-
-    if rcode:
-        err = os.linesep.join(("mne_prepare_bem_model failed. See output "
-                               "below:", stdout, stderr))
-        raise CalledProcessError(err)
-    else:
-        if stdout.strip():
-            logger.info("stdout:\n%s" % stdout)
-        if stderr.strip():
-            logger.info("stderr:\n%s" % stderr)
+    run_subprocess(cmd, env=env)
 
 
 def watershed_bem(subject, atlas=False, subjects_dir=None):
