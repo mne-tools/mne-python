@@ -176,12 +176,18 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     cl_goods = np.where(x_in)[0]
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
-        row, col = np.unravel_index(cl_goods, (n_times, n_src))
-        order = np.argsort(row)
-        row = row[order]
-        col = col[order]
-        lims = [0] + (np.where(np.diff(row) > 0)[0]
-                      + 1).tolist() + [len(row)]
+        row, col = unravel_index(cl_goods, (n_times, n_src))
+        if isinstance(row,int):
+            row  = [row]
+            col  = [col]
+            lims = [0]
+        else:
+            order = np.argsort(row)
+            row = row[order]
+            col = col[order]
+            lims = [0] + (np.where(np.diff(row) > 0)[0]
+                          + 1).tolist() + [len(row)]
+        
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])
         if max_step == 1:
