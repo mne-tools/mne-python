@@ -164,7 +164,7 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     n_permutations=n_permutations)
 
 # Create new stats image with only significant clusters
-good_clusers, _ = np.where(cluster_p_values < .05)
+good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
 
