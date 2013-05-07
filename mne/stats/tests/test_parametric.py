@@ -24,10 +24,16 @@ def test_parametric_r_anova_twoway():
             assert_true(((0 <= pvals) & (1 >= pvals)).all())
         n_effects = len(defaults['parse'][picks])
         assert_true(fvals.size == n_obs * n_effects)
-        fvals = f_threshold_twoway(n_subj, effects[n_levels], picks)
-        assert_true((fvals >= 0).all())
-        assert_true(fvals.size == n_effects)
+        if n_effects == 1:  # test for principle of least surprise ...
+            assert_true(fvals.ndim == 1)
+
+        fvals_ = f_threshold_twoway(n_subj, effects[n_levels], picks)
+        assert_true((fvals_ >= 0).all())
+        assert_true(fvals_.size == n_effects)
 
     data = np.random.random([n_subj, n_levels, 1])
     assert_raises(ValueError, r_anova_twoway, data, effects[n_levels],
                   effects='C', correction=correction)
+    data = np.random.random([n_subj, n_levels, n_obs, 3])
+    # check for dimension handling
+    r_anova_twoway(data, effects[n_levels], picks, correction=correction)

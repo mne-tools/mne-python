@@ -181,7 +181,7 @@ print 'Computing connectivity.'
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Now let's actually do the clustering. Please relax, on a small
-#    notebook with 2CPUs this will take a couple of minutes ...
+#    notebook witexith 2CPUs this will take a couple of minutes ...
 #    To speed things up a bit we will
 pthresh = 0.0001  # ... set the threshold rather high to save time.
 f_thresh = f_threshold_twoway(n_subjects, factor_levels, effects, pthresh)
@@ -191,7 +191,7 @@ n_permutations = 256  # ... run less permutations (reduces sensitivity)
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
-                                 threshold=f_thresh,
+                                 threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).

@@ -612,7 +612,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     """ Aux Function
 
     Note. X is required to be a list. Depending on the length of X
-    either a 1 sample t-test or a an f-test / more sample permutation scheme
+    either a 1 sample t-test or an f-test / more sample permutation scheme
     is elicited.
     """
 

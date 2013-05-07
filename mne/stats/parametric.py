@@ -210,12 +210,17 @@ def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
     """
-    if data.ndim == 2:
+    if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
+    elif data.ndim > 3:  # let's allow for some magic here.
+        data = data.reshape(data.shape[0], data.shape[1],
+            np.prod(data.shape[2:]))
 
     effect_picks = _check_effects(effects)
     n_obs = data.shape[2]
     n_replications = data.shape[0]
+
+    # pute last axis in fornt to 'iterate' over mass univariate instances.
     data = np.rollaxis(data, 2)
     fvalues, pvalues = [], []
     for c_, df1, df2 in _iter_contrasts(n_replications, factor_levels,
@@ -245,4 +250,5 @@ def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
             pvals = np.empty(0)
         pvalues.append(pvals)
 
-    return np.asarray(fvalues), np.asarray(pvalues)
+    # handle single effect returns
+    return [np.squeeze(np.asarray(v)) for v in fvalues, pvalues]
