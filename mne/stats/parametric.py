@@ -10,7 +10,7 @@ from ..parallel import parallel_func
 #
 # License: Simplified BSD
 
-DEFAULTS = {
+defaults = {
     'parse': {
         'A': [0],
         'B': [1],
@@ -101,11 +101,72 @@ def f_oneway(*args):
     return _f_oneway(*args)[0]
 
 
+def _check_effects(effects):
+    """ Aux Function """
+    if effects.upper() not in defaults['parse']:
+        raise ValueError('The value passed for `effects` is not supported.'
+            ' Please consider the documentation.')
+
+    return defaults['parse'][effects]
+
+
+def _iter_contrasts(n_subjects, factor_levels, effect_picks):
+    """ Aux Function """
+    sc, sy, = [], []  # setup contrasts
+    for n_levels in factor_levels:
+        sc.append([np.ones([n_levels, 1]),
+            detrend(np.eye(n_levels), type='constant')])
+        sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
+
+    for (c1, c2, c3) in defaults['iter_contrasts'][effect_picks]:
+        c_ = np.kron(sc[0][c1], sc[c3][c2])
+        df1 = np.linalg.matrix_rank(c_)
+        df2 = df1 * (n_subjects - 1)
+        yield c_, df1, df2
+
+
+def f_threshold_twoway(n_subjects, factor_levels, effects='A*B',
+                       pvalue=0.05):
+    """ Compute f-value thesholds for a two-way ANOVA
+
+    Parameters
+    ----------
+    n_subjects : int
+        The number of subjects to be analyzed.
+    factor_levels : list-like
+        The number of levels per factor.
+    effects : str
+        A string denoting the effect to be returned. The following
+        mapping is currently supported:
+            'A': main effect of A
+            'B': main effect of B
+            'A:B': interaction effect
+            'A+B': both main effects
+            'A*B': all three effects
+    pvalue : float
+        The p-value to be thresholded.
+
+    Returns
+    -------
+    f_threshold : list | float
+        list of f-values for each effect if the number of effects
+        requestes > 2, else float.
+
+    """
+    effect_picks = _check_effects(effects)
+
+    f_threshold = []
+    for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels,
+                                        effect_picks):
+        f_threshold.append(stats.f(df1, df2).isf(pvalue))
+
+    return f_threshold if len(f_threshold) > 1 else f_threshold[0]
+
+
 # The following functions based on MATLAB code by Rik Henson
 # and Python code from the pvttble toolbox by Roger Lew.
 def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
-                   correction=False, n_jobs=1,
-                   return_pvals=True):
+                   correction=False, return_pvals=True):
     """ 2 way repeated measures ANOVA for fully balanced designs
 
     data : ndarray
@@ -139,8 +200,6 @@ def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
         method will be applied.
     return_pvals : bool
         If True, return p values corresponding to f values.
-    n_jobs : int
-        Number of permutations to run in parallel (requires joblib package).
 
     Returns
     -------
@@ -154,70 +213,19 @@ def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
     if data.ndim == 2:
         data = data[:, :, np.newaxis]
 
-    if n_jobs > 1 and data.shape[2] < 2:
-        raise ValueError('You cannot use parallel jobs with less'
-                         'than two observations per subject.')
-
-    if effects.upper() not in DEFAULTS['parse']:
-        raise ValueError('The value passed for `effects` is not supported.'
-            ' Please consider the documentation.')
-
-    effect_picks = DEFAULTS['parse'][effects]
+    effect_picks = _check_effects(effects)
     n_obs = data.shape[2]
     n_replications = data.shape[0]
-
-    sc, sy, = [], []  # setup contrasts
-    for n_levels in factor_levels:
-        sc.append([np.ones([n_levels, 1]),
-            detrend(np.eye(n_levels), type='constant')])
-        sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
-
-    df1 = np.prod(np.array(factor_levels) - 1)
-    df2 = df1 * (n_replications - 1)
-
-    if n_jobs > 1:
-        parallel, parallel_anova, _ = parallel_func(_r_anova, n_jobs)
-        results = parallel(parallel_anova(d, factor_levels, effect_picks,
-                    n_replications, sc, sy, alpha, correction, df1, df2)
-                    for d in split_list(np.rollaxis(data, 2), n_jobs))
-        fvals, eps = zip(*results)
-        fvals = np.concatenate(fvals, -1)
-        eps = np.concatenate(eps, -1) if correction else eps
-    else:
-        fvals, eps = _r_anova(np.rollaxis(data, 2), factor_levels,
-            effect_picks, n_replications, sc, sy, alpha, correction,
-            df1, df2)
-
-    fvals = np.array(fvals) if len(fvals) > 1 else np.array(fvals)[None, :]
-    df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
-
-    if correction:
-        eps = np.array(eps) if len(eps) > 1 else np.array(eps)[None, :].T
-        df1, df2 = [d[None, :] * eps for d in df1, df2]
-
-    if return_pvals:
-        if not correction:
-            pvals = np.c_[[stats.f(df1, df2).sf(fv) for fv in fvals]]
-        else:
-            pvals = np.c_[[stats.f(df1_, df2_).sf(fv) for fv, df1_, df2_ in
-                          zip(fvals, df1, df2)]]
-    else:
-        pvals = np.empty(0)
-
-    return fvals, pvals
-
-
-def _r_anova(data, factor_levels, effect_picks, n_replications, sc, sy,
-             alpha, correction, df1, df2):
-    """ Aux Function """
-    fvals, epsilon = [], []
-    for (c1, c2, c3) in DEFAULTS['iter_contrasts'][effect_picks]:
-        c_ = np.kron(sc[0][c1], sc[c3][c2])  # compute design matrix
+    data = np.rollaxis(data, 2)
+    fvalues, pvalues = [], []
+    for c_, df1, df2 in _iter_contrasts(n_replications, factor_levels,
+            effect_picks):
         y = np.dot(data, c_)
         b = np.mean(y, axis=1)[:, np.newaxis, :]
         ss = np.sum(np.sum(y * b, axis=2), axis=1)
         mse = (np.sum(np.sum(y * y, axis=2), axis=1) - ss) / (df2 / df1)
-        fvals.append(ss / mse)
+        fvals = ss / mse
+        fvalues.append(fvals)
         if correction:
             # sample covariances, leave off "/ (y.shape[1] - 1)" norm because
             # it falls out. the below line is faster than the equivalent:
@@ -225,6 +233,16 @@ def _r_anova(data, factor_levels, effect_picks, n_replications, sc, sy,
             v = np.array(map(np.dot, y.swapaxes(2, 1), y))
             v = (np.array(map(np.trace, v)) ** 2 /
                   (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
-            epsilon.append(v)
+            eps = v
 
-    return fvals, epsilon
+        df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
+        if correction:
+            df1, df2 = [d[None, :] * eps for d in df1, df2]
+
+        if return_pvals:
+            pvals = stats.f(df1, df2).sf(fvals)
+        else:
+            pvals = np.empty(0)
+        pvalues.append(pvals)
+
+    return np.asarray(fvalues), np.asarray(pvalues)

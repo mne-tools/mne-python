@@ -1,14 +1,17 @@
 """
 ======================================================================
-Repeated measures anova on source data with spatio-temporal clustering
+Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
 
-Tests if the differences in evoked responses bewtween stimulation
-conditions depend on the stimulus location for a group of subjects 
-(simulated here using one subject's data). For this purpuse we will
-compute an interaction effect using a repeated measures ANOVA.
-The multiple comparisons problem is addressed with a cluster-level
-permutation test across space and time. 
+This example illustrates how to make use of the clustering functions
+for arbitrary, self-defined contrasts beyond standard t-tests. In this
+case we will tests if the differences in evoked responses between
+stimulation modality (visual VS auditory) depend on the stimulus
+location (left vs right) for a group of subjects (simulated here
+using one subject's data). For this purpose we will compute an
+interaction effect using a repeated measures ANOVA. The multiple
+comparisons problem is addressed with a cluster-level permutation test
+across space and time.
 """
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
@@ -22,16 +25,15 @@ print __doc__
 import os.path as op
 import numpy as np
 from numpy.random import randn
-from scipy import stats as stats
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
     grade_to_tris, SourceEstimate
-from mne.stats import spatio_temporal_cluster_test
-from mne.stats.parametric import r_anova_twoway
+from mne.stats import spatio_temporal_cluster_test, f_threshold_twoway, \
+    r_anova_twoway
+
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
-from mne.viz import mne_analyze_colormap
 
 ###############################################################################
 # Set parameters
@@ -52,6 +54,7 @@ events = mne.read_events(event_fname)
 raw.info['bads'] += ['MEG 2443']
 picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
+
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)
 reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -71,9 +74,9 @@ method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
 sample_vertices = [s['vertno'] for s in inverse_operator['src']]
 
-#    Let's average and compute inverse, resampling to speed things up
+#    Let's average and compute inverse, then resample to speed things up
 conditions = []
-for cond in event_id:
+for cond in ['l_aud', 'r_aud', 'l_vis', 'r_vis']:  # order is important
     evoked = epochs[cond].average()
     evoked.resample(50)
     condition = apply_inverse(evoked, inverse_operator, lambda2, method)
@@ -107,7 +110,7 @@ for ii, condition in enumerate(conditions):
 #    with vertices 0:10242 for each hemisphere. Usually you'd have to morph
 #    each subject's data separately (and you might want to use morph_data
 #    instead), but here since all estimates are on 'sample' we can use one
-#    morph matix for all the heavy lifting.
+#    morph matrix for all the heavy lifting.
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)
@@ -119,41 +122,76 @@ print 'Morphing data.'
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
-#    We need to prepare the gorup matrix fot the ANOVA statistic
-X = np.abs(X)  # only magnitude
-#    Note that X needs to be a multi-dimensional array of shape
-#    samples (subjects) x time x space, so we permute dimensions
-X = np.transpose(X, [2, 1, 0, 3])
+#    Now we need to prepare the group matrix for the ANOVA statistic.
+#    To make the clustering function work correctly with the
+#    ANOVA function X needs to be a list of multi-dimensional arrays
+#    (one per condition) of shape: samples (subjects) x time x space
+
+X = np.transpose(X, [2, 1, 0, 3])  # First we permute dimensions
 # finally we split the array into a list a list of conditions
-X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]  
+# and discard the empty dimension resulting from the slit using numpy squeeze
+X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 
 ###############################################################################
-# Compute statistic
+# Prepare function for arbitrary contrast
+
+# As our ANOVA function is a multi-purpose tool we need to apply a few
+# modifications to integrate it with the clustering function. This
+# includes reshaping data, setting default arguments and processing
+# the return values. For this reason we write a tiny dummy function:
+
+# we will tell the ANOVA how to interpret the data matrix in terms of
+# factors. This is done via the factor levels argument which is a list
+# of the number factor levels for each factor.
+factor_levels = [2, 2]
+
+# Finally we will pick the interaction effect by passing 'A:B'.
+# (this notation is borrowed from the R formula language)
+effects = 'A:B'  # Without this also the main effects will be returned.
+# Tell the ANOVA not to compute p-values which we don't need for clustering
+return_pvals = False
+
+# a few more convenient bindings
+n_times = X[0].shape[1]
+n_conditions = 4
+
+
+# A stat_fun must deal with a variable number of input arguments.
+def stat_fun(*args):
+    # Inside the clustering function each condition will be passed as
+    # flattened array, necessitated by the clustering procedure.
+    # The ANOVA however expects an input array of dimensions:
+    # subjects X conditions X observations (optional).
+    # The following expression catches the list input, swaps the first and the
+    # second dimension and puts the remaining observations in the third
+    # dimension.
+    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects, \
+        n_conditions, n_times * n_vertices_fsave)
+    return r_anova_twoway(data, factor_levels=factor_levels, effects=effects,
+                return_pvals=return_pvals)[0]  # drop p-values (empty array).
+    # Note. for further details on this ANOVA function consider the
+    # corresponding time frequency example.
+
+###############################################################################
+# Compute clustering statistic
 
 #    To use an algorithm optimized for spatio-temporal clustering, we
 #    just pass the spatial connectivity matrix (instead of spatio-temporal)
 print 'Computing connectivity.'
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
+#    Now let's actually do the clustering. Please relax, on a small
+#    notebook with 2CPUs this will take a couple of minutes ...
+#    To speed things up a bit we will
+pthresh = 0.0001  # ... set the threshold rather high to save time.
+f_thresh = f_threshold_twoway(n_subjects, factor_levels, effects, pthresh)
 
-#    Now let's actually do the clustering. This can take a long time...
-#    Here we set the threshold quite high to reduce computation.
-f_threshold = 80  # high threshold to save us some time
-n_permutations = 256 # less permutations ... (don't imitate this at home)
-
-def stat_fun(*args):  # variable number of arguments required for a stat_fun
-    # reshape data as required by r_anova_twoway
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications, \
-        n_conditions, 8 * 211)
-    # We will just pick the interaction by passing 'A:B'.
-    # (this notations is borrowed from the R formula language)
-    return r_anova_twoway(data, factor_levels=[2, 2], effects='A:B',
-                return_pvals=False)[0]
+n_permutations = 256  # ... run less permutations (reduces sensitivity)
 
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
-                                 threshold=f_threshold,
+                                 threshold=f_thresh,
                                  n_permutations=n_permutations)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
@@ -187,7 +225,7 @@ stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
 #    shows all the clusters, weighted by duration
 
 subjects_dir = op.join(data_path, 'subjects')
-# The brighter the color, the stronger the interaction between 
+# The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
 brains = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both',
                                   subjects_dir=subjects_dir,
@@ -198,3 +236,37 @@ for idx, brain in enumerate(brains):
     brain.scale_data_colormap(fmin=5, fmid=10, fmax=30, transparent=True)
     brain.show_view('lateral')
     brain.save_image('clusters-%s.png' % ('lh' if idx == 0 else 'rh'))
+
+
+###############################################################################
+# Finally, let's investigate interaction effect by reconstructing the time
+# courses
+
+import pylab as pl
+inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
+                    enumerate(good_cluster_inds)][0]  # first cluster
+
+times = np.arange(X[0].shape[1]) * tstep * 1e3
+
+pl.clf()
+for condition, color, eve_id in zip(X, ['y', 'b', 'g', 'purple'], event_id):
+    # extract time course at cluster vertices
+    condition = condition[:, :, inds_v]
+    # normally we would normalize values across subjects but
+    # here we use data from the same subject so we're good to just
+    # create average time series across subjects and vertices.
+    mean_tc = condition.mean(axis=2).mean(axis=0)
+    std_tc = condition.std(axis=2).std(axis=0)
+    pl.plot(times, mean_tc.T, color=color, label=eve_id)
+    pl.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
+            alpha=0.5, label='')
+    yl, yu = pl.ylim()
+    pl.fill_betweenx(np.arange(yl, yu + 1), times[inds_t[0]],
+        times[t_inds[-1]],
+        color='orange', alpha=0.2)
+    pl.xlabel('Time (ms)')
+    pl.ylabel('Activation (F-values)')
+    pl.xlim(times[[0, -1]])
+pl.legend()
+pl.title('Interaction between stimulus modality and location.')
+pl.show()

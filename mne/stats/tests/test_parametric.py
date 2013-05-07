@@ -1,6 +1,6 @@
 from itertools import product
-from ..parametric import r_anova_twoway
-from nose.tools import assert_raises
+from ..parametric import r_anova_twoway, f_threshold_twoway, defaults
+from nose.tools import assert_raises, assert_true
 
 import numpy as np
 
@@ -8,19 +8,26 @@ import numpy as np
 def test_parametric_r_anova_twoway():
     """ Test 2-way anova """
     iter_params = product([4, 10], [2, 15], [4, 6, 8], ['A', 'B', 'A:B'],
-        [1, 2], [False, True])
+        [False, True])
     for params in iter_params:
-        n_subj, n_obs, n_levels, picks, n_jobs, correction = params
+        n_subj, n_obs, n_levels, picks, correction = params
         data = np.random.random([n_subj, n_levels, n_obs])
         effects = {
             4: [2, 2],
             6: [2, 3],
             8: [2, 4]
         }
-        r_anova_twoway(data, effects[n_levels], picks, n_jobs=n_jobs,
-            correction=correction)
+        fvals, pvals = r_anova_twoway(data, effects[n_levels], picks,
+                                      correction=correction)
+        assert_true((fvals >= 0).all())
+        if pvals.any():
+            assert_true(((0 <= pvals) & (1 >= pvals)).all())
+        n_effects = len(defaults['parse'][picks])
+        assert_true(fvals.size == n_obs * n_effects)
+        fvals = f_threshold_twoway(n_subj, effects[n_levels], picks)
+        assert_true((fvals >= 0).all())
+        assert_true(fvals.size == n_effects)
+
     data = np.random.random([n_subj, n_levels, 1])
     assert_raises(ValueError, r_anova_twoway, data, effects[n_levels],
-                  n_jobs=2, correction=correction)
-    assert_raises(ValueError, r_anova_twoway, data, effects[n_levels],
-                  effects='C', n_jobs=2, correction=correction)
+                  effects='C', correction=correction)

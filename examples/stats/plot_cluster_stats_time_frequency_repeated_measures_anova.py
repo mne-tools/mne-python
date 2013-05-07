@@ -9,11 +9,14 @@ we will study the interplay between perceptual modality
 (auditory VS visual) and the location of stimulus presentation
 (left VS right). Here we use single trials as replications
 (subjects) while iterating over time slices plus frequency bands
-for to fit our mass-univariate model. We will then visualize each
-effect by creating a corresponding mass-univariate effect image.
-We conclude with accounting for multiple comparisons by using
+for to fit our mass-univariate model. For the sake of simplicity we
+will confine this analysis to one single channel of which we know
+that it exposes a strong induced response. We will then visualize
+each effect by creating a corresponding mass-univariate effect
+image. We conclude with accounting for multiple comparisons by
 performing a permutation clustering test using the ANOVA as
-clustering function.
+clustering function. The results final will be compared to
+multiple comparisons using False Discovery Rate correction.
 """
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #          Eric Larson <larson.eric.d@gmail.com>
@@ -28,7 +31,7 @@ import numpy as np
 import mne
 from mne import fiff
 from mne.time_frequency import single_trial_power
-from mne.stats.parametric import r_anova_twoway
+from mne.stats import f_threshold_twoway, r_anova_twoway, fdr_correction
 from mne.datasets import sample
 
 ###############################################################################
@@ -90,13 +93,22 @@ for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
 
 n_conditions = len(epochs.event_id)
 n_replications = epochs.events.shape[0] / n_conditions
+# we will tell the ANOVA how to interpret the data matrix in terms of
+# factors. This done via the factor levels argument which is a list
+# of the number factor levels for each factor.
 factor_levels = [2, 2]  # number of levels in each factor
-# assemble data matrix and swap axes so the trial replications
-# are the first dimension and the conditions are the second dimension
 effects = 'A*B'  # this is the default signature for computing all effects
+# Other possible options are 'A' or 'B' for the corresponding main effects
+# or 'A:B' for the interaction effect only (this notation is borrowed from the
+# R formula language)
+n_frequencies = len(frequencies)
+n_times = len(times[::decim])
+
+# Now we'll assemble the data matrix and swap axes so the trial replications
+# are the first dimension and the conditions are the second dimension
 data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 # reshape last two dimensions in one mass-univariate observation-vector
-data = data.reshape(n_replications, n_conditions, 8 * 211)
+data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
 
 # so we have replications * conditions * observations:
 print data.shape
@@ -110,7 +122,7 @@ print data.shape
 # trial ... .... .... .... ....
 # trial 56  2.45 7.90 3.09 4.76
 #
-# So we're ready to run our repeated measures ANOVA.
+# Now we're ready to run our repeated measures ANOVA.
 
 fvals, pvals = r_anova_twoway(data, factor_levels, effects=effects)
 
@@ -142,43 +154,68 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
 
 
 ###############################################################################
-# Account for multiple comparisons using a permutation clustering test
+# Account for multiple comparisons using FDR versus permutation clustering test
 
 # First we need to slightly modify the ANOVA function to be suitable for
 # the clustering procedure. Also want to set some defaults.
+# Let's first override effects to confine the analysis to the interaction
+effects = 'A:B'
 
-def stat_fun(*args):  # variable number of arguments required for a stat_fun
-    # reshape data as required by r_anova_twoway
+
+# A stat_fun must deal with a variable number of input arguments.
+def stat_fun(*args):
+    # Inside the clustering function each condition will be passed as
+    # flattened array, necessitated by the clustering procedure.
+    # The ANOVA however expects an input array of dimensions:
+    # subjects X conditions X observations (optional).
+    # The following expression catches the list input, swaps the first and the
+    # second dimension and puts the remaining observations in the third
+    # dimension.
     data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications, \
-        n_conditions, 8 * 211)
-    # We will just pick the interaction by passing 'A:B'.
-    # (this notations is borrowed from the R formula language)
-    return r_anova_twoway(data, factor_levels=[2, 2], effects='A:B',
+        n_conditions, n_times * n_frequencies)
+    return r_anova_twoway(data, factor_levels=factor_levels, effects=effects,
                 return_pvals=False)[0]
+    # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 
-threshold = 20.0  # f-values > 20. as clustering threshold to save some time
+
+pthresh = 0.0001  # set threshold rather high to save some time
+f_thresh = f_threshold_twoway(n_replications, factor_levels, effects, pthresh)
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
-    epochs_power, stat_fun=stat_fun, threshold=threshold, tail=tail, n_jobs=2,
+    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=2,
     n_permutations=n_permutations)
 
 # Create new stats image with only significant clusters
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
-
-pl.imshow(T_obs, cmap=pl.cm.gray, extent=[times[0], times[-1],
-                                          frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower')
-pl.imshow(T_obs_plot, cmap=pl.cm.jet, extent=[times[0], times[-1],
-                                              frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower')
-
-# We see that the cluster level correction helps getting rid of random spots
-# we saw in the naive f-images.
+pl.clf()
+for f_image, cmap in zip([T_obs, T_obs_plot], [pl.cm.gray, pl.cm.jet]):
+    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+          frequencies[0], frequencies[-1]], aspect='auto',
+          origin='lower')
 pl.xlabel('time (ms)')
 pl.ylabel('Frequency (Hz)')
 pl.title('Time-locked response for \'modality by location\' (%s)\n'
-          ' cluster-level corrected (p <= 0.5)' % ch_name)
+          ' cluster-level corrected (p <= 0.05)' % ch_name)
 pl.show()
+
+# now using FDR
+mask, _ = fdr_correction(pvals[2])
+T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
+
+pl.clf()
+for f_image, cmap in zip([T_obs, T_obs_plot2], [pl.cm.gray, pl.cm.jet]):
+    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+          frequencies[0], frequencies[-1]], aspect='auto',
+          origin='lower')
+
+pl.xlabel('time (ms)')
+pl.ylabel('Frequency (Hz)')
+pl.title('Time-locked response for \'modality by location\' (%s)\n'
+          ' FDR corrected (p <= 0.05)' % ch_name)
+pl.show()
+
+# Both, cluster level and FDR correction help getting rid of
+# putatively spots we saw in the naive f-images.

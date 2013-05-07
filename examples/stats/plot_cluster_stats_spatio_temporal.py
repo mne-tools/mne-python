@@ -109,7 +109,7 @@ X[:, :, :, 1] += condition2.data[:, :, np.newaxis]
 #    with vertices 0:10242 for each hemisphere. Usually you'd have to morph
 #    each subject's data separately (and you might want to use morph_data
 #    instead), but here since all estimates are on 'sample' we can use one
-#    morph matix for all the heavy lifting.
+#    morph matrix for all the heavy lifting.
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)

@@ -624,7 +624,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     n_samples = X[0].shape[0]
     n_times = X[0].shape[1]
 
-    sample_shape = X[0].shape[1:3]
+    sample_shape = X[0].shape[1:]
     for x in X:
         if x.shape[1:] != sample_shape:
             raise ValueError('All samples mush have the same size')
