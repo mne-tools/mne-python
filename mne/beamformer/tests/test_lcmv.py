@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -69,11 +69,17 @@ def test_lcmv():
     assert_true(2. < np.max(max_stc) < 3.)
 
     # Test picking normal orientation
-    stc_normal = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+    forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+    stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
                       pick_ori="normal")
 
     assert_true(stc_normal.shape == stc_normal.shape)
     assert_true((stc_normal.data <= stc.data).all())
+
+    # Test if non-surface oriented forward operator is detected when picking
+    # normal orientation
+    assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
+                  reg=0.01, pick_ori="normal")
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
