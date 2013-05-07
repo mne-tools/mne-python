@@ -388,18 +388,28 @@ class CoregControl(HasPrivateTraits):
                 prog.update(progi)
                 prog.change_message("Running mne_prepare_bem_model...")
 
-                prepare_bem_model(bem)
+                try:
+                    prepare_bem_model(bem)
+                except Exception as e:
+                    err = "%s\n\nSee log for more information." % str(e)
+                    error(None, err, "Error in mne_prepare_bem_model")
 
             if mridlg.setup_source_space:
                 progi += 1
                 prog.update(progi)
                 prog.change_message("Running mne_setup_source_space...")
 
-                if mridlg.ss_subd == 'ico':
-                    setup_source_space(subject, ico=mridlg.ss_param,
-                                       subjects_dir=self.subjects_dir)
-                else:
-                    raise NotImplementedError
+                try:
+                    if mridlg.ss_subd == 'ico':
+                        setup_source_space(subject, ico=mridlg.ss_param,
+                                           subjects_dir=self.subjects_dir)
+                    else:
+                        err = ("Can only use ico parameter, not "
+                               "%s" % mridlg.ss_subd)
+                        raise NotImplementedError(err)
+                except Exception as e:
+                    err = "%s\n\nSee log for more information." % str(e)
+                    error(None, err, "Error in mne_setup_source_space")
 
             prog.close()
 
@@ -580,9 +590,10 @@ class CoregFrame(HasTraits):
                                    dock='vertical', show_label=False),
                               VGroup(headview_item,
                                      Item('mri_obj', label='MRI', style='custom'),
-#                                      label='View',
-                                     show_labels=False,
-#                                      show_border=True
+                                     Item('hsp_obj', label='Head Shape', style='custom'),
+                                     label='View Options',
+                                     show_border=True
+#                                      show_labels=False,
                                      ),
                               ),
                        VGroup(
