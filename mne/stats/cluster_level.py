@@ -177,7 +177,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
         row, col = unravel_index(cl_goods, (n_times, n_src))
-        if isinstance(row,int):
+        if isinstance(row, int):
             row  = [row]
             col  = [col]
             lims = [0]
