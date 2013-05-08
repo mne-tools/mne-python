@@ -9,7 +9,7 @@ import numpy as np
 test_external = {  # hardcoded external test results
     'spss_fvals_uncorrected': np.array([2.568, 0.240, 1.756]),
     'spss_pvals_uncorrected': np.array([0.126, 0.788, 0.186]),
-    'spss_pvals_corrected': np.array([0.126, 0.784, 1.92])
+    'spss_pvals_corrected': np.array([0.126, 0.784, 0.192])
 }
 
 
