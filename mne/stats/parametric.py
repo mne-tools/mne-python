@@ -148,8 +148,7 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
     -------
     f_threshold : list | float
         list of f-values for each effect if the number of effects
-        requestes > 2, else float.
-
+        requested > 2, else float.
     """
     effect_picks = _check_effects(effects)
 

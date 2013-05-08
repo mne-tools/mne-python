@@ -6,10 +6,16 @@ from numpy.testing import assert_array_almost_equal
 
 import numpy as np
 
-test_external = {  # hardcoded external test results
-    'spss_fvals_uncorrected': np.array([2.568, 0.240, 1.756]),
+# hardcoded external test results, manually transferred
+test_external = {
+    # SPSS, manually conducted analyis
+    'spss_fvals': np.array([2.568, 0.240, 1.756]),
     'spss_pvals_uncorrected': np.array([0.126, 0.788, 0.186]),
-    'spss_pvals_corrected': np.array([0.126, 0.784, 0.192])
+    'spss_pvals_corrected': np.array([0.126, 0.784, 0.192]),
+    # R 15.2
+    # data generated using this code http://goo.gl/7UcKb
+    'r_fvals': np.array([2.567619, 0.24006, 1.756380]),
+    'r_pvals_uncorrected': np.array([0.12557, 0.78776, 0.1864])
 }
 
 
@@ -48,9 +54,15 @@ def test_f_twoway_rm():
 
     data = np.random.RandomState(42).randn(20, 6)
     fvals, pvals = f_twoway_rm(data, [2, 3])
+
     assert_array_almost_equal(fvals,
-        test_external['spss_fvals_uncorrected'], 3)
+        test_external['spss_fvals'], 3)
     assert_array_almost_equal(pvals,
         test_external['spss_pvals_uncorrected'], 3)
+    assert_array_almost_equal(fvals,
+        test_external['r_fvals'], 4)
+    assert_array_almost_equal(pvals,
+        test_external['r_pvals_uncorrected'], 3)
+
     _, pvals = f_twoway_rm(data, [2, 3], correction=True)
     assert_array_almost_equal(pvals, test_external['spss_pvals_corrected'], 3)

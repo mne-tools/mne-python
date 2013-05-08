@@ -63,7 +63,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                                 picks=picks, baseline=(None, 0),
                                 reject=reject)
 
-# make sure all conditions have the same counts, this is crucial for the ANOVA
+# make sure all conditions have the same counts, as the ANOVA expects a
+# fully balanced data matrix and does not forgive imbalances that generously
+# (risk of type-I error)
 epochs.equalize_event_counts(event_id, copy=False)
 # Time vector
 times = 1e3 * epochs.times  # change unit to ms
