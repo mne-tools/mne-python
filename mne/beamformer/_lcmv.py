@@ -202,6 +202,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -253,6 +256,9 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -320,6 +326,9 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
