@@ -9,7 +9,7 @@ import numpy as np
 test_external = {  # hardcoded external test results
     'spss_fvals_uncorrected': np.array([2.568, 0.240, 1.756]),
     'spss_pvals_uncorrected': np.array([0.126, 0.788, 0.186]),
-    'spss_pvals_corrected': np.array([0.126, 0.788, 1.92])
+    'spss_pvals_corrected': np.array([0.126, 0.784, 1.92])
 }
 
 
@@ -52,5 +52,5 @@ def test_f_twoway_rm():
         test_external['spss_fvals_uncorrected'], 3)
     assert_array_almost_equal(pvals,
         test_external['spss_pvals_uncorrected'], 3)
-    # _, pvals = f_twoway_rm(data, [2, 3], correction=True)  # XXX fix this
-    # assert_array_almost_equal(pvals, test_external['spss_pvals_corrected'], 3)
+    _, pvals = f_twoway_rm(data, [2, 3], correction=True)
+    assert_array_almost_equal(pvals, test_external['spss_pvals_corrected'], 3)
