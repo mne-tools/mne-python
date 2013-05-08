@@ -74,8 +74,9 @@ class Kit2FiffPanel(HasPrivateTraits):
     events = Array(Int, shape=(None,), value=[])
     stim_chs = Enum(">", "<", desc="Binary coding of trigger values in "
                     "event channels. <: little endian; >: big endian.")
-    stim_slope = Enum("-", "+", desc="Whether events are marked by a decrease"
-                 " (trough) or an increase (peak) in trigger channel values")
+    stim_slope = Enum("-", "+", desc="Whether events are marked by a decrease "
+                      "(trough) or an increase (peak) in trigger channel "
+                      "values")
     event_info = Property(Str, depends_on=['events', 'stim_chs'])
 
     # Visualization
@@ -98,8 +99,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                               Item('hsp_fname', show_label=False, style='readonly'),
                               Item('use_mrk', editor=use_editor, style='custom'),
                               label="Sources", show_border=True),
-                    VGroup(Item('stim_chs', style='custom'),
-                           Item('stim_slope', style='custom',
+                    VGroup(Item('stim_chs', label="Stim Channel Order", style='custom'),
+                           Item('stim_slope', label="Stim Channel Event Type", style='custom',
                                 editor=EnumEditor(values={'+': '2:Peak',
                                                           '-': '1:Trough'}, cols=2)),
 #                            Item('event_info', style='readonly', show_label=False),
