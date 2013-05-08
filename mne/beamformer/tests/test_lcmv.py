@@ -73,7 +73,6 @@ def test_lcmv():
     stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
                       pick_ori="normal")
 
-    assert_true(stc_normal.shape == stc_normal.shape)
     assert_true((stc_normal.data <= stc.data).all())
 
     # Test if non-surface oriented forward operator is detected when picking
