@@ -1,8 +1,6 @@
 import numpy as np
 from scipy import stats
 from scipy.signal import detrend
-from ..utils import split_list
-from ..parallel import parallel_func
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
@@ -10,7 +8,7 @@ from ..parallel import parallel_func
 #
 # License: Simplified BSD
 
-defaults = {
+defaults_twoway_rm = {
     'parse': {
         'A': [0],
         'B': [1],
@@ -103,11 +101,11 @@ def f_oneway(*args):
 
 def _check_effects(effects):
     """ Aux Function """
-    if effects.upper() not in defaults['parse']:
+    if effects.upper() not in defaults_twoway_rm['parse']:
         raise ValueError('The value passed for `effects` is not supported.'
             ' Please consider the documentation.')
 
-    return defaults['parse'][effects]
+    return defaults_twoway_rm['parse'][effects]
 
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
@@ -118,14 +116,14 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
             detrend(np.eye(n_levels), type='constant')])
         sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
 
-    for (c1, c2, c3) in defaults['iter_contrasts'][effect_picks]:
+    for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
         c_ = np.kron(sc[0][c1], sc[c3][c2])
         df1 = np.linalg.matrix_rank(c_)
         df2 = df1 * (n_subjects - 1)
         yield c_, df1, df2
 
 
-def f_threshold_twoway(n_subjects, factor_levels, effects='A*B',
+def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
                        pvalue=0.05):
     """ Compute f-value thesholds for a two-way ANOVA
 
@@ -165,7 +163,7 @@ def f_threshold_twoway(n_subjects, factor_levels, effects='A*B',
 
 # The following functions based on MATLAB code by Rik Henson
 # and Python code from the pvttble toolbox by Roger Lew.
-def r_anova_twoway(data, factor_levels, effects='A*B', alpha=0.05,
+def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
                    correction=False, return_pvals=True):
     """ 2 way repeated measures ANOVA for fully balanced designs
 

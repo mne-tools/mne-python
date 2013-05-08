@@ -31,7 +31,7 @@ import numpy as np
 import mne
 from mne import fiff
 from mne.time_frequency import single_trial_power
-from mne.stats import f_threshold_twoway, r_anova_twoway, fdr_correction
+from mne.stats import f_threshold_twoway_rm, f_twoway_rm, fdr_correction
 from mne.datasets import sample
 
 ###############################################################################
@@ -124,7 +124,7 @@ print data.shape
 #
 # Now we're ready to run our repeated measures ANOVA.
 
-fvals, pvals = r_anova_twoway(data, factor_levels, effects=effects)
+fvals, pvals = f_twoway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
 import pylab as pl
@@ -173,13 +173,13 @@ def stat_fun(*args):
     # dimension.
     data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications, \
         n_conditions, n_times * n_frequencies)
-    return r_anova_twoway(data, factor_levels=factor_levels, effects=effects,
+    return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
                 return_pvals=False)[0]
     # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 
 
-pthresh = 0.0001  # set threshold rather high to save some time
-f_thresh = f_threshold_twoway(n_replications, factor_levels, effects, pthresh)
+pthresh = 0.00001  # set threshold rather high to save some time
+f_thresh = f_threshold_twoway_rm(n_replications, factor_levels, effects, pthresh)
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
@@ -190,7 +190,7 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
-pl.clf()
+pl.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot], [pl.cm.gray, pl.cm.jet]):
     pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
           frequencies[0], frequencies[-1]], aspect='auto',
@@ -205,7 +205,7 @@ pl.show()
 mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
-pl.clf()
+pl.figure()
 for f_image, cmap in zip([T_obs, T_obs_plot2], [pl.cm.gray, pl.cm.jet]):
     pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
           frequencies[0], frequencies[-1]], aspect='auto',

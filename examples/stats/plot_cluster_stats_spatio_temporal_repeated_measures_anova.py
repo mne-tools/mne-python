@@ -29,8 +29,8 @@ from numpy.random import randn
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
     grade_to_tris, SourceEstimate
-from mne.stats import spatio_temporal_cluster_test, f_threshold_twoway, \
-    r_anova_twoway
+from mne.stats import spatio_temporal_cluster_test, f_threshold_twoway_rm, \
+    f_twoway_rm
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
@@ -138,9 +138,9 @@ X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 # As our ANOVA function is a multi-purpose tool we need to apply a few
 # modifications to integrate it with the clustering function. This
 # includes reshaping data, setting default arguments and processing
-# the return values. For this reason we write a tiny dummy function:
+# the return values. For this reason we'll write a tiny dummy function.
 
-# we will tell the ANOVA how to interpret the data matrix in terms of
+# We will tell the ANOVA how to interpret the data matrix in terms of
 # factors. This is done via the factor levels argument which is a list
 # of the number factor levels for each factor.
 factor_levels = [2, 2]
@@ -167,7 +167,7 @@ def stat_fun(*args):
     # dimension.
     data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects, \
         n_conditions, n_times * n_vertices_fsave)
-    return r_anova_twoway(data, factor_levels=factor_levels, effects=effects,
+    return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
                 return_pvals=return_pvals)[0]  # drop p-values (empty array).
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
@@ -181,12 +181,11 @@ print 'Computing connectivity.'
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Now let's actually do the clustering. Please relax, on a small
-#    notebook witexith 2CPUs this will take a couple of minutes ...
+#    notebook with 2CPUs this will take a couple of minutes ...
 #    To speed things up a bit we will
-pthresh = 0.0001  # ... set the threshold rather high to save time.
-f_thresh = f_threshold_twoway(n_subjects, factor_levels, effects, pthresh)
-
-n_permutations = 256  # ... run less permutations (reduces sensitivity)
+pthresh = 0.0005  # ... set the threshold rather high to save time.
+f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
+n_permutations = 256  # ... run fewer permutations (reduces sensitivity)
 
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
@@ -249,7 +248,8 @@ inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
 pl.clf()
-for condition, color, eve_id in zip(X, ['y', 'b', 'g', 'purple'], event_id):
+colors = ['y', 'b', 'g', 'purple']
+for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_id)):
     # extract time course at cluster vertices
     condition = condition[:, :, inds_v]
     # normally we would normalize values across subjects but
@@ -260,13 +260,13 @@ for condition, color, eve_id in zip(X, ['y', 'b', 'g', 'purple'], event_id):
     pl.plot(times, mean_tc.T, color=color, label=eve_id)
     pl.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
             alpha=0.5, label='')
-    yl, yu = pl.ylim()
-    pl.fill_betweenx(np.arange(yl, yu + 1), times[inds_t[0]],
-        times[t_inds[-1]],
-        color='orange', alpha=0.2)
+    # if ii < 1:
     pl.xlabel('Time (ms)')
     pl.ylabel('Activation (F-values)')
     pl.xlim(times[[0, -1]])
+
+pl.fill_betweenx(np.arange(-5, 25), times[inds_t[0]],
+        times[t_inds[-1]], color='orange', alpha=0.3)
 pl.legend()
 pl.title('Interaction between stimulus modality and location.')
 pl.show()
