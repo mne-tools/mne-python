@@ -265,7 +265,7 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_id)):
     pl.ylabel('Activation (F-values)')
     pl.xlim(times[[0, -1]])
 
-pl.fill_betweenx(np.arange(-5, 25), times[inds_t[0]],
+pl.fill_betweenx(np.arange(*pl.ylim()), times[inds_t[0]],
         times[t_inds[-1]], color='orange', alpha=0.3)
 pl.legend()
 pl.title('Interaction between stimulus modality and location.')
