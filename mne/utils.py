@@ -655,16 +655,19 @@ class ProgressBar(object):
 
     Parameters
     ----------
-    max_value : number
+    max_value : int
         Maximum value of process (e.g. number of samples to process, bytes to
         download, etc.).
+    initial_value : int
+        Initial value of process, useful when resuming process from a specific
+        value, defaults to 0.
     mesg : str
-        Message to include at end of progress bar
+        Message to include at end of progress bar.
     max_chars : int
         Number of characters to use for progress bar (be sure to save some room
         for the message and % complete as well).
     progress_character : char
-        Character in the progress bar that indicates the portion completed
+        Character in the progress bar that indicates the portion completed.
     spinner : bool
         Show a spinner.  Useful for long-running processes that may not
         increment the progress bar very often.  This provides the user with
@@ -750,10 +753,11 @@ class ProgressBar(object):
         increment_value : int
             Value of the increment of process.  The percent of the progressbar
             will be computed as
-            (self.initial_size + increment_value / max_value) * 100
+            (self.cur_value + increment_value / max_value) * 100
         mesg : str
             Message to display to the right of the progressbar.  If None, the
             last message provided will be used.  To clear the current message,
+            pass a null string, ''.
         """
         self.cur_value += increment_value
         self.update(self.cur_value, mesg)
@@ -798,8 +802,8 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     total_size = int(response.info().getheader('Content-Length').strip())
     total_size += initial_size
 
-    progress = ProgressBar(total_size, initial_size=bytes_so_far, max_chars=40,
-                           spinner=True, mesg='downloading')
+    progress = ProgressBar(total_size, initial_value=bytes_so_far,
+                           max_chars=40, spinner=True, mesg='downloading')
     while True:
         chunk = response.read(chunk_size)
         bytes_so_far += len(chunk)
@@ -829,8 +833,8 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     data.sendcmd("REST " + str(local_file_size))
     down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
-    progress = ProgressBar(file_size, initial_size=local_file_size, max_chars=40,
-                           spinner=True, mesg='downloading')
+    progress = ProgressBar(file_size, initial_value=local_file_size,
+                           max_chars=40, spinner=True, mesg='downloading')
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
