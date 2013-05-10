@@ -3,6 +3,7 @@ from nose.tools import assert_true, assert_raises
 import os.path as op
 import os
 import warnings
+import urllib2
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
                     get_config, set_config, deprecated, _fetch_file
@@ -140,6 +141,12 @@ def test_deprecated():
 def test_fetch_file():
     """Test file downloading
     """
+    # Skipping test if no internet connection available
+    try:
+        urllib2.urlopen("http://github.com", timeout=1)
+    except urllib2.URLError:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('No internet connection, skipping download test.')
     url = "http://github.com/mne-tools/mne-python/blob/master/README.rst"
     archive_name = op.join(tempdir, "download_test")
     _fetch_file(url, archive_name, print_destination=False)
