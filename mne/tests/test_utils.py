@@ -3,9 +3,10 @@ from nose.tools import assert_true, assert_raises
 import os.path as op
 import os
 import warnings
+import urllib2
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config, deprecated
+                    get_config, set_config, deprecated, _fetch_file
 from ..fiff import Evoked, show_fiff
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
@@ -135,3 +136,17 @@ def test_deprecated():
     with warnings.catch_warnings(True) as w:
         deprecated_func()
     assert_true(len(w) == 1)
+
+
+def test_fetch_file():
+    """Test file downloading
+    """
+    # Skipping test if no internet connection available
+    try:
+        urllib2.urlopen("http://github.com", timeout=1)
+    except urllib2.URLError:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('No internet connection, skipping download test.')
+    url = "http://github.com/mne-tools/mne-python/blob/master/README.rst"
+    archive_name = op.join(tempdir, "download_test")
+    _fetch_file(url, archive_name, print_destination=False)
