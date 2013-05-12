@@ -12,7 +12,7 @@ import numpy as np
 from numpy import dot
 from scipy.cluster.hierarchy import linkage, to_tree, leaves_list
 from scipy.spatial import Delaunay
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import cdist, pdist
 
 from mayavi import mlab
 from mayavi.core.ui.mayavi_scene import MayaviScene
@@ -68,7 +68,7 @@ class CoregControl(HasPrivateTraits):
     hsp_fid = Array(shape=(3, 3))
     dig = List  # digitizer fiducials for info['dig']
 
-    # dependsnt
+    # dependent
     src_pts = Property(depends_on=['hsp_pts', 'hsp_fid'])  # hsp points moved to their nasion
     src_fid = Property(depends_on='hsp_fid')
     tgt_origin = Property(depends_on=['mri_fid', 'scale'])
@@ -586,6 +586,9 @@ class CoregFrame(HasTraits):
     nas_obj = Instance(PointObject)
     rap_obj = Instance(PointObject)
 
+    fit_eval_fid = Str('-')
+    fit_eval_pts = Str('-')
+
     view = View(HGroup(VGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                                    dock='vertical', show_label=False),
                               VGroup(headview_item,
@@ -611,6 +614,9 @@ class CoregFrame(HasTraits):
                               VGroup(Item('coreg', style='custom'),
                                      label='Coregistration', show_labels=False,
                                      show_border=True, enabled_when='lock_fiducials'),
+                              VGroup(Item('fit_eval_fid', style='readonly'),
+                                     Item('fit_eval_pts', style='readonly'),
+                                     label='Fit', show_labels=False, show_border=True),
                               show_labels=False),
                        show_labels=False,
                       ),
@@ -618,6 +624,33 @@ class CoregFrame(HasTraits):
 
     def _fid_panel_default(self):
         return FiducialsPanel(scene=self.scene, headview=self.headview)
+
+    @on_trait_change('hsp_fid_obj.src.data.points', True)
+    def _update_fit_eval_fid(self):
+        if np.all(self.hsp_fid_obj.points == 0):
+            self.fit_eval_fid = '-'
+            return
+
+        mri_fid = np.vstack((self.nas_obj.src.data.points,
+                             self.lap_obj.src.data.points,
+                             self.rap_obj.src.data.points))
+        head_fid = np.array(self.hsp_fid_obj.src.data.points)
+        dists = np.sqrt(np.sum((mri_fid - head_fid) ** 2, 1))
+        dists *= 1000
+        self.fit_eval_fid = "Fiducials Error: NAS %.1f mm, LAP %.1f mm, RAP %.1f mm" % tuple(dists)
+
+    @on_trait_change('hsp_obj.src.data.points', True)
+    def _update_fit_eval_pts(self):
+        if np.all(self.hsp_obj.points == 0):
+            self.fit_eval_pts = '-'
+            return
+
+        mri_pts = np.array(self.mri_obj.src.data.points)
+        head_pts = np.array(self.hsp_obj.src.data.points)
+        dists = cdist(head_pts, mri_pts, 'euclidean')
+        dists = np.min(dists, 1)
+        av_dist = np.mean(dists)
+        self.fit_eval_pts = "Average Points Error: %.1f mm" % (av_dist * 1000)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='RAS')
@@ -734,6 +767,7 @@ class CoregFrame(HasTraits):
                              self.fid_panel.LAP,
                              self.fid_panel.RAP))
             self.coreg.mri_fid = fid
+            self._update_fit_eval_fid()
         else:
             self.hsp_obj.visible = False
             self.hsp_fid_obj.visible = False
