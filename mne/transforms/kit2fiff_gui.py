@@ -72,11 +72,8 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     # Events
     events = Array(Int, shape=(None,), value=[])
-    stim_chs = Enum(">", "<", desc="Binary coding of trigger values in "
-                    "event channels. <: little endian; >: big endian.")
-    stim_slope = Enum("-", "+", desc="Whether events are marked by a decrease "
-                      "(trough) or an increase (peak) in trigger channel "
-                      "values")
+    stim_chs = Enum(">", "<")
+    stim_slope = Enum("-", "+")
     event_info = Property(Str, depends_on=['events', 'stim_chs'])
 
     # Visualization
@@ -93,16 +90,23 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
                               Item('sqd_fname', show_label=False, style='readonly'),
+                              Item('hsp_file', label='Dig Head Shape'),
+                              Item('hsp_fname', show_label=False, style='readonly'),
                               Item('fid_file', label='Dig Points'),
                               Item('fid_fname', show_label=False, style='readonly'),
-                              Item('hsp_file', label='Head Shape'),
-                              Item('hsp_fname', show_label=False, style='readonly'),
                               Item('use_mrk', editor=use_editor, style='custom'),
                               label="Sources", show_border=True),
-                    VGroup(Item('stim_chs', label="Stim Channel Order", style='custom'),
+                    VGroup(Item('stim_chs', label="Stim Channel Binary Coding", style='custom',
+                                editor=EnumEditor(values={'>': '1:low to high',
+                                                          '<': '2:high to low'}, cols=2),
+                                help="Specifies the bit order in event channels. Assign the "
+                                "first bit (1) to the first or the last trigger channel."),
                            Item('stim_slope', label="Stim Channel Event Type", style='custom',
                                 editor=EnumEditor(values={'+': '2:Peak',
-                                                          '-': '1:Trough'}, cols=2)),
+                                                          '-': '1:Trough'}, cols=2),
+                                help="Whether events are marked by a decrease "
+                                "(trough) or an increase (peak) in trigger "
+                                "channel values"),
 #                            Item('event_info', style='readonly', show_label=False),
                            label='Events', show_border=True),
                        Item('save_as', enabled_when='can_save', show_label=False),
