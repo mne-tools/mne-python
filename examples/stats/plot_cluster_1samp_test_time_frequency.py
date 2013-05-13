@@ -67,7 +67,7 @@ evoked_data = np.mean(data, 0)
 # data -= evoked_data[None,:,:] # remove evoked component
 # evoked_data = np.mean(data, 0)
 
-# Factor to downsample the temporal dimension of the PSD computed by
+# Factor to down-sample the temporal dimension of the PSD computed by
 # single_trial_power.  Decimation occurs after frequency decomposition and can
 # be used to reduce memory usage (and possibly computational time of downstream
 # operations such as nonparametric statistics) if you don't need high
@@ -85,8 +85,8 @@ time_mask = (times > 0) & (times < 400)
 evoked_data = evoked_data[:, time_mask]
 times = times[time_mask]
 
-# The time vector reflects the origininal time points, not the decimated time
-# points returned by single trial powr.  Be sure to decimate the time mask
+# The time vector reflects the original time points, not the decimated time
+# points returned by single trial power. Be sure to decimate the time mask
 # appropriately.
 epochs_power = epochs_power[..., time_mask[::decim]]
 

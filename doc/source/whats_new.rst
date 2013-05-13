@@ -93,6 +93,8 @@ Changelog
 
    - Add support for --tstart option in mne_compute_proj_eog.py by `Alex Gramfort`_
 
+   - Add two-way repeated measures ANOVA for mass-univariate statistics by `Denis Engemann`_, `Eric Larson`_ and `Alex Gramfort`_
+
 
 API
 ~~~
