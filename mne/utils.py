@@ -105,11 +105,8 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
 
     Parameters
     ----------
-    tstart : float
-        Start time to use for rank estimation. Defaul is 0.0.
-    tstop : float | None
-        End time to use for rank estimation. Default is 30.0.
-        If None, the end time of the raw file is used.
+    data : array
+        Data to estimate the rank of (should be 2-dimensional).
     tol : float
         Tolerance for singular values to consider non-zero in
         calculating the rank. The singular values are calculated
@@ -129,7 +126,6 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     s : array
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
-
     """
     if copy is True:
         data = data.copy()
