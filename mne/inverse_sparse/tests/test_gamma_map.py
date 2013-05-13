@@ -9,7 +9,7 @@ from nose.tools import assert_true
 import mne
 from mne.datasets import sample
 from mne import fiff, read_cov, read_forward_solution
-from mne.sparse_learning import gamma_map_inverse
+from mne.inverse_sparse import gamma_map
 
 data_path = sample.data_path()
 fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -30,19 +30,19 @@ def test_gamma_map():
     """Test Gamma MAP inverse"""
 
     alpha = 0.2
-    stc = gamma_map_inverse(evoked, forward, cov, alpha, tol=1e-5,
-                            xyz_same_gamma=True, update_mode=2)
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
+                    xyz_same_gamma=True, update_mode=1)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertno)[idx] == 96397)
 
-    stc = gamma_map_inverse(evoked, forward, cov, alpha, tol=1e-5,
-                            xyz_same_gamma=False, update_mode=2)
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
+                    xyz_same_gamma=False, update_mode=1)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertno)[idx] == 82010)
 
     # force fixed orientation
-    stc = gamma_map_inverse(evoked, forward, cov, alpha, tol=1e-5,
-                            xyz_same_gamma=False, update_mode=3,
-                            loose=None)
+    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
+                    xyz_same_gamma=False, update_mode=2,
+                    loose=None)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertno)[idx] == 83398)

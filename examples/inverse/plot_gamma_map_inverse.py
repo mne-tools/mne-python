@@ -16,7 +16,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.sparse_learning import gamma_map_inverse
+from mne.inverse_sparse import gamma_map
 from mne.viz import plot_sparse_source_estimates
 
 data_path = sample.data_path()
@@ -26,8 +26,9 @@ evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Read the evoked response and crop it
-evoked = mne.fiff.read_evoked(evoked_fname, setno=0, baseline=(None, 0))
-evoked.crop(tmin=0, tmax=0.3)
+setno = 'Left visual'
+evoked = mne.fiff.read_evoked(evoked_fname, setno=setno, baseline=(None, 0))
+evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True, force_fixed=False)
@@ -38,13 +39,13 @@ cov = mne.cov.regularize(cov, evoked.info)
 
 # Run the Gamma-MAP method
 alpha = 0.5
-stc = gamma_map_inverse(evoked, forward, cov, alpha, xyz_same_gamma=True)
+stc = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True)
 
 # View in 2D and 3D ("glass" brain like 3D plot)
 
 # show the sources as spheres scaled by their strength
 scale_factors = np.max(np.abs(stc.data), axis=1)
-scale_factors /= np.max(scale_factors)
+scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
 
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),

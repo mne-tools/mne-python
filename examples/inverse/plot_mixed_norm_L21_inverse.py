@@ -18,7 +18,7 @@ print __doc__
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.mixed_norm import mixed_norm
+from mne.inverse_sparse import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.viz import plot_sparse_source_estimates
 

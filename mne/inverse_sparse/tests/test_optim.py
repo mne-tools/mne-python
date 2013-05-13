@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.mixed_norm.optim import mixed_norm_solver, tf_mixed_norm_solver
+from mne.inverse_sparse.optim import mixed_norm_solver, tf_mixed_norm_solver
 
 
 def _generate_tf_data():

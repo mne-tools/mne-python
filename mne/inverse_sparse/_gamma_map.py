@@ -10,9 +10,9 @@ import logging
 logger = logging.getLogger('mne')
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..mixed_norm.inverse import _make_sparse_stc, _prepare_gain
 from ..minimum_norm.inverse import _prepare_forward
 from .. import verbose
+from .inverse import _make_sparse_stc, _prepare_gain
 
 
 @verbose
@@ -35,8 +35,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     group_size : int
         Number of consecutive sources which use the same gamma.
     update_mode : int
-        Update mode, 1: EM update (slow, not recommended), 2: MacKay update
-        (fast, default), 3: Modified MacKay update.
+        Update mode, 1: MacKay update (default), 3: Modified MacKay update.
     gammas : array, shape=(n_sources,)
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
@@ -68,9 +67,9 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
     n_sensors, n_times = M.shape
 
     # apply normalization so the numerical values are sane
-    normalize_constant = linalg.norm(np.dot(M, M.T), ord='fro')
-    M /= np.sqrt(normalize_constant)
-    alpha /= normalize_constant
+    M_normalize_constant = linalg.norm(np.dot(M, M.T), ord='fro')
+    M /= np.sqrt(M_normalize_constant)
+    alpha /= M_normalize_constant
     G_normalize_constant = linalg.norm(G, ord=np.inf)
     G /= G_normalize_constant
 
@@ -83,7 +82,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
     gammas_full_old = gammas.copy()
 
-    if update_mode == 3:
+    if update_mode == 2:
         denom_fun = np.sqrt
     else:
         # do nothing
@@ -112,15 +111,10 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         A = np.dot(CMinvG.T, M)  # mult. w. Diag(gamma) in gamma update
 
         if update_mode == 1:
-            # M-SBL (EM) update (9) in [1]
-            numer = (gammas ** 2 * np.mean(np.abs(A) ** 2, axis=1)
-                     + gammas * (1 - gammas * np.sum(G * CMinvG, axis=0)))
-            denom = None
-        elif update_mode == 2:
             # MacKay fixed point update (10) in [1]
             numer = gammas ** 2 * np.mean(np.abs(A) ** 2, axis=1)
             denom = gammas * np.sum(G * CMinvG, axis=0)
-        elif update_mode == 3:
+        elif update_mode == 2:
             # modified MacKay fixed point update (11) in [1]
             numer = gammas * np.sqrt(np.mean(np.abs(A) ** 2, axis=1))
             denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
@@ -166,16 +160,17 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         print('\nConvergence NOT reached !\n')
 
     # undo normalization and compute final posterior mean
-    n_const = np.sqrt(normalize_constant) / G_normalize_constant
+    n_const = np.sqrt(M_normalize_constant) / G_normalize_constant
     x_active = n_const * gammas[:, None] * A
 
     return x_active, active_set
 
 
 @verbose
-def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
-                      xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=2,
-                      gammas=None, pca=True, verbose=None):
+def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
+              xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
+              gammas=None, pca=True, return_residual=False,
+              verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -212,8 +207,7 @@ def gamma_map_inverse(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     tol : float
         Tolerance parameter for convergence.
     update_mode : int
-        Update mode, 1: EM update (slow, not recommended), 2: MacKay update
-        (fast, default), 3: Modified MacKay update.
+        Update mode, 1: MacKay update (default), 2: Modified MacKay update.
     gammas : array, shape=(n_sources,)
         Initial values for posterior variances (gammas). If None, a
         variance of 1.0 is used.
