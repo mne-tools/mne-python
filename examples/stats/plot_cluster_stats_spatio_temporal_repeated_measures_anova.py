@@ -72,7 +72,10 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 inverse_operator = read_inverse_operator(fname_inv)
-sample_vertices = [s['vertno'] for s in inverse_operator['src']]
+
+# we'll only use one hemisphere to speed up this example
+# instead of a second vertex array we'll pass an empty array
+sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([])]
 
 #    Let's average and compute inverse, then resample to speed things up
 conditions = []
@@ -95,7 +98,8 @@ tstep = conditions[0].tstep
 #    we will simulate this by just having each "subject" have the same
 #    response (just noisy in source space) here.
 
-n_vertices_sample, n_times = conditions[0].data.shape
+# we'll only consider the left hemisphere in this example.
+n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 7
 print 'Simulating data for %d subjects.' % n_subjects
 
@@ -103,7 +107,7 @@ print 'Simulating data for %d subjects.' % n_subjects
 np.random.seed(0)
 X = randn(n_vertices_sample, n_times, n_subjects, 4) * 10
 for ii, condition in enumerate(conditions):
-    X[:, :, :, ii] += condition.data[:, :, np.newaxis]
+    X[:, :, :, ii] += condition.lh_data[:, :, np.newaxis]
 
 #    It's a good idea to spatially smooth the data, and for visualization
 #    purposes, let's morph these to fsaverage, which is a grade 5 source space
@@ -111,7 +115,7 @@ for ii, condition in enumerate(conditions):
 #    each subject's data separately (and you might want to use morph_data
 #    instead), but here since all estimates are on 'sample' we can use one
 #    morph matrix for all the heavy lifting.
-fsave_vertices = [np.arange(10242), np.arange(10242)]
+fsave_vertices = [np.arange(10242), np.array([])]  # right hemisphere is empty
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]
@@ -129,7 +133,7 @@ X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
 X = np.transpose(X, [2, 1, 0, 3])  # First we permute dimensions
 # finally we split the array into a list a list of conditions
-# and discard the empty dimension resulting from the slit using numpy squeeze
+# and discard the empty dimension resulting from the split using numpy squeeze
 X = [np.squeeze(x) for x in np.split(X, 4, axis=-1)]
 
 ###############################################################################
@@ -177,19 +181,23 @@ def stat_fun(*args):
 
 #    To use an algorithm optimized for spatio-temporal clustering, we
 #    just pass the spatial connectivity matrix (instead of spatio-temporal)
+
+source_space = grade_to_tris(5)
+# as we only have one hemisphere we need only need half the connectivity
+lh_source_space = source_space[source_space[:, 0] < 10242]
 print 'Computing connectivity.'
-connectivity = spatial_tris_connectivity(grade_to_tris(5))
+connectivity = spatial_tris_connectivity(lh_source_space)
 
 #    Now let's actually do the clustering. Please relax, on a small
-#    notebook with 2CPUs this will take a couple of minutes ...
+#    notebook and one single thread only this will take a couple of minutes ...
 #    To speed things up a bit we will
-pthresh = 0.0005  # ... set the threshold rather high to save time.
+pthresh = 0.001  # ... set the threshold rather high to save time.
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
-n_permutations = 256  # ... run fewer permutations (reduces sensitivity)
+n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
 
 print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = \
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
+    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
@@ -226,16 +234,16 @@ stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
 subjects_dir = op.join(data_path, 'subjects')
 # The brighter the color, the stronger the interaction between
 # stimulus modality and stimulus location
-brains = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both',
+
+brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'lh',
                                   subjects_dir=subjects_dir,
                                   time_label='Duration significant (ms)')
-for idx, brain in enumerate(brains):
-    brain.set_data_time_index(0)
-    # The colormap requires brain data to be scaled -fmax -> fmax
-    brain.scale_data_colormap(fmin=5, fmid=10, fmax=30, transparent=True)
-    brain.show_view('lateral')
-    brain.save_image('clusters-%s.png' % ('lh' if idx == 0 else 'rh'))
 
+brain.set_data_time_index(0)
+brain.scale_data_colormap(fmin=5, fmid=10, fmax=30, transparent=True)
+brain.show_view('lateral')
+brain.save_image('cluster-lh.png')
+brain.show_view('medial')
 
 ###############################################################################
 # Finally, let's investigate interaction effect by reconstructing the time
@@ -249,7 +257,8 @@ times = np.arange(X[0].shape[1]) * tstep * 1e3
 
 pl.clf()
 colors = ['y', 'b', 'g', 'purple']
-for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_id)):
+for ii, (condition, color, eve_id) in enumerate(
+    zip(X, colors, ['l_aud', 'r_aud', 'l_vis', 'r_vis'])):
     # extract time course at cluster vertices
     condition = condition[:, :, inds_v]
     # normally we would normalize values across subjects but
@@ -268,5 +277,5 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_id)):
 pl.fill_betweenx(np.arange(*pl.ylim()), times[inds_t[0]],
         times[t_inds[-1]], color='orange', alpha=0.3)
 pl.legend()
-pl.title('Interaction between stimulus modality and location.')
+pl.title('Interaction between stimulus-modality and location.')
 pl.show()

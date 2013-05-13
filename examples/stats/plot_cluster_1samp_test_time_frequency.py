@@ -86,7 +86,7 @@ evoked_data = evoked_data[:, time_mask]
 times = times[time_mask]
 
 # The time vector reflects the original time points, not the decimated time
-# points returned by single trial power.  Be sure to decimate the time mask
+# points returned by single trial power. Be sure to decimate the time mask
 # appropriately.
 epochs_power = epochs_power[..., time_mask[::decim]]
 

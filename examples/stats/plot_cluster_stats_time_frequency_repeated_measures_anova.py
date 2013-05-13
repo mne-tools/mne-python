@@ -75,7 +75,7 @@ times = 1e3 * epochs.times  # change unit to ms
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 Fs = raw.info['sfreq']  # sampling in Hz
-n_cycles = 1.5
+n_cycles = frequencies / frequencies[0]
 baseline_mask = times[::decim] < 0
 
 # now create TFR representations for all conditions
@@ -185,7 +185,7 @@ f_thresh = f_threshold_twoway_rm(n_replications, factor_levels, effects, pthresh
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
-    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=2,
+    epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
     n_permutations=n_permutations)
 
 # Create new stats image with only significant clusters
