@@ -32,7 +32,30 @@ out_wildcard = ("Pickled KIT parameters (*.pickled)|*.pickled|"
                 "Tab separated values file (*.txt)|*.txt")
 out_ext = ['.pickled', '.txt']
 
-use_editor = CheckListEditor(cols=1, values=[(i, str(i)) for i in xrange(5)])
+use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in xrange(5)])
+use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+
+mrk_view_editable = View(
+        VGroup('file',
+               Item('name', show_label=False, style='readonly'),
+               HGroup(
+                      Item('use', editor=use_editor_v, enabled_when="enabled", style='custom'),
+                      'points',
+                      ),
+               HGroup(Item('clear', enabled_when="can_save", show_label=False),
+                      Item('save_as', enabled_when="can_save", show_label=False)),
+                  ))
+
+mrk_view_basic = View(
+        VGroup('file',
+               Item('name', show_label=False, style='readonly'),
+               Item('use', editor=use_editor_h, enabled_when="enabled", style='custom'),
+               HGroup(Item('clear', enabled_when="can_save", show_label=False),
+                      Item('edit', show_label=False),
+                      Item('save_as', enabled_when="can_save", show_label=False)),
+                  ))
+
+mrk_view_edit = View(VGroup('points'))
 
 
 
@@ -91,16 +114,9 @@ class MarkerPointSource(MarkerPoints):
                "marker.")
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
+    edit = Button(desc="Edit the marker coordinates manually")
 
-    view = View(VGroup('file',
-                       Item('name', show_label=False, style='readonly'),
-                       HGroup(
-                              Item('use', editor=use_editor, enabled_when="enabled", style='custom'),
-                              'points',
-                              ),
-                       HGroup(Item('clear', enabled_when="can_save", show_label=False),
-                              Item('save_as', enabled_when="can_save", show_label=False)),
-                       ))
+    view = mrk_view_basic
 
     @cached_property
     def _get_enabled(self):
@@ -132,6 +148,9 @@ class MarkerPointSource(MarkerPoints):
 
     def _clear_fired(self):
         self.reset_traits(['file', 'points'])
+
+    def _edit_fired(self):
+        self.edit_traits(view=mrk_view_edit)
 
 
 
@@ -248,6 +267,30 @@ class MarkerPointDest(MarkerPoints):
 
 
 
+class MarkerStats(HasPrivateTraits):
+    """Provides stats on the relationship between two markers"""
+    mrk1 = Instance(MarkerPointSource)
+    mrk2 = Instance(MarkerPointSource)
+
+    # stats
+    distance = Property(Str, depends_on=['mrk1.points', 'mrk2.points'])
+
+    view = View(VGroup(Item('distance', style='readonly'),
+                       label='Stats', show_border=True))
+
+    @cached_property
+    def _get_distance(self):
+        if (self.mrk1 is None or self.mrk2 is None
+            or (not np.any(self.mrk1.points))
+            or (not np.any(self.mrk2.points))):
+            return ""
+
+        ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))
+        desc = '\t'.join('%.1f mm' % (d * 1000) for d in ds)
+        return desc
+
+
+
 class MarkerPanel(HasTraits):
     """Has two marker points sources and interpolates to a third one"""
     mrk1_file = File
@@ -255,6 +298,7 @@ class MarkerPanel(HasTraits):
     mrk1 = Instance(MarkerPointSource)
     mrk2 = Instance(MarkerPointSource)
     mrk3 = Instance(MarkerPointDest)
+    stats = Instance(MarkerStats)
 
     # Visualization
     scene = Instance(MlabSceneModel, ())
@@ -279,6 +323,9 @@ class MarkerPanel(HasTraits):
         mrk = MarkerPointDest(src1=self.mrk1, src2=self.mrk2)
         return mrk
 
+    def _stats_default(self):
+        return MarkerStats(mrk1=self.mrk1, mrk2=self.mrk2)
+
     view = View(VGroup(VGroup(Item('mrk1', style='custom'),
                               Item('mrk1_obj', style='custom'),
                               show_labels=False,
@@ -287,6 +334,7 @@ class MarkerPanel(HasTraits):
                               Item('mrk2_obj', style='custom'),
                               show_labels=False,
                               label="Source Marker 2", show_border=True),
+                       Item('stats', show_label=False, style='custom'),
                        VGroup(Item('mrk3', style='custom'),
                               Item('mrk3_obj', style='custom'),
                               show_labels=False,
