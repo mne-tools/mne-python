@@ -426,9 +426,9 @@ class RawKIT(Raw):
         if isinstance(stim, str):
             picks = pick_types(self.info, meg=False, misc=True, exclude=[])[:8]
             if stim == '<':
-                stim = picks
-            elif stim == '>':
                 stim = picks[::-1]
+            elif stim == '>':
+                stim = picks
             else:
                 raise ValueError("stim needs to be list of int, '>' or "
                                  "'<', not %r" % str(stim))
