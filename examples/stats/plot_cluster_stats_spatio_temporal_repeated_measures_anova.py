@@ -191,7 +191,7 @@ connectivity = spatial_tris_connectivity(lh_source_space)
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
 #    To speed things up a bit we will
-pthresh = 0.001  # ... set the threshold rather high to save time.
+pthresh = 0.001
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
 n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
 
@@ -269,11 +269,10 @@ for ii, (condition, color, eve_id) in enumerate(
     pl.plot(times, mean_tc.T, color=color, label=eve_id)
     pl.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
             alpha=0.5, label='')
-    # if ii < 1:
-    pl.xlabel('Time (ms)')
-    pl.ylabel('Activation (F-values)')
-    pl.xlim(times[[0, -1]])
 
+pl.xlabel('Time (ms)')
+pl.ylabel('Activation (F-values)')
+pl.xlim(times[[0, -1]])
 pl.fill_betweenx(np.arange(*pl.ylim()), times[inds_t[0]],
         times[t_inds[-1]], color='orange', alpha=0.3)
 pl.legend()
