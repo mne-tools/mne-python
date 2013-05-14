@@ -76,7 +76,7 @@ def test_f_twoway_rm():
     # check for dimension handling
     f_twoway_rm(data, effects[n_levels], picks, correction=correction)
 
-    # now check against external Software resylts
+    # now check against external software results
     data = np.array(eval(test_data))
     fvals, pvals = f_twoway_rm(data, [2, 3])
 
