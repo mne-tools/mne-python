@@ -1218,6 +1218,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
+        e = _check_add_drop_log(e, indices)
         e.drop_epochs(inds)
 
 
@@ -1467,7 +1468,8 @@ def _check_add_drop_log(epochs, indices):
     """Aux Function """
     log = 'equalized count'
     if hasattr(epochs, 'drop_log'):
-        drop_log = [[log] if i in indices else l
+        # let's not overwrite exisiting logs
+        drop_log = [[log] if (i in indices and not l) else l
                     for i, l in enumerate(epochs.drop_log)]
     else:
         drop_log = [[log] if l in indices else []
