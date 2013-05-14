@@ -133,7 +133,7 @@ class Epochs(ProjMixin):
     drop_log : list of lists
         This list (same length as events) contains the channel(s),
         if any, that caused an event in the original event list
-        to be dropped by drop_bad_epochs().
+        to be dropped by drop_bad_epochs()
     verbose : bool, str, int, or None
         See above.
 
@@ -1116,6 +1116,7 @@ class Epochs(ProjMixin):
         # need to re-index indices
         indices = np.concatenate([eq[inds]
                                   for eq, inds in zip(eq_inds, indices)])
+        epochs = _check_drop_log(epochs, indices)
         epochs.drop_epochs(indices)
         # actually remove the indices
         return epochs, indices
@@ -1218,6 +1219,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
         e.drop_epochs(inds)
+        e.drop_log
 
 
 def _get_drop_indices(event_times, method):
@@ -1460,3 +1462,16 @@ def bootstrap(epochs, random_state=None):
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
+
+
+def _check_drop_log(epochs, indices):
+    """Aux Function """
+    log = 'equalized count'
+    if hasattr(epochs, 'drop_log'):
+        drop_log = [[log] if i in indices else l
+                    for i, l in enumerate(epochs.drop_log)]
+    else:
+        drop_log = [[log] if l in indices else []
+                    for l in xrange(len(epochs.events))]
+    epochs.drop_log = drop_log
+    return epochs
