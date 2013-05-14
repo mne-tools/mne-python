@@ -1116,6 +1116,7 @@ class Epochs(ProjMixin):
         # need to re-index indices
         indices = np.concatenate([eq[inds]
                                   for eq, inds in zip(eq_inds, indices)])
+        epochs = _check_add_drop_log(epochs, indices)
         epochs.drop_epochs(indices)
         # actually remove the indices
         return epochs, indices
@@ -1217,6 +1218,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
+        e = _check_add_drop_log(e, indices)
         e.drop_epochs(inds)
 
 
@@ -1460,3 +1462,12 @@ def bootstrap(epochs, random_state=None):
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
+
+
+def _check_add_drop_log(epochs, indices):
+    """Aux Function"""
+    # never called before dropping bads, so its safe to iterate over log
+    # ... we'll not gonna change existing logs
+    epochs.drop_log = [['EQUALIZED_COUNT'] if (i in indices and not l) else l
+                       for i, l in enumerate(epochs.drop_log)]
+    return epochs
